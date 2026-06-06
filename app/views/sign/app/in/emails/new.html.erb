@@ -14,7 +14,7 @@
       </div>
 
       <%= form_with model: @user_email,
-                    url: sign_app_in_email_path,
+                    url: sign_app_sign_in_email_path,
                     data: { turbo: false } do |form| %>
         <%= hidden_field_tag :pt, pt if pt.present? %>
 
@@ -50,7 +50,7 @@
       <% end %>
 
       <div>
-        <%= link_to new_sign_app_sign_in_path(pt: pt) do %>
+        <%= link_to sign_app_sign_in_entrance_path(pt: pt) do %>
           <span><%= t("sign.app.authentication.new.back") %></span>
         <% end %>
       </div>

@@ -30,7 +30,11 @@ module CommonOtp
   def generate_hotp_code
     sec = ROTP::Base32.random
     hotp = ROTP::HOTP.new(sec)
-    counter = rand(1...1_000_000) * 2
+    # Seed the HOTP counter with a CSPRNG. The counter is a one-time-use secret
+    # input, so it must not come from the non-cryptographic Kernel#rand.
+    # SecureRandom.random_number(999_999) yields 0..999_998; +1 -> 1..999_999;
+    # *2 keeps the historical even-valued counter in range 2..1_999_998.
+    counter = (SecureRandom.random_number(999_999) + 1) * 2
     [sec, counter, hotp.at(counter)]
   end
 

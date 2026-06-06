@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class EmailsController < Sign::App::ApplicationController
+      class EmailsController < ::Sign::App::ApplicationController
         include ::SignSettingsAuthorityRedirect
         include ::VerificationClient
 

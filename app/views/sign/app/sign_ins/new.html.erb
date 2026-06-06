@@ -4,10 +4,10 @@
 <p><%= t("sign.app.authentication.new.description") %></p>
 
 <ul>
-  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_in_email_path(pt: pt) %></li>
-  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_in_passkey_path(pt: pt) %>
+  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_sign_in_email_path(pt: pt) %></li>
+  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_sign_in_passkey_path(pt: pt) %>
   </li>
-  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_sign_app_in_secret_credential_path(pt: pt) %>
+  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_sign_app_sign_in_secret_credential_path(pt: pt) %>
   </li>
 </ul>
 
@@ -23,6 +23,6 @@
   <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 
-<%= link_to new_sign_app_sign_up_path(ri: params[:ri], pt: signed_pt_param) do %>
+<%= link_to sign_app_sign_up_entrance_path(ri: params[:ri], pt: signed_pt_param) do %>
   <%= t("sign.app.authentication.new.links.registration") %>
 <% end %>

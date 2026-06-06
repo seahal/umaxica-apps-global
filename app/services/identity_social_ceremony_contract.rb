@@ -130,7 +130,17 @@ module IdentitySocialCeremonyContract
     raise IdentitySocialCeremonyContract::Error, "unsafe header is forbidden" if %w(crit jku jwk x5u).any? { |key| header.key?(key) }
   end
 
-  def decode_unverified_payload(token)
+  # Decodes the JWT WITHOUT signature verification. The returned payload is
+  # attacker-controlled and MUST NOT be trusted: use it only to extract routing
+  # claims (the `surface` used to pick issuer/audience, and on the acme social
+  # path the `session_ref`/`operation` used for routing and fail-safe
+  # rejection). Every authentication, authorization, account-link, identity
+  # creation, signup-finalization, and final-commit decision must go through the
+  # verified path (`decode_verified_payload` /
+  # `IdentitySocialCeremonyResult.decode`), which re-checks these fields against
+  # the cryptographically verified payload. See the allowlist test in
+  # test/services/identity/social_ceremony_untrusted_payload_allowlist_test.rb.
+  def decode_untrusted_routing_payload(token)
     payload, = JWT.decode(token, nil, false)
     payload
   rescue JWT::DecodeError => e

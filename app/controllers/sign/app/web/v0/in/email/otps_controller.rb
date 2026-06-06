@@ -7,7 +7,7 @@ module Sign
       module V0
         module In
           module Email
-            class OtpsController < Sign::App::ApplicationController
+            class OtpsController < ::Sign::App::ApplicationController
               AUTHENTICATION_MODE = :guest
 
               def create

@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class TelephonesController < Sign::App::ApplicationController
+      class TelephonesController < ::Sign::App::ApplicationController
         include CommonRedirect
         include CommonOtp
         include SignTelephoneRegistrable

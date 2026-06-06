@@ -3,7 +3,7 @@
 
 module Sign
   module Com
-    class SelectorsController < Sign::Com::ApplicationController
+    class SelectorsController < ::Sign::Com::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_visitor!

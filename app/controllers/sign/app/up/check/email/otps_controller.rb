@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Email
-          class OtpsController < Sign::App::Up::EmailsController
+          class OtpsController < ::Sign::App::Up::EmailsController
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest

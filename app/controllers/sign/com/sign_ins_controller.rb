@@ -3,7 +3,7 @@
 
 module Sign
   module Com
-    class SignInsController < Sign::Com::ApplicationController
+    class SignInsController < ::Sign::Com::ApplicationController
       AUTHENTICATION_MODE = :guest
     end
   end

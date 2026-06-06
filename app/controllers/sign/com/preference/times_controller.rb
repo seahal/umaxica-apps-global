@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Preference
-      class TimesController < Sign::Com::PreferencesBaseController
+      class TimesController < ::Sign::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

@@ -48,7 +48,8 @@ class IdentitySecretCredentialCeremonyCandidateStore
 
   def store!(surface:, actor_ref:, session_ref:, transaction_id:, operation:, password_digest:, name:, enabled:,
              expires_at:)
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential password digest is required" if password_digest.blank?
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "secret credential password digest is required" if password_digest.blank?
 
     ref = SecureRandom.uuid
     payload = {
@@ -73,7 +74,8 @@ class IdentitySecretCredentialCeremonyCandidateStore
     raise IdentitySecretCredentialCeremonyContract::Error, "secret credential candidate is not found" if payload.blank?
 
     candidate = candidate_from(payload)
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "secret credential candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
 
     candidate
   end

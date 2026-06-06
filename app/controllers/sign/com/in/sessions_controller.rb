@@ -73,7 +73,10 @@ module Sign
             consume_session_limit_gate!
             session.delete(:pending_login_visitor_id)
             log_out
-            redirect_to(new_sign_com_sign_in_path(ri: params[:ri]), notice: I18n.t("sign.app.in.session.cancelled"))
+            redirect_to(
+              sign_com_sign_in_entrance_path(ri: params[:ri]),
+              notice: I18n.t("sign.app.in.session.cancelled"),
+            )
           end
         end
 
@@ -97,7 +100,10 @@ module Sign
         end
 
         def redirect_to_login
-          redirect_to(new_sign_com_sign_in_path(ri: params[:ri]), alert: I18n.t("sign.app.in.session.login_required"))
+          redirect_to(
+            sign_com_sign_in_entrance_path(ri: params[:ri]),
+            alert: I18n.t("sign.app.in.session.login_required"),
+          )
         end
 
         def redirect_to_return_path(notice:)

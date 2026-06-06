@@ -7,7 +7,7 @@ module Sign
   module App
     module In
       module Challenge
-        class PasskeysController < Sign::App::ApplicationController
+        class PasskeysController < ::Sign::App::ApplicationController
           include SignWebauthn
 
           include SessionLimitGate
@@ -108,7 +108,7 @@ module Sign
 
             clear_pending_mfa!
             redirect_to(
-              new_sign_app_sign_in_path,
+              sign_app_sign_in_entrance_path,
               alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )
@@ -169,7 +169,7 @@ module Sign
               )
             else
               redirect_to(
-                new_sign_app_sign_in_path,
+                sign_app_sign_in_entrance_path,
                 alert: I18n.t("sign.app.in.mfa.verification_failed"),
                 status: :see_other,
               )

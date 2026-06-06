@@ -54,7 +54,8 @@ class IdentitySecretCredentialCeremonyResult
     )
     IdentitySecretCredentialCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentitySecretCredentialCeremonyContract.validate_timestamp!(payload, "verified_at")
-    raise IdentitySecretCredentialCeremonyContract::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentitySecretCredentialCeremonyContract::LEEWAY
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentitySecretCredentialCeremonyContract::LEEWAY
   end
 
   def self.default_claims(attributes, now:)

@@ -30,7 +30,10 @@ class IdentitySocialCeremonyResultIssuer
 
   def issue!
     validate_grant!
-    IdentitySocialCeremonyResult.issue(result_claims, issuer_id: IdentitySocialCeremonyContract.sign_issuer_id(surface), now: now)
+    IdentitySocialCeremonyResult.issue(
+      result_claims,
+      issuer_id: IdentitySocialCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   private
@@ -40,18 +43,27 @@ class IdentitySocialCeremonyResultIssuer
   def validate_grant!
     raise IdentitySocialCeremonyContract::Error, "social ceremony grant is required" if grant_token.blank?
     raise IdentitySocialCeremonyContract::Error, "provider subject is required" if provider_subject.blank?
-    raise IdentitySocialCeremonyContract::Error, "grant surface does not match ceremony" unless grant["surface"].to_s == surface
-    raise IdentitySocialCeremonyContract::Error, "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
-    raise IdentitySocialCeremonyContract::Error, "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
-    raise IdentitySocialCeremonyContract::Error, "grant operation does not match ceremony" unless grant["operation"].to_s == operation
-    raise IdentitySocialCeremonyContract::Error, "grant provider does not match ceremony" unless grant["provider"].to_s == provider
-    raise IdentitySocialCeremonyContract::Error, "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+    raise IdentitySocialCeremonyContract::Error,
+          "grant surface does not match ceremony" unless grant["surface"].to_s == surface
+    raise IdentitySocialCeremonyContract::Error,
+          "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
+    raise IdentitySocialCeremonyContract::Error,
+          "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
+    raise IdentitySocialCeremonyContract::Error,
+          "grant operation does not match ceremony" unless grant["operation"].to_s == operation
+    raise IdentitySocialCeremonyContract::Error,
+          "grant provider does not match ceremony" unless grant["provider"].to_s == provider
+    raise IdentitySocialCeremonyContract::Error,
+          "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentitySocialCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentitySocialCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
   end
 
   def grant
-    @grant ||= IdentitySocialCeremonyGrant.decode(grant_token, issuer_id: IdentitySocialCeremonyContract.acme_issuer_id(surface), now: now)
+    @grant ||= IdentitySocialCeremonyGrant.decode(
+      grant_token,
+      issuer_id: IdentitySocialCeremonyContract.acme_issuer_id(surface), now: now,
+    )
   end
 
   def transaction
@@ -67,7 +79,10 @@ class IdentitySocialCeremonyResultIssuer
   end
 
   def provider_subject_digest
-    @provider_subject_digest ||= IdentitySocialCeremonyContract.provider_subject_digest(provider: provider, subject: provider_subject)
+    @provider_subject_digest ||= IdentitySocialCeremonyContract.provider_subject_digest(
+      provider: provider,
+      subject: provider_subject,
+    )
   end
 
   def candidate

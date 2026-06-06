@@ -101,7 +101,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     get sign_org_settings_passkeys_url(ri: "jp"), headers: @host_headers
 
     assert_response :redirect
-    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{new_sign_org_sign_in_path(ri: "jp")}",
+    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{sign_org_sign_in_entrance_path(ri: "jp")}",
                  jump_rt_url_from_location(response.headers["Location"])
   end
 
@@ -215,7 +215,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects missing challenge id" do
-    post verification_sign_org_settings_passkeys_url(ri: "jp"),
+    post sign_org_settings_passkeys_verification_url(ri: "jp"),
          params: { credential: { id: "cred-id" } },
          headers: @headers,
          as: :json

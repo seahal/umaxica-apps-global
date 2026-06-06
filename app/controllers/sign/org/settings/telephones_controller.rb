@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Settings
-      class TelephonesController < Sign::Org::ApplicationController
+      class TelephonesController < ::Sign::Org::ApplicationController
         include SignOperatorTelephoneRegistrable
 
         include ::VerificationOperator

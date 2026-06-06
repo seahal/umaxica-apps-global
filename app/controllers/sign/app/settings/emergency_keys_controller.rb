@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class EmergencyKeysController < Sign::App::ApplicationController
+      class EmergencyKeysController < ::Sign::App::ApplicationController
         AUTHENTICATION_MODE = :private
         REVEAL_PURPOSE = "client.recovery_secret_credential"
 

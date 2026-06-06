@@ -38,14 +38,14 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    get new_sign_com_in_passkey_path(ri: "jp"), headers: @origin_headers
+    get new_sign_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
   end
 
   test "options returns challenge for known identifier" do
     if true # Replaced STUB stub with real execution as per G1
-      post options_sign_com_in_passkeys_path(ri: "jp"),
+      post sign_com_sign_in_passkey_options_path(ri: "jp"),
            params: { identifier: @visitor.visitor_emails.first.address },
            headers: @origin_headers
     end
@@ -60,7 +60,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   test "options returns error when identifier is unknown" do
     if true # Replaced STUB stub with real execution as per G1
-      post options_sign_com_in_passkeys_path(ri: "jp"),
+      post sign_com_sign_in_passkey_options_path(ri: "jp"),
            params: { identifier: "missing@example.com" },
            headers: @origin_headers
     end
@@ -71,7 +71,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   test "verification logs visitor in on success" do
     if true # Replaced STUB stub with real execution as per G1
-      post options_sign_com_in_passkeys_path(ri: "jp"),
+      post sign_com_sign_in_passkey_options_path(ri: "jp"),
            params: { identifier: @visitor.visitor_emails.first.address },
            headers: @origin_headers
     end
@@ -84,7 +84,7 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post verification_sign_com_in_passkeys_path(ri: "jp"),
+      post sign_com_sign_in_passkey_verification_path(ri: "jp"),
            params: {
              challenge_id: challenge_id,
              credential: {
@@ -102,6 +102,6 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_com_in_check_path(ri: "jp"), response.parsed_body["redirect_url"]
+    assert_equal sign_com_sign_in_check_path, response.parsed_body["redirect_url"]
   end
 end

@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class SettingsController < Sign::App::ApplicationController
+    class SettingsController < ::Sign::App::ApplicationController
       include ::SignSettingsAuthorityRedirect
 
       AUTHENTICATION_MODE = :private

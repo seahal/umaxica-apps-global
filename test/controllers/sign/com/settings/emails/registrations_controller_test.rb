@@ -80,6 +80,16 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     assert_response :redirect
     assert_redirected_to edit_sign_com_settings_emails_registration_url(ri: "jp")
 
+    get edit_sign_com_settings_emails_registration_url(ri: "jp"), headers: @headers
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_includes response.body, "メールアドレス"
+    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
+
     visitor_email = @visitor.visitor_emails.order(:created_at).last
 
     assert_equal "com-config-new@example.com", visitor_email.address

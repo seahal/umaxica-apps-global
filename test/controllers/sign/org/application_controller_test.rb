@@ -7,7 +7,7 @@ module Sign::Org
   class ApplicationControllerTest < ActionDispatch::IntegrationTest
     setup do
       host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-      @controller = Sign::Org::ApplicationController.new
+      @controller = ::Sign::Org::ApplicationController.new
       @controller.request = ActionDispatch::TestRequest.create(
         "rack.session" => {},
         "rack.session.options" => { id: SecureRandom.hex(16) },

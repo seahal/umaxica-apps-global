@@ -93,15 +93,18 @@ module IdentitySecretCredentialCeremonyContract
   def validate_keys!(payload, allowed:)
     keys = payload.keys.map(&:to_s)
     forbidden = keys & FORBIDDEN_KEYS
-    raise IdentitySecretCredentialCeremonyContract::Error, "forbidden claims: #{forbidden.sort.join(", ")}" if forbidden.present?
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "forbidden claims: #{forbidden.sort.join(", ")}" if forbidden.present?
 
     unknown = keys - allowed
-    raise IdentitySecretCredentialCeremonyContract::Error, "unknown claims: #{unknown.sort.join(", ")}" if unknown.present?
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "unknown claims: #{unknown.sort.join(", ")}" if unknown.present?
   end
 
   def validate_required!(payload, required)
     missing = required.reject { |key| payload[key].present? }
-    raise IdentitySecretCredentialCeremonyContract::Error, "missing required claims: #{missing.join(", ")}" if missing.present?
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "missing required claims: #{missing.join(", ")}" if missing.present?
   end
 
   def validate_exact!(payload, key, expected)
@@ -109,7 +112,8 @@ module IdentitySecretCredentialCeremonyContract
   end
 
   def validate_inclusion!(payload, key, allowed)
-    raise IdentitySecretCredentialCeremonyContract::Error, "#{key} is invalid" unless allowed.include?(payload[key].to_s)
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "#{key} is invalid" unless allowed.include?(payload[key].to_s)
   end
 
   def validate_binding!(payload)

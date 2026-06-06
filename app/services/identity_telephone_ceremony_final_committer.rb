@@ -62,13 +62,17 @@ class IdentityTelephoneCeremonyFinalCommitter
   def validate_actor_binding!
     raise IdentityTelephoneCeremony::Error, "actor is required" if actor.blank?
     raise IdentityTelephoneCeremony::Error, "session_ref is required" if session_ref.blank?
-    raise IdentityTelephoneCeremony::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
-    raise IdentityTelephoneCeremony::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentityTelephoneCeremony::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentityTelephoneCeremony::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
+    raise IdentityTelephoneCeremony::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentityTelephoneCeremony::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_candidate_before_consumption!
-    raise IdentityTelephoneCeremony::Error, "telephone candidate is already verified" unless status_value == config.fetch(:unverified_status)
+    raise IdentityTelephoneCeremony::Error,
+          "telephone candidate is already verified" unless status_value == config.fetch(:unverified_status)
     raise IdentityTelephoneCeremony::Error,
           "telephone candidate digest does not match result" if result["normalized_number_digest"].present? &&
             result["normalized_number_digest"].to_s != telephone.number_digest.to_s
@@ -84,8 +88,9 @@ class IdentityTelephoneCeremonyFinalCommitter
       locked = config.fetch(:record_class).lock.find(telephone.id)
       raise IdentityTelephoneCeremony::Error,
             "telephone candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
-      raise IdentityTelephoneCeremony::Error, "telephone candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
-        config.fetch(:unverified_status)
+      raise IdentityTelephoneCeremony::Error,
+            "telephone candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
+              config.fetch(:unverified_status)
 
       locked.update!(config.fetch(:status_key) => config.fetch(:verified_status))
       @telephone = locked
@@ -115,7 +120,10 @@ class IdentityTelephoneCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentityTelephoneCeremonyResult.decode(result_token, issuer_id: IdentityTelephoneCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentityTelephoneCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentityTelephoneCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

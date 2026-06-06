@@ -5,7 +5,7 @@ module Sign
   module Org
     module Settings
       module Mfa
-        class ChallengesController < Sign::Org::ApplicationController
+        class ChallengesController < ::Sign::Org::ApplicationController
           include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private

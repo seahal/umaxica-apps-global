@@ -90,6 +90,30 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
+  test "edit renders authentication code copy" do
+    telephone = VisitorTelephone.create!(
+      visitor: @visitor,
+      raw_number: "+18888888888",
+      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
+      otp_private_key: "secret_credential",
+      otp_expires_at: 10.minutes.from_now,
+    )
+
+    with_current_registration_telephone(telephone) do
+      get edit_sign_com_settings_telephones_registration_url(ri: "jp"),
+          headers: request_headers
+    end
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
+    assert_includes response.body, "電話番号"
+    assert_includes response.body, "SMS"
+    assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
+  end
+
   test "update successfully verifies telephone" do
     telephone = VisitorTelephone.create!(
       visitor: @visitor,

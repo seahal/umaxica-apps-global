@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Email
-          class BirthdatesController < Sign::Com::ApplicationController
+          class BirthdatesController < ::Sign::Com::ApplicationController
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest

@@ -32,7 +32,10 @@ class IdentityEmailCeremonyResultIssuer
 
   def issue!
     validate_grant!
-    IdentityEmailCeremonyResult.issue(result_claims, issuer_id: IdentityEmailCeremonyContract.sign_issuer_id(surface), now: now)
+    IdentityEmailCeremonyResult.issue(
+      result_claims, issuer_id: IdentityEmailCeremonyContract.sign_issuer_id(surface),
+                     now: now,
+    )
   end
 
   private
@@ -43,17 +46,25 @@ class IdentityEmailCeremonyResultIssuer
   def validate_grant!
     raise IdentityEmailCeremonyContract::Error, "candidate is required" if candidate.blank?
     raise IdentityEmailCeremonyContract::Error, "email ceremony grant is required" if grant_token.blank?
-    raise IdentityEmailCeremonyContract::Error, "grant surface does not match ceremony" unless grant["surface"].to_s == surface
-    raise IdentityEmailCeremonyContract::Error, "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
-    raise IdentityEmailCeremonyContract::Error, "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
-    raise IdentityEmailCeremonyContract::Error, "grant operation does not match ceremony" unless grant["operation"].to_s == operation
-    raise IdentityEmailCeremonyContract::Error, "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+    raise IdentityEmailCeremonyContract::Error,
+          "grant surface does not match ceremony" unless grant["surface"].to_s == surface
+    raise IdentityEmailCeremonyContract::Error,
+          "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
+    raise IdentityEmailCeremonyContract::Error,
+          "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
+    raise IdentityEmailCeremonyContract::Error,
+          "grant operation does not match ceremony" unless grant["operation"].to_s == operation
+    raise IdentityEmailCeremonyContract::Error,
+          "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentityEmailCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentityEmailCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
   end
 
   def grant
-    @grant ||= IdentityEmailCeremonyGrant.decode(grant_token, issuer_id: IdentityEmailCeremonyContract.acme_issuer_id(surface), now: now)
+    @grant ||= IdentityEmailCeremonyGrant.decode(
+      grant_token,
+      issuer_id: IdentityEmailCeremonyContract.acme_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

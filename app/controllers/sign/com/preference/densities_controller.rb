@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Preference
-      class DensitiesController < Sign::Com::PreferencesBaseController
+      class DensitiesController < ::Sign::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

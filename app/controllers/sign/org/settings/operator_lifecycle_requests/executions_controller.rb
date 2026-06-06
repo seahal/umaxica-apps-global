@@ -5,7 +5,7 @@ module Sign
   module Org
     module Settings
       module OperatorLifecycleRequests
-        class ExecutionsController < Sign::Org::ApplicationController
+        class ExecutionsController < ::Sign::Org::ApplicationController
           AUTHENTICATION_MODE = :private
 
           before_action :authenticate_operator!

@@ -1221,6 +1221,39 @@ module AuthenticationBase
     return false unless device_session_refresh_allowed?(token_record)
     return refresh_dbsc_allowed?(token_record) if token_record&.binding_method_dbsc?
 
+    # Any token reaching here is not DBSC-bound. DPoP (if present) is enforced
+    # separately by refresh_dpop_allowed?, which is ANDed with this check at the
+    # call site. Accepting an otherwise-unbound token is a deliberate, temporary
+    # LEGACY/compatibility allowance (browser sign-in issues LEGACY tokens; the
+    # OIDC token endpoint issues NOTHING tokens) and NOT a security guarantee.
+    # Routing it through a named predicate keeps the allowance visible in code
+    # and makes inconsistent binding state fail closed instead of silently
+    # passing as it did before.
+    legacy_unbound_refresh_allowed?(token_record)
+  end
+
+  # Explicit, narrow LEGACY/compatibility allowance for refresh tokens that are
+  # not DBSC-bound. This intentionally keeps today's legitimately-unbound
+  # populations (LEGACY browser sessions, NOTHING OIDC tokens) working while a
+  # full DBSC/DPoP rollout is in progress. It is temporary legacy behavior, not
+  # a guarantee — see the binding rollout in adr/ before relying on it.
+  #
+  # Fails closed on contradictory state: a token whose binding method is not
+  # DBSC must not also advertise a DBSC lifecycle status. Such a token would
+  # previously have slipped through the old implicit `return true`.
+  def legacy_unbound_refresh_allowed?(token_record)
+    # An unknown token cannot be evaluated for binding; let the downstream
+    # token-validity check reject it as an invalid refresh token rather than
+    # masking it as a binding denial.
+    return true if token_record.blank?
+
+    # Only genuinely non-DBSC binding methods are eligible here.
+    return false unless token_record.binding_method_nothing? || token_record.binding_method_legacy?
+
+    # A non-DBSC token in any DBSC lifecycle state (pending/active/failed/revoke)
+    # is inconsistent; fail closed instead of accepting it unbound.
+    return false unless token_record.dbsc_status_nothing?
+
     true
   end
 
@@ -1382,7 +1415,8 @@ module AuthenticationBase
     ).call
 
     if result.resource.blank? && (authorization_scheme.to_s.casecmp?("DPoP") || dpop_proof.present?)
-      response.headers["DPoP-Nonce"] = DpopNonceService.generate(resource_type: resource_type) if defined?(DpopNonceService)
+      response.headers["DPoP-Nonce"] =
+        DpopNonceService.generate(resource_type: resource_type) if defined?(DpopNonceService)
     end
 
     remember_authentication_resolution!(

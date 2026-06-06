@@ -50,9 +50,12 @@ class IdentityTotpCeremonyFinalCommitter
   def validate_actor_binding!
     raise IdentityTotpCeremonyContract::Error, "actor is required" if actor.blank?
     raise IdentityTotpCeremonyContract::Error, "session_ref is required" if session_ref.blank?
-    raise IdentityTotpCeremonyContract::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
-    raise IdentityTotpCeremonyContract::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentityTotpCeremonyContract::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentityTotpCeremonyContract::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
+    raise IdentityTotpCeremonyContract::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_transaction_state!
@@ -66,8 +69,10 @@ class IdentityTotpCeremonyFinalCommitter
       result["credential_candidate_digest"].to_s
     raise IdentityTotpCeremonyContract::Error,
           "candidate actor does not match current actor" unless candidate.actor_ref.to_s == actor.public_id.to_s
-    raise IdentityTotpCeremonyContract::Error, "candidate session does not match current session" unless candidate.session_ref.to_s == session_ref
-    raise IdentityTotpCeremonyContract::Error, "candidate surface does not match current surface" unless candidate.surface.to_s == surface
+    raise IdentityTotpCeremonyContract::Error,
+          "candidate session does not match current session" unless candidate.session_ref.to_s == session_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "candidate surface does not match current surface" unless candidate.surface.to_s == surface
 
     candidate
   end
@@ -100,7 +105,10 @@ class IdentityTotpCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentityTotpCeremonyResult.decode(result_token, issuer_id: IdentityTotpCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentityTotpCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentityTotpCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

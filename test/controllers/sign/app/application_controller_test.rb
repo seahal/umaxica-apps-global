@@ -55,9 +55,9 @@ module Sign::App
     end
 
     test "app surface does not define guest controller boundaries" do
-      assert_not Sign::App.const_defined?(:GuestController, false)
-      assert_not Sign::App::In.const_defined?(:GuestController, false)
-      assert_not Sign::App::Up.const_defined?(:GuestController, false)
+      assert_not ::Sign::App.const_defined?(:GuestController, false)
+      assert_not ::Sign::App::In.const_defined?(:GuestController, false)
+      assert_not ::Sign::App::Up.const_defined?(:GuestController, false)
     end
 
     test "sign-in controllers declare guest-only policy on concrete controller" do

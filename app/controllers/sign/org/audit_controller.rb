@@ -3,7 +3,7 @@
 
 module Sign
   module Org
-    class AuditController < Sign::Org::ApplicationController
+    class AuditController < ::Sign::Org::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_operator!

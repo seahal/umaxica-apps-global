@@ -78,7 +78,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     travel_to @now do
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
-      payload = IdentitySocialCeremonyContract.decode_unverified_payload(result_token)
+      payload = IdentitySocialCeremonyContract.decode_untrusted_routing_payload(result_token)
 
       assert_not_includes payload.to_json, auth_hash["credentials"]["token"]
       assert_not_includes payload.to_json, auth_hash["credentials"]["refresh_token"]
@@ -171,7 +171,90 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
+  # Invariant: the untrusted routing payload is attacker-controlled, but the
+  # verified ceremony path is the only thing that can authorize a commit.
+  test "tampering the untrusted payload cannot commit a social link without a valid verified result" do
+    travel_to @now do
+      issuance = issue_grant
+      result_token = issue_result(issuance.grant)
+
+      # Forge a token: keep the original (valid) signature but rewrite the
+      # payload claims an attacker would want to control.
+      tampered = tamper_payload(
+        result_token,
+        "operation" => "login",
+        "session_ref" => "attacker-session",
+        "actor_ref" => clients(:two).public_id,
+      )
+
+      # Untrusted decode reflects the attacker's claims (by design: it is untrusted).
+      forged = IdentitySocialCeremonyContract.decode_untrusted_routing_payload(tampered)
+
+      assert_equal "login", forged["operation"]
+      assert_equal "attacker-session", forged["session_ref"]
+
+      # The verified path rejects the forged token: signature no longer matches.
+      assert_raises(IdentitySocialCeremonyContract::Error) do
+        IdentitySocialCeremonyFinalCommitter.call!(
+          result_token: tampered,
+          auth_hash: auth_hash,
+          actor: @client,
+          session_ref: @session_ref,
+          surface: "app",
+          now: @now,
+        )
+      end
+
+      assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])
+      assert_not_predicate issuance.transaction.reload, :consumed?
+    end
+  end
+
+  test "untrusted operation cannot route a verified link token into a login commit" do
+    travel_to @now do
+      issuance = issue_grant
+      # Genuine, untampered link result token.
+      result_token = issue_result(issuance.grant)
+
+      # The acme login path passes actor: nil. Even though an attacker could flip
+      # the UNVERIFIED operation to "login" to slip past the controller's link
+      # rejection, the committer derives operation from the VERIFIED result
+      # ("link") and rejects because a link requires an actor.
+      error =
+        assert_raises(IdentitySocialCeremonyContract::Error) do
+          IdentitySocialCeremonyFinalCommitter.call!(
+            result_token: result_token,
+            auth_hash: auth_hash,
+            actor: nil,
+            session_ref: @session_ref,
+            surface: "app",
+            now: @now,
+          )
+        end
+
+      assert_equal "actor is required", error.message
+      assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])
+      assert_not_predicate issuance.transaction.reload, :consumed?
+    end
+  end
+
   private
+
+  # Rewrites the payload segment of a JWS while leaving the original signature in
+  # place, simulating an attacker tampering with claims they cannot re-sign.
+  def tamper_payload(token, overrides)
+    header_b64, payload_b64, signature_b64 = token.split(".")
+    payload = JSON.parse(url_b64_decode(payload_b64)).merge(overrides)
+    [header_b64, url_b64_encode(payload.to_json), signature_b64].join(".")
+  end
+
+  def url_b64_decode(segment)
+    Base64.urlsafe_decode64(segment + ("=" * ((4 - (segment.length % 4)) % 4)))
+  end
+
+  def url_b64_encode(bytes)
+    Base64.urlsafe_encode64(bytes, padding: false)
+  end
 
   def issue_grant
     IdentitySocialCeremonyGrantIssuer.issue!(

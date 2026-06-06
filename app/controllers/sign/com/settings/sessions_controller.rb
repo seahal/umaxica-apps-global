@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Settings
-      class SessionsController < Sign::RedirectOnlyController
+      class SessionsController < ::Sign::RedirectOnlyController
         AUTHENTICATION_MODE = :private
         def index = redirect_to_acme_sessions!
 

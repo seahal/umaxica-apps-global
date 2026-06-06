@@ -6,7 +6,7 @@ module Sign
     module Dev
       module R18
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
-        class OpenSmokesController < Sign::App::ApplicationController
+        class OpenSmokesController < ::Sign::App::ApplicationController
           include ::R18Gate
 
           AUTHENTICATION_MODE = :open

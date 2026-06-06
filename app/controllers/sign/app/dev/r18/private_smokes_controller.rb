@@ -6,7 +6,7 @@ module Sign
     module Dev
       module R18
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
-        class PrivateSmokesController < Sign::App::ApplicationController
+        class PrivateSmokesController < ::Sign::App::ApplicationController
           include ::R18Gate
 
           AUTHENTICATION_MODE = :private
@@ -24,7 +24,7 @@ module Sign
           private
 
           def handle_auth_required_html(_options = {})
-            redirect_to(new_sign_app_sign_in_path(ri: params[:ri]), allow_other_host: false)
+            redirect_to(sign_app_sign_in_entrance_path(ri: params[:ri]), allow_other_host: false)
           end
 
           def r18_content_required?

@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Com::Edge::V0::Token::DbscController < Sign::Com::ApplicationController
+class Sign::Com::Edge::V0::Token::DbscController < ::Sign::Com::ApplicationController
   include SignEdgeV0JsonApi
 
   include SignDbscRegistrationEndpoint

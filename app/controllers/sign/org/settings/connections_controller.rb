@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Settings
-      class ConnectionsController < Sign::RedirectOnlyController
+      class ConnectionsController < ::Sign::RedirectOnlyController
         include ::SignSettingsAuthorityRedirect
 
         AUTHENTICATION_MODE = :private

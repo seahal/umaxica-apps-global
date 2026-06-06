@@ -30,7 +30,10 @@ class IdentityTotpCeremonyResultIssuer
 
   def issue!
     validate_grant!
-    IdentityTotpCeremonyResult.issue(result_claims, issuer_id: IdentityTotpCeremonyContract.sign_issuer_id(surface), now: now)
+    IdentityTotpCeremonyResult.issue(
+      result_claims, issuer_id: IdentityTotpCeremonyContract.sign_issuer_id(surface),
+                     now: now,
+    )
   end
 
   private
@@ -40,20 +43,31 @@ class IdentityTotpCeremonyResultIssuer
   def validate_grant!
     raise IdentityTotpCeremonyContract::Error, "candidate is required" if candidate.blank?
     raise IdentityTotpCeremonyContract::Error, "TOTP ceremony grant is required" if grant_token.blank?
-    raise IdentityTotpCeremonyContract::Error, "grant surface does not match ceremony" unless grant["surface"].to_s == surface
-    raise IdentityTotpCeremonyContract::Error, "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
-    raise IdentityTotpCeremonyContract::Error, "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
-    raise IdentityTotpCeremonyContract::Error, "grant operation does not match ceremony" unless grant["operation"].to_s == operation
-    raise IdentityTotpCeremonyContract::Error, "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+    raise IdentityTotpCeremonyContract::Error,
+          "grant surface does not match ceremony" unless grant["surface"].to_s == surface
+    raise IdentityTotpCeremonyContract::Error,
+          "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "grant operation does not match ceremony" unless grant["operation"].to_s == operation
+    raise IdentityTotpCeremonyContract::Error,
+          "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentityTotpCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentityTotpCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
-    raise IdentityTotpCeremonyContract::Error, "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
-    raise IdentityTotpCeremonyContract::Error, "candidate actor does not match ceremony" unless candidate.actor_ref.to_s == actor_ref
-    raise IdentityTotpCeremonyContract::Error, "candidate session does not match ceremony" unless candidate.session_ref.to_s == session_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
+    raise IdentityTotpCeremonyContract::Error,
+          "candidate actor does not match ceremony" unless candidate.actor_ref.to_s == actor_ref
+    raise IdentityTotpCeremonyContract::Error,
+          "candidate session does not match ceremony" unless candidate.session_ref.to_s == session_ref
   end
 
   def grant
-    @grant ||= IdentityTotpCeremonyGrant.decode(grant_token, issuer_id: IdentityTotpCeremonyContract.acme_issuer_id(surface), now: now)
+    @grant ||= IdentityTotpCeremonyGrant.decode(
+      grant_token,
+      issuer_id: IdentityTotpCeremonyContract.acme_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

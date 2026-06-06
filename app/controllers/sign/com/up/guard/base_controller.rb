@@ -5,7 +5,7 @@ module Sign
   module Com
     module Up
       module Guard
-        class BaseController < Sign::Com::ApplicationController
+        class BaseController < ::Sign::Com::ApplicationController
           include SignUpExplicitStepControllerSupport
 
           AUTHENTICATION_MODE = :open

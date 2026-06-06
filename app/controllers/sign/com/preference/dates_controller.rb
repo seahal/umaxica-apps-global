@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Preference
-      class DatesController < Sign::Com::PreferencesBaseController
+      class DatesController < ::Sign::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

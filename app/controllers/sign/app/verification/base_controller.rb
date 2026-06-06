@@ -4,7 +4,7 @@
 module Sign
   module App
     module Verification
-      class BaseController < Sign::App::ApplicationController
+      class BaseController < ::Sign::App::ApplicationController
         include ::CloudflareTurnstile
 
         include SignAppVerificationBase

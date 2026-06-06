@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Up
-      class InvitationsController < Sign::Org::ApplicationController
+      class InvitationsController < ::Sign::Org::ApplicationController
         include CloudflareTurnstile
 
         AUTHENTICATION_MODE = :guest
@@ -26,7 +26,7 @@ module Sign
 
           if result.success?
             redirect_to(
-              new_sign_org_sign_in_path,
+              sign_org_sign_in_entrance_path,
               notice: t(".success", public_id: result.operator.public_id),
             )
           else

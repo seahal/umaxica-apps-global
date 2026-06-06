@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
-      class PasskeysController < Sign::Org::ApplicationController
+      class PasskeysController < ::Sign::Org::ApplicationController
         include SignWebauthn
 
         include SignPasskeyAuthentication
@@ -153,7 +153,7 @@ module Sign
             issue_session_limit_gate!(pt: request.fullpath, flow: "in.passkeys.session")
             render json: {
               status: "session_limit_exceeded",
-              redirect_url: new_sign_org_in_passkey_path,
+              redirect_url: new_sign_org_sign_in_passkey_path,
             }, status: :ok
             true
           else
@@ -168,12 +168,12 @@ module Sign
         def render_passkey_restricted_success(_result)
           render json: {
             status: "session_restricted",
-            redirect_url: sign_org_in_session_path,
+            redirect_url: sign_org_sign_in_session_path,
           }, status: :ok
         end
 
         def passkey_checkpoint_redirect_url
-          sign_org_in_check_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
+          sign_org_sign_in_check_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
         end
 
         def passkey_default_redirect_url

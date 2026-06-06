@@ -71,6 +71,7 @@ class IdentityStepUpCeremonyGrant
 
     methods = Array(payload["allowed_methods"]).map(&:to_s)
     invalid = methods - IdentityStepUpCeremonyContract::METHODS
-    raise IdentityStepUpCeremonyContract::Error, "allowed_methods contains invalid methods: #{invalid.join(", ")}" if invalid.present?
+    raise IdentityStepUpCeremonyContract::Error,
+          "allowed_methods contains invalid methods: #{invalid.join(", ")}" if invalid.present?
   end
 end

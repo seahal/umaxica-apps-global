@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Verification
-      class BaseController < Sign::Org::ApplicationController
+      class BaseController < ::Sign::Org::ApplicationController
         include SignOrgVerificationBase
         include ::PreferenceGlobal
         include CommonOtp

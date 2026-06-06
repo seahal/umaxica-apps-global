@@ -56,7 +56,7 @@ module Sign::App::In::Passkey
 
     test "should generate authentication options and store challenge in session" do
       email = @user.client_emails.first.address
-      post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
+      post sign_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
 
       assert_response :success
       json_response = response.parsed_body
@@ -73,7 +73,7 @@ module Sign::App::In::Passkey
     test "should verify valid credential and log in" do
       # 1. Get options to setup session
       email = @user.client_emails.first.address
-      post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
+      post sign_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
 
       json_response = response.parsed_body
       challenge_id = json_response["challenge_id"]
@@ -91,7 +91,7 @@ module Sign::App::In::Passkey
       end
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post verification_sign_app_in_passkeys_url(ri: "jp"), params: {
+        post sign_app_sign_in_passkey_verification_url(ri: "jp"), params: {
           challenge_id: challenge_id,
           credential: {
             id: @encoded_credential_id,
@@ -132,7 +132,7 @@ module Sign::App::In::Passkey
       )
 
       email = @user.client_emails.first.address
-      post options_sign_app_in_passkeys_url(ri: "jp"), params: options_params(identifier: email), as: :json
+      post sign_app_sign_in_passkey_options_url(ri: "jp"), params: options_params(identifier: email), as: :json
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = OpenStruct.new(
@@ -144,7 +144,7 @@ module Sign::App::In::Passkey
       end
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post verification_sign_app_in_passkeys_url(ri: "jp"), params: {
+        post sign_app_sign_in_passkey_verification_url(ri: "jp"), params: {
           challenge_id: challenge_id,
           credential: {
             id: @encoded_credential_id,
@@ -168,7 +168,7 @@ module Sign::App::In::Passkey
     test "should fail verification with invalid challenge" do
       # 1. No options call (no session)
 
-      post verification_sign_app_in_passkeys_url(ri: "jp"), params: {
+      post sign_app_sign_in_passkey_verification_url(ri: "jp"), params: {
         challenge_id: "invalid-id",
         credential: { id: "foo" },
       }, as: :json

@@ -65,15 +65,20 @@ class IdentityEmailCeremonyFinalCommitter
   def validate_actor_binding!
     raise IdentityEmailCeremonyContract::Error, "actor is required" if actor.blank?
     raise IdentityEmailCeremonyContract::Error, "session_ref is required" if session_ref.blank?
-    raise IdentityEmailCeremonyContract::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
-    raise IdentityEmailCeremonyContract::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentityEmailCeremonyContract::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentityEmailCeremonyContract::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
+    raise IdentityEmailCeremonyContract::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentityEmailCeremonyContract::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_candidate_before_consumption!
-    raise IdentityEmailCeremonyContract::Error, "email candidate is already verified" unless status_value == config.fetch(:unverified_status)
-    raise IdentityEmailCeremonyContract::Error, "email candidate digest does not match result" if result["normalized_email_digest"].present? &&
-      result["normalized_email_digest"].to_s != email.address_digest.to_s
+    raise IdentityEmailCeremonyContract::Error,
+          "email candidate is already verified" unless status_value == config.fetch(:unverified_status)
+    raise IdentityEmailCeremonyContract::Error,
+          "email candidate digest does not match result" if result["normalized_email_digest"].present? &&
+            result["normalized_email_digest"].to_s != email.address_digest.to_s
   end
 
   def validate_transaction_state!
@@ -84,9 +89,11 @@ class IdentityEmailCeremonyFinalCommitter
   def commit_candidate!
     config.fetch(:record_class).transaction do
       locked = config.fetch(:record_class).lock.find(email.id)
-      raise IdentityEmailCeremonyContract::Error, "email candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
-      raise IdentityEmailCeremonyContract::Error, "email candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
-        config.fetch(:unverified_status)
+      raise IdentityEmailCeremonyContract::Error,
+            "email candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
+      raise IdentityEmailCeremonyContract::Error,
+            "email candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
+              config.fetch(:unverified_status)
 
       locked.update!(config.fetch(:status_key) => final_verified_status)
       update_signup_account_status! if signup_account_status_transition?
@@ -132,7 +139,10 @@ class IdentityEmailCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentityEmailCeremonyResult.decode(result_token, issuer_id: IdentityEmailCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentityEmailCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentityEmailCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

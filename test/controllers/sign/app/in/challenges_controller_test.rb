@@ -39,7 +39,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
     get sign_app_in_challenge_path(ri: "jp")
 
     assert_response :see_other
-    assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
+    assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
   end
 

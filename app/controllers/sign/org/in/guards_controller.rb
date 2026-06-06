@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class GuardsController < Sign::Org::ApplicationController
+      class GuardsController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :open
 
         def show
@@ -19,7 +19,7 @@ module Sign
         def sign_in_sequence_surface = :org
 
         def guard_entry_path
-          new_sign_org_sign_in_path(ri: params[:ri])
+          sign_org_sign_in_entrance_path(ri: params[:ri])
         end
 
         def route_guard_cycle(cycle)

@@ -8,8 +8,8 @@
 
   <div
     data-controller="passkey-registration"
-    data-passkey-registration-options-url-value="<%= options_sign_com_settings_passkeys_path(ri: params[:ri]) %>"
-    data-passkey-registration-verification-url-value="<%= verification_sign_com_settings_passkeys_path(ri: params[:ri]) %>"
+    data-passkey-registration-options-url-value="<%= sign_com_settings_passkeys_options_path(ri: params[:ri]) %>"
+    data-passkey-registration-verification-url-value="<%= sign_com_settings_passkeys_verification_path(ri: params[:ri]) %>"
     data-passkey-registration-turnstile-site-key-value="<%= JitSecurityTurnstileConfig.stealth_site_key.to_s %>"
     data-passkey-registration-turnstile-error-message-value="<%= t("turnstile_error") %>">
 

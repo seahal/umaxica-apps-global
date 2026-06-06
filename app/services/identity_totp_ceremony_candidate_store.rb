@@ -77,7 +77,8 @@ class IdentityTotpCeremonyCandidateStore
     raise IdentityTotpCeremonyContract::Error, "TOTP candidate is not found" if payload.blank?
 
     candidate = candidate_from(payload)
-    raise IdentityTotpCeremonyContract::Error, "TOTP candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
+    raise IdentityTotpCeremonyContract::Error,
+          "TOTP candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
 
     candidate
   end

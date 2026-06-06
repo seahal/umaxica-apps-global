@@ -67,18 +67,18 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = "test_csrf_token"
 
-    post options_sign_app_settings_passkeys_path(ri: "jp"),
+    post sign_app_settings_passkeys_options_path(ri: "jp"),
          params: { "cf-turnstile-response": "test" },
          headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
 
     assert_response :redirect
-    assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp(?:&pt=.*)?\z},
+    assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/entrance\?ri=jp(?:&pt=.*)?\z},
                  jump_rt_url_from_location(response.location)
   end
 
   # Case D-2: Logged in -> JSON options
   test "options returns challenge and options" do
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
 
     assert_response :ok
     json = response.parsed_body
@@ -104,7 +104,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case D-2b: JSON response format validation (regression test for Base64URL encoding bugs)
   test "options returns valid Base64URL encoded values" do
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
 
     assert_response :ok
     json = response.parsed_body
@@ -152,7 +152,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
     ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
     Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
-      post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+      post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
@@ -163,7 +163,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "options rejects untrusted origin" do
     # Temporarily remove trusted origins
     Webauthn.stub(:trusted_origins, []) do
-      post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+      post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
 
       assert_response :forbidden
     end
@@ -175,7 +175,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       challenge_id: "unknown",
       credential: { id: "cred_id", response: {} },
     }
-    post verification_sign_app_settings_passkeys_path(ri: "jp"), params: params, headers: @headers
+    post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
 
     assert_response :bad_request
     # Generic error message validation
@@ -185,7 +185,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Case E-3: Verify success
   test "verification creates passkey on success" do
     # Get challenge
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
     # Mock WebAuthn verification
@@ -223,7 +223,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           },
           1,
         ) do
-          post verification_sign_app_settings_passkeys_path(ri: "jp"), params: params, headers: @headers
+          post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
         end
       end
 
@@ -246,7 +246,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       session_public_id: token.public_id,
     )
 
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: headers
     challenge_id = response.parsed_body["challenge_id"]
 
     mock_credential = Object.new
@@ -267,7 +267,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
       assert_difference("ClientPasskey.count", 1) do
         assert_no_difference("ClientSecretCredential.count") do
-          post verification_sign_app_settings_passkeys_path(ri: "jp"), params: params, headers: headers
+          post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: headers
         end
       end
     end
@@ -279,7 +279,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects duplicate webauthn_id" do
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
     duplicate_webauthn_id = @passkey_webauthn_id
 
@@ -302,7 +302,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post verification_sign_app_settings_passkeys_path(ri: "jp"), params: params, headers: @headers
+        post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
       end
     end
 
@@ -313,7 +313,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Case E-4: Verify failure
   test "verification fails on WebAuthn error" do
     # Get challenge
-    post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
     # Mock WebAuthn failure using a plain object
@@ -330,7 +330,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post verification_sign_app_settings_passkeys_path(ri: "jp"), params: params, headers: @headers
+        post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
       end
 
       assert_response :unprocessable_content

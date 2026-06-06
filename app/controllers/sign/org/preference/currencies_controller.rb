@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class CurrenciesController < Sign::Org::PreferencesBaseController
+      class CurrenciesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

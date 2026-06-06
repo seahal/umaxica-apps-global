@@ -241,7 +241,10 @@ module Jit
         end
 
         def with_registry_inputs(extra_env = {})
-          legacy_jwk = JitSecurityJwtRegistry.export_public_jwk(OpenSSL::PKey::EC.generate("secp384r1"), kid: "legacy-kid")
+          legacy_jwk = JitSecurityJwtRegistry.export_public_jwk(
+            OpenSSL::PKey::EC.generate("secp384r1"),
+            kid: "legacy-kid",
+          )
           env = {
             "AUTH_JWT_ACTIVE_KID" => "auth-kid",
             "PREFERENCE_JWT_ACTIVE_KID" => "pref-kid",
@@ -270,7 +273,12 @@ module Jit
           env["PREFERENCE_JWT_PRIVATE_KEYSET"] =
             JSON.generate((env["PREFERENCE_JWT_ACTIVE_KID"] || "pref-kid") => base64_der(@preference_key))
           env["PREFERENCE_JWT_PUBLIC_KEYSET"] =
-            JSON.generate(keys: [JitSecurityJwtRegistry.export_public_jwk(@preference_legacy_key, kid: "pref-legacy-kid")])
+            JSON.generate(
+              keys: [JitSecurityJwtRegistry.export_public_jwk(
+                @preference_legacy_key,
+                kid: "pref-legacy-kid",
+              )],
+            )
 
           creds = {
             :AUTH_JWT_PRIVATE_KEYSET => JSON.generate(

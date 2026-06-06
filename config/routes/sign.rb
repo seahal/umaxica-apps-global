@@ -4,15 +4,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# TODO: remove these code!!!
-safe_sign_state_redirect =
-  lambda do |path|
-    redirect(status: 307) do |_params, request|
-      query = request.query_parameters.slice("ri", "pt", "sid")
-      query.present? ? "#{path}?#{query.to_query}" : path
-    end
-  end
-
 scope module: :sign, as: :sign do
   # User auth service (id.app domain)
   constraints host: ENV["SIGN_SERVICE_URL"] do
@@ -22,7 +13,6 @@ scope module: :sign, as: :sign do
       resource :openid_configuration,
                only: :show,
                path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
                format: false
 
       # Basic public endpoints
@@ -88,37 +78,33 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preferences"
+      resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
-        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "page_sizes",
-                             defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
-                                      defaults: { preference_screen: "adult_content_gate" }
-        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
-        resource :reset, only: %i(edit destroy)
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resource :reset, only: :edit
+        resource :reset_attempt, only: :create
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
       end
 
-      # FIXME: use resource and namespace
-      # Sign-up and sign-in
-      scope path: "sign" do
+      # Sign: sign-up, sign-in, and sign-out lifecycle routes.
+      namespace :sign do
         # Sign-up: account registration via email or telephone
-        resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
+          resource :entrance, only: :show
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show destroy), controller: "checkpoints"
 
           namespace :guard do
             resource :apple, only: %i(show)
@@ -129,78 +115,82 @@ scope module: :sign, as: :sign do
 
           namespace :check do
             namespace :apple do
-              resource :confirmation, only: %i(show update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :confirmation, only: %i(show update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
 
             namespace :google do
-              resource :confirmation, only: %i(show update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :confirmation, only: %i(show update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
 
             namespace :email do
-              resource :otp, only: %i(show create update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :otp, only: %i(show create update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
 
             namespace :telephone do
-              resource :otp, only: %i(show create update destroy)
-              resource :passkey, only: %i(show create update destroy)
-              resource :passcode, only: %i(show update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :otp, only: %i(show create update)
+              resource :passkey, only: %i(show create update)
+              resource :passcode, only: %i(show update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
           end
         end
 
-        # FIXME: use resource and namespace
         # Sign-in: credential entry and session establishment
-        resource :sign_in, path: "in", controller: "sign_ins", only: %i(new)
         namespace :in do
+          resource :entrance, only: :show
           resource :email, only: %i(new create edit update)
-          resources :passkeys, only: [:new] do
-            collection do
-              post :options
-              post :verification
-            end
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
           end
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show update destroy), controller: "checkpoints"
-          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          resource :session, only: %i(show update)
+          resource :session_cancellation, only: :create
+          resource :guard, only: :show
+          resource :check, only: %i(show update)
+          resource :check_cancellation, only: :create
           resource :challenge, only: %i(show)
           namespace :challenge do
             resource :totp, only: %i(new create)
             resource :passkey, only: %i(new create)
           end
         end
-        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
+
+        # Sign-out: current-session logout lifecycle.
+        namespace :out do
+          resource :confirmation, only: :show
+          resource :attempt, only: :create
+          resource :completion, only: :show
+        end
       end
 
-      # Social auth: continue sets intent/state then redirects to /auth/:provider.
+      # Social auth: settings-side social connection lifecycle.
       namespace :social do
-        resources :authentications,
-                  path: "auth",
-                  param: :provider,
-                  only: [:destroy] do
-          post :continue, on: :member
+        namespace :apple do
+          resource :connection, only: :show
+          resource :connection_attempt, only: :create
+          resource :disconnection_attempt, only: :create
+        end
+
+        namespace :google do
+          resource :connection, only: :show
+          resource :connection_attempt, only: :create
+          resource :disconnection_attempt, only: :create
         end
       end
 
       # OmniAuth callbacks: Google uses GET; Apple may return GET or POST depending on response_mode.
       namespace :auth, path: "auth" do
-        get ":provider/callback",
-            to: "omniauth_callbacks#omniauth",
-            constraints: { provider: /google_app/ },
-            as: :callback
-
-        match ":provider/callback",
-              to: "omniauth_callbacks#omniauth",
-              constraints: { provider: /apple/ },
-              via: %i(get post),
-              as: :apple_callback
+        get "google_app/callback", to: "omniauth_callbacks#omniauth", as: :google_app_callback
+        match "apple/callback", to: "omniauth_callbacks#omniauth", via: %i(get post), as: :apple_callback
 
         get "failure",
             to: "omniauth_callbacks#failure"
@@ -214,7 +204,7 @@ scope module: :sign, as: :sign do
         resource :passkey, only: %i(new create)
         resource :totp, only: %i(new create)
         resources :emails, only: %i(new create edit update) do
-          post :resend, on: :member
+          resource :redelivery, only: :create
         end
       end
 
@@ -227,56 +217,53 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke", controller: "revocations"
+        resource :user_info, only: :show, path: "userinfo"
+        resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
-      end
-
-      # MFA reset
-      namespace :mfa, module: "settings/mfa" do
-        resource :reset, only: %i(show create)
       end
 
       # Account settings and linked identity management
       resource :settings, only: :show
       namespace :settings do
-        resources :totps, only: %i(index new create edit update destroy)
-        resources :passkeys do
-          collection do
-            post :options
-            post :verification
-          end
-        end
-        # TODO: what is the following line? check it out!
         namespace :mfa do
+          resource :reset, only: %i(show create)
           resource :challenge, only: %i(show)
         end
-        resources :emails, only: %i(index edit update destroy)
+        resources :totps, only: %i(index new create edit update destroy)
+        resources :passkeys do
+          resource :removal_attempt, only: :create
+        end
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
+        end
         namespace :emails do
           resource :registration, only: %i(new create edit update) do
-            # TODO: what is the following line? check it out!
-            post :resend
+            resource :redelivery, only: :create
           end
         end
+        resources :emails, only: %i(index edit update destroy)
         # FIXME: merge those two namespaces.
-        resources :telephones, only: %i(new create edit)
-        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
+        resources :telephones, only: %i(new create edit)
+        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
         resource :birthdate, only: :show
         resource :apple, only: :show
         resource :google, only: :show
         # FIXME: rename this to "secrets"
         resource :emergency_key, only: :show
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          post :regenerate, on: :member
+        resources :secret_credentials, only: %i(index show new edit create update) do
+          resource :rotation_attempt, only: :create
+          resource :removal_attempt, only: :create
         end
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
-          end
+        resources :sessions, only: %i(index show) do
+          resource :revocation_attempt, only: :create
+        end
+        namespace :session_revocations do
+          resource :others, only: :create
+          resource :all, only: :create
         end
         # FIXME: I did delete this entrypoint last month.
         resources :connections, only: %i(index show destroy), controller: "connections"
@@ -294,7 +281,6 @@ scope module: :sign, as: :sign do
       resource :openid_configuration,
                only: :show,
                path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
                format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
@@ -350,36 +336,33 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preferences"
+      resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
-        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "page_sizes",
-                             defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
-                                      defaults: { preference_screen: "adult_content_gate" }
-        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
-        resource :reset, only: %i(edit destroy)
+        resource :reset, only: :edit
+        resource :reset_attempt, only: :create
       end
 
       # Sign-up and sign-in
-      scope path: "sign" do
+      namespace :sign do
         # Sign-up: account registration via email or telephone
-        resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
+          resource :entrance, only: :show
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show destroy), controller: "checkpoints"
 
           namespace :guard do
             resource :email, only: %i(show)
@@ -388,38 +371,38 @@ scope module: :sign, as: :sign do
 
           namespace :check do
             namespace :email do
-              resource :otp, only: %i(show create update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :otp, only: %i(show create update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
 
             namespace :telephone do
-              resource :otp, only: %i(show create update destroy)
-              resource :passkey, only: %i(show create update destroy)
-              resource :passcode, only: %i(show update destroy)
-              resource :birthdate, only: %i(show update destroy)
+              resource :otp, only: %i(show create update)
+              resource :passkey, only: %i(show create update)
+              resource :passcode, only: %i(show update)
+              resource :birthdate, only: %i(show update)
+              resource :cancellation, only: :create
             end
           end
         end
 
         # Sign-in: credential entry and session establishment
-        resource :sign_in, path: "in", controller: "sign_ins", only: %i(new)
         namespace :in do
+          resource :entrance, only: :show
           resource :email, only: %i(new create edit update)
 
-          resources :passkeys, only: [:new] do
-            collection do
-              post :options
-              post :verification
-            end
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
           end
 
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show update destroy), controller: "checkpoints"
-          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          resource :session, only: %i(show update)
+          resource :session_cancellation, only: :create
+          resource :guard, only: :show
+          resource :check, only: %i(show update)
+          resource :check_cancellation, only: :create
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -427,7 +410,11 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
+        namespace :out do
+          resource :confirmation, only: :show
+          resource :attempt, only: :create
+          resource :completion, only: :show
+        end
       end
 
       # Step-up verification
@@ -437,7 +424,7 @@ scope module: :sign, as: :sign do
         resource :passkey, only: %i(new create)
 
         resources :emails, only: %i(new create edit update) do
-          post :resend, on: :member
+          resource :redelivery, only: :create
         end
       end
 
@@ -450,8 +437,8 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke", controller: "revocations"
+        resource :user_info, only: :show, path: "userinfo"
+        resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
       end
 
@@ -459,38 +446,41 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
-          collection do
-            post :options
-            post :verification
-          end
+          resource :removal_attempt, only: :create
+        end
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
         end
 
         namespace :mfa do
           resource :challenge, only: %i(show)
         end
 
-        resources :emails, only: %i(index edit update destroy)
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
+        resources :emails, only: %i(index edit update destroy)
 
-        resources :telephones, only: %i(new create edit)
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
+        resources :telephones, only: %i(new create edit)
         resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
 
         resource :birthdate, only: :show
 
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          post :regenerate, on: :member
+        resources :secret_credentials, only: %i(index show new edit create update) do
+          resource :rotation_attempt, only: :create
+          resource :removal_attempt, only: :create
         end
 
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
-          end
+        resources :sessions, only: %i(index show) do
+          resource :revocation_attempt, only: :create
+        end
+        namespace :session_revocations do
+          resource :others, only: :create
+          resource :all, only: :create
         end
 
         resources :connections, only: %i(index show destroy), controller: "connections"
@@ -508,7 +498,6 @@ scope module: :sign, as: :sign do
       resource :openid_configuration,
                only: :show,
                path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
                format: false
 
       get :welcome, to: "welcomes#show", as: :welcome_entry
@@ -562,58 +551,53 @@ scope module: :sign, as: :sign do
       end
 
       # Preferences
-      resource :preference, only: [:show], controller: "preferences"
+      resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "regions", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "timezones", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "languages", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "currencies", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "dates", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "times", defaults: { preference_screen: "time" }
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
 
-        resource :motion, only: %i(edit update), controller: "motions", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "densities", defaults: { preference_screen: "density" }
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
 
-        resource :page_size, only: %i(edit update), controller: "page_sizes",
-                             defaults: { preference_screen: "page_size" }
-        resource :adult_content_gate, only: %i(edit update), controller: "adult_content_gates",
-                                      defaults: { preference_screen: "adult_content_gate" }
+        resource :page_size, only: %i(edit update)
+        resource :adult_content_gate, only: %i(edit update)
 
-        resource :theme, only: %i(edit update), controller: "themes", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "cookies", defaults: { preference_screen: "cookie" }
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
 
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
 
-        resource :reset, only: %i(edit destroy)
+        resource :reset, only: :edit
+        resource :reset_attempt, only: :create
       end
 
       # Sign-up: email registration and staff invitation flows
-      scope path: "sign" do
-        resource :sign_up, path: "up", controller: "sign_ups", only: :new
+      namespace :sign do
         namespace :up do
+          resource :entrance, only: :show
           resources :invitations, only: %i(new create)
         end
-      end
 
-      # Sign-in: credential entry and session establishment
-      scope path: "sign" do
-        resource :sign_in, path: "in", controller: "sign_ins", only: [:new]
+        # Sign-in: credential entry and session establishment
         namespace :in do
-          resources :passkeys, only: [:new] do
-            collection do
-              post :options
-              post :verification
-            end
+          resource :entrance, only: :show
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
           end
 
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show update destroy), controller: "checkpoints"
-          get "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
-          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
+          resource :session, only: %i(show update)
+          resource :session_cancellation, only: :create
+          resource :guard, only: :show
+          resource :check, only: %i(show update)
+          resource :check_cancellation, only: :create
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -621,7 +605,11 @@ scope module: :sign, as: :sign do
           end
         end
 
-        resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
+        namespace :out do
+          resource :confirmation, only: :show
+          resource :attempt, only: :create
+          resource :completion, only: :show
+        end
       end
 
       # Step-up verification
@@ -640,8 +628,8 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke", controller: "revocations"
+        resource :user_info, only: :show, path: "userinfo"
+        resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
       end
 
@@ -649,10 +637,11 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
-          collection do
-            post :options
-            post :verification
-          end
+          resource :removal_attempt, only: :create
+        end
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
         end
 
         namespace :mfa do
@@ -661,11 +650,12 @@ scope module: :sign, as: :sign do
 
         resources :secret_credentials
 
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
-          end
+        resources :sessions, only: %i(index show) do
+          resource :revocation_attempt, only: :create
+        end
+        namespace :session_revocations do
+          resource :others, only: :create
+          resource :all, only: :create
         end
 
         resources :connections, only: %i(index show destroy), controller: "connections"
@@ -686,11 +676,9 @@ scope module: :sign, as: :sign do
         resource :withdrawal, only: %i(show)
 
         resources :operator_lifecycle_requests, only: %i(index show new create) do
-          scope module: :operator_lifecycle_requests do
-            resource :approval, only: %i(create)
-            resource :execution, only: %i(create)
-            resource :rejection, only: %i(create)
-          end
+          resource :approval, only: %i(create), controller: "operator_lifecycle_requests/approvals"
+          resource :execution, only: %i(create), controller: "operator_lifecycle_requests/executions"
+          resource :rejection, only: %i(create), controller: "operator_lifecycle_requests/rejections"
         end
       end
     end

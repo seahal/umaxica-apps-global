@@ -56,6 +56,12 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
+    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_includes response.body, "メールアドレス"
+    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
   end
 
   test "create sends OTP email and stores notification preference" do

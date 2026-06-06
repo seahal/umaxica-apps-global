@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class TimezonesController < Sign::Org::PreferencesBaseController
+      class TimezonesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

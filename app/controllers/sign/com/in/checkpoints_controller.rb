@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class CheckpointsController < Sign::Com::ApplicationController
+      class CheckpointsController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_visitor!

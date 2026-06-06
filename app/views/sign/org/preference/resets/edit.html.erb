@@ -14,7 +14,7 @@
     <%= t("acme.org.preference.resets.description") %>
   </p>
 
-  <%= form_with url: sign_org_preference_reset_path, method: :delete do |f| %>
+  <%= form_with url: sign_org_preference_reset_attempt_path, method: :post do |f| %>
     <% if @preference&.errors&.any? %>
       <div>
         <ul>

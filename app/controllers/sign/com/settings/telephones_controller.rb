@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Settings
-      class TelephonesController < Sign::Com::ApplicationController
+      class TelephonesController < ::Sign::Com::ApplicationController
         include CommonOtp
 
         include ::VerificationVisitor

@@ -176,7 +176,11 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
   test "abstract path hooks raise not implemented" do
     harness = Harness.new
 
-    assert_raises(NotImplementedError) { SignEmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness) }
-    assert_raises(NotImplementedError) { SignEmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness) }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness)
+    }
+    assert_raises(NotImplementedError) {
+      SignEmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness)
+    }
   end
 end

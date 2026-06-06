@@ -56,7 +56,8 @@ class IdentityEmailCeremonyResult
     )
     IdentityEmailCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentityEmailCeremonyContract.validate_timestamp!(payload, "verified_at")
-    raise IdentityEmailCeremonyContract::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityEmailCeremonyContract::LEEWAY
+    raise IdentityEmailCeremonyContract::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityEmailCeremonyContract::LEEWAY
   end
 
   def self.default_claims(attributes, now:)

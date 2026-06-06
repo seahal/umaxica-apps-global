@@ -97,9 +97,8 @@
     "ghcr.io/devcontainers-extra/features/opencode:1": {}
   },
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
-    "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.codex/config.toml,target=/home/global/.codex/config.toml,type=bind",
+    "source=global-claude,target=/home/global/.claude,type=volume",
+    "source=global-codex,target=/home/global/.codex,type=volume",
     "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",

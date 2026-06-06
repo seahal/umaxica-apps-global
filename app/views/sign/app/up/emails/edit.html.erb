@@ -26,20 +26,22 @@
         <% end %>
 
         <div>
-          <%= form.label :pass_code %>
+          <%= form.label :pass_code, t("sign.app.authentication.email.edit.code_label") %>
           <%= form.text_field :pass_code,
-                              placeholder: "123456",
+                              placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
                               autofocus: true,
                               autocomplete: "one-time-code",
                               inputmode: "numeric",
                               pattern: "[0-9]*" %>
         </div>
 
-        <%= form.submit t("views.sign.app.up.emails.edit.submit") %>
+        <%= form.submit t("sign.app.authentication.email.edit.submit") %>
       <% end %>
 
+      <p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
+
       <div>
-        <%= link_to t("sign.app.registration.email.edit.return_page"), new_sign_app_sign_up_path %>
+        <%= link_to t("sign.app.registration.email.edit.return_page"), sign_app_sign_up_entrance_path %>
       </div>
     </div>
   </div>

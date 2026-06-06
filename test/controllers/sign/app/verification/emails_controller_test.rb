@@ -48,6 +48,12 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         follow_redirect!(headers: @headers)
 
         assert_response :success
+        assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
+        assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
+        assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
+        assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
+        assert_includes response.body, "メールアドレス"
+        assert_includes response.body, I18n.t("sign.app.verification.edit.email_delivery_help")
       end
     end
   end
@@ -83,6 +89,11 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
       assert_response :success
       assert_select "input[name='verification[code]']"
+      assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
+      assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
+      assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
+      assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
+      assert_includes response.body, "メールアドレス"
     end
   end
 

@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class AdultContentGatesController < Sign::Org::PreferencesBaseController
+      class AdultContentGatesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

@@ -62,9 +62,12 @@ class IdentityPasskeyCeremonyFinalCommitter
   def validate_actor_binding!
     raise IdentityPasskeyCeremonyContract::Error, "actor is required" if actor.blank?
     raise IdentityPasskeyCeremonyContract::Error, "session_ref is required" if session_ref.blank?
-    raise IdentityPasskeyCeremonyContract::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
-    raise IdentityPasskeyCeremonyContract::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentityPasskeyCeremonyContract::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentityPasskeyCeremonyContract::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
+    raise IdentityPasskeyCeremonyContract::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentityPasskeyCeremonyContract::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_transaction_state!
@@ -100,7 +103,10 @@ class IdentityPasskeyCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentityPasskeyCeremonyResult.decode(result_token, issuer_id: IdentityPasskeyCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentityPasskeyCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentityPasskeyCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

@@ -30,7 +30,10 @@ class IdentitySecretCredentialCeremonyResultIssuer
 
   def issue!
     validate_grant!
-    IdentitySecretCredentialCeremonyResult.issue(result_claims, issuer_id: IdentitySecretCredentialCeremonyContract.sign_issuer_id(surface), now: now)
+    IdentitySecretCredentialCeremonyResult.issue(
+      result_claims,
+      issuer_id: IdentitySecretCredentialCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   private
@@ -39,24 +42,38 @@ class IdentitySecretCredentialCeremonyResultIssuer
 
   def validate_grant!
     raise IdentitySecretCredentialCeremonyContract::Error, "candidate is required" if candidate.blank?
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required" if grant_token.blank?
-    raise IdentitySecretCredentialCeremonyContract::Error, "grant surface does not match ceremony" unless grant["surface"].to_s == surface
-    raise IdentitySecretCredentialCeremonyContract::Error, "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "grant operation does not match ceremony" unless grant["operation"].to_s == operation
-    raise IdentitySecretCredentialCeremonyContract::Error, "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "secret credential ceremony grant is required" if grant_token.blank?
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "grant surface does not match ceremony" unless grant["surface"].to_s == surface
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "grant operation does not match ceremony" unless grant["operation"].to_s == operation
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentitySecretCredentialCeremonyContract::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentitySecretCredentialCeremonyContract::Error, "transaction is already consumed" if transaction.consumed?
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate actor does not match ceremony" unless candidate.actor_ref.to_s == actor_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate session does not match ceremony" unless candidate.session_ref.to_s == session_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate transaction does not match ceremony" unless candidate.transaction_id.to_s ==
-      transaction.transaction_id
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate operation does not match ceremony" unless candidate.operation.to_s == operation
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate surface does not match ceremony" unless candidate.surface.to_s == surface
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate actor does not match ceremony" unless candidate.actor_ref.to_s == actor_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate session does not match ceremony" unless candidate.session_ref.to_s == session_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate transaction does not match ceremony" unless candidate.transaction_id.to_s ==
+            transaction.transaction_id
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate operation does not match ceremony" unless candidate.operation.to_s == operation
   end
 
   def grant
-    @grant ||= IdentitySecretCredentialCeremonyGrant.decode(grant_token, issuer_id: IdentitySecretCredentialCeremonyContract.acme_issuer_id(surface), now: now)
+    @grant ||= IdentitySecretCredentialCeremonyGrant.decode(
+      grant_token,
+      issuer_id: IdentitySecretCredentialCeremonyContract.acme_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

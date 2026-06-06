@@ -65,14 +65,17 @@ class IdentitySocialCeremonyFinalCommitter
     elsif result["actor_ref"].to_s != transaction.actor_ref.to_s
       raise IdentitySocialCeremonyContract::Error, "result actor does not match transaction"
     end
-    raise IdentitySocialCeremonyContract::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentitySocialCeremonyContract::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentitySocialCeremonyContract::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentitySocialCeremonyContract::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_provider_subject!
     expected = IdentitySocialCeremonyContract.provider_subject_digest(provider: provider, subject: provider_subject)
-    raise IdentitySocialCeremonyContract::Error, "result provider subject does not match callback" unless result["provider_subject_digest"].to_s ==
-      expected
+    raise IdentitySocialCeremonyContract::Error,
+          "result provider subject does not match callback" unless result["provider_subject_digest"].to_s ==
+            expected
   end
 
   def validate_transaction_state!
@@ -115,14 +118,21 @@ class IdentitySocialCeremonyFinalCommitter
 
   def validate_candidate!(candidate)
     raise IdentitySocialCeremonyContract::Error, "result candidate is required" if candidate.blank?
-    raise IdentitySocialCeremonyContract::Error, "result candidate digest does not match" unless result["candidate_digest"].to_s == candidate.digest
-    raise IdentitySocialCeremonyContract::Error, "candidate surface does not match" unless candidate.surface.to_s == surface
-    raise IdentitySocialCeremonyContract::Error, "candidate actor does not match" unless candidate.actor_ref.to_s == result["actor_ref"].to_s
-    raise IdentitySocialCeremonyContract::Error, "candidate session does not match" unless candidate.session_ref.to_s == session_ref
-    raise IdentitySocialCeremonyContract::Error, "candidate transaction does not match" unless candidate.transaction_id.to_s ==
-      transaction.transaction_id.to_s
-    raise IdentitySocialCeremonyContract::Error, "candidate operation does not match" unless candidate.operation.to_s == operation
-    raise IdentitySocialCeremonyContract::Error, "candidate provider does not match" unless candidate.provider.to_s == provider
+    raise IdentitySocialCeremonyContract::Error,
+          "result candidate digest does not match" unless result["candidate_digest"].to_s == candidate.digest
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate surface does not match" unless candidate.surface.to_s == surface
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate actor does not match" unless candidate.actor_ref.to_s == result["actor_ref"].to_s
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate session does not match" unless candidate.session_ref.to_s == session_ref
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate transaction does not match" unless candidate.transaction_id.to_s ==
+            transaction.transaction_id.to_s
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate operation does not match" unless candidate.operation.to_s == operation
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate provider does not match" unless candidate.provider.to_s == provider
   end
 
   def record_audit!(identity)
@@ -138,7 +148,10 @@ class IdentitySocialCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentitySocialCeremonyResult.decode(result_token, issuer_id: IdentitySocialCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentitySocialCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentitySocialCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Oidc
-      class LogoutsController < Sign::Org::LogoutsController
+      class LogoutsController < ::Sign::Org::LogoutsController
         AUTHENTICATION_MODE = :open
       end
     end

@@ -479,7 +479,7 @@ module SocialAuth
 
   # Override this method to customize the failure redirect path
   def social_auth_failure_redirect_path
-    respond_to?(:new_sign_app_sign_in_path) ? new_sign_app_sign_in_path : "/"
+    respond_to?(:sign_app_sign_in_entrance_path) ? sign_app_sign_in_entrance_path : "/"
   end
 
   # Override this method to customize the success redirect path

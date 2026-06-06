@@ -5,7 +5,7 @@ module Sign
   module App
     module Settings
       module Emails
-        class RegistrationsController < Sign::App::ApplicationController
+        class RegistrationsController < ::Sign::App::ApplicationController
           include ::CloudflareTurnstile
           include CommonRedirect
           include CommonOtp

@@ -6,7 +6,7 @@ require "rqrcode"
 module Sign
   module App
     module Settings
-      class TotpsController < Sign::App::ApplicationController
+      class TotpsController < ::Sign::App::ApplicationController
         include ::CloudflareTurnstile
         include ::SignAcmeAuthorityRedirect
         include ::SignTotpCeremonyDelegation

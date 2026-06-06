@@ -4,11 +4,11 @@
 <% if has_other_sessions %>
   <div>
     <%= button_to t("sign.app.settings.sessions.revoke.others_button"),
-                  others_sign_app_settings_sessions_path,
+                  sign_app_settings_session_revocations_others_path,
                   method: :delete,
                   data: { confirm: t("sign.app.settings.sessions.revoke.others_confirm") } %>
     <%= button_to t("sign.app.settings.sessions.revoke.all_button"),
-                  revoke_all_sign_app_settings_sessions_path,
+                  sign_app_settings_session_revocations_all_path,
                   method: :delete,
                   data: { confirm: t("sign.app.settings.sessions.revoke.all_confirm") } %>
   </div>

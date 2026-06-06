@@ -44,7 +44,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_org_sign_up_path(ri: "jp"), count: 0
+    assert_select "a[href=?]", sign_org_sign_up_entrance_path(ri: "jp"), count: 0
   end
 
   test "renders back to root link" do

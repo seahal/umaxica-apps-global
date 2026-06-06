@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class WithdrawalsController < Sign::App::ApplicationController
+      class WithdrawalsController < ::Sign::App::ApplicationController
         include ::SignSettingsAuthorityRedirect
         include ::VerificationClient
         include AcmeSettingsWithdrawalFlow

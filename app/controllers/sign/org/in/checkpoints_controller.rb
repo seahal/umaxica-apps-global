@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class CheckpointsController < Sign::Org::ApplicationController
+      class CheckpointsController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_operator!

@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class DashboardsController < Sign::RedirectOnlyController
+    class DashboardsController < ::Sign::RedirectOnlyController
       AUTHENTICATION_MODE = :private
       def show
         redirect_to_acme_authority!("/dashboard")

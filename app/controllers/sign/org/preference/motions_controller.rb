@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class MotionsController < Sign::Org::PreferencesBaseController
+      class MotionsController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

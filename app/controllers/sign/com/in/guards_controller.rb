@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class GuardsController < Sign::Com::ApplicationController
+      class GuardsController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :open
 
         def show
@@ -19,7 +19,7 @@ module Sign
         def sign_in_sequence_surface = :com
 
         def guard_entry_path
-          new_sign_com_sign_in_path(ri: params[:ri])
+          sign_com_sign_in_entrance_path(ri: params[:ri])
         end
 
         def route_guard_cycle(cycle)

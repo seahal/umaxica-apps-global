@@ -7,7 +7,7 @@ module Sign
   module Org
     module In
       module Challenge
-        class PasskeysController < Sign::Org::ApplicationController
+        class PasskeysController < ::Sign::Org::ApplicationController
           include SignWebauthn
 
           include SessionLimitGate
@@ -108,7 +108,7 @@ module Sign
 
             clear_pending_mfa!
             redirect_to(
-              new_sign_org_sign_in_path,
+              sign_org_sign_in_entrance_path,
               alert: I18n.t("sign.org.in.mfa.session_expired"),
               status: :see_other,
             )
@@ -173,7 +173,7 @@ module Sign
               )
             else
               redirect_to(
-                new_sign_org_sign_in_path,
+                sign_org_sign_in_entrance_path,
                 alert: I18n.t("sign.org.in.mfa.verification_failed"),
                 status: :see_other,
               )

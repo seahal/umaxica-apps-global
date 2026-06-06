@@ -33,8 +33,10 @@ class IdentityStepUpCeremonyResultConsumer
     require_match!(result, "transaction_id", transaction.transaction_id)
     require_match!(result, "grant_jti", transaction.grant_jti)
     require_match!(result, "scope", transaction.required_scope)
-    raise IdentityStepUpCeremonyContract::Error, "method is not allowed" unless transaction.allowed_methods_array.include?(result["method"].to_s)
-    raise IdentityStepUpCeremonyContract::Error, "AAL is insufficient" unless aal_rank(result["aal"]) >= aal_rank(transaction.required_aal)
+    raise IdentityStepUpCeremonyContract::Error,
+          "method is not allowed" unless transaction.allowed_methods_array.include?(result["method"].to_s)
+    raise IdentityStepUpCeremonyContract::Error,
+          "AAL is insufficient" unless aal_rank(result["aal"]) >= aal_rank(transaction.required_aal)
   end
 
   def require_match!(result, key, expected)

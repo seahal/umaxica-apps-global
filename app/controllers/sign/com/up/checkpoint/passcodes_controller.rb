@@ -5,7 +5,7 @@ module Sign
   module Com
     module Up
       module Checkpoint
-        class PasscodesController < Sign::Com::ApplicationController
+        class PasscodesController < ::Sign::Com::ApplicationController
           include CommonRedirect
 
           include SignPasscodeRegistrationFlow

@@ -17,7 +17,7 @@
 #
 # The restricted session approach avoids blocking login while ensuring staff
 # can manage their sessions. Invariant: max 1 restricted session per staff.
-class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
+class Sign::Org::In::SessionsController < ::Sign::Org::ApplicationController
   include SessionLimitGate
 
   AUTHENTICATION_MODE = :deny_all
@@ -100,7 +100,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
       log_out
-      redirect_to(new_sign_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
+      redirect_to(sign_org_sign_in_entrance_path, notice: I18n.t("session_limit.cancelled"))
     end
   end
 
@@ -132,7 +132,7 @@ class Sign::Org::In::SessionsController < Sign::Org::ApplicationController
 
   def redirect_to_login
     redirect_to(
-      new_sign_org_sign_in_path,
+      sign_org_sign_in_entrance_path,
       alert: I18n.t("session_limit.login_required"),
     )
   end

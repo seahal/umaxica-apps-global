@@ -3,7 +3,7 @@
 
 module Sign
   module Com
-    class PreferencesBaseController < Sign::Com::ApplicationController
+    class PreferencesBaseController < ::Sign::Com::ApplicationController
       include ::SignAcmeAuthorityRedirect
 
       AUTHENTICATION_MODE = :open

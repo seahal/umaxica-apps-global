@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class SecretCredentialsController < Sign::App::ApplicationController
+      class SecretCredentialsController < ::Sign::App::ApplicationController
         include ::VerificationClient
 
         include ::SignSettingsSecretCredentialTurnstileGuard

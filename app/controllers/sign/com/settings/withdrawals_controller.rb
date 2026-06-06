@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Settings
-      class WithdrawalsController < Sign::RedirectOnlyController
+      class WithdrawalsController < ::Sign::RedirectOnlyController
         AUTHENTICATION_MODE = :private
         def new = redirect_to_acme_withdrawal!
 

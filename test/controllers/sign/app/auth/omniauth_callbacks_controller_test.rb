@@ -54,8 +54,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| safe_redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:new_sign_app_sign_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
+      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+    }
+    controller.define_singleton_method(:sign_app_sign_up_entrance_path) { |ri: nil|
+      "/sign/up/new#{ri ? "?ri=#{ri}" : ""}"
+    }
     controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
@@ -346,7 +350,9 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
+      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+    }
     controller.define_singleton_method(:sign_app_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
@@ -387,7 +393,9 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       user_google_identity_status: client_google_identity_statuses(:active),
     )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
+      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+    }
     controller.define_singleton_method(:redirect_to) { |*| nil }
     controller.define_singleton_method(:sign_in) { raise StandardError, "should not sign in" }
 
@@ -408,8 +416,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "apple", message: "cancelled", strategy: "apple") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
-    controller.define_singleton_method(:new_sign_app_sign_up_path) { |ri: nil| "/sign/up/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
+      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+    }
+    controller.define_singleton_method(:sign_app_sign_up_entrance_path) { |ri: nil|
+      "/sign/up/new#{ri ? "?ri=#{ri}" : ""}"
+    }
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
     controller.define_singleton_method(:action_name) { @action_name_for_test }
     controller.define_singleton_method(:verified_social_callback_request?) { @verified_social_for_test }
@@ -465,7 +477,9 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
+      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+    }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")

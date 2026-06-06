@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Telephone
-          class OtpsController < Sign::Com::Up::TelephonesController
+          class OtpsController < ::Sign::Com::Up::TelephonesController
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest

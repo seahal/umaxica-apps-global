@@ -151,7 +151,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:path_from_signed_pt) { |_| path_target }
     controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle }
     controller.define_singleton_method(:sign_in_flow_actor) { |_| actor }
-    controller.define_singleton_method(:new_sign_app_sign_in_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_in_check_path) { |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }

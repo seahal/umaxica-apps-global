@@ -5,7 +5,7 @@ module Sign
   module Org
     module Settings
       module Emails
-        class RegistrationsController < Sign::Org::ApplicationController
+        class RegistrationsController < ::Sign::Org::ApplicationController
           include ::CloudflareTurnstile
 
           include ::CommonOtp

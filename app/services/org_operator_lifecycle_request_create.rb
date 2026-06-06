@@ -17,7 +17,10 @@ class OrgOperatorLifecycleRequestCreate
     if request.save
       OrgOperatorLifecycleResult.new(success: true, request: request, error: nil, invitation: nil)
     else
-      OrgOperatorLifecycleResult.new(success: false, request: request, error: request.errors.full_messages.to_sentence, invitation: nil)
+      OrgOperatorLifecycleResult.new(
+        success: false, request: request, error: request.errors.full_messages.to_sentence,
+        invitation: nil,
+      )
     end
   end
 

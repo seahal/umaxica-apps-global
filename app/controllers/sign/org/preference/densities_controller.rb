@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class DensitiesController < Sign::Org::PreferencesBaseController
+      class DensitiesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

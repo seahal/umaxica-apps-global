@@ -40,12 +40,16 @@ class IdentityStepUpCeremonyFreshnessCommitter
 
   def validate!
     raise IdentityStepUpCeremonyContract::Error, "token is required" if token.blank?
-    raise IdentityStepUpCeremonyContract::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == token_actor_ref
+    raise IdentityStepUpCeremonyContract::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == token_actor_ref
     raise IdentityStepUpCeremonyContract::Error,
           "result session does not match current session" unless result["session_ref"].to_s == token.public_id.to_s
-    raise IdentityStepUpCeremonyContract::Error, "result scope does not match requirement" unless result["scope"].to_s == expected_scope
-    raise IdentityStepUpCeremonyContract::Error, "result method does not match ceremony" unless result["method"].to_s == expected_method
-    raise IdentityStepUpCeremonyContract::Error, "result AAL is insufficient" unless aal_rank(result["aal"]) >= aal_rank(expected_aal)
+    raise IdentityStepUpCeremonyContract::Error,
+          "result scope does not match requirement" unless result["scope"].to_s == expected_scope
+    raise IdentityStepUpCeremonyContract::Error,
+          "result method does not match ceremony" unless result["method"].to_s == expected_method
+    raise IdentityStepUpCeremonyContract::Error,
+          "result AAL is insufficient" unless aal_rank(result["aal"]) >= aal_rank(expected_aal)
   end
 
   def update_token!
@@ -92,7 +96,10 @@ class IdentityStepUpCeremonyFreshnessCommitter
   end
 
   def result
-    @result ||= IdentityStepUpCeremonyResult.decode(result_token, issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentityStepUpCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def surface

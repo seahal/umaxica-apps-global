@@ -100,7 +100,8 @@ module SecretCredentialCeremonyTransactionable
       self.class.transaction do
         locked = self.class.lock.find(id)
         raise IdentitySecretCredentialCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
-        raise IdentitySecretCredentialCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+        raise IdentitySecretCredentialCeremonyContract::Error,
+              "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(result_jti: result_jti, consumed_at: consumed_at, status: STATUS_CONSUMED)
         locked

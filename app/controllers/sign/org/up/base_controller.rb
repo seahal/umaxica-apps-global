@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Up
-      class BaseController < Sign::Org::ApplicationController
+      class BaseController < ::Sign::Org::ApplicationController
         include ::RateLimit
 
         include ActionPolicy::Controller

@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Settings
-      class PasskeysController < Sign::Com::ApplicationController
+      class PasskeysController < ::Sign::Com::ApplicationController
         include ::VerificationVisitor
 
         include SignWebauthn

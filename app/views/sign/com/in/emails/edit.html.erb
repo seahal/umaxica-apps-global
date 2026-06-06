@@ -42,10 +42,10 @@
         <% end %>
 
         <div>
-          <%= form.label :pass_code %>
+          <%= form.label :pass_code, t("sign.app.authentication.email.edit.code_label") %>
           <div>
             <%= form.text_field :pass_code,
-                                placeholder: "000000",
+                                placeholder: t("sign.app.authentication.email.edit.code_placeholder"),
                                 maxlength: 6,
                                 autocomplete: "one-time-code",
                                 inputmode: "numeric",
@@ -71,6 +71,8 @@
           <%= form.submit t("sign.app.authentication.email.edit.submit") %>
         </div>
       <% end %>
+
+      <p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
 
       <div>
         <%= link_to new_sign_com_in_email_path(pt: pt) do %>

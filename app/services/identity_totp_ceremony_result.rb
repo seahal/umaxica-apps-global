@@ -54,7 +54,8 @@ class IdentityTotpCeremonyResult
     )
     IdentityTotpCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentityTotpCeremonyContract.validate_timestamp!(payload, "verified_at")
-    raise IdentityTotpCeremonyContract::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityTotpCeremonyContract::LEEWAY
+    raise IdentityTotpCeremonyContract::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityTotpCeremonyContract::LEEWAY
   end
 
   def self.default_claims(attributes, now:)

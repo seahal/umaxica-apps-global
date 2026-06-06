@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Telephone
-          class BirthdatesController < Sign::Com::Up::Check::Email::BirthdatesController
+          class BirthdatesController < ::Sign::Com::Up::Check::Email::BirthdatesController
             AUTHENTICATION_MODE = :guest
 
             private

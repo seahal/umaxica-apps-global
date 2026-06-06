@@ -11,8 +11,8 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "a[href*=?]", new_sign_com_sign_up_path
-    assert_select "a[href*=?]", new_sign_com_sign_in_path
+    assert_select "a[href*=?]", sign_com_sign_up_entrance_path
+    assert_select "a[href*=?]", sign_com_sign_in_entrance_path
   end
 
   test "renders layout contract" do

@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class CookiesController < Sign::Org::PreferencesBaseController
+      class CookiesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

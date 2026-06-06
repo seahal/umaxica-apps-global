@@ -81,7 +81,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
     def sign_app_settings_path = "/config"
 
-    def new_sign_app_sign_in_path = "/login"
+    def sign_app_sign_in_entrance_path = "/login"
 
     def sign_app_root_path = "/"
   end

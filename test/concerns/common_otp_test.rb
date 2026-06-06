@@ -24,11 +24,22 @@ class CommonOtpTest < ActiveSupport::TestCase
     _secret_credential, counter, _pass_code = @obj.send(:generate_hotp_code)
 
     assert_not_nil counter
-    # Counter should be even (as per implementation: rand * 2)
+    # Counter should be even (as per implementation: SecureRandom-seeded value * 2)
     assert_predicate counter, :even?
 
     # Counter should be within expected range
     assert_includes 2...2_000_000, counter
+  end
+
+  test "generate_hotp_code seeds the counter from SecureRandom, not Kernel#rand" do
+    # The HOTP counter is a one-time-use secret input and must be derived from a
+    # CSPRNG. Stub SecureRandom and assert the counter is the deterministic
+    # transform of its output; a regression to Kernel#rand would not match.
+    SecureRandom.stub(:random_number, 41) do
+      _secret_credential, counter, _pass_code = @obj.send(:generate_hotp_code)
+
+      assert_equal (41 + 1) * 2, counter
+    end
   end
 
   test "generate_hotp_code returns valid pass_code" do

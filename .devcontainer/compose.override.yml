@@ -49,3 +49,11 @@ services:
   tinyrdm:
     profiles:
       - tools
+# Named volumes back /home/global/.claude and /home/global/.codex inside the
+# devcontainer instead of bind-mounting host ~/.claude and ~/.codex. The host
+# dirs hold credentials and were being re-owned to a subuid by the in-container
+# entrypoint chown; named volumes decouple in-container state from host
+# ownership entirely.
+volumes:
+  global-claude:
+  global-codex:

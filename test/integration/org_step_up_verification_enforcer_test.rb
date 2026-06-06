@@ -88,7 +88,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    post options_sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+    post sign_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
     assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
@@ -135,7 +135,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       subject_id: @staff.id,
     )
 
-    post options_sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+    post sign_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
   end

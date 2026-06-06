@@ -5,7 +5,7 @@ module Sign
   module App
     module Up
       module Checkpoint
-        class PasskeysController < Sign::App::ApplicationController
+        class PasskeysController < ::Sign::App::ApplicationController
           include CommonRedirect
 
           include SignWebauthn

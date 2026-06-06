@@ -5,7 +5,7 @@ module Sign
   module Com
     module Up
       module Checkpoint
-        class BirthdatesController < Sign::Com::ApplicationController
+        class BirthdatesController < ::Sign::Com::ApplicationController
           include SignUpSequenceControllerSupport
 
           AUTHENTICATION_MODE = :guest

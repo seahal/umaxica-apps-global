@@ -4,7 +4,7 @@
 module Sign
   module App
     module Preference
-      class RedirectsController < Sign::RedirectOnlyController
+      class RedirectsController < ::Sign::RedirectOnlyController
         include ::SignPreferenceAuthorityRedirect
 
         AUTHENTICATION_MODE = :open

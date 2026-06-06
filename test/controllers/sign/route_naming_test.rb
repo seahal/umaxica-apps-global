@@ -10,145 +10,122 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     org: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
   }.freeze
 
-  test "top-level sign entry route helpers keep the public sign paths" do
-    assert_equal "/sign/in/new", new_sign_app_sign_in_path
-    assert_equal "/sign/up/new", new_sign_app_sign_up_path
-    assert_equal "/sign/out", sign_app_sign_out_path
-    assert_equal "/sign/out/edit", edit_sign_app_sign_out_path
+  test "sign entrance and sign out helpers use explicit lifecycle resources" do
+    assert_equal "/sign/up/entrance", sign_app_sign_up_entrance_path
+    assert_equal "/sign/in/entrance", sign_app_sign_in_entrance_path
+    assert_equal "/sign/out/confirmation", sign_app_sign_out_confirmation_path
+    assert_equal "/sign/out/attempt", sign_app_sign_out_attempt_path
+    assert_equal "/sign/out/completion", sign_app_sign_out_completion_path
   end
 
-  test "sign state route helpers use guard check and challenge terminology" do
-    assert_equal "/sign/up/guard/apple", sign_app_up_guard_apple_path
-    assert_equal "/sign/up/guard/google", sign_app_up_guard_google_path
-    assert_equal "/sign/up/guard/email", sign_app_up_guard_email_path
-    assert_equal "/sign/up/guard/telephone", sign_app_up_guard_telephone_path
-    assert_equal "/sign/up/check/apple/confirmation", sign_app_up_check_apple_confirmation_path
-    assert_equal "/sign/up/check/google/confirmation", sign_app_up_check_google_confirmation_path
-    assert_equal "/sign/up/check/email/otp", sign_app_up_check_email_otp_path
-    assert_equal "/sign/up/check/email/birthdate", sign_app_up_check_email_birthdate_path
-    assert_equal "/sign/up/check/telephone/otp", sign_app_up_check_telephone_otp_path
-    assert_equal "/sign/up/check/telephone/passkey", sign_app_up_check_telephone_passkey_path
-    assert_equal "/sign/up/check/telephone/passcode", sign_app_up_check_telephone_passcode_path
-    assert_equal "/sign/up/check/telephone/birthdate", sign_app_up_check_telephone_birthdate_path
-    assert_equal "/sign/in/guard", sign_app_in_guard_path
-    assert_equal "/sign/in/check", sign_app_in_check_path
-    assert_equal "/sign/in/challenge", sign_app_in_challenge_path
-    assert_equal "/sign/in/challenge/totp/new", new_sign_app_in_challenge_totp_path
-    assert_equal "/sign/in/challenge/passkey/new", new_sign_app_in_challenge_passkey_path
+  test "old top-level sign helper aliases are gone" do
+    helpers = Rails.application.routes.url_helpers
+
+    assert_not_respond_to helpers, :new_sign_app_sign_in_path
+    assert_not_respond_to helpers, :new_sign_app_sign_up_path
+    assert_not_respond_to helpers, :sign_app_sign_out_path
+    assert_not_respond_to helpers, :edit_sign_app_sign_out_path
   end
 
-  test "top-level sign routes use natural controller names on every sign surface" do
-    SURFACES.each do |surface, host|
-      assert_recognizes_top_level_sign_route(surface, host, "/sign/in/new", "sign_ins", "new")
-      assert_recognizes_top_level_sign_route(surface, host, "/sign/up/new", "sign_ups", "new")
-      assert_recognizes_top_level_sign_route(surface, host, "/sign/out", "sign_outs", "show")
-      assert_recognizes_top_level_sign_route(surface, host, "/sign/out/edit", "sign_outs", "edit")
+  test "top-level sign lifecycle routes resolve conventionally on every sign surface" do
+    SURFACES.each_key do |surface|
+      assert_recognizes_sign_route(surface, "/sign/up/entrance", :get, "sign/up/entrances", "show")
+      assert_recognizes_sign_route(surface, "/sign/in/entrance", :get, "sign/in/entrances", "show")
+      assert_recognizes_sign_route(surface, "/sign/out/confirmation", :get, "sign/out/confirmations", "show")
+      assert_recognizes_sign_route(surface, "/sign/out/attempt", :post, "sign/out/attempts", "create")
+      assert_recognizes_sign_route(surface, "/sign/out/completion", :get, "sign/out/completions", "show")
     end
   end
 
-  test "canonical app sign state routes resolve to existing controllers" do
-    assert_recognizes_sign_route(:app, "/sign/up/guard/apple", :get, "up/guard/apples", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/guard/google", :get, "up/guard/googles", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/guard/email", :get, "up/guard/emails", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/guard/telephone", :get, "up/guard/telephones", "show")
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/apple/confirmation", :get, "up/check/apple/confirmations",
-      "show",
-    )
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/apple/confirmation", :patch, "up/check/apple/confirmations",
-      "update",
-    )
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/google/confirmation", :get, "up/check/google/confirmations",
-      "show",
-    )
-    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :get, "up/check/email/otps", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :post, "up/check/email/otps", "create")
-    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :patch, "up/check/email/otps", "update")
-    assert_recognizes_sign_route(:app, "/sign/up/check/email/birthdate", :patch, "up/check/email/birthdates", "update")
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/telephone/passkey", :post, "up/check/telephone/passkeys",
-      "create",
-    )
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/telephone/passkey", :patch, "up/check/telephone/passkeys",
-      "update",
-    )
-    assert_recognizes_sign_route(
-      :app, "/sign/up/check/telephone/passcode", :patch, "up/check/telephone/passcodes",
-      "update",
-    )
-    assert_recognizes_sign_route(:app, "/sign/in/guard", :get, "in/guards", "show")
-    assert_recognizes_sign_route(:app, "/sign/in/check", :get, "in/checkpoints", "show")
-    assert_recognizes_sign_route(:app, "/sign/in/check", :patch, "in/checkpoints", "update")
-    assert_recognizes_sign_route(:app, "/sign/in/check", :delete, "in/checkpoints", "destroy")
-    assert_recognizes_sign_route(:app, "/sign/in/challenge", :get, "in/challenges", "show")
-    assert_recognizes_sign_route(:app, "/sign/in/challenge/totp/new", :get, "in/challenge/totps", "new")
-    assert_recognizes_sign_route(:app, "/sign/in/challenge/passkey/new", :get, "in/challenge/passkeys", "new")
-  end
+  test "sign check routes use checks controller namespace and old checkpoint route is absent" do
+    assert_recognizes_sign_route(:app, "/sign/in/check", :get, "sign/in/checks", "show")
+    assert_recognizes_sign_route(:app, "/sign/in/check", :patch, "sign/in/checks", "update")
+    assert_recognizes_sign_route(:com, "/sign/in/check", :get, "sign/in/checks", "show")
+    assert_recognizes_sign_route(:org, "/sign/in/check", :get, "sign/in/checks", "show")
 
-  test "canonical com and org sign check routes resolve on their surfaces" do
-    assert_recognizes_sign_route(:com, "/sign/up/guard/email", :get, "up/guard/emails", "show")
-    assert_recognizes_sign_route(:com, "/sign/up/guard/telephone", :get, "up/guard/telephones", "show")
-    assert_recognizes_sign_route(:com, "/sign/up/check/email/otp", :get, "up/check/email/otps", "show")
-    assert_recognizes_sign_route(
-      :com, "/sign/up/check/telephone/passkey", :patch, "up/check/telephone/passkeys",
-      "update",
-    )
-    assert_recognizes_sign_route(:com, "/sign/in/guard", :get, "in/guards", "show")
-    assert_recognizes_sign_route(:com, "/sign/in/check", :get, "in/checkpoints", "show")
-    assert_recognizes_sign_route(:org, "/sign/in/guard", :get, "in/guards", "show")
-    assert_recognizes_sign_route(:org, "/sign/in/check", :get, "in/checkpoints", "show")
-  end
-
-  test "org signup stays invitation only without normal guard or check routes" do
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("https://#{SURFACES.fetch(:org)}/sign/up/guard", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("https://#{SURFACES.fetch(:org)}/sign/up/check", method: :get)
+    SURFACES.each_key do |surface|
+      assert_unrecognized(surface, "/sign/in/check", :delete)
+      assert_unrecognized(surface, "/sign/in/checkpoint", :get)
+      assert_unrecognized(surface, "/sign/in/checkpoint", :patch)
+      assert_unrecognized(surface, "/sign/in/checkpoint", :delete)
     end
   end
 
-  test "old app sign state paths are not recognized" do
-    assert_unrecognized(:app, "/sign/up/guard", :get)
-    assert_unrecognized(:app, "/sign/up/guardrail", :get)
-    assert_unrecognized(:app, "/sign/up/check", :get)
-    assert_unrecognized(:app, "/sign/up/check", :delete)
-    assert_unrecognized(:app, "/sign/up/checkpoint", :get)
-    assert_unrecognized(:app, "/sign/up/checkpoint", :delete)
+  test "app social routes are provider explicit and com org social routes are absent" do
+    assert_recognizes_sign_route(:app, "/social/apple/connection", :get, "social/apple/connections", "show")
+    assert_recognizes_sign_route(
+      :app, "/social/apple/connection_attempt", :post,
+      "social/apple/connection_attempts", "create",
+    )
+    assert_recognizes_sign_route(
+      :app, "/social/google/disconnection_attempt", :post,
+      "social/google/disconnection_attempts", "create",
+    )
+
+    assert_unrecognized(:app, "/social/auth/apple", :delete)
+    assert_unrecognized(:app, "/social/auth/apple/continue", :post)
+    assert_unrecognized(:com, "/social/apple/connection", :get)
+    assert_unrecognized(:org, "/social/google/connection", :get)
   end
 
-  test "old app nested check paths are not recognized" do
-    assert_unrecognized(:app, "/sign/up/check/birthdate", :patch)
-    assert_unrecognized(:app, "/sign/up/check/passkey", :get)
-    assert_unrecognized(:app, "/sign/up/check/passkey/begin", :post)
-    assert_unrecognized(:app, "/sign/up/check/passcode", :post)
-    assert_unrecognized(:app, "/sign/up/check/social/confirmation", :get)
+  test "preference routes do not carry preference screen defaults" do
+    route = Rails.application.routes.recognize_path(
+      "https://#{SURFACES.fetch(:app)}/preference/language/edit",
+      method: :get,
+    )
+
+    assert_equal "sign/app/preference/languages", route.fetch(:controller)
+    assert_not route.key?(:preference_screen)
   end
 
-  test "old sign in checkpoint path redirects to check while challenge remains canonical" do
-    get "/sign/in/checkpoint?ri=jp&pt=signed&secret=raw",
-        headers: { "Host" => SURFACES.fetch(:app) }
+  test "settings mfa reset resolves through conventional settings mfa namespace" do
+    assert_recognizes_sign_route(:app, "/settings/mfa/reset", :get, "settings/mfa/resets", "show")
+    assert_recognizes_sign_route(:app, "/settings/mfa/reset", :post, "settings/mfa/resets", "create")
+  end
 
-    assert_response :temporary_redirect
-    assert_redirect_location_path("/sign/in/check", "pt" => "signed", "ri" => "jp")
+  test "session revocation uses post attempt routes instead of collection deletes" do
+    assert_recognizes_sign_route(
+      :app, "/settings/sessions/abc/revocation_attempt", :post,
+      "settings/revocation_attempts", "create",
+    )
+    assert_recognizes_sign_route(
+      :app, "/settings/session_revocations/others", :post,
+      "settings/session_revocations/others", "create",
+    )
+    assert_recognizes_sign_route(
+      :app, "/settings/session_revocations/all", :post,
+      "settings/session_revocations/alls", "create",
+    )
 
-    get sign_app_in_challenge_path(ri: "jp"), headers: { "Host" => SURFACES.fetch(:app) }
+    assert_unrecognized(:app, "/settings/sessions/others", :delete)
+    assert_unrecognized(:app, "/settings/sessions/revoke_all", :delete)
+  end
 
-    assert_response :redirect
+  test "route source excludes sign routing compatibility patterns" do
+    source = Rails.root.join("config/routes/sign.rb").read
+
+    forbidden = [
+      "safe_sign_state_" + "redirect",
+      'scope path: "' + 'sign"',
+      'path: "' + 'in"',
+      'path: "' + 'out"',
+      'controller: "' + 'sign_ins"',
+      'controller: "' + 'sign_outs"',
+      'controller: "' + 'checkpoints"',
+      "defaults: { preference_" + "screen:",
+      "param: :" + "provider",
+      'module: "' + 'settings/mfa"',
+      "post :" + "continue",
+      "post :" + "resend",
+      "post :" + "regenerate",
+      "delete :" + "others",
+      "delete :" + "revoke_all",
+    ]
+
+    forbidden.each { |pattern| assert_not_includes source, pattern }
   end
 
   private
-
-  def assert_recognizes_top_level_sign_route(surface, host, path, controller_name, action)
-    route = Rails.application.routes.recognize_path("https://#{host}#{path}", method: :get)
-
-    assert_equal "sign/#{surface}/#{controller_name}", route.fetch(:controller)
-    assert_equal action, route.fetch(:action)
-  end
 
   def assert_recognizes_sign_route(surface, path, method, controller_name, action)
     route = Rails.application.routes.recognize_path("https://#{SURFACES.fetch(surface)}#{path}", method: method)
@@ -161,12 +138,5 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("https://#{SURFACES.fetch(surface)}#{path}", method: method)
     end
-  end
-
-  def assert_redirect_location_path(expected_path, expected_query)
-    location = URI.parse(response.location)
-
-    assert_equal expected_path, location.path
-    assert_equal expected_query, Rack::Utils.parse_nested_query(location.query)
   end
 end

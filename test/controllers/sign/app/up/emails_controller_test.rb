@@ -55,7 +55,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", new_sign_app_sign_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_app_sign_up_entrance_path(ri: "jp"), count: 1
     assert_select "a[href=?]", new_sign_app_in_email_path(ri: "jp"), count: 1
   end
 
@@ -74,6 +74,12 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get sign_app_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_includes response.body, "メールアドレス"
+    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
   end
 
   test "i18n flash messages for email registration flow exist" do
@@ -891,8 +897,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
     assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}']"
     assert_select "form[action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=delete]"
-    assert_select "a[href*=?]", new_sign_app_sign_up_path, count: 0
-    assert_select "a[href*=?]", new_sign_app_sign_in_path, count: 0
+    assert_select "a[href*=?]", sign_app_sign_up_entrance_path, count: 0
+    assert_select "a[href*=?]", sign_app_sign_in_entrance_path, count: 0
 
     get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 

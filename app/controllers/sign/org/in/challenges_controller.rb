@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class ChallengesController < Sign::Org::ApplicationController
+      class ChallengesController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :guest
 
         before_action :ensure_pending_mfa!
@@ -21,7 +21,7 @@ module Sign
 
           clear_pending_mfa!
           redirect_to(
-            new_sign_org_sign_in_path,
+            sign_org_sign_in_entrance_path,
             alert: I18n.t("sign.org.in.mfa.session_expired"),
             status: :see_other,
           )

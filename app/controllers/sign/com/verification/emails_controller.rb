@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Verification
-      class EmailsController < Sign::Com::Verification::BaseController
+      class EmailsController < ::Sign::Com::Verification::BaseController
         AUTHENTICATION_MODE = :private
 
         before_action :set_verification_navigation_context, only: %i(edit update resend)

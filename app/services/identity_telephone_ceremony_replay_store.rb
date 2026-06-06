@@ -9,7 +9,11 @@ class IdentityTelephoneCeremonyReplayStore
   }.freeze
 
   def self.for(surface)
-    new(transaction_class: MODEL_BY_SURFACE.fetch(surface.to_s) { raise IdentityTelephoneCeremony::Error, "surface is invalid" })
+    new(
+      transaction_class: MODEL_BY_SURFACE.fetch(surface.to_s) {
+        raise IdentityTelephoneCeremony::Error, "surface is invalid"
+      },
+    )
   end
 
   def initialize(transaction_class:)

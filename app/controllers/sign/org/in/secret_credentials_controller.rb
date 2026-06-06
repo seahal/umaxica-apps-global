@@ -4,7 +4,7 @@
 module Sign
   module Org
     module In
-      class SecretCredentialsController < Sign::Org::ApplicationController
+      class SecretCredentialsController < ::Sign::Org::ApplicationController
         include ::CloudflareTurnstile
 
         include SessionLimitGate

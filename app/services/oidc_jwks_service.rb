@@ -6,6 +6,6 @@ require "jit_security_jwt_jwks_service"
 
 class OidcJwksService
   class << self
-    delegate :jwk_set, to: :"JitSecurityJwtJwksService"
+    delegate :jwk_set, to: :JitSecurityJwtJwksService
   end
 end

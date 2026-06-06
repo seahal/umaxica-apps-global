@@ -98,6 +98,30 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.location, "/sign/up/check/telephone/otp"
   end
 
+  test "edit renders authentication code copy" do
+    post sign_com_up_telephone_url(ri: "jp"),
+         params: {
+           visitor_telephone: {
+             raw_number: "+819012300002",
+             confirm_policy: "1",
+             confirm_using_mfa: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    get sign_com_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.registration.telephone.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.registration.telephone.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.registration.telephone.edit.submit")
+    assert_includes response.body, "電話番号"
+    assert_includes response.body, "SMS"
+    assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
+  end
+
   test "update routes to guardrail without signup audits or client account" do
     post sign_com_up_telephone_url(ri: "jp"),
          params: {

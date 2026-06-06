@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Apple
-          class ConfirmationsController < Sign::App::ApplicationController
+          class ConfirmationsController < ::Sign::App::ApplicationController
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest

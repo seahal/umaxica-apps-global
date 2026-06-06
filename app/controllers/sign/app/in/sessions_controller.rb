@@ -17,7 +17,7 @@
 #
 # The restricted session approach avoids blocking login while ensuring users
 # can manage their sessions. Invariant: max 1 restricted session per user.
-class Sign::App::In::SessionsController < Sign::App::ApplicationController
+class Sign::App::In::SessionsController < ::Sign::App::ApplicationController
   include SessionLimitGate
 
   AUTHENTICATION_MODE = :deny_all
@@ -100,7 +100,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
       log_out
-      redirect_to(new_sign_app_sign_in_path, notice: I18n.t("sign.app.in.session.cancelled"))
+      redirect_to(sign_app_sign_in_entrance_path, notice: I18n.t("sign.app.in.session.cancelled"))
     end
   end
 
@@ -136,7 +136,7 @@ class Sign::App::In::SessionsController < Sign::App::ApplicationController
 
   def redirect_to_login
     redirect_to(
-      new_sign_app_sign_in_path,
+      sign_app_sign_in_entrance_path,
       alert: I18n.t("sign.app.in.session.login_required"),
     )
   end

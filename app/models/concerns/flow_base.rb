@@ -118,7 +118,7 @@ module FlowBase
   def retainable_required!(method_name)
     return if respond_to?(method_name)
 
-      raise FlowConfigurationError,
+    raise FlowConfigurationError,
           "#{self.class.name} must `include Retainable` to use cycle_#{method_name.to_s.delete_suffix("?")}?"
   end
 

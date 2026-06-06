@@ -79,7 +79,9 @@ class IdentityTelephoneCeremonyTransaction
     raise IdentityTelephoneCeremony::Error, "session_ref is required" if session_ref.blank?
     raise IdentityTelephoneCeremony::Error, "transaction_id is required" if transaction_id.blank?
     raise IdentityTelephoneCeremony::Error, "grant_jti is required" if grant_jti.blank?
-    raise IdentityTelephoneCeremony::Error, "status is invalid" unless [STATUS_PENDING, STATUS_CONSUMED].include?(status)
-    raise IdentityTelephoneCeremony::Error, "result_jti is required for consumed transaction" if consumed? && result_jti.blank?
+    raise IdentityTelephoneCeremony::Error, "status is invalid" unless [STATUS_PENDING,
+                                                                        STATUS_CONSUMED,].include?(status)
+    raise IdentityTelephoneCeremony::Error,
+          "result_jti is required for consumed transaction" if consumed? && result_jti.blank?
   end
 end

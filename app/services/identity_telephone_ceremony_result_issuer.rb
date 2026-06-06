@@ -32,7 +32,10 @@ class IdentityTelephoneCeremonyResultIssuer
 
   def issue!
     validate_grant!
-    IdentityTelephoneCeremonyResult.issue(result_claims, issuer_id: IdentityTelephoneCeremonyContract.sign_issuer_id(surface), now: now)
+    IdentityTelephoneCeremonyResult.issue(
+      result_claims,
+      issuer_id: IdentityTelephoneCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   private
@@ -43,17 +46,25 @@ class IdentityTelephoneCeremonyResultIssuer
   def validate_grant!
     raise IdentityTelephoneCeremony::Error, "candidate is required" if candidate.blank?
     raise IdentityTelephoneCeremony::Error, "telephone ceremony grant is required" if grant_token.blank?
-    raise IdentityTelephoneCeremony::Error, "grant surface does not match ceremony" unless grant["surface"].to_s == surface
-    raise IdentityTelephoneCeremony::Error, "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
-    raise IdentityTelephoneCeremony::Error, "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
-    raise IdentityTelephoneCeremony::Error, "grant operation does not match ceremony" unless grant["operation"].to_s == operation
-    raise IdentityTelephoneCeremony::Error, "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
+    raise IdentityTelephoneCeremony::Error,
+          "grant surface does not match ceremony" unless grant["surface"].to_s == surface
+    raise IdentityTelephoneCeremony::Error,
+          "grant actor does not match ceremony" unless grant["actor_ref"].to_s == actor_ref
+    raise IdentityTelephoneCeremony::Error,
+          "grant session does not match ceremony" unless grant["session_ref"].to_s == session_ref
+    raise IdentityTelephoneCeremony::Error,
+          "grant operation does not match ceremony" unless grant["operation"].to_s == operation
+    raise IdentityTelephoneCeremony::Error,
+          "grant jti does not match transaction" unless grant["jti"].to_s == transaction.grant_jti.to_s
     raise IdentityTelephoneCeremony::Error, "transaction is expired" if transaction.expired?(now: now)
     raise IdentityTelephoneCeremony::Error, "transaction is already consumed" if transaction.consumed?
   end
 
   def grant
-    @grant ||= IdentityTelephoneCeremonyGrant.decode(grant_token, issuer_id: IdentityTelephoneCeremonyContract.acme_issuer_id(surface), now: now)
+    @grant ||= IdentityTelephoneCeremonyGrant.decode(
+      grant_token,
+      issuer_id: IdentityTelephoneCeremonyContract.acme_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

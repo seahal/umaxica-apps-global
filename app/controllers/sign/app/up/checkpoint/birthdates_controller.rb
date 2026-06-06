@@ -5,7 +5,7 @@ module Sign
   module App
     module Up
       module Checkpoint
-        class BirthdatesController < Sign::App::ApplicationController
+        class BirthdatesController < ::Sign::App::ApplicationController
           include SignUpSequenceControllerSupport
 
           AUTHENTICATION_MODE = :guest
@@ -91,7 +91,8 @@ module Sign
             candidate = IdentitySocialCeremonyCandidateStore.consume!(evidence.fetch("candidate_ref"))
             raise IdentitySocialCeremonyContract::Error, "candidate digest mismatch" unless
               candidate.digest.to_s == evidence.fetch("candidate_digest").to_s
-            raise IdentitySocialCeremonyContract::Error, "candidate surface mismatch" unless candidate.surface.to_s == "app"
+            raise IdentitySocialCeremonyContract::Error,
+                  "candidate surface mismatch" unless candidate.surface.to_s == "app"
             raise IdentitySocialCeremonyContract::Error, "candidate actor mismatch" unless
               candidate.actor_ref.to_s == @sign_up_ticket.public_id.to_s
             raise IdentitySocialCeremonyContract::Error, "candidate session mismatch" unless

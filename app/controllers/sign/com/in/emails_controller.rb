@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class EmailsController < Sign::Com::ApplicationController
+      class EmailsController < ::Sign::Com::ApplicationController
         include ::CloudflareTurnstile
 
         include EmailValidation

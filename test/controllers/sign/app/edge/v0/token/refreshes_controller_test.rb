@@ -553,6 +553,61 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_not token_record.device_session.reload.revoked?
   end
 
+  # On the supported sign-in path, login tokens must be issued with an explicit
+  # binding marker (LEGACY = "no DBSC binding"), never a silent NOTHING default.
+  test "sign-in path issues login tokens with explicit LEGACY binding metadata" do
+    controller = Sign::App::Edge::V0::Token::RefreshesController.new
+    attrs =
+      controller.stub(:resource_type, "client") do
+        controller.send(:default_dbsc_token_attributes)
+      end
+
+    assert_equal ClientTokenBindingMethod::LEGACY, attrs[:user_token_binding_method_id]
+    assert_equal ClientTokenDbscStatus::NOTHING, attrs[:user_token_dbsc_status_id]
+  end
+
+  # TEMPORARY LEGACY COMPATIBILITY: ordinary unbound tokens (LEGACY browser
+  # sessions, NOTHING OIDC tokens) are still accepted while the DBSC/DPoP
+  # rollout completes. This must remain visible as an explicit allowance, not a
+  # silent fail-open; see legacy_unbound_refresh_allowed? in authentication_base.
+  test "POST refresh accepts an ordinary unbound token via temporary LEGACY compatibility" do
+    token_record = ClientToken.create!(
+      user: @user,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+    )
+    refresh_plain = token_record.rotate_refresh_token!
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true),
+         as: :json
+
+    assert_response :ok
+    assert response.parsed_body["refreshed"]
+  end
+
+  # Fail-closed: a non-DBSC token must not also advertise a DBSC lifecycle
+  # status. This contradictory state previously slipped through the implicit
+  # `return true`; it must now be rejected rather than accepted unbound.
+  test "POST refresh fails closed when a non-DBSC token carries an inconsistent DBSC status" do
+    token_record = ClientToken.create!(
+      user: @user,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::ACTIVE,
+    )
+    refresh_plain = token_record.rotate_refresh_token!
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
+
+    post "/edge/v0/token/refresh",
+         headers: json_headers(with_csrf: true),
+         as: :json
+
+    assert_response :unauthorized
+    assert_nil token_record.reload.rotated_at
+    assert_equal "refresh_binding_denied", ClientOccurrence.order(:id).last.event_type
+  end
+
   private
 
   def json_headers(with_csrf:)

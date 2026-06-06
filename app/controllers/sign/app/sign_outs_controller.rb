@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class SignOutsController < Sign::RedirectOnlyController
+    class SignOutsController < ::Sign::RedirectOnlyController
       AUTHENTICATION_MODE = :private
       def show = redirect_to_acme_sign_out!
 

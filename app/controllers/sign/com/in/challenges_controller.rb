@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class ChallengesController < Sign::Com::ApplicationController
+      class ChallengesController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :guest
 
         before_action :ensure_pending_mfa!
@@ -21,7 +21,7 @@ module Sign
 
           clear_pending_mfa!
           redirect_to(
-            new_sign_com_sign_in_path(ri: params[:ri]),
+            sign_com_sign_in_entrance_path(ri: params[:ri]),
             alert: I18n.t("sign.app.in.mfa.session_expired"),
             status: :see_other,
           )

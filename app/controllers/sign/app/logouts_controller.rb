@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class LogoutsController < Sign::App::ApplicationController
+    class LogoutsController < ::Sign::App::ApplicationController
       include CommonRedirect
       include SignOutNotice
       include SignOidcLogout
@@ -15,7 +15,7 @@ module Sign
       private
 
       def oidc_logout_completed_path(ri:)
-        sign_app_sign_out_path(ri: ri)
+        sign_app_sign_out_completion_path(ri: ri)
       end
     end
   end

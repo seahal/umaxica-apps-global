@@ -25,7 +25,10 @@ class IdentitySocialCeremonyGrant
   end
 
   def self.decode(token, issuer_id:, now: Time.current)
-    unverified = IdentitySocialCeremonyContract.decode_unverified_payload(token)
+    # Untrusted decode is used ONLY to read `surface` so the correct verified
+    # issuer/audience can be selected; the verified decode below is what trust
+    # decisions rely on.
+    unverified = IdentitySocialCeremonyContract.decode_untrusted_routing_payload(token)
     surface = unverified["surface"].to_s
     payload, header = IdentitySocialCeremonyContract.decode_verified_payload(
       token: token,

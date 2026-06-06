@@ -30,8 +30,8 @@ module Sign
         end
 
         test "controller uses bare unsubscribe boundary" do
-          assert_operator Sign::Org::Preference::EmailsController, :<, Sign::Org::BareController
-          assert_not_operator Sign::Org::Preference::EmailsController, :<, Sign::Org::PreferencesBaseController
+          assert_operator ::Sign::Org::Preference::EmailsController, :<, ::Sign::Org::BareController
+          assert_not_operator ::Sign::Org::Preference::EmailsController, :<, ::Sign::Org::PreferencesBaseController
         end
 
         test "GET edit renders unsubscribe confirmation for a valid token" do

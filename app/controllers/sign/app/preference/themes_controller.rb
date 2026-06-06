@@ -4,7 +4,7 @@
 module Sign
   module App
     module Preference
-      class ThemesController < Sign::App::PreferencesBaseController
+      class ThemesController < ::Sign::App::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

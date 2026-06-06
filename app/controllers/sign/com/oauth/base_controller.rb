@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Oauth
-      class BaseController < Sign::Com::BareController
+      class BaseController < ::Sign::Com::BareController
         AUTHENTICATION_MODE = :bare
 
         protect_from_forgery with: :null_session

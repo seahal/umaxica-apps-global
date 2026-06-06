@@ -441,8 +441,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
-             params: { confirm_reset: "1" }
+      post(
+        public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
+        params: { confirm_reset: "1" },
+      )
 
       assert_response :see_other
       assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "jp"), response.location
@@ -466,8 +468,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
 
         assert_response :success
 
-        delete public_send("sign_#{domain[:name]}_preference_reset_url", state),
-               params: { confirm_reset: "1" }
+        post(
+          public_send("sign_#{domain[:name]}_preference_reset_attempt_url", state),
+          params: { confirm_reset: "1" },
+        )
 
         assert_response :see_other
         assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "us"), response.location
@@ -483,8 +487,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       pref, _token, cookie_name = assert_preference_created(domain)
 
-      delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
-             params: { confirm_reset: "1" }
+      post(
+        public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
+        params: { confirm_reset: "1" },
+      )
 
       get public_send("sign_#{domain[:name]}_preference_url", ri: "jp")
 
@@ -691,8 +697,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       initial_audit_count = audit_class.where(subject_id: pref.id).count
 
       # Submit reset form with confirmation
-      delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
-             params: { confirm_reset: "1" }
+      post(
+        public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
+        params: { confirm_reset: "1" },
+      )
 
       assert_response :see_other
       assert_equal public_send("sign_#{domain[:name]}_preference_url", ri: "jp"), response.location
@@ -721,8 +729,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       cookies[PreferenceBase::LANGUAGE_COOKIE_KEY] = "en"
       cookies[PreferenceBase::TIMEZONE_COOKIE_KEY] = "etc/utc"
 
-      delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
-             params: { confirm_reset: "1" }
+      post(
+        public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
+        params: { confirm_reset: "1" },
+      )
 
       # Reset to defaults keeps cookies intact (values are reset in DB, not deleted)
       assert_not_nil cookies[cookie_name],
@@ -734,8 +744,10 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       pref, _token, cookie_name = assert_preference_created(domain)
 
       # Submit reset form WITHOUT confirmation
-      delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
-             params: { confirm_reset: "0" }
+      post(
+        public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
+        params: { confirm_reset: "0" },
+      )
 
       # Should render edit with unprocessable_content status
       assert_response :unprocessable_content
@@ -760,8 +772,8 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       ActiveSupport::Notifications.subscribe("sql.active_record", callback)
 
       begin
-        delete(
-          public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        post(
+          public_send("sign_#{domain[:name]}_preference_reset_attempt_url", ri: "jp"),
           params: { confirm_reset: "1" },
         )
       ensure

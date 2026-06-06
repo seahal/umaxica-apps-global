@@ -1,5 +1,5 @@
 <% surface = controller_path.split("/").second %>
-<% screen = params[:preference_screen].to_s %>
+<% screen = @preference_screen.presence || params[:preference_screen].to_s %>
 <% model = instance_variable_get("@preference_#{screen}") %>
 <% option_class = model.class.reflect_on_association(:option)&.klass %>
 <% option_type = screen.to_sym %>

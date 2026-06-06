@@ -48,6 +48,14 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response']"
+    assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
+    assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
+    assert_includes response.body, "認証アプリ"
+    assert_includes response.body, I18n.t("sign.app.verification.edit.totp_help")
+    assert_not_includes response.body, "届きます"
+    assert_not_includes response.body, "送信され"
 
     session[:step_up_email_otp] = { "expires_at" => 5.minutes.from_now.to_i }
 

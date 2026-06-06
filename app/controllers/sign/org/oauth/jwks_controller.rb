@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Oauth
-      class JwksController < Sign::Org::JwksController
+      class JwksController < ::Sign::Org::JwksController
         AUTHENTICATION_MODE = :bare
       end
     end

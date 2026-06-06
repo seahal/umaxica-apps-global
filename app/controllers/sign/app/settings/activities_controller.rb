@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class ActivitiesController < Sign::RedirectOnlyController
+      class ActivitiesController < ::Sign::RedirectOnlyController
         include ::SignSettingsAuthorityRedirect
 
         AUTHENTICATION_MODE = :private

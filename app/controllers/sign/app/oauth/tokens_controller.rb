@@ -4,7 +4,7 @@
 module Sign
   module App
     module Oauth
-      class TokensController < Sign::App::TokensController
+      class TokensController < ::Sign::App::TokensController
         AUTHENTICATION_MODE = :open
       end
     end

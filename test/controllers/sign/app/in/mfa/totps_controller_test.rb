@@ -52,6 +52,14 @@ module Sign::App::In
 
       assert_response :success
       assert_select "input[name='cf-turnstile-response']"
+      assert_select "h1", text: I18n.t("sign.app.in.mfa.totp.title")
+      assert_select "label", text: I18n.t("sign.app.in.mfa.totp.token_label")
+      assert_select "input[placeholder=?]", I18n.t("sign.app.in.mfa.totp.token_placeholder")
+      assert_select "input[type=submit][value=?]", I18n.t("sign.app.in.mfa.totp.submit")
+      assert_includes response.body, "認証アプリ"
+      assert_includes response.body, I18n.t("sign.app.in.mfa.totp.help")
+      assert_not_includes response.body, "届きます"
+      assert_not_includes response.body, "送信され"
     end
 
     test "new redirects to sign in when pending_mfa is missing" do
@@ -60,7 +68,7 @@ module Sign::App::In
       end
 
       assert_response :see_other
-      assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
+      assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
@@ -151,7 +159,7 @@ module Sign::App::In
       end
 
       assert_response :see_other
-      assert_redirected_to new_sign_app_sign_in_path(ri: "jp")
+      assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
     end
 
     private

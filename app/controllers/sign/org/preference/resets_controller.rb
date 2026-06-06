@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class ResetsController < Sign::Org::PreferencesBaseController
+      class ResetsController < ::Sign::Org::PreferencesBaseController
         include ::PreferenceSignScreenActions
 
         AUTHENTICATION_MODE = :open

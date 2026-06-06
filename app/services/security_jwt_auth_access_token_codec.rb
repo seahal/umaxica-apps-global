@@ -52,7 +52,10 @@ class SecurityJwtAuthAccessTokenCodec
         host: host, resource_type: resource_type,
         jwt_issuer_id: jwt_issuer_id,
       )
-      token_issuer_id ? JitSecurityJwtKeyring.encode(payload, issuer_id: token_issuer_id) : JitSecurityJwtKeyring.encode(payload)
+      token_issuer_id ? JitSecurityJwtKeyring.encode(
+        payload,
+        issuer_id: token_issuer_id,
+      ) : JitSecurityJwtKeyring.encode(payload)
     rescue JWT::EncodeError, OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
       Rails.logger.error(
         JitLogEvent.format(

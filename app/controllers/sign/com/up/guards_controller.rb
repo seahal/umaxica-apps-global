@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Up
-      class GuardsController < Sign::Com::ApplicationController
+      class GuardsController < ::Sign::Com::ApplicationController
         include SignUpSequenceControllerSupport
 
         AUTHENTICATION_MODE = :open

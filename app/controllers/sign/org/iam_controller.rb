@@ -3,7 +3,7 @@
 
 module Sign
   module Org
-    class IamController < Sign::Org::ApplicationController
+    class IamController < ::Sign::Org::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_operator!

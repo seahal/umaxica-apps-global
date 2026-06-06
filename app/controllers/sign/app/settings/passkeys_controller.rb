@@ -19,7 +19,7 @@ module Sign
       # - GET /settings/passkeys/:id/edit (edit)
       # - PATCH /settings/passkeys/:id (update - description only)
       # - DELETE /settings/passkeys/:id (destroy)
-      class PasskeysController < Sign::App::ApplicationController
+      class PasskeysController < ::Sign::App::ApplicationController
         include ::VerificationClient
 
         include SignWebauthn
@@ -305,7 +305,7 @@ module Sign
             actor: current_client,
             session_nonce: current_session_token&.public_id,
             value: result.raw_secret_credential,
-            purpose: Sign::App::Settings::EmergencyKeysController::REVEAL_PURPOSE,
+            purpose: ::Sign::App::Settings::EmergencyKeysController::REVEAL_PURPOSE,
             metadata: { secret_credential_public_id: result.secret_credential.public_id },
           )
           @emergency_key_reveal_token = reveal.token

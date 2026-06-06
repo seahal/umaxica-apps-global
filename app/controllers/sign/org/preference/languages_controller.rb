@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Preference
-      class LanguagesController < Sign::Org::PreferencesBaseController
+      class LanguagesController < ::Sign::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

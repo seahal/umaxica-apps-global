@@ -4,7 +4,7 @@
 module Sign
   module Com
     module In
-      class PasskeysController < Sign::Com::ApplicationController
+      class PasskeysController < ::Sign::Com::ApplicationController
         include SignWebauthn
 
         include SignPasskeyAuthentication
@@ -184,13 +184,13 @@ module Sign
         def render_passkey_restricted_success(_result)
           render json: {
             status: "session_restricted",
-            redirect_url: sign_com_in_session_path,
+            redirect_url: sign_com_sign_in_session_path,
             message: I18n.t("sign.app.in.session.restricted_notice"),
           }, status: :ok
         end
 
         def passkey_checkpoint_redirect_url
-          sign_com_in_check_path(
+          sign_com_sign_in_check_path(
             pt: retrieve_pt_for_checkpoint,
             ri: params[:ri],
           )

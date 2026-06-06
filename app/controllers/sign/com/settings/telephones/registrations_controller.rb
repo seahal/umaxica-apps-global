@@ -5,7 +5,7 @@ module Sign
   module Com
     module Settings
       module Telephones
-        class RegistrationsController < Sign::Com::ApplicationController
+        class RegistrationsController < ::Sign::Com::ApplicationController
           include CloudflareTurnstile
 
           include CommonOtp

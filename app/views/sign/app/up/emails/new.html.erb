@@ -5,7 +5,7 @@
   </div>
 
   <div>
-    <%= form_with model: @user_email, url: sign_app_up_email_path, method: 'post', data: { turbo: false } do |form| %>
+    <%= form_with model: @user_email, url: sign_app_sign_up_email_path, method: 'post', data: { turbo: false } do |form| %>
       <% pt = signed_pt_param %>
       <%= hidden_field_tag :pt, pt if pt.present? %>
 
@@ -66,10 +66,10 @@
     <div>
       <div>
         <div>
-          <%= link_to t("sign.app.registration.new.page_title"), new_sign_app_sign_up_path %>
+          <%= link_to t("sign.app.registration.new.page_title"), sign_app_sign_up_entrance_path %>
         </div>
         <div>
-          <%= link_to t('sign.app.registration.email.new.link_to_sign_in'), new_sign_app_in_email_path %>
+          <%= link_to t('sign.app.registration.email.new.link_to_sign_in'), new_sign_app_sign_in_email_path %>
         </div>
       </div>
     </div>

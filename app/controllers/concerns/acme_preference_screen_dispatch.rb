@@ -31,6 +31,28 @@ module AcmePreferenceScreenDispatch
 
   private
 
+  def preference_key
+    configured = self.class.const_get(:PREFERENCE_KEY, false) if self.class.const_defined?(:PREFERENCE_KEY, false)
+    configured.presence || preference_key_from_controller || params[:preference_screen].to_s.presence
+  end
+
+  def preference_key_from_controller
+    {
+      "regions" => "region",
+      "timezones" => "timezone",
+      "languages" => "language",
+      "currencies" => "currency",
+      "dates" => "date",
+      "times" => "time",
+      "motions" => "motion",
+      "densities" => "density",
+      "page_sizes" => "page_size",
+      "adult_content_gates" => "adult_content_gate",
+      "themes" => "theme",
+      "cookies" => "cookie",
+    }[controller_name.to_s]
+  end
+
   def edit_selectable_preference_screen(screen)
     set_selectable_preference_edit(screen)
     set_selectable_preference_view_context(screen)
@@ -38,8 +60,9 @@ module AcmePreferenceScreenDispatch
   end
 
   def dispatch_preference_screen(action)
-    screen = params[:preference_screen].to_s
+    screen = preference_key.to_s
     config = SCREEN_ACTIONS.fetch(screen)
+    @preference_screen = screen
 
     if config.last == :selectable
       if action == :edit
@@ -53,20 +76,21 @@ module AcmePreferenceScreenDispatch
   end
 
   def preference_screen_template
-    sign_template = "sign/#{controller_path.split("/").second}/preference/#{params[:preference_screen].to_s.pluralize}/edit"
+    screen = preference_key.to_s
+    sign_template = "sign/#{controller_path.split("/").second}/preference/#{screen.pluralize}/edit"
     return sign_template if controller_path.start_with?("sign/") && lookup_context.exists?(sign_template)
 
     "acme/shared/preference/#{preference_screen_template_name}"
   end
 
   def preference_screen_template_name
-    case params[:preference_screen].to_s
+    case preference_key.to_s
     when "region", "timezone", "language", "theme"
       "option"
     when "cookie"
       "cookie"
     else
-      params[:preference_screen].to_s.pluralize
+      preference_key.to_s.pluralize
     end
   end
 end

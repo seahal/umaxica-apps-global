@@ -27,7 +27,10 @@ class IdentitySocialCeremonyResult
   end
 
   def self.decode(token, issuer_id:, now: Time.current)
-    unverified = IdentitySocialCeremonyContract.decode_unverified_payload(token)
+    # Untrusted decode is used ONLY to read `surface` so the correct verified
+    # issuer/audience can be selected; the verified decode below is what trust
+    # decisions rely on.
+    unverified = IdentitySocialCeremonyContract.decode_untrusted_routing_payload(token)
     surface = unverified["surface"].to_s
     payload, header = IdentitySocialCeremonyContract.decode_verified_payload(
       token: token,
@@ -54,7 +57,8 @@ class IdentitySocialCeremonyResult
     )
     IdentitySocialCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentitySocialCeremonyContract.validate_timestamp!(payload, "verified_at")
-    raise IdentitySocialCeremonyContract::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentitySocialCeremonyContract::LEEWAY
+    raise IdentitySocialCeremonyContract::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentitySocialCeremonyContract::LEEWAY
   end
 
   def self.default_claims(attributes, now:)

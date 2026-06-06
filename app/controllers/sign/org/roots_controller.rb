@@ -3,7 +3,7 @@
 
 module Sign
   module Org
-    class RootsController < Sign::Org::ApplicationController
+    class RootsController < ::Sign::Org::ApplicationController
       AUTHENTICATION_MODE = :open
 
       def index

@@ -6,7 +6,7 @@
 module Sign
   module App
     module Up
-      class TelephonesController < Sign::App::ApplicationController
+      class TelephonesController < ::Sign::App::ApplicationController
         include CloudflareTurnstile
 
         include CommonRedirect
@@ -159,7 +159,7 @@ module Sign
             clear_otp(@user_telephone)
             session[:user_telephone_registration] = nil
             redirect_to(
-              new_sign_app_sign_in_path,
+              sign_app_sign_in_entrance_path,
               notice: t("sign.app.registration.telephone.update.sign_in_required"),
             )
             return

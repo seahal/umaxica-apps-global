@@ -4,7 +4,7 @@
 module Sign
   module App
     module Preference
-      class CurrenciesController < Sign::App::PreferencesBaseController
+      class CurrenciesController < ::Sign::App::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

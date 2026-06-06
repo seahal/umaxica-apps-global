@@ -31,7 +31,7 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "others_redirect_is_not_session_inventory_mutation" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    delete others_sign_app_settings_sessions_url(ri: "jp"), headers: session_headers
+    delete sign_app_settings_session_revocations_others_url(ri: "jp"), headers: session_headers
 
     assert_redirect_to_acme_sessions
     assert_predicate other_token.reload, :currently_usable?
@@ -40,7 +40,7 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "revoke_all_redirect_is_not_session_mutation" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    delete revoke_all_sign_app_settings_sessions_url(ri: "jp"), headers: session_headers
+    delete sign_app_settings_session_revocations_all_url(ri: "jp"), headers: session_headers
 
     assert_redirect_to_acme_sessions
     assert_predicate @current_token.reload, :currently_usable?

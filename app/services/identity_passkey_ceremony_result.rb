@@ -57,7 +57,8 @@ class IdentityPasskeyCeremonyResult
     IdentityPasskeyCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentityPasskeyCeremonyContract.validate_timestamp!(payload, "verified_at")
     Integer(payload["sign_count"])
-    raise IdentityPasskeyCeremonyContract::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityPasskeyCeremonyContract::LEEWAY
+    raise IdentityPasskeyCeremonyContract::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityPasskeyCeremonyContract::LEEWAY
   rescue ArgumentError, TypeError
     raise IdentityPasskeyCeremonyContract::Error, "sign_count must be an integer"
   end

@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class AuthorizesController < Sign::App::ApplicationController
+    class AuthorizesController < ::Sign::App::ApplicationController
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate!
@@ -39,7 +39,7 @@ module Sign
         return super unless params[:screen_hint].to_s == "signup"
 
         _ = return_to
-        new_sign_app_sign_up_url(
+        sign_app_sign_up_entrance_url(
           ri: params[:ri].presence,
           host: sign_app_redirect_host,
           protocol: "https",

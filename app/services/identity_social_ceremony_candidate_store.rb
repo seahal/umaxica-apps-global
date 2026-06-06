@@ -81,7 +81,8 @@ class IdentitySocialCeremonyCandidateStore
     raise IdentitySocialCeremonyContract::Error, "social auth candidate is not found" if payload.blank?
 
     candidate = candidate_from(payload)
-    raise IdentitySocialCeremonyContract::Error, "social auth candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
+    raise IdentitySocialCeremonyContract::Error,
+          "social auth candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
 
     candidate
   end

@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Preference
-      class RegionsController < Sign::Com::PreferencesBaseController
+      class RegionsController < ::Sign::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

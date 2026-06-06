@@ -566,7 +566,7 @@ ja:
             page_title: メールアドレスで登録
             error_summary: 入力内容を確認してください。
           create:
-            verification_code_sent: 確認コードをメールアドレスに送信しました。
+            verification_code_sent: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
             address_required: メールアドレスを入力してください。
         telephone:
@@ -672,10 +672,12 @@ ja:
             totp: 認証アプリ（TOTP）で認証
             passkey: パスキーで認証
           totp:
-            title: 認証アプリによる確認
-            description: 認証アプリに表示されている6桁のコードを入力してください。
+            title: 認証コード入力
+            description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
             token_label: 認証コード
-            submit: 認証する
+            token_placeholder: 6桁の数字を入力
+            help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+            submit: 送信する
             back: 認証方法の選択に戻る
             success: 認証アプリでの確認が完了しました。
           passkey:
@@ -735,7 +737,7 @@ ja:
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
           create:
-            verification_code_sent: 確認コードをメールアドレスに送信しました。
+            verification_code_sent: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
             success: 登録が完了しました。
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
             otp_resend_too_soon: しばらく時間をおいてから再度お試しください。
@@ -753,9 +755,14 @@ ja:
             link_to_other_methods: 他の方法で登録しますか？
             link_to_sign_in: ログインしますか？
           create:
-            verification_code_sent: 確認コードをSMSで送信しました。
+            verification_code_sent: 入力いただいた電話番号に、認証コードという6桁の数字がSMSで届きますので、入力してボタンを押してください。
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
           edit:
+            page_title: 認証コード入力
+            code_label: 認証コード
+            code_placeholder: 6桁の数字を入力
+            submit: 送信する
+            delivery_help: ※1分以上待っても届かない場合は、入力内容やSMSの受信設定をご確認の上、再度お試しください。
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
           update:
             success: 電話番号の確認が完了しました。
@@ -846,9 +853,12 @@ ja:
             locked: アカウントがロックされています。しばらく経ってから再度お試しください。
           edit:
             session_expired: セッションの有効期限が切れました。
-            page_title: 認証コードの入力
-            description: 完了まであと少しです。メールに送信された6桁の認証コードを入力してください。
-            submit: Email で登録
+            page_title: 認証コード入力
+            description: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
+            delivery_help: ※1分以上待っても届かない場合は、入力内容や受信設定をご確認の上、再度お試しください。
+            code_label: 認証コード
+            code_placeholder: 6桁の数字を入力
+            submit: 送信する
             return_page: 戻る
           new:
             page_title: メールでページ登録
@@ -948,8 +958,8 @@ ja:
             description: 電話番号を管理します
           edit:
             title: 電話番号の削除
-            pass_code_label: 確認コード
-            pass_code_placeholder: SMSで受け取ったコードを入力
+            pass_code_label: 認証コード
+            pass_code_placeholder: 6桁の数字を入力
           update:
             success: 電話番号が更新されました
           destroy:
@@ -1170,12 +1180,15 @@ ja:
           submit: 続行
           back: 戻る
         edit:
-          title: 再認証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          email_description: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+          email_delivery_help: ※1分以上待っても届かない場合は、入力内容や受信設定をご確認の上、再度お試しください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           cancel: キャンセル
           confirm_cancel: キャンセルしますか？
         success:
@@ -1216,13 +1229,15 @@ ja:
           submit: 続行
           back: 戻る
         edit:
-          title: 検証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
-          email_description: 本人確認のため、コードの入力を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          email_description: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+          email_delivery_help: ※1分以上待っても届かない場合は、入力内容や受信設定をご確認の上、再度お試しください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           back: 戻る
         success:
           complete: 検証が完了しました
@@ -1617,12 +1632,13 @@ ja:
           submit: 続行
           back: 戻る
         edit:
-          title: 検証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           back: 戻る
         success:
           complete: 検証が完了しました
@@ -1657,12 +1673,15 @@ ja:
           cancel: キャンセル
           confirm_cancel: キャンセルしますか？
         edit:
-          title: 再認証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          email_description: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+          email_delivery_help: ※1分以上待っても届かない場合は、入力内容や受信設定をご確認の上、再度お試しください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           cancel: キャンセル
           confirm_cancel: キャンセルしますか？
         success:
@@ -1727,12 +1746,13 @@ ja:
           cancel: キャンセル
           confirm_cancel: キャンセルしますか？
         edit:
-          title: 再認証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           cancel: キャンセル
           confirm_cancel: キャンセルしますか？
         success:
@@ -1758,12 +1778,15 @@ ja:
           submit: 続行
           back: 戻る
         edit:
-          title: 検証
-          description: 本人確認のため、コードの入力またはパスキー認証を行ってください。
+          title: 認証コード入力
+          description: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+          email_description: 入力いただいたメールアドレスに、認証コードという6桁の数字が届きますので、入力してボタンを押してください。
+          totp_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+          email_delivery_help: ※1分以上待っても届かない場合は、入力内容や受信設定をご確認の上、再度お試しください。
           authenticate_with_passkey: パスキーで認証
-          code_label: 確認コード
-          code_placeholder: 6桁
-          submit: 確認
+          code_label: 認証コード
+          code_placeholder: 6桁の数字を入力
+          submit: 送信する
           back: 戻る
         success:
           complete: 検証が完了しました
@@ -3368,9 +3391,9 @@ ja:
                 description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
                 help_text: 入力された電話番号にSMS等で確認コードを送信します。
               edit:
-                page_title: 確認コードの入力
-                heading: 確認コードの入力
-                description: SMSで届いた確認コードを入力してください。
+                page_title: 認証コード入力
+                heading: 認証コード入力
+                description: 入力いただいた電話番号に、認証コードという6桁の数字がSMSで届きますので、入力してボタンを押してください。
             index:
               actions: アクション
               verified: 認証済み
@@ -3407,7 +3430,10 @@ ja:
             new:
               qr_fallback: QRコードがスキャンできない場合は、認証アプリに手動でシークレットを入力してください。
               first_token_label: 認証コード
-              first_token_help: 認証アプリに表示されている6桁のコードを入力してください。
+              first_token_placeholder: 6桁の数字を入力
+              first_token_help: 認証アプリに表示される6桁の認証コードを入力して、ボタンを押してください。
+              first_token_delivery_help: ※認証コードは一定時間ごとに更新されます。うまく送信できない場合は、認証アプリに表示されている最新のコードを入力してください。
+              submit: 送信する
           telephones:
             new:
               description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
@@ -3419,9 +3445,9 @@ ja:
               empty: 電話番号は登録されていません。
             registrations:
               edit:
-                page_title: 確認コードの入力
-                heading: 確認コードの入力
-                description: SMSで届いた確認コードを入力してください。
+                page_title: 認証コード入力
+                heading: 認証コード入力
+                description: 入力いただいた電話番号に、認証コードという6桁の数字がSMSで届きますので、入力してボタンを押してください。
               new:
                 description: 新しい電話番号を追加して、アカウントの管理をより安全にします。
                 help_text: 入力された電話番号にSMS等で確認コードを送信します。

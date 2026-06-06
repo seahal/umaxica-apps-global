@@ -1,8 +1,8 @@
-<% content_for :page_title, t("views.sign.com.settings.telephones.registrations.edit.page_title") %>
+<% content_for :page_title, t("sign.app.registration.telephone.edit.page_title") %>
 <div>
   <div>
-    <h1><%= t("views.sign.com.settings.telephones.registrations.edit.heading") %></h1>
-    <p><%= t("views.sign.com.settings.telephones.registrations.edit.description") %></p>
+    <h1><%= t("sign.app.registration.telephone.edit.page_title") %></h1>
+    <p><%= t("sign.app.registration.telephone.create.verification_code_sent") %></p>
   </div>
 
   <div>
@@ -21,16 +21,23 @@
       <% end %>
 
       <div>
-        <%= form.label :pass_code %>
-        <%= form.text_field :pass_code %>
+        <%= form.label :pass_code, t("sign.app.registration.telephone.edit.code_label") %>
+        <%= form.text_field :pass_code,
+                            placeholder: t("sign.app.registration.telephone.edit.code_placeholder"),
+                            autofocus: true,
+                            autocomplete: "one-time-code",
+                            inputmode: "numeric",
+                            pattern: "[0-9]*" %>
       </div>
+
+      <p><%= t("sign.app.registration.telephone.edit.delivery_help") %></p>
 
       <div>
         <%= render "shared/cloudflare_turnstile_stealth" %>
       </div>
 
       <div>
-        <%= form.submit t("actions.submit") %>
+        <%= form.submit t("sign.app.registration.telephone.edit.submit") %>
       </div>
     <% end %>
 

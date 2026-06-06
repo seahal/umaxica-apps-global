@@ -37,7 +37,12 @@ module Acme
         def completion
           provider = social_provider_param
           result_token = params.require(:social_ceremony_result)
-          payload = IdentitySocialCeremonyContract.decode_unverified_payload(result_token)
+          # The payload here is UNVERIFIED/untrusted. We read `operation` only to
+          # fail-safe REJECT link completions on this login-only acme path. The
+          # actual trust decision happens in IdentitySocialCeremonyFinalCommitter
+          # below, which re-derives `operation` from the cryptographically
+          # verified result, so tampering this value cannot grant anything.
+          payload = IdentitySocialCeremonyContract.decode_untrusted_routing_payload(result_token)
           return reject_social_link_completion!(provider) if payload["operation"].to_s == "link"
 
           commit = IdentitySocialCeremonyFinalCommitter.call!(
@@ -207,8 +212,12 @@ module Acme
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
+        # Extracts `session_ref` from the UNVERIFIED payload purely so it can be
+        # passed to IdentitySocialCeremonyFinalCommitter. The committer compares
+        # it against the verified result["session_ref"] (mismatch => rejection),
+        # so this untrusted value is a routing input, never a trust anchor.
         def social_result_session_ref(result_token)
-          IdentitySocialCeremonyContract.decode_unverified_payload(result_token).fetch("session_ref")
+          IdentitySocialCeremonyContract.decode_untrusted_routing_payload(result_token).fetch("session_ref")
         end
 
         def social_provider_param

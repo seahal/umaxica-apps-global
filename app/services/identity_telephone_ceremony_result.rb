@@ -56,7 +56,8 @@ class IdentityTelephoneCeremonyResult
     )
     IdentityTelephoneCeremonyContract.validate_exact!(payload, "proof_method", PROOF_METHOD)
     IdentityTelephoneCeremonyContract.validate_timestamp!(payload, "verified_at")
-    raise IdentityTelephoneCeremony::Error, "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityTelephoneCeremonyContract::LEEWAY
+    raise IdentityTelephoneCeremony::Error,
+          "verified_at must not be in the future" if payload["verified_at"].to_i > now.to_i + IdentityTelephoneCeremonyContract::LEEWAY
   end
 
   def self.default_claims(attributes, now:)

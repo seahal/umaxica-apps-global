@@ -56,7 +56,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "options returns challenge and options" do
     if true # Replaced STUB stub with real execution as per G1
-      post options_sign_com_settings_passkeys_path(ri: "jp"), headers: @headers.merge(@origin_headers)
+      post sign_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers)
     end
 
     assert_response :ok
@@ -65,7 +65,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "verification creates passkey on success" do
     if true # Replaced STUB stub with real execution as per G1
-      post options_sign_com_settings_passkeys_path(ri: "jp"), headers: @headers.merge(@origin_headers)
+      post sign_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers)
     end
     challenge_id = response.parsed_body["challenge_id"]
     cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
@@ -78,7 +78,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     WebAuthn::Credential.stub(:from_create, mock_credential) do
       assert_difference("VisitorPasskey.count", 1) do
-        post verification_sign_com_settings_passkeys_path(ri: "jp"),
+        post sign_com_settings_passkeys_verification_path(ri: "jp"),
              params: {
                challenge_id: challenge_id,
                credential: {

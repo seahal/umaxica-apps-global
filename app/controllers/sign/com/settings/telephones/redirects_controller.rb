@@ -5,7 +5,7 @@ module Sign
   module Com
     module Settings
       module Telephones
-        class RedirectsController < Sign::RedirectOnlyController
+        class RedirectsController < ::Sign::RedirectOnlyController
           include ::SignSettingsAuthorityRedirect
 
           AUTHENTICATION_MODE = :private

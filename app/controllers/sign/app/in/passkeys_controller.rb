@@ -16,7 +16,7 @@ module Sign
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, email is required to look up
       # the user's registered passkeys.
-      class PasskeysController < Sign::App::ApplicationController
+      class PasskeysController < ::Sign::App::ApplicationController
         include SignWebauthn
 
         include SignPasskeyAuthentication
@@ -182,13 +182,13 @@ module Sign
         def render_passkey_restricted_success(_result)
           render json: {
             status: "session_restricted",
-            redirect_url: sign_app_in_session_path,
+            redirect_url: sign_app_sign_in_session_path,
             message: I18n.t("sign.app.in.session.restricted_notice"),
           }, status: :ok
         end
 
         def passkey_checkpoint_redirect_url
-          sign_app_in_check_path(
+          sign_app_sign_in_check_path(
             pt: retrieve_pt_for_checkpoint,
             ri: params[:ri],
           )

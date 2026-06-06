@@ -5,7 +5,7 @@ module Sign
   module App
     module Settings
       module Telephones
-        class RegistrationsController < Sign::App::ApplicationController
+        class RegistrationsController < ::Sign::App::ApplicationController
           include CloudflareTurnstile
 
           include CommonRedirect

@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Settings
-      class WithdrawalsController < Sign::Org::ApplicationController
+      class WithdrawalsController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :private
 
         def show

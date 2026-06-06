@@ -39,6 +39,28 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/UMAXICA \(sign, app\)/, response.body)
   end
 
+  test "edit renders authentication code copy" do
+    post sign_com_up_email_url(ri: "jp"),
+         params: {
+           visitor_email: {
+             raw_address: "com-code-copy-#{SecureRandom.hex(4)}@example.com",
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    get sign_com_up_check_email_otp_url(ri: "jp"), headers: default_headers
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
+    assert_select "label", text: I18n.t("sign.app.authentication.email.edit.code_label")
+    assert_select "input[placeholder=?]", I18n.t("sign.app.authentication.email.edit.code_placeholder")
+    assert_select "input[type=submit][value=?]", I18n.t("sign.app.authentication.email.edit.submit")
+    assert_includes response.body, "メールアドレス"
+    assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
+  end
+
   test "email sign up finalizes and establishes login from checkpoint" do
     email = "finalize_com_email_#{SecureRandom.hex(4)}@example.com"
 
@@ -78,8 +100,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
     assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}']"
     assert_select "form[action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=delete]"
-    assert_select "a[href*=?]", new_sign_com_sign_up_path, count: 0
-    assert_select "a[href*=?]", new_sign_com_sign_in_path, count: 0
+    assert_select "a[href*=?]", sign_com_sign_up_entrance_path, count: 0
+    assert_select "a[href*=?]", sign_com_sign_in_entrance_path, count: 0
 
     cycle = VisitorSignUpFlow.order(:id).find_by!(
       principal_id: visitor_email.visitor_id,
@@ -144,8 +166,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     get new_sign_com_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_com_sign_up_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", new_sign_com_sign_in_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_com_sign_up_entrance_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_com_sign_in_entrance_path(ri: "jp"), count: 1
   end
 
   test "create redirects to edit and allows edit page" do
@@ -545,7 +567,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:sign_com_up_check_email_otp_path) { |_email, ri: nil, pt: nil|
       "/sign/up/check/email/otp?ri=#{ri}&pt=#{pt}"
     }
-    controller.define_singleton_method(:new_sign_com_sign_in_path) { |ri: nil| "/in?ri=#{ri}" }
+    controller.define_singleton_method(:sign_com_sign_in_entrance_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }
     controller.define_singleton_method(:safe_internal_path) { |path| path.to_s.start_with?("/") ? path : nil }
 

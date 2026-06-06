@@ -62,7 +62,10 @@ class IdentitySecretCredentialCeremonyFinalCommitter
     validate_transaction_state!
     candidate = fetch_candidate!
     validate_enrollment_policy!
-    consumption = IdentitySecretCredentialCeremonyResultConsumer.new(transaction: transaction, now: now).call(result_token)
+    consumption = IdentitySecretCredentialCeremonyResultConsumer.new(
+      transaction: transaction,
+      now: now,
+    ).call(result_token)
     secret_credential = commit_secret_credential!(candidate)
     IdentitySecretCredentialCeremonyCandidateStore.delete(candidate.ref)
     record_audit!(secret_credential)
@@ -79,9 +82,12 @@ class IdentitySecretCredentialCeremonyFinalCommitter
   def validate_actor_binding!
     raise IdentitySecretCredentialCeremonyContract::Error, "actor is required" if actor.blank?
     raise IdentitySecretCredentialCeremonyContract::Error, "session_ref is required" if session_ref.blank?
-    raise IdentitySecretCredentialCeremonyContract::Error, "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
-    raise IdentitySecretCredentialCeremonyContract::Error, "result session does not match current session" unless result["session_ref"].to_s == session_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "result surface does not match current surface" unless result["surface"].to_s == surface
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "result actor does not match current actor" unless result["actor_ref"].to_s == actor.public_id.to_s
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "result session does not match current session" unless result["session_ref"].to_s == session_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "result surface does not match current surface" unless result["surface"].to_s == surface
   end
 
   def validate_transaction_state!
@@ -91,16 +97,21 @@ class IdentitySecretCredentialCeremonyFinalCommitter
 
   def fetch_candidate!
     candidate = IdentitySecretCredentialCeremonyCandidateStore.fetch!(result["credential_candidate_ref"])
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate digest does not match result" unless candidate.digest.to_s ==
-      result["credential_candidate_digest"].to_s
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate digest does not match result" unless candidate.digest.to_s ==
+            result["credential_candidate_digest"].to_s
     raise IdentitySecretCredentialCeremonyContract::Error,
           "candidate actor does not match current actor" unless candidate.actor_ref.to_s == actor.public_id.to_s
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate session does not match current session" unless candidate.session_ref.to_s == session_ref
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate surface does not match current surface" unless candidate.surface.to_s == surface
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate transaction does not match result" unless candidate.transaction_id.to_s ==
-      result["transaction_id"].to_s
-    raise IdentitySecretCredentialCeremonyContract::Error, "candidate operation does not match result" unless candidate.operation.to_s ==
-      result["operation"].to_s
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate session does not match current session" unless candidate.session_ref.to_s == session_ref
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate surface does not match current surface" unless candidate.surface.to_s == surface
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate transaction does not match result" unless candidate.transaction_id.to_s ==
+            result["transaction_id"].to_s
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "candidate operation does not match result" unless candidate.operation.to_s ==
+            result["operation"].to_s
 
     candidate
   end
@@ -112,7 +123,8 @@ class IdentitySecretCredentialCeremonyFinalCommitter
   end
 
   def commit_secret_credential!(candidate)
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential limit is reached" if secret_credentials.count >= config.fetch(:max_count)
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "secret credential limit is reached" if secret_credentials.count >= config.fetch(:max_count)
 
     config.fetch(:record_class).transaction do
       secret_credentials.create!(
@@ -123,7 +135,8 @@ class IdentitySecretCredentialCeremonyFinalCommitter
       )
     end
   rescue ActiveRecord::RecordInvalid => e
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential commit failed: #{e.record.errors.full_messages.join(", ")}"
+    raise IdentitySecretCredentialCeremonyContract::Error,
+          "secret credential commit failed: #{e.record.errors.full_messages.join(", ")}"
   end
 
   def record_audit!(secret_credential)
@@ -144,7 +157,10 @@ class IdentitySecretCredentialCeremonyFinalCommitter
   end
 
   def result
-    @result ||= IdentitySecretCredentialCeremonyResult.decode(result_token, issuer_id: IdentitySecretCredentialCeremonyContract.sign_issuer_id(surface), now: now)
+    @result ||= IdentitySecretCredentialCeremonyResult.decode(
+      result_token,
+      issuer_id: IdentitySecretCredentialCeremonyContract.sign_issuer_id(surface), now: now,
+    )
   end
 
   def transaction

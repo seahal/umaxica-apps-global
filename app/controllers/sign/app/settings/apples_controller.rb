@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class ApplesController < Sign::App::ApplicationController
+      class ApplesController < ::Sign::App::ApplicationController
         include ::VerificationClient
 
         AUTHENTICATION_MODE = :private

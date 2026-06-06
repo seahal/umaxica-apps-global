@@ -4,7 +4,7 @@
 module Sign
   module App
     module Up
-      class GuardsController < Sign::App::ApplicationController
+      class GuardsController < ::Sign::App::ApplicationController
         include SignUpSequenceControllerSupport
 
         AUTHENTICATION_MODE = :open

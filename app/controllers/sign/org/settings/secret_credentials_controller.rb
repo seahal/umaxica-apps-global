@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Settings
-      class SecretCredentialsController < Sign::Org::ApplicationController
+      class SecretCredentialsController < ::Sign::Org::ApplicationController
         include ::VerificationOperator
 
         include ::SignSettingsSecretCredentialTurnstileGuard

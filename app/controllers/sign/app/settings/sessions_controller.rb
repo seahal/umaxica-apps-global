@@ -4,7 +4,7 @@
 module Sign
   module App
     module Settings
-      class SessionsController < Sign::RedirectOnlyController
+      class SessionsController < ::Sign::RedirectOnlyController
         AUTHENTICATION_MODE = :open
 
         def index = redirect_to_acme_sessions!

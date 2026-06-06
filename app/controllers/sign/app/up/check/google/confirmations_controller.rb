@@ -6,7 +6,7 @@ module Sign
     module Up
       module Check
         module Google
-          class ConfirmationsController < Sign::App::Up::Check::Apple::ConfirmationsController
+          class ConfirmationsController < ::Sign::App::Up::Check::Apple::ConfirmationsController
             AUTHENTICATION_MODE = :guest
 
             private

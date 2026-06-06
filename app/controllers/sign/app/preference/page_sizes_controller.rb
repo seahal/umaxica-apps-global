@@ -4,7 +4,7 @@
 module Sign
   module App
     module Preference
-      class PageSizesController < Sign::App::PreferencesBaseController
+      class PageSizesController < ::Sign::App::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

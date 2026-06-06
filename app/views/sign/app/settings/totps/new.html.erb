@@ -62,9 +62,14 @@
             <div>
               <%= form.label :first_token, t("views.sign.app.settings.totps.new.first_token_label") %>
               <div>
-                <%= form.text_field :first_token, placeholder: "000000", maxlength: 16, inputmode: "numeric", autocomplete: "one-time-code" %>
+                <%= form.text_field :first_token,
+                                    placeholder: t("views.sign.app.settings.totps.new.first_token_placeholder"),
+                                    maxlength: 16,
+                                    inputmode: "numeric",
+                                    autocomplete: "one-time-code" %>
               </div>
               <p><%= t("views.sign.app.settings.totps.new.first_token_help") %></p>
+              <p><%= t("views.sign.app.settings.totps.new.first_token_delivery_help") %></p>
             </div>
 
             <%= render "shared/cloudflare_turnstile_stealth" %>
@@ -73,7 +78,7 @@
 
         <div>
           <%= link_to t('actions.cancel'), sign_app_settings_totps_path(ri: params[:ri]) %>
-          <%= form.submit t('actions.save') %>
+          <%= form.submit t("views.sign.app.settings.totps.new.submit") %>
         </div>
       <% end %>
     </div>

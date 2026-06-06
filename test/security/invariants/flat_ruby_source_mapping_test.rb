@@ -52,15 +52,16 @@ module Security
       end
 
       def self.mapping_table
-        rows = mappings.map do |mapping|
-          [
-            mapping.old_path,
-            mapping.old_constant,
-            mapping.new_path,
-            mapping.new_constant,
-            mapping.reference_count,
-          ]
-        end
+        rows =
+          mappings.map do |mapping|
+            [
+              mapping.old_path,
+              mapping.old_constant,
+              mapping.new_path,
+              mapping.new_constant,
+              mapping.reference_count,
+            ]
+          end
 
         [%w(old_path old_constant new_path new_constant reference_count), *rows]
       end
@@ -134,7 +135,7 @@ module Security
         return "" if collisions.empty?
 
         collisions.map do |key, matches|
-          "#{kind} collision #{key}: #{matches.map(&:old_path).join(', ')}"
+          "#{kind} collision #{key}: #{matches.map(&:old_path).join(", ")}"
         end.join("\n")
       end
     end

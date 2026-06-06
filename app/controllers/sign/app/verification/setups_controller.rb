@@ -4,7 +4,7 @@
 module Sign
   module App
     module Verification
-      class SetupsController < Sign::App::ApplicationController
+      class SetupsController < ::Sign::App::ApplicationController
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!

@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Verification::EmailsController < Sign::App::Verification::BaseController
+class Sign::App::Verification::EmailsController < ::Sign::App::Verification::BaseController
   AUTHENTICATION_MODE = :private
 
   skip_before_action :enforce_step_up_prereqs!, only: %i(edit update)

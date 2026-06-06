@@ -60,7 +60,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     head = as_user_headers(@user, host: @host)
     authority_pages = {
       sign_app_settings_sessions_path(ri: "jp") => "/settings/sessions",
-      edit_sign_app_sign_out_path(ri: "jp") => "/sign/out",
+      sign_app_sign_out_confirmation_path(ri: "jp") => "/sign/out",
     }
 
     authority_pages.each do |path, expected_path|

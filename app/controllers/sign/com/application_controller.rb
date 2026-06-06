@@ -40,7 +40,7 @@ module Sign
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_visitor, :logged_in?, :active_visitor?, :logged_in_visitor?
 
-      helper Sign::Com::ApplicationHelper
+      helper ::Sign::Com::ApplicationHelper
       # Surface-wide default web request limit (defense-in-depth baseline).
       # RateLimit stays a side-effect-free helper; the limit and its numeric
       # value are declared here on the inheriting controller.
