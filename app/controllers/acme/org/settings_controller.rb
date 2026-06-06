@@ -3,7 +3,7 @@
 
 module Acme
   module Org
-    class SettingsController < Acme::Org::ApplicationController
+    class SettingsController < Acme::Org::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 

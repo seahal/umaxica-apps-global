@@ -50,7 +50,6 @@ module Sign
             if user.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
               user.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
             end
-            user.create_rp_account! unless user.rp_account
           end
 
           # Chronicle write must happen AFTER the transaction commits.

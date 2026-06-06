@@ -3,11 +3,9 @@
 
 module Acme
   module Org
-    class DashboardsController < Acme::Org::ApplicationController
+    class DashboardsController < Acme::Org::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
-
-      before_action :authenticate_operator!
 
       def show
         render "acme/shared/dashboards/show"

@@ -4,7 +4,7 @@
 module Acme
   module App
     module Settings
-      class ActivitiesController < Acme::App::ApplicationController
+      class ActivitiesController < Acme::App::FullAccessController
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
 

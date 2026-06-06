@@ -7,9 +7,9 @@ module Sign
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_client!
-      before_action :continue_selector_sequence!
 
       def show
+        redirect_to acme_app_selector_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
       end
     end
   end

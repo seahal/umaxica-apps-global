@@ -3,7 +3,7 @@
 
 module Acme
   module Org
-    class AvatarsController < Acme::Org::ApplicationController
+    class AvatarsController < Acme::Org::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 

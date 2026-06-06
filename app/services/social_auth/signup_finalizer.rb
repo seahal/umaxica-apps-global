@@ -26,8 +26,6 @@ module SocialAuth
         identity.save!
         identity.touch_authenticated!
 
-        user.create_rp_account!
-
         { user: user, identity: identity }
       end
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved, ActiveRecord::RecordNotUnique

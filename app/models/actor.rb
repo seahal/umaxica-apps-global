@@ -13,6 +13,7 @@ class Actor < ActiveSupport::CurrentAttributes
       :authz,
       :configuration,
       :preferences,
+      :selection,
       :step_up,
       :trace_id,
       :span_id,
@@ -28,6 +29,7 @@ class Actor < ActiveSupport::CurrentAttributes
           authz: Actor::Authz::NULL,
           configuration: Actor::Configuration::NULL,
           preferences: Actor::Preference::NULL,
+          selection: Actor::SelectedContext::NULL,
           step_up: Actor::StepUp::NULL,
           trace_id: nil,
           span_id: nil,
@@ -112,6 +114,12 @@ class Actor < ActiveSupport::CurrentAttributes
 
     def preferences=(value)
       update(preferences: value)
+    end
+
+    def selection = context.selection || Actor::SelectedContext::NULL
+
+    def selection=(value)
+      update(selection: value)
     end
 
     def step_up = context.step_up || Actor::StepUp::NULL
@@ -221,6 +229,8 @@ class Actor < ActiveSupport::CurrentAttributes
         value || Actor::StepUp::NULL
       when :configuration
         value || Actor::Configuration::NULL
+      when :selection
+        value || Actor::SelectedContext::NULL
       else
         value
       end

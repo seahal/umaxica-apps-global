@@ -13,6 +13,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     user.update!(status_id: ClientStatus::ACTIVE)
 
     token = create_user_token!(user)
+    select_token!(surface: :app, principal: user, token: token)
 
     get acme_app_settings_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
@@ -32,6 +33,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     create_user_audit(user: other_user, tag: "other-login-event")
 
     token = create_user_token!(user)
+    select_token!(surface: :app, principal: user, token: token)
 
     get acme_app_settings_activities_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
@@ -93,6 +95,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     visitor = create_verified_visitor_with_email(email_address: "settings-#{SecureRandom.hex(4)}@example.com")
     com_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     visitor_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    select_token!(surface: :com, principal: visitor, token: visitor_token)
     get acme_com_settings_url(ri: "jp", host: com_host), headers: com_session_headers(com_host, visitor_token, visitor)
 
     assert_response :success
@@ -101,6 +104,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     staff = operators(:one)
     org_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     staff_token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    select_token!(surface: :org, principal: staff, token: staff_token)
     get acme_org_settings_url(ri: "jp", host: org_host), headers: org_session_headers(org_host, staff_token, staff)
 
     assert_response :success
@@ -108,6 +112,11 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def select_token!(surface:, principal:, token:)
+    Acme::Selector::BootstrapAuthority.call(surface: surface, principal: principal)
+    Acme::Selector::Authority.prepare(surface: surface, principal: principal, session: token)
+  end
 
   def create_user_token!(user, attrs = {})
     token = ClientToken.new(

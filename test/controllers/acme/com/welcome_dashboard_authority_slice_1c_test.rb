@@ -21,6 +21,7 @@ class Acme::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
   test "dashboard_renders_when_signed_in" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    select_token!(surface: :com, principal: @visitor, token: token)
 
     get acme_com_dashboard_url(ri: "jp"), headers: session_headers(token)
 
@@ -40,6 +41,11 @@ class Acme::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   end
 
   private
+
+  def select_token!(surface:, principal:, token:)
+    Acme::Selector::BootstrapAuthority.call(surface: surface, principal: principal)
+    Acme::Selector::Authority.prepare(surface: surface, principal: principal, session: token)
+  end
 
   def session_headers(token)
     {

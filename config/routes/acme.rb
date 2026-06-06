@@ -34,6 +34,7 @@ scope module: :acme, as: :acme do
       # TODO: I think following two lines of routing are same meaing.
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: %i(show update)
       resource :dashboard, only: :show
       resource :verification, only: :show do
         post :completion
@@ -183,6 +184,7 @@ scope module: :acme, as: :acme do
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: %i(show update)
       resource :dashboard, only: :show
       resource :verification, only: :show do
         post :completion
@@ -301,6 +303,7 @@ scope module: :acme, as: :acme do
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      resource :selector, only: %i(show update)
       resource :dashboard, only: :show
       resource :verification, only: :show do
         post :completion

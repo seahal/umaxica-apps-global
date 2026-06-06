@@ -38,7 +38,6 @@ module Sign
             telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP
             telephone.save!
 
-            visitor.create_rp_account! unless visitor.rp_account
           end
 
           Result.new(visitor: visitor)

@@ -187,7 +187,6 @@ module SocialAuth
 
     def persist_user!(user, context:)
       user.save!
-      user.create_rp_account! unless sign_up_entry || user.rp_account
     rescue ActiveRecord::RecordInvalid => e
       log_user_status_error(user, e, context: context)
       raise ProviderError.new("errors.social_auth.provider_error")

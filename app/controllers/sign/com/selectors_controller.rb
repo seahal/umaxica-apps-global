@@ -7,9 +7,9 @@ module Sign
       AUTHENTICATION_MODE = :private
 
       before_action :authenticate_visitor!
-      before_action :continue_selector_sequence!
 
       def show
+        redirect_to acme_com_selector_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
       end
     end
   end

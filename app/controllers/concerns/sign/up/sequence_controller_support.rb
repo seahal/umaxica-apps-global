@@ -504,7 +504,6 @@ module Sign
           Client.transaction do
             actor.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP) if
               actor.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
-            actor.create_rp_account! unless actor.rp_account
           end
         else
           return :failed
@@ -525,7 +524,6 @@ module Sign
           Sign::Com::Up::TelephoneRegistrationFinalizer.call(telephone: telephone)
         when "email"
           Visitor.transaction do
-            actor.create_rp_account! unless actor.rp_account
           end
         else
           return :failed

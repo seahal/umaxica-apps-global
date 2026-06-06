@@ -30,6 +30,7 @@ module ActorSupport
       authz: Actor::Authz::NULL,
       configuration: Actor::Configuration::NULL,
       preferences: Actor::Preference::NULL,
+      selection: Actor::SelectedContext::NULL,
       step_up: Actor::StepUp::NULL,
       trace_id: nil,
       span_id: nil,
@@ -49,6 +50,7 @@ module ActorSupport
       authz: resolved_current_authz(resource: resource, authn: authn),
       configuration: resolved_current_configuration(resource),
       preferences: resolved_current_preference(resource),
+      selection: resolved_current_selection,
       step_up: resolved_current_step_up,
     )
   end
@@ -166,6 +168,21 @@ module ActorSupport
 
   def resolved_current_configuration(_resource)
     Actor::Configuration::NULL
+  end
+
+  def resolved_current_selection
+    token = current_session if respond_to?(:current_session, true)
+    return Actor::SelectedContext::NULL if token.blank?
+
+    Actor::SelectedContext.new(
+      account_public_id: token.try(:selected_account_public_id),
+      collective_public_id: token.try(:selected_collective_public_id),
+      collective_unit_public_id: token.try(:selected_collective_unit_public_id),
+      avatar_public_id: token.try(:selected_avatar_public_id),
+      selected_at: token.try(:selected_at),
+    )
+  rescue StandardError => e
+    raise_actor_resolution_error!(:selected_context, e)
   end
 
   def resolved_current_authz(resource:, authn:)

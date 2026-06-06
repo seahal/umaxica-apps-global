@@ -111,6 +111,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     )
     token.send(:skip_session_limit_check=, true)
     token.save!
+    Acme::Selector::BootstrapAuthority.call(surface: :app, principal: @user)
+    Acme::Selector::Authority.prepare(surface: :app, principal: @user, session: token)
     mark_token_step_up_satisfied_for_test(token, scope: scope) if scope.present?
 
     {

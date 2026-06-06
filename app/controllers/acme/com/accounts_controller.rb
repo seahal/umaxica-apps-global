@@ -3,7 +3,7 @@
 
 module Acme
   module Com
-    class AccountsController < Acme::Com::ApplicationController
+    class AccountsController < Acme::Com::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 

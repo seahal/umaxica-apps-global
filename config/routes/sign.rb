@@ -33,14 +33,15 @@ scope module: :sign, as: :sign do
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # FIXME: how about csp? csp_violation_report is so long naming.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # FIXME: Remove this once we've migrated to the new welcome flow
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
+      # FIXME: move to check entry point.
       resource :selector, only: :show
       # for those who are logged in
       resource :dashboard, only: :show
-
       # Public web API: OTP delivery, cookie consent, theme
       namespace :web do
         namespace :v0 do
@@ -59,6 +60,7 @@ scope module: :sign, as: :sign do
         end
       end
 
+      # TODO: ckeck this code!
       namespace :r18 do
         resource :gate, only: %i(show create) do
           get :blocked
