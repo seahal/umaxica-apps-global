@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class RedirectConcernTest < ActiveSupport::TestCase
+class RedirectTest < ActiveSupport::TestCase
   class RedirectHarness
-    include Common::Redirect
+    include CommonRedirect
 
     attr_reader :redirect_target, :redirect_options
 

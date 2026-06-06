@@ -22,7 +22,7 @@ module Authentication
     end
 
     class Harness
-      include Authentication::Logoutable
+      include AuthenticationLogoutable
 
       attr_reader :session, :cookies, :resource, :token, :other_tokens
 
@@ -33,8 +33,8 @@ module Authentication
           "pending_mfa" => { "user_id" => 1 },
         }
         @cookies = {
-          Authentication::Base::ACCESS_COOKIE_KEY => "access-token",
-          Authentication::Base::REFRESH_COOKIE_KEY => "refresh-token",
+          AuthenticationBase::ACCESS_COOKIE_KEY => "access-token",
+          AuthenticationBase::REFRESH_COOKIE_KEY => "refresh-token",
         }
         @resource = Object.new
         @token = Token.new
@@ -51,8 +51,8 @@ module Authentication
       def token_class = ClientToken
 
       def clear_auth_cookies!
-        cookies.delete(Authentication::Base::ACCESS_COOKIE_KEY)
-        cookies.delete(Authentication::Base::REFRESH_COOKIE_KEY)
+        cookies.delete(AuthenticationBase::ACCESS_COOKIE_KEY)
+        cookies.delete(AuthenticationBase::REFRESH_COOKIE_KEY)
       end
 
       def reset_session
@@ -105,10 +105,10 @@ module Authentication
 
       assert_equal :revoke!, harness.token.revoked_with
       assert_empty harness.session
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
       assert_same Unauthenticated.instance, Actor.actor
-      assert_equal [[Authentication::Base::AUDIT_EVENTS[:logout_current_session], harness.resource]],
+      assert_equal [[AuthenticationBase::AUDIT_EVENTS[:logout_current_session], harness.resource]],
                    harness.audit_events
     ensure
       Actor.reset
@@ -117,14 +117,14 @@ module Authentication
     test "logout_all_sessions records distinct all sessions audit and clears local state" do
       harness = Harness.new
 
-      Authentication::LogoutAllSessions.stub(:call, ->(**) { true }) do
+      AuthenticationLogoutAllSessions.stub(:call, ->(**) { true }) do
         harness.logout_all_sessions_for!(resource: harness.resource, reason: "test_logout_all")
       end
 
       assert_empty harness.session
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
-      assert_equal [[Authentication::Base::AUDIT_EVENTS[:logout_all_sessions], harness.resource]],
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
+      assert_equal [[AuthenticationBase::AUDIT_EVENTS[:logout_all_sessions], harness.resource]],
                    harness.audit_events
     end
 
@@ -143,7 +143,7 @@ module Authentication
       # active token for the actor. It was deleted because (a) its name
       # promised OIDC SLO-protocol semantics while doing something else,
       # and (b) its only correct use case is already covered by
-      # Authentication::LogoutAllSessions. If this guard fails it means
+      # AuthenticationLogoutAllSessions. If this guard fails it means
       # someone re-added the class — keep the deletion and use
       # LogoutAllSessions from a dedicated endpoint instead.
       assert_not defined?(Oidc::SingleLogoutService),
@@ -155,7 +155,7 @@ module Authentication
       harness = Harness.new
 
       called = false
-      Authentication::LogoutAllSessions.stub(:call, ->(**) { called = true }) do
+      AuthenticationLogoutAllSessions.stub(:call, ->(**) { called = true }) do
         harness.logout_current_session!(reason: "test_logout")
       end
 
@@ -168,16 +168,16 @@ module Authentication
       harness = Harness.new
 
       assert_raises(StandardError) do
-        Authentication::LogoutCurrentSession.stub(:call, ->(**) { raise StandardError, "revoke failed" }) do
+        AuthenticationLogoutCurrentSession.stub(:call, ->(**) { raise StandardError, "revoke failed" }) do
           harness.logout_current_session!(reason: "test_logout")
         end
       end
 
       assert_empty harness.session,
                    "Rails session must be reset in ensure even on failure"
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY],
                  "access cookie must be cleared in ensure even on failure"
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on failure"
     end
 
@@ -190,9 +190,9 @@ module Authentication
 
       assert_empty harness.session,
                    "Rails session must be reset in ensure even on audit failure"
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY],
                  "access cookie must be cleared in ensure even on audit failure"
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on audit failure"
     end
 
@@ -200,7 +200,7 @@ module Authentication
       harness = FailingCurrentResourceHarness.new
 
       error =
-        assert_raises(Authentication::Logoutable::ResolutionError) do
+        assert_raises(AuthenticationLogoutable::ResolutionError) do
           harness.logout_current_session!(reason: "test_logout")
         end
 
@@ -208,9 +208,9 @@ module Authentication
       assert_equal "resource lookup failed", error.cause.message
       assert_empty harness.session,
                    "Rails session must be reset in ensure even on resource resolution failure"
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY],
                  "access cookie must be cleared in ensure even on resource resolution failure"
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on resource resolution failure"
     end
 
@@ -218,7 +218,7 @@ module Authentication
       harness = FailingCurrentSessionHarness.new
 
       error =
-        assert_raises(Authentication::Logoutable::ResolutionError) do
+        assert_raises(AuthenticationLogoutable::ResolutionError) do
           harness.logout_current_session!(reason: "test_logout")
         end
 
@@ -226,9 +226,9 @@ module Authentication
       assert_equal "session lookup failed", error.cause.message
       assert_empty harness.session,
                    "Rails session must be reset in ensure even on session resolution failure"
-      assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY],
                  "access cookie must be cleared in ensure even on session resolution failure"
-      assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY],
+      assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY],
                  "refresh cookie must be cleared in ensure even on session resolution failure"
     end
   end

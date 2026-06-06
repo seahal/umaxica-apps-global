@@ -14,7 +14,7 @@ module SignUp
     private
 
     def app_social_ticket?
-      surface == :app && RequirementRegistry.for_ticket(ticket, surface: surface).social?
+      surface == :app && SignUpRequirementRegistry.for_ticket(ticket, surface: surface).social?
     rescue ArgumentError
       false
     end

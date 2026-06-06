@@ -5,7 +5,7 @@ module Acme
   module App
     module Settings
       class SessionsController < Acme::App::ApplicationController
-        include Acme::Settings::SessionManagement
+        include AcmeSettingsSessionManagement
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -72,7 +72,7 @@ module Acme
         end
 
         def record_session_revoke_activity(action:, revoked_count:)
-          Sign::App::SessionRevokeAudit.record!(
+          SignAppSessionRevokeAudit.record!(
             actor: current_client,
             revoked_session_count: revoked_count,
             action: action,

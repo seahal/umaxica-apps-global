@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class SignIn::ResultTest < ActiveSupport::TestCase
+class SignInResultTest < ActiveSupport::TestCase
   fixtures_none!
 
   test "maps successful session hash to common result" do
-    result = SignIn::Result.from_session_result(
+    result = SignInResult.from_session_result(
       {
         status: :success,
         access_token: "access",
@@ -26,7 +26,7 @@ class SignIn::ResultTest < ActiveSupport::TestCase
   end
 
   test "maps mfa required to redirect result" do
-    result = SignIn::Result.from_session_result(
+    result = SignInResult.from_session_result(
       { status: :mfa_required, redirect_path: "/mfa" },
     )
 
@@ -36,7 +36,7 @@ class SignIn::ResultTest < ActiveSupport::TestCase
   end
 
   test "maps restricted session to session limit pending" do
-    result = SignIn::Result.from_session_result(
+    result = SignInResult.from_session_result(
       { status: :success, restricted: true },
       session_management_path: "/in/session",
     )
@@ -47,7 +47,7 @@ class SignIn::ResultTest < ActiveSupport::TestCase
   end
 
   test "maps legacy session limit exceeded to session limit pending" do
-    result = SignIn::Result.from_session_result(
+    result = SignInResult.from_session_result(
       { status: :session_limit_exceeded },
       session_management_path: "/in/session",
     )
@@ -58,7 +58,7 @@ class SignIn::ResultTest < ActiveSupport::TestCase
   end
 
   test "maps hard reject to terminal forbidden result" do
-    result = SignIn::Result.from_session_result(
+    result = SignInResult.from_session_result(
       { status: :session_limit_hard_reject, message: "full" },
     )
 
@@ -69,7 +69,7 @@ class SignIn::ResultTest < ActiveSupport::TestCase
   end
 
   test "maps unknown session hash to invalid request" do
-    result = SignIn::Result.from_session_result({})
+    result = SignInResult.from_session_result({})
 
     assert_predicate result, :terminal?
     assert_equal :invalid_request, result.status

@@ -17,7 +17,7 @@
 # - WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN: Shared fallback values.
 #
 # Note: rp_id is NOT configured on the global gem object. It is dynamically
-# determined per-request in Sign::Webauthn, with environment overrides for
+# determined per-request in SignWebauthn, with environment overrides for
 # deployments where Rails sees an internal host behind a proxy.
 
 module Webauthn
@@ -100,7 +100,7 @@ WebAuthn.configure do |config|
   config.rp_name = ENV.fetch("WEBAUTHN_RP_NAME", "Umaxica")
 
   # IMPORTANT: allowed_origins and rp_id are NOT set here.
-  # They are dynamically configured per-request in Sign::Webauthn.
+  # They are dynamically configured per-request in SignWebauthn.
   # This allows:
   # - rp_id to vary by host (id.app.localhost vs id.org.localhost)
   # - origin validation to use our stricter Webauthn.validate_origin!

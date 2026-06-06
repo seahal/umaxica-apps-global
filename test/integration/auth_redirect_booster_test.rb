@@ -4,22 +4,22 @@
 require "test_helper"
 
 class AuthRedirectTestController < ApplicationController
-  include Authentication::Base
+  include AuthenticationBase
 
   declare_authentication_mode! :open
 
   def trigger_redirect_with_notice
-    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_notice("/default_path", "This is a notice")
   end
 
   def trigger_redirect_with_alert
-    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_with_alert("/default_path", "This is an alert")
   end
 
   def trigger_add_rt_to_params
-    session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
+    session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = signed_pt_token(params[:pt]) if params[:pt].present?
     redirect_params = { action: "index" }
     add_pt_to_params!(redirect_params)
     render json: redirect_params
@@ -39,7 +39,7 @@ class AuthRedirectTestController < ApplicationController
 
   def trigger_inject_test_bulletin
     maybe_inject_test_bulletin!
-    render json: session[Authentication::Base::BULLETIN_SESSION_KEY] || {}
+    render json: session[AuthenticationBase::BULLETIN_SESSION_KEY] || {}
   end
 
   def am_i_user?; false; end

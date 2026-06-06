@@ -17,7 +17,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
   test "create returns token response on success" do
     result = Result.new(success: true, token_response: { access_token: "access", refresh_token: "refresh" })
 
-    Oidc::TokenExchangeService.stub(:call, result) do
+    OidcTokenExchangeService.stub(:call, result) do
       post sign_com_oauth_token_url,
            params: {
              grant_type: "authorization_code",
@@ -41,7 +41,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
   test "create returns bad request on failure" do
     result = Result.new(success: false, token_response: nil, error: "bad", error_description: "bad")
 
-    Oidc::TokenExchangeService.stub(:call, result) do
+    OidcTokenExchangeService.stub(:call, result) do
       post sign_com_oauth_token_url,
            params: {
              grant_type: "authorization_code",
@@ -62,7 +62,7 @@ class Sign::Com::TokensControllerTest < ActionDispatch::IntegrationTest
     result = Result.new(success: true, token_response: { access_token: "access", refresh_token: "refresh" })
     captured = nil
 
-    Oidc::TokenExchangeService.stub(
+    OidcTokenExchangeService.stub(
       :call,
       ->(**kwargs) do
         captured = kwargs

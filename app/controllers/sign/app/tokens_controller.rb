@@ -25,7 +25,7 @@ module Sign
 
       def create
         # Compatibility endpoint only. acme/www owns token issuance.
-        result = ::Oidc::TokenExchangeService.call(
+        result = ::OidcTokenExchangeService.call(
           grant_type: params[:grant_type],
           code: params[:code],
           redirect_uri: params[:redirect_uri],

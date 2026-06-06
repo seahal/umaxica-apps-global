@@ -20,7 +20,7 @@ class AuthMethodGuard
   ].freeze
 
   def self.remaining_count(actor, excluding: nil)
-    Authentication::CredentialInventory.call(actor, excluding: excluding, reload: true).aal1_method_count
+    AuthenticationCredentialInventory.call(actor, excluding: excluding, reload: true).aal1_method_count
   end
 
   def self.last_method?(actor, excluding: nil)
@@ -28,21 +28,21 @@ class AuthMethodGuard
   end
 
   def self.can_remove_passkey?(actor, passkey)
-    inventory = Authentication::CredentialInventory.call(actor, excluding: passkey, reload: true)
+    inventory = AuthenticationCredentialInventory.call(actor, excluding: passkey, reload: true)
     inventory.retains_aal1? && inventory.retains_aal2?
   end
 
   def self.can_remove_email?(actor, email)
-    inventory = Authentication::CredentialInventory.call(actor, excluding: email, reload: true)
+    inventory = AuthenticationCredentialInventory.call(actor, excluding: email, reload: true)
     inventory.retains_contactability? && inventory.retains_aal1? && inventory.retains_aal2?
   end
 
   def self.can_remove_telephone?(actor, telephone)
-    Authentication::CredentialInventory.call(actor, excluding: telephone, reload: true).retains_contactability?
+    AuthenticationCredentialInventory.call(actor, excluding: telephone, reload: true).retains_contactability?
   end
 
   def self.can_remove_totp?(actor, totp)
-    Authentication::CredentialInventory.call(actor, excluding: totp, reload: true).retains_aal2?
+    AuthenticationCredentialInventory.call(actor, excluding: totp, reload: true).retains_aal2?
   end
 
   def self.verified_emails_count(actor, excluding: nil)

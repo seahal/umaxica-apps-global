@@ -12,7 +12,7 @@ module Sign
       telephone = ClientTelephone.new(number: "+819012399999")
 
       freeze_time do
-        otp_code = TelephoneOtpDelivery.assign(telephone, now: Time.current)
+        otp_code = SignTelephoneOtpDelivery.assign(telephone, now: Time.current)
 
         assert_match(/\A\d{6}\z/, otp_code)
         assert_predicate telephone.otp_private_key, :present?
@@ -28,7 +28,7 @@ module Sign
       telephone = Struct.new(:number).new("+819012399998")
 
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-        TelephoneOtpDelivery.deliver!(telephone, "123456")
+        SignTelephoneOtpDelivery.deliver!(telephone, "123456")
       end
 
       job_args = enqueued_jobs.last[:args].first
@@ -37,7 +37,7 @@ module Sign
       assert_equal "Verification code", job_args["title"]
       assert_nil job_args["body"]
       assert_equal "Your verification code: 123456",
-                   Outbound::SensitivePayload.decrypt_sms_body(job_args["encrypted_body"])
+                   OutboundSensitivePayload.decrypt_sms_body(job_args["encrypted_body"])
       assert_not_includes job_args["title"], "123456"
       assert_not_includes job_args.inspect, "123456"
     end

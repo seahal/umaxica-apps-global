@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
+class VerificationBaseBootstrapReturnPathTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   Request =
@@ -24,8 +24,8 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
           def helper_method(*) = nil
         end
 
-        include Common::Redirect
-        include Verification::Base
+        include CommonRedirect
+        include VerificationBase
 
         attr_accessor :rt_param, :session_token, :verification_surface_override
 
@@ -188,15 +188,15 @@ class Verification::BaseBootstrapReturnPathTest < ActiveSupport::TestCase
 
   def return_target_token_harness
     @return_target_token_harness ||= Class.new do
-      include ::Redirects::SignedTargetSupport
+      include ::RedirectsSignedTargetSupport
 
       def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
         path = signed_target_internal_path(return_to)
         claims = signed_target_claims(flow: flow, surface: surface, session_nonce: session_nonce)
         issue_signed_target_token(
           payload: claims.merge("pt" => path),
-          purpose: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
-          salt: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_SALT,
+          purpose: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+          salt: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_SALT,
           expires_in: expires_in,
         )
       end

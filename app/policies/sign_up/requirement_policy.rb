@@ -38,20 +38,20 @@ module SignUp
     end
 
     def requirement_belongs_to_ticket?
-      RequirementRegistry.for_ticket(ticket, surface: surface).requirement?(context.requirement)
+      SignUpRequirementRegistry.for_ticket(ticket, surface: surface).requirement?(context.requirement)
     rescue ArgumentError
       false
     end
 
     def requirement_still_pending?
-      registry = RequirementRegistry.for_ticket(ticket, surface: surface)
+      registry = SignUpRequirementRegistry.for_ticket(ticket, surface: surface)
       !registry.requirement_cleared?(ticket.completed_requirements, context.requirement)
     rescue ArgumentError
       false
     end
 
     def requirement_cleared?
-      registry = RequirementRegistry.for_ticket(ticket, surface: surface)
+      registry = SignUpRequirementRegistry.for_ticket(ticket, surface: surface)
       registry.requirement_cleared?(ticket.completed_requirements, context.requirement)
     rescue ArgumentError
       false

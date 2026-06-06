@@ -4,7 +4,7 @@
 module Acme
   module Org
     class PreferencesBaseController < Acme::Org::ApplicationController
-      include ::Acme::PreferenceViewRouteAliases
+      include ::AcmePreferenceViewRouteAliases
 
       AUTHENTICATION_MODE = :open
 

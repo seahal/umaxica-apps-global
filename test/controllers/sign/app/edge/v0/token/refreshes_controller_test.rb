@@ -17,7 +17,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -26,15 +26,15 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
 
     # Verify Set-Cookie headers contain both access and refresh cookies
-    assert response_has_cookie?(Authentication::Base::ACCESS_COOKIE_KEY),
-           "Response should set access cookie (#{Authentication::Base::ACCESS_COOKIE_KEY})"
-    assert response_has_cookie?(Authentication::Base::REFRESH_COOKIE_KEY),
-           "Response should set refresh cookie (#{Authentication::Base::REFRESH_COOKIE_KEY})"
+    assert response_has_cookie?(AuthenticationBase::ACCESS_COOKIE_KEY),
+           "Response should set access cookie (#{AuthenticationBase::ACCESS_COOKIE_KEY})"
+    assert response_has_cookie?(AuthenticationBase::REFRESH_COOKIE_KEY),
+           "Response should set refresh cookie (#{AuthenticationBase::REFRESH_COOKIE_KEY})"
 
     raw_header = response.headers["Set-Cookie"] || response.headers["set-cookie"]
     cookie_lines = raw_header.is_a?(Array) ? raw_header : raw_header.to_s.split("\n")
-    access_cookie = cookie_lines.find { |line| line.start_with?("#{Authentication::Base::ACCESS_COOKIE_KEY}=") }.to_s
-    refresh_cookie = cookie_lines.find { |line| line.start_with?("#{Authentication::Base::REFRESH_COOKIE_KEY}=") }.to_s
+    access_cookie = cookie_lines.find { |line| line.start_with?("#{AuthenticationBase::ACCESS_COOKIE_KEY}=") }.to_s
+    refresh_cookie = cookie_lines.find { |line| line.start_with?("#{AuthenticationBase::REFRESH_COOKIE_KEY}=") }.to_s
 
     assert_match(/samesite=strict/i, access_cookie)
     assert_match(/samesite=strict/i, refresh_cookie)
@@ -51,14 +51,14 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     rotated_plain = nil
     captured_refresh = nil
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
-    Acme::RefreshTokenService.stub(
+    AcmeRefreshTokenService.stub(
       :call,
       ->(refresh_token:) do
         captured_refresh = refresh_token
         rotated_plain = token_record.rotate_refresh_token!
-        Sign::RefreshTokenService::Result.new(
+        SignRefreshTokenService::Result.new(
           success: true,
           token: token_record,
           refresh_token: rotated_plain,
@@ -74,18 +74,18 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
     assert_response :ok
     assert_equal refresh_plain, captured_refresh
-    assert response_has_cookie?(Authentication::Base::ACCESS_COOKIE_KEY)
-    assert response_has_cookie?(Authentication::Base::REFRESH_COOKIE_KEY)
+    assert response_has_cookie?(AuthenticationBase::ACCESS_COOKIE_KEY)
+    assert response_has_cookie?(AuthenticationBase::REFRESH_COOKIE_KEY)
     assert_includes response.headers["Set-Cookie"].to_s, rotated_plain
   end
 
   test "POST refresh syncs preference_consented cookie on success" do
     expires_at = Time.utc(2034, 4, 5, 6, 7, 8)
 
-    travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
+    travel_to(expires_at - PreferenceBase::REFRESH_TOKEN_TTL) do
       token_record = ClientToken.create!(user: @user)
       refresh_plain = token_record.rotate_refresh_token!
-      cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+      cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".umaxica.app") do
         if true # Replaced STUB stub with real execution as per G1
@@ -111,10 +111,10 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh syncs preference_consented=0 when consent is false" do
     expires_at = Time.utc(2034, 6, 7, 8, 9, 10)
 
-    travel_to(expires_at - Preference::Base::REFRESH_TOKEN_TTL) do
+    travel_to(expires_at - PreferenceBase::REFRESH_TOKEN_TTL) do
       token_record = ClientToken.create!(user: @user)
       refresh_plain = token_record.rotate_refresh_token!
-      cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+      cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
         if true # Replaced STUB stub with real execution as per G1
@@ -142,7 +142,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     # First, refresh to get new tokens
     post "/edge/v0/token/refresh",
@@ -155,7 +155,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     response_cookies = extract_cookies_from_response
 
     # Set the new access cookie for the next request
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = response_cookies[Authentication::Base::ACCESS_COOKIE_KEY]
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = response_cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
 
     # Now check should succeed
     get "/edge/v0/token/check",
@@ -174,7 +174,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     old_refresh_plain = token_record.rotate_refresh_token!
 
     # Rotate once via endpoint
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = old_refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = old_refresh_plain
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
          as: :json
@@ -182,7 +182,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
 
     # Try to use the old refresh token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = old_refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = old_refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -201,7 +201,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     public_id, = ClientToken.parse_refresh_token(refresh_plain)
     forged_refresh = ClientToken.build_refresh_token(public_id, "wrong-verifier")
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = forged_refresh
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = forged_refresh
 
     assert_no_difference("ClientOccurrence.where(event_type: 'refresh_reuse_detected').count") do
       post "/edge/v0/token/refresh",
@@ -219,7 +219,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "GET check with invalid access token returns 401" do
     # Set an invalid access token
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "invalid.jwt.token"
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "invalid.jwt.token"
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -259,7 +259,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     refresh_plain = token_record.rotate_refresh_token!
     token_record.update_columns(discarded_at: 1.day.ago)
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -274,7 +274,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     refresh_plain = token_record.rotate_refresh_token!
     token_record.revoke!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -285,11 +285,11 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh for DPoP-bound token requires proof" do
     _private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     token_record = ClientToken.create!(user: @user, dpop_jkt: jkt)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -302,13 +302,13 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh for DPoP-bound token rejects mismatched proof key" do
     _private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     attacker_key, attacker_jwk = generate_dpop_jwk
     token_record = ClientToken.create!(user: @user, dpop_jkt: jkt)
     refresh_plain = token_record.rotate_refresh_token!
     proof = build_dpop_proof(attacker_key, attacker_jwk, method: "POST", uri: "http://#{@host}/edge/v0/token/refresh")
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true).merge("DPoP" => proof),
@@ -324,12 +324,12 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
   test "POST refresh for DPoP-bound token preserves JKT after rotation" do
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     token_record = ClientToken.create!(user: @user, dpop_jkt: jkt)
     refresh_plain = token_record.rotate_refresh_token!
     proof = build_dpop_proof(private_key, jwk, method: "POST", uri: "http://#{@host}/edge/v0/token/refresh")
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true).merge("DPoP" => proof),
@@ -338,8 +338,8 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
 
     rotated_token = ClientToken.where(user_id: @user.id, rotated_at: nil).order(created_at: :desc).first
-    access_token = extract_cookies_from_response[Authentication::Base::ACCESS_COOKIE_KEY]
-    payload = Authentication::Base::Token.decode(access_token, host: @host, resource_type: "client")
+    access_token = extract_cookies_from_response[AuthenticationBase::ACCESS_COOKIE_KEY]
+    payload = AuthenticationToken.decode(access_token, host: @host, resource_type: "client")
 
     assert_equal jkt, rotated_token.dpop_jkt
     assert_equal jkt, payload.dig("cnf", "jkt")
@@ -353,7 +353,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     before_generation = token_record.refresh_token_generation
     before_digest = token_record.refresh_token_digest
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -374,7 +374,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = ClientToken.create!(
       user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED,
     )
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] =
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] =
       token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     post "/edge/v0/token/refresh",
@@ -393,7 +393,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -402,7 +402,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
 
     # The cookie value should be a valid refresh token (public_id.verifier format)
-    new_value = cookies[Authentication::Base::REFRESH_COOKIE_KEY]
+    new_value = cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
 
     assert_predicate new_value, :present?, "Refresh cookie should be present after rotation"
 
@@ -417,7 +417,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     freeze_time do
       post "/edge/v0/token/refresh",
@@ -427,12 +427,12 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
       assert_response :ok
 
       # Check the expires attribute of the access cookie
-      expiry = response_cookie_expiry(Authentication::Base::ACCESS_COOKIE_KEY)
+      expiry = response_cookie_expiry(AuthenticationBase::ACCESS_COOKIE_KEY)
 
       assert_not_nil expiry, "Access cookie should have expires attribute"
 
       # Should be approximately 1 hour from now (within a few seconds tolerance)
-      expected_expiry = Authentication::Base::ACCESS_TOKEN_TTL.from_now
+      expected_expiry = AuthenticationBase::ACCESS_TOKEN_TTL.from_now
 
       assert_in_delta expected_expiry.to_i, expiry.to_i, 5,
                       "Access cookie expiry should be ~1 hour from now"
@@ -442,7 +442,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh without CSRF token succeeds (currently skipped for Edge)" do
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: false),
@@ -457,7 +457,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh with cookie token and missing CSRF is rejected when forgery protection is enabled" do
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     with_forgery_protection do
       post "/edge/v0/token/refresh",
@@ -478,7 +478,7 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
 
     token_record = ClientToken.create!(user: @user)
     refresh_plain = token_record.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true),
@@ -495,11 +495,11 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh logs out DBSC-bound device session when proof is missing" do
     token_record = dbsc_bound_token
     refresh_plain = token_record.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true).merge(
-           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+           AuthIoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
          ),
          as: :json
 
@@ -516,12 +516,12 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "POST refresh logs out DBSC-bound device session when proof is invalid" do
     token_record = dbsc_bound_token
     refresh_plain = token_record.rotate_refresh_token!
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true).merge(
-           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
-           Auth::IoKeys::Headers::DBSC_RESPONSE => "invalid-proof",
+           AuthIoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+           AuthIoKeys::Headers::DBSC_RESPONSE => "invalid-proof",
          ),
          as: :json
 
@@ -539,13 +539,13 @@ class Sign::App::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = dbsc_bound_token
     refresh_plain = token_record.rotate_refresh_token!
     proof = generate_dbsc_proof(private_key: @dbsc_private_key, challenge: token_record.dbsc_challenge)
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
-    cookies[Authentication::Base::DBSC_COOKIE_KEY] = "session-abc"
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::DBSC_COOKIE_KEY] = "session-abc"
 
     post "/edge/v0/token/refresh",
          headers: json_headers(with_csrf: true).merge(
-           Auth::IoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
-           Auth::IoKeys::Headers::DBSC_RESPONSE => proof,
+           AuthIoKeys::Headers::DBSC_SESSION_ID => %("session-abc"),
+           AuthIoKeys::Headers::DBSC_RESPONSE => proof,
          ),
          as: :json
 

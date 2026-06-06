@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
+class IdentityTotpCeremonyContractTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -16,78 +16,78 @@ class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
 
   test "valid grant and result serialize and verify" do
     travel_to @now do
-      grant_token = Identity::TotpCeremony::Grant.issue(valid_grant_claims, issuer_id: acme_issuer_id, now: @now)
-      grant = Identity::TotpCeremony::Grant.decode(grant_token, issuer_id: acme_issuer_id, now: @now)
+      grant_token = IdentityTotpCeremonyGrant.issue(valid_grant_claims, issuer_id: acme_issuer_id, now: @now)
+      grant = IdentityTotpCeremonyGrant.decode(grant_token, issuer_id: acme_issuer_id, now: @now)
 
       assert_equal "totp_ceremony", grant["purpose"]
-      assert_equal Identity::TotpCeremony::Contract.sign_audience("app"), grant["aud"]
+      assert_equal IdentityTotpCeremonyContract.sign_audience("app"), grant["aud"]
 
-      result_token = Identity::TotpCeremony::Result.issue(valid_result_claims, issuer_id: sign_issuer_id, now: @now)
-      result = Identity::TotpCeremony::Result.decode(result_token, issuer_id: sign_issuer_id, now: @now)
+      result_token = IdentityTotpCeremonyResult.issue(valid_result_claims, issuer_id: sign_issuer_id, now: @now)
+      result = IdentityTotpCeremonyResult.decode(result_token, issuer_id: sign_issuer_id, now: @now)
 
       assert_equal "totp_ceremony_result", result["purpose"]
       assert_equal "totp", result["proof_method"]
-      assert_equal Identity::TotpCeremony::Contract.acme_audience("app"), result["aud"]
+      assert_equal IdentityTotpCeremonyContract.acme_audience("app"), result["aud"]
     end
   end
 
   test "grant rejects binding, audience, purpose, surface, operation, expiry, and forbidden fields" do
     assert_totp_ceremony_error("actor_ref") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.except("actor_ref"), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.except("actor_ref"), now: @now)
     end
     assert_totp_ceremony_error("aud is invalid") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.merge("aud" => "https://evil.example"), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.merge("aud" => "https://evil.example"), now: @now)
     end
     assert_totp_ceremony_error("purpose is invalid") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.merge("purpose" => "wrong"), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.merge("purpose" => "wrong"), now: @now)
     end
     assert_totp_ceremony_error("surface is invalid") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.merge("surface" => "com"), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.merge("surface" => "com"), now: @now)
     end
     assert_totp_ceremony_error("operation is invalid") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.merge("operation" => "replacement"), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.merge("operation" => "replacement"), now: @now)
     end
     assert_totp_ceremony_error("exp is expired") do
-      Identity::TotpCeremony::Grant.new(valid_grant_claims.merge("exp" => (@now - 1.second).to_i), now: @now)
+      IdentityTotpCeremonyGrant.new(valid_grant_claims.merge("exp" => (@now - 1.second).to_i), now: @now)
     end
     %w(private_key session_token refresh_token totp_secret raw_totp first_token recent_auth sudo
        step_up_freshness).each do |claim|
       assert_totp_ceremony_error("forbidden claims") do
-        Identity::TotpCeremony::Grant.new(valid_grant_claims.merge(claim => "secret"), now: @now)
+        IdentityTotpCeremonyGrant.new(valid_grant_claims.merge(claim => "secret"), now: @now)
       end
     end
   end
 
   test "result rejects proof, expiry, redirect, and forbidden fields" do
     assert_totp_ceremony_error("grant_jti") do
-      Identity::TotpCeremony::Result.new(valid_result_claims.except("grant_jti"), now: @now)
+      IdentityTotpCeremonyResult.new(valid_result_claims.except("grant_jti"), now: @now)
     end
     assert_totp_ceremony_error("proof_method is invalid") do
-      Identity::TotpCeremony::Result.new(valid_result_claims.merge("proof_method" => "email_otp"), now: @now)
+      IdentityTotpCeremonyResult.new(valid_result_claims.merge("proof_method" => "email_otp"), now: @now)
     end
     assert_totp_ceremony_error("expires_at is expired") do
-      Identity::TotpCeremony::Result.new(
+      IdentityTotpCeremonyResult.new(
         valid_result_claims.merge("expires_at" => (@now - 1.second).to_i),
         now: @now,
       )
     end
     assert_totp_ceremony_error("unknown claims") do
-      Identity::TotpCeremony::Result.new(valid_result_claims.merge("return_to" => "/settings/totps"), now: @now)
+      IdentityTotpCeremonyResult.new(valid_result_claims.merge("return_to" => "/settings/totps"), now: @now)
     end
     %w(private_key session_token refresh_token secret_key totp_secret raw_totp first_token recent_auth sudo
        step_up_freshness).each do |claim|
       assert_totp_ceremony_error("forbidden claims") do
-        Identity::TotpCeremony::Result.new(valid_result_claims.merge(claim => "secret"), now: @now)
+        IdentityTotpCeremonyResult.new(valid_result_claims.merge(claim => "secret"), now: @now)
       end
     end
   end
 
   test "signature verification rejects wrong key and tampering" do
     travel_to @now do
-      token = Identity::TotpCeremony::Grant.issue(valid_grant_claims, issuer_id: acme_issuer_id, now: @now)
+      token = IdentityTotpCeremonyGrant.issue(valid_grant_claims, issuer_id: acme_issuer_id, now: @now)
 
       assert_totp_ceremony_error("kid is unknown") do
-        Identity::TotpCeremony::Grant.decode(token, issuer_id: "surface:ACME_COM", now: @now)
+        IdentityTotpCeremonyGrant.decode(token, issuer_id: "surface:ACME_COM", now: @now)
       end
 
       tampered_payload = valid_grant_claims.merge("actor_ref" => "attacker")
@@ -95,23 +95,23 @@ class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
         parts[1] = Base64.urlsafe_encode64(tampered_payload.to_json, padding: false)
       end.join(".")
       assert_totp_ceremony_error("token verification failed") do
-        Identity::TotpCeremony::Grant.decode(tampered, issuer_id: acme_issuer_id, now: @now)
+        IdentityTotpCeremonyGrant.decode(tampered, issuer_id: acme_issuer_id, now: @now)
       end
     end
   end
 
   private
 
-  def acme_issuer_id = Identity::TotpCeremony::Contract.acme_issuer_id("app")
+  def acme_issuer_id = IdentityTotpCeremonyContract.acme_issuer_id("app")
 
-  def sign_issuer_id = Identity::TotpCeremony::Contract.sign_issuer_id("app")
+  def sign_issuer_id = IdentityTotpCeremonyContract.sign_issuer_id("app")
 
   def valid_grant_claims
     {
-      "typ" => Identity::TotpCeremony::Grant::TOKEN_TYPE,
-      "iss" => Identity::TotpCeremony::Contract.acme_issuer("app"),
-      "aud" => Identity::TotpCeremony::Contract.sign_audience("app"),
-      "purpose" => Identity::TotpCeremony::Grant::PURPOSE,
+      "typ" => IdentityTotpCeremonyGrant::TOKEN_TYPE,
+      "iss" => IdentityTotpCeremonyContract.acme_issuer("app"),
+      "aud" => IdentityTotpCeremonyContract.sign_audience("app"),
+      "purpose" => IdentityTotpCeremonyGrant::PURPOSE,
       "surface" => "app",
       "actor_ref" => "actor-1",
       "session_ref" => "session-1",
@@ -125,10 +125,10 @@ class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
 
   def valid_result_claims
     {
-      "typ" => Identity::TotpCeremony::Result::TOKEN_TYPE,
-      "iss" => Identity::TotpCeremony::Contract.sign_issuer("app"),
-      "aud" => Identity::TotpCeremony::Contract.acme_audience("app"),
-      "purpose" => Identity::TotpCeremony::Result::PURPOSE,
+      "typ" => IdentityTotpCeremonyResult::TOKEN_TYPE,
+      "iss" => IdentityTotpCeremonyContract.sign_issuer("app"),
+      "aud" => IdentityTotpCeremonyContract.acme_audience("app"),
+      "purpose" => IdentityTotpCeremonyResult::PURPOSE,
       "surface" => "app",
       "actor_ref" => "actor-1",
       "session_ref" => "session-1",
@@ -136,7 +136,7 @@ class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
       "grant_jti" => "grant-1",
       "result_jti" => "result-1",
       "operation" => "registration",
-      "proof_method" => Identity::TotpCeremony::Result::PROOF_METHOD,
+      "proof_method" => IdentityTotpCeremonyResult::PROOF_METHOD,
       "verified_at" => @now.to_i,
       "challenge_id" => "challenge-1",
       "expires_at" => (@now + 10.minutes).to_i,
@@ -148,7 +148,7 @@ class Identity::TotpCeremonyContractTest < ActiveSupport::TestCase
   end
 
   def assert_totp_ceremony_error(message)
-    error = assert_raises(Identity::TotpCeremony::Error) { yield }
+    error = assert_raises(IdentityTotpCeremonyContract::Error) { yield }
     assert_includes error.message, message
   end
 end

@@ -5,7 +5,7 @@ require "test_helper"
 
 class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include SocialAuthConcern
+    include SocialAuth
 
     attr_accessor :session_hash, :request_obj, :flash_hash, :redirected, :rendered,
                   :current_session_token
@@ -127,8 +127,8 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   end
 
   test "validate_social_auth_state! raises on expired TTL" do
-    @harness.session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY] = "link"
-    @harness.session_hash[SocialAuthConcern::SOCIAL_STARTED_AT_SESSION_KEY] = 10.minutes.ago.to_i
+    @harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY] = "link"
+    @harness.session_hash[SocialAuth::SOCIAL_STARTED_AT_SESSION_KEY] = 10.minutes.ago.to_i
 
     assert_raises(SocialAuth::UnauthorizedError) do
       @harness.send(:validate_social_auth_state!)
@@ -136,7 +136,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   end
 
   test "validate_user_consistency! raises when user changed" do
-    @harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY] = 1
+    @harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY] = 1
     @harness.current_resource = Struct.new(:id).new(2)
 
     assert_raises(SocialAuth::UnauthorizedError) do
@@ -146,7 +146,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   test "require_recent_step_up! accepts current token-bound step-up" do
     @harness.current_resource = Client.new
-    @harness.current_session_token = step_up_token(last_step_up_scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
+    @harness.current_session_token = step_up_token(last_step_up_scope: SocialAuth::SOCIAL_LINK_SCOPE)
 
     assert_nothing_raised do
       @harness.send(:require_recent_step_up!)

@@ -87,7 +87,7 @@ class AuthMethodGuardTest < ActiveSupport::TestCase
     )
 
     assert_equal 0, AuthMethodGuard.remaining_count(user)
-    assert_equal 1, Authentication::CredentialInventory.call(user).contact_identifier_count
+    assert_equal 1, AuthenticationCredentialInventory.call(user).contact_identifier_count
   end
 
   test "remaining_count excludes unverified telephones" do

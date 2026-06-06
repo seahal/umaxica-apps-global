@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
+class IdentityStepUpCeremonyContractTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
@@ -24,28 +24,28 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
 
   test "valid grant and result serialize and verify" do
     travel_to @now do
-      grant_token = Identity::StepUpCeremony::Grant.issue(
+      grant_token = IdentityStepUpCeremonyGrant.issue(
         valid_grant_claims,
-        issuer_id: Identity::StepUpCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
-      grant = Identity::StepUpCeremony::Grant.decode(
+      grant = IdentityStepUpCeremonyGrant.decode(
         grant_token,
-        issuer_id: Identity::StepUpCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
       assert_equal "step_up_ceremony", grant["purpose"]
       assert_equal "settings_email", grant["required_scope"]
 
-      result_token = Identity::StepUpCeremony::Result.issue(
+      result_token = IdentityStepUpCeremonyResult.issue(
         valid_result_claims,
-        issuer_id: Identity::StepUpCeremony::Contract.sign_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
         now: @now,
       )
-      result = Identity::StepUpCeremony::Result.decode(
+      result = IdentityStepUpCeremonyResult.decode(
         result_token,
-        issuer_id: Identity::StepUpCeremony::Contract.sign_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
         now: @now,
       )
 
@@ -57,8 +57,8 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
   test "result rejects forbidden freshness and secret claims" do
     %w(otp otp_digest session_token refresh_token recent_auth sudo step_up_freshness totp_secret).each do |claim|
       error =
-        assert_raises(Identity::StepUpCeremony::Error) do
-          Identity::StepUpCeremony::Result.new(valid_result_claims.merge(claim => "secret"), now: @now)
+        assert_raises(IdentityStepUpCeremonyContract::Error) do
+          IdentityStepUpCeremonyResult.new(valid_result_claims.merge(claim => "secret"), now: @now)
         end
       assert_includes error.message, "forbidden claims"
     end
@@ -66,13 +66,13 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
 
   test "freshness committer writes token freshness and rejects replay mismatches" do
     travel_to @now do
-      result_token = Identity::StepUpCeremony::Result.issue(
+      result_token = IdentityStepUpCeremonyResult.issue(
         valid_result_claims,
-        issuer_id: Identity::StepUpCeremony::Contract.sign_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
         now: @now,
       )
 
-      Identity::StepUpCeremony::FreshnessCommitter.call!(
+      IdentityStepUpCeremonyFreshnessCommitter.call!(
         result_token: result_token,
         token: @token,
         expected_scope: "settings_email",
@@ -91,8 +91,8 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
       assert_equal "step_up", @token.last_step_up_purpose
       assert_equal "step_up:app", @token.last_step_up_audience
 
-      assert_raises(Identity::StepUpCeremony::Error) do
-        Identity::StepUpCeremony::FreshnessCommitter.call!(
+      assert_raises(IdentityStepUpCeremonyContract::Error) do
+        IdentityStepUpCeremonyFreshnessCommitter.call!(
           result_token: result_token,
           token: @token,
           expected_scope: "settings_telephone",
@@ -109,10 +109,10 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
 
   def valid_grant_claims
     {
-      "typ" => Identity::StepUpCeremony::Grant::TOKEN_TYPE,
-      "iss" => Identity::StepUpCeremony::Contract.acme_issuer("app"),
-      "aud" => Identity::StepUpCeremony::Contract.sign_audience("app"),
-      "purpose" => Identity::StepUpCeremony::Grant::PURPOSE,
+      "typ" => IdentityStepUpCeremonyGrant::TOKEN_TYPE,
+      "iss" => IdentityStepUpCeremonyContract.acme_issuer("app"),
+      "aud" => IdentityStepUpCeremonyContract.sign_audience("app"),
+      "purpose" => IdentityStepUpCeremonyGrant::PURPOSE,
       "surface" => "app",
       "actor_ref" => @client.public_id,
       "session_ref" => @token.public_id,
@@ -128,10 +128,10 @@ class Identity::StepUpCeremonyContractTest < ActiveSupport::TestCase
 
   def valid_result_claims
     {
-      "typ" => Identity::StepUpCeremony::Result::TOKEN_TYPE,
-      "iss" => Identity::StepUpCeremony::Contract.sign_issuer("app"),
-      "aud" => Identity::StepUpCeremony::Contract.acme_audience("app"),
-      "purpose" => Identity::StepUpCeremony::Result::PURPOSE,
+      "typ" => IdentityStepUpCeremonyResult::TOKEN_TYPE,
+      "iss" => IdentityStepUpCeremonyContract.sign_issuer("app"),
+      "aud" => IdentityStepUpCeremonyContract.acme_audience("app"),
+      "purpose" => IdentityStepUpCeremonyResult::PURPOSE,
       "surface" => "app",
       "actor_ref" => @client.public_id,
       "session_ref" => @token.public_id,

@@ -5,6 +5,6 @@ class TotpCeremonyTransactionPurgeJob < ApplicationJob
   queue_as :default
 
   def perform
-    Identity::TotpCeremony::TransactionPurger.new.call
+    IdentityTotpCeremonyTransactionPurger.new.call
   end
 end

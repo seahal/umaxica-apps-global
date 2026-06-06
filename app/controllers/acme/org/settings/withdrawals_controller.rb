@@ -5,7 +5,7 @@ module Acme
   module Org
     module Settings
       class WithdrawalsController < Acme::Org::ApplicationController
-        include ::Verification::Operator
+        include ::VerificationOperator
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private

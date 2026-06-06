@@ -50,8 +50,8 @@ class AppPreference < AppSettingRecord
   include Retainable
   include ::PublicId
   include ::SingleUseToken
-  include ::Preference::Resettable
-  include ::Preference::ExplicitFields
+  include ::PreferenceResettable
+  include ::PreferenceExplicitFields
   include ::DbscBindable
 
   self.belongs_to_required_by_default = false

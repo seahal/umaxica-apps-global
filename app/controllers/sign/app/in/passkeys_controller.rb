@@ -11,25 +11,25 @@ module Sign
       # 2. POST /in/passkeys/options with email to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.get()
       # 4. POST /in/passkeys/verification with credential + challenge_id
-      # 5. Server verifies and establishes session via Authentication::Base#log_in
+      # 5. Server verifies and establishes session via AuthenticationBase#log_in
       #
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, email is required to look up
       # the user's registered passkeys.
       class PasskeysController < Sign::App::ApplicationController
-        include Sign::Webauthn
+        include SignWebauthn
 
-        include Sign::PasskeyAuthentication
+        include SignPasskeyAuthentication
 
-        include Sign::PasskeyAuthenticationHelpers
+        include SignPasskeyAuthenticationHelpers
 
-        include Sign::PasskeyOptionsFlow
+        include SignPasskeyOptionsFlow
 
-        include Sign::PasskeyVerificationFlow
+        include SignPasskeyVerificationFlow
 
-        include Sign::PasskeySignInFlow
+        include SignPasskeySignInFlow
 
-        include Sign::PasskeyLoginResultFlow
+        include SignPasskeyLoginResultFlow
 
         include EmailValidation
 
@@ -144,7 +144,7 @@ module Sign
           return true if passkey.user.has_verified_pii?
 
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "authentication.passkey.failed",
               reason: "verified_pii_missing",
               user_id: passkey.user_id,

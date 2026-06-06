@@ -37,7 +37,7 @@ module StepUp
         last_step_up_session_public_id: "session_1",
       )
 
-      step_up = Resolver.call(
+      step_up = StepUpResolver.call(
         token: token,
         scope: "profile",
         session_binding: "session_1",
@@ -59,9 +59,9 @@ module StepUp
       unusable = token_at(now - 5.minutes, currently_usable: false, scope: "profile")
       mismatched = token_at(now - 5.minutes, scope: "other")
 
-      assert_not Resolver.call(token: expired, scope: "profile", now: now).satisfied?
-      assert_not Resolver.call(token: unusable, scope: "profile", now: now).satisfied?
-      assert_not Resolver.call(token: mismatched, scope: "profile", now: now).satisfied?
+      assert_not StepUpResolver.call(token: expired, scope: "profile", now: now).satisfied?
+      assert_not StepUpResolver.call(token: unusable, scope: "profile", now: now).satisfied?
+      assert_not StepUpResolver.call(token: mismatched, scope: "profile", now: now).satisfied?
     end
 
     test "satisfies just before ttl and rejects exactly at ttl" do
@@ -71,26 +71,26 @@ module StepUp
       just_before = token_at(now - ttl + 1.second, scope: "profile")
       exactly_at = token_at(now - ttl, scope: "profile")
 
-      assert_predicate Resolver.call(token: just_before, scope: "profile", now: now, ttl: ttl), :satisfied?
-      assert_not Resolver.call(token: exactly_at, scope: "profile", now: now, ttl: ttl).satisfied?
+      assert_predicate StepUpResolver.call(token: just_before, scope: "profile", now: now, ttl: ttl), :satisfied?
+      assert_not StepUpResolver.call(token: exactly_at, scope: "profile", now: now, ttl: ttl).satisfied?
     end
 
     test "blank requested scope is never satisfied" do
       now = Time.zone.parse("2026-05-25 00:00:00")
       token = token_at(now - 1.minute, scope: "settings_email")
 
-      assert_not Resolver.call(token: token, scope: nil, now: now).satisfied?
-      assert_not Resolver.call(token: token, scope: "", now: now).satisfied?
-      assert_not Resolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, scope: nil, now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, scope: "", now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
     end
 
     test "rejects wrong method, unsupported aal, and binding mismatch" do
       now = Time.zone.parse("2026-05-25 00:00:00")
       token = token_at(now - 1.minute, scope: "settings_passkey", method: "email_otp")
 
-      assert_not Resolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
-      assert_not Resolver.call(token: token, scope: "settings_passkey", required_aal: :aal3, now: now).satisfied?
-      assert_not Resolver.call(
+      assert_not StepUpResolver.call(token: token, scope: "settings_passkey", now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, scope: "settings_passkey", required_aal: :aal3, now: now).satisfied?
+      assert_not StepUpResolver.call(
         token: token_at(now - 1.minute, scope: "settings_passkey"),
         scope: "settings_passkey",
         session_binding: "other_session",
@@ -107,27 +107,27 @@ module StepUp
         purpose: "step_up",
         audience: "step_up:app",
       )
-      requirement = Requirement.new(
+      requirement = StepUpRequirement.new(
         scope: "settings_email",
         purpose: "step_up",
         audience: "step_up:app",
       )
 
-      assert_predicate Resolver.call(token: token, requirement: requirement, now: now), :satisfied?
+      assert_predicate StepUpResolver.call(token: token, requirement: requirement, now: now), :satisfied?
 
-      wrong_purpose = Requirement.new(
+      wrong_purpose = StepUpRequirement.new(
         scope: "settings_email",
         purpose: "other",
         audience: "step_up:app",
       )
-      wrong_audience = Requirement.new(
+      wrong_audience = StepUpRequirement.new(
         scope: "settings_email",
         purpose: "step_up",
         audience: "step_up:org",
       )
 
-      assert_not Resolver.call(token: token, requirement: wrong_purpose, now: now).satisfied?
-      assert_not Resolver.call(token: token, requirement: wrong_audience, now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, requirement: wrong_purpose, now: now).satisfied?
+      assert_not StepUpResolver.call(token: token, requirement: wrong_audience, now: now).satisfied?
     end
 
     private

@@ -201,7 +201,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   def prepare_callback_flow(provider:, user:)
     headers = as_user_headers(user, host: @host)
     token = ClientToken.find_by(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE) if token
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
 
     post(
       continue_sign_app_social_authentication_url(provider: provider, intent: "link", ri: "jp"),

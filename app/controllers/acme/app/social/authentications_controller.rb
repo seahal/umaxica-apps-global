@@ -10,7 +10,7 @@ module Acme
 
         def continue
           provider = social_provider_param
-          issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+          issuance = IdentitySocialCeremonyGrantIssuer.issue!(
             surface: "app",
             actor_ref: "anonymous",
             session_ref: SecureRandom.hex(24),
@@ -37,10 +37,10 @@ module Acme
         def completion
           provider = social_provider_param
           result_token = params.require(:social_ceremony_result)
-          payload = Identity::SocialCeremony::Contract.decode_unverified_payload(result_token)
+          payload = IdentitySocialCeremonyContract.decode_unverified_payload(result_token)
           return reject_social_link_completion!(provider) if payload["operation"].to_s == "link"
 
-          commit = Identity::SocialCeremony::FinalCommitter.call!(
+          commit = IdentitySocialCeremonyFinalCommitter.call!(
             result_token: result_token,
             actor: nil,
             session_ref: social_result_session_ref(result_token),
@@ -53,7 +53,7 @@ module Acme
           return complete_social_signup!(commit, provider) if social_sign_up_required?(commit)
 
           complete_social_login!(commit, provider)
-        rescue Identity::SocialCeremony::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
+        rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
           redirect_to(
             new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
@@ -82,13 +82,13 @@ module Acme
           return false unless action_name == "completion"
 
           provider = social_provider_param
-          result = Identity::SocialCeremony::Result.decode(
+          result = IdentitySocialCeremonyResult.decode(
             params[:social_ceremony_result].to_s,
-            issuer_id: Identity::SocialCeremony::Contract.sign_issuer_id("app"),
+            issuer_id: IdentitySocialCeremonyContract.sign_issuer_id("app"),
           )
 
           result["surface"].to_s == "app" && result["provider"].to_s == provider
-        rescue ActionController::BadRequest, Identity::SocialCeremony::Error
+        rescue ActionController::BadRequest, IdentitySocialCeremonyContract::Error
           false
         end
 
@@ -196,24 +196,24 @@ module Acme
               pending_contact_id: identity.id,
               social_provider: SocialIdentifiable.normalize_provider(identity.provider),
             )
-            result = SignUp::StateMachine.call(
+            result = SignUpStateMachine.call(
               ticket: cycle,
               event: :complete_social_callback,
               actor_context: Actor.authn,
             )
             raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
           end
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow).issue!(cycle)
+          SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow).issue!(cycle)
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
         def social_result_session_ref(result_token)
-          Identity::SocialCeremony::Contract.decode_unverified_payload(result_token).fetch("session_ref")
+          IdentitySocialCeremonyContract.decode_unverified_payload(result_token).fetch("session_ref")
         end
 
         def social_provider_param
           provider = params[:provider].to_s
-          return provider if Identity::SocialCeremony::Contract::PROVIDERS.include?(provider)
+          return provider if IdentitySocialCeremonyContract::PROVIDERS.include?(provider)
 
           raise ActionController::BadRequest, "invalid social provider"
         end

@@ -3,7 +3,7 @@
 
 # Legacy compatibility gate for concurrent session-limit management.
 #
-# DB-backed sign-in cycles should use SignIn::SessionLimitManager as the
+# DB-backed sign-in cycles should use SignInSessionLimitManager as the
 # authoritative session-limit participant. This concern remains only for
 # sign-in entry points that have not yet been fully wired to DB-backed cycle
 # locators.
@@ -36,7 +36,7 @@
 #   end
 module SessionLimitGate
   extend ActiveSupport::Concern
-  include Common::Redirect
+  include CommonRedirect
 
   GATE_SESSION_KEY = :session_limit_gate
   GATE_TTL_SECONDS = 900 # 15 minutes

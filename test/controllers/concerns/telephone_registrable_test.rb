@@ -13,7 +13,7 @@ class TelephoneRegistrableTest < ActiveSupport::TestCase
   end
 
   class TestController
-    include Sign::TelephoneRegistrable
+    include SignTelephoneRegistrable
 
     attr_accessor :request
 

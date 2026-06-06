@@ -11,7 +11,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "acme/app/health/lives",
       ready_controller: "acme/app/health/readies",
       startup_controller: "acme/app/health/startups",
-      profile: Health::Profiles::App,
+      profile: HealthProfilesApp,
     },
     {
       host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
@@ -19,7 +19,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "acme/com/health/lives",
       ready_controller: "acme/com/health/readies",
       startup_controller: "acme/com/health/startups",
-      profile: Health::Profiles::Com,
+      profile: HealthProfilesCom,
     },
     {
       host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
@@ -27,7 +27,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "acme/org/health/lives",
       ready_controller: "acme/org/health/readies",
       startup_controller: "acme/org/health/startups",
-      profile: Health::Profiles::Org,
+      profile: HealthProfilesOrg,
     },
     {
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
@@ -35,7 +35,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "sign/app/health/lives",
       ready_controller: "sign/app/health/readies",
       startup_controller: "sign/app/health/startups",
-      profile: Health::Profiles::SignApp,
+      profile: HealthProfilesSignApp,
     },
     {
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
@@ -43,7 +43,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "sign/com/health/lives",
       ready_controller: "sign/com/health/readies",
       startup_controller: "sign/com/health/startups",
-      profile: Health::Profiles::SignCom,
+      profile: HealthProfilesSignCom,
     },
     {
       host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
@@ -51,7 +51,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "sign/org/health/lives",
       ready_controller: "sign/org/health/readies",
       startup_controller: "sign/org/health/startups",
-      profile: Health::Profiles::SignOrg,
+      profile: HealthProfilesSignOrg,
     },
     {
       host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
@@ -59,7 +59,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "core/app/health/lives",
       ready_controller: "core/app/health/readies",
       startup_controller: "core/app/health/startups",
-      profile: Health::Profiles::App,
+      profile: HealthProfilesApp,
     },
     {
       host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
@@ -67,7 +67,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "core/com/health/lives",
       ready_controller: "core/com/health/readies",
       startup_controller: "core/com/health/startups",
-      profile: Health::Profiles::Com,
+      profile: HealthProfilesCom,
     },
     {
       host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
@@ -75,7 +75,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       live_controller: "core/org/health/lives",
       ready_controller: "core/org/health/readies",
       startup_controller: "core/org/health/startups",
-      profile: Health::Profiles::Org,
+      profile: HealthProfilesOrg,
     },
   ].freeze
 
@@ -142,7 +142,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "liveness remains dependency free" do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
 
-    Health::Readiness.stub(:call, ->(_profile:) { raise RuntimeError, "readiness loaded" }) do
+    HealthReadiness.stub(:call, ->(_profile:) { raise RuntimeError, "readiness loaded" }) do
       ActiveRecord::Base.stub(:connection, -> { raise RuntimeError, "database touched" }) do
         if defined?(REDIS_CLIENT)
           REDIS_CLIENT.stub(:ping, -> { raise RuntimeError, "redis touched" }) do
@@ -162,7 +162,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "startup remains dependency light" do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
 
-    Health::Checks::Database.stub(:new, ->(*) { raise RuntimeError, "database check built" }) do
+    HealthChecksDatabase.stub(:new, ->(*) { raise RuntimeError, "database check built" }) do
       get "/health/startup"
     end
 
@@ -200,13 +200,13 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
 
   test "public responses omit topology and exception details" do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
-    report = Health::Report.aggregate(
-      profile: Health::Profiles::SignApp,
+    report = HealthReport.aggregate(
+      profile: HealthProfilesSignApp,
       probe: :ready,
-      checks: [Health::Check::Result.new(kind: :database, status: :unready, message: "Dependency unavailable")],
+      checks: [HealthCheckResult.new(kind: :database, status: :unready, message: "Dependency unavailable")],
     )
 
-    Health::Readiness.stub(:call, report) do
+    HealthReadiness.stub(:call, report) do
       get "/health/ready"
     end
 
@@ -235,17 +235,17 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "missing and inherited health profiles fail loudly" do
     missing =
       Class.new(::ApplicationController) do
-        include Health::Controller
+        include HealthEndpoint
       end
     inherited_parent =
       Class.new(::ApplicationController) do
-        include Health::Controller
+        include HealthEndpoint
       end
-    inherited_parent.const_set(:HEALTH_PROFILE, Health::Profiles::App)
+    inherited_parent.const_set(:HEALTH_PROFILE, HealthProfilesApp)
     inherited_child = Class.new(inherited_parent)
 
-    assert_raises(Health::MissingProfileError) { missing.new.send(:health_profile) }
-    assert_raises(Health::MissingProfileError) { inherited_child.new.send(:health_profile) }
+    assert_raises(HealthEndpoint::MissingProfileError) { missing.new.send(:health_profile) }
+    assert_raises(HealthEndpoint::MissingProfileError) { inherited_child.new.send(:health_profile) }
   end
 
   private
@@ -258,9 +258,9 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   def assert_probe_status(status, expected_response)
-    report = Health::Report.new(profile: Health::Profiles::SignApp, probe: :ready, status: status, checks: [])
+    report = HealthReport.new(profile: HealthProfilesSignApp, probe: :ready, status: status, checks: [])
 
-    Health::Readiness.stub(:call, report) do
+    HealthReadiness.stub(:call, report) do
       get("/health/ready")
     end
 
@@ -268,14 +268,14 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   def assert_readiness_does_not_build(forbidden_record_class)
-    Health::Checks::Database.stub(
+    HealthChecksDatabase.stub(
       :new,
       lambda { |record_class:, **_options|
         raise RuntimeError, "unexpected dependency" if record_class == forbidden_record_class
 
         Struct.new(:result) do
           def call = result
-        end.new(Health::Check::Result.new(kind: :database, status: :ok))
+        end.new(HealthCheckResult.new(kind: :database, status: :ok))
       },
     ) do
       get("/health/ready")

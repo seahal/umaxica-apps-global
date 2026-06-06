@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 module ApplicationHelper
-  # Authentication helpers are provided by Authentication::Client and Authentication::Operator concerns
+  # Authentication helpers are provided by AuthenticationClient and AuthenticationOperator concerns
   # No need to define them here - they're already available via helper_method
 
   EDGE_HOST_ENV_KEYS = {
@@ -71,10 +71,10 @@ module ApplicationHelper
   end
 
   def edge_host
-    surface = request.respond_to?(:host) ? Core::Surface.current(request) : Core::Surface::DEFAULT
-    env_key = EDGE_HOST_ENV_KEYS.fetch(surface, EDGE_HOST_ENV_KEYS.fetch(Core::Surface::DEFAULT))
+    surface = request.respond_to?(:host) ? CoreSurface.current(request) : CoreSurface::DEFAULT
+    env_key = EDGE_HOST_ENV_KEYS.fetch(surface, EDGE_HOST_ENV_KEYS.fetch(CoreSurface::DEFAULT))
 
-    Core::HostNormalization.normalize(ENV[env_key])
+    CoreHostNormalization.normalize(ENV[env_key])
   end
 
   private

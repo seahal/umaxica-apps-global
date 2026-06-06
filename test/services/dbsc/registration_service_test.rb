@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
+class DbscRegistrationServiceTest < ActiveSupport::TestCase
   test "sets user token to active dbsc state" do
     user = create_verified_user_with_email(email_address: "dbsc-registration-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
@@ -16,7 +16,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
     )
 
-    result = Dbsc::RegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-1")
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-1")
 
     assert_predicate result[:ok], :present?
 
@@ -49,7 +49,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
     )
 
-    result = Dbsc::RegistrationService.call(record: preference, proof: proof, session_id: "dbsc-pref-1")
+    result = DbscRegistrationService.call(record: preference, proof: proof, session_id: "dbsc-pref-1")
 
     assert_predicate result[:ok], :present?
 
@@ -74,7 +74,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
     )
 
-    result = Dbsc::RegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-x")
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-x")
 
     assert_not result[:ok]
     assert_equal "challenge_expired", result[:error_code]
@@ -92,7 +92,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
     )
 
-    result = Dbsc::RegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-y")
+    result = DbscRegistrationService.call(record: token, proof: proof, session_id: "dbsc-session-y")
 
     assert_not result[:ok]
     assert_equal "challenge_expired", result[:error_code]
@@ -110,7 +110,7 @@ class Dbsc::RegistrationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: public_jwk },
     )
 
-    result = Dbsc::RegistrationService.call(
+    result = DbscRegistrationService.call(
       record: token,
       proof: proof,
       expected_audience: "https://test.host/registration",

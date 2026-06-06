@@ -5,10 +5,10 @@ module Acme
   module App
     module Health
       class StartupsController < BareController
-        include ::Health::Controller
+        include ::HealthEndpoint
 
         AUTHENTICATION_MODE = :bare
-        HEALTH_PROFILE = ::Health::Profiles::App
+        HEALTH_PROFILE = ::HealthProfilesApp
 
         def show
           show_startup

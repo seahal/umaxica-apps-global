@@ -64,11 +64,11 @@ class Sign::App::Settings::Mfa::ResetsControllerTest < ActionDispatch::Integrati
   end
 
   def as_user_headers_with_token(user, token, host:)
-    access_token = Authentication::Base::Token.encode(user, host: host, session_public_id: token.public_id)
+    access_token = AuthenticationToken.encode(user, host: host, session_public_id: token.public_id)
     {
       "Host" => host,
       "Authorization" => "Bearer #{access_token}",
-      "Cookie" => "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
     }
   end
 end

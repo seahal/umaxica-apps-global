@@ -23,7 +23,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "operator",
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -85,7 +85,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "user",
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -108,8 +108,8 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "operator",
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     # Verify token exists before logout
     assert_not_nil OperatorToken.find_by(public_id: token_record.public_id)
@@ -133,7 +133,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check accepts DPoP-bound staff token with valid proof" do
     token_record = OperatorToken.create!(staff: @staff)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     token_record.update!(dpop_jkt: jkt)
     access_token = jwt_access_token_for(
       @staff,
@@ -164,7 +164,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP-bound staff token presented as Bearer" do
     token_record = OperatorToken.create!(staff: @staff)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @staff,
       host: @host,
@@ -194,7 +194,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP-bound staff token without proof" do
     token_record = OperatorToken.create!(staff: @staff)
     _private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @staff,
       host: @host,
@@ -219,7 +219,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP staff proof with wrong ath" do
     token_record = OperatorToken.create!(staff: @staff)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @staff,
       host: @host,
@@ -260,7 +260,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       "htu" => uri,
       "iat" => Time.current.to_i,
       "jti" => SecureRandom.uuid,
-      "ath" => Jit::Security::Jwt::ThumbprintCalculator.ath(access_token),
+      "ath" => JitSecurityJwtThumbprintCalculator.ath(access_token),
     }
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end

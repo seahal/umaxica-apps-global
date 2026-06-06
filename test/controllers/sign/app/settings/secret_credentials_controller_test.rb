@@ -30,7 +30,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       name: "Test Secret",
       password_digest: "test_password_digest",
       last_used_at: Time.zone.now,
-      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_secret_kind_id: ClientSecretCredentialKinds::LOGIN,
     )
     CloudflareTurnstile.validation_override_enabled = true
     CloudflareTurnstile.validation_override_response = { "success" => true }
@@ -349,7 +349,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       user: other_user,
       name: "Other Secret",
       password_digest: "test_password_digest",
-      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_secret_kind_id: ClientSecretCredentialKinds::LOGIN,
       public_id: "sco_#{SecureRandom.hex(4)}",
     )
 
@@ -373,7 +373,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       user: user,
       name: "Only Secret",
       password_digest: "test_password_digest",
-      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_secret_kind_id: ClientSecretCredentialKinds::LOGIN,
     )
 
     AuthMethodGuard.stub(:last_method?, true) do

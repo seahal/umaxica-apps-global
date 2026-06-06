@@ -5,6 +5,6 @@ class EmailCeremonyTransactionPurgeJob < ApplicationJob
   queue_as :default
 
   def perform(batch_size: 1000)
-    Identity::EmailCeremony::TransactionPurger.new(batch_size: batch_size).call
+    IdentityEmailCeremonyTransactionPurger.new(batch_size: batch_size).call
   end
 end

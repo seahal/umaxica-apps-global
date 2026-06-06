@@ -8,12 +8,12 @@ class Sign::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = Jit::IdHostEnv.corporate_url || "id.com.localhost"
+    @host = JitIdHostEnv.corporate_url || "id.com.localhost"
     host! @host
   end
 
   test "PATCH update without access jwt writes consent buffer without credential cookies" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     assert_no_difference -> { VisitorPreference.count } do
       patch sign_com_web_v0_cookie_path, params: { consented: true }, as: :json
@@ -26,7 +26,7 @@ class Sign::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "preference_consented=1"
     assert_includes consent_cookie.downcase, "samesite=strict"
     assert_not_includes consent_cookie.downcase, "httponly"
-    assert_not_includes set_cookie, "#{Preference::CookieName.access}="
-    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
+    assert_not_includes set_cookie, "#{PreferenceCookieName.access}="
+    assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
   end
 end

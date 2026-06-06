@@ -8,16 +8,16 @@ module Sign::App
     test "includes expected concerns" do
       controller = ApplicationController.new
 
-      assert_includes controller.class, ::Authentication::Client
-      assert_includes controller.class, ::Authorization::Client
-      assert_includes controller.class, ::Verification::Client
+      assert_includes controller.class, ::AuthenticationClient
+      assert_includes controller.class, ::AuthorizationClient
+      assert_includes controller.class, ::VerificationClient
     end
 
     test "includes expected concerns 2nd" do
       controller = ApplicationController.new
 
       assert_includes controller.class, RateLimit
-      assert_includes controller.class, ::Preference::Global
+      assert_includes controller.class, ::PreferenceGlobal
     end
 
     test "application controller defaults to deny all authentication mode" do

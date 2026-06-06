@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
+class DbscVerificationServiceTest < ActiveSupport::TestCase
   test "verifies proof and returns ok for active user token without changing status" do
     user = create_verified_user_with_email(email_address: "dbsc-verify-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
@@ -23,8 +23,8 @@ class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt" },
     )
 
-    Dbsc::RecordAdapter.stub(:dbsc_public_key, private_key.public_key) do
-      result = Dbsc::VerificationService.call(
+    DbscRecordAdapter.stub(:dbsc_public_key, private_key.public_key) do
+      result = DbscVerificationService.call(
         record: token,
         session_id: "session-1",
         proof: proof,
@@ -62,8 +62,8 @@ class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt" },
     )
 
-    Dbsc::RecordAdapter.stub(:dbsc_public_key, private_key.public_key) do
-      result = Dbsc::VerificationService.call(
+    DbscRecordAdapter.stub(:dbsc_public_key, private_key.public_key) do
+      result = DbscVerificationService.call(
         record: preference,
         session_id: "pref-session-1",
         proof: proof,
@@ -92,7 +92,7 @@ class Dbsc::VerificationServiceTest < ActiveSupport::TestCase
       private_key, "ES256", { typ: "dbsc+jwt", jwk: JWT::JWK.new(private_key).export },
     )
 
-    result = Dbsc::VerificationService.call(
+    result = DbscVerificationService.call(
       record: token,
       session_id: "session-jwk",
       proof: proof,

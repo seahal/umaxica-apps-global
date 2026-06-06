@@ -28,8 +28,8 @@ module PasskeyCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :status, :grant_jti, :expires_at,
               presence: true
-    validates :surface, inclusion: { in: Identity::PasskeyCeremony::Contract::SURFACES }
-    validates :operation, inclusion: { in: Identity::PasskeyCeremony::Contract::OPERATIONS }
+    validates :surface, inclusion: { in: IdentityPasskeyCeremonyContract::SURFACES }
+    validates :operation, inclusion: { in: IdentityPasskeyCeremonyContract::OPERATIONS }
     validates :status, inclusion: { in: STATUSES }
     validate :surface_matches_transaction_class
     validate :consumed_transaction_has_result
@@ -54,7 +54,7 @@ module PasskeyCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           credential_candidate_ref: credential_candidate_ref,
           credential_candidate_digest: credential_candidate_digest,
-          expires_at: expires_at || (now + Identity::PasskeyCeremony::Transaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + IdentityPasskeyCeremonyTransaction::DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )
@@ -99,15 +99,15 @@ module PasskeyCeremonyTransactionable
     self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
-        raise Identity::PasskeyCeremony::Error, "transaction is already consumed" if locked.consumed?
-        raise Identity::PasskeyCeremony::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+        raise IdentityPasskeyCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
+        raise IdentityPasskeyCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(result_jti: result_jti, consumed_at: consumed_at, status: STATUS_CONSUMED)
         locked
       end
     end
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
-    raise Identity::PasskeyCeremony::Error, "result_jti has already been consumed: #{e.message}"
+    raise IdentityPasskeyCeremonyContract::Error, "result_jti has already been consumed: #{e.message}"
   end
 
   private

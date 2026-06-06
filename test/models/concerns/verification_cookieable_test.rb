@@ -10,11 +10,11 @@ class VerificationCookieableTest < ActiveSupport::TestCase
       OperatorVerification => "verification",
       VisitorVerification => "verification",
     }.each do |klass, plain_name|
-      Jit::SessionCookieConfig.stub(:force_secure?, false) do
+      JitSessionCookieConfig.stub(:force_secure?, false) do
         assert_equal plain_name, klass.cookie_name
       end
 
-      Jit::SessionCookieConfig.stub(:force_secure?, true) do
+      JitSessionCookieConfig.stub(:force_secure?, true) do
         assert_equal "__Host-#{plain_name}", klass.cookie_name
       end
     end

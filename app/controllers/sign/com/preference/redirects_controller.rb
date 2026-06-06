@@ -5,7 +5,7 @@ module Sign
   module Com
     module Preference
       class RedirectsController < Sign::RedirectOnlyController
-        include ::Sign::PreferenceAuthorityRedirect
+        include ::SignPreferenceAuthorityRedirect
 
         AUTHENTICATION_MODE = :open
       end

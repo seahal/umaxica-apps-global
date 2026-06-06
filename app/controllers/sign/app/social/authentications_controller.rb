@@ -14,16 +14,16 @@ module Sign
       #   Sign::App::Auth::OmniauthCallbacksController
       class AuthenticationsController < Sign::App::ApplicationController
         include CloudflareTurnstile
-        include ::Verification::Client
+        include ::VerificationClient
 
-        include SocialAuthConcern
+        include SocialAuth
 
         AUTHENTICATION_MODE = :deny_all
         rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
         rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
 
         SUPPORTED_PROVIDERS = %w(google_app apple).freeze
-        SOCIAL_LINK_SCOPE = SocialAuthConcern::SOCIAL_LINK_SCOPE
+        SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
 
         # Public access for continue (login intent doesn't require auth)
         # For link/step-up intents, auth is checked in prepare_social_auth_intent!
@@ -68,7 +68,7 @@ module Sign
           if params[:social_ceremony_grant].present?
             store_social_ceremony_grant!(params[:social_ceremony_grant])
           elsif intent.to_s == "login"
-            issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+            issuance = IdentitySocialCeremonyGrantIssuer.issue!(
               surface: "app",
               actor_ref: social_login_actor_ref,
               session_ref: state,
@@ -146,7 +146,7 @@ module Sign
             end
           result =
             AppTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(
+              SignUpStateMachine.call(
                 ticket: cycle,
                 event: :start_social_callback,
                 actor_context: Actor.authn,
@@ -242,7 +242,7 @@ module Sign
         end
 
         def sign_up_flow_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
+          SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         def verification_required_action?

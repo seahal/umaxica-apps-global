@@ -59,7 +59,7 @@
 #
 class ClientSignUpFlow < AppTicketRecord
   include SignFlow
-  include Flow::SignUp
+  include FlowSignUp
   include SignUpFlowTicket
 
   STATUS_MODEL = ClientSignUpFlowStatus

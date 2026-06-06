@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 class Acme::Org::Edge::V0::Token::RefreshesController < Acme::Org::ApplicationController
-  include Sign::EdgeV0JsonApi
-  include ::Preference::WebCookieEndpoint
+  include SignEdgeV0JsonApi
+  include ::PreferenceWebCookieEndpoint
 
   AUTHENTICATION_MODE = :deny_all
 
@@ -13,7 +13,7 @@ class Acme::Org::Edge::V0::Token::RefreshesController < Acme::Org::ApplicationCo
   def create
     response.set_header("Cache-Control", "no-store")
 
-    refresh_plain = params[:refresh_token].presence || cookies[Authentication::Base::REFRESH_COOKIE_KEY]
+    refresh_plain = params[:refresh_token].presence || cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
 
     if refresh_plain.blank?
       render json: {

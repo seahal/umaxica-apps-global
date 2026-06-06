@@ -5,7 +5,7 @@ require "test_helper"
 
 class PreferenceSignScreenActionsTest < ActiveSupport::TestCase
   class ExplicitActionHarness < ApplicationController
-    include Preference::SignScreenActions
+    include PreferenceSignScreenActions
 
     before_action :ensure_preferences_record
 

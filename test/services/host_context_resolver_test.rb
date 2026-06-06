@@ -35,6 +35,6 @@ class HostContextResolverTest < ActiveSupport::TestCase
   test "falls back through Core surface defaults" do
     context = HostContextResolver.call(Request.new("example.test"))
 
-    assert_equal Core::Surface::DEFAULT, context.surface
+    assert_equal CoreSurface::DEFAULT, context.surface
   end
 end

@@ -5,9 +5,9 @@ module Acme
   module Com
     module Oidc
       class LogoutsController < Acme::Com::ApplicationController
-        include Common::Redirect
-        include Sign::OutNotice
-        include Sign::OidcLogout
+        include CommonRedirect
+        include SignOutNotice
+        include SignOidcLogout
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open

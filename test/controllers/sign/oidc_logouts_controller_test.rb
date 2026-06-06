@@ -29,7 +29,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     get "/oidc/logout",
         params: {
           client_id: "acme_app",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
+          logout_request: OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           post_logout_redirect_uri: "https://evil.example/sign/out",
           ri: "jp",
         },
@@ -46,7 +46,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     get "/oidc/logout",
         params: {
           client_id: "acme_app",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
+          logout_request: OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           ri: "jp",
         },
         headers: browser_headers.merge("Host" => @host)
@@ -73,7 +73,7 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     get "/oidc/logout",
         params: {
           client_id: "acme_org",
-          logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
+          logout_request: OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp"),
           ri: "jp",
         },
         headers: browser_headers.merge("Host" => @host)
@@ -88,9 +88,9 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   # rejected. Rails.cache is :null_store in the test env, so we inject
   # a real MemoryStore for this assertion.
   test "rejects replay of an already-consumed signed logout request" do
-    Oidc::LogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
+    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     host!(@host)
-    token = Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp")
+    token = OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp")
 
     get(
       "/oidc/logout",
@@ -109,6 +109,6 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
     assert_equal "invalid_request", response.parsed_body["error"]
   ensure
-    Oidc::LogoutRequest.replay_store = nil
+    OidcLogoutRequest.replay_store = nil
   end
 end

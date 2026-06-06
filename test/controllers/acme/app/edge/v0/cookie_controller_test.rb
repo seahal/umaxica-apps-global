@@ -34,7 +34,7 @@ class Acme::App::Edge::V0::CookieControllerTest < ActionDispatch::IntegrationTes
       host: @host,
       public_id: preference.public_id,
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       patch acme_app_edge_v0_cookie_path,

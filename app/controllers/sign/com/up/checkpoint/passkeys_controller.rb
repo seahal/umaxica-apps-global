@@ -6,12 +6,12 @@ module Sign
     module Up
       module Checkpoint
         class PasskeysController < Sign::Com::ApplicationController
-          include Common::Redirect
+          include CommonRedirect
 
-          include Sign::Webauthn
-          include Sign::PasskeyRegistrationFlow
+          include SignWebauthn
+          include SignPasskeyRegistrationFlow
 
-          include Sign::Up::SequenceControllerSupport
+          include SignUpSequenceControllerSupport
 
           AUTHENTICATION_MODE = :guest
 
@@ -72,7 +72,7 @@ module Sign
           end
 
           def sign_up_requirement_context
-            SignUp::RequirementContext.build(
+            SignUpRequirementContext.build(
               surface: :com,
               actor_authentication: sign_up_actor_authentication,
               ticket: @sign_up_ticket,

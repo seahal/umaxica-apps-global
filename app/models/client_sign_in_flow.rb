@@ -46,7 +46,7 @@
 #
 class ClientSignInFlow < AppTicketRecord
   include SignFlow
-  include Flow::SignIn
+  include FlowSignIn
 
   STATUS_MODEL = ClientSignInFlowStatus
   STATUSES = {

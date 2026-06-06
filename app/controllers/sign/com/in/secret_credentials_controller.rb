@@ -11,7 +11,7 @@ module Sign
 
         include IdentifierDetection
 
-        include Common::Redirect
+        include CommonRedirect
 
         include SessionLimitGate
 
@@ -106,7 +106,7 @@ module Sign
           end
         rescue StandardError => e
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.com.authentication.secret_credential.error",
               error_class: e.class.name,
               message: e.message,
@@ -214,7 +214,7 @@ module Sign
           @secret_credential_form.errors.add(:base, invalid_secret_credential_message)
 
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.com.authentication.secret_credential.failed",
               reason: reason,
               identifier_type: detect_identifier_type(identifier.to_s),
@@ -226,7 +226,7 @@ module Sign
             ),
           )
 
-          Sign::Risk::Emitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
+          SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
           render :new, status: :unprocessable_content, formats: :html
         end

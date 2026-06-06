@@ -108,7 +108,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     )
     refresh_plain = token_record.rotate_refresh_token!
 
-    Authentication::AuditWriter.stub(:write, false) do
+    AuthenticationAuditWriter.stub(:write, false) do
       cookies_header = "auth_refresh=#{refresh_plain}"
 
       events = []
@@ -144,7 +144,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     )
     refresh_plain = token_record.rotate_refresh_token!
 
-    Authentication::AuditWriter.stub(:write, false) do
+    AuthenticationAuditWriter.stub(:write, false) do
       cookies_header = "auth_refresh=#{refresh_plain}"
       get new_sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 

@@ -5,7 +5,7 @@ module Sign
   module Org
     module Preference
       class EmailsController < Sign::Org::BareController
-        include Sign::PromotionalEmailUnsubscribeActions
+        include SignPromotionalEmailUnsubscribeActions
 
         AUTHENTICATION_MODE = :bare
         before_action :set_promotional_email

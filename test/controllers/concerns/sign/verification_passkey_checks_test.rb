@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class VerificationPasskeyChecksTest < ActiveSupport::TestCase
+class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
   class Harness
-    include Sign::VerificationPasskeyChecks
+    include SignVerificationPasskeyChecks
 
     attr_accessor :verification_errors, :verification_params_value, :scope_records, :passkey_model_class
 

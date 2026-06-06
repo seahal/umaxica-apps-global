@@ -64,7 +64,7 @@ module Outbound
 
         Rails.app.stub(:creds, fake_creds) do
           ::Aws::SNS::Client.stub(:new, ->(options) { captured_options = options; OpenStruct.new }) do
-            AwsSns.new
+            OutboundSmsProvidersAwsSns.new
           end
         end
 
@@ -107,7 +107,7 @@ module Outbound
 
       def build_provider(client = OpenStruct.new)
         ::Aws::SNS::Client.stub(:new, client) do
-          AwsSns.new
+          OutboundSmsProvidersAwsSns.new
         end
       end
     end

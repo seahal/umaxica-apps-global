@@ -5,10 +5,10 @@ module Sign
   module App
     module Health
       class ReadiesController < BareController
-        include ::Health::Controller
+        include ::HealthEndpoint
 
         AUTHENTICATION_MODE = :bare
-        HEALTH_PROFILE = ::Health::Profiles::SignApp
+        HEALTH_PROFILE = ::HealthProfilesSignApp
 
         def show
           show_ready

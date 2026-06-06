@@ -5,7 +5,7 @@ module Sign
   module Com
     module Up
       class CheckpointsController < Sign::Com::ApplicationController
-        include Sign::Up::SequenceControllerSupport
+        include SignUpSequenceControllerSupport
 
         AUTHENTICATION_MODE = :guest
 
@@ -20,7 +20,7 @@ module Sign
         end
 
         def destroy
-          result = SignUp::Cancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
+          result = SignUpCancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
           return render_sign_up_result(result) unless result.success?
 
           sign_up_session_state.clear_all!

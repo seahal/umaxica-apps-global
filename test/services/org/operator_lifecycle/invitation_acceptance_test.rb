@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
+class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_visibilities
 
   setup do
@@ -19,7 +19,7 @@ class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
     assert_difference -> { Operator.count }, 1 do
       assert_difference -> { OperatorEmail.count }, 1 do
         assert_difference -> { OperatorAccount.count }, 1 do
-          @result = Org::OperatorLifecycle::InvitationAcceptance.call(invitation_code: @invitation.code)
+          @result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
         end
       end
     end
@@ -38,7 +38,7 @@ class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
     @invitation.update!(consumed_at: Time.current)
 
     assert_no_difference -> { Operator.count } do
-      result = Org::OperatorLifecycle::InvitationAcceptance.call(invitation_code: @invitation.code)
+      result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
 
       assert_not result.success?
     end
@@ -55,7 +55,7 @@ class Org::OperatorLifecycle::InvitationAcceptanceTest < ActiveSupport::TestCase
       staff_email_status_id: OperatorEmailStatus::VERIFIED,
     )
 
-    result = Org::OperatorLifecycle::InvitationAcceptance.call(invitation_code: @invitation.code)
+    result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
 
     assert_not result.success?
     assert_not_predicate @invitation.reload, :consumed?

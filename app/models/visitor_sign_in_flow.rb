@@ -46,7 +46,7 @@
 #
 class VisitorSignInFlow < ComTicketRecord
   include SignFlow
-  include Flow::SignIn
+  include FlowSignIn
 
   STATUS_MODEL = VisitorSignInFlowStatus
   STATUSES = {

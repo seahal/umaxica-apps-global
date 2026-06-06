@@ -8,13 +8,13 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = Jit::IdHostEnv.staff_url || "id.org.localhost"
+    _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
+    @host = JitIdHostEnv.staff_url || "id.org.localhost"
     host! @host
   end
 
   test "GET show without access jwt returns default theme sy" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     get sign_org_web_v0_theme_path, as: :json
 
@@ -29,7 +29,7 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-org-public-id",
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access(surface: :org)] = token
+    cookies[PreferenceCookieName.access(surface: :org)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_org_web_v0_theme_path, as: :json
@@ -48,7 +48,7 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-org-public-id",
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access(surface: :org)] = token
+    cookies[PreferenceCookieName.access(surface: :org)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_org_web_v0_theme_path, params: { theme: "light" }, as: :json
@@ -58,6 +58,6 @@ class Sign::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_equal "li", response.parsed_body["theme"]
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=li"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::THEME}=li"
   end
 end

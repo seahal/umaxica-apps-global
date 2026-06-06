@@ -283,7 +283,7 @@ module Sign::App::Up
       # stays collectable by the pending-signup cleanup (no number lock).
       assert_equal ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
                    telephone.reload.user_telephone_status_id
-      assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY].presence
+      assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY].presence
 
       registration = session[:user_telephone_registration]
       otp_verified = registration[:otp_verified] || registration["otp_verified"]
@@ -326,7 +326,7 @@ module Sign::App::Up
       end
 
       assert_redirected_to sign_app_up_guard_telephone_url(regional_defaults)
-      assert_nil cookies[Authentication::Base::ACCESS_COOKIE_KEY].presence
+      assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY].presence
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.reload.status_id
 
       get sign_app_up_guard_telephone_url(regional_defaults)
@@ -364,7 +364,7 @@ module Sign::App::Up
 
       # Past the re-registration overwrite window the same number must be
       # registrable again — the abandoned pending row/user is cleaned up.
-      travel(Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second) do
+      travel(CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second) do
         post sign_app_up_telephone_url, params: {
           user_telephone: {
             raw_number: number,
@@ -450,7 +450,7 @@ module Sign::App::Up
       first_telephone = registration_telephone
       first_user = first_telephone.user
 
-      travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+      travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
         # Create second registration with the same number
         post sign_app_up_telephone_url, params: {
           user_telephone: {

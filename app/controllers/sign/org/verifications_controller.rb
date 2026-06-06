@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 class Sign::Org::VerificationsController < Sign::Org::Verification::BaseController
-  include Sign::OrgVerificationBase
+  include SignOrgVerificationBase
 
-  include Sign::VerificationEntry
+  include SignVerificationEntry
 
   AUTHENTICATION_MODE = :private
 

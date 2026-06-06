@@ -6,9 +6,9 @@ module Acme
     module Edge
       module V0
         class DbscController < Acme::App::ApplicationController
-          include ::Preference::WebCookieEndpoint
+          include ::PreferenceWebCookieEndpoint
 
-          include ::Preference::DbscRegistrationEndpoint
+          include ::PreferenceDbscRegistrationEndpoint
 
           AUTHENTICATION_MODE = :deny_all
 

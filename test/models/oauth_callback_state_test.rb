@@ -12,10 +12,10 @@ class OauthCallbackStateTest < ActiveSupport::TestCase
   end
 
   test "callback state store ignores unsupported org and com google providers" do
-    assert_not SocialAuth::CallbackStateStore.issue!(state: "state-two", provider: "google_#{"org"}", intent: "login")
-    assert_not SocialAuth::CallbackStateStore.consume!(state: "state-two", provider: "google_#{"org"}")
+    assert_not SocialAuthCallbackStateStore.issue!(state: "state-two", provider: "google_#{"org"}", intent: "login")
+    assert_not SocialAuthCallbackStateStore.consume!(state: "state-two", provider: "google_#{"org"}")
 
-    assert_not SocialAuth::CallbackStateStore.issue!(state: "state-three", provider: "google_#{"com"}", intent: "login")
-    assert_not SocialAuth::CallbackStateStore.consume!(state: "state-three", provider: "google_#{"com"}")
+    assert_not SocialAuthCallbackStateStore.issue!(state: "state-three", provider: "google_#{"com"}", intent: "login")
+    assert_not SocialAuthCallbackStateStore.consume!(state: "state-three", provider: "google_#{"com"}")
   end
 end

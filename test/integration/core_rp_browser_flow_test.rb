@@ -75,7 +75,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:sign_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
@@ -97,7 +97,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:sign_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
     end
   end
 
@@ -109,18 +109,18 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
-      id_token = Oidc::IdTokenIssuer.call(
+      id_token = OidcIdTokenIssuer.call(
         resource: resource,
-        client: Oidc::ClientRegistry.find!(surface[:client_id]),
+        client: OidcClientRegistry.find!(surface[:client_id]),
         nonce: session.fetch(:oidc_nonce),
       )
-      token_result = Oidc::RpTokenClient::Result.new(
+      token_result = OidcRpTokenClient::Result.new(
         success: true,
         token_response: { id_token: id_token },
         error: nil,
       )
 
-      Oidc::RpTokenClient.stub(:call, token_result) do
+      OidcRpTokenClient.stub(:call, token_result) do
         get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 

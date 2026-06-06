@@ -27,7 +27,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "client",
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -55,7 +55,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   end
 
   test "GET check with invalid JWT returns 401" do
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "invalid.jwt.token"
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "invalid.jwt.token"
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -85,7 +85,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       )
     end
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = expired_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = expired_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -111,7 +111,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "operator", # wrong type for user endpoint
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -130,7 +130,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       @user, host: @host, session_public_id: token_record.public_id,
              resource_type: "client",
     )
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -155,7 +155,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
 
     # Set invalid cookie but valid Bearer header
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "invalid.cookie.token"
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "invalid.cookie.token"
 
     get "/edge/v0/token/check",
         headers: {
@@ -177,7 +177,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check accepts DPoP-bound token with valid proof" do
     token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     token_record.update!(dpop_jkt: jkt)
     access_token = jwt_access_token_for(
       @user,
@@ -208,7 +208,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP-bound token presented as Bearer" do
     token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
@@ -238,7 +238,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP-bound token without proof" do
     token_record = ClientToken.create!(user: @user)
     _private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
@@ -263,7 +263,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
   test "GET check rejects DPoP proof with wrong ath" do
     token_record = ClientToken.create!(user: @user)
     private_key, jwk = generate_dpop_jwk
-    jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     access_token = jwt_access_token_for(
       @user,
       host: @host,
@@ -294,8 +294,8 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     token_record = ClientToken.create!(user: @user)
     _stored_key, stored_jwk = generate_dpop_jwk
     proof_key, proof_jwk = generate_dpop_jwk
-    stored_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(stored_jwk)
-    proof_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(proof_jwk)
+    stored_jkt = JitSecurityJwtThumbprintCalculator.calculate(stored_jwk)
+    proof_jkt = JitSecurityJwtThumbprintCalculator.calculate(proof_jwk)
     token_record.update!(dpop_jkt: stored_jkt)
     access_token = jwt_access_token_for(
       @user,
@@ -352,8 +352,8 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       resource_type: "client",
     )
 
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     # Verify token exists before logout
     assert_not_nil ClientToken.find_by(public_id: token_record.public_id)
@@ -388,7 +388,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
       "htu" => uri,
       "iat" => Time.current.to_i,
       "jti" => SecureRandom.uuid,
-      "ath" => Jit::Security::Jwt::ThumbprintCalculator.ath(access_token),
+      "ath" => JitSecurityJwtThumbprintCalculator.ath(access_token),
     }
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end

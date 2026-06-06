@@ -5,19 +5,19 @@ module Sign
   module Com
     module In
       class PasskeysController < Sign::Com::ApplicationController
-        include Sign::Webauthn
+        include SignWebauthn
 
-        include Sign::PasskeyAuthentication
+        include SignPasskeyAuthentication
 
-        include Sign::PasskeyAuthenticationHelpers
+        include SignPasskeyAuthenticationHelpers
 
-        include Sign::PasskeyOptionsFlow
+        include SignPasskeyOptionsFlow
 
-        include Sign::PasskeyVerificationFlow
+        include SignPasskeyVerificationFlow
 
-        include Sign::PasskeySignInFlow
+        include SignPasskeySignInFlow
 
-        include Sign::PasskeyLoginResultFlow
+        include SignPasskeyLoginResultFlow
 
         include EmailValidation
 
@@ -146,7 +146,7 @@ module Sign
           return true if passkey.visitor.has_verified_pii?
 
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "authentication.passkey.failed",
               reason: "verified_pii_missing",
               visitor_id: passkey.visitor_id,

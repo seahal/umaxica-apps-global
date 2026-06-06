@@ -487,7 +487,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     first_email = VisitorEmail.find_by!(public_id: first_public_id)
     first_visitor = first_email.visitor
 
-    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+    travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       post sign_com_up_email_url(ri: "jp"),
            params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                      "cf-turnstile-response": "test", },

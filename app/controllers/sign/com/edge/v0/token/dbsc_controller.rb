@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 class Sign::Com::Edge::V0::Token::DbscController < Sign::Com::ApplicationController
-  include Sign::EdgeV0JsonApi
+  include SignEdgeV0JsonApi
 
-  include Sign::DbscRegistrationEndpoint
+  include SignDbscRegistrationEndpoint
 
   AUTHENTICATION_MODE = :deny_all
 

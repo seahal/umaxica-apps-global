@@ -148,7 +148,7 @@ class Sign::Com::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     email = visitor.visitor_emails.last
     email.update!(locked_at: 5.minutes.from_now, otp_attempts_count: Email::MAX_OTP_ATTEMPTS)
 
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
         post sign_com_in_email_url(ri: "jp"),
              params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },

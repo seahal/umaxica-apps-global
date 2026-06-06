@@ -32,7 +32,7 @@ module Sign
           return if require_step_up!(scope: "operator_lifecycle") == false
 
           authorize!(OperatorLifecycleRequest)
-          result = ::Org::OperatorLifecycle::RequestCreate.call(
+          result = ::OrgOperatorLifecycleRequestCreate.call(
             actor: current_operator,
             attributes: lifecycle_request_params,
           )

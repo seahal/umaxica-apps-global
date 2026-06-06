@@ -105,7 +105,7 @@ module Telephone
     return false if timestamp.blank?
     return false if timestamp == -Float::INFINITY
 
-    timestamp > Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
+    timestamp > CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
   end
 
   def locked?

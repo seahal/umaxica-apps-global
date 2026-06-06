@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class CookieServiceTest < ActiveSupport::TestCase
+class AuthenticationCookieServiceTest < ActiveSupport::TestCase
   class MockRequest
     attr_accessor :headers, :url, :host
 
@@ -41,7 +41,7 @@ class CookieServiceTest < ActiveSupport::TestCase
   test "access_cookie_key returns access cookie name" do
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     assert_equal "auth_access", service.access_cookie_key
   end
@@ -49,7 +49,7 @@ class CookieServiceTest < ActiveSupport::TestCase
   test "refresh_cookie_key returns refresh cookie name" do
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     assert_equal "auth_refresh", service.refresh_cookie_key
   end
@@ -58,7 +58,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     cookies = MockCookies.new
     request = MockRequest.new
     request.headers["Authorization"] = "Bearer abc123token"
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -69,7 +69,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     cookies = MockCookies.new
     request = MockRequest.new
     request.headers["Authorization"] = "bearer abc123token"
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -80,7 +80,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     cookies = MockCookies.new
     request = MockRequest.new
     request.headers["Authorization"] = "Basic abc123token"
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -91,7 +91,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     cookies = MockCookies.new
     cookies.cookies_hash["auth_access"] = "cookie_token"
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -101,7 +101,7 @@ class CookieServiceTest < ActiveSupport::TestCase
   test "extract_access_token_from_request returns nil when no token present" do
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -113,7 +113,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     cookies.cookies_hash["auth_access"] = "cookie_token"
     request = MockRequest.new
     request.headers["Authorization"] = "Bearer bearer_token"
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     result = service.extract_access_token_from_request
 
@@ -123,7 +123,7 @@ class CookieServiceTest < ActiveSupport::TestCase
   test "set_auth_cookies writes access and refresh cookies" do
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     service.set_auth_cookies(
       access_token: "access-token",
@@ -139,7 +139,7 @@ class CookieServiceTest < ActiveSupport::TestCase
   test "clear_auth_cookies deletes all auth cookies" do
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
     cookies.cookies_hash["auth_access"] = "access-token"
     cookies.cookies_hash["auth_refresh"] = "refresh-token"
 
@@ -152,7 +152,7 @@ class CookieServiceTest < ActiveSupport::TestCase
     env = ActiveSupport::EnvironmentInquirer.new("production")
     cookies = MockCookies.new
     request = MockRequest.new
-    service = Authentication::CookieService.new(cookies, request)
+    service = AuthenticationCookieService.new(cookies, request)
 
     Rails.stub(:env, env) do
       options = service.auth_cookie_deletion_options

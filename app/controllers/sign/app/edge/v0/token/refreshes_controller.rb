@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 class Sign::App::Edge::V0::Token::RefreshesController < Sign::App::ApplicationController
-  include Sign::EdgeV0JsonApi
+  include SignEdgeV0JsonApi
 
-  include ::Preference::WebCookieEndpoint
+  include ::PreferenceWebCookieEndpoint
 
   AUTHENTICATION_MODE = :deny_all
 
@@ -18,7 +18,7 @@ class Sign::App::Edge::V0::Token::RefreshesController < Sign::App::ApplicationCo
     response.set_header("Cache-Control", "no-store")
 
     # Read refresh token from params or cookie
-    refresh_plain = params[:refresh_token].presence || cookies[Authentication::Base::REFRESH_COOKIE_KEY]
+    refresh_plain = params[:refresh_token].presence || cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
 
     if refresh_plain.blank?
       render json: {

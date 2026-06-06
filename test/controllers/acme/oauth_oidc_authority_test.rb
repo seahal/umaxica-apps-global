@@ -25,7 +25,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     body = response.parsed_body
-    issuer = Oidc::Issuer.for_resource_type("client")
+    issuer = OidcIssuer.for_resource_type("client")
 
     assert_equal issuer, body["issuer"]
     assert_equal "#{issuer}/oauth/authorize", body["authorization_endpoint"]
@@ -40,19 +40,19 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     get acme_com_openid_configuration_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
 
     assert_response :ok
-    assert_equal Oidc::Issuer.for_resource_type("visitor"), response.parsed_body["issuer"]
+    assert_equal OidcIssuer.for_resource_type("visitor"), response.parsed_body["issuer"]
 
     get acme_org_openid_configuration_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
 
     assert_response :ok
-    assert_equal Oidc::Issuer.for_resource_type("operator"), response.parsed_body["issuer"]
+    assert_equal OidcIssuer.for_resource_type("operator"), response.parsed_body["issuer"]
   end
 
   test "sign discovery is compatibility metadata for acme issuer" do
     get sign_app_openid_configuration_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_response :ok
-    assert_equal Oidc::Issuer.for_resource_type("client"), response.parsed_body["issuer"]
+    assert_equal OidcIssuer.for_resource_type("client"), response.parsed_body["issuer"]
     assert_not_includes response.parsed_body["issuer"], ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     assert_includes response.parsed_body["token_endpoint"], ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     assert_includes response.parsed_body["jwks_uri"], ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
@@ -69,12 +69,12 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "oidc issuer uses acme hosts and signing namespaces" do
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), Oidc::Issuer.host_for_resource_type("client")
-    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), Oidc::Issuer.host_for_resource_type("visitor")
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), Oidc::Issuer.host_for_resource_type("operator")
-    assert_equal "surface:ACME_APP", Oidc::Issuer.jwt_issuer_id_for_resource_type("client")
-    assert_equal "surface:ACME_COM", Oidc::Issuer.jwt_issuer_id_for_resource_type("visitor")
-    assert_equal "surface:ACME_ORG", Oidc::Issuer.jwt_issuer_id_for_resource_type("operator")
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), OidcIssuer.host_for_resource_type("client")
+    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), OidcIssuer.host_for_resource_type("visitor")
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), OidcIssuer.host_for_resource_type("operator")
+    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
+    assert_equal "surface:ACME_COM", OidcIssuer.jwt_issuer_id_for_resource_type("visitor")
+    assert_equal "surface:ACME_ORG", OidcIssuer.jwt_issuer_id_for_resource_type("operator")
   end
 
   test "acme token endpoint delegates exchange with acme endpoint binding" do
@@ -84,7 +84,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       token_response: { access_token: "access", refresh_token: "refresh", token_type: "Bearer" },
     )
 
-    Oidc::TokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post acme_app_oauth_token_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              grant_type: "authorization_code",
@@ -113,7 +113,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       token_response: { access_token: "access", refresh_token: "refresh", token_type: "Bearer" },
     )
 
-    Oidc::TokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post sign_app_oauth_token_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
            params: {
              grant_type: "authorization_code",
@@ -128,7 +128,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal "POST", captured[:request_method]
     assert_includes captured[:token_endpoint_uri], ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    assert_equal "surface:ACME_APP", Oidc::Issuer.jwt_issuer_id_for_resource_type("client")
+    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme token endpoint rejects get" do
@@ -144,7 +144,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     captured = nil
     result = AuthResult.new(success: false, error: "invalid_token")
 
-    Oidc::AccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcAccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       get acme_app_oauth_user_info_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
           headers: { "Authorization" => "Bearer access", "DPoP" => "proof" }
     end
@@ -160,7 +160,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     captured = nil
     result = AuthResult.new(success: false, error: "invalid_token")
 
-    Oidc::AccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcAccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       get sign_app_oauth_user_info_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
           headers: { "Authorization" => "Bearer access" }
     end
@@ -168,14 +168,14 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     assert_equal "client", captured[:resource_type]
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), captured[:host]
-    assert_equal "surface:ACME_APP", Oidc::Issuer.jwt_issuer_id_for_resource_type("client")
+    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme revocation delegates with acme host binding" do
     captured = nil
     result = RevocationResult.new(success: true)
 
-    Oidc::TokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post acme_app_oauth_revocation_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              token: "refresh",
@@ -195,7 +195,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     captured = nil
     result = RevocationResult.new(success: true)
 
-    Oidc::TokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post sign_app_oauth_revocation_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
            params: {
              token: "refresh",
@@ -208,7 +208,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal "refresh", captured[:token]
     assert_equal "core_app", captured[:client_id]
-    assert_equal "surface:ACME_APP", Oidc::Issuer.jwt_issuer_id_for_resource_type("client")
+    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme edge token refresh is post only and does not accept url-only mutation" do
@@ -229,7 +229,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "acme edge token refresh rejects missing refresh token without rotation" do
-    Acme::RefreshTokenService.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
+    AcmeRefreshTokenService.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
       post acme_app_edge_v0_token_refresh_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            as: :json
     end
@@ -239,27 +239,27 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "refresh authority source uses acme service not sign refresh service" do
-    source = Rails.root.join("app/controllers/concerns/authentication/base.rb").read
+    source = Rails.root.join("app/controllers/concerns/authentication_base.rb").read
 
-    assert_includes source, "Acme::RefreshTokenService.call"
-    assert_not_includes source, "Sign::RefreshTokenService.call"
+    assert_includes source, "AcmeRefreshTokenService.call"
+    assert_not_includes source, "SignRefreshTokenService.call"
 
     %w(app com org).each do |surface|
       refresh_source = Rails.root.join("app/controllers/sign/#{surface}/edge/v0/token/refreshes_controller.rb").read
 
-      assert_not_includes refresh_source, "Sign::RefreshTokenService"
+      assert_not_includes refresh_source, "SignRefreshTokenService"
     end
   end
 
   test "acme oidc logout consumes signed request and completes on acme sign out" do
-    Oidc::LogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
+    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
     get(
       acme_app_oidc_logout_url(host: host),
       params: {
         client_id: "acme_app",
-        logout_request: Oidc::LogoutRequest.issue(client_id: "acme_app", ri: "jp"),
+        logout_request: OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp"),
         ri: "jp",
       },
     )
@@ -271,6 +271,6 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "/sign/out", location.path
     assert_equal "ri=jp", location.query
   ensure
-    Oidc::LogoutRequest.replay_store = nil
+    OidcLogoutRequest.replay_store = nil
   end
 end

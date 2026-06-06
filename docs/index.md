@@ -30,6 +30,7 @@ Current content-model references:
 - `docs/architecture/actor-naming.md`
 - `docs/architecture/current_context.md`
 - `docs/architecture/database-boundaries.md`
+- `docs/architecture/flat-ruby-source-layout.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/architecture/controller-lifecycle.md`
 - `docs/architecture/i18n.md`

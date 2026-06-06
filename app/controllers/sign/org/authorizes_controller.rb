@@ -9,7 +9,7 @@ module Sign
       before_action :authenticate!
 
       def show
-        result = ::Oidc::AuthorizeService.call(
+        result = ::OidcAuthorizeService.call(
           params: authorize_params,
           resource: current_operator,
         )

@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
+class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
       def sign_app_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
@@ -38,7 +38,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
     routes = Class.new do
       def acme_app_dashboard_path(**) = "https://evil.example"
     end.new
-    result = Redirects::NavigationTargetResolver.call(
+    result = RedirectsNavigationTargetResolver.call(
       :dashboard,
       routes: routes,
       params: { ri: "jp", surface: "app" },
@@ -52,7 +52,7 @@ class Redirects::NavigationTargetResolverTest < ActiveSupport::TestCase
   private
 
   def resolve(key, scope: nil)
-    Redirects::NavigationTargetResolver.call(
+    RedirectsNavigationTargetResolver.call(
       key,
       routes: Routes.new,
       params: { ri: "jp", surface: "app" },

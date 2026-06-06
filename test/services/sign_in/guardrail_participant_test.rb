@@ -9,7 +9,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor)
 
-      result = GuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: []).advance_if_clear!
+      result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: []).advance_if_clear!
 
       assert_predicate result, :empty?
       assert_predicate result, :cleared?
@@ -23,10 +23,10 @@ module SignIn
       cycle = create_cycle(actor)
       evaluator =
         lambda do |**|
-          ParticipantItem.new(key: :blocked_for_test, blocking: true, cleared: false)
+          SignInParticipantItem.new(key: :blocked_for_test, blocking: true, cleared: false)
         end
 
-      result = GuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
+      result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
 
       assert_predicate result, :blocking?
       assert_equal [:blocked_for_test], result.stack.map(&:key)
@@ -39,10 +39,10 @@ module SignIn
       cycle = create_cycle(actor)
       evaluator =
         lambda do |**|
-          ParticipantItem.new(key: :cleared_for_test, blocking: true, cleared: true)
+          SignInParticipantItem.new(key: :cleared_for_test, blocking: true, cleared: true)
         end
 
-      result = GuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
+      result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
 
       assert_not_predicate result, :blocking?
       assert_equal [:cleared_for_test], result.stack.map(&:key)
@@ -53,7 +53,7 @@ module SignIn
       actor = create_client(status_id: ClientStatus::RESERVED)
       cycle = create_cycle(actor)
 
-      result = GuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
 
       assert_predicate result, :blocking?
       assert_includes result.stack.map(&:key), :actor_login_not_allowed
@@ -66,7 +66,7 @@ module SignIn
       restricted.rotate_refresh_token!(discarded_at: TokenStatusManagement::RESTRICTED_TTL.from_now)
       cycle = create_cycle(actor)
 
-      result = GuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
 
       assert_predicate result, :blocking?
       assert_includes result.stack.map(&:key), :restricted_session_exists
@@ -80,7 +80,7 @@ module SignIn
       ].each do |cycle_class, actor|
         cycle = create_cycle(actor, cycle_class: cycle_class)
 
-        result = GuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+        result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
 
         assert_predicate result, :cleared?
         assert_predicate cycle.reload, :sign_in_checkpoint_pending?

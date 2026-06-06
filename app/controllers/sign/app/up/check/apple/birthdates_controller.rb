@@ -7,7 +7,7 @@ module Sign
       module Check
         module Apple
           class BirthdatesController < Sign::App::Up::Checkpoint::BirthdatesController
-            include Sign::Up::ExplicitStepControllerSupport
+            include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
 

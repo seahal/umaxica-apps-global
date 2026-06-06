@@ -5,9 +5,9 @@ module Acme
   module Com
     module Settings
       class WithdrawalsController < Acme::Com::ApplicationController
-        include ::Verification::Visitor
-        include Common::Redirect
-        include Acme::Settings::WithdrawalFlow
+        include ::VerificationVisitor
+        include CommonRedirect
+        include AcmeSettingsWithdrawalFlow
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -57,7 +57,7 @@ module Acme
 
         def handle_deactivation_failure(actor)
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "visitor.withdrawal.suspension_failed",
               visitor_id: actor.id,
               errors: actor.errors.full_messages,

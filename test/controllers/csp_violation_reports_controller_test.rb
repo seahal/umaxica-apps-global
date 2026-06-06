@@ -67,6 +67,6 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def normalize_host(host)
-    Common::Redirect.normalize_host(host)
+    CommonRedirect.normalize_host(host)
   end
 end

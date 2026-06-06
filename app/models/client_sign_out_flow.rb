@@ -48,7 +48,7 @@
 #
 class ClientSignOutFlow < AppTicketRecord
   include SignOutFlow
-  include Flow::SignOut
+  include FlowSignOut
 
   STATUS_MODEL = ClientSignOutFlowStatus
   KIND_MODEL = ClientSignOutFlowKind

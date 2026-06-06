@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
+class IdentityTelephoneCeremonyContractTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -15,9 +15,9 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
 
   test "valid grant serializes and deserializes with sign audience binding" do
     travel_to(@now) do
-      token = Identity::TelephoneCeremony::Grant.issue(valid_grant_claims, issuer_id: acme_issuer_id)
+      token = IdentityTelephoneCeremonyGrant.issue(valid_grant_claims, issuer_id: acme_issuer_id)
 
-      grant = Identity::TelephoneCeremony::Grant.decode(token, issuer_id: acme_issuer_id)
+      grant = IdentityTelephoneCeremonyGrant.decode(token, issuer_id: acme_issuer_id)
 
       assert_equal "telephone_ceremony", grant["purpose"]
       assert_equal "app", grant["surface"]
@@ -25,45 +25,45 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
       assert_equal "actor-client-1", grant["actor_ref"]
       assert_equal "session-1", grant["session_ref"]
       assert_equal "grant-1", grant["jti"]
-      assert_equal Identity::TelephoneCeremony::Contract.sign_audience("app"), grant["aud"]
-      assert_equal Jit::Security::Jwt::Keyring.active_kid(acme_issuer_id), grant.kid
+      assert_equal IdentityTelephoneCeremonyContract.sign_audience("app"), grant["aud"]
+      assert_equal JitSecurityJwtKeyring.active_kid(acme_issuer_id), grant.kid
     end
   end
 
   test "grant rejects missing required actor session and jti fields" do
     assert_contract_error(/missing required claims: actor_ref/) do
-      Identity::TelephoneCeremony::Grant.new(valid_grant_claims.except("actor_ref"))
+      IdentityTelephoneCeremonyGrant.new(valid_grant_claims.except("actor_ref"))
     end
 
     assert_contract_error(/missing required claims: session_ref/) do
-      Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("session_ref" => ""))
+      IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("session_ref" => ""))
     end
 
     assert_contract_error(/missing required claims: jti/) do
-      Identity::TelephoneCeremony::Grant.new(valid_grant_claims.except("jti"))
+      IdentityTelephoneCeremonyGrant.new(valid_grant_claims.except("jti"))
     end
   end
 
   test "grant rejects expired wrong audience wrong purpose wrong surface and wrong operation" do
     travel_to(@now) do
       assert_contract_error(/exp is expired/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("exp" => 1.second.ago.to_i))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("exp" => 1.second.ago.to_i))
       end
 
       assert_contract_error(/aud is invalid/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("aud" => "https://evil.example"))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("aud" => "https://evil.example"))
       end
 
       assert_contract_error(/purpose is invalid/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("purpose" => "wrong"))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("purpose" => "wrong"))
       end
 
       assert_contract_error(/surface is invalid/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("surface" => "bad"))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("surface" => "bad"))
       end
 
       assert_contract_error(/operation is invalid/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("operation" => "delete"))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("operation" => "delete"))
       end
     end
   end
@@ -71,20 +71,20 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
   test "grant rejects forbidden raw otp verifier token claims and unsafe return target" do
     %w(otp verifier_digest session_token refresh_token telephone_number delegated_authorization).each do |claim|
       assert_contract_error(/forbidden claims: #{claim}/) do
-        Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge(claim => "secret"))
+        IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge(claim => "secret"))
       end
     end
 
     assert_contract_error(/return_to must be relative/) do
-      Identity::TelephoneCeremony::Grant.new(valid_grant_claims.merge("return_to" => "https://evil.example/path"))
+      IdentityTelephoneCeremonyGrant.new(valid_grant_claims.merge("return_to" => "https://evil.example/path"))
     end
   end
 
   test "valid result serializes and deserializes with acme audience binding" do
     travel_to(@now) do
-      token = Identity::TelephoneCeremony::Result.issue(valid_result_claims, issuer_id: sign_issuer_id)
+      token = IdentityTelephoneCeremonyResult.issue(valid_result_claims, issuer_id: sign_issuer_id)
 
-      result = Identity::TelephoneCeremony::Result.decode(token, issuer_id: sign_issuer_id)
+      result = IdentityTelephoneCeremonyResult.decode(token, issuer_id: sign_issuer_id)
 
       assert_equal "telephone_ceremony_result", result["purpose"]
       assert_equal "sms_otp", result["proof_method"]
@@ -92,50 +92,50 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
       assert_equal "grant-1", result["grant_jti"]
       assert_equal "result-1", result["result_jti"]
       assert_equal "challenge-1", result["challenge_id"]
-      assert_equal Identity::TelephoneCeremony::Contract.acme_audience("app"), result["aud"]
-      assert_equal Jit::Security::Jwt::Keyring.active_kid(sign_issuer_id), result.kid
+      assert_equal IdentityTelephoneCeremonyContract.acme_audience("app"), result["aud"]
+      assert_equal JitSecurityJwtKeyring.active_kid(sign_issuer_id), result.kid
     end
   end
 
   test "result rejects missing required identifiers and expired result" do
     travel_to(@now) do
       assert_contract_error(/missing required claims: grant_jti/) do
-        Identity::TelephoneCeremony::Result.new(valid_result_claims.except("grant_jti"))
+        IdentityTelephoneCeremonyResult.new(valid_result_claims.except("grant_jti"))
       end
 
       assert_contract_error(/missing required claims: result_jti/) do
-        Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("result_jti" => ""))
+        IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("result_jti" => ""))
       end
 
       assert_contract_error(/missing required claims: transaction_id/) do
-        Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("transaction_id" => ""))
+        IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("transaction_id" => ""))
       end
 
       assert_contract_error(/expires_at is expired/) do
-        Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("expires_at" => 1.second.ago.to_i))
+        IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("expires_at" => 1.second.ago.to_i))
       end
     end
   end
 
   test "result rejects wrong audience purpose surface operation and proof method" do
     assert_contract_error(/aud is invalid/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("aud" => "https://evil.example"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("aud" => "https://evil.example"))
     end
 
     assert_contract_error(/purpose is invalid/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("purpose" => "wrong"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("purpose" => "wrong"))
     end
 
     assert_contract_error(/surface is invalid/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("surface" => "bad"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("surface" => "bad"))
     end
 
     assert_contract_error(/operation is invalid/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("operation" => "delete"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("operation" => "delete"))
     end
 
     assert_contract_error(/proof_method is invalid/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("proof_method" => "totp"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("proof_method" => "totp"))
     end
   end
 
@@ -143,31 +143,31 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
     %w(otp otp_private_key otp_counter otp_digest session_token refresh_token recent_auth sudo
        step_up_freshness).each do |claim|
       assert_contract_error(/forbidden claims: #{claim}/) do
-        Identity::TelephoneCeremony::Result.new(valid_result_claims.merge(claim => "secret"))
+        IdentityTelephoneCeremonyResult.new(valid_result_claims.merge(claim => "secret"))
       end
     end
 
     assert_contract_error(/unknown claims: return_to/) do
-      Identity::TelephoneCeremony::Result.new(valid_result_claims.merge("return_to" => "/settings/telephones"))
+      IdentityTelephoneCeremonyResult.new(valid_result_claims.merge("return_to" => "/settings/telephones"))
     end
   end
 
   test "signature verification rejects wrong key tampered payload wrong kid and wrong issuer audience" do
     travel_to(@now) do
-      token = Identity::TelephoneCeremony::Grant.issue(valid_grant_claims, issuer_id: acme_issuer_id)
+      token = IdentityTelephoneCeremonyGrant.issue(valid_grant_claims, issuer_id: acme_issuer_id)
 
       assert_contract_error(/kid is unknown|token verification failed/) do
-        Identity::TelephoneCeremony::Grant.decode(token, issuer_id: "surface:ACME_COM")
+        IdentityTelephoneCeremonyGrant.decode(token, issuer_id: "surface:ACME_COM")
       end
 
       tampered = tamper_payload(token, "actor_ref" => "actor-client-2")
       assert_contract_error(/token verification failed/) do
-        Identity::TelephoneCeremony::Grant.decode(tampered, issuer_id: acme_issuer_id)
+        IdentityTelephoneCeremonyGrant.decode(tampered, issuer_id: acme_issuer_id)
       end
 
       wrong_kid = resign_with_header(token, issuer_id: acme_issuer_id, kid: "unknown-kid")
       assert_contract_error(/kid is unknown/) do
-        Identity::TelephoneCeremony::Grant.decode(wrong_kid, issuer_id: acme_issuer_id)
+        IdentityTelephoneCeremonyGrant.decode(wrong_kid, issuer_id: acme_issuer_id)
       end
 
       wrong_audience = sign_payload(
@@ -175,23 +175,23 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
         issuer_id: acme_issuer_id,
       )
       assert_contract_error(/token verification failed|aud/) do
-        Identity::TelephoneCeremony::Grant.decode(wrong_audience, issuer_id: acme_issuer_id)
+        IdentityTelephoneCeremonyGrant.decode(wrong_audience, issuer_id: acme_issuer_id)
       end
     end
   end
 
   private
 
-  def acme_issuer_id = Identity::TelephoneCeremony::Contract.acme_issuer_id("app")
+  def acme_issuer_id = IdentityTelephoneCeremonyContract.acme_issuer_id("app")
 
-  def sign_issuer_id = Identity::TelephoneCeremony::Contract.sign_issuer_id("app")
+  def sign_issuer_id = IdentityTelephoneCeremonyContract.sign_issuer_id("app")
 
   def valid_grant_claims
     {
-      "typ" => Identity::TelephoneCeremony::Grant::TOKEN_TYPE,
-      "iss" => Identity::TelephoneCeremony::Contract.acme_issuer("app"),
-      "aud" => Identity::TelephoneCeremony::Contract.sign_audience("app"),
-      "purpose" => Identity::TelephoneCeremony::Grant::PURPOSE,
+      "typ" => IdentityTelephoneCeremonyGrant::TOKEN_TYPE,
+      "iss" => IdentityTelephoneCeremonyContract.acme_issuer("app"),
+      "aud" => IdentityTelephoneCeremonyContract.sign_audience("app"),
+      "purpose" => IdentityTelephoneCeremonyGrant::PURPOSE,
       "surface" => "app",
       "actor_ref" => "actor-client-1",
       "session_ref" => "session-1",
@@ -208,10 +208,10 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
 
   def valid_result_claims
     {
-      "typ" => Identity::TelephoneCeremony::Result::TOKEN_TYPE,
-      "iss" => Identity::TelephoneCeremony::Contract.sign_issuer("app"),
-      "aud" => Identity::TelephoneCeremony::Contract.acme_audience("app"),
-      "purpose" => Identity::TelephoneCeremony::Result::PURPOSE,
+      "typ" => IdentityTelephoneCeremonyResult::TOKEN_TYPE,
+      "iss" => IdentityTelephoneCeremonyContract.sign_issuer("app"),
+      "aud" => IdentityTelephoneCeremonyContract.acme_audience("app"),
+      "purpose" => IdentityTelephoneCeremonyResult::PURPOSE,
       "surface" => "app",
       "actor_ref" => "actor-client-1",
       "session_ref" => "session-1",
@@ -219,7 +219,7 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
       "grant_jti" => "grant-1",
       "result_jti" => "result-1",
       "operation" => "registration",
-      "proof_method" => Identity::TelephoneCeremony::Result::PROOF_METHOD,
+      "proof_method" => IdentityTelephoneCeremonyResult::PROOF_METHOD,
       "verified_at" => @now.to_i,
       "challenge_id" => "challenge-1",
       "telephone_candidate_ref" => "candidate-1",
@@ -232,7 +232,7 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
   end
 
   def assert_contract_error(pattern)
-    error = assert_raises(Identity::TelephoneCeremony::Error) { yield }
+    error = assert_raises(IdentityTelephoneCeremony::Error) { yield }
     assert_match pattern, error.message
   end
 
@@ -249,8 +249,8 @@ class Identity::TelephoneCeremonyContractTest < ActiveSupport::TestCase
   end
 
   def sign_payload(payload, issuer_id:, kid: nil)
-    signing_kid = kid || Jit::Security::Jwt::Keyring.active_kid(issuer_id)
-    private_key = Jit::Security::Jwt::Keyring.private_key_for_active(issuer_id)
+    signing_kid = kid || JitSecurityJwtKeyring.active_kid(issuer_id)
+    private_key = JitSecurityJwtKeyring.private_key_for_active(issuer_id)
     JWT.encode(payload, private_key, "ES384", { "typ" => payload.fetch("typ"), "kid" => signing_kid })
   end
 

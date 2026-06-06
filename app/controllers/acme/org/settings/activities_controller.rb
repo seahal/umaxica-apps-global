@@ -29,7 +29,7 @@ module Acme
           authorize!(OperatorChronicle, to: :index?)
         end
 
-        def activity_log = @activity_log ||= Acme::Org::Settings::ActivityLog.new(current_operator)
+        def activity_log = @activity_log ||= AcmeOrgSettingsActivityLog.new(current_operator)
 
         def activity_occurred_at(activity) = activity_log.occurred_at(activity)
 

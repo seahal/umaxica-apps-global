@@ -10,13 +10,13 @@ module Acme
         controller = ApplicationController.new
 
         assert_includes controller.class, RateLimit
-        assert_includes controller.class, ::Preference::Global
-        assert_includes controller.class, ::Preference::Adoption
-        assert_includes controller.class, ::Authentication::Operator
-        assert_includes controller.class, ::Authorization::Operator
-        assert_includes controller.class, ::Verification::Operator
+        assert_includes controller.class, ::PreferenceGlobal
+        assert_includes controller.class, ::PreferenceAdoption
+        assert_includes controller.class, ::AuthenticationOperator
+        assert_includes controller.class, ::AuthorizationOperator
+        assert_includes controller.class, ::VerificationOperator
         assert_includes controller.class, ActionPolicy::Controller
-        assert_includes controller.class, ::Oidc::SsoInitiator
+        assert_includes controller.class, ::OidcSsoInitiator
         assert_includes controller.class, ::ActorSupport
         assert_includes controller.class, ::Finisher
       end

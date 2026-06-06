@@ -17,7 +17,7 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
   end
 
-  COOKIE_NAME = -> { Preference::CookieName.refresh(production: false, surface: :app) }
+  COOKIE_NAME = -> { PreferenceCookieName.refresh(production: false, surface: :app) }
 
   test "refresh_token URL parameter cannot replace the HttpOnly cookie" do
     # Bootstrap a preference + cookie pair.
@@ -58,7 +58,7 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
 
-    timezone_cookie = cookies[Preference::Base::TIMEZONE_COOKIE_KEY]
+    timezone_cookie = cookies[PreferenceBase::TIMEZONE_COOKIE_KEY]
 
     assert_not_equal "../etc/passwd", timezone_cookie
   end

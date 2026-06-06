@@ -131,7 +131,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     harness.params_hash[:state] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = "apple"
-    SocialAuth::CallbackStateStore.issue!(state: "callback-state", provider: "apple")
+    SocialAuthCallbackStateStore.issue!(state: "callback-state", provider: "apple")
 
     assert_equal [true, nil], harness.send(:valid_callback_state?, "apple")
     assert_predicate harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY], :present?
@@ -143,7 +143,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     harness.params_hash[:state] = "callback-state"
     harness.session_hash[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = "different-state"
-    SocialAuth::CallbackStateStore.issue!(state: "different-state", provider: "apple")
+    SocialAuthCallbackStateStore.issue!(state: "different-state", provider: "apple")
 
     assert_equal [false, "state_mismatch"], harness.send(:valid_callback_state?, "apple")
     assert_empty harness.session_hash

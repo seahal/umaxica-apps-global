@@ -106,7 +106,7 @@ class WithdrawalFlowTest < ActiveSupport::TestCase
     cycle.confirm_withdrawal!
 
     error =
-      assert_raises(Flow::InvalidTransition) do
+      assert_raises(FlowInvalidTransition) do
         cycle.request_withdrawal!
       end
 

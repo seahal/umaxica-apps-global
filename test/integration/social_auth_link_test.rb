@@ -357,7 +357,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   def social_link_headers(user)
     headers = as_user_headers(user, host: @host)
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
-    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
     headers
   end
 

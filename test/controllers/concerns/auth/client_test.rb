@@ -4,7 +4,7 @@
 require "test_helper"
 
 class TestAuthClientController < ApplicationController
-  include Authentication::Client
+  include AuthenticationClient
 end
 
 module Auth
@@ -13,14 +13,14 @@ module Auth
       @controller = TestAuthClientController.new
     end
 
-    test "Client concern includes Authentication::Base" do
-      assert_includes TestAuthClientController.ancestors, Authentication::Base
+    test "Client concern includes AuthenticationBase" do
+      assert_includes TestAuthClientController.ancestors, AuthenticationBase
     end
 
-    test "constants are inherited from Authentication::Base" do
-      assert_equal Authentication::Base::ACCESS_COOKIE_KEY, Authentication::Client::ACCESS_COOKIE_KEY
-      assert_equal Authentication::Base::REFRESH_COOKIE_KEY, Authentication::Client::REFRESH_COOKIE_KEY
-      assert_equal Authentication::Base::AUDIT_EVENTS, Authentication::Client::AUDIT_EVENTS
+    test "constants are inherited from AuthenticationBase" do
+      assert_equal AuthenticationBase::ACCESS_COOKIE_KEY, AuthenticationClient::ACCESS_COOKIE_KEY
+      assert_equal AuthenticationBase::REFRESH_COOKIE_KEY, AuthenticationClient::REFRESH_COOKIE_KEY
+      assert_equal AuthenticationBase::AUDIT_EVENTS, AuthenticationClient::AUDIT_EVENTS
     end
 
     test "resource_class returns Client" do

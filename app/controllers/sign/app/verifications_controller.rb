@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 class Sign::App::VerificationsController < Sign::App::Verification::BaseController
-  include Sign::VerificationEntry
+  include SignVerificationEntry
 
   AUTHENTICATION_MODE = :private
 

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
+class SignInSequenceCarrierTest < ActiveSupport::TestCase
   fixtures_none!
 
   ClientStub = Struct.new(:id)
@@ -12,7 +12,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
     session = {}
     actor = ClientStub.new(42)
 
-    sequence = SignIn::SequenceCarrier.new(session, surface: :app).start!(
+    sequence = SignInSequenceCarrier.new(session, surface: :app).start!(
       surface: :app,
       actor: actor,
       method: :email_otp,
@@ -23,14 +23,14 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
 
     assert_equal sequence.id, session.fetch(:app_sign_in_sequence).fetch("id")
     assert_nil session[:com_sign_in_sequence]
-    assert_nil session[SignIn::SequenceCarrier::KEY]
+    assert_nil session[SignInSequenceCarrier::KEY]
   end
 
   test "does not expose another surface sequence as current" do
     session = {}
     actor = ClientStub.new(42)
 
-    SignIn::SequenceCarrier.new(session, surface: :app).start!(
+    SignInSequenceCarrier.new(session, surface: :app).start!(
       surface: :app,
       actor: actor,
       method: :email_otp,
@@ -39,14 +39,14 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       pt: nil,
     )
 
-    assert_predicate SignIn::SequenceCarrier.new(session, surface: :app).current, :present?
-    assert_not SignIn::SequenceCarrier.new(session, surface: :com).current.present?
+    assert_predicate SignInSequenceCarrier.new(session, surface: :app).current, :present?
+    assert_not SignInSequenceCarrier.new(session, surface: :com).current.present?
   end
 
   test "terminal sequence is not valid for a participant" do
     session = {}
     actor = ClientStub.new(42)
-    carrier = SignIn::SequenceCarrier.new(session, surface: :app)
+    carrier = SignInSequenceCarrier.new(session, surface: :app)
 
     carrier.start!(
       surface: :app,
@@ -64,7 +64,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
 
   test "legacy key is migrated only for matching surface" do
     session = {
-      SignIn::SequenceCarrier::KEY => {
+      SignInSequenceCarrier::KEY => {
         "id" => SecureRandom.uuid,
         "surface" => "app",
         "actor_type" => ClientStub.name,
@@ -75,9 +75,9 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       },
     }
 
-    assert_not SignIn::SequenceCarrier.new(session, surface: :com).current.present?
-    assert_predicate SignIn::SequenceCarrier.new(session, surface: :app).current, :present?
-    assert_nil session[SignIn::SequenceCarrier::KEY]
+    assert_not SignInSequenceCarrier.new(session, surface: :com).current.present?
+    assert_predicate SignInSequenceCarrier.new(session, surface: :app).current, :present?
+    assert_nil session[SignInSequenceCarrier::KEY]
   end
 
   test "unsupported surface does not fall back to app" do
@@ -85,7 +85,7 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
     actor = ClientStub.new(42)
 
     assert_raises(ArgumentError) do
-      SignIn::SequenceCarrier.new(session, surface: :net).start!(
+      SignInSequenceCarrier.new(session, surface: :net).start!(
         surface: :net,
         actor: actor,
         method: :email_otp,
@@ -95,14 +95,14 @@ class SignIn::SequenceCarrierTest < ActiveSupport::TestCase
       )
     end
 
-    assert_not SignIn::SequenceCarrier.new(session, surface: :net).current.present?
+    assert_not SignInSequenceCarrier.new(session, surface: :net).current.present?
     assert_nil session[:app_sign_in_sequence]
   end
 
   test "unsupported state and participant are rejected" do
     session = {}
     actor = ClientStub.new(42)
-    carrier = SignIn::SequenceCarrier.new(session, surface: :app)
+    carrier = SignInSequenceCarrier.new(session, surface: :app)
 
     assert_raises(ArgumentError) do
       carrier.start!(

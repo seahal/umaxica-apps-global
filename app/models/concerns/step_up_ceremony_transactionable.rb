@@ -28,10 +28,10 @@ module StepUpCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :required_scope, :required_aal, :status,
               :grant_jti, :expires_at, presence: true
-    validates :surface, inclusion: { in: Identity::StepUpCeremony::Contract::SURFACES }
-    validates :required_aal, inclusion: { in: Identity::StepUpCeremony::Contract::AALS }
-    validates :aal, inclusion: { in: Identity::StepUpCeremony::Contract::AALS }, allow_blank: true
-    validates :method, inclusion: { in: Identity::StepUpCeremony::Contract::METHODS }, allow_blank: true
+    validates :surface, inclusion: { in: IdentityStepUpCeremonyContract::SURFACES }
+    validates :required_aal, inclusion: { in: IdentityStepUpCeremonyContract::AALS }
+    validates :aal, inclusion: { in: IdentityStepUpCeremonyContract::AALS }, allow_blank: true
+    validates :method, inclusion: { in: IdentityStepUpCeremonyContract::METHODS }, allow_blank: true
     validates :status, inclusion: { in: STATUSES }
     validate :surface_matches_transaction_class
     validate :allowed_methods_are_valid
@@ -59,7 +59,7 @@ module StepUpCeremonyTransactionable
           resource_ref: resource_ref,
           return_to: return_to,
           grant_jti: grant_jti.presence || SecureRandom.uuid,
-          expires_at: expires_at || (now + Identity::StepUpCeremony::Transaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + IdentityStepUpCeremonyTransaction::DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )
@@ -124,8 +124,8 @@ module StepUpCeremonyTransactionable
     self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
-        raise Identity::StepUpCeremony::Error, "transaction is already consumed" if locked.consumed?
-        raise Identity::StepUpCeremony::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+        raise IdentityStepUpCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
+        raise IdentityStepUpCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(
           result_jti: result_jti,
@@ -139,7 +139,7 @@ module StepUpCeremonyTransactionable
       end
     end
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
-    raise Identity::StepUpCeremony::Error, "result_jti has already been consumed: #{e.message}"
+    raise IdentityStepUpCeremonyContract::Error, "result_jti has already been consumed: #{e.message}"
   end
 
   private
@@ -151,7 +151,7 @@ module StepUpCeremonyTransactionable
   end
 
   def allowed_methods_are_valid
-    invalid = allowed_methods_array - Identity::StepUpCeremony::Contract::METHODS
+    invalid = allowed_methods_array - IdentityStepUpCeremonyContract::METHODS
     errors.add(:allowed_methods, "contains invalid methods") if invalid.present?
   end
 

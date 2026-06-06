@@ -5,24 +5,24 @@ require "test_helper"
 
 class SignEmailRegistrationFlowIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Sign::EmailRegistrable
-    include Common::Redirect
-    include Sign::EmailRegistrationFlow
+    include SignEmailRegistrable
+    include CommonRedirect
+    include SignEmailRegistrationFlow
   end
 
-  test "terminal controller includes Sign::EmailRegistrable explicitly" do
-    assert_includes Harness.included_modules, Sign::EmailRegistrable
+  test "terminal controller includes SignEmailRegistrable explicitly" do
+    assert_includes Harness.included_modules, SignEmailRegistrable
   end
 
-  test "terminal controller includes Common::Redirect explicitly" do
-    assert_includes Harness.included_modules, Common::Redirect
+  test "terminal controller includes CommonRedirect explicitly" do
+    assert_includes Harness.included_modules, CommonRedirect
   end
 
   test "new method exists" do
-    assert_includes Sign::EmailRegistrationFlow.instance_methods(false), :new
+    assert_includes SignEmailRegistrationFlow.instance_methods(false), :new
   end
 
   test "edit method exists" do
-    assert_includes Sign::EmailRegistrationFlow.instance_methods(false), :edit
+    assert_includes SignEmailRegistrationFlow.instance_methods(false), :edit
   end
 end

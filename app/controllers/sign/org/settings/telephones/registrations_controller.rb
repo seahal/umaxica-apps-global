@@ -8,10 +8,10 @@ module Sign
         class RegistrationsController < Sign::Org::ApplicationController
           include CloudflareTurnstile
 
-          include Sign::OperatorTelephoneRegistrable
-          include Sign::TelephoneCeremonyDelegation
+          include SignOperatorTelephoneRegistrable
+          include SignTelephoneCeremonyDelegation
 
-          include ::Verification::Operator
+          include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private
 

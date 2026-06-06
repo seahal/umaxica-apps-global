@@ -5,18 +5,18 @@ module Sign
   module Org
     module Verification
       class BaseController < Sign::Org::ApplicationController
-        include Sign::OrgVerificationBase
-        include ::Preference::Global
-        include Common::Otp
-        include ::Authentication::Operator
-        include ::Verification::Operator
-        include Sign::Webauthn
-        include Sign::VerificationTiming
-        include Sign::VerificationCommonBase
-        include Sign::VerificationAuditAndCookie
-        include Sign::VerificationStepUpSessionStore
-        include Sign::VerificationStepUpLifecycle
-        include Sign::VerificationPasskeyChecks
+        include SignOrgVerificationBase
+        include ::PreferenceGlobal
+        include CommonOtp
+        include ::AuthenticationOperator
+        include ::VerificationOperator
+        include SignWebauthn
+        include SignVerificationTiming
+        include SignVerificationCommonBase
+        include SignVerificationAuditAndCookie
+        include SignVerificationStepUpSessionStore
+        include SignVerificationStepUpLifecycle
+        include SignVerificationPasskeyChecks
 
         AUTHENTICATION_MODE = :private
 

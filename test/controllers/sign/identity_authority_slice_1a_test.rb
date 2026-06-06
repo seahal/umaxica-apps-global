@@ -67,8 +67,8 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "sign controllers do not call authority mutation primitives" do
     files = Rails.root.glob("app/controllers/sign/**/*.rb") +
-      Rails.root.glob("app/controllers/concerns/sign/**/*.rb")
-    forbidden = /(logout_current_session!|logout_all_sessions_for!|Withdrawal::Lifecycle\.)/
+      Rails.root.glob("app/controllers/concerns/sign_*.rb")
+    forbidden = /(logout_current_session!|logout_all_sessions_for!|WithdrawalLifecycle\.)/
     offenders =
       files.filter do |file|
         File.read(file).match?(forbidden)
@@ -91,7 +91,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     redirect_only_controllers.each do |controller|
       assert_equal Sign::RedirectOnlyController, controller.superclass
       assert_not_includes controller.included_modules, Session
-      assert_not_includes controller.included_modules, Preference::Global
+      assert_not_includes controller.included_modules, PreferenceGlobal
       assert_not_includes controller.included_modules, SessionLimitGate
       assert_not_includes controller.included_modules, RestrictedSessionGuard
     end
@@ -105,7 +105,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     ].map { |path| File.read(path) }.join("\n")
 
     assert_includes acme_sources, "logout_current_session!"
-    assert_includes acme_sources, "Acme::Settings::SessionManagement"
-    assert_includes acme_sources, "Acme::Settings::WithdrawalFlow"
+    assert_includes acme_sources, "AcmeSettingsSessionManagement"
+    assert_includes acme_sources, "AcmeSettingsWithdrawalFlow"
   end
 end

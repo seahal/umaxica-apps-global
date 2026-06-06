@@ -7,13 +7,13 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = Jit::IdHostEnv.service_url || "id.app.localhost"
+    _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
+    @host = JitIdHostEnv.service_url || "id.app.localhost"
     host! @host
   end
 
   test "GET show without access jwt returns default theme sy" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     get sign_app_web_v0_theme_path, as: :json
 
@@ -27,7 +27,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_app_web_v0_theme_path, as: :json
@@ -45,7 +45,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_app_web_v0_theme_path, params: { theme: "dark" }, as: :json
@@ -55,6 +55,6 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_equal "dr", response.parsed_body["theme"]
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=dr"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::THEME}=dr"
   end
 end

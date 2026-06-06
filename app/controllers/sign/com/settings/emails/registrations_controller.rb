@@ -8,12 +8,12 @@ module Sign
         class RegistrationsController < Sign::Com::ApplicationController
           include ::CloudflareTurnstile
 
-          include Common::Otp
+          include CommonOtp
 
-          include Common::Redirect
-          include Sign::EmailCeremonyDelegation
+          include CommonRedirect
+          include SignEmailCeremonyDelegation
 
-          include ::Verification::Visitor
+          include ::VerificationVisitor
 
           AUTHENTICATION_MODE = :private
 
@@ -155,7 +155,7 @@ module Sign
             @user_email.otp_last_sent_at = Time.current
             @user_email.save!
             Email::Com::OtpMailer.with(
-              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
+              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
               email_address: @user_email.address,
               verification_token: nil,
               public_id: @user_email.public_id,

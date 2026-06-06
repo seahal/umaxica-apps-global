@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::ClientTest < ActiveSupport::TestCase
+class AuthClientTest < ActiveSupport::TestCase
   fixtures :client_statuses
 
   class FormatMock
@@ -20,7 +20,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
   class DummyClass
     include SessionLimitGate
-    include Authentication::Client
+    include AuthenticationClient
 
     attr_accessor :session, :cookies, :request, :response
 
@@ -93,7 +93,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
   end
 
   test "module can be included" do
-    assert_kind_of Authentication::Client, @obj
+    assert_kind_of AuthenticationClient, @obj
   end
 
   test "log_in sets access token in cookie" do
@@ -101,7 +101,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @user)
 
-    assert @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY]
+    assert @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
     assert_predicate @obj, :logged_in?
     assert_equal @user, @obj.current_client
   end
@@ -111,8 +111,8 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @user)
 
-    access_opts = @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY)
-    refresh_opts = @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY)
+    access_opts = @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY)
+    refresh_opts = @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY)
 
     assert_operator access_opts[:expires], :>, 10.minutes.from_now
     assert_operator access_opts[:expires], :<, 2.hours.from_now
@@ -139,8 +139,8 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     assert_no_difference("ClientToken.count") { @obj.send(:log_out) }
 
     assert_predicate token.reload, :revoked?
-    assert_nil @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY]
-    assert_nil @obj.cookies.encrypted[::Authentication::Client::REFRESH_COOKIE_KEY]
+    assert_nil @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
+    assert_nil @obj.cookies.encrypted[::AuthenticationClient::REFRESH_COOKIE_KEY]
   end
 
   test "log_in keeps auth cookies host-only for __Host prefix compatibility" do
@@ -149,8 +149,8 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @user)
 
-    assert_not @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY).key?(:domain)
-    assert_not @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY).key?(:domain)
   end
 
   test "log_in returns tokens hash" do
@@ -162,7 +162,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     assert tokens[:access_token]
     assert tokens[:refresh_token]
     assert_equal "Bearer", tokens[:token_type]
-    assert_equal ::Authentication::Base::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
+    assert_equal ::AuthenticationBase::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
   end
 
   test "log_in creates device_session and uses it as access token sid" do
@@ -170,7 +170,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     tokens = @obj.send(:log_in, @user)
     token = @obj.send(:current_session)
-    payload = Authentication::Base::Token.decode(
+    payload = AuthenticationToken.decode(
       tokens[:access_token],
       host: @obj.request.host,
       resource_type: "client",
@@ -215,14 +215,14 @@ class Authentication::ClientTest < ActiveSupport::TestCase
       )
 
       result = @obj.send(:build_refreshed_session, @user, token, "refresh-token")
-      payload = Authentication::Base::Token.decode(
+      payload = AuthenticationToken.decode(
         result[:access_token],
         host: @obj.request.host,
         resource_type: "client",
       )
 
-      access_opts = @obj.cookies.options_for(::Authentication::Client::ACCESS_COOKIE_KEY)
-      refresh_opts = @obj.cookies.options_for(::Authentication::Client::REFRESH_COOKIE_KEY)
+      access_opts = @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY)
+      refresh_opts = @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY)
 
       assert_in_delta token.discarded_at.to_i, payload["exp"], 1
       assert_in_delta token.discarded_at.to_i, access_opts[:expires].to_i, 1
@@ -237,15 +237,15 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @user)
 
-    assert @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY]
-    assert @obj.cookies.encrypted[::Authentication::Client::REFRESH_COOKIE_KEY]
+    assert @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
+    assert @obj.cookies.encrypted[::AuthenticationClient::REFRESH_COOKIE_KEY]
   end
 
   test "extract_access_token from Authorization header" do
     token = "sample_jwt_token"
     @obj.request.headers["Authorization"] = "Bearer #{token}"
 
-    extracted = @obj.send(:extract_access_token, ::Authentication::Client::ACCESS_COOKIE_KEY)
+    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
 
     assert_equal token, extracted
   end
@@ -254,16 +254,16 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     token = "sample_jwt_token"
     @obj.request.headers["Authorization"] = "bearer #{token}"
 
-    extracted = @obj.send(:extract_access_token, ::Authentication::Client::ACCESS_COOKIE_KEY)
+    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
 
     assert_equal token, extracted
   end
 
   test "extract_access_token from Cookie when no Authorization header" do
     token = "cookie_jwt_token"
-    @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY] = token
+    @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY] = token
 
-    extracted = @obj.send(:extract_access_token, ::Authentication::Client::ACCESS_COOKIE_KEY)
+    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
 
     assert_equal token, extracted
   end
@@ -272,9 +272,9 @@ class Authentication::ClientTest < ActiveSupport::TestCase
     header_token = "header_jwt_token"
     cookie_token = "cookie_jwt_token"
     @obj.request.headers["Authorization"] = "Bearer #{header_token}"
-    @obj.cookies[::Authentication::Client::ACCESS_COOKIE_KEY] = cookie_token
+    @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY] = cookie_token
 
-    extracted = @obj.send(:extract_access_token, ::Authentication::Client::ACCESS_COOKIE_KEY)
+    extracted = @obj.send(:extract_access_token, ::AuthenticationClient::ACCESS_COOKIE_KEY)
 
     assert_equal header_token, extracted
   end
@@ -287,8 +287,8 @@ class Authentication::ClientTest < ActiveSupport::TestCase
         ClientToken.create!(user: @user)
       end
 
-    # Generate access token using Authentication::Base::Token
-    access_token = Authentication::Base::Token.encode(
+    # Generate access token using AuthenticationToken
+    access_token = AuthenticationToken.encode(
       @user,
       host: @obj.request.host,
       session_public_id: token_record.public_id,
@@ -312,7 +312,7 @@ class Authentication::ClientTest < ActiveSupport::TestCase
 
     assert_equal :session_limit_hard_reject, result[:status]
     assert_equal :forbidden, result[:http_status]
-    assert_equal Authentication::Base::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
+    assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
     assert_equal before_ids,
                  ClientToken.where(user_id: @user.id).order(:id).pluck(:id, :user_token_status_id, :discarded_at)
   end

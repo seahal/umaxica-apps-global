@@ -91,7 +91,7 @@ module Sign
           end
         rescue StandardError => e
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.org.authentication.secret_credential.error",
               error_class: e.class.name,
               message: e.message,
@@ -169,7 +169,7 @@ module Sign
           staff = find_staff_by_public_id(@secret_credential_form.identifier)
 
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.org.authentication.secret_credential.failed",
               reason: reason,
               identifier_present: @secret_credential_form.identifier.present?,
@@ -178,7 +178,7 @@ module Sign
             ),
           )
 
-          Sign::Risk::Emitter.emit("auth_failed", staff_id: staff&.id) if staff
+          SignRiskEmitter.emit("auth_failed", staff_id: staff&.id) if staff
 
           render :new, status: :unprocessable_content, formats: :html
         end

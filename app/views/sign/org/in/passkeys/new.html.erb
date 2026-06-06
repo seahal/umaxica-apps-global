@@ -12,7 +12,7 @@
     data-passkey-authentication-options-url-value="<%= options_sign_org_in_passkeys_path(pt: pt) %>"
     data-passkey-authentication-verification-url-value="<%= verification_sign_org_in_passkeys_path(pt: pt) %>"
     data-passkey-authentication-identifier-param-value="identifier"
-    data-passkey-authentication-turnstile-site-key-value="<%= Jit::Security::TurnstileConfig.stealth_site_key.to_s %>"
+    data-passkey-authentication-turnstile-site-key-value="<%= JitSecurityTurnstileConfig.stealth_site_key.to_s %>"
     data-passkey-authentication-turnstile-error-message-value="<%= t("turnstile_error") %>">
 
     <div>

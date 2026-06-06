@@ -75,7 +75,7 @@ class ApplicationPolicy < ActionPolicy::Base
   def jwt_scopes
     return [] if current_token.blank?
 
-    Authorization::TokenClaims.scopes(current_token)
+    AuthorizationTokenClaims.scopes(current_token)
   end
 
   # Check if the user has a specific scope
@@ -111,7 +111,7 @@ class ApplicationPolicy < ActionPolicy::Base
   def jwt_subject
     return nil if current_token.blank?
 
-    Authorization::TokenClaims.subject(current_token)
+    AuthorizationTokenClaims.subject(current_token)
   end
 
   # Check if current token is for specific domain

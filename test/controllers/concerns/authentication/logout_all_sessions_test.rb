@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::LogoutAllSessionsTest < ActiveSupport::TestCase
+class AuthenticationLogoutAllSessionsTest < ActiveSupport::TestCase
   fixtures :clients, :client_token_statuses, :client_token_kinds
 
   test "revokes all sessions for a user" do
@@ -11,7 +11,7 @@ class Authentication::LogoutAllSessionsTest < ActiveSupport::TestCase
     first = build_user_token(user)
     second = build_user_token(user)
 
-    Authentication::LogoutAllSessions.call(resource: user, reason: "staff_suspended")
+    AuthenticationLogoutAllSessions.call(resource: user, reason: "staff_suspended")
 
     assert_predicate first.reload, :revoked?
     assert_predicate second.reload, :revoked?
@@ -36,8 +36,8 @@ class Authentication::LogoutAllSessionsTest < ActiveSupport::TestCase
         true
       }
 
-    Authentication::LogoutCurrentSession.stub(:call, fake) do
-      Authentication::LogoutAllSessions.call(resource: user, reason: "test_compose")
+    AuthenticationLogoutCurrentSession.stub(:call, fake) do
+      AuthenticationLogoutAllSessions.call(resource: user, reason: "test_compose")
     end
 
     assert_equal 2, received_tokens.size,
@@ -54,12 +54,12 @@ class Authentication::LogoutAllSessionsTest < ActiveSupport::TestCase
     if user.respond_to?(:session_version)
       starting = user.session_version.to_i
 
-      Authentication::LogoutAllSessions.call(resource: user, reason: "test_empty")
+      AuthenticationLogoutAllSessions.call(resource: user, reason: "test_empty")
 
       assert_equal starting + 1, user.reload.session_version,
                    "session_version must bump so still-valid JWTs are rejected at refresh"
     else
-      Authentication::LogoutAllSessions.call(resource: user, reason: "test_empty")
+      AuthenticationLogoutAllSessions.call(resource: user, reason: "test_empty")
 
       pass "Client does not currently expose session_version; skip"
     end

@@ -3,13 +3,13 @@
 
 require "test_helper"
 
-class Org::OperatorLifecycle::RequestCreateTest < ActiveSupport::TestCase
+class OrgOperatorLifecycleRequestCreateTest < ActiveSupport::TestCase
   fixtures :operators
 
   test "creates withdrawal request for requesting operator when target is omitted" do
     actor = operators(:one)
 
-    result = Org::OperatorLifecycle::RequestCreate.call(
+    result = OrgOperatorLifecycleRequestCreate.call(
       actor: actor,
       attributes: {
         action: OperatorLifecycleRequest::ACTION_WITHDRAW,
@@ -24,7 +24,7 @@ class Org::OperatorLifecycle::RequestCreateTest < ActiveSupport::TestCase
   end
 
   test "rejects non join request when target operator is unknown" do
-    result = Org::OperatorLifecycle::RequestCreate.call(
+    result = OrgOperatorLifecycleRequestCreate.call(
       actor: operators(:one),
       attributes: {
         action: OperatorLifecycleRequest::ACTION_SUSPEND,
@@ -37,7 +37,7 @@ class Org::OperatorLifecycle::RequestCreateTest < ActiveSupport::TestCase
   end
 
   test "creates join request with normalized email" do
-    result = Org::OperatorLifecycle::RequestCreate.call(
+    result = OrgOperatorLifecycleRequestCreate.call(
       actor: operators(:one),
       attributes: {
         action: OperatorLifecycleRequest::ACTION_JOIN,

@@ -16,9 +16,9 @@ module Outbound
     def perform(to:, title:, encrypted_body: nil, body: nil)
       raise ArgumentError, "Plaintext SMS job payload is no longer accepted" if encrypted_body.blank? && body.present?
 
-      body = Outbound::SensitivePayload.decrypt_sms_body(encrypted_body)
+      body = OutboundSensitivePayload.decrypt_sms_body(encrypted_body)
 
-      Sms.deliver_now(to: to, title: title, body: body)
+      OutboundSms.deliver_now(to: to, title: title, body: body)
     end
   end
 end

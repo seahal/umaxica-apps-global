@@ -84,7 +84,7 @@ class RateLimitSharedScopeTwoController < ApplicationController
   end
 end
 
-class RateLimitConcernTest < ActionDispatch::IntegrationTest
+class RateLimitTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   setup do

@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 class Acme::App::Edge::V0::Token::DbscController < Acme::App::ApplicationController
-  include Sign::EdgeV0JsonApi
-  include Sign::DbscRegistrationEndpoint
+  include SignEdgeV0JsonApi
+  include SignDbscRegistrationEndpoint
 
   AUTHENTICATION_MODE = :deny_all
 

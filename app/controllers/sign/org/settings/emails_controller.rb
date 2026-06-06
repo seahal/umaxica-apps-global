@@ -5,7 +5,7 @@ module Sign
   module Org
     module Settings
       class EmailsController < Sign::RedirectOnlyController
-        include ::Sign::SettingsAuthorityRedirect
+        include ::SignSettingsAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
       end

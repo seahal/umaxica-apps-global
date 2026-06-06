@@ -298,12 +298,12 @@ class SignFlowTest < ActiveSupport::TestCase
     end
   end
 
-  test "sign-in cycle methods reject reverse transitions through Flow::Base" do
+  test "sign-in cycle methods reject reverse transitions through FlowBase" do
     cycle = ClientSignInFlow.create!(cycle_attrs(ClientSignInFlow))
     cycle.advance_sign_in_to_mfa!
 
     error =
-      assert_raises(Flow::InvalidTransition) do
+      assert_raises(FlowInvalidTransition) do
         cycle.transition_cycle_to!(
           ClientSignInFlowStatus::PRIMARY_PENDING,
           allowed_from: [ClientSignInFlowStatus::PRIMARY_PENDING],
@@ -361,13 +361,13 @@ class SignFlowTest < ActiveSupport::TestCase
       ),
     )
 
-    assert_raises(Flow::InvalidTransition) { completed.fail_sign_in! }
+    assert_raises(FlowInvalidTransition) { completed.fail_sign_in! }
 
     failed = ClientSignInFlow.create!(
       cycle_attrs(ClientSignInFlow).merge(status_id: ClientSignInFlowStatus::FAILED, step: "failed"),
     )
 
-    assert_raises(Flow::InvalidTransition) { failed.advance_sign_in_to_guardrail! }
+    assert_raises(FlowInvalidTransition) { failed.advance_sign_in_to_guardrail! }
   end
 
   test "sign-in cycle methods reject expired cycles" do
@@ -377,7 +377,7 @@ class SignFlowTest < ActiveSupport::TestCase
     )
 
     travel_to now do
-      assert_raises(Flow::InvalidTransition) { cycle.advance_sign_in_to_mfa! }
+      assert_raises(FlowInvalidTransition) { cycle.advance_sign_in_to_mfa! }
     end
 
     assert_equal ClientSignInFlowStatus::PRIMARY_PENDING, cycle.reload.status_id
@@ -390,7 +390,7 @@ class SignFlowTest < ActiveSupport::TestCase
     )
 
     travel_to now do
-      assert_raises(Flow::InvalidTransition) { cycle.transition_to!("MFA_PENDING") }
+      assert_raises(FlowInvalidTransition) { cycle.transition_to!("MFA_PENDING") }
     end
 
     assert_equal ClientSignInFlowStatus::PRIMARY_PENDING, cycle.reload.status_id
@@ -404,7 +404,7 @@ class SignFlowTest < ActiveSupport::TestCase
     cycle.transition_to!("CHECKPOINT_PENDING", step: "checkpoint")
 
     assert_raises(ArgumentError) { cycle.transition_to!("COMPLETED", step: "completed") }
-    assert_raises(Flow::InvalidTransition) { cycle.complete_sign_up! }
+    assert_raises(FlowInvalidTransition) { cycle.complete_sign_up! }
   end
 
   test "transition_to stamps completed_at for post-handoff completed transitions" do

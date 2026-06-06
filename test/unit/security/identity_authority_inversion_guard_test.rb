@@ -33,11 +33,11 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   end
 
   test "refresh rotation target path uses acme authority" do
-    auth_base = file_content("app/controllers/concerns/authentication/base.rb")
+    auth_base = file_content("app/controllers/concerns/authentication_base.rb")
 
-    assert_includes auth_base, "Acme::RefreshTokenService.call(refresh_token: refresh_plain)"
+    assert_includes auth_base, "AcmeRefreshTokenService.call(refresh_token: refresh_plain)"
 
-    sign_service = file_content("app/services/sign/refresh_token_service.rb")
+    sign_service = file_content("app/services/sign_refresh_token_service.rb")
 
     # rubocop:disable I18n/RailsI18n/DecorateString
     assert_includes sign_service, "Compatibility namespace. Target-path refresh authority is acme/www."
@@ -47,21 +47,21 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   test "refresh rotation implementation is physically owned by acme not sign" do
     # Behavior, not file-string: the rotation body lives on Acme; Sign is only a
     # compatibility subclass that inherits it and adds nothing of its own.
-    assert_operator Sign::RefreshTokenService, :<, Acme::RefreshTokenService,
-                    "Sign::RefreshTokenService must be a compatibility subclass of the acme service"
+    assert_operator SignRefreshTokenService, :<, AcmeRefreshTokenService,
+                    "SignRefreshTokenService must be a compatibility subclass of the acme service"
 
     # The sign wrapper must not redefine the rotation entry point; it inherits
     # `call` straight from acme, so the owning method lives on the acme service.
-    assert_equal Acme::RefreshTokenService.method(:call).owner, Sign::RefreshTokenService.method(:call).owner,
+    assert_equal AcmeRefreshTokenService.method(:call).owner, SignRefreshTokenService.method(:call).owner,
                  "Sign wrapper must inherit `call` from acme, not define its own refresh authority"
-    assert_equal Acme::RefreshTokenService.singleton_class, Acme::RefreshTokenService.method(:call).owner
+    assert_equal AcmeRefreshTokenService.singleton_class, AcmeRefreshTokenService.method(:call).owner
 
     # The shared Result contract is owned by acme and reused by the sign alias.
-    assert_same Acme::RefreshTokenService::Result, Sign::RefreshTokenService::Result
+    assert_same AcmeRefreshTokenService::Result, SignRefreshTokenService::Result
   end
 
   test "unknown social signup compatibility is explicit" do
-    concern = file_content("app/controllers/concerns/social_auth_concern.rb")
+    concern = file_content("app/controllers/concerns/social_auth.rb")
 
     assert_includes concern, "reject_grantless_established_social_login!"
     assert_includes concern, "SocialAuthService.handle_callback"

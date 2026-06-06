@@ -5,6 +5,6 @@ class SecretCredentialCeremonyTransactionPurgeJob < ApplicationJob
   queue_as :default
 
   def perform
-    Identity::SecretCredentialCeremony::TransactionPurger.new.call
+    IdentitySecretCredentialCeremonyTransactionPurger.new.call
   end
 end

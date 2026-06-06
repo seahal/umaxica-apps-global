@@ -31,8 +31,8 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do
-    StepUp::ConfiguredMethods.stub(:call, []) do
-      StepUp::AvailableMethods.stub(:call, []) do
+    StepUpConfiguredMethods.stub(:call, []) do
+      StepUpAvailableMethods.stub(:call, []) do
         get sign_org_settings_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
@@ -45,8 +45,8 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
-    StepUp::ConfiguredMethods.stub(:call, [:passkey]) do
-      StepUp::AvailableMethods.stub(:call, []) do
+    StepUpConfiguredMethods.stub(:call, [:passkey]) do
+      StepUpAvailableMethods.stub(:call, []) do
         get sign_org_settings_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
@@ -91,7 +91,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     post options_sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
-    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
   end
 
   test "successful verification enables protected POST and records audit" do
@@ -106,7 +106,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+    StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
           get sign_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),

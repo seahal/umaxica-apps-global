@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-# Unit tests for the MFA intercept logic in Authentication::Base.
+# Unit tests for the MFA intercept logic in AuthenticationBase.
 # Tests mfa_required_for?, establish_signed_in_session!, and related helpers.
 class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
   fixtures :client_statuses
@@ -136,12 +136,12 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
 
   private
 
-  # Build a minimal controller-like object that includes Authentication::Base for testing
+  # Build a minimal controller-like object that includes AuthenticationBase for testing
   def build_test_controller
     controller_class =
       Class.new do
-        include Common::Redirect
-        include Authentication::Base
+        include CommonRedirect
+        include AuthenticationBase
 
         attr_accessor :session
 

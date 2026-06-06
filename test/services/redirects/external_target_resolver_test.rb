@@ -2,10 +2,10 @@
 
 require "test_helper"
 
-class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
+class RedirectsExternalTargetResolverTest < ActiveSupport::TestCase
   test "resolves allowlisted external key" do
     with_env("RP_APP_URL" => "https://rp.example") do
-      result = Redirects::ExternalTargetResolver.call(:rp_app, path: "/signed-out", query: { ok: "1" })
+      result = RedirectsExternalTargetResolver.call(:rp_app, path: "/signed-out", query: { ok: "1" })
 
       assert_predicate result, :ok?
       assert_equal "https://rp.example/signed-out?ok=1", result.value
@@ -13,12 +13,12 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
   end
 
   test "rejects unknown allowlist key" do
-    assert_not Redirects::ExternalTargetResolver.call(:evil, path: "/").ok?
+    assert_not RedirectsExternalTargetResolver.call(:evil, path: "/").ok?
   end
 
   test "rejects http downgrade except local development origins" do
     with_env("RP_APP_URL" => "http://evil.example") do
-      result = Redirects::ExternalTargetResolver.call(:rp_app, path: "/signed-out")
+      result = RedirectsExternalTargetResolver.call(:rp_app, path: "/signed-out")
 
       assert_not result.ok?
       assert_equal "https_required", result.failure_reason
@@ -27,7 +27,7 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
 
   test "path join cannot escape to another host" do
     with_env("RP_APP_URL" => "https://rp.example") do
-      result = Redirects::ExternalTargetResolver.call(:rp_app, path: "//evil.example")
+      result = RedirectsExternalTargetResolver.call(:rp_app, path: "//evil.example")
 
       assert_not result.ok?
     end
@@ -35,7 +35,7 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
 
   test "query merge strips dangerous redirect parameters" do
     with_env("RP_APP_URL" => "https://rp.example") do
-      result = Redirects::ExternalTargetResolver.call(
+      result = RedirectsExternalTargetResolver.call(
         :rp_app,
         path: "/signed-out?pt=/safe",
         query: { "redirect_uri" => "https://evil.example", "nt" => "dashboard", "ok" => "1" },
@@ -48,7 +48,7 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
 
   test "jump registry points at jump gateway url" do
     with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
-      result = Redirects::ExternalTargetResolver.call(:jump, path: "/")
+      result = RedirectsExternalTargetResolver.call(:jump, path: "/")
 
       assert_predicate result, :ok?
       assert_equal "https://jump.umaxica.net/", result.value
@@ -57,7 +57,7 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
 
   test "generic external redirect still strips rt query" do
     with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
-      result = Redirects::ExternalTargetResolver.call(:jump, path: "/", query: { rt: "aaa.bbb.ccc", ok: "1" })
+      result = RedirectsExternalTargetResolver.call(:jump, path: "/", query: { rt: "aaa.bbb.ccc", ok: "1" })
 
       assert_predicate result, :ok?
       assert_equal "https://jump.umaxica.net/?ok=1", result.value
@@ -67,12 +67,12 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
   test "raw user supplied external urls require exact normalized origin allowlist" do
     allowed = ["https://safe.example/callback"]
 
-    accepted = Redirects::ExternalTargetResolver.url(
+    accepted = RedirectsExternalTargetResolver.url(
       "https://safe.example/after?ok=1",
       allowed_urls: allowed,
       source: :user_input,
     )
-    denied = Redirects::ExternalTargetResolver.url(
+    denied = RedirectsExternalTargetResolver.url(
       "https://safe.example.evil.test/after",
       allowed_urls: allowed,
       source: :user_input,
@@ -86,7 +86,7 @@ class Redirects::ExternalTargetResolverTest < ActiveSupport::TestCase
 
   test "registry derived targets do not treat user input as an origin" do
     with_env("RP_APP_URL" => "https://rp.example") do
-      result = Redirects::ExternalTargetResolver.call(
+      result = RedirectsExternalTargetResolver.call(
         :rp_app,
         path: "/signed-out",
         query: { "url" => "https://evil.example", "ok" => "1" },

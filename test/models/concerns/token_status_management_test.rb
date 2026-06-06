@@ -49,7 +49,7 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
       purged_at: 2.days.from_now,
     )
     rotated_refresh = rotated_source.rotate_refresh_token!
-    Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenService.call(refresh_token: rotated_refresh)
 
     results = ClientToken.active_status
 
@@ -89,7 +89,7 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
     refresh_expired = ClientToken.create!(user: @user, discarded_at: 1.minute.ago, purged_at: 1.day.from_now)
     rotated_source = ClientToken.create!(user: @user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     rotated_refresh = rotated_source.rotate_refresh_token!
-    Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenService.call(refresh_token: rotated_refresh)
 
     results = ClientToken.not_revoked
 

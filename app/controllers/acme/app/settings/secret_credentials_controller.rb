@@ -5,9 +5,9 @@ module Acme
   module App
     module Settings
       class SecretCredentialsController < Acme::App::ApplicationController
-        include ::Verification::Client
-        include ::Sign::Settings::SecretCredentialTurnstileGuard
-        include ::Sign::Settings::SecretCredentialCacheControl
+        include ::VerificationClient
+        include ::SignSettingsSecretCredentialTurnstileGuard
+        include ::SignSettingsSecretCredentialCacheControl
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -37,7 +37,7 @@ module Acme
             return
           end
 
-          issuance = Identity::SecretCredentialCeremony::GrantIssuer.issue!(
+          issuance = IdentitySecretCredentialCeremonyGrantIssuer.issue!(
             surface: "app",
             actor_ref: current_client.public_id,
             session_ref: current_session_public_id,
@@ -65,7 +65,7 @@ module Acme
             return redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]))
           end
 
-          ClientSecretCredentials::Update.call(
+          ClientSecretCredentialsUpdate.call(
             actor: current_client,
             secret_credential: @secret_credential,
             params: secret_credential_params,
@@ -85,7 +85,7 @@ module Acme
             return redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]))
           end
 
-          ClientSecretCredentials::Destroy.call(actor: current_client, secret_credential: @secret_credential)
+          ClientSecretCredentialsDestroy.call(actor: current_client, secret_credential: @secret_credential)
           flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
           redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end

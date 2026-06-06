@@ -27,8 +27,8 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "selector update persists valid selected actor context" do
-    Acme::Selector::BootstrapAuthority.call(surface: :app, principal: @user)
-    candidate = Acme::Selector::Authority.new(
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    candidate = AcmeSelectorAuthority.new(
       surface: :app, principal: @user,
       session: @token,
     ).selectable_candidates.first

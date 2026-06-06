@@ -37,7 +37,7 @@ class VisitorSecretCredential < ComPrincipalRecord
   include Retainable
   include PublicId
   include SecretCredential
-  include VisitorSecretCredential::Kinds
+  include VisitorSecretCredentialKinds
 
   MAX_SECRETS_PER_VISITOR = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [VisitorSecretCredentialStatus::ACTIVE].freeze

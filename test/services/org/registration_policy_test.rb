@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Org::RegistrationPolicyTest < ActiveSupport::TestCase
+class OrgRegistrationPolicyTest < ActiveSupport::TestCase
   setup do
     Prosopite.pause do
       [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
@@ -18,56 +18,56 @@ class Org::RegistrationPolicyTest < ActiveSupport::TestCase
   end
 
   test "allowed? returns true for valid code" do
-    policy = Org::RegistrationPolicy.new(invitation_code: @invitation.code)
+    policy = OrgRegistrationPolicy.new(invitation_code: @invitation.code)
 
     assert_predicate policy, :allowed?
   end
 
   test "allowed? returns false for blank code" do
-    assert_not Org::RegistrationPolicy.allowed?(invitation_code: nil)
-    assert_not Org::RegistrationPolicy.allowed?(invitation_code: "")
+    assert_not OrgRegistrationPolicy.allowed?(invitation_code: nil)
+    assert_not OrgRegistrationPolicy.allowed?(invitation_code: "")
   end
 
   test "allowed? returns false for invalid code" do
-    assert_not Org::RegistrationPolicy.allowed?(invitation_code: "invalid")
+    assert_not OrgRegistrationPolicy.allowed?(invitation_code: "invalid")
   end
 
   test "validate! returns invitation for valid code" do
-    result = Org::RegistrationPolicy.validate!(invitation_code: @invitation.code)
+    result = OrgRegistrationPolicy.validate!(invitation_code: @invitation.code)
 
     assert_equal @invitation, result
   end
 
   test "validate! raises InvitationRequiredError for blank code" do
-    assert_raises(Org::RegistrationPolicy::InvitationRequiredError) do
-      Org::RegistrationPolicy.validate!(invitation_code: "")
+    assert_raises(OrgRegistrationPolicy::InvitationRequiredError) do
+      OrgRegistrationPolicy.validate!(invitation_code: "")
     end
   end
 
   test "validate! raises InvalidInvitationError for unknown code" do
-    assert_raises(Org::RegistrationPolicy::InvalidInvitationError) do
-      Org::RegistrationPolicy.validate!(invitation_code: "unknown")
+    assert_raises(OrgRegistrationPolicy::InvalidInvitationError) do
+      OrgRegistrationPolicy.validate!(invitation_code: "unknown")
     end
   end
 
   test "validate! raises InvitationConsumedError for used code" do
     @invitation.update!(consumed_at: Time.current)
 
-    assert_raises(Org::RegistrationPolicy::InvitationConsumedError) do
-      Org::RegistrationPolicy.validate!(invitation_code: @invitation.code)
+    assert_raises(OrgRegistrationPolicy::InvitationConsumedError) do
+      OrgRegistrationPolicy.validate!(invitation_code: @invitation.code)
     end
   end
 
   test "validate! raises InvitationExpiredError for expired code" do
     @invitation.update!(expires_at: 1.day.ago)
 
-    assert_raises(Org::RegistrationPolicy::InvitationExpiredError) do
-      Org::RegistrationPolicy.validate!(invitation_code: @invitation.code)
+    assert_raises(OrgRegistrationPolicy::InvitationExpiredError) do
+      OrgRegistrationPolicy.validate!(invitation_code: @invitation.code)
     end
   end
 
   test "consume! consumes the invitation" do
-    policy = Org::RegistrationPolicy.new(invitation_code: @invitation.code)
+    policy = OrgRegistrationPolicy.new(invitation_code: @invitation.code)
     result = policy.consume!
 
     assert_equal @invitation, result
@@ -76,9 +76,9 @@ class Org::RegistrationPolicyTest < ActiveSupport::TestCase
 
   test "consume! raises error if already consumed" do
     @invitation.update!(consumed_at: Time.current)
-    policy = Org::RegistrationPolicy.new(invitation_code: @invitation.code)
+    policy = OrgRegistrationPolicy.new(invitation_code: @invitation.code)
 
-    assert_raises(Org::RegistrationPolicy::InvitationConsumedError) do
+    assert_raises(OrgRegistrationPolicy::InvitationConsumedError) do
       policy.consume!
     end
   end

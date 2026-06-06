@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Redirects::PathTargetResolverTest < ActiveSupport::TestCase
+class RedirectsPathTargetResolverTest < ActiveSupport::TestCase
   test "allows path only targets" do
     assert_equal "/dashboard", resolve("/dashboard").value
     assert_equal "/dashboard?tab=security", resolve("/dashboard?tab=security").value
@@ -49,6 +49,6 @@ class Redirects::PathTargetResolverTest < ActiveSupport::TestCase
   private
 
   def resolve(value)
-    Redirects::PathTargetResolver.call(value, source: :test)
+    RedirectsPathTargetResolver.call(value, source: :test)
   end
 end

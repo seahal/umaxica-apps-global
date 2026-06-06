@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/security/active_record_encryption_key_provider"
+require "jit_security_active_record_encryption_key_provider"
 
 module Jit
   module Security
@@ -26,7 +26,7 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| nil }
 
         Rails.app.stub(:creds, fake_creds) do
-          result = ActiveRecordEncryptionKeyProvider.fetch_from_local
+          result = JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local
 
           assert_equal "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY-value", result[:current]
           assert_equal "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY-value", result[:deterministic]
@@ -41,7 +41,7 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| '["old-key-1", "old-key-2"]' }
 
         Rails.app.stub(:creds, fake_creds) do
-          assert_equal ["old-key-1", "old-key-2"], ActiveRecordEncryptionKeyProvider.parse_local_previous
+          assert_equal ["old-key-1", "old-key-2"], JitSecurityActiveRecordEncryptionKeyProvider.parse_local_previous
         end
       end
 
@@ -51,7 +51,7 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| "old-key" }
 
         Rails.app.stub(:creds, fake_creds) do
-          assert_equal ["old-key"], ActiveRecordEncryptionKeyProvider.parse_local_previous
+          assert_equal ["old-key"], JitSecurityActiveRecordEncryptionKeyProvider.parse_local_previous
         end
       end
 
@@ -61,7 +61,7 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| "{invalid-json" }
 
         Rails.app.stub(:creds, fake_creds) do
-          assert_equal ["{invalid-json"], ActiveRecordEncryptionKeyProvider.parse_local_previous
+          assert_equal ["{invalid-json"], JitSecurityActiveRecordEncryptionKeyProvider.parse_local_previous
         end
       end
 
@@ -71,7 +71,7 @@ module Jit
         fake_creds.define_singleton_method(:option) { |_key, **| nil }
 
         Rails.app.stub(:creds, fake_creds) do
-          result = ActiveRecordEncryptionKeyProvider.fetch
+          result = JitSecurityActiveRecordEncryptionKeyProvider.fetch
 
           assert_equal "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY-value", result[:current]
           assert_equal [], result[:previous]
@@ -85,7 +85,7 @@ module Jit
 
         Rails.app.stub(:creds, fake_creds) do
           Rails.env.stub(:production?, false) do
-            result = ActiveRecordEncryptionKeyProvider.fetch_from_local
+            result = JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local
 
             assert_predicate result[:current], :present?
             assert_predicate result[:deterministic], :present?
@@ -110,7 +110,7 @@ module Jit
         end
 
         Rails.app.stub(:creds, fake_creds) do
-          result = ActiveRecordEncryptionKeyProvider.fetch_from_local
+          result = JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local
 
           assert_equal "current-key", result[:current]
           assert_equal ["old-key"], result[:previous]
@@ -126,7 +126,7 @@ module Jit
 
         Rails.app.stub(:creds, fake_creds) do
           Rails.env.stub(:production?, true) do
-            assert_raises(KeyError) { ActiveRecordEncryptionKeyProvider.fetch_from_local }
+            assert_raises(KeyError) { JitSecurityActiveRecordEncryptionKeyProvider.fetch_from_local }
           end
         end
       end

@@ -5,7 +5,7 @@ module Sign
   module Com
     module Preference
       class LanguagesController < Sign::Com::PreferencesBaseController
-        include ::Acme::PreferenceScreenDispatch
+        include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open
 

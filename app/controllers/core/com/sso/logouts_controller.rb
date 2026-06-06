@@ -5,7 +5,7 @@ module Core
   module Com
     module Sso
       class LogoutsController < Core::Com::ApplicationController
-        include ::Oidc::RpLogout
+        include ::OidcRpLogout
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open

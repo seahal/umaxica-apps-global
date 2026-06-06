@@ -6,7 +6,7 @@ require "test_helper"
 module Sign
   class WebauthnTest < ActionDispatch::IntegrationTest
     class TestController < ApplicationController
-      include Sign::Webauthn
+      include SignWebauthn
 
       # Stub methods required by the concern
       attr_accessor :request, :session

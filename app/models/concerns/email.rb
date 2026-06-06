@@ -26,7 +26,7 @@ module Email
   MAX_OTP_ATTEMPTS = 5
   OTP_ATTEMPT_WINDOW = 15.minutes
   OTP_LOCKOUT_DURATION = 15.minutes
-  OTP_COOLDOWN_PERIOD = Common::OtpPolicy::SEND_COOLDOWN
+  OTP_COOLDOWN_PERIOD = CommonOtpPolicy::SEND_COOLDOWN
 
   attr_accessor :confirm_policy, :pass_code
   attr_writer :raw_address
@@ -148,7 +148,7 @@ module Email
     return false if otp_last_sent_at.blank?
     return false if otp_last_sent_at == -Float::INFINITY
 
-    otp_last_sent_at > Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
+    otp_last_sent_at > CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW.ago
   end
 
   def increment_attempts!
@@ -192,7 +192,7 @@ module Email
     value = raw_address
     return if value.blank?
 
-    normalized = Jit::Utils::EmailValidator.normalize(value)
+    normalized = JitUtilsEmailValidator.normalize(value)
     self.address = normalized if normalized.present?
   end
 
@@ -210,7 +210,7 @@ module Email
       return
     end
 
-    normalized = Jit::Utils::EmailValidator.normalize(raw_address)
+    normalized = JitUtilsEmailValidator.normalize(raw_address)
     return if normalized
 
     errors.add(:address, :invalid)

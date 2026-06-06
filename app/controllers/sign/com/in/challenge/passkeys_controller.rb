@@ -6,7 +6,7 @@ module Sign
     module In
       module Challenge
         class PasskeysController < Sign::Com::ApplicationController
-          include Sign::Webauthn
+          include SignWebauthn
 
           include SessionLimitGate
 
@@ -59,8 +59,8 @@ module Sign
                 allow_credentials: passkeys.map { |pk| { id: pk.webauthn_id } },
                 user_verification: "discouraged",
               )
-          rescue Sign::Webauthn::OriginValidationError => e
-            Rails.logger.error(Jit::LogEvent.format("webauthn.origin_validation_failed", message: e.message))
+          rescue SignWebauthn::OriginValidationError => e
+            Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
             redirect_to(
               sign_com_in_challenge_path(ri: params[:ri]),
               alert: I18n.t("errors.webauthn.origin_invalid"),
@@ -81,8 +81,8 @@ module Sign
             with_challenge(passkey_params[:challenge_id], purpose: :authentication) do |challenge|
               verify_passkey!(challenge)
             end
-          rescue Sign::Webauthn::ChallengeNotFoundError, Sign::Webauthn::ChallengeExpiredError,
-                 Sign::Webauthn::ChallengePurposeMismatchError
+          rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
+                 SignWebauthn::ChallengePurposeMismatchError
             redirect_to(
               sign_com_in_challenge_path(ri: params[:ri]),
               alert: I18n.t("errors.webauthn.challenge_invalid"),
@@ -133,7 +133,7 @@ module Sign
 
             visitor = pending_mfa_user
             unless passkey && visitor && passkey.visitor_id == visitor.id
-              Sign::Risk::Emitter.emit(
+              SignRiskEmitter.emit(
                 "auth_failed",
                 visitor_id: visitor&.id,
                 ip: request.remote_ip,

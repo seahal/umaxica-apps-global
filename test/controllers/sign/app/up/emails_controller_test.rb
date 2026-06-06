@@ -114,7 +114,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Second registration attempt after the independent overwrite window expires (case-variant)
     # This should delete the previous unverified record and create a new one
-    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+    travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       post sign_app_up_email_url(ri: "jp"),
            params: {
              user_email: {
@@ -214,7 +214,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
     assert_includes response.body, ClientEmail.human_attribute_name(:address)
-    assert_nil session[Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
+    assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
   test "create with existing verified-with-sign-up email is rejected" do
@@ -244,7 +244,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
-    assert_nil session[Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
+    assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
   test "create enqueues exactly one email" do
@@ -810,7 +810,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # No authenticated session is issued before checkpoint finalization.
-    assert_nil cookies[::Authentication::Client::ACCESS_COOKIE_KEY]
+    assert_nil cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
 
     # Verify user and token were created
     user = user_email.reload.user
@@ -848,7 +848,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_no_match(/#{Regexp.escape(::Authentication::Client::ACCESS_COOKIE_KEY.to_s)}=/, set_cookie)
+    assert_no_match(/#{Regexp.escape(::AuthenticationClient::ACCESS_COOKIE_KEY.to_s)}=/, set_cookie)
   end
 
   test "email sign up finalizes and establishes login from checkpoint" do
@@ -1309,7 +1309,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     user_count_before_second = Client.count
 
     # Second registration attempt after cooldown (should delete first pending user)
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       post sign_app_up_email_url(ri: "jp"),
            params: {
              user_email: {
@@ -1449,7 +1449,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     # After the overwrite window expires, even though OTP resend cooldown is longer.
-    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+    travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       assert_enqueued_emails 1 do
         post sign_app_up_email_url(ri: "jp"),
              params: {

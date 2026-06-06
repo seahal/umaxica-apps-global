@@ -239,7 +239,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
       user: client,
       name: "Removal guard secret_credential",
       password_digest: "digest",
-      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_secret_kind_id: ClientSecretCredentialKinds::LOGIN,
       user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
     )
   end

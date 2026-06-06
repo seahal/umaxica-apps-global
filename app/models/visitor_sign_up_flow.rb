@@ -59,7 +59,7 @@
 #
 class VisitorSignUpFlow < ComTicketRecord
   include SignFlow
-  include Flow::SignUp
+  include FlowSignUp
   include SignUpFlowTicket
 
   STATUS_MODEL = VisitorSignUpFlowStatus

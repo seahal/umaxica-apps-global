@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Preference::GlobalCoverageTest < ActiveSupport::TestCase
+class PreferenceGlobalCoverageTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Preference::Global
+    include PreferenceGlobal
 
     attr_accessor :params_hash, :session_hash, :request_obj, :redirected, :cookies_hash
 

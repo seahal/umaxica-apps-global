@@ -43,7 +43,7 @@
 #  fk_rails_...  (chronicle_retention_policy_id => chronicle_retention_policies.id)
 #
 class Chronicle < ChronicleRecord
-  include Chronicle::Capturable
+  include ChronicleCapturable
 
   RESULTS = %w(intent succeeded failed audit_incomplete invalidated manual_recovery_required).freeze
   MAX_ACTION_LENGTH = 128
@@ -76,9 +76,9 @@ class Chronicle < ChronicleRecord
   private
 
   def sanitize_json_payloads
-    self.metadata = Chronicle::Recorder.sanitize(metadata || {})
-    self.changeset = Chronicle::Recorder.sanitize(changeset || {})
-    self.reason = Chronicle::Recorder.sanitize_text(reason)
+    self.metadata = ChronicleRecorder.sanitize(metadata || {})
+    self.changeset = ChronicleRecorder.sanitize(changeset || {})
+    self.reason = ChronicleRecorder.sanitize_text(reason)
   end
 
   def erasable_at_matches_retention_policy

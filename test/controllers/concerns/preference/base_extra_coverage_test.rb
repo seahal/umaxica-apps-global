@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
+class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
   extend ActiveSupport::Testing::Declarative
 
   class Harness < ApplicationController
-    include Preference::Base
+    include PreferenceBase
 
     attr_accessor :session_hash, :cookies_hash, :request_obj, :rendered, :redirected, :response_obj
 
@@ -120,7 +120,7 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "option_id_to_language with EN" do
     prefix = "App"
-    option_class = Preference::ClassRegistry.option_class(prefix, :language)
+    option_class = PreferenceClassRegistry.option_class(prefix, :language)
     if option_class.const_defined?(:EN)
       assert_equal "en", @harness.send(:option_id_to_language, option_class::EN, prefix)
     end
@@ -130,7 +130,7 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "option_id_to_region with US" do
     prefix = "App"
-    option_class = Preference::ClassRegistry.option_class(prefix, :region)
+    option_class = PreferenceClassRegistry.option_class(prefix, :region)
 
     assert_equal "us", @harness.send(:option_id_to_region, option_class::US, prefix)
     assert_equal "jp", @harness.send(:option_id_to_region, option_class::JP, prefix)
@@ -138,7 +138,7 @@ class Preference::BaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "option_id_to_timezone with ETC_UTC" do
     prefix = "App"
-    option_class = Preference::ClassRegistry.option_class(prefix, :timezone)
+    option_class = PreferenceClassRegistry.option_class(prefix, :timezone)
 
     assert_equal "Etc/UTC", @harness.send(:option_id_to_timezone, option_class::ETC_UTC, prefix)
     assert_equal "Asia/Tokyo", @harness.send(:option_id_to_timezone, option_class::ASIA_TOKYO, prefix)

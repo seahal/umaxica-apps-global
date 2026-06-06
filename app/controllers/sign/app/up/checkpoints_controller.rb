@@ -5,7 +5,7 @@ module Sign
   module App
     module Up
       class CheckpointsController < Sign::App::ApplicationController
-        include Sign::Up::SequenceControllerSupport
+        include SignUpSequenceControllerSupport
 
         AUTHENTICATION_MODE = :guest
 
@@ -34,9 +34,9 @@ module Sign
 
         def cancel_sign_up_ticket
           if @sign_up_ticket.social_entry_method?
-            Sign::App::Up::SocialCancellation.call(cycle: @sign_up_ticket)
+            SignAppUpSocialCancellation.call(cycle: @sign_up_ticket)
           else
-            SignUp::Cancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
+            SignUpCancellation.call(cycle: @sign_up_ticket, actor_context: Actor.authn)
           end
         end
 

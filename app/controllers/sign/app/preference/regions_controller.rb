@@ -5,7 +5,7 @@ module Sign
   module App
     module Preference
       class RegionsController < Sign::App::PreferencesBaseController
-        include ::Acme::PreferenceScreenDispatch
+        include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open
 

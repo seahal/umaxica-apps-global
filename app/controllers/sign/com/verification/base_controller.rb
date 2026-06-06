@@ -5,20 +5,20 @@ module Sign
   module Com
     module Verification
       class BaseController < Sign::Com::ApplicationController
-        include Sign::ComVerificationBase
-        include ::Preference::Global
-        include Common::Otp
-        include ::Authentication::Visitor
-        include ::Verification::Visitor
-        include Sign::Webauthn
-        include Sign::VerificationTiming
-        include Sign::VerificationCommonBase
-        include Sign::VerificationAuditAndCookie
-        include Sign::VerificationStepUpSessionStore
-        include Sign::VerificationStepUpLifecycle
-        include Sign::VerificationPasskeyChecks
-        include Sign::EmailOtpVerificationSupport
-        prepend Sign::ComVerificationBase::Overrides
+        include SignComVerificationBase
+        include ::PreferenceGlobal
+        include CommonOtp
+        include ::AuthenticationVisitor
+        include ::VerificationVisitor
+        include SignWebauthn
+        include SignVerificationTiming
+        include SignVerificationCommonBase
+        include SignVerificationAuditAndCookie
+        include SignVerificationStepUpSessionStore
+        include SignVerificationStepUpLifecycle
+        include SignVerificationPasskeyChecks
+        include SignEmailOtpVerificationSupport
+        prepend SignComVerificationBase::Overrides
 
         AUTHENTICATION_MODE = :private
 
@@ -142,7 +142,7 @@ module Sign
           )
 
           Email::Com::OtpMailer.with(
-            encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(pass_code),
+            encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(pass_code),
             email_address: visitor_email.address,
             public_id: current_visitor.public_id,
             verification_token: nil,

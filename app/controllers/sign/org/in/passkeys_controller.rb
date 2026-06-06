@@ -11,25 +11,25 @@ module Sign
       # 2. POST /in/passkeys/options with identifier to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.get()
       # 4. POST /in/passkeys/verification with credential + challenge_id
-      # 5. Server verifies and establishes session via Authentication::Base#log_in
+      # 5. Server verifies and establishes session via AuthenticationBase#log_in
       #
       # Note: Discoverable credentials (passwordless without identifier) are
       # planned for a future phase. Currently, identifier is required to look up
       # the operator's registered passkeys.
       class PasskeysController < Sign::Org::ApplicationController
-        include Sign::Webauthn
+        include SignWebauthn
 
-        include Sign::PasskeyAuthentication
+        include SignPasskeyAuthentication
 
-        include Sign::PasskeyAuthenticationHelpers
+        include SignPasskeyAuthenticationHelpers
 
-        include Sign::PasskeyOptionsFlow
+        include SignPasskeyOptionsFlow
 
-        include Sign::PasskeyVerificationFlow
+        include SignPasskeyVerificationFlow
 
-        include Sign::PasskeySignInFlow
+        include SignPasskeySignInFlow
 
-        include Sign::PasskeyLoginResultFlow
+        include SignPasskeyLoginResultFlow
 
         include MinimumResponseBudget
 

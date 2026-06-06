@@ -5,8 +5,8 @@ module Acme
   module Org
     module Auth
       class CallbacksController < Acme::Org::ApplicationController
-        include ::Oidc::Callback
-        include ::Oidc::RpIdentityProvisioning
+        include ::OidcCallback
+        include ::OidcRpIdentityProvisioning
 
         AUTHENTICATION_MODE = :open
         class_attribute :oidc_rp_actor_class_name, instance_accessor: false # rubocop:disable ThreadSafety/ClassAndModuleAttributes

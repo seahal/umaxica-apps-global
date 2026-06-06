@@ -4,18 +4,18 @@
 require "test_helper"
 
 class IdHostEnvCoverageTest < ActiveSupport::TestCase
-  test "Jit::IdHostEnv coverage" do
+  test "JitIdHostEnv coverage" do
     with_env(
       "ID_SERVICE_URL" => "id.app.example.test", "ID_CORPORATE_URL" => "id.com.example.test",
       "ID_STAFF_URL" => "id.org.example.test",
     ) do
-      assert_equal "id.app.example.test", Jit::IdHostEnv.service_url
-      assert_equal "id.org.example.test", Jit::IdHostEnv.staff_url
-      assert_nil Jit::IdHostEnv.validate!
+      assert_equal "id.app.example.test", JitIdHostEnv.service_url
+      assert_equal "id.org.example.test", JitIdHostEnv.staff_url
+      assert_nil JitIdHostEnv.validate!
     end
 
     with_env("ID_SERVICE_URL" => nil) do
-      error = assert_raises(Jit::IdHostEnv::MissingHostError) { Jit::IdHostEnv.validate! }
+      error = assert_raises(JitIdHostEnv::MissingHostError) { JitIdHostEnv.validate! }
       assert_includes error.message, "ID_SERVICE_URL"
     end
   end

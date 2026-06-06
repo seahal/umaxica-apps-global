@@ -26,9 +26,9 @@ module Sign
       test "does nothing if feature flag is off" do
         ENV["RISK_ENFORCEMENT_ENABLED"] = "false"
 
-        Engine.stub(:score, 100) do
-          Enforcer.stub(:revoke!, ->(_) { raise RuntimeError, "Should not be called" }) do
-            result = Enforcer.call(@user)
+        SignRiskEngine.stub(:score, 100) do
+          SignRiskEnforcer.stub(:revoke!, ->(_) { raise RuntimeError, "Should not be called" }) do
+            result = SignRiskEnforcer.call(@user)
 
             assert_nil result
           end
@@ -36,11 +36,11 @@ module Sign
       end
 
       test "revokes if score is 100" do
-        Engine.stub(:score, 100) do
-          # Enforcer.revoke! should be called
+        SignRiskEngine.stub(:score, 100) do
+          # SignRiskEnforcer.revoke! should be called
           called = false
-          Enforcer.stub(:revoke!, ->(u) { called = true; assert_equal @user, u }) do
-            Enforcer.call(@user)
+          SignRiskEnforcer.stub(:revoke!, ->(u) { called = true; assert_equal @user, u }) do
+            SignRiskEnforcer.call(@user)
           end
 
           assert called, "revoke! should have been called"
@@ -58,8 +58,8 @@ module Sign
           last_step_up_scope: "settings_email",
         )
 
-        Engine.stub(:score, 60) do
-          Enforcer.call(@user)
+        SignRiskEngine.stub(:score, 60) do
+          SignRiskEnforcer.call(@user)
         end
 
         token.reload
@@ -80,8 +80,8 @@ module Sign
           last_step_up_scope: "settings_passkey",
         )
 
-        Engine.stub(:score, 60) do
-          Enforcer.call(staff)
+        SignRiskEngine.stub(:score, 60) do
+          SignRiskEnforcer.call(staff)
         end
 
         token.reload
@@ -91,10 +91,10 @@ module Sign
       end
 
       test "does nothing if score is 0" do
-        Engine.stub(:score, 0) do
-          Enforcer.stub(:revoke!, ->(_) { raise RuntimeError, "Should not be called" }) do
-            Enforcer.stub(:require_step_up!, ->(_) { raise RuntimeError, "Should not be called" }) do
-              result = Enforcer.call(@user)
+        SignRiskEngine.stub(:score, 0) do
+          SignRiskEnforcer.stub(:revoke!, ->(_) { raise RuntimeError, "Should not be called" }) do
+            SignRiskEnforcer.stub(:require_step_up!, ->(_) { raise RuntimeError, "Should not be called" }) do
+              result = SignRiskEnforcer.call(@user)
 
               assert_nil result
             end
@@ -115,10 +115,10 @@ module Sign
         )
 
         # 1. Emit risk event (writes to occurrences)
-        Sign::Risk::Emitter.emit("refresh_reuse_detected", user_id: @user.id)
+        SignRiskEmitter.emit("refresh_reuse_detected", user_id: @user.id)
 
-        # 2. Call Enforcer (reads occurrences via Engine, then revokes)
-        Sign::Risk::Enforcer.call(@user)
+        # 2. Call SignRiskEnforcer (reads occurrences via SignRiskEngine, then revokes)
+        SignRiskEnforcer.call(@user)
 
         # 3. Check revocation
         token.reload

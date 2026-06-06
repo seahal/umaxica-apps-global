@@ -7,7 +7,7 @@ class OidcCallbackTestController < ApplicationController
   def self.declare_authentication_mode!(*)
   end
 
-  include Oidc::Callback
+  include OidcCallback
 
   def seed
     session[:oidc_code_verifier] = params[:code_verifier] if params.key?(:code_verifier)
@@ -23,7 +23,7 @@ class OidcCallbackTestController < ApplicationController
   end
 
   def oidc_client_secret
-    Oidc::ClientRegistry.find!("acme_app").client_secret
+    OidcClientRegistry.find!("acme_app").client_secret
   end
 
   def oidc_token_url
@@ -31,7 +31,7 @@ class OidcCallbackTestController < ApplicationController
   end
 
   def oidc_callback_url
-    Oidc::ClientRegistry.find!("acme_app").redirect_uris.first
+    OidcClientRegistry.find!("acme_app").redirect_uris.first
   end
 
   def oidc_resource_type
@@ -49,7 +49,7 @@ class OidcCallbackTestController < ApplicationController
   end
 end
 
-class Oidc::CallbackTest < ActionDispatch::IntegrationTest
+class OidcCallbackTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   setup do
@@ -81,8 +81,8 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
       error: nil,
     )
 
-    Oidc::RpTokenClient.stub(:call, result) do
-      Oidc::IdTokenVerifier.stub(:call, id_token_result) do
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
         get "/oidc/callback", params: { code: "abc", state: "state" }
       end
     end
@@ -102,7 +102,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
     )
     logged = []
 
-    Oidc::RpTokenClient.stub(:call, result) do
+    OidcRpTokenClient.stub(:call, result) do
       Rails.logger.stub(
         :info, ->(message = nil, &block) {
                  message = block.call if message.nil? && block
@@ -121,7 +121,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
   test "show rejects mismatched state before token exchange" do
     get "/oidc/callback/session", params: { state: "expected" }
 
-    Oidc::RpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for state mismatch") }) do
+    OidcRpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for state mismatch") }) do
       get "/oidc/callback", params: { code: "abc", state: "wrong" }
     end
 
@@ -144,8 +144,8 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
       error: nil,
     )
 
-    Oidc::RpTokenClient.stub(:call, result) do
-      Oidc::IdTokenVerifier.stub(:call, id_token_result) do
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
         assert_raises(KeyError) do
           get "/oidc/callback", params: { code: "abc", state: "state" }
         end
@@ -160,7 +160,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
         def self.declare_authentication_mode!(*)
         end
 
-        include Oidc::Callback
+        include OidcCallback
       end
 
     assert_raises(NotImplementedError) do
@@ -174,7 +174,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
         def self.declare_authentication_mode!(*)
         end
 
-        include Oidc::Callback
+        include OidcCallback
 
         define_method(:oidc_client_id) do
           "test-client"
@@ -183,7 +183,7 @@ class Oidc::CallbackTest < ActionDispatch::IntegrationTest
 
     client_mock = Struct.new(:client_secret).new("mock_secret_credential")
 
-    Oidc::ClientRegistry.stub(:find, client_mock) do
+    OidcClientRegistry.stub(:find, client_mock) do
       assert_equal "mock_secret_credential", dummy_class.new.send(:oidc_client_secret)
     end
   end

@@ -6,8 +6,8 @@ module Acme
     module Settings
       class ConnectionsController < Acme::App::ApplicationController
         include CloudflareTurnstile
-        include Acme::Settings::OidcConnectionsManagement
-        include ::Verification::Client
+        include AcmeSettingsOidcConnectionsManagement
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -77,7 +77,7 @@ module Acme
 
         def social_provider_param
           provider = params[:provider].to_s
-          return provider if Identity::SocialCeremony::Contract::PROVIDERS.include?(provider)
+          return provider if IdentitySocialCeremonyContract::PROVIDERS.include?(provider)
 
           raise ActionController::BadRequest, "invalid social provider"
         end
@@ -116,7 +116,7 @@ module Acme
         end
 
         def verification_scope
-          (action_name == "social_unlink") ? "social_unlink" : SocialAuthConcern::SOCIAL_LINK_SCOPE
+          (action_name == "social_unlink") ? "social_unlink" : SocialAuth::SOCIAL_LINK_SCOPE
         end
       end
     end

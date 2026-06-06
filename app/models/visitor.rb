@@ -53,10 +53,10 @@ class Visitor < ComPrincipalRecord
   include HasBirthdate
   include ::PublicId
   include ::Identity
-  include Authentication::CredentialInventoryOwner
+  include AuthenticationCredentialInventoryOwner
   include MfaLevelConfigurable
   include MfaStatusTrackable
-  include Actor::LifecycleConsistency
+  include ActorLifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [VisitorStatus::RESERVED].freeze
   VERIFIED_RECOVERY_EMAIL_STATUS_IDS = [
@@ -118,13 +118,13 @@ class Visitor < ComPrincipalRecord
            dependent: :destroy,
            inverse_of: :visitor
   # Cross-database (com_signal DB). Purged explicitly via
-  # Retention::CrossDatabaseChildPurge from the account purge path, not by an
+  # RetentionCrossDatabaseChildPurge from the account purge path, not by an
   # implicit cross-DB AR cascade.
   has_many :notification_records,
            class_name: "VisitorNotificationRecord",
            inverse_of: :visitor
   # Cross-database (com_zenith DB). Purged explicitly via
-  # Retention::CrossDatabaseChildPurge, not by an implicit cross-DB cascade.
+  # RetentionCrossDatabaseChildPurge, not by an implicit cross-DB cascade.
   has_one :rp_account,
           class_name: "VisitorAccount",
           inverse_of: :visitor,

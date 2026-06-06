@@ -43,8 +43,8 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_predicate cookies[Preference::CookieName.access(surface: :com)], :present?
-    assert_predicate cookies[Preference::CookieName.refresh(surface: :com)], :present?
+    assert_predicate cookies[PreferenceCookieName.access(surface: :com)], :present?
+    assert_predicate cookies[PreferenceCookieName.refresh(surface: :com)], :present?
   end
 
   test "sets theme cookie" do

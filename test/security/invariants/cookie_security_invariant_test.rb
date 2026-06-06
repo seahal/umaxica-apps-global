@@ -22,8 +22,8 @@ module Security
         end
 
       test "production auth cookie names use host prefix" do
-        assert_equal "__Host-auth_access", Authentication::CookieName.access(production: true)
-        assert_equal "__Host-auth_refresh", Authentication::CookieName.refresh(production: true)
+        assert_equal "__Host-auth_access", AuthenticationCookieName.access(production: true)
+        assert_equal "__Host-auth_refresh", AuthenticationCookieName.refresh(production: true)
       end
 
       test "auth cookies use secure host-prefix compatible attributes" do
@@ -31,7 +31,7 @@ module Security
         request = Request.new("id.app.example")
 
         with_force_secure_cookies do
-          Authentication::CookieService.new(cookies, request).set_auth_cookies(
+          AuthenticationCookieService.new(cookies, request).set_auth_cookies(
             access_token: "access-token",
             refresh_token: "refresh-token",
             access_ttl: 15.minutes,
@@ -39,23 +39,23 @@ module Security
           )
         end
 
-        assert_auth_cookie_options(cookies.writes.fetch(Authentication::CookieName.access))
-        assert_auth_cookie_options(cookies.writes.fetch(Authentication::CookieName.refresh))
+        assert_auth_cookie_options(cookies.writes.fetch(AuthenticationCookieName.access))
+        assert_auth_cookie_options(cookies.writes.fetch(AuthenticationCookieName.refresh))
       end
 
       test "production session cookie is secure httponly lax and host-prefixed" do
-        assert Jit::SessionCookieConfig.force_secure?(
+        assert JitSessionCookieConfig.force_secure?(
           id_service_host: "id.app.example",
           rails_env: ActiveSupport::StringInquirer.new("production"),
         )
-        assert_equal "__Host-session", Jit::SessionCookieConfig.cookie_key(force_secure: true)
-        assert Jit::SessionCookieConfig.partitioned?(rails_env: ActiveSupport::StringInquirer.new("production"))
+        assert_equal "__Host-session", JitSessionCookieConfig.cookie_key(force_secure: true)
+        assert JitSessionCookieConfig.partitioned?(rails_env: ActiveSupport::StringInquirer.new("production"))
 
         session_options = Rails.application.config.session_options
 
         assert session_options[:httponly]
         assert_equal :lax, session_options[:same_site]
-        assert Jit::SessionCookieConfig.force_secure?(
+        assert JitSessionCookieConfig.force_secure?(
           id_service_host: "id.app.example",
           rails_env: ActiveSupport::StringInquirer.new("production"),
         )

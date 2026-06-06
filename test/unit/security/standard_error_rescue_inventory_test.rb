@@ -11,7 +11,7 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 6,
       classification: "auth boundary; each rescue logs and re-raises ActorSupport::ResolutionError",
     },
-    "app/controllers/concerns/authentication/logoutable.rb" => {
+    "app/controllers/concerns/authentication_logoutable.rb" => {
       count: 4,
       classification: "logout boundary; each rescue logs and re-raises after session cleanup",
     },
@@ -23,7 +23,7 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 1,
       classification: "callback boundary; clears intent and re-raises",
     },
-    "app/controllers/concerns/authentication/audit_writer.rb" => {
+    "app/controllers/concerns/authentication_audit_writer.rb" => {
       count: 4,
       classification: "best-effort audit side effect with outbox/fallback recovery",
     },
@@ -31,39 +31,39 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 1,
       classification: "best-effort authorization failure audit side effect",
     },
-    "app/controllers/concerns/preference/adoption.rb" => {
+    "app/controllers/concerns/preference_adoption.rb" => {
       count: 2,
       classification: "best-effort preference adoption side effect",
     },
-    "app/controllers/concerns/preference/base.rb" => {
+    "app/controllers/concerns/preference_base.rb" => {
       count: 2,
       classification: "preference token/cookie degradation; auth state must not depend on this",
     },
-    "app/controllers/concerns/preference/core.rb" => {
+    "app/controllers/concerns/preference_core.rb" => {
       count: 2,
       classification: "preference persistence side effect; resolution errors are re-raised separately",
     },
-    "app/controllers/concerns/preference/resource_sync.rb" => {
+    "app/controllers/concerns/preference_resource_sync.rb" => {
       count: 1,
       classification: "preference resource sync side effect; resolution errors are re-raised separately",
     },
-    "app/controllers/concerns/preference/transport.rb" => {
+    "app/controllers/concerns/preference_transport.rb" => {
       count: 1,
       classification: "preference refresh transport side effect; resolution errors are re-raised separately",
     },
-    "app/controllers/concerns/authentication/base.rb" => {
+    "app/controllers/concerns/authentication_base.rb" => {
       count: 5,
       classification: "mixed legacy inventory; each site needs follow-up before changing behavior",
     },
-    "app/controllers/concerns/sign/passkey_authentication.rb" => {
+    "app/controllers/concerns/sign_passkey_authentication.rb" => {
       count: 1,
       classification: "WebAuthn error response boundary",
     },
-    "app/controllers/concerns/sign/passkey_options_flow.rb" => {
+    "app/controllers/concerns/sign_passkey_options_flow.rb" => {
       count: 1,
       classification: "WebAuthn options error response boundary",
     },
-    "app/controllers/concerns/sign/passkey_verification_flow.rb" => {
+    "app/controllers/concerns/sign_passkey_verification_flow.rb" => {
       count: 1,
       classification: "WebAuthn verification error response boundary",
     },

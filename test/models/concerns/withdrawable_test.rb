@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class WithdrawableConcernTest < ActiveSupport::TestCase
+class WithdrawableTest < ActiveSupport::TestCase
   test "recovery and permanent deletion boundary at exactly 31 days" do
     user = Client.find_by!(public_id: "one_id")
 

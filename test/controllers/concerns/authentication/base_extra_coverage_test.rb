@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
+class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
   class FakeRequest
     attr_accessor :headers, :format, :host, :original_url, :remote_ip, :user_agent, :request_id, :fullpath,
                   :request_method
@@ -42,7 +42,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   class Harness < ApplicationController
-    include Authentication::Base
+    include AuthenticationBase
 
     attr_accessor :session_hash, :request_obj, :rendered, :redirected, :marked_as_read
 
@@ -160,14 +160,14 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "maybe_inject_test_bulletin! injects session when in test env" do
-    @harness.request.headers[Auth::IoKeys::Headers::TEST_BULLETIN] = { bulletin_id: 123 }.to_json
+    @harness.request.headers[AuthIoKeys::Headers::TEST_BULLETIN] = { bulletin_id: 123 }.to_json
     @harness.maybe_inject_test_bulletin!
 
-    assert_equal 123, @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["bulletin_id"]
+    assert_equal 123, @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["bulletin_id"]
   end
 
   test "bulletin_active? and bulletin_expired?" do
-    @harness.session[Authentication::Base::BULLETIN_SESSION_KEY] = {
+    @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY] = {
       "issued_at" => Time.current.to_i,
       "bulletin_id" => 1,
     }
@@ -175,7 +175,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     assert_predicate @harness, :bulletin_active?
     assert_not @harness.bulletin_expired?
 
-    @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["issued_at"] = 3.hours.ago.to_i
+    @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["issued_at"] = 3.hours.ago.to_i
 
     assert_predicate @harness, :bulletin_expired?
   end
@@ -184,23 +184,23 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     @harness.current_resource = Client.new
 
     assert @harness.issue_bulletin!(kind: "welcome")
-    assert_equal "welcome", @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["kind"]
+    assert_equal "welcome", @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["kind"]
   end
 
   test "refresh_bulletin_dimension! updates issued_at" do
-    @harness.session[Authentication::Base::BULLETIN_SESSION_KEY] = { "issued_at" => 1.hour.ago.to_i }
+    @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY] = { "issued_at" => 1.hour.ago.to_i }
     @harness.refresh_bulletin_dimension!(state: "refreshed")
 
-    assert_operator @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["issued_at"], :>, 1.minute.ago.to_i
-    assert_equal "refreshed", @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]["state"]
+    assert_operator @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["issued_at"], :>, 1.minute.ago.to_i
+    assert_equal "refreshed", @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["state"]
   end
 
   test "consume_bulletin! clears session" do
-    @harness.session[Authentication::Base::BULLETIN_SESSION_KEY] = { "bulletin_id" => 1 }
+    @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY] = { "bulletin_id" => 1 }
     @harness.current_resource = Client.new
     @harness.consume_bulletin!
 
-    assert_nil @harness.session[Authentication::Base::BULLETIN_SESSION_KEY]
+    assert_nil @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]
   end
 
   test "load_authentication_session handles missing session" do
@@ -249,7 +249,7 @@ class Authentication::BaseExtraCoverageTest < ActiveSupport::TestCase
     end
     @harness.request.host = "localhost"
 
-    Authentication::Base::Token.stub(
+    AuthenticationToken.stub(
       :extract_session_id_allow_expired,
       ->(token, host:, resource_type:, issuer: nil, audiences: nil, jwt_issuer_id: nil) {
         assert_equal "access-token", token

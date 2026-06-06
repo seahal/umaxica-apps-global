@@ -24,7 +24,7 @@ module Verification
           end
         end
 
-        include Verification::StepUpGuard
+        include VerificationStepUpGuard
 
         define_method(:verification_scope) { verification_scope }
 

@@ -3,14 +3,14 @@
 
 require "test_helper"
 
-class Identity::AuditTest < ActiveSupport::TestCase
+class IdentityAuditTest < ActiveSupport::TestCase
   fixtures :clients, :client_chronicle_events, :client_chronicle_levels
 
   test "records client chronicle with request context" do
     actor = clients(:one)
 
     assert_difference("ClientChronicle.count", 1) do
-      Identity::Audit.record!(
+      IdentityAudit.record!(
         actor: actor,
         event_id: ClientChronicleEvent::PASSKEY_REGISTERED,
         action: "passkey.register",

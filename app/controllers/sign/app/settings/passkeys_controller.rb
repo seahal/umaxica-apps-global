@@ -20,13 +20,13 @@ module Sign
       # - PATCH /settings/passkeys/:id (update - description only)
       # - DELETE /settings/passkeys/:id (destroy)
       class PasskeysController < Sign::App::ApplicationController
-        include ::Verification::Client
+        include ::VerificationClient
 
-        include Sign::Webauthn
-        include Sign::PasskeyCeremonyDelegation
+        include SignWebauthn
+        include SignPasskeyCeremonyDelegation
 
         include ::CloudflareTurnstile
-        include ::Sign::AcmeAuthorityRedirect
+        include ::SignAcmeAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
 
@@ -101,17 +101,17 @@ module Sign
             challenge_id: challenge_id,
             options: creation_options,
           }, status: :ok
-        rescue Sign::Webauthn::OriginValidationError => e
+        rescue SignWebauthn::OriginValidationError => e
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.webauthn.registration.origin_validation_failed", message: e.message,
                                                                      exception: e,
             ),
           )
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
-        rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
+        rescue SignWebauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.webauthn.registration.options_failed", message: e.message,
                                                            exception: e,
             ),
@@ -147,30 +147,30 @@ module Sign
             issue_emergency_key_if_available!
             render_verification_success(passkey)
           end
-        rescue Sign::Webauthn::ChallengeNotFoundError,
-               Sign::Webauthn::ChallengeExpiredError => e
-          Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
+        rescue SignWebauthn::ChallengeNotFoundError,
+               SignWebauthn::ChallengeExpiredError => e
+          Rails.logger.warn(JitLogEvent.format("sign.webauthn.registration.challenge_error", message: e.message))
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-        rescue Sign::Webauthn::ChallengePurposeMismatchError => e
+        rescue SignWebauthn::ChallengePurposeMismatchError => e
           Rails.logger.warn(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.webauthn.registration.challenge_purpose_mismatch",
               message: e.message,
             ),
           )
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue WebAuthn::Error => e
-          Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.failed", message: e.message))
+          Rails.logger.warn(JitLogEvent.format("sign.webauthn.registration.failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
-        rescue Identity::PasskeyCeremony::Error => e
-          Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.commit_failed", message: e.message))
+        rescue IdentityPasskeyCeremonyContract::Error => e
+          Rails.logger.warn(JitLogEvent.format("sign.webauthn.registration.commit_failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
         rescue ActiveRecord::RecordNotUnique
           render json: { error: I18n.t("errors.webauthn.credential_already_registered") }, status: :conflict
         rescue ActiveRecord::RecordInvalid => e
-          Rails.logger.warn(Jit::LogEvent.format("sign.webauthn.registration.persist_failed", message: e.message))
+          Rails.logger.warn(JitLogEvent.format("sign.webauthn.registration.persist_failed", message: e.message))
           render plain: e.record.errors.full_messages.join("\n"), status: :unprocessable_content
         end
 
@@ -248,7 +248,7 @@ module Sign
         end
 
         def commit_passkey_ceremony!(credential, challenge_id)
-          candidate = Identity::PasskeyCeremony::ResultIssuer::Candidate.new(
+          candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
             webauthn_id: credential.id,
             public_key: credential.public_key,
             sign_count: credential.sign_count,
@@ -300,8 +300,8 @@ module Sign
         def issue_emergency_key_if_available!
           return unless current_client.has_verified_recovery_identity?
 
-          result = ClientSecretCredentials::IssueRecovery.call(actor: current_client, user: current_client)
-          reveal = Identity::OneTimeReveal.issue!(
+          result = ClientSecretCredentialsIssueRecovery.call(actor: current_client, user: current_client)
+          reveal = IdentityOneTimeReveal.issue!(
             actor: current_client,
             session_nonce: current_session_token&.public_id,
             value: result.raw_secret_credential,

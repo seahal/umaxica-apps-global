@@ -5,11 +5,11 @@ module Sign
   module App
     module Settings
       class TelephonesController < Sign::App::ApplicationController
-        include Common::Redirect
-        include Common::Otp
-        include Sign::TelephoneRegistrable
+        include CommonRedirect
+        include CommonOtp
+        include SignTelephoneRegistrable
 
-        include ::Verification::Client
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
 

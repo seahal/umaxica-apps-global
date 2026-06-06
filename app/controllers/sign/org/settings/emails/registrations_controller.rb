@@ -8,10 +8,10 @@ module Sign
         class RegistrationsController < Sign::Org::ApplicationController
           include ::CloudflareTurnstile
 
-          include ::Common::Otp
-          include Sign::EmailCeremonyDelegation
+          include ::CommonOtp
+          include SignEmailCeremonyDelegation
 
-          include ::Verification::Operator
+          include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private
 
@@ -70,7 +70,7 @@ module Sign
             end
 
             Email::Org::OtpMailer.with(
-              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
+              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
               email_address: @staff_email.address,
               verification_token: nil,
               public_id: @staff_email.public_id,

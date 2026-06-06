@@ -21,7 +21,7 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_match %r{/auth/google_app}, response.location
-    assert_equal "step_up", session[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
+    assert_equal "step_up", session[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
     assert_predicate session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
     assert_nil @user.reload.last_step_up_at
   end

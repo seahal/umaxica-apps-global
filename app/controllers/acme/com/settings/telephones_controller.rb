@@ -5,7 +5,7 @@ module Acme
   module Com
     module Settings
       class TelephonesController < Acme::Com::ApplicationController
-        include ::Verification::Visitor
+        include ::VerificationVisitor
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private

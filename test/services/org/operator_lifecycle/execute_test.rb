@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Org::OperatorLifecycle::ExecuteTest < ActiveSupport::TestCase
+class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
   fixtures :operators, :operator_tokens, :operator_token_statuses, :operator_token_kinds,
            :operator_token_binding_methods, :operator_token_dbsc_statuses
 
@@ -16,7 +16,7 @@ class Org::OperatorLifecycle::ExecuteTest < ActiveSupport::TestCase
       requested_by_operator: target,
     )
 
-    result = Org::OperatorLifecycle::Execute.call(request: request, actor: operators(:two))
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
 
     assert_predicate result, :success?
     assert_predicate request.reload, :executed?
@@ -33,7 +33,7 @@ class Org::OperatorLifecycle::ExecuteTest < ActiveSupport::TestCase
       requested_by_operator: operators(:one),
     )
 
-    result = Org::OperatorLifecycle::Execute.call(request: request, actor: operators(:one))
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:one))
 
     assert_not result.success?
     assert_predicate request.reload, :approved?
@@ -51,7 +51,7 @@ class Org::OperatorLifecycle::ExecuteTest < ActiveSupport::TestCase
       approved_at: Time.current,
     )
 
-    result = Org::OperatorLifecycle::Execute.call(request: request, actor: operators(:two))
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
 
     assert_predicate result, :success?
     assert_predicate request.reload, :executed?

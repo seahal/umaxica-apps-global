@@ -4,7 +4,7 @@
 require "test_helper"
 
 class TestAuthOperatorController < ApplicationController
-  include Authentication::Operator
+  include AuthenticationOperator
 end
 
 module Auth
@@ -13,14 +13,14 @@ module Auth
       @controller = TestAuthOperatorController.new
     end
 
-    test "Operator concern includes Authentication::Base" do
-      assert_includes TestAuthOperatorController.ancestors, Authentication::Base
+    test "Operator concern includes AuthenticationBase" do
+      assert_includes TestAuthOperatorController.ancestors, AuthenticationBase
     end
 
-    test "constants are inherited from Authentication::Base" do
-      assert_equal Authentication::Base::ACCESS_COOKIE_KEY, Authentication::Operator::ACCESS_COOKIE_KEY
-      assert_equal Authentication::Base::REFRESH_COOKIE_KEY, Authentication::Operator::REFRESH_COOKIE_KEY
-      assert_equal Authentication::Base::AUDIT_EVENTS, Authentication::Operator::AUDIT_EVENTS
+    test "constants are inherited from AuthenticationBase" do
+      assert_equal AuthenticationBase::ACCESS_COOKIE_KEY, AuthenticationOperator::ACCESS_COOKIE_KEY
+      assert_equal AuthenticationBase::REFRESH_COOKIE_KEY, AuthenticationOperator::REFRESH_COOKIE_KEY
+      assert_equal AuthenticationBase::AUDIT_EVENTS, AuthenticationOperator::AUDIT_EVENTS
     end
 
     test "resource_class returns Operator" do

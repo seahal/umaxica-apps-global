@@ -3,13 +3,13 @@
 
 require "test_helper"
 
-class Org::OperatorLifecycle::ApproveTest < ActiveSupport::TestCase
+class OrgOperatorLifecycleApproveTest < ActiveSupport::TestCase
   fixtures :operators
 
   test "prevents requester from approving their own request" do
     request = create_request(requested_by_operator: operators(:one))
 
-    result = Org::OperatorLifecycle::Approve.call(request: request, actor: operators(:one))
+    result = OrgOperatorLifecycleApprove.call(request: request, actor: operators(:one))
 
     assert_not result.success?
     assert_predicate request.reload, :pending?
@@ -18,7 +18,7 @@ class Org::OperatorLifecycle::ApproveTest < ActiveSupport::TestCase
   test "approves pending request by another operator" do
     request = create_request(requested_by_operator: operators(:one))
 
-    result = Org::OperatorLifecycle::Approve.call(request: request, actor: operators(:two))
+    result = OrgOperatorLifecycleApprove.call(request: request, actor: operators(:two))
 
     assert_predicate result, :success?
     assert_predicate request.reload, :approved?

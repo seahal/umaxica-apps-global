@@ -21,7 +21,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     surface = :app
 
-    options = Core::CookieOptions.for(surface: surface, request: request, secure: true)
+    options = CoreCookieOptions.for(surface: surface, request: request, secure: true)
 
     assert options[:httponly]
     assert options[:secure]
@@ -31,7 +31,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     surface = :app
 
-    options = Core::CookieOptions.for(surface: surface, request: request, same_site: :strict)
+    options = CoreCookieOptions.for(surface: surface, request: request, same_site: :strict)
 
     assert_equal :strict, options[:same_site]
   end
@@ -41,7 +41,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     surface = :app
     expires = 1.hour.from_now
 
-    options = Core::CookieOptions.for(surface: surface, request: request, expires: expires)
+    options = CoreCookieOptions.for(surface: surface, request: request, expires: expires)
 
     assert_equal expires, options[:expires]
   end
@@ -50,7 +50,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     surface = :app
 
-    options = Core::CookieOptions.for(surface: surface, request: request, path: "/api")
+    options = CoreCookieOptions.for(surface: surface, request: request, path: "/api")
 
     assert_equal "/api", options[:path]
   end
@@ -60,7 +60,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     surface = :app
 
     with_cookie_domain_credentials(COOKIE_DOMAIN_APP: "example.com") do
-      options = Core::CookieOptions.for(surface: surface, request: request, domain: true)
+      options = CoreCookieOptions.for(surface: surface, request: request, domain: true)
 
       assert_equal ".example.com", options[:domain]
     end
@@ -70,7 +70,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     surface = :app
 
-    options = Core::CookieOptions.for(surface: surface, request: request, domain: false)
+    options = CoreCookieOptions.for(surface: surface, request: request, domain: false)
 
     assert_not options.key?(:domain)
   end
@@ -78,7 +78,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
   test "for includes same_site lax when provided" do
     request = MockRequest.new("wwww.example.com")
 
-    options = Core::CookieOptions.for(surface: :app, request: request, same_site: :lax)
+    options = CoreCookieOptions.for(surface: :app, request: request, same_site: :lax)
 
     assert_equal :lax, options[:same_site]
   end
@@ -87,7 +87,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     expires = 1.year.from_now
 
-    options = Core::CookieOptions.for(surface: :app, request: request, expires: expires)
+    options = CoreCookieOptions.for(surface: :app, request: request, expires: expires)
 
     assert_equal expires, options[:expires]
   end
@@ -95,7 +95,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
   test "for includes path accounts when provided" do
     request = MockRequest.new("wwww.example.com")
 
-    options = Core::CookieOptions.for(surface: :app, request: request, path: "/accounts")
+    options = CoreCookieOptions.for(surface: :app, request: request, path: "/accounts")
 
     assert_equal "/accounts", options[:path]
   end
@@ -103,7 +103,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
   test "for includes domain when surface has domain without mocking" do
     request = MockRequest.new("wwww.example.com")
 
-    options = Core::CookieOptions.for(surface: :app, request: request)
+    options = CoreCookieOptions.for(surface: :app, request: request)
 
     assert_predicate options[:domain], :present? if options[:domain]
   end
@@ -112,7 +112,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     env = ActiveSupport::EnvironmentInquirer.new("production")
 
-    options = Core::CookieOptions.for(surface: :app, request: request, rails_env: env)
+    options = CoreCookieOptions.for(surface: :app, request: request, rails_env: env)
 
     assert options[:partitioned]
   end
@@ -121,7 +121,7 @@ class CoreCookieOptionsTest < ActiveSupport::TestCase
     request = MockRequest.new("wwww.example.com")
     env = ActiveSupport::EnvironmentInquirer.new("test")
 
-    options = Core::CookieOptions.for(surface: :app, request: request, rails_env: env)
+    options = CoreCookieOptions.for(surface: :app, request: request, rails_env: env)
 
     assert_not options.key?(:partitioned)
   end

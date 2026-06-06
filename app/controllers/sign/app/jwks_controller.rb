@@ -4,7 +4,7 @@
 module Sign
   module App
     class JwksController < BareController
-      include Authentication::JwksRendering
+      include AuthenticationJwksRendering
 
       AUTHENTICATION_MODE = :bare
       JWT_KEY_NAMESPACE = "SIGN_APP"

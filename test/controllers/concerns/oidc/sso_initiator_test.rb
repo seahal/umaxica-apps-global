@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcSsoInitiatorTestController < ApplicationController
-  include Oidc::SsoInitiator
+  include OidcSsoInitiator
 
   def index
     authenticate!
@@ -36,7 +36,7 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 end
 
-class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
+class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   setup do
     load_jump_rt_env!
     Rails.application.routes.draw do
@@ -116,7 +116,7 @@ class Oidc::SsoInitiatorTest < ActionDispatch::IntegrationTest
   test "authenticate! calls risk enforcer for logged in clients" do
     called = false
 
-    Sign::Risk::Enforcer.stub(:call, ->(_resource) { called = true }) do
+    SignRiskEnforcer.stub(:call, ->(_resource) { called = true }) do
       get "/oidc/sso", headers: { "X-Logged-In" => "1" }
     end
 

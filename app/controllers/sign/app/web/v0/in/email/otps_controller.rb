@@ -11,7 +11,7 @@ module Sign
               AUTHENTICATION_MODE = :guest
 
               def create
-                result = Sign::In::OtpResendService.new(kind: :email, state: otp_params[:state]).call
+                result = SignInOtpResendService.new(kind: :email, state: otp_params[:state]).call
                 render_result(result)
               end
 

@@ -18,7 +18,7 @@ module Dpop
 
     test "accepts standard bearer when no cnf.jkt and no proof" do
       payload = { "sub" => 1 }
-      result = RequestVerifier.new(
+      result = DpopRequestVerifier.new(
         access_token_payload: payload,
         proof_jwt: nil,
         request_method: "GET",
@@ -30,7 +30,7 @@ module Dpop
 
     test "rejects dpop-bound token without proof" do
       payload = { "sub" => 1, "cnf" => { "jkt" => "abc" } }
-      result = RequestVerifier.new(
+      result = DpopRequestVerifier.new(
         access_token_payload: payload,
         proof_jwt: nil,
         request_method: "GET",
@@ -44,10 +44,10 @@ module Dpop
     test "accepts valid dpop proof with matching jkt" do
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api")
-      jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+      jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
       payload = { "sub" => 1, "cnf" => { "jkt" => jkt } }
 
-      result = RequestVerifier.new(
+      result = DpopRequestVerifier.new(
         access_token_payload: payload,
         proof_jwt: proof,
         request_method: "GET",
@@ -62,7 +62,7 @@ module Dpop
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api")
       payload = { "sub" => 1, "cnf" => { "jkt" => "different_jkt" } }
 
-      result = RequestVerifier.new(
+      result = DpopRequestVerifier.new(
         access_token_payload: payload,
         proof_jwt: proof,
         request_method: "GET",
@@ -75,7 +75,7 @@ module Dpop
 
     test "rejects when proof validation fails" do
       payload = { "sub" => 1, "cnf" => { "jkt" => "abc" } }
-      result = RequestVerifier.new(
+      result = DpopRequestVerifier.new(
         access_token_payload: payload,
         proof_jwt: "invalid.proof.jwt",
         request_method: "GET",

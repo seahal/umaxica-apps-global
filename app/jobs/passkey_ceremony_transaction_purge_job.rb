@@ -5,6 +5,6 @@ class PasskeyCeremonyTransactionPurgeJob < ApplicationJob
   queue_as :default
 
   def perform
-    Identity::PasskeyCeremony::TransactionPurger.call
+    IdentityPasskeyCeremonyTransactionPurger.call
   end
 end

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
+class StepUpConfiguredMethodsTest < ActiveSupport::TestCase
   fixtures :clients
 
   setup do
@@ -16,7 +16,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_not_includes StepUp::ConfiguredMethods.call(@user), :email_otp
+    assert_not_includes StepUpConfiguredMethods.call(@user), :email_otp
   end
 
   test "includes email_otp for verified email" do
@@ -25,7 +25,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_includes StepUp::ConfiguredMethods.call(@user), :email_otp
+    assert_includes StepUpConfiguredMethods.call(@user), :email_otp
   end
 
   test "returns credential-backed visitor methods" do
@@ -48,7 +48,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
     )
     passkey.save!(validate: false)
 
-    result = StepUp::ConfiguredMethods.call(visitor)
+    result = StepUpConfiguredMethods.call(visitor)
 
     assert_includes result, :passkey
     assert_includes result, :email_otp
@@ -73,7 +73,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
     )
     passkey.save!(validate: false)
 
-    result = StepUp::ConfiguredMethods.call(staff)
+    result = StepUpConfiguredMethods.call(staff)
 
     assert_not_includes result, :email_otp
     assert_includes result, :passkey
@@ -88,7 +88,7 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
       last_otp_at: Time.zone.at(0),
     )
 
-    assert_not_includes StepUp::ConfiguredMethods.call(user), :totp
+    assert_not_includes StepUpConfiguredMethods.call(user), :totp
   end
 
   test "does not include inactive passkey" do
@@ -104,6 +104,6 @@ class StepUp::ConfiguredMethodsTest < ActiveSupport::TestCase
       )
     passkey.save!(validate: false)
 
-    assert_not_includes StepUp::ConfiguredMethods.call(user), :passkey
+    assert_not_includes StepUpConfiguredMethods.call(user), :passkey
   end
 end

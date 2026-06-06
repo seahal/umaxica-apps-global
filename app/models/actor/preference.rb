@@ -21,7 +21,7 @@ class Actor
 
     # Field names (strings) the user set on purpose. Drives localization: an
     # explicitly set field's saved value wins over dynamic region seeding (?ri),
-    # while an unset field stays eligible for seeding. See Preference::ExplicitFields.
+    # while an unset field stays eligible for seeding. See PreferenceExplicitFields.
     attr_reader :explicit_fields
 
     Cookie =

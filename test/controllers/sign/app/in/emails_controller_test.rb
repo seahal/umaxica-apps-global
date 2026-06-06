@@ -68,7 +68,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     # Should redirect to edit to prevent enumeration
     assert_response :found
     assert_redirected_to %r{/sign/in/email/edit}
-    assert_nil Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_nil SignAppInEmailAuthenticationState.load(session)&.id
   end
 
   test "POST create responds the same for existing and missing emails" do
@@ -150,7 +150,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Reset for invalid code test
     test_email.update!(pass_code: "123456", otp_attempts_count: 0)
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       post sign_app_in_email_url(ri: "jp"),
            params: {
              :user_email => { address: test_email.address },
@@ -203,7 +203,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -406,7 +406,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
       otp_attempts_count: Email::MAX_OTP_ATTEMPTS,
     )
 
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
         post sign_app_in_email_url(ri: "jp"),
              params: {
@@ -432,7 +432,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 12_345
@@ -466,7 +466,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
 
     # Set up valid OTP but provide wrong code
     otp_private_key = ROTP::Base32.random_base32
@@ -496,7 +496,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: { "Host" => @host }
 
-    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
 
     otp_private_key = ROTP::Base32.random_base32
     otp_counter = 56_789
@@ -544,7 +544,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :found
     assert_not_includes response.location, "pt="
-    assert_equal test_email.id, Sign::App::In::EmailAuthenticationState.load(session)&.id
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
     assert_nil session[:user_email_authentication_rt]
 
     # Generate valid OTP code
@@ -633,7 +633,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :found
-    assert_predicate Sign::App::In::EmailAuthenticationState.load(session)&.id, :present?
+    assert_predicate SignAppInEmailAuthenticationState.load(session)&.id, :present?
 
     # Generate valid OTP code
     otp_private_key = ROTP::Base32.random_base32
@@ -765,7 +765,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, I18n.t("sign.app.authentication.email.create.cooldown")
 
     # After cooldown -- allowed again
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       post sign_app_in_email_url(ri: "jp"),
            params: {
              :user_email => { address: non_existing },
@@ -813,7 +813,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     refresh = token.rotate_refresh_token!
 
     rotations.times do
-      refresh = Sign::RefreshTokenService.call(refresh_token: refresh)[:refresh_token]
+      refresh = SignRefreshTokenService.call(refresh_token: refresh)[:refresh_token]
     end
   end
 end

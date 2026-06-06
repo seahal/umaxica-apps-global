@@ -9,9 +9,9 @@ module Sign
       class EmailsController < Sign::Com::ApplicationController
         include ::CloudflareTurnstile
 
-        include Common::Redirect
+        include CommonRedirect
 
-        include Common::Otp
+        include CommonOtp
 
         AUTHENTICATION_MODE = :guest
 
@@ -236,7 +236,7 @@ module Sign
           # email digest.
           return false if @user_email.address_digest.blank?
 
-          SignUp::EmailPendingGuard.with_lock(
+          SignUpEmailPendingGuard.with_lock(
             address_digest: @user_email.address_digest,
             model_class: VisitorEmail,
           ) do
@@ -269,7 +269,7 @@ module Sign
             @user_email.save!
             token = @user_email.generate_verification_token
             Email::Com::OtpMailer.with(
-              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_number),
+              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_number),
               email_address: @user_email.address,
               verification_token: token, public_id: @user_email.public_id,
             ).create.deliver_later
@@ -435,7 +435,7 @@ module Sign
               pending_contact_type: "email",
               pending_contact_id: email.id,
             )
-            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
+            SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           end
           session[:sign_com_up_sequence_id] = cycle.public_id
         end
@@ -446,10 +446,10 @@ module Sign
 
           result =
             ComTicketRecord.connected_to(role: :writing) do
-              verify = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              verify = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
               if verify.status == :advanced
-                SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-                SignUp::StateMachine.call(
+                SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+                SignUpStateMachine.call(
                   ticket: cycle.reload,
                   event: :clear_requirement,
                   actor_context: Actor.authn,
@@ -463,7 +463,7 @@ module Sign
         end
 
         def sign_up_flow_locator
-          SignUp::CycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpFlow)
+          SignUpCycleLocator.new(session, surface: :com, cycle_class: VisitorSignUpFlow)
         end
 
         def sanitized_return_to

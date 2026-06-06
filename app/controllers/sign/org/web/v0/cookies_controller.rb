@@ -6,9 +6,9 @@ module Sign
     module Web
       module V0
         class CookiesController < PreferencesBaseController
-          include ::Preference::WebCookieEndpoint
+          include ::PreferenceWebCookieEndpoint
 
-          include ::Preference::WebCookieActions
+          include ::PreferenceWebCookieActions
 
           AUTHENTICATION_MODE = :open
 

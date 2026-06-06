@@ -23,7 +23,7 @@ class SignErrorResponsesTest < ActiveSupport::TestCase
   end
 
   class Harness
-    include Sign::ErrorResponses
+    include SignErrorResponses
 
     attr_accessor :format_kind, :flash, :request
 

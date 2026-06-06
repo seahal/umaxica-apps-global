@@ -6,16 +6,16 @@ module Sign
     class ApplicationController < ActionController::Base
       include ::RateLimit
       include ::Session
-      include ::Preference::Global
+      include ::PreferenceGlobal
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
-      include ::Preference::Adoption
-      include ::Authentication::Client
-      include ::Sign::ErrorResponses
+      include ::PreferenceAdoption
+      include ::AuthenticationClient
+      include ::SignErrorResponses
       include ::SessionLimitGate
       include ::AuthorizationAudit
-      include ::Authentication::CredentialInventoryReader
-      include ::Authorization::Client
-      include ::Verification::Client
+      include ::AuthenticationCredentialInventoryReader
+      include ::AuthorizationClient
+      include ::VerificationClient
       include ActionPolicy::Controller
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
@@ -28,7 +28,7 @@ module Sign
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
+                           trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV["ID_SERVICE_URL"],
                              ENV.fetch("SIGN_SERVICE_URL"),
                            ),
@@ -36,7 +36,7 @@ module Sign
 
       authorize :user, through: :current_policy_user
       authorize :actor, through: :current_actor
-      rescue_from Authentication::Base::LoginCooldownError, with: :render_login_cooldown
+      rescue_from AuthenticationBase::LoginCooldownError, with: :render_login_cooldown
       rescue_from ApplicationError, with: :handle_application_error
       rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error

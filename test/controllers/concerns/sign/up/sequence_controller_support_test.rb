@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Sign::Up::SequenceControllerSupport
+    include SignUpSequenceControllerSupport
   end
 
   test "sign_up_pending_actor loads the matching client or visitor by id" do

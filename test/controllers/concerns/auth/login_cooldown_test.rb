@@ -5,7 +5,7 @@ require "test_helper"
 
 class AuthLoginCooldownTest < ActiveSupport::TestCase
   class CooldownHarness
-    include Authentication::Base
+    include AuthenticationBase
 
     attr_accessor :session_data, :rendered
 
@@ -45,19 +45,19 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     @harness = CooldownHarness.new
     @user = clients(:one)
     ClientToken.where(user_id: @user.id).delete_all
-    Authentication::Base.login_cooldown_enabled = true
+    AuthenticationBase.login_cooldown_enabled = true
   end
 
   teardown do
-    Authentication::Base.login_cooldown_enabled = false
+    AuthenticationBase.login_cooldown_enabled = false
   end
 
   test "LOGIN_COOLDOWN is 30 seconds" do
-    assert_equal 30.seconds, Authentication::Base::LOGIN_COOLDOWN
+    assert_equal 30.seconds, AuthenticationBase::LOGIN_COOLDOWN
   end
 
   test "LoginCooldownError is a StandardError" do
-    assert_operator Authentication::Base::LoginCooldownError, :<, StandardError
+    assert_operator AuthenticationBase::LoginCooldownError, :<, StandardError
   end
 
   test "check_login_cooldown! does not raise when no tokens exist" do
@@ -83,7 +83,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
       ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     end
 
-    assert_raises(Authentication::Base::LoginCooldownError) do
+    assert_raises(AuthenticationBase::LoginCooldownError) do
       @harness.send(:check_login_cooldown!, @user)
     end
   end
@@ -94,7 +94,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     end
 
     travel 30.seconds do
-      assert_raises(Authentication::Base::LoginCooldownError) do
+      assert_raises(AuthenticationBase::LoginCooldownError) do
         @harness.send(:check_login_cooldown!, @user)
       end
     end
@@ -119,7 +119,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
         ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE, created_at: 10.seconds.ago)
       end
 
-      assert_raises(Authentication::Base::LoginCooldownError) do
+      assert_raises(AuthenticationBase::LoginCooldownError) do
         @harness.send(:check_login_cooldown!, @user)
       end
     end
@@ -148,7 +148,7 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
       OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     end
 
-    assert_raises(Authentication::Base::LoginCooldownError) do
+    assert_raises(AuthenticationBase::LoginCooldownError) do
       harness.send(:check_login_cooldown!, staff)
     end
   end
@@ -156,6 +156,6 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
   test "render_login_cooldown renders plain text with 429 status" do
     @harness.send(:render_login_cooldown)
 
-    assert_equal({ plain: Authentication::Base::LOGIN_COOLDOWN_MESSAGE, status: :too_many_requests }, @harness.rendered)
+    assert_equal({ plain: AuthenticationBase::LOGIN_COOLDOWN_MESSAGE, status: :too_many_requests }, @harness.rendered)
   end
 end

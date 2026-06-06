@@ -66,7 +66,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
          headers: @headers
 
     assert_response :unauthorized
-    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
   end
 
   test "scope mismatch redirects to verification" do

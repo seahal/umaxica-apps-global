@@ -8,21 +8,21 @@ module Authentication
     fixtures_none!
 
     test "returns non production cookie names without secure prefix" do
-      assert_equal "auth_access", Authentication::CookieName.access(production: false)
-      assert_equal "auth_refresh", Authentication::CookieName.refresh(production: false)
+      assert_equal "auth_access", AuthenticationCookieName.access(production: false)
+      assert_equal "auth_refresh", AuthenticationCookieName.refresh(production: false)
     end
 
     test "returns production cookie names with host prefix" do
-      assert_equal "__Host-auth_access", Authentication::CookieName.access(production: true)
-      assert_equal "__Host-auth_refresh", Authentication::CookieName.refresh(production: true)
+      assert_equal "__Host-auth_access", AuthenticationCookieName.access(production: true)
+      assert_equal "__Host-auth_refresh", AuthenticationCookieName.refresh(production: true)
     end
 
     test "returns non production dbsc cookie name" do
-      assert_equal "auth_dbsc", Authentication::CookieName.dbsc(production: false)
+      assert_equal "auth_dbsc", AuthenticationCookieName.dbsc(production: false)
     end
 
     test "returns production dbsc cookie name with host prefix" do
-      assert_equal "__Host-auth_dbsc", Authentication::CookieName.dbsc(production: true)
+      assert_equal "__Host-auth_dbsc", AuthenticationCookieName.dbsc(production: true)
     end
   end
 end

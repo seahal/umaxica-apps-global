@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/id_host_env"
+require "jit_id_host_env"
 
 module Jit
   class IdHostEnvTest < ActiveSupport::TestCase
@@ -23,19 +23,19 @@ module Jit
     test "service_url returns ID_SERVICE_URL" do
       ENV["ID_SERVICE_URL"] = "http://id.app.localhost"
 
-      assert_equal "http://id.app.localhost", Jit::IdHostEnv.service_url
+      assert_equal "http://id.app.localhost", JitIdHostEnv.service_url
     end
 
     test "corporate_url returns ID_CORPORATE_URL" do
       ENV["ID_CORPORATE_URL"] = "http://id.com.localhost"
 
-      assert_equal "http://id.com.localhost", Jit::IdHostEnv.corporate_url
+      assert_equal "http://id.com.localhost", JitIdHostEnv.corporate_url
     end
 
     test "staff_url returns ID_STAFF_URL" do
       ENV["ID_STAFF_URL"] = "http://id.org.localhost"
 
-      assert_equal "http://id.org.localhost", Jit::IdHostEnv.staff_url
+      assert_equal "http://id.org.localhost", JitIdHostEnv.staff_url
     end
 
     test "validate! raises error when env is missing" do
@@ -44,8 +44,8 @@ module Jit
       ENV["ID_STAFF_URL"] = "present"
 
       error =
-        assert_raises(Jit::IdHostEnv::MissingHostError) do
-          Jit::IdHostEnv.validate!
+        assert_raises(JitIdHostEnv::MissingHostError) do
+          JitIdHostEnv.validate!
         end
       assert_match(/Missing required id host env: ID_SERVICE_URL/, error.message)
     end
@@ -56,7 +56,7 @@ module Jit
       ENV["ID_STAFF_URL"] = "present"
 
       assert_nothing_raised do
-        Jit::IdHostEnv.validate!
+        JitIdHostEnv.validate!
       end
     end
   end

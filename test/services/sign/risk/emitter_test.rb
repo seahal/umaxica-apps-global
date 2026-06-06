@@ -18,7 +18,7 @@ module Sign
         original = ENV["RISK_ENFORCEMENT_DISABLED"]
         ENV["RISK_ENFORCEMENT_DISABLED"] = "true"
 
-        assert_nil Emitter.emit("auth_failed", user_id: @user.id)
+        assert_nil SignRiskEmitter.emit("auth_failed", user_id: @user.id)
       ensure
         ENV["RISK_ENFORCEMENT_DISABLED"] = original
       end
@@ -30,7 +30,7 @@ module Sign
         ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
 
         assert_difference "ClientOccurrence.count", 1 do
-          Emitter.emit("auth_failed", user_id: @user.id, ip: "1.2.3.4", reason: "bad_token")
+          SignRiskEmitter.emit("auth_failed", user_id: @user.id, ip: "1.2.3.4", reason: "bad_token")
         end
 
         occurrence = ClientOccurrence.order(:id).last
@@ -51,7 +51,7 @@ module Sign
         OperatorOccurrenceStatus.find_or_create_by!(id: OperatorOccurrenceStatus::ACTIVE)
 
         assert_difference "OperatorOccurrence.count", 1 do
-          Emitter.emit("auth_failed", staff_id: staff.id, ip: "5.6.7.8", reason: "locked")
+          SignRiskEmitter.emit("auth_failed", staff_id: staff.id, ip: "5.6.7.8", reason: "locked")
         end
 
         occurrence = OperatorOccurrence.order(:id).last
@@ -73,7 +73,7 @@ module Sign
 
         Rails.app.creds.stub(:option, option) do
           assert_difference "VisitorOccurrence.count", 1 do
-            Emitter.emit(
+            SignRiskEmitter.emit(
               "auth_failed",
               visitor_id: 123,
               email: "Visitor@Example.com",
@@ -103,7 +103,7 @@ module Sign
         ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
 
         assert_no_difference "ClientOccurrence.count" do
-          Emitter.emit("auth_failed", ip: "1.2.3.4")
+          SignRiskEmitter.emit("auth_failed", ip: "1.2.3.4")
         end
       ensure
         ENV["RISK_ENFORCEMENT_DISABLED"] = original_disabled
@@ -116,7 +116,7 @@ module Sign
         ENV["RISK_ENFORCEMENT_DISABLED"] = nil
         ENV["RISK_ENFORCEMENT_ENABLED"] = nil
 
-        assert_not Emitter.send(:feature_enabled?)
+        assert_not SignRiskEmitter.send(:feature_enabled?)
       ensure
         ENV["RISK_ENFORCEMENT_DISABLED"] = original_disabled
         ENV["RISK_ENFORCEMENT_ENABLED"] = original_enabled
@@ -126,7 +126,7 @@ module Sign
         original = ENV["RISK_ENFORCEMENT_ENABLED"]
         ENV["RISK_ENFORCEMENT_ENABLED"] = "true"
 
-        assert Emitter.send(:feature_enabled?)
+        assert SignRiskEmitter.send(:feature_enabled?)
       ensure
         ENV["RISK_ENFORCEMENT_ENABLED"] = original
       end
@@ -135,7 +135,7 @@ module Sign
         original = ENV["RISK_ENFORCEMENT_DISABLED"]
         ENV["RISK_ENFORCEMENT_DISABLED"] = "true"
 
-        assert_not Emitter.send(:feature_enabled?)
+        assert_not SignRiskEmitter.send(:feature_enabled?)
       ensure
         ENV["RISK_ENFORCEMENT_DISABLED"] = original
       end
@@ -148,7 +148,7 @@ module Sign
 
         ClientOccurrence.stub(:create!, ->(**) { raise ActiveRecord::ActiveRecordError, "db error" }) do
           assert_nothing_raised do
-            Emitter.emit("auth_failed", user_id: @user.id)
+            SignRiskEmitter.emit("auth_failed", user_id: @user.id)
           end
         end
       ensure

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OperatorSecretCredentials::CreateTest < ActiveSupport::TestCase
+class StaffSecretCredentialsCreateTest < ActiveSupport::TestCase
   fixtures :operator_statuses, :operator_email_statuses, :operators
 
   setup do
@@ -18,7 +18,7 @@ class OperatorSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "creates secret_credential with auto-generated raw secret_credential" do
     params = { name: "api-key-1", enabled: true }
 
-    result = OperatorSecretCredentials::Create.call(actor: @staff, staff: @staff, params: params)
+    result = OperatorSecretCredentialsCreate.call(actor: @staff, staff: @staff, params: params)
 
     assert_predicate result.secret_credential, :persisted?
     assert_predicate result.raw_secret_credential, :present?
@@ -29,7 +29,7 @@ class OperatorSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "creates secret_credential with enabled=false as revoked" do
     params = { name: "disabled-key", enabled: false }
 
-    result = OperatorSecretCredentials::Create.call(actor: @staff, staff: @staff, params: params)
+    result = OperatorSecretCredentialsCreate.call(actor: @staff, staff: @staff, params: params)
 
     assert_predicate result.secret_credential, :revoked?
   end
@@ -37,7 +37,7 @@ class OperatorSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "strips whitespace from name parameter" do
     params = { name: "  test-name-with-spaces  ", enabled: true }
 
-    result = OperatorSecretCredentials::Create.call(actor: @staff, staff: @staff, params: params)
+    result = OperatorSecretCredentialsCreate.call(actor: @staff, staff: @staff, params: params)
 
     assert_equal "test-name-with-spaces", result.secret_credential.name
   end

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/security/turnstile_verifier"
+require "jit_security_turnstile_verifier"
 
 module Jit
   module Security
@@ -13,31 +13,31 @@ module Jit
 
       def setup
         # Ensure clean state
-        TurnstileVerifier.test_mode = false
-        TurnstileVerifier.test_response = nil
+        JitSecurityTurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_response = nil
       end
 
       def teardown
-        TurnstileVerifier.test_mode = false
-        TurnstileVerifier.test_response = nil
+        JitSecurityTurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_response = nil
       end
 
       test "returns failure on missing token when validation active" do
         # We must disable test_mode to trigger validation logic
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
-        result = TurnstileVerifier.verify(token: "", remote_ip: "127.0.0.1")
+        result = JitSecurityTurnstileVerifier.verify(token: "", remote_ip: "127.0.0.1")
 
         assert_not result["success"]
         assert_equal "missing cf-turnstile-response", result["error"]
       end
 
       test "returns failure on missing secret when validation active" do
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
         # Ensure credentials/env return nil for secret key
-        TurnstileConfig.stub(:visible_secret_key, nil) do
-          result = TurnstileVerifier.verify(token: "token", remote_ip: "127.0.0.1")
+        JitSecurityTurnstileConfig.stub(:visible_secret_key, nil) do
+          result = JitSecurityTurnstileVerifier.verify(token: "token", remote_ip: "127.0.0.1")
 
           assert_not result["success"]
           assert_equal "missing turnstile secret", result["error"]
@@ -45,28 +45,28 @@ module Jit
       end
 
       test "returns mock response when test_response set" do
-        TurnstileVerifier.test_response = { "success" => true, "mock" => true }
-        result = TurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
+        JitSecurityTurnstileVerifier.test_response = { "success" => true, "mock" => true }
+        result = JitSecurityTurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
 
         assert result["success"]
         assert result["mock"]
       end
 
       test "returns success true when test_mode is true" do
-        TurnstileVerifier.test_mode = true
-        result = TurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
+        JitSecurityTurnstileVerifier.test_mode = true
+        result = JitSecurityTurnstileVerifier.verify(token: "foo", remote_ip: "127.0.0.1")
 
         assert result["success"]
       end
 
       test "performs http request when verifying" do
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
 
         Net::HTTP.stub(:post_form, mock_response) do
-          result = TurnstileVerifier.verify(token: "valid", remote_ip: "1.2.3.4", secret_key: "secret")
+          result = JitSecurityTurnstileVerifier.verify(token: "valid", remote_ip: "1.2.3.4", secret_key: "secret")
 
           assert result["success"]
         end
@@ -76,15 +76,15 @@ module Jit
 
       # -- mode: :stealth -------------------------------------------------
 
-      test "mode stealth uses TurnstileConfig stealth secret key" do
-        TurnstileVerifier.test_mode = false
+      test "mode stealth uses JitSecurityTurnstileConfig stealth secret key" do
+        JitSecurityTurnstileVerifier.test_mode = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
 
-        TurnstileConfig.stub(:stealth_secret_key, "stealth-secret") do
+        JitSecurityTurnstileConfig.stub(:stealth_secret_key, "stealth-secret") do
           Net::HTTP.stub(:post_form, mock_response) do
-            result = TurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
+            result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
 
             assert result["success"]
           end
@@ -94,13 +94,13 @@ module Jit
       end
 
       test "mode stealth returns failure without HTTP when secret is nil" do
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
         http_called = false
 
-        TurnstileConfig.stub(:stealth_secret_key, nil) do
+        JitSecurityTurnstileConfig.stub(:stealth_secret_key, nil) do
           Net::HTTP.stub(:post_form, ->(_uri, _params) { http_called = true }) do
-            result = TurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
+            result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :stealth)
 
             assert_not result["success"]
             assert_equal "missing turnstile secret", result["error"]
@@ -110,15 +110,15 @@ module Jit
         assert_not http_called, "HTTP should not be called when secret is nil"
       end
 
-      test "mode visible uses TurnstileConfig visible secret key" do
-        TurnstileVerifier.test_mode = false
+      test "mode visible uses JitSecurityTurnstileConfig visible secret key" do
+        JitSecurityTurnstileVerifier.test_mode = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
 
-        TurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+        JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
           Net::HTTP.stub(:post_form, mock_response) do
-            result = TurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :visible)
+            result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4", mode: :visible)
 
             assert result["success"]
           end
@@ -128,14 +128,14 @@ module Jit
       end
 
       test "no mode falls back to visible secret key" do
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
 
-        TurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+        JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
           Net::HTTP.stub(:post_form, mock_response) do
-            result = TurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4")
+            result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4")
 
             assert result["success"]
           end
@@ -145,16 +145,16 @@ module Jit
       end
 
       test "explicit secret_key takes priority over mode" do
-        TurnstileVerifier.test_mode = false
+        JitSecurityTurnstileVerifier.test_mode = false
 
         mock_response = Minitest::Mock.new
         mock_response.expect(:body, '{"success": true}')
 
         config_called = false
         fake = -> { config_called = true; "should-not-use" }
-        TurnstileConfig.stub(:stealth_secret_key, fake) do
+        JitSecurityTurnstileConfig.stub(:stealth_secret_key, fake) do
           Net::HTTP.stub(:post_form, mock_response) do
-            result = TurnstileVerifier.verify(
+            result = JitSecurityTurnstileVerifier.verify(
               token: "tok", remote_ip: "1.2.3.4", secret_key: "explicit",
               mode: :stealth,
             )
@@ -163,7 +163,7 @@ module Jit
           end
         end
 
-        assert_not config_called, "TurnstileConfig should not be called when secret_key is explicit"
+        assert_not config_called, "JitSecurityTurnstileConfig should not be called when secret_key is explicit"
         mock_response.verify
       end
     end

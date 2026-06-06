@@ -5,8 +5,8 @@ module Sign
   module App
     module Settings
       class EmailsController < Sign::App::ApplicationController
-        include ::Sign::SettingsAuthorityRedirect
-        include ::Verification::Client
+        include ::SignSettingsAuthorityRedirect
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :open
 

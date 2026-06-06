@@ -6,7 +6,7 @@ module Sign
     module Settings
       module Mfa
         class ChallengesController < Sign::Com::ApplicationController
-          include ::Verification::Visitor
+          include ::VerificationVisitor
 
           AUTHENTICATION_MODE = :private
 

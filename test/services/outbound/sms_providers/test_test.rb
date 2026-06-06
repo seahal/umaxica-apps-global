@@ -7,7 +7,7 @@ module Outbound
   module SmsProviders
     class TestTest < ActiveSupport::TestCase
       test "raises ArgumentError when phone number is blank" do
-        provider = Outbound::SmsProviders::Test.new
+        provider = OutboundSmsProvidersTest.new
 
         assert_raises(ArgumentError) do
           provider.send_message(to: "", title: "Title", body: "Hello")
@@ -19,7 +19,7 @@ module Outbound
       end
 
       test "raises ArgumentError when message body is blank" do
-        provider = Outbound::SmsProviders::Test.new
+        provider = OutboundSmsProvidersTest.new
 
         assert_raises(ArgumentError) do
           provider.send_message(to: "+1234567890", title: "Title", body: "")
@@ -31,7 +31,7 @@ module Outbound
       end
 
       test "returns accepted provider response" do
-        provider = Outbound::SmsProviders::Test.new
+        provider = OutboundSmsProvidersTest.new
         result = provider.send_message(to: "+1234567890", title: "Title", body: "Hello")
 
         assert_equal "test", result.provider

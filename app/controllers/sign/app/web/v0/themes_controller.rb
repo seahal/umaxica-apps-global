@@ -6,9 +6,9 @@ module Sign
     module Web
       module V0
         class ThemesController < PreferencesBaseController
-          include ::Preference::WebThemeEndpoint
+          include ::PreferenceWebThemeEndpoint
 
-          include ::Preference::WebThemeActions
+          include ::PreferenceWebThemeActions
 
           AUTHENTICATION_MODE = :open
 

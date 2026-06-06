@@ -21,7 +21,7 @@ module SignUp
       if record.respond_to?(:surface)
         record.surface.to_sym
       else
-        RequirementRegistry.surface_for_ticket(ticket)
+        SignUpRequirementRegistry.surface_for_ticket(ticket)
       end
     end
 
@@ -40,7 +40,7 @@ module SignUp
     end
 
     def surface_matches?
-      valid_ticket? && RequirementRegistry.surface_for_ticket(ticket) == surface
+      valid_ticket? && SignUpRequirementRegistry.surface_for_ticket(ticket) == surface
     rescue ArgumentError
       false
     end

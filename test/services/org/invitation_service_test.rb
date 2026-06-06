@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Org::InvitationServiceTest < ActiveSupport::TestCase
+class OrgInvitationServiceTest < ActiveSupport::TestCase
   setup do
     operation = -> { [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) } }
     defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
@@ -13,7 +13,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
   end
 
   test "create generates a valid invitation" do
-    result = Org::InvitationService.create(
+    result = OrgInvitationService.create(
       organization_id: @organization.id,
       email: "invitee@example.com",
       invited_by: @staff,
@@ -30,7 +30,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
   end
 
   test "create fails with invalid parameters" do
-    result = Org::InvitationService.create(
+    result = OrgInvitationService.create(
       organization_id: nil,
       email: "invitee@example.com",
       invited_by: @staff,
@@ -49,7 +49,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
       invited_by: @staff,
     )
 
-    result = Org::InvitationService.validate(code: invitation.code)
+    result = OrgInvitationService.validate(code: invitation.code)
 
     assert_predicate result, :success?
     assert_equal invitation, result.invitation
@@ -57,7 +57,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
   end
 
   test "validate returns failure for invalid code" do
-    result = Org::InvitationService.validate(code: "invalid-code")
+    result = OrgInvitationService.validate(code: "invalid-code")
 
     assert_not result.success?
     assert_nil result.invitation
@@ -71,7 +71,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
       invited_by: @staff,
     )
 
-    result = Org::InvitationService.validate(code: invitation.code, email: "other@example.com")
+    result = OrgInvitationService.validate(code: invitation.code, email: "other@example.com")
 
     assert_not result.success?
     assert_match(/Invalid or expired/, result.error)
@@ -84,14 +84,14 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
       invited_by: @staff,
     )
 
-    result = Org::InvitationService.consume(code: invitation.code)
+    result = OrgInvitationService.consume(code: invitation.code)
 
     assert_predicate result, :success?
     assert_predicate result.invitation, :consumed?
   end
 
   test "consume fails for invalid code" do
-    result = Org::InvitationService.consume(code: "invalid-code")
+    result = OrgInvitationService.consume(code: "invalid-code")
 
     assert_not result.success?
     assert_match(/Invalid or expired/, result.error)
@@ -105,7 +105,7 @@ class Org::InvitationServiceTest < ActiveSupport::TestCase
       consumed_at: Time.current,
     )
 
-    result = Org::InvitationService.consume(code: invitation.code)
+    result = OrgInvitationService.consume(code: invitation.code)
 
     assert_not result.success?
   end

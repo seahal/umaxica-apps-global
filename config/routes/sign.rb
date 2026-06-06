@@ -117,6 +117,8 @@ scope module: :sign, as: :sign do
         namespace :up do
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
+          resource :guard, only: :show, controller: "guards"
+          resource :check, only: %i(show destroy), controller: "checkpoints"
 
           namespace :guard do
             resource :apple, only: %i(show)
@@ -376,6 +378,8 @@ scope module: :sign, as: :sign do
         namespace :up do
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
+          resource :guard, only: :show, controller: "guards"
+          resource :check, only: %i(show destroy), controller: "checkpoints"
 
           namespace :guard do
             resource :email, only: %i(show)

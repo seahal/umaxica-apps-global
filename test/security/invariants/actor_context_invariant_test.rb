@@ -41,10 +41,10 @@ module Security
       test "Actor install_context is limited to reviewed lifecycle boundaries" do
         allowlist = [
           "app/controllers/concerns/actor_support.rb",
-          "app/controllers/concerns/authentication/base.rb",
-          "app/controllers/concerns/authentication/jwt_tokens.rb",
-          "app/controllers/concerns/sign/verification_step_up_lifecycle.rb",
-          "app/controllers/concerns/verification/base.rb",
+          "app/controllers/concerns/authentication_base.rb",
+          "app/controllers/concerns/authentication_jwt_tokens.rb",
+          "app/controllers/concerns/sign_verification_step_up_lifecycle.rb",
+          "app/controllers/concerns/verification_base.rb",
         ]
 
         offenders =

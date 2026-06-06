@@ -17,8 +17,8 @@ class Acme::App::FullAccessGateTest < ActionDispatch::IntegrationTest
   end
 
   test "dashboard renders after selector persists context" do
-    Acme::Selector::BootstrapAuthority.call(surface: :app, principal: @user)
-    Acme::Selector::Authority.prepare(surface: :app, principal: @user, session: @token)
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    AcmeSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
 
     get acme_app_dashboard_url(host: @host, ri: "jp"), headers: as_user_headers(
       @user,

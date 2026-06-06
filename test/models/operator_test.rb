@@ -476,7 +476,7 @@ class OperatorTest < ActiveSupport::TestCase
     assert_equal :destroy,
                  Operator.reflect_on_association(:staff_tokens).options[:dependent]
     # Cross-database (org_signal DB): NO implicit cascade; purged explicitly
-    # via Retention::CrossDatabaseChildPurge from the operator purge path.
+    # via RetentionCrossDatabaseChildPurge from the operator purge path.
     assert_nil Operator.reflect_on_association(:notification_records).options[:dependent]
   end
 

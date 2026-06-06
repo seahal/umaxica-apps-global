@@ -17,7 +17,7 @@ module Authentication
     end
 
     test "write! creates audit record successfully" do
-      audit = Authentication::AuditWriter.write!(
+      audit = AuthenticationAuditWriter.write!(
         ClientChronicle,
         ClientChronicleEvent::LOGGED_IN,
         resource: @user,
@@ -36,8 +36,8 @@ module Authentication
       # Create invalid event_id that doesn't exist in master data
       invalid_event_id = "INVALID_EVENT_#{SecureRandom.hex(4)}"
 
-      assert_raises(Authentication::AuditWriter::AuditWriteError) do
-        Authentication::AuditWriter.write!(
+      assert_raises(AuthenticationAuditWriter::AuditWriteError) do
+        AuthenticationAuditWriter.write!(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -48,7 +48,7 @@ module Authentication
     end
 
     test "write returns true on success" do
-      result = Authentication::AuditWriter.write(
+      result = AuthenticationAuditWriter.write(
         ClientChronicle,
         ClientChronicleEvent::LOGGED_IN,
         resource: @user,
@@ -67,7 +67,7 @@ module Authentication
         ClientChronicleLevel.where(id: ClientChronicleLevel::NOTHING).delete_all
       end
 
-      result = Authentication::AuditWriter.write(
+      result = AuthenticationAuditWriter.write(
         ClientChronicle,
         "LOGGED_IN",
         resource: @user,
@@ -90,7 +90,7 @@ module Authentication
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      result = Authentication::AuditWriter.write(
+      result = AuthenticationAuditWriter.write(
         ClientChronicle,
         invalid_event_id,
         resource: @user,
@@ -117,7 +117,7 @@ module Authentication
       logged = []
 
       Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
-        result = Authentication::AuditWriter.write(
+        result = AuthenticationAuditWriter.write(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -128,7 +128,7 @@ module Authentication
         assert_not result, "write should return false to indicate failure (observable)"
       end
 
-      notification = logged.find { |entry| entry[:event] == Authentication::AuditWriter::WRITE_FAILED_EVENT }
+      notification = logged.find { |entry| entry[:event] == AuthenticationAuditWriter::WRITE_FAILED_EVENT }
       payload = notification&.fetch(:data)
 
       assert notification, "write should log authentication audit failure event"
@@ -145,7 +145,7 @@ module Authentication
       invalid_event_id = "INVALID_EVENT_#{SecureRandom.hex(4)}"
 
       assert_nothing_raised do
-        result = Authentication::AuditWriter.write(
+        result = AuthenticationAuditWriter.write(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -158,7 +158,7 @@ module Authentication
     end
 
     test "build_audit creates audit record without saving" do
-      audit = Authentication::AuditWriter.build_audit(
+      audit = AuthenticationAuditWriter.build_audit(
         ClientChronicle,
         ClientChronicleEvent::LOGGED_IN,
         resource: @user,
@@ -182,15 +182,15 @@ module Authentication
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      Authentication::AuditWriter.stub(
+      AuthenticationAuditWriter.stub(
         :write!, ->(*) {
-                   raise Authentication::AuditWriter::AuditWriteError, "forced"
+                   raise AuthenticationAuditWriter::AuditWriteError, "forced"
                  },
       ) do
         assert_difference -> {
           ChronicleRecord.connected_to(role: :reading) { ChronicleOutboxEntry.count }
         }, 1 do
-          Authentication::AuditWriter.write(
+          AuthenticationAuditWriter.write(
             ClientChronicle,
             invalid_event_id,
             resource: @user,
@@ -205,8 +205,8 @@ module Authentication
           ChronicleOutboxEntry.order(created_at: :desc).first
         end
 
-      assert_equal Authentication::AuditWriter::OUTBOX_EVENT, entry.event
-      assert_equal Authentication::AuditWriter::OUTBOX_STATUS_PENDING, entry.status
+      assert_equal AuthenticationAuditWriter::OUTBOX_EVENT, entry.event
+      assert_equal AuthenticationAuditWriter::OUTBOX_STATUS_PENDING, entry.status
       assert_equal "ClientChronicle", entry.payload["audit_class"]
       assert_equal invalid_event_id, entry.payload["event_id"]
       assert_equal "Client", entry.payload["resource_type"]
@@ -220,19 +220,19 @@ module Authentication
 
     # Regression for S-4: outbox payloads land in the chronicle DB and
     # must not embed secret_credentials. Context goes through
-    # Chronicle::Recorder.sanitize, which filters forbidden keys.
+    # ChronicleRecorder.sanitize, which filters forbidden keys.
     test "write sanitizes secret_credentials out of the outbox payload context" do
       invalid_event_id = "NONEXISTENT_SECRET_#{SecureRandom.hex(8).upcase}"
       ChronicleRecord.connected_to(role: :writing) do
         ClientChronicleEvent.where(id: invalid_event_id).delete_all
       end
 
-      Authentication::AuditWriter.stub(
+      AuthenticationAuditWriter.stub(
         :write!, ->(*) {
-                   raise Authentication::AuditWriter::AuditWriteError, "forced"
+                   raise AuthenticationAuditWriter::AuditWriteError, "forced"
                  },
       ) do
-        Authentication::AuditWriter.write(
+        AuthenticationAuditWriter.write(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -279,7 +279,7 @@ module Authentication
       logged = []
 
       Rails.logger.stub(:info, ->(message) { logged << JSON.parse(message, symbolize_names: true) }) do
-        Authentication::AuditWriter.write(
+        AuthenticationAuditWriter.write(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -297,7 +297,7 @@ module Authentication
         )
       end
 
-      payload = logged.find { |entry| entry[:event] == Authentication::AuditWriter::WRITE_FAILED_EVENT }.fetch(:data)
+      payload = logged.find { |entry| entry[:event] == AuthenticationAuditWriter::WRITE_FAILED_EVENT }.fetch(:data)
       payload_json = payload.to_json
 
       assert_includes payload_json, "passkey"
@@ -314,8 +314,8 @@ module Authentication
       invalid_event_id = "NONEXISTENT_FALLBACK_#{SecureRandom.hex(8).upcase}"
       fallback_calls = []
 
-      Chronicle::FallbackRecorder.stub(:call, ->(**payload) { fallback_calls << payload }) do
-        Authentication::AuditWriter.write(
+      ChronicleFallbackRecorder.stub(:call, ->(**payload) { fallback_calls << payload }) do
+        AuthenticationAuditWriter.write(
           ClientChronicle,
           invalid_event_id,
           resource: @user,
@@ -324,7 +324,7 @@ module Authentication
         )
       end
 
-      fallback = fallback_calls.find { |payload| payload[:event] == Authentication::AuditWriter::FALLBACK_EVENT }
+      fallback = fallback_calls.find { |payload| payload[:event] == AuthenticationAuditWriter::FALLBACK_EVENT }
 
       assert fallback, "write should emit a structured fallback record"
       assert_equal invalid_event_id, fallback.fetch(:action)
@@ -337,9 +337,9 @@ module Authentication
       invalid_event_id = "NONEXISTENT_NO_DIRECT_LOG_#{SecureRandom.hex(8).upcase}"
       logger_error_calls = []
 
-      Chronicle::FallbackRecorder.stub(:call, true) do
+      ChronicleFallbackRecorder.stub(:call, true) do
         Rails.logger.stub(:error, ->(message = nil, &block) { logger_error_calls << (message || block&.call) }) do
-          Authentication::AuditWriter.write(
+          AuthenticationAuditWriter.write(
             ClientChronicle,
             invalid_event_id,
             resource: @user,
@@ -359,8 +359,8 @@ module Authentication
 
       Rails.stub(:logger, logger) do
         Rails.logger.info(
-          Jit::LogEvent.format(
-            Authentication::AuditWriter::WRITE_FAILED_EVENT,
+          JitLogEvent.format(
+            AuthenticationAuditWriter::WRITE_FAILED_EVENT,
             event_uuid: SecureRandom.uuid,
             audit_class: "ClientChronicle",
             event_id: "LOGGED_IN",
@@ -370,12 +370,12 @@ module Authentication
         )
       end
 
-      event_log = log_io.string.lines.find { |line| line.include?(Authentication::AuditWriter::WRITE_FAILED_EVENT) }
+      event_log = log_io.string.lines.find { |line| line.include?(AuthenticationAuditWriter::WRITE_FAILED_EVENT) }
 
       assert event_log, "authentication event should be written to Rails.logger"
       parsed = JSON.parse(event_log)
 
-      assert_equal Authentication::AuditWriter::WRITE_FAILED_EVENT, parsed.fetch("event")
+      assert_equal AuthenticationAuditWriter::WRITE_FAILED_EVENT, parsed.fetch("event")
       assert parsed.fetch("data").key?("actor_id")
     end
 
@@ -390,7 +390,7 @@ module Authentication
         original_method.call(**options, &block)
       end
 
-      Authentication::AuditWriter.write(
+      AuthenticationAuditWriter.write(
         ClientChronicle,
         "LOGGED_IN",
         resource: @user,

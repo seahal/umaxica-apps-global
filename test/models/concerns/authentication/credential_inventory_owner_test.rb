@@ -5,14 +5,14 @@ require "test_helper"
 
 class AuthenticationCredentialInventoryOwnerTest < ActiveSupport::TestCase
   class CredentialOwner
-    include Authentication::CredentialInventoryOwner
+    include AuthenticationCredentialInventoryOwner
   end
 
   setup do
     @owner = CredentialOwner.new
     @excluding = Object.new
     @inventory =
-      Authentication::CredentialInventory::Result.new(
+      AuthenticationCredentialInventory::Result.new(
         actor: @owner,
         excluding: @excluding,
         aal1_methods: [:email_otp],
@@ -31,7 +31,7 @@ class AuthenticationCredentialInventoryOwnerTest < ActiveSupport::TestCase
         @inventory
       end
 
-    Authentication::CredentialInventory.stub(:call, replacement) do
+    AuthenticationCredentialInventory.stub(:call, replacement) do
       assert_same @inventory, @owner.authentication_credential_inventory(excluding: @excluding, reload: true)
       assert_equal [{ actor: @owner, excluding: @excluding, reload: true }], calls
     end
@@ -80,7 +80,7 @@ class AuthenticationCredentialInventoryOwnerTest < ActiveSupport::TestCase
   private
 
   def with_inventory
-    Authentication::CredentialInventory.stub(:call, @inventory) do
+    AuthenticationCredentialInventory.stub(:call, @inventory) do
       yield
     end
   end

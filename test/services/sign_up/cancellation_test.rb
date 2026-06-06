@@ -18,7 +18,7 @@ class SignUpCancellationTest < ActiveSupport::TestCase
       pending_contact_id: email.id,
     )
 
-    result = SignUp::Cancellation.call(cycle: cycle, actor_context: nil)
+    result = SignUpCancellation.call(cycle: cycle, actor_context: nil)
 
     assert_equal :ok, result.status
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
@@ -39,7 +39,7 @@ class SignUpCancellationTest < ActiveSupport::TestCase
       cleanup_error_code: "boom",
     )
 
-    result = SignUp::Cancellation.call(cycle: cycle, actor_context: nil)
+    result = SignUpCancellation.call(cycle: cycle, actor_context: nil)
 
     assert_equal :ok, result.status
     assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
@@ -81,7 +81,7 @@ class SignUpCancellationTest < ActiveSupport::TestCase
     )
     cycle.update_columns(discarded_at: cycle.created_at, purged_at: cycle.created_at + 29.minutes)
 
-    SignUp::ArtifactCleanup.call(cycle: cycle)
+    SignUpArtifactCleanup.call(cycle: cycle)
 
     assert_equal ClientSignUpFlowCleanupStatus::COMPLETED, cycle.reload.cleanup_status_id
     assert_equal ClientPasskeyStatus::ACTIVE, existing_passkey.reload.status_id

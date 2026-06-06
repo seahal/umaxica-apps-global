@@ -38,7 +38,7 @@ module PreferenceJwtHelper
     jti = "test-jti-#{SecureRandom.uuid}"
 
     with_preference_jwt_keys(host: host) do
-      Preference::Token.encode(
+      PreferenceToken.encode(
         preferences,
         host: host,
         preference_type: preference_type,
@@ -50,15 +50,15 @@ module PreferenceJwtHelper
 
   def with_preference_jwt_keys(host:)
     key = PreferenceJwtHelper.fixed_test_key
-    audiences = host ? [host] : Preference::JwtConfiguration.audiences
+    audiences = host ? [host] : PreferenceJwtConfiguration.audiences
 
-    Preference::JwtConfiguration.stub(:private_key, key) do
-      Preference::JwtConfiguration.stub(:public_key, key) do
-        Preference::JwtConfiguration.stub(:private_key_for_active, key) do
-          Preference::JwtConfiguration.stub(:public_key_for, ->(_kid, **_options) { key }) do
-            Preference::JwtConfiguration.stub(:active_kid, "default") do
-              Preference::JwtConfiguration.stub(:issuer, "jit-preference") do
-                Preference::JwtConfiguration.stub(:audiences, audiences) do
+    PreferenceJwtConfiguration.stub(:private_key, key) do
+      PreferenceJwtConfiguration.stub(:public_key, key) do
+        PreferenceJwtConfiguration.stub(:private_key_for_active, key) do
+          PreferenceJwtConfiguration.stub(:public_key_for, ->(_kid, **_options) { key }) do
+            PreferenceJwtConfiguration.stub(:active_kid, "default") do
+              PreferenceJwtConfiguration.stub(:issuer, "jit-preference") do
+                PreferenceJwtConfiguration.stub(:audiences, audiences) do
                   yield
                 end
               end
@@ -89,7 +89,7 @@ module MissingHelpers
 
   def authenticated_headers_for(resource, host:, headers: {}, session_public_id: nil)
     token_record = create_auth_token_record_for(resource, session_public_id: session_public_id)
-    access_token = Authentication::TokenService.encode(
+    access_token = AuthenticationTokenService.encode(
       resource,
       host: host,
       session_public_id: token_record.public_id,
@@ -206,7 +206,7 @@ module MissingHelpers
       @jump_rt_env_originals[key] = ENV[key] unless @jump_rt_env_originals.key?(key)
       ENV[key] = value
     end
-    Jit::Security::Jwt::Registry.reload! if defined?(Jit::Security::Jwt::Registry)
+    JitSecurityJwtRegistry.reload! if defined?(JitSecurityJwtRegistry)
   end
 
   def jump_rt_url_from_location(location)
@@ -294,7 +294,7 @@ module MissingHelpers
         user_headers = as_user_headers(user, host: host)
         if intent.to_s == "link"
           token = ClientToken.find_by(public_id: user_headers["X-TEST-SESSION-PUBLIC-ID"])
-          mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE) if token
+          mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
         end
         headers = headers.merge(user_headers)
       end
@@ -324,9 +324,9 @@ module MissingHelpers
     user_headers = as_user_headers(user, host: host)
     session_public_id = user_headers.fetch("X-TEST-SESSION-PUBLIC-ID")
     token = ClientToken.find_by(public_id: session_public_id)
-    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE) if token
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
 
-    issuance = Identity::SocialCeremony::GrantIssuer.issue!(
+    issuance = IdentitySocialCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: user.public_id,
       session_ref: session_public_id,
@@ -473,7 +473,7 @@ module MissingHelpers
     get(public_send(path, ri: ri), headers: { "Host" => host })
 
     assert_response :success, "expected #{label} to render successfully"
-    assert response_has_cookie?(Preference::IoKeys::Cookies::THEME),
+    assert response_has_cookie?(PreferenceIoKeys::Cookies::THEME),
            "expected #{label} to set the theme cookie"
   end
 
@@ -907,12 +907,12 @@ module AuthenticationBaseTestSupport
   end
 
   def maybe_inject_test_bulletin!
-    header_key = Auth::IoKeys::Headers::TEST_BULLETIN
+    header_key = AuthIoKeys::Headers::TEST_BULLETIN
     raw = request.headers[header_key].presence
     return if raw.blank?
 
     bulletin = JSON.parse(raw)
-    session[Authentication::Base::BULLETIN_SESSION_KEY] = bulletin if bulletin.is_a?(Hash)
+    session[AuthenticationBase::BULLETIN_SESSION_KEY] = bulletin if bulletin.is_a?(Hash)
   rescue JSON::ParserError, TypeError
     nil
   end
@@ -955,10 +955,10 @@ module AuthenticationBaseTestSupport
   end
 end
 
-Authentication::Base.prepend(AuthenticationBaseTestSupport)
+AuthenticationBase.prepend(AuthenticationBaseTestSupport)
 
-unless Auth::IoKeys::Headers.const_defined?(:TEST_BULLETIN)
-  Auth::IoKeys::Headers.const_set(:TEST_BULLETIN, "X-TEST-BULLETIN")
+unless AuthIoKeys::Headers.const_defined?(:TEST_BULLETIN)
+  AuthIoKeys::Headers.const_set(:TEST_BULLETIN, "X-TEST-BULLETIN")
 end
 
 if defined?(ActiveSupport::TestCase)
@@ -980,7 +980,7 @@ if defined?(ActiveSupport::TestCase)
 
   ActiveSupport::TestCase.setup do
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
+    AuthenticationBase.login_cooldown_enabled = false if defined?(AuthenticationBase)
     [
       ClientTokenBindingMethod,
       ClientTokenDbscStatus,
@@ -993,7 +993,7 @@ if defined?(ActiveSupport::TestCase)
 
   ActiveSupport::TestCase.teardown do
     Rails.configuration.x.rate_limit.fetch(:store).clear
-    Authentication::Base.login_cooldown_enabled = false if defined?(Authentication::Base)
+    AuthenticationBase.login_cooldown_enabled = false if defined?(AuthenticationBase)
   end
 
   class << ActiveSupport::TestCase

@@ -9,13 +9,13 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   end
 
   test "readiness returns ok when dependencies are healthy" do
-    report = Health::Report.aggregate(
-      profile: Health::Profiles::SignApp,
+    report = HealthReport.aggregate(
+      profile: HealthProfilesSignApp,
       probe: :ready,
-      checks: [Health::Check::Result.new(kind: :database, status: :ok)],
+      checks: [HealthCheckResult.new(kind: :database, status: :ok)],
     )
 
-    Health::Readiness.stub(:call, report) do
+    HealthReadiness.stub(:call, report) do
       get "/health/ready?ri=jp"
     end
 
@@ -24,13 +24,13 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   end
 
   test "readiness returns unavailable when dependencies fail" do
-    report = Health::Report.aggregate(
-      profile: Health::Profiles::SignApp,
+    report = HealthReport.aggregate(
+      profile: HealthProfilesSignApp,
       probe: :ready,
-      checks: [Health::Check::Result.new(kind: :database, status: :unready)],
+      checks: [HealthCheckResult.new(kind: :database, status: :unready)],
     )
 
-    Health::Readiness.stub(:call, report) do
+    HealthReadiness.stub(:call, report) do
       get "/health/ready?ri=jp"
     end
 

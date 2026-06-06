@@ -56,7 +56,7 @@
 # * `deactivated_at` — Operator-driven account suspension. Reversible. Not a
 #   deletion signal.
 # * `terminated_at` — Set by `RetentionPurgeJob#anonymize_accounts` AFTER
-#   `Withdrawal::PersonalDataAnonymizer` finishes. Marks "PII has been scrubbed
+#   `WithdrawalPersonalDataAnonymizer` finishes. Marks "PII has been scrubbed
 #   on this row"; distinct from `discarded_at` (logical hide) and `purged_at`
 #   (physical delete). Anonymized rows are retained for audit linkage with
 #   anonymous PII placeholders.
@@ -65,10 +65,10 @@ class Client < AppPrincipalRecord
   include HasBirthdate
   include ::PublicId
   include ::Identity
-  include Authentication::CredentialInventoryOwner
+  include AuthenticationCredentialInventoryOwner
   include MfaLevelConfigurable
   include MfaStatusTrackable
-  include Actor::LifecycleConsistency
+  include ActorLifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [ClientStatus::RESERVED].freeze
   # what is this?
@@ -163,7 +163,7 @@ class Client < AppPrincipalRecord
   has_many :staff_chronicles, class_name: "OperatorChronicle", as: :actor # rubocop:disable Rails/HasManyOrHasOneDependent
   # Cross-database (app_signal DB). Lifecycle is NOT an implicit AR cascade
   # across the DB boundary; purged explicitly via
-  # Retention::CrossDatabaseChildPurge from the account purge path.
+  # RetentionCrossDatabaseChildPurge from the account purge path.
   has_many :notification_records, # rubocop:disable Rails/HasManyOrHasOneDependent
            class_name: "ClientNotificationRecord",
            foreign_key: :user_id,
@@ -226,7 +226,7 @@ class Client < AppPrincipalRecord
   has_one :user_preference, class_name: "ClientPreference", foreign_key: :user_id, dependent: :destroy,
                             inverse_of: :user
   # Cross-database (avatar DB). Join rows are purged explicitly via
-  # Retention::CrossDatabaseChildPurge, not by an implicit cross-DB cascade.
+  # RetentionCrossDatabaseChildPurge, not by an implicit cross-DB cascade.
   has_many :avatar_assignments, foreign_key: :user_id, inverse_of: :user # rubocop:disable Rails/HasManyOrHasOneDependent
   has_many :assigned_avatars, through: :avatar_assignments, source: :avatar
   has_many :owned_avatars,

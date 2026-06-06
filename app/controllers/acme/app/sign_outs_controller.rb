@@ -4,8 +4,8 @@
 module Acme
   module App
     class SignOutsController < Acme::App::ApplicationController
-      include ::Authentication::Logoutable
-      include ::Sign::OutNotice
+      include ::AuthenticationLogoutable
+      include ::SignOutNotice
 
       AUTHENTICATION_MODE = :open
       declare_authentication_mode! :open

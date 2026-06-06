@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentityEmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_email_statuses, :client_chronicle_events, :client_chronicle_levels
@@ -20,7 +20,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   test "grant issuance creates durable transaction and valid grant" do
     travel_to @now do
-      issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+      issuance = IdentityEmailCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: @session_ref,
@@ -28,9 +28,9 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         now: @now,
       )
 
-      grant = Identity::EmailCeremony::Grant.decode(
+      grant = IdentityEmailCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::EmailCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityEmailCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -44,7 +44,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "valid result consumes once and commits email under acme authority" do
     travel_to @now do
       email = create_unverified_client_email!("email-ceremony-commit@example.com")
-      issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+      issuance = IdentityEmailCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: @session_ref,
@@ -53,7 +53,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         normalized_email_digest: email.address_digest,
         now: @now,
       )
-      result_token = Identity::EmailCeremony::ResultIssuer.issue!(
+      result_token = IdentityEmailCeremonyResultIssuer.issue!(
         grant_token: issuance.grant,
         candidate: email,
         surface: "app",
@@ -75,7 +75,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         },
         1,
       ) do
-        commit = Identity::EmailCeremony::FinalCommitter.call!(
+        commit = IdentityEmailCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,
@@ -88,8 +88,8 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
       assert_equal ClientEmailStatus::VERIFIED, email.reload.user_email_status_id
       assert_predicate issuance.transaction.reload, :consumed?
-      assert_raises(Identity::EmailCeremony::Error) do
-        Identity::EmailCeremony::FinalCommitter.call!(
+      assert_raises(IdentityEmailCeremonyContract::Error) do
+        IdentityEmailCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,
@@ -103,7 +103,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "result consumer rejects wrong actor session surface grant and expired transaction" do
     travel_to @now do
       email = create_unverified_client_email!("email-ceremony-reject@example.com")
-      issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+      issuance = IdentityEmailCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: @session_ref,
@@ -113,14 +113,14 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         now: @now,
       )
 
-      wrong_session = Identity::EmailCeremony::Result.issue(
+      wrong_session = IdentityEmailCeremonyResult.issue(
         result_claims(issuance.transaction, email).merge("session_ref" => "wrong-session"),
-        issuer_id: Identity::EmailCeremony::Contract.sign_issuer_id("app"),
+        issuer_id: IdentityEmailCeremonyContract.sign_issuer_id("app"),
         now: @now,
       )
 
-      assert_raises(Identity::EmailCeremony::Error) do
-        Identity::EmailCeremony::FinalCommitter.call!(
+      assert_raises(IdentityEmailCeremonyContract::Error) do
+        IdentityEmailCeremonyFinalCommitter.call!(
           result_token: wrong_session,
           actor: @client,
           session_ref: @session_ref,
@@ -130,17 +130,17 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       end
 
       issuance.transaction.update!(expires_at: @now - 1.minute)
-      expired = Identity::EmailCeremony::Result.issue(
+      expired = IdentityEmailCeremonyResult.issue(
         result_claims(issuance.transaction, email).merge(
           "expires_at" => (@now + 10.minutes).to_i,
           "exp" => (@now + 10.minutes).to_i,
         ),
-        issuer_id: Identity::EmailCeremony::Contract.sign_issuer_id("app"),
+        issuer_id: IdentityEmailCeremonyContract.sign_issuer_id("app"),
         now: @now,
       )
 
-      assert_raises(Identity::EmailCeremony::Error) do
-        Identity::EmailCeremony::FinalCommitter.call!(
+      assert_raises(IdentityEmailCeremonyContract::Error) do
+        IdentityEmailCeremonyFinalCommitter.call!(
           result_token: expired,
           actor: @client,
           session_ref: @session_ref,
@@ -161,7 +161,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       consumed_at: 8.days.ago,
     )
 
-    counts = Identity::EmailCeremony::TransactionPurger.new(now: Time.current).call
+    counts = IdentityEmailCeremonyTransactionPurger.new(now: Time.current).call
 
     assert_equal 2, counts[:app]
     assert_not ClientEmailCeremonyTransaction.exists?(old_expired.id)
@@ -202,10 +202,10 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   def result_claims(transaction, email)
     {
-      "typ" => Identity::EmailCeremony::Result::TOKEN_TYPE,
-      "iss" => Identity::EmailCeremony::Contract.sign_issuer("app"),
-      "aud" => Identity::EmailCeremony::Contract.acme_audience("app"),
-      "purpose" => Identity::EmailCeremony::Result::PURPOSE,
+      "typ" => IdentityEmailCeremonyResult::TOKEN_TYPE,
+      "iss" => IdentityEmailCeremonyContract.sign_issuer("app"),
+      "aud" => IdentityEmailCeremonyContract.acme_audience("app"),
+      "purpose" => IdentityEmailCeremonyResult::PURPOSE,
       "surface" => "app",
       "actor_ref" => transaction.actor_ref,
       "session_ref" => transaction.session_ref,
@@ -213,7 +213,7 @@ class Identity::EmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       "grant_jti" => transaction.grant_jti,
       "result_jti" => SecureRandom.uuid,
       "operation" => transaction.operation,
-      "proof_method" => Identity::EmailCeremony::Result::PROOF_METHOD,
+      "proof_method" => IdentityEmailCeremonyResult::PROOF_METHOD,
       "verified_at" => @now.to_i,
       "challenge_id" => email.public_id,
       "expires_at" => transaction.expires_at.to_i,

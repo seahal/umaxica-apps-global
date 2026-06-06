@@ -6,9 +6,9 @@ require "test_helper"
 module Auth
   class BaseIncludedDoTest < ActiveSupport::TestCase
     class BaseHarness < ApplicationController
-      include Sign::ErrorResponses
+      include SignErrorResponses
       include SessionLimitGate
-      include Authentication::Base
+      include AuthenticationBase
 
       def resource_type = "user"
 
@@ -29,9 +29,9 @@ module Auth
       def am_i_owner? = false
     end
 
-    test "included do includes Sign::ErrorResponses module" do
-      assert_includes BaseHarness.included_modules, Sign::ErrorResponses,
-                      "BaseHarness should include Sign::ErrorResponses"
+    test "included do includes SignErrorResponses module" do
+      assert_includes BaseHarness.included_modules, SignErrorResponses,
+                      "BaseHarness should include SignErrorResponses"
     end
 
     test "included do includes ActionPolicy controller support" do
@@ -44,9 +44,9 @@ module Auth
                       "BaseHarness should include SessionLimitGate"
     end
 
-    test "included do includes Common::Redirect module" do
-      assert_includes BaseHarness.included_modules, Common::Redirect,
-                      "BaseHarness should include Common::Redirect"
+    test "included do includes CommonRedirect module" do
+      assert_includes BaseHarness.included_modules, CommonRedirect,
+                      "BaseHarness should include CommonRedirect"
     end
 
     test "helper_method current_account is defined on controller" do
@@ -67,7 +67,7 @@ module Auth
     test "access_policy class_method registers policy rules" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
       klass.access_policy(:auth_required, only: :index)
@@ -82,7 +82,7 @@ module Auth
     test "access_policy accepts only and except options" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
       klass.access_policy(:public_strict, only: [:show, :index], except: [:destroy])
@@ -96,7 +96,7 @@ module Auth
     test "authentication mode declarations work" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
       klass.declare_authentication_mode!(:open, only: :public)
@@ -127,10 +127,10 @@ module Auth
 
       assert controller.send(:enforce_access_policy!)
       assert_equal :auth_required?, calls.first.first
-      assert_instance_of Authentication::Base::AccessPolicyContext, calls.first.last
+      assert_instance_of AuthenticationBase::AccessPolicyContext, calls.first.last
       assert_equal :auth_required, calls.first.last.policy
     ensure
-      Authentication::Base::ACCESS_POLICY_RULES.delete(BaseHarness)
+      AuthenticationBase::ACCESS_POLICY_RULES.delete(BaseHarness)
       if BaseHarness.instance_variable_defined?(:@authentication_mode_rules)
         BaseHarness.remove_instance_variable(:@authentication_mode_rules)
       end
@@ -139,14 +139,14 @@ module Auth
     test "access_policy validates policy name" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
-      assert_raises(Authentication::Base::InvalidPolicyError) do
+      assert_raises(AuthenticationBase::InvalidPolicyError) do
         klass.access_policy(:invalid_policy)
       end
 
-      assert_raises(Authentication::Base::InvalidPolicyError) do
+      assert_raises(AuthenticationBase::InvalidPolicyError) do
         klass.access_policy(:another_invalid)
       end
     end
@@ -154,10 +154,10 @@ module Auth
     test "skip_before_action :enforce_access_policy! raises SkipNotAllowedError" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
-      assert_raises(Authentication::Base::SkipNotAllowedError) do
+      assert_raises(AuthenticationBase::SkipNotAllowedError) do
         klass.skip_before_action :enforce_access_policy!
       end
     end
@@ -165,10 +165,10 @@ module Auth
     test "skip_action_callback :enforce_access_policy! raises SkipNotAllowedError" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
         end
 
-      assert_raises(Authentication::Base::SkipNotAllowedError) do
+      assert_raises(AuthenticationBase::SkipNotAllowedError) do
         klass.skip_action_callback(:process_action, :before, :enforce_access_policy!)
       end
     end
@@ -176,7 +176,7 @@ module Auth
     test "skip_before_action allows other filters" do
       klass =
         Class.new(ApplicationController) do
-          extend Authentication::Base::ClassMethods
+          extend AuthenticationBase::ClassMethods
 
           before_action :some_callback
 
@@ -191,10 +191,10 @@ module Auth
     end
 
     test "VALID_POLICIES contains expected values" do
-      assert_includes Authentication::Base::VALID_POLICIES, :deny_all
-      assert_includes Authentication::Base::VALID_POLICIES, :public_strict
-      assert_includes Authentication::Base::VALID_POLICIES, :auth_required
-      assert_includes Authentication::Base::VALID_POLICIES, :guest_only
+      assert_includes AuthenticationBase::VALID_POLICIES, :deny_all
+      assert_includes AuthenticationBase::VALID_POLICIES, :public_strict
+      assert_includes AuthenticationBase::VALID_POLICIES, :auth_required
+      assert_includes AuthenticationBase::VALID_POLICIES, :guest_only
     end
   end
 end

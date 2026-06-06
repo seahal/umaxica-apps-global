@@ -27,7 +27,7 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   def request_headers
-    access_token = Authentication::TokenService.encode(
+    access_token = AuthenticationTokenService.encode(
       @user,
       host: @host,
       session_public_id: @token.public_id,

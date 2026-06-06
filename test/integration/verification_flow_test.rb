@@ -67,7 +67,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     verification_uri = URI.parse(response.location)
     pt = Rack::Utils.parse_query(verification_uri.query).fetch("pt")
 
-    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+    StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
           get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),

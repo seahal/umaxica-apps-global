@@ -4,6 +4,8 @@
 module Acme
   module Org
     class FullAccessController < Acme::Org::PreAccessController
+      AUTHENTICATION_MODE = :private
+
       before_action :require_selected_actor_context!
 
       private

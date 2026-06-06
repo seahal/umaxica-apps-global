@@ -8,7 +8,7 @@ module Sign
     module In
       module Challenge
         class PasskeysController < Sign::Org::ApplicationController
-          include Sign::Webauthn
+          include SignWebauthn
 
           include SessionLimitGate
 
@@ -62,8 +62,8 @@ module Sign
                   { id: pk.webauthn_id }
                 }, user_verification: "discouraged",
               )
-          rescue Sign::Webauthn::OriginValidationError => e
-            Rails.logger.error(Jit::LogEvent.format("webauthn.origin_validation_failed", message: e.message))
+          rescue SignWebauthn::OriginValidationError => e
+            Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
             redirect_to(
               sign_org_in_challenge_path, alert: I18n.t("errors.webauthn.origin_invalid"),
                                           status: :see_other,
@@ -83,8 +83,8 @@ module Sign
             with_challenge(passkey_params[:challenge_id], purpose: :authentication) do |challenge|
               verify_passkey!(challenge)
             end
-          rescue Sign::Webauthn::ChallengeNotFoundError, Sign::Webauthn::ChallengeExpiredError,
-                 Sign::Webauthn::ChallengePurposeMismatchError
+          rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
+                 SignWebauthn::ChallengePurposeMismatchError
             redirect_to(
               sign_org_in_challenge_path, alert: I18n.t("errors.webauthn.challenge_invalid"),
                                           status: :see_other,
@@ -132,7 +132,7 @@ module Sign
 
             staff = pending_mfa_user
             unless passkey && staff && passkey.staff_id == staff.id
-              Sign::Risk::Emitter.emit(
+              SignRiskEmitter.emit(
                 "auth_failed", staff_id: staff&.id, ip: request.remote_ip,
                                reason: "mfa_passkey_mismatch",
               )

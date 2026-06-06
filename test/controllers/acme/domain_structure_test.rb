@@ -8,11 +8,11 @@ module Acme
     test "acme/com uses Visitor authentication pattern" do
       controller = Acme::Com::ApplicationController.new
 
-      assert_includes controller.class, ::Authentication::Visitor,
+      assert_includes controller.class, ::AuthenticationVisitor,
                       "Acme::Com should use Visitor authentication"
-      assert_includes controller.class, ::Authorization::Visitor,
+      assert_includes controller.class, ::AuthorizationVisitor,
                       "Acme::Com should use Visitor authorization"
-      assert_includes controller.class, ::Verification::Visitor,
+      assert_includes controller.class, ::VerificationVisitor,
                       "Acme::Com should use Visitor verification"
     end
 

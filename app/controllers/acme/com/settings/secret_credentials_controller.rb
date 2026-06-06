@@ -5,9 +5,9 @@ module Acme
   module Com
     module Settings
       class SecretCredentialsController < Acme::Com::ApplicationController
-        include ::Verification::Visitor
-        include ::Sign::Settings::SecretCredentialTurnstileGuard
-        include ::Sign::Settings::SecretCredentialCacheControl
+        include ::VerificationVisitor
+        include ::SignSettingsSecretCredentialTurnstileGuard
+        include ::SignSettingsSecretCredentialCacheControl
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -37,7 +37,7 @@ module Acme
             return
           end
 
-          issuance = Identity::SecretCredentialCeremony::GrantIssuer.issue!(
+          issuance = IdentitySecretCredentialCeremonyGrantIssuer.issue!(
             surface: "com",
             actor_ref: current_visitor.public_id,
             session_ref: current_session_public_id,

@@ -5,75 +5,75 @@ require "test_helper"
 
 class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Preference::Global
-    include Common::Otp
-    include Authentication::Operator
-    include Verification::Operator
-    include Sign::Webauthn
-    include Sign::VerificationTiming
-    include Sign::VerificationCommonBase
-    include Sign::VerificationAuditAndCookie
-    include Sign::VerificationStepUpSessionStore
-    include Sign::VerificationStepUpLifecycle
-    include Sign::VerificationPasskeyChecks
-    include Sign::OrgVerificationBase
+    include PreferenceGlobal
+    include CommonOtp
+    include AuthenticationOperator
+    include VerificationOperator
+    include SignWebauthn
+    include SignVerificationTiming
+    include SignVerificationCommonBase
+    include SignVerificationAuditAndCookie
+    include SignVerificationStepUpSessionStore
+    include SignVerificationStepUpLifecycle
+    include SignVerificationPasskeyChecks
+    include SignOrgVerificationBase
   end
 
-  test "included do includes Preference::Global module" do
-    assert_includes Harness.included_modules, Preference::Global
+  test "included do includes PreferenceGlobal module" do
+    assert_includes Harness.included_modules, PreferenceGlobal
   end
 
-  test "included do includes Common::Otp module" do
-    assert_includes Harness.included_modules, Common::Otp
+  test "included do includes CommonOtp module" do
+    assert_includes Harness.included_modules, CommonOtp
   end
 
-  test "included do includes Authentication::Operator module" do
-    assert_includes Harness.included_modules, Authentication::Operator
+  test "included do includes AuthenticationOperator module" do
+    assert_includes Harness.included_modules, AuthenticationOperator
   end
 
-  test "included do includes Verification::Operator module" do
-    assert_includes Harness.included_modules, Verification::Operator
+  test "included do includes VerificationOperator module" do
+    assert_includes Harness.included_modules, VerificationOperator
   end
 
-  test "included do includes Sign::Webauthn module" do
-    assert_includes Harness.included_modules, Sign::Webauthn
+  test "included do includes SignWebauthn module" do
+    assert_includes Harness.included_modules, SignWebauthn
   end
 
-  test "included do includes Sign::VerificationTiming module" do
-    assert_includes Harness.included_modules, Sign::VerificationTiming
+  test "included do includes SignVerificationTiming module" do
+    assert_includes Harness.included_modules, SignVerificationTiming
   end
 
-  test "included do includes Sign::VerificationCommonBase module" do
-    assert_includes Harness.included_modules, Sign::VerificationCommonBase
+  test "included do includes SignVerificationCommonBase module" do
+    assert_includes Harness.included_modules, SignVerificationCommonBase
   end
 
-  test "included do includes Sign::VerificationAuditAndCookie module" do
-    assert_includes Harness.included_modules, Sign::VerificationAuditAndCookie
+  test "included do includes SignVerificationAuditAndCookie module" do
+    assert_includes Harness.included_modules, SignVerificationAuditAndCookie
   end
 
-  test "included do includes Sign::VerificationStepUpSessionStore module" do
-    assert_includes Harness.included_modules, Sign::VerificationStepUpSessionStore
+  test "included do includes SignVerificationStepUpSessionStore module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpSessionStore
   end
 
-  test "included do includes Sign::VerificationStepUpLifecycle module" do
-    assert_includes Harness.included_modules, Sign::VerificationStepUpLifecycle
+  test "included do includes SignVerificationStepUpLifecycle module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpLifecycle
   end
 
-  test "included do includes Sign::VerificationPasskeyChecks module" do
-    assert_includes Harness.included_modules, Sign::VerificationPasskeyChecks
+  test "included do includes SignVerificationPasskeyChecks module" do
+    assert_includes Harness.included_modules, SignVerificationPasskeyChecks
   end
 
   test "STEP_UP_TTL constant is defined" do
-    assert_equal 15.minutes, Sign::OrgVerificationBase::STEP_UP_TTL
+    assert_equal 15.minutes, SignOrgVerificationBase::STEP_UP_TTL
   end
 
   test "STEP_UP_SESSION_KEY constant is defined" do
-    assert_equal :step_up, Sign::OrgVerificationBase::STEP_UP_SESSION_KEY
+    assert_equal :step_up, SignOrgVerificationBase::STEP_UP_SESSION_KEY
   end
 
   test "ALLOWED_SCOPES constant is defined" do
-    assert_kind_of Hash, Sign::OrgVerificationBase::ALLOWED_SCOPES
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("settings_passkey")
-    assert Sign::OrgVerificationBase::ALLOWED_SCOPES.key?("settings_mfa")
+    assert_kind_of Hash, SignOrgVerificationBase::ALLOWED_SCOPES
+    assert SignOrgVerificationBase::ALLOWED_SCOPES.key?("settings_passkey")
+    assert SignOrgVerificationBase::ALLOWED_SCOPES.key?("settings_mfa")
   end
 end

@@ -121,8 +121,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     end
 
     assert controller.instance_variable_get(:@cleared_for_test)
-    session_hash[SocialAuthConcern::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
-    session_hash[SocialAuthConcern::SOCIAL_RI_SESSION_KEY] = "jp"
+    session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
+    session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY] = "jp"
 
     assert_raises(StandardError) do
       controller.send(:handle_unexpected_error, error, auth)
@@ -148,9 +148,9 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@resource_for_test, user)
 
     assert_equal "login", controller.send(:current_social_auth_intent)
-    assert_nil session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_nil session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY]
 
-    session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY] = "link"
+    session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY] = "link"
 
     assert_equal "link", controller.send(:current_social_auth_intent)
   end
@@ -437,12 +437,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_equal "/sign/in/new", controller.send(:social_auth_failure_redirect_path)
 
-    session_hash[SocialAuthConcern::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
-    session_hash[SocialAuthConcern::SOCIAL_RI_SESSION_KEY] = "jp"
+    session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
+    session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY] = "jp"
 
     assert_equal "/sign/up/new?ri=jp", controller.send(:social_auth_failure_redirect_path)
 
-    session_hash[SocialAuthConcern::SOCIAL_ENTRY_SESSION_KEY] = "sign_in"
+    session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY] = "sign_in"
 
     assert_equal "/sign/in/new?ri=jp", controller.send(:social_auth_failure_redirect_path)
   end

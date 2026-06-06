@@ -180,7 +180,7 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
   private
 
   def encrypted_otp(code)
-    Outbound::SensitivePayload.encrypt_email_otp(code)
+    OutboundSensitivePayload.encrypt_email_otp(code)
   end
 end
 

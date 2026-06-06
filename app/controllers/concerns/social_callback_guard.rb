@@ -79,7 +79,7 @@ module SocialCallbackGuard
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
     request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
-    SocialAuth::CallbackStateStore.issue!(state: state, provider: provider)
+    SocialAuthCallbackStateStore.issue!(state: state, provider: provider)
   end
 
   def allowed_request_method?(provider, method)
@@ -195,7 +195,7 @@ module SocialCallbackGuard
       return [false, error]
     end
 
-    unless SocialAuth::CallbackStateStore.consume!(state: state[:expected], provider: provider)
+    unless SocialAuthCallbackStateStore.consume!(state: state[:expected], provider: provider)
       clear_social_state!
       return [false, "server_state_reused"]
     end
@@ -365,7 +365,7 @@ module SocialCallbackGuard
       request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
       request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
       request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
-      SocialAuth::CallbackStateStore.issue!(state: query["state"].to_s, provider: provider)
+      SocialAuthCallbackStateStore.issue!(state: query["state"].to_s, provider: provider)
       return
     end
 
@@ -380,7 +380,7 @@ module SocialCallbackGuard
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
     request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
-    SocialAuth::CallbackStateStore.issue!(state: generated_state, provider: provider)
+    SocialAuthCallbackStateStore.issue!(state: generated_state, provider: provider)
   end
 
   def self.reject_request_phase!(phase:, reason:, provider:, details: {})

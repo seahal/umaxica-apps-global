@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
+class AuthenticationLogoutCurrentSessionTest < ActiveSupport::TestCase
   fixtures :clients, :client_token_statuses, :client_token_kinds
 
   test "revokes current user session token by public id" do
@@ -12,7 +12,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     token.rotate_refresh_token!
 
     assert_difference -> { ClientSignOutFlow.count }, 1 do
-      Authentication::LogoutCurrentSession.call(
+      AuthenticationLogoutCurrentSession.call(
         resource: user,
         token_class: ClientToken,
         session_public_id: token.public_id,
@@ -38,7 +38,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     token.rotate_refresh_token!
 
-    Authentication::LogoutCurrentSession.call(
+    AuthenticationLogoutCurrentSession.call(
       resource: user,
       token_class: ClientToken,
       session_public_id: token.oidc_sid,
@@ -54,7 +54,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     token.revoke!
 
     assert_difference -> { ClientSignOutFlow.count }, 1 do
-      Authentication::LogoutCurrentSession.call(
+      AuthenticationLogoutCurrentSession.call(
         resource: user,
         token_class: ClientToken,
         session_public_id: token.public_id,
@@ -68,7 +68,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
 
   test "succeeds when token and session are nil" do
     assert_no_difference -> { ClientSignOutFlow.count } do
-      Authentication::LogoutCurrentSession.call(
+      AuthenticationLogoutCurrentSession.call(
         resource: clients(:one),
         token_class: ClientToken,
         session_public_id: nil,
@@ -86,7 +86,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
     operator_token.rotate_refresh_token!
 
     assert_difference -> { VisitorSignOutFlow.count }, 1 do
-      Authentication::LogoutCurrentSession.call(
+      AuthenticationLogoutCurrentSession.call(
         resource: visitor,
         token_class: VisitorToken,
         session_public_id: visitor_token.public_id,
@@ -94,7 +94,7 @@ class Authentication::LogoutCurrentSessionTest < ActiveSupport::TestCase
       )
     end
     assert_difference -> { OperatorSignOutFlow.count }, 1 do
-      Authentication::LogoutCurrentSession.call(
+      AuthenticationLogoutCurrentSession.call(
         resource: operator,
         token_class: OperatorToken,
         session_public_id: operator_token.public_id,

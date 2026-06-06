@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
+class StepUpAvailableMethodsTest < ActiveSupport::TestCase
   fixtures :clients, :operators
 
   setup do
@@ -15,8 +15,8 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
 
   teardown do
     [@user, @staff, @visitor].compact.each do |actor|
-      StepUp::Cooldowns::WINDOWS.each_key do |method|
-        Rails.cache.delete(StepUp::Cooldowns.key(actor, method))
+      StepUpCooldowns::WINDOWS.each_key do |method|
+        Rails.cache.delete(StepUpCooldowns.key(actor, method))
       end
     end
     Rails.cache = @previous_cache_store
@@ -28,7 +28,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_includes StepUp::AvailableMethods.call(@user), :email_otp
+    assert_includes StepUpAvailableMethods.call(@user), :email_otp
   end
 
   test "matches configured methods without cooldown or lockout" do
@@ -37,7 +37,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    assert_equal StepUp::ConfiguredMethods.call(@user), StepUp::AvailableMethods.call(@user)
+    assert_equal StepUpConfiguredMethods.call(@user), StepUpAvailableMethods.call(@user)
   end
 
   test "cooldown hides only the cooled down method" do
@@ -55,18 +55,18 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     )
     passkey.save!(validate: false)
 
-    StepUp::CooldownStamp.call(@user, :email_otp)
+    StepUpCooldownStamp.call(@user, :email_otp)
 
-    result = StepUp::AvailableMethods.call(@user)
+    result = StepUpAvailableMethods.call(@user)
 
     assert_not_includes result, :email_otp
     assert_includes result, :passkey
   end
 
   test "email otp cooldown window is sixty seconds" do
-    assert_equal 60.seconds, StepUp::Cooldowns::WINDOWS.fetch(:email_otp)
-    assert_equal StepUp::Cooldowns::WINDOWS.fetch(:email_otp),
-                 Sign::AppVerificationBase::EMAIL_OTP_RESEND_COOLDOWN
+    assert_equal 60.seconds, StepUpCooldowns::WINDOWS.fetch(:email_otp)
+    assert_equal StepUpCooldowns::WINDOWS.fetch(:email_otp),
+                 SignAppVerificationBase::EMAIL_OTP_RESEND_COOLDOWN
   end
 
   test "ticket lockout returns no methods" do
@@ -76,7 +76,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     )
     ticket = Struct.new(:attempt_count).new(5)
 
-    assert_equal [], StepUp::AvailableMethods.call(@user, ticket: ticket)
+    assert_equal [], StepUpAvailableMethods.call(@user, ticket: ticket)
   end
 
   test "ticket attempt count four still returns configured methods" do
@@ -86,7 +86,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     )
     ticket = Struct.new(:attempt_count).new(4)
 
-    assert_includes StepUp::AvailableMethods.call(@user, ticket: ticket), :email_otp
+    assert_includes StepUpAvailableMethods.call(@user, ticket: ticket), :email_otp
   end
 
   test "does not include email_otp for unverified user email status" do
@@ -95,7 +95,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_not_includes StepUp::AvailableMethods.call(@user), :email_otp
+    assert_not_includes StepUpAvailableMethods.call(@user), :email_otp
   end
 
   test "includes passkey for active passkey status" do
@@ -110,7 +110,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       )
     passkey.save!(validate: false)
 
-    assert_includes StepUp::AvailableMethods.call(@user), :passkey
+    assert_includes StepUpAvailableMethods.call(@user), :passkey
   end
 
   test "does not include passkey for inactive passkey status" do
@@ -126,7 +126,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       )
     passkey.save!(validate: false)
 
-    assert_not_includes StepUp::AvailableMethods.call(user), :passkey
+    assert_not_includes StepUpAvailableMethods.call(user), :passkey
   end
 
   test "includes totp for active totp status" do
@@ -136,7 +136,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       last_otp_at: Time.zone.at(0),
     )
 
-    assert_includes StepUp::AvailableMethods.call(@user), :totp
+    assert_includes StepUpAvailableMethods.call(@user), :totp
   end
 
   test "does not include totp for inactive totp status" do
@@ -147,7 +147,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       last_otp_at: Time.zone.at(0),
     )
 
-    assert_not_includes StepUp::AvailableMethods.call(user), :totp
+    assert_not_includes StepUpAvailableMethods.call(user), :totp
   end
 
   test "does not include email_otp for active staff email status" do
@@ -158,7 +158,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       otp_private_key: "private_key",
     )
 
-    assert_not_includes StepUp::AvailableMethods.call(@staff), :email_otp
+    assert_not_includes StepUpAvailableMethods.call(@staff), :email_otp
   end
 
   test "available methods apply cooldown for visitor actors" do
@@ -172,11 +172,11 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       visitor_email_status_id: VisitorEmailStatus::VERIFIED,
     )
 
-    assert_includes StepUp::AvailableMethods.call(@visitor), :email_otp
+    assert_includes StepUpAvailableMethods.call(@visitor), :email_otp
 
-    StepUp::CooldownStamp.call(@visitor, :email_otp)
+    StepUpCooldownStamp.call(@visitor, :email_otp)
 
-    assert_not_includes StepUp::AvailableMethods.call(@visitor), :email_otp
+    assert_not_includes StepUpAvailableMethods.call(@visitor), :email_otp
   end
 
   test "available methods apply lockout for staff actors" do
@@ -191,7 +191,7 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
     passkey.save!(validate: false)
     ticket = Struct.new(:attempt_count).new(5)
 
-    assert_equal [], StepUp::AvailableMethods.call(@staff, ticket: ticket)
+    assert_equal [], StepUpAvailableMethods.call(@staff, ticket: ticket)
   end
 
   test "does not include email_otp for inactive staff email status" do
@@ -202,6 +202,6 @@ class StepUp::AvailableMethodsTest < ActiveSupport::TestCase
       otp_private_key: "private_key",
     )
 
-    assert_not_includes StepUp::AvailableMethods.call(@staff), :email_otp
+    assert_not_includes StepUpAvailableMethods.call(@staff), :email_otp
   end
 end

@@ -8,12 +8,12 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = Jit::IdHostEnv.service_url || "id.app.localhost"
+    @host = JitIdHostEnv.service_url || "id.app.localhost"
     host! @host
   end
 
   test "GET show without access jwt returns consented false" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     get sign_app_web_v0_cookie_path, as: :json
 
@@ -32,7 +32,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: "pref-app-public-id",
     )
-    cookies[Preference::CookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       get sign_app_web_v0_cookie_path, as: :json
@@ -64,7 +64,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       host: @host,
       public_id: preference.public_id,
     )
-    cookies[Preference::CookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
       patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json
@@ -77,7 +77,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil preference.app_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_includes set_cookie, "#{PreferenceCookieName.access}="
     assert_includes set_cookie, "preference_consented=1"
     assert_not_includes response_set_cookie_lines.find { |line|
       line.start_with?("preference_consented=")
@@ -86,7 +86,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "PATCH update without access jwt writes consent buffer without credential cookies" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     assert_no_difference -> { AppPreference.count } do
       patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json
@@ -99,7 +99,7 @@ class Sign::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "preference_consented=1"
     assert_includes consent_cookie.downcase, "samesite=strict"
     assert_not_includes consent_cookie.downcase, "httponly"
-    assert_not_includes set_cookie, "#{Preference::CookieName.access}="
-    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
+    assert_not_includes set_cookie, "#{PreferenceCookieName.access}="
+    assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
   end
 end

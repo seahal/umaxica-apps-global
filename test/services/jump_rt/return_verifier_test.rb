@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
+class JumpRtReturnVerifierTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   setup do
@@ -53,7 +53,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
 
     assert Rails.cache.exist?(key)
 
-    travel_to(@now + JumpRt::ReturnVerifier::LEEWAY + 11.seconds) do
+    travel_to(@now + JumpRtReturnVerifier::LEEWAY + 11.seconds) do
       assert_not Rails.cache.exist?(key)
     end
   end
@@ -85,7 +85,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
   test "matches token url to request when query parameter order differs" do
     token = sign_return_token(url: "https://www.umaxica.app/path?ok=1&extra=2")
 
-    result = JumpRt::ReturnVerifier.call(
+    result = JumpRtReturnVerifier.call(
       token: token,
       request_url: "https://www.umaxica.app/path?extra=2&rt=#{token}&ok=1",
       request_base_url: "https://www.umaxica.app",
@@ -100,7 +100,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
     token = sign_return_token
     jwks = { "keys" => [@public_jwk.merge("d" => "private")] }
 
-    result = JumpRt::ReturnVerifier.call(
+    result = JumpRtReturnVerifier.call(
       token: token,
       request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
       request_base_url: "https://www.umaxica.app",
@@ -126,7 +126,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
         { "keys" => (calls == 1) ? [] : [@public_jwk] }
       end
 
-    result = JumpRt::ReturnVerifier.call(
+    result = JumpRtReturnVerifier.call(
       token: token,
       request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
       request_base_url: "https://www.umaxica.app",
@@ -148,7 +148,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
       end
 
     2.times do
-      result = JumpRt::ReturnVerifier.call(
+      result = JumpRtReturnVerifier.call(
         token: token,
         request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
         request_base_url: "https://www.umaxica.app",
@@ -176,7 +176,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
     token = sign_return_token
 
     with_env("JUMP_GATEWAY_JWKS_URL" => "http://jump.umaxica.net/.well-known/jwks.json") do
-      result = JumpRt::ReturnVerifier.call(
+      result = JumpRtReturnVerifier.call(
         token: token,
         request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
         request_base_url: "https://www.umaxica.app",
@@ -193,7 +193,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
     stale_key = "jump_rt:return_jwks:stale:#{Digest::SHA256.hexdigest(jwks_url)}"
     Rails.cache.write(stale_key, { "keys" => [@public_jwk] }, expires_in: 1.hour)
 
-    result = JumpRt::ReturnVerifier.call(
+    result = JumpRtReturnVerifier.call(
       token: token,
       request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
       request_base_url: "https://www.umaxica.app",
@@ -207,7 +207,7 @@ class JumpRt::ReturnVerifierTest < ActiveSupport::TestCase
   private
 
   def verify(token)
-    JumpRt::ReturnVerifier.call(
+    JumpRtReturnVerifier.call(
       token: token,
       request_url: "https://www.umaxica.app/path?ok=1&rt=#{token}",
       request_base_url: "https://www.umaxica.app",

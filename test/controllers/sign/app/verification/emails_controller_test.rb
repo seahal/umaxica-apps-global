@@ -31,7 +31,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "new sends otp and redirects to edit" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
         get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -58,7 +58,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       ri: "jp",
     )
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
       get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -94,7 +94,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       ri: "jp",
     )
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_difference -> { SolidQueue::Job.where(class_name: "ActionMailer::MailDeliveryJob").count }, 1 do
         ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
           get(
@@ -117,7 +117,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     @user.client_emails.update_all(user_email_status_id: ClientEmailStatus::VERIFIED_WITH_SIGN_UP)
     return_to = sign_app_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
       get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -136,7 +136,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "new keeps scope and return_to in form hidden fields" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       get new_sign_app_verification_email_url(
         ri: "jp",
         scope: "settings_email",
@@ -151,7 +151,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "new restores step_up session from scope and pt query parameters" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
         get new_sign_app_verification_email_url(
           ri: "jp",
@@ -175,7 +175,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_response :success
     cache_email_otp!
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
         get new_sign_app_verification_email_url(
           ri: "jp",
@@ -201,7 +201,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     nonce = SecureRandom.urlsafe_base64(16)
     cache_email_nonce!(nonce)
 
-    StepUp::AvailableMethods.stub(:call, []) do
+    StepUpAvailableMethods.stub(:call, []) do
       assert_enqueued_emails 1 do
         get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
       end
@@ -224,7 +224,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     cache_email_nonce!(nonce)
     cache_email_otp!
 
-    StepUp::AvailableMethods.stub(:call, []) do
+    StepUpAvailableMethods.stub(:call, []) do
       assert_enqueued_emails 0 do
         get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
       end
@@ -237,7 +237,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "update verifies otp and redirects to return_to" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
         get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -368,7 +368,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     stale_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
     email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: stale_headers
 
       assert_response :redirect
@@ -383,7 +383,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "create restores step_up session only when scope and return_to are present" do
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         post sign_app_verification_emails_url(ri: "jp"),
              params: { verification: { scope: "", pt: "" } },

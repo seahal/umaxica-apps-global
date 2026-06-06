@@ -16,7 +16,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
 
   REVIEWED_MODEL_CONCERN_SIDE_EFFECTS = {
     "app/models/concerns/account.rb" => [1, "legacy ActiveRecord validation concern; move deliberately"],
-    "app/models/concerns/actor/lifecycle_consistency.rb" => [2, "legacy Actor lifecycle invariant concern"],
+    "app/models/concerns/actor_lifecycle_consistency.rb" => [2, "legacy Actor lifecycle invariant concern"],
     "app/models/concerns/banner_model.rb" => [8, "legacy ActiveRecord banner DSL concern"],
     "app/models/concerns/collective.rb" => [1, "legacy ActiveRecord validation concern"],
     "app/models/concerns/collective_membership.rb" => [7, "legacy ActiveRecord membership DSL concern"],
@@ -26,7 +26,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/dpop_proof_stateable.rb" => [1, "legacy DPoP proof query concern"],
     "app/models/concerns/email.rb" => [7, "legacy email normalization and validation concern"],
     "app/models/concerns/email_ceremony_transactionable.rb" => [12, "reviewed ceremony transaction model DSL concern"],
-    "app/models/concerns/flow/base.rb" => [1, "legacy flow base class attribute concern"],
+    "app/models/concerns/flow_base.rb" => [1, "legacy flow base class attribute concern"],
     "app/models/concerns/has_birthdate.rb" => [3, "legacy birthdate validation concern"],
     "app/models/concerns/identity.rb" => [1, "legacy identity validation concern"],
     "app/models/concerns/mfa_status_trackable.rb" => [2, "legacy MFA status lifecycle concern"],
@@ -35,7 +35,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/oidc_connection_record.rb" => [3, "legacy OIDC connection query concern"],
     "app/models/concerns/passkey_ceremony_transactionable.rb" => [12,
                                                                   "reviewed ceremony transaction model DSL concern",],
-    "app/models/concerns/preference/resettable.rb" => [1, "legacy preference reset callback concern"],
+    "app/models/concerns/preference_resettable.rb" => [1, "legacy preference reset callback concern"],
     "app/models/concerns/public_id.rb" => [3, "legacy public id generation concern"],
     "app/models/concerns/refresh_tokenable.rb" => [5, "legacy refresh-token lifecycle concern"],
     "app/models/concerns/retainable.rb" => [6, "legacy retention timestamp concern"],
@@ -70,14 +70,19 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
           rescue_from\s+[^\n]*(?:Required|Unauthorized|StepUp))\b/x
 
   REVIEWED_BRANCH_EXCEPTIONS = {
-    "app/controllers/concerns/acme/step_up_completion.rb" => [2, "reviewed step-up completion branch errors"],
-    "app/controllers/concerns/social_auth_concern.rb" => [13, "legacy SocialAuth control-flow errors"],
+    "app/controllers/concerns/acme_step_up_completion.rb" => [2, "reviewed step-up completion branch errors"],
+    "app/controllers/concerns/social_auth.rb" => [13, "legacy SocialAuth control-flow errors"],
     "app/models/concerns/step_up_ceremony_transactionable.rb" => [
       3,
       "reviewed step-up ceremony transaction branch errors",
     ],
-    "app/services/org/registration_policy.rb" => [1, "legacy org invitation branch error"],
-    "app/services/social_auth/link_handler.rb" => [1, "legacy SocialAuth link branch error"],
+    "app/services/identity_step_up_ceremony_contract.rb" => [19, "reviewed step-up ceremony branch contract errors"],
+    "app/services/identity_step_up_ceremony_freshness_committer.rb" => [6, "reviewed step-up ceremony branch errors"],
+    "app/services/identity_step_up_ceremony_grant.rb" => [1, "reviewed step-up ceremony grant branch error"],
+    "app/services/identity_step_up_ceremony_replay_store.rb" => [1, "reviewed step-up ceremony replay branch error"],
+    "app/services/identity_step_up_ceremony_result_consumer.rb" => [6, "reviewed step-up ceremony result branch errors"],
+    "app/services/org_registration_policy.rb" => [1, "legacy org invitation branch error"],
+    "app/services/social_auth_link_handler.rb" => [1, "legacy SocialAuth link branch error"],
     "app/services/social_auth_service.rb" => [2, "legacy SocialAuth service branch errors"],
   }.freeze
 
@@ -87,7 +92,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
 
   test "controller concerns do not register lifecycle side effects when included" do
     offenders = included_do_side_effect_inventory(
-      "app/controllers/concerns/**/*.rb",
+      "app/controllers/concerns/*.rb",
       CONTROLLER_CONCERN_SIDE_EFFECT_PATTERN,
     )
 
@@ -96,7 +101,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
   end
 
   test "model concern included-do side effects stay in the reviewed allowlist" do
-    actual = included_do_side_effect_inventory("app/models/concerns/**/*.rb", MODEL_CONCERN_SIDE_EFFECT_PATTERN)
+    actual = included_do_side_effect_inventory("app/models/concerns/*.rb", MODEL_CONCERN_SIDE_EFFECT_PATTERN)
 
     assert_reviewed_inventory(
       REVIEWED_MODEL_CONCERN_SIDE_EFFECTS,

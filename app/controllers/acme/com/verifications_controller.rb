@@ -4,8 +4,8 @@
 module Acme
   module Com
     class VerificationsController < Acme::Com::ApplicationController
-      include Acme::StepUpIntent
-      include Acme::StepUpCompletion
+      include AcmeStepUpIntent
+      include AcmeStepUpCompletion
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -18,7 +18,7 @@ module Acme
           surface: "com",
           actor: current_visitor,
           token: current_session_token,
-          allowed_scopes: StepUp::ScopeCatalog::COM,
+          allowed_scopes: StepUpScopeCatalog::COM,
           sign_url_builder: ->(**query) {
             sign_com_verification_url(
               query.merge(host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")),

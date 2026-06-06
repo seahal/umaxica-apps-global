@@ -6,9 +6,9 @@ module Acme
     module Web
       module V0
         class CookiesController < Acme::App::ApplicationController
-          include ::Preference::WebCookieEndpoint
+          include ::PreferenceWebCookieEndpoint
 
-          include ::Preference::WebCookieActions
+          include ::PreferenceWebCookieActions
 
           AUTHENTICATION_MODE = :open
 

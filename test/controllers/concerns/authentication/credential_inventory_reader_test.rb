@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Authentication::CredentialInventoryReaderTest < ActiveSupport::TestCase
+class AuthenticationCredentialInventoryReaderTest < ActiveSupport::TestCase
   class Harness
-    include Authentication::CredentialInventoryReader
+    include AuthenticationCredentialInventoryReader
 
     attr_accessor :current_client
   end
@@ -21,8 +21,8 @@ class Authentication::CredentialInventoryReaderTest < ActiveSupport::TestCase
 
     inventory = harness.send(:current_credential_inventory)
 
-    assert_instance_of Authentication::CredentialInventory::Result, inventory
-    assert_equal Authentication::CredentialInventory.call(client, reload: true).aal2_methods, inventory.aal2_methods
+    assert_instance_of AuthenticationCredentialInventory::Result, inventory
+    assert_equal AuthenticationCredentialInventory.call(client, reload: true).aal2_methods, inventory.aal2_methods
   end
 
   test "controller concern supports excluding a candidate credential" do

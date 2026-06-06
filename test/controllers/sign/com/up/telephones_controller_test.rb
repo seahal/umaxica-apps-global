@@ -187,7 +187,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_nil session[:com_sign_up_flow_locator]
     job_args = enqueued_jobs.last[:args].first
-    body = Outbound::SensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
+    body = OutboundSensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
     sent_code = body[/\d{6}/]
 
     assert_equal "Verification code", job_args.fetch("title")
@@ -387,7 +387,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     first_telephone = VisitorTelephone.find_by!(public_id: first_public_id)
     first_visitor = first_telephone.visitor
 
-    travel Common::OtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
+    travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       post sign_com_up_telephone_url(ri: "jp"),
            params: {
              visitor_telephone: {

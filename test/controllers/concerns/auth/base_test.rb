@@ -31,7 +31,7 @@ module Auth
         end
       end
 
-      include Authentication::Base
+      include AuthenticationBase
 
       attr_accessor :actor_type, :checkpoint_participant, :dashboard_participant
       attr_writer :resource, :logged_in, :current_session_record, :allowed_policy
@@ -201,33 +201,33 @@ module Auth
     BlockingParticipant =
       Struct.new(:cycle) do
         def advance_if_clear!
-          SignIn::ParticipantResult.new(
+          SignInParticipantResult.new(
             participant: :checkpoint,
-            stack: [SignIn::ParticipantItem.new(key: :blocked_for_test, blocking: true, cleared: false)],
+            stack: [SignInParticipantItem.new(key: :blocked_for_test, blocking: true, cleared: false)],
             next_status: "DASHBOARD_PENDING",
           )
         end
       end
 
     test "VALID_POLICIES constant is defined" do
-      assert_equal %i(deny_all public_strict auth_required guest_only), Authentication::Base::VALID_POLICIES
+      assert_equal %i(deny_all public_strict auth_required guest_only), AuthenticationBase::VALID_POLICIES
     end
 
     test "AUDIT_EVENTS constant is defined" do
-      assert Authentication::Base::AUDIT_EVENTS.key?(:logged_in)
-      assert Authentication::Base::AUDIT_EVENTS.key?(:logged_out)
-      assert Authentication::Base::AUDIT_EVENTS.key?(:login_failed)
-      assert Authentication::Base::AUDIT_EVENTS.key?(:token_refreshed)
+      assert AuthenticationBase::AUDIT_EVENTS.key?(:logged_in)
+      assert AuthenticationBase::AUDIT_EVENTS.key?(:logged_out)
+      assert AuthenticationBase::AUDIT_EVENTS.key?(:login_failed)
+      assert AuthenticationBase::AUDIT_EVENTS.key?(:token_refreshed)
     end
 
     test "ACCESS_COOKIE_KEY is defined" do
-      assert_kind_of String, Authentication::Base::ACCESS_COOKIE_KEY
-      assert_equal "auth_access", Authentication::Base::ACCESS_COOKIE_KEY
+      assert_kind_of String, AuthenticationBase::ACCESS_COOKIE_KEY
+      assert_equal "auth_access", AuthenticationBase::ACCESS_COOKIE_KEY
     end
 
     test "REFRESH_COOKIE_KEY is defined" do
-      assert_kind_of String, Authentication::Base::REFRESH_COOKIE_KEY
-      assert_equal "auth_refresh", Authentication::Base::REFRESH_COOKIE_KEY
+      assert_kind_of String, AuthenticationBase::REFRESH_COOKIE_KEY
+      assert_equal "auth_refresh", AuthenticationBase::REFRESH_COOKIE_KEY
     end
 
     test "test_header_key resolves actor specific keys" do
@@ -251,27 +251,27 @@ module Auth
     end
 
     test "ACCESS_TOKEN_TTL is defined" do
-      assert_kind_of ActiveSupport::Duration, Authentication::Base::ACCESS_TOKEN_TTL
+      assert_kind_of ActiveSupport::Duration, AuthenticationBase::ACCESS_TOKEN_TTL
     end
 
     test "REFRESH_TOKEN_TTL is defined" do
-      assert_kind_of ActiveSupport::Duration, Authentication::Base::REFRESH_TOKEN_TTL
+      assert_kind_of ActiveSupport::Duration, AuthenticationBase::REFRESH_TOKEN_TTL
     end
 
     test "Token class has JWT_ALGORITHM constant" do
-      assert_equal "ES384", Authentication::Base::Token::JWT_ALGORITHM
+      assert_equal "ES384", AuthenticationToken::JWT_ALGORITHM
     end
 
     test "Token.extract_subject returns nil for nil payload" do
-      assert_nil Authentication::Base::Token.extract_subject(nil)
+      assert_nil AuthenticationToken.extract_subject(nil)
     end
 
     test "VALID_ACTOR_TYPES constant is defined" do
-      assert_equal %w(client operator visitor), Authentication::Base::VALID_ACTOR_TYPES
+      assert_equal %w(client operator visitor), AuthenticationBase::VALID_ACTOR_TYPES
     end
 
     test "Token.extract_act returns nil for nil payload" do
-      assert_nil Authentication::Base::Token.extract_act(nil)
+      assert_nil AuthenticationToken.extract_act(nil)
     end
 
     test "begin_sign_in_sequence stores only safe encoded return paths" do
@@ -314,7 +314,7 @@ module Auth
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       harness.send(:continue_checkpoint_sequence_without_content!)
 
@@ -332,7 +332,7 @@ module Auth
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
         harness.send(:continue_checkpoint_sequence_without_content!)
@@ -348,7 +348,7 @@ module Auth
       cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       cycle.update!(return_to: "/dashboard?ri=jp")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       harness.send(:continue_checkpoint_sequence_without_content!)
 
@@ -366,7 +366,7 @@ module Auth
       cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
       harness.checkpoint_participant = BlockingParticipant.new(cycle)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       harness.send(:continue_checkpoint_sequence_without_content!)
 
@@ -380,7 +380,7 @@ module Auth
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: "/after", sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
@@ -406,7 +406,7 @@ module Auth
         expires_at: 15.minutes.from_now,
       )
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: "/after", sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
@@ -423,7 +423,7 @@ module Auth
       cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       cycle.update!(return_to: "/dashboard?ri=jp")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
@@ -440,7 +440,7 @@ module Auth
       cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       cycle.update!(return_to: "/welcome?ri=jp")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       harness.send(:continue_dashboard_sequence_without_content!)
@@ -456,7 +456,7 @@ module Auth
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_flow(user, token, status_name: "CHECKPOINT_PENDING", step: "checkpoint")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       harness.send(:continue_dashboard_sequence_without_content!)
 
@@ -474,7 +474,7 @@ module Auth
       cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
       harness.allowed_policy = { show_dashboard?: false }
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
       harness.send(:issue_welcome_gate_and_path, pt: cycle.return_to, sequence_id: cycle.public_id)
 
       assert_not harness.send(:continue_dashboard_sequence_without_content!)
@@ -489,7 +489,7 @@ module Auth
       token = ClientToken.create!(user: user)
       cycle = db_sign_in_flow(user, token, status_name: "DASHBOARD_PENDING", step: "dashboard")
       harness = db_sequence_harness(user, token)
-      SignIn::CycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(harness.session, surface: :app, actor: user, token: token).issue!(cycle, nonce: "nonce")
 
       assert_not harness.send(:continue_checkpoint_sequence_without_content!)
 
@@ -500,7 +500,7 @@ module Auth
     test "checkpoint sequence participant rejects stale bulletin without sequence state" do
       harness = HeaderKeyHarness.new
       harness.allowed_policy = { show_checkpoint?: false }
-      harness.session[Authentication::Base::BULLETIN_SESSION_KEY] = {
+      harness.session[AuthenticationBase::BULLETIN_SESSION_KEY] = {
         "issued_at" => Time.current.to_i,
         "kind" => "checkpoint",
         "state" => "new",
@@ -517,43 +517,43 @@ module Auth
     end
 
     test "Token.extract_type returns nil for nil payload" do
-      assert_nil Authentication::Base::Token.extract_type(nil)
+      assert_nil AuthenticationToken.extract_type(nil)
     end
 
     test "Token.extract_session_id returns nil for nil payload" do
-      assert_nil Authentication::Base::Token.extract_session_id(nil)
+      assert_nil AuthenticationToken.extract_session_id(nil)
     end
 
     test "Token.extract_jti returns nil for nil payload" do
-      assert_nil Authentication::Base::Token.extract_jti(nil)
+      assert_nil AuthenticationToken.extract_jti(nil)
     end
 
     test "JwtConfiguration.issuer returns string" do
-      issuer = Authentication::Base::JwtConfiguration.issuer
+      issuer = AuthenticationJwtConfiguration.issuer
 
       assert_kind_of String, issuer
     end
 
     test "JwtConfiguration.audiences returns array" do
-      audiences = Authentication::Base::JwtConfiguration.audiences
+      audiences = AuthenticationJwtConfiguration.audiences
 
       assert_kind_of Array, audiences
     end
 
     test "JwtConfiguration.leeway_seconds returns integer" do
-      assert_kind_of Integer, Authentication::Base::JwtConfiguration.leeway_seconds
+      assert_kind_of Integer, AuthenticationJwtConfiguration.leeway_seconds
     end
 
     test "MissingPolicyError is a StandardError" do
-      assert_operator Authentication::Base::MissingPolicyError, :<, StandardError
+      assert_operator AuthenticationBase::MissingPolicyError, :<, StandardError
     end
 
     test "InvalidPolicyError is a StandardError" do
-      assert_operator Authentication::Base::InvalidPolicyError, :<, StandardError
+      assert_operator AuthenticationBase::InvalidPolicyError, :<, StandardError
     end
 
     test "SkipNotAllowedError is a StandardError" do
-      assert_operator Authentication::Base::SkipNotAllowedError, :<, StandardError
+      assert_operator AuthenticationBase::SkipNotAllowedError, :<, StandardError
     end
 
     test "request guard helpers render or redirect when already logged in" do
@@ -601,12 +601,12 @@ module Auth
       result = harness.preserve_pt
 
       assert_equal "/target", harness.path_from_signed_pt(result)
-      assert_equal result, harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+      assert_equal result, harness.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
       assert_equal "/target", harness.path_from_signed_pt(harness.peek_pt)
       assert_equal "/target", harness.path_from_signed_pt(harness.build_notice_params("ok")[:pt])
       assert_equal "/target", harness.path_from_signed_pt(harness.build_alert_params("ng")[:pt])
       assert_equal "/target", harness.path_from_signed_pt(harness.retrieve_pt)
-      assert_nil harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+      assert_nil harness.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
     end
 
     test "redirect parameter helpers reject unsigned pt params" do
@@ -616,13 +616,13 @@ module Auth
       assert_nil harness.preserve_pt
       assert_nil harness.peek_pt
       assert_nil harness.retrieve_pt
-      assert_nil harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY]
+      assert_nil harness.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
     end
 
     test "redirect_with_pt_handling uses pt jump when present and fallback redirect otherwise" do
       harness = HeaderKeyHarness.new
       pt = harness.signed_pt_token("/dashboard")
-      harness.session[Authentication::Base::DEFAULT_PT_SESSION_KEY] = pt
+      harness.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY] = pt
 
       harness.redirect_with_pt_handling("/default", :notice, "done")
 
@@ -638,34 +638,34 @@ module Auth
     test "clear_auth_cookies! deletes all auth-related cookies" do
       harness = HeaderKeyHarness.new
       HeaderKeyHarness.reset_encrypted_cookies!
-      harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
-      harness.cookies.encrypted[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
+      harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "access"
+      harness.cookies.encrypted[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh"
 
-      Core::CookieOptions.stub(:for, {}) do
+      CoreCookieOptions.stub(:for, {}) do
         harness.send(:clear_auth_cookies!)
 
-        assert_nil harness.cookies[Authentication::Base::ACCESS_COOKIE_KEY]
-        assert_nil harness.cookies[Authentication::Base::REFRESH_COOKIE_KEY]
+        assert_nil harness.cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
+        assert_nil harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
       end
     end
 
     test "JwtConfiguration.issuer respects resource_type" do
-      assert_equal "urn:umaxica:test:auth:client", Authentication::Base::JwtConfiguration.issuer("client")
-      assert_equal "urn:umaxica:test:auth:operator", Authentication::Base::JwtConfiguration.issuer("operator")
-      assert_equal "urn:umaxica:test:auth", Authentication::Base::JwtConfiguration.issuer("invalid")
+      assert_equal "urn:umaxica:test:auth:client", AuthenticationJwtConfiguration.issuer("client")
+      assert_equal "urn:umaxica:test:auth:operator", AuthenticationJwtConfiguration.issuer("operator")
+      assert_equal "urn:umaxica:test:auth", AuthenticationJwtConfiguration.issuer("invalid")
     end
 
     test "JwtConfiguration.audiences respects resource_type specific env" do
       with_env("AUTH_JWT_CLIENT_AUDIENCES" => "u1,u2", "AUTH_JWT_AUDIENCES" => "default") do
-        assert_equal %w(u1 u2), Authentication::Base::JwtConfiguration.audiences("client")
-        assert_equal %w(default), Authentication::Base::JwtConfiguration.audiences("operator")
+        assert_equal %w(u1 u2), AuthenticationJwtConfiguration.audiences("client")
+        assert_equal %w(default), AuthenticationJwtConfiguration.audiences("operator")
       end
     end
 
     test "JwtConfiguration.token_type returns correct format" do
-      assert_equal "auth-access-token;client", Authentication::Base::JwtConfiguration.token_type("client")
-      assert_equal "auth-access-token;operator", Authentication::Base::JwtConfiguration.token_type("operator")
-      assert_raises(ArgumentError) { Authentication::Base::JwtConfiguration.token_type("invalid") }
+      assert_equal "auth-access-token;client", AuthenticationJwtConfiguration.token_type("client")
+      assert_equal "auth-access-token;operator", AuthenticationJwtConfiguration.token_type("operator")
+      assert_raises(ArgumentError) { AuthenticationJwtConfiguration.token_type("invalid") }
     end
 
     private

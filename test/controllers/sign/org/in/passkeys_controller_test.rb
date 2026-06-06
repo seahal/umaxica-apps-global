@@ -11,8 +11,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     host! host
-    Jit::Security::TurnstileVerifier.test_mode = true
-    Jit::Security::TurnstileVerifier.test_response = { "success" => true }
+    JitSecurityTurnstileVerifier.test_mode = true
+    JitSecurityTurnstileVerifier.test_response = { "success" => true }
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
@@ -35,8 +35,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   teardown do
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
-    Jit::Security::TurnstileVerifier.test_mode = false
-    Jit::Security::TurnstileVerifier.test_response = nil
+    JitSecurityTurnstileVerifier.test_mode = false
+    JitSecurityTurnstileVerifier.test_response = nil
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
   end
@@ -134,7 +134,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   test "verification returns bad request on challenge purpose mismatch" do
     post options_sign_org_in_passkeys_url(ri: "jp"), params: { identifier: @staff.public_id }
     challenge_id = response.parsed_body["challenge_id"]
-    mismatch_error = Sign::Webauthn::ChallengePurposeMismatchError.new("purpose mismatch")
+    mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
     original_method = Sign::Org::In::PasskeysController.instance_method(:with_challenge)
     Sign::Org::In::PasskeysController.define_method(:with_challenge) do |*_args|
@@ -190,7 +190,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
       assert_equal "ok", json["status"]
       assert_not_nil json["access_token"]
       assert_equal "Bearer", json["token_type"]
-      assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
+      assert_equal AuthenticationBase::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
       assert_equal sign_org_in_check_path(ri: "jp"), json["redirect_url"]
 
       # Challenge verification updates sign count
@@ -376,7 +376,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     refresh = token.rotate_refresh_token!
 
     rotations.times do
-      refresh = Sign::RefreshTokenService.call(refresh_token: refresh)[:refresh_token]
+      refresh = SignRefreshTokenService.call(refresh_token: refresh)[:refresh_token]
     end
   end
 end

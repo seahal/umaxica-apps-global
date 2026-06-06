@@ -31,9 +31,9 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       "ID_SERVICE_URL" => "www.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Keyring.stub(:active_kid, "acme-app-test") do
-        JumpRt::Keyring.stub(:private_key, @rails_private_key) do
-          rails_rt = JumpRt::Issuer.call(
+      JumpRtKeyring.stub(:active_kid, "acme-app-test") do
+        JumpRtKeyring.stub(:private_key, @rails_private_key) do
+          rails_rt = JumpRtIssuer.call(
             namespace: "ACME_APP",
             url: "https://www.app.localhost/",
             dst: "internal",
@@ -66,7 +66,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       url: "https://www.app.localhost/?ok=1",
     )
 
-    JumpRt::ReturnVerifier.stub(:call, verifier_success) do
+    JumpRtReturnVerifier.stub(:call, verifier_success) do
       get "/", params: { ok: "1", rt: token }
     end
 
@@ -84,15 +84,15 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   end
 
   test "sign surface does not include jump return verification" do
-    assert_not_includes Sign::App::ApplicationController.ancestors, JumpRt::ReturnVerification
-    assert_not_includes Sign::Com::ApplicationController.ancestors, JumpRt::ReturnVerification
-    assert_not_includes Sign::Org::ApplicationController.ancestors, JumpRt::ReturnVerification
+    assert_not_includes Sign::App::ApplicationController.ancestors, JumpRtReturnVerification
+    assert_not_includes Sign::Com::ApplicationController.ancestors, JumpRtReturnVerification
+    assert_not_includes Sign::Org::ApplicationController.ancestors, JumpRtReturnVerification
   end
 
   test "return verification concern does not register callbacks when included" do
     controller =
       Class.new(ActionController::Base) do # rubocop:disable Rails/ApplicationController
-        include JumpRt::ReturnVerification
+        include JumpRtReturnVerification
       end
 
     before_filters =
@@ -121,12 +121,12 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       assert_equal "https://www.app.localhost/?ok=1&rt=#{token}", request_url
       assert_equal "https://www.app.localhost", request_base_url
 
-      JumpRt::ReturnVerifier::Result.new(success: true, payload: {}, error: nil)
+      JumpRtReturnVerifier::Result.new(success: true, payload: {}, error: nil)
     end
   end
 
   def stubbed_jump_location(rails_rt)
-    rails_issuer = JumpRt::Surface.issuer_origin("ACME_APP")
+    rails_issuer = JumpRtSurface.issuer_origin("ACME_APP")
     payload, header = JWT.decode(
       rails_rt,
       JWT::JWK.import(@rails_public_jwk).public_key,

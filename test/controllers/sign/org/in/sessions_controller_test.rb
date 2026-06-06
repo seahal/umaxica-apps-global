@@ -547,7 +547,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def as_staff_headers_with_token(staff, token, host:)
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       staff, host: host, session_public_id: token.public_id,
              resource_type: "operator",
     )
@@ -558,7 +558,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
       "Cookie" => [
         "csrf_token=test_csrf_token",
-        "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+        "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
       ].join("; "),
     )
   end

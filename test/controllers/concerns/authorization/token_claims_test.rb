@@ -9,7 +9,7 @@ module Authorization
 
     def setup_token_claims_payload
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -55,19 +55,19 @@ module Authorization
       payload, _issued_at = setup_token_claims_payload
 
       assert_equal "auth-access-token;client", payload["typ"]
-      assert_equal Authentication::Base::JwtConfiguration.issuer("client"), payload["iss"]
+      assert_equal AuthenticationJwtConfiguration.issuer("client"), payload["iss"]
     end
 
     test "build includes audience and jti claims" do
       payload, _issued_at = setup_token_claims_payload
 
-      assert_equal Authentication::Base::JwtConfiguration.audiences("client"), payload["aud"]
+      assert_equal AuthenticationJwtConfiguration.audiences("client"), payload["aud"]
       assert_predicate payload["jti"], :present?
     end
 
     test "build prefers oidc identifiers for sid and jti claims" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_public_id: "token_public_id",
         session_id: "legacy_session_id",
@@ -85,7 +85,7 @@ module Authorization
     test "build uses explicit expires_at when provided" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       expires_at = issued_at + 5.minutes
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -98,15 +98,15 @@ module Authorization
     end
 
     test "extractors return nil when payload is nil" do
-      assert_nil Authorization::TokenClaims.subject(nil)
-      assert_nil Authorization::TokenClaims.actor(nil)
-      assert_nil Authorization::TokenClaims.session_id(nil)
-      assert_nil Authorization::TokenClaims.jti(nil)
+      assert_nil AuthorizationTokenClaims.subject(nil)
+      assert_nil AuthorizationTokenClaims.actor(nil)
+      assert_nil AuthorizationTokenClaims.session_id(nil)
+      assert_nil AuthorizationTokenClaims.jti(nil)
     end
 
     test "build does not include prf claim when preferences is nil" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -120,7 +120,7 @@ module Authorization
     test "build includes prf claim when preferences hash provided" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
       prefs = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -134,7 +134,7 @@ module Authorization
 
     test "build excludes prf claim when preferences is empty hash" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -148,7 +148,7 @@ module Authorization
 
     test "build excludes prf claim when preferences is not a hash" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -163,18 +163,18 @@ module Authorization
     test "preferences extractor reads prf claim" do
       payload = { "prf" => { "lx" => "ja", "ri" => "jp" } }
 
-      assert_equal({ "lx" => "ja", "ri" => "jp" }, Authorization::TokenClaims.preferences(payload))
+      assert_equal({ "lx" => "ja", "ri" => "jp" }, AuthorizationTokenClaims.preferences(payload))
     end
 
     test "preferences extractor returns nil when prf absent" do
-      assert_nil Authorization::TokenClaims.preferences({})
-      assert_nil Authorization::TokenClaims.preferences(nil)
+      assert_nil AuthorizationTokenClaims.preferences({})
+      assert_nil AuthorizationTokenClaims.preferences(nil)
     end
 
     test "prf claim roundtrips through Actor::Preference.from_jwt" do
       prefs = { "lx" => "en", "ri" => "us", "tz" => "America/New_York", "ct" => "dr" }
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -195,7 +195,7 @@ module Authorization
 
     test "build includes cnf.jkt when dpop_jkt provided" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_id: "sess_abc",
         resource_type: "client",
@@ -209,7 +209,7 @@ module Authorization
 
     test "build backward compatible with session_public_id parameter" do
       issued_at = Time.zone.parse("2026-02-22 12:00:00")
-      payload = Authorization::TokenClaims.build(
+      payload = AuthorizationTokenClaims.build(
         resource: DummyResource.new(42),
         session_public_id: "legacy_sid",
         resource_type: "client",

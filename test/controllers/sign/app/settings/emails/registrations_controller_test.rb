@@ -228,7 +228,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "acme issued grant drives sign ceremony result and acme email commit" do
-    issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @user.public_id,
       session_ref: @token.public_id,
@@ -436,7 +436,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     user_email = @user.client_emails.order(:created_at).last
     original_counter = user_email.otp_counter
 
-    travel Common::OtpPolicy::SEND_COOLDOWN + 1.second do
+    travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_enqueued_emails 1 do
         post resend_sign_app_settings_emails_registration_url(ri: "jp"), headers: request_headers
       end

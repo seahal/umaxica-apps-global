@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
+class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
   fixtures_none!
 
   setup do
@@ -28,7 +28,7 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
     )
     cycle = social_cycle(user, identity, provider: "google")
 
-    result = Sign::App::Up::SocialCancellation.call(cycle: cycle)
+    result = SignAppUpSocialCancellation.call(cycle: cycle)
 
     assert_predicate result, :success?
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
@@ -52,7 +52,7 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
     )
     cycle = social_cycle(user, identity, provider: "apple")
 
-    result = Sign::App::Up::SocialCancellation.call(cycle: cycle)
+    result = SignAppUpSocialCancellation.call(cycle: cycle)
 
     assert_predicate result, :success?
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
@@ -76,7 +76,7 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
     )
     cycle = social_cycle(user, identity, provider: "google")
 
-    result = Sign::App::Up::SocialCancellation.call(cycle: cycle)
+    result = SignAppUpSocialCancellation.call(cycle: cycle)
 
     assert_predicate result, :failure?
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
@@ -97,7 +97,7 @@ class Sign::App::Up::SocialCancellationTest < ActiveSupport::TestCase
     )
     cycle = social_cycle(pending_user, identity, provider: "google")
 
-    result = Sign::App::Up::SocialCancellation.call(cycle: cycle)
+    result = SignAppUpSocialCancellation.call(cycle: cycle)
 
     assert_predicate result, :failure?
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id

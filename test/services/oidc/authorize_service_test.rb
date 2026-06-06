@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
+class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
@@ -11,12 +11,12 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
       Digest::SHA256.digest(@code_verifier),
       padding: false,
     )
-    @client = Oidc::ClientRegistry.find("core_app")
+    @client = OidcClientRegistry.find("core_app")
     @redirect_uri = @client.redirect_uris.first
   end
 
   test "issues authorization code and returns redirect URL" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params,
       resource: @user,
     )
@@ -35,7 +35,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for missing response_type" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.except(:response_type),
       resource: @user,
     )
@@ -45,7 +45,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for wrong response_type" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.merge(response_type: "token"),
       resource: @user,
     )
@@ -55,7 +55,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for unknown client_id" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.merge(client_id: "unknown"),
       resource: @user,
     )
@@ -65,7 +65,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for unregistered redirect_uri" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.merge(redirect_uri: "https://evil.com/callback"),
       resource: @user,
     )
@@ -75,7 +75,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails without code_challenge" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.except(:code_challenge),
       resource: @user,
     )
@@ -85,7 +85,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for non-S256 code_challenge_method" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.merge(code_challenge_method: "plain"),
       resource: @user,
     )
@@ -95,7 +95,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "state is included in redirect URL when provided" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.merge(state: "my_state_123"),
       resource: @user,
     )
@@ -108,7 +108,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails when state is not provided" do
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: valid_params.except(:state),
       resource: @user,
     )
@@ -126,7 +126,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
     )
 
     assert_no_difference "ClientAuthorizationCode.count" do
-      result = Oidc::AuthorizeService.call(
+      result = OidcAuthorizeService.call(
         params: valid_params,
         resource: @user,
       )
@@ -139,7 +139,7 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
 
   test "authorization code is stored in database" do
     assert_difference "ClientAuthorizationCode.count", 1 do
-      Oidc::AuthorizeService.call(
+      OidcAuthorizeService.call(
         params: valid_params,
         resource: @user,
       )
@@ -158,10 +158,10 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
 
   test "issues authorization code for operator with org client" do
     staff = operators(:one)
-    org_client = Oidc::ClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: {
         response_type: "code",
         client_id: "core_org",
@@ -185,11 +185,11 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
 
   test "operator authorization code is stored with staff_id backing column" do
     staff = operators(:one)
-    org_client = Oidc::ClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core_org")
     org_redirect_uri = org_client.redirect_uris.first
 
     assert_difference "OperatorAuthorizationCode.count", 1 do
-      Oidc::AuthorizeService.call(
+      OidcAuthorizeService.call(
         params: {
           response_type: "code",
           client_id: "core_org",
@@ -211,10 +211,10 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
 
   test "issues authorization code for visitor with com client" do
     visitor = create_visitor!
-    com_client = Oidc::ClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core_com")
     com_redirect_uri = com_client.redirect_uris.first
 
-    result = Oidc::AuthorizeService.call(
+    result = OidcAuthorizeService.call(
       params: {
         response_type: "code",
         client_id: "core_com",
@@ -237,11 +237,11 @@ class Oidc::AuthorizeServiceTest < ActiveSupport::TestCase
 
   test "visitor authorization code is stored with visitor_id" do
     visitor = create_visitor!
-    com_client = Oidc::ClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core_com")
     com_redirect_uri = com_client.redirect_uris.first
 
     assert_difference "VisitorAuthorizationCode.count", 1 do
-      Oidc::AuthorizeService.call(
+      OidcAuthorizeService.call(
         params: {
           response_type: "code",
           client_id: "core_com",

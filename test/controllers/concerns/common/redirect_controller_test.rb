@@ -4,10 +4,10 @@
 require "test_helper"
 
 class TestRedirectController < ApplicationController
-  include Common::Redirect
+  include CommonRedirect
 end
 
-class Common::RedirectControllerTest < ActionDispatch::IntegrationTest
+class CommonRedirectControllerTest < ActionDispatch::IntegrationTest
   setup do
     @controller = TestRedirectController.new
   end
@@ -21,29 +21,29 @@ class Common::RedirectControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "normalize_host strips scheme from URL" do
-    result = Common::Redirect.normalize_host("http://example.com/path")
+    result = CommonRedirect.normalize_host("http://example.com/path")
 
     assert_includes result, "example.com"
-    result = Common::Redirect.normalize_host("https://example.com")
+    result = CommonRedirect.normalize_host("https://example.com")
 
     assert_includes result, "example.com"
   end
 
   test "normalize_host handles localhost" do
-    result = Common::Redirect.normalize_host("localhost:3000")
+    result = CommonRedirect.normalize_host("localhost:3000")
 
     assert_includes result, "localhost"
-    result = Common::Redirect.normalize_host("http://localhost")
+    result = CommonRedirect.normalize_host("http://localhost")
 
     assert_includes result, "localhost"
   end
 
   test "normalize_host handles subdomains" do
-    assert_equal "sub.example.com", Common::Redirect.normalize_host("https://sub.example.com/path")
+    assert_equal "sub.example.com", CommonRedirect.normalize_host("https://sub.example.com/path")
   end
 
   test "normalize_host returns nil for invalid input" do
-    assert_nil Common::Redirect.normalize_host(nil)
-    assert_nil Common::Redirect.normalize_host("")
+    assert_nil CommonRedirect.normalize_host(nil)
+    assert_nil CommonRedirect.normalize_host("")
   end
 end

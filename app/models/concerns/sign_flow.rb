@@ -100,7 +100,7 @@ module SignFlow
   # Row-locked transition. Reading `status_id` and writing the new one must be
   # atomic — otherwise two concurrent callers can both observe A and race-write
   # the same outbound edge, producing inconsistent state and lost updates on
-  # sibling columns. `with_cycle_lock` (Flow::Base) wraps in a transaction so
+  # sibling columns. `with_cycle_lock` (FlowBase) wraps in a transaction so
   # the SELECT FOR UPDATE actually holds.
   def transition_to!(next_status, step: nil, now: Time.current)
     if respond_to?(:with_cycle_lock)

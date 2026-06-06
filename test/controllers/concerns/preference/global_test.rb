@@ -23,14 +23,14 @@ class PreferenceGlobalTestController < ApplicationController
   def write_preference_cookie(_, _)
   end
 
-  include Preference::Global
+  include PreferenceGlobal
 
   def index
     render plain: "ok"
   end
 end
 
-class Preference::GlobalTest < ActiveSupport::TestCase
+class PreferenceGlobalTest < ActiveSupport::TestCase
   test "requested_context normalizes params and ignores invalid ri" do
     controller = PreferenceGlobalTestController.new
     controller.request = ActionDispatch::TestRequest.create

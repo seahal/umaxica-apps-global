@@ -28,7 +28,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       name: "Test Secret",
       password_digest: "test_password_digest",
       last_used_at: Time.zone.now,
-      staff_secret_kind_id: OperatorSecretCredential::Kinds::LOGIN,
+      staff_secret_kind_id: OperatorSecretCredentialKinds::LOGIN,
     )
     CloudflareTurnstile.validation_override_enabled = true
     CloudflareTurnstile.validation_override_response = { "success" => true }

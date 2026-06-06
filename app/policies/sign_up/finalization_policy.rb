@@ -17,7 +17,7 @@ module SignUp
     private
 
     def all_requirements_clear?
-      RequirementRegistry.for_ticket(
+      SignUpRequirementRegistry.for_ticket(
         ticket,
         surface: surface,
       ).missing_requirements(context.completed_requirements).empty?

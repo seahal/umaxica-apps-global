@@ -31,7 +31,7 @@ module Acme
           authorize!(ClientChronicle, to: :index?)
         end
 
-        def activity_log = @activity_log ||= Acme::App::Settings::ActivityLog.new(current_client)
+        def activity_log = @activity_log ||= AcmeAppSettingsActivityLog.new(current_client)
 
         def activity_occurred_at(activity) = activity_log.occurred_at(activity)
 

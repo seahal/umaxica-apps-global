@@ -10,7 +10,7 @@
     data-controller="passkey-registration"
     data-passkey-registration-options-url-value="<%= options_sign_org_settings_passkeys_path %>"
     data-passkey-registration-verification-url-value="<%= verification_sign_org_settings_passkeys_path %>"
-    data-passkey-registration-turnstile-site-key-value="<%= Jit::Security::TurnstileConfig.stealth_site_key.to_s %>"
+    data-passkey-registration-turnstile-site-key-value="<%= JitSecurityTurnstileConfig.stealth_site_key.to_s %>"
     data-passkey-registration-turnstile-error-message-value="<%= t("turnstile_error") %>">
 
     <div>

@@ -22,7 +22,7 @@ module Sign
             return
           end
 
-          result = ::Org::OperatorLifecycle::InvitationAcceptance.call(invitation_code: @invitation_code)
+          result = ::OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation_code)
 
           if result.success?
             redirect_to(

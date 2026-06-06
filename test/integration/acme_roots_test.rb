@@ -40,7 +40,7 @@ class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
   end
 end
 
-class SurfaceHealthControllerTest < ActionDispatch::IntegrationTest
+class SurfaceHealthEndpointTest < ActionDispatch::IntegrationTest
   test "acme app health responds successfully" do
     get "/health", headers: { "Host" => "app.localhost" }
     follow_redirect! if response.redirect?

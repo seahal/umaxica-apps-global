@@ -717,9 +717,9 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       _pref, _token, cookie_name = assert_preference_created(domain)
 
-      cookies[Preference::Base::THEME_COOKIE_KEY] = "dr"
-      cookies[Preference::Base::LANGUAGE_COOKIE_KEY] = "en"
-      cookies[Preference::Base::TIMEZONE_COOKIE_KEY] = "etc/utc"
+      cookies[PreferenceBase::THEME_COOKIE_KEY] = "dr"
+      cookies[PreferenceBase::LANGUAGE_COOKIE_KEY] = "en"
+      cookies[PreferenceBase::TIMEZONE_COOKIE_KEY] = "etc/utc"
 
       delete public_send("sign_#{domain[:name]}_preference_reset_url", ri: "jp"),
              params: { confirm_reset: "1" }
@@ -778,11 +778,11 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
   private
 
   def preference_refresh_cookie_name(domain)
-    Preference::CookieName.refresh(production: false, surface: domain[:name].to_sym)
+    PreferenceCookieName.refresh(production: false, surface: domain[:name].to_sym)
   end
 
   def preference_access_cookie_name(domain)
-    Preference::CookieName.access(production: false, surface: domain[:name].to_sym)
+    PreferenceCookieName.access(production: false, surface: domain[:name].to_sym)
   end
 
   def default_state
@@ -806,7 +806,7 @@ class SignPreferenceTest < ActionDispatch::IntegrationTest
     if pref.nil?
       access_cookie_name = preference_access_cookie_name(domain)
       access_token = cookies[access_cookie_name]
-      payload = access_token && Preference::Token.decode(access_token, host: domain[:host])
+      payload = access_token && PreferenceToken.decode(access_token, host: domain[:host])
       pref =
         domain[:preference_model].superclass.connected_to(role: :writing) do
           domain[:preference_model].find_by(public_id: payload&.dig("public_id")) ||

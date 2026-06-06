@@ -5,7 +5,7 @@ require "test_helper"
 
 class CommonOtpTest < ActiveSupport::TestCase
   class DummyClass
-    include Common::Otp
+    include CommonOtp
   end
 
   setup do

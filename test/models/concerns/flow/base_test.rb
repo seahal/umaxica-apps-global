@@ -3,12 +3,12 @@
 
 require "test_helper"
 
-class CycleBaseTest < ActiveSupport::TestCase
+class FlowBaseTest < ActiveSupport::TestCase
   class CycleBaseTestRecord < ApplicationRecord
     self.table_name = "cycle_base_test_records"
 
     include Retainable
-    include Flow::Base
+    include FlowBase
 
     cycle_status_column :cycle_status_id
   end
@@ -16,7 +16,7 @@ class CycleBaseTest < ActiveSupport::TestCase
   class UnconfiguredCycleBaseTestRecord < ApplicationRecord
     self.table_name = "cycle_base_test_records"
 
-    include Flow::Base
+    include FlowBase
   end
 
   setup do
@@ -51,7 +51,7 @@ class CycleBaseTest < ActiveSupport::TestCase
       purged_at: 2.days.from_now,
     )
 
-    error = assert_raises(Flow::ConfigurationError) { record.cycle_status_id }
+    error = assert_raises(FlowConfigurationError) { record.cycle_status_id }
 
     assert_match(/cycle_status_column/, error.message)
   end
@@ -86,7 +86,7 @@ class CycleBaseTest < ActiveSupport::TestCase
     travel_to now do
       record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now + 1.hour)
       error =
-        assert_raises(Flow::InvalidTransition) do
+        assert_raises(FlowInvalidTransition) do
           record.transition_cycle_to!(30, allowed_from: [20])
         end
 
@@ -101,7 +101,7 @@ class CycleBaseTest < ActiveSupport::TestCase
     travel_to now do
       record = build_record(cycle_status_id: 10, discarded_at: now, purged_at: now + 1.day)
       error =
-        assert_raises(Flow::InvalidTransition) do
+        assert_raises(FlowInvalidTransition) do
           record.transition_cycle_to!(20, allowed_from: [10])
         end
 
@@ -116,7 +116,7 @@ class CycleBaseTest < ActiveSupport::TestCase
     travel_to now do
       record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, expires_at: now)
       error =
-        assert_raises(Flow::InvalidTransition) do
+        assert_raises(FlowInvalidTransition) do
           record.transition_cycle_to!(20, allowed_from: [10])
         end
 

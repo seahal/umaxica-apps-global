@@ -5,13 +5,13 @@ module Sign
   module App
     module Settings
       class SecretCredentialsController < Sign::App::ApplicationController
-        include ::Verification::Client
+        include ::VerificationClient
 
-        include ::Sign::Settings::SecretCredentialTurnstileGuard
+        include ::SignSettingsSecretCredentialTurnstileGuard
 
-        include ::Sign::Settings::SecretCredentialCacheControl
-        include ::Sign::AcmeAuthorityRedirect
-        include ::Sign::SecretCredentialCeremonyDelegation
+        include ::SignSettingsSecretCredentialCacheControl
+        include ::SignAcmeAuthorityRedirect
+        include ::SignSecretCredentialCeremonyDelegation
 
         AUTHENTICATION_MODE = :private
 

@@ -5,13 +5,13 @@ module Sign
   module Com
     module Settings
       class PasskeysController < Sign::Com::ApplicationController
-        include ::Verification::Visitor
+        include ::VerificationVisitor
 
-        include Sign::Webauthn
-        include Sign::PasskeyCeremonyDelegation
+        include SignWebauthn
+        include SignPasskeyCeremonyDelegation
 
         include ::CloudflareTurnstile
-        include ::Sign::AcmeAuthorityRedirect
+        include ::SignAcmeAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
 
@@ -68,12 +68,12 @@ module Sign
             challenge_id: challenge_id,
             options: creation_options,
           }, status: :ok
-        rescue Sign::Webauthn::OriginValidationError => e
-          Rails.logger.error(Jit::LogEvent.format("webauthn.origin_validation_failed", message: e.message))
+        rescue SignWebauthn::OriginValidationError => e
+          Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
           render json: { error: I18n.t("errors.webauthn.origin_invalid") }, status: :forbidden
-        rescue Sign::Webauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
+        rescue SignWebauthn::ChallengeError, WebAuthn::Error, ArgumentError => e
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "webauthn.registration_options_failed", error_class: e.class.name,
                                                       message: e.message,
             ),
@@ -90,18 +90,18 @@ module Sign
           end
 
           render_verification_result(perform_webauthn_registration!(challenge_id))
-        rescue Sign::Webauthn::ChallengeNotFoundError,
-               Sign::Webauthn::ChallengeExpiredError => e
+        rescue SignWebauthn::ChallengeNotFoundError,
+               SignWebauthn::ChallengeExpiredError => e
           Rails.logger.warn("WebAuthn challenge error: #{e.message}")
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
-        rescue Sign::Webauthn::ChallengePurposeMismatchError => e
+        rescue SignWebauthn::ChallengePurposeMismatchError => e
           Rails.logger.warn("WebAuthn challenge purpose mismatch: #{e.message}")
           render json: { error: I18n.t("errors.webauthn.challenge_invalid") }, status: :bad_request
         rescue WebAuthn::Error => e
           Rails.logger.warn("WebAuthn registration failed: #{e.message}")
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
-        rescue Identity::PasskeyCeremony::Error => e
+        rescue IdentityPasskeyCeremonyContract::Error => e
           Rails.logger.warn("WebAuthn passkey commit failed: #{e.message}")
           render json: { error: I18n.t("errors.webauthn.verification_failed") },
                  status: :unprocessable_content
@@ -212,7 +212,7 @@ module Sign
         end
 
         def commit_passkey_ceremony!(credential, challenge_id)
-          candidate = Identity::PasskeyCeremony::ResultIssuer::Candidate.new(
+          candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
             webauthn_id: credential.id,
             public_key: credential.public_key,
             sign_count: credential.sign_count,

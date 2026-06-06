@@ -15,7 +15,7 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
 
   test "recent issued returns 429 with retry_after and header" do
     telephone = "+8190#{rand(10_000_000..99_999_999)}"
-    hmac = Occurrence::Hmac.digest(kind: :telephone, body: telephone)
+    hmac = OccurrenceHmac.digest(kind: :telephone, body: telephone)
     TelephoneOccurrence.where(body: hmac).delete_all
     TelephoneOccurrence.create!(
       body: hmac,
@@ -39,7 +39,7 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
     telephone = "+8190#{rand(10_000_000..99_999_999)}"
     user.client_telephones.create!(number: telephone, user_telephone_status_id: ClientTelephoneStatus::VERIFIED)
 
-    hmac = Occurrence::Hmac.digest(kind: :telephone, body: telephone)
+    hmac = OccurrenceHmac.digest(kind: :telephone, body: telephone)
     TelephoneOccurrence.where(body: hmac).delete_all
     TelephoneOccurrence.create!(
       body: hmac,
@@ -91,7 +91,7 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
     assert_not_nil otp_data
 
     new_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
-    verifier = Class.new { include Common::Otp }.new
+    verifier = Class.new { include CommonOtp }.new
 
     assert_not verifier.send(:verify_otp_code, telephone_record, old_code)[:success]
     assert verifier.send(:verify_otp_code, telephone_record, new_code)[:success]
@@ -100,6 +100,6 @@ class Sign::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
   private
 
   def state_for(telephone)
-    Sign::In::OtpResendState.issue(kind: :telephone, target: telephone)
+    SignInOtpResendState.issue(kind: :telephone, target: telephone)
   end
 end

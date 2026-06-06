@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AuthenticationBaseTestController < ApplicationController
-  include Authentication::Base
+  include AuthenticationBase
 
   coverage_methods = %i(
     load_session_record redirect_with_pt_handling peek_pt epoch_seconds issue_bulletin!
@@ -69,7 +69,7 @@ class AuthenticationBaseFakeTokenWithoutExpiry
   def self.column_names = []
 end
 
-class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
+class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   setup do
     @controller = AuthenticationBaseTestController.new
     @user = clients(:one)
@@ -153,8 +153,8 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
         end
       end
     @controller.define_singleton_method(:cookies) { @cookies ||= cookie_store.new }
-    @controller.cookies[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
-    @controller.cookies[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
+    @controller.cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = "access"
+    @controller.cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh"
     Actor.install_context!(
       actor: @user,
       actor_type: :client,
@@ -189,7 +189,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
 
   test "Token.encode with all params" do
     host = "app.localhost"
-    token = Authentication::Base::Token.encode(
+    token = AuthenticationToken.encode(
       @user,
       host: host,
       resource_type: "client",
@@ -293,15 +293,15 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "cookie helpers cover branches" do
-    @controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY] = "access"
-    @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh"
-    @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY] = "dbsc"
+    @controller.send(:cookies)[AuthenticationBase::ACCESS_COOKIE_KEY] = "access"
+    @controller.send(:cookies)[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh"
+    @controller.send(:cookies)[AuthenticationBase::DBSC_COOKIE_KEY] = "dbsc"
     @controller.clear_auth_cookies!
 
     assert_nil @controller.instance_variable_get(:@current_resource)
-    assert_nil @controller.send(:cookies)[Authentication::Base::ACCESS_COOKIE_KEY]
-    assert_nil @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY]
-    assert_nil @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY]
+    assert_nil @controller.send(:cookies)[AuthenticationBase::ACCESS_COOKIE_KEY]
+    assert_nil @controller.send(:cookies)[AuthenticationBase::REFRESH_COOKIE_KEY]
+    assert_nil @controller.send(:cookies)[AuthenticationBase::DBSC_COOKIE_KEY]
     assert_not @controller.cookie_deletion_options.key?(:expires)
     assert_not @controller.cookie_options.key?(:domain)
     assert_not @controller.cookie_deletion_options.key?(:domain)
@@ -330,9 +330,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     Rails.stub(:env, env) do
       options = @controller.cookie_deletion_options
 
-      assert_equal "auth_access", Authentication::CookieName.access
-      assert_equal "auth_refresh", Authentication::CookieName.refresh
-      assert_equal "auth_dbsc", Authentication::CookieName.dbsc
+      assert_equal "auth_access", AuthenticationCookieName.access
+      assert_equal "auth_refresh", AuthenticationCookieName.refresh
+      assert_equal "auth_dbsc", AuthenticationCookieName.dbsc
       assert_equal "/", options[:path]
       assert_equal :strict, options[:same_site]
       assert_not options[:secure]
@@ -349,9 +349,9 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     Rails.stub(:env, env) do
       options = @controller.cookie_deletion_options
 
-      assert_equal "auth_access", Authentication::CookieName.access
-      assert_equal "auth_refresh", Authentication::CookieName.refresh
-      assert_equal "auth_dbsc", Authentication::CookieName.dbsc
+      assert_equal "auth_access", AuthenticationCookieName.access
+      assert_equal "auth_refresh", AuthenticationCookieName.refresh
+      assert_equal "auth_dbsc", AuthenticationCookieName.dbsc
       assert_equal "/", options[:path]
       assert_equal :strict, options[:same_site]
       assert_not options[:secure]
@@ -492,7 +492,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal [{ error: "login" }, { error: "guest" }], rendered.first(2).map { |r| r.last[:json] }
     assert_equal [:forbidden, :unauthorized], rendered.first(2).map { |r| r.last[:status] }
     assert_equal "/in", redirected.first.first.first
-    assert_predicate @session_hash[Authentication::Base::DEFAULT_PT_SESSION_KEY], :present?
+    assert_predicate @session_hash[AuthenticationBase::DEFAULT_PT_SESSION_KEY], :present?
     assert_equal ["/"], redirected.last.first
     assert_equal 2, rendered.size
     assert_equal 4, redirected.size
@@ -572,12 +572,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:logged_in?) { false }
     @controller.define_singleton_method(:refresh_access_token) { |_| nil }
     @controller.define_singleton_method(:clear_auth_cookies!) { @cleared = true }
-    @controller.send(:cookies)[Authentication::Base::REFRESH_COOKIE_KEY] = "refresh-token"
+    @controller.send(:cookies)[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh-token"
 
     @controller.transparent_refresh_access_token
 
     assert @controller.instance_variable_get(:@cleared)
-    assert @request.env[Auth::IoKeys::Env::AUTH_REFRESHED_FLAG]
+    assert @request.env[AuthIoKeys::Env::AUTH_REFRESHED_FLAG]
 
     rendered = []
     @request = ActionDispatch::TestRequest.create
@@ -679,22 +679,22 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_not @controller.refresh_dbsc_allowed?(token)
     assert_equal "missing_bound_cookie", @controller.instance_variable_get(:@refresh_dbsc_reason)
 
-    @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY] = "wrong"
+    @controller.send(:cookies)[AuthenticationBase::DBSC_COOKIE_KEY] = "wrong"
 
     assert_not @controller.refresh_dbsc_allowed?(token)
     assert_equal "session_id_mismatch", @controller.instance_variable_get(:@refresh_dbsc_reason)
 
-    @controller.send(:cookies)[Authentication::Base::DBSC_COOKIE_KEY] = "session-1"
+    @controller.send(:cookies)[AuthenticationBase::DBSC_COOKIE_KEY] = "session-1"
 
     assert @controller.refresh_dbsc_allowed?(token)
   end
 
   test "refresh source helpers cover dbsc branches" do
     token = Struct.new(:binding_method_dbsc?).new(true)
-    @request.headers[Auth::IoKeys::Headers::DBSC_SESSION_ID] = "session"
+    @request.headers[AuthIoKeys::Headers::DBSC_SESSION_ID] = "session"
 
     assert_equal "session_id", @controller.refresh_dbsc_source
-    @request.headers[Auth::IoKeys::Headers::DBSC_RESPONSE] = "proof"
+    @request.headers[AuthIoKeys::Headers::DBSC_RESPONSE] = "proof"
 
     assert_equal "both", @controller.refresh_dbsc_source
     assert_equal "both", @controller.refresh_binding_source(token)
@@ -759,7 +759,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_raises(ActiveRecord::RecordNotFound) { @controller.resolve_token_kind_id("MISSING") }
 
     @controller.define_singleton_method(:resource_type) { "none" }
-    assert_raises(ActiveRecord::RecordNotFound) { Authentication::Base.instance_method(:token_kind_model).bind_call(@controller) }
+    assert_raises(ActiveRecord::RecordNotFound) { AuthenticationBase.instance_method(:token_kind_model).bind_call(@controller) }
   end
 
   test "ensure_token_kind_exists creates missing fixed id" do
@@ -846,12 +846,12 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal :success, result[:status]
     assert_equal "DPoP", result[:token_type]
 
-    payload = Authentication::Base::Token.decode(
+    payload = AuthenticationToken.decode(
       result[:access_token],
       host: "id.app.localhost",
       resource_type: "client",
     )
-    expected_jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+    expected_jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
     token = ClientToken.order(created_at: :desc).first
     device_session = token.device_session
 
@@ -963,7 +963,7 @@ class Authentication::BaseCoverageTest < ActionDispatch::IntegrationTest
       order << :create_login_token_record
       # Delegate back to the real implementation by calling super through
       # a small bound trick: invoke the method body via UnboundMethod.
-      Authentication::Base.instance_method(:create_login_token_record).bind_call(self, *args, **kwargs)
+      AuthenticationBase.instance_method(:create_login_token_record).bind_call(self, *args, **kwargs)
     end
 
     @controller.log_in(@user, record_login_audit: false, require_totp_check: false)

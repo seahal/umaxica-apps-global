@@ -6,7 +6,7 @@ module Acme
     module Settings
       class EmailsController < Acme::Com::ApplicationController
         include CloudflareTurnstile
-        include ::Verification::Visitor
+        include ::VerificationVisitor
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private

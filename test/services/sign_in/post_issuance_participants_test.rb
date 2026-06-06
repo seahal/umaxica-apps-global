@@ -9,7 +9,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
 
-      result = CheckpointParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      result = SignInCheckpointParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
 
       assert_predicate result, :empty?
       assert_predicate result, :cleared?
@@ -22,10 +22,10 @@ module SignIn
       cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
       evaluator =
         lambda do |**|
-          ParticipantItem.new(key: :bulletin, blocking: true, cleared: false)
+          SignInParticipantItem.new(key: :bulletin, blocking: true, cleared: false)
         end
 
-      result = CheckpointParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
+      result = SignInCheckpointParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
 
       assert_predicate result, :blocking?
       assert_equal [:bulletin], result.stack.map(&:key)
@@ -38,10 +38,10 @@ module SignIn
       cycle = create_cycle(actor, status_name: "DASHBOARD_PENDING")
       evaluator =
         lambda do |**|
-          ParticipantItem.new(key: :welcome, blocking: false, cleared: false)
+          SignInParticipantItem.new(key: :welcome, blocking: false, cleared: false)
         end
 
-      result = DashboardParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance!
+      result = SignInDashboardParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance!
 
       assert_not_predicate result, :blocking?
       assert_equal [:welcome], result.stack.map(&:key)
@@ -53,7 +53,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "SELECTOR_PENDING")
 
-      result = SelectorParticipant.new(
+      result = SignInSelectorParticipant.new(
         cycle: cycle,
         actor: actor,
       ).auto_commit_single!
@@ -69,8 +69,8 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
 
-      assert_raises SelectorParticipant::InvalidCycle do
-        SelectorParticipant.new(cycle: cycle, actor: actor).auto_commit_single!
+      assert_raises SignInSelectorParticipant::InvalidCycle do
+        SignInSelectorParticipant.new(cycle: cycle, actor: actor).auto_commit_single!
       end
       assert_predicate cycle.reload, :sign_in_checkpoint_pending?
     end
@@ -79,8 +79,8 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "SELECTOR_PENDING")
 
-      assert_raises SelectorParticipant::InvalidCycle do
-        SelectorParticipant.new(cycle: cycle, actor: create_client).auto_commit_single!
+      assert_raises SignInSelectorParticipant::InvalidCycle do
+        SignInSelectorParticipant.new(cycle: cycle, actor: create_client).auto_commit_single!
       end
       assert_predicate cycle.reload, :sign_in_selector_pending?
     end
@@ -89,7 +89,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "/settings?tab=sessions")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
+      destination = SignInReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
       assert_equal "/settings?tab=sessions", destination
       assert_predicate cycle.reload, :sign_in_completed?
@@ -102,7 +102,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "https://evil.example/path")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
+      destination = SignInReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
       assert_equal "/settings", destination
       assert_predicate cycle.reload, :sign_in_completed?
@@ -113,7 +113,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(actor, status_name: "RETURN_PENDING", return_to: "//evil.example/path")
 
-      destination = ReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
+      destination = SignInReturnParticipant.new(cycle: cycle, default_path: "/settings").consume!
 
       assert_equal "/settings", destination
       assert_predicate cycle.reload, :sign_in_completed?
@@ -127,8 +127,8 @@ module SignIn
       ].each do |cycle_class, actor|
         cycle = create_cycle(actor, cycle_class: cycle_class, status_name: "CHECKPOINT_PENDING")
 
-        CheckpointParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
-        SelectorParticipant.new(cycle: cycle.reload, actor: actor).auto_commit_single!
+        SignInCheckpointParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+        SignInSelectorParticipant.new(cycle: cycle.reload, actor: actor).auto_commit_single!
         cycle.reload.complete_sign_in!
 
         assert_predicate cycle.reload, :sign_in_completed?

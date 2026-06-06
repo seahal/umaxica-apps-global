@@ -5,6 +5,6 @@ class SocialCeremonyTransactionPurgeJob < ApplicationJob
   queue_as :default
 
   def perform
-    Identity::SocialCeremony::TransactionPurger.call
+    IdentitySocialCeremonyTransactionPurger.call
   end
 end

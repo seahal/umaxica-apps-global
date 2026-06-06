@@ -256,7 +256,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   private
 
   def login_handler
-    SocialAuth::LoginHandler.new(
+    SocialAuthLoginHandler.new(
       auth_hash: @auth_hash,
       identity_class: ClientGoogleIdentity,
       provider: "google",

@@ -53,7 +53,7 @@ class Sign::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::IntegrationTe
     ].each do |controller|
       assert_equal Sign::RedirectOnlyController, controller.superclass
       assert_not_includes controller.included_modules, Session
-      assert_not_includes controller.included_modules, Preference::Global
+      assert_not_includes controller.included_modules, PreferenceGlobal
       assert_not_includes controller.included_modules, SessionLimitGate
       assert_not_includes controller.included_modules, RestrictedSessionGuard
     end

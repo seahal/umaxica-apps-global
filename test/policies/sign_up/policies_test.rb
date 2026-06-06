@@ -14,7 +14,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   PendingActor = Data.define(:id)
 
   test "ticket policy rejects signed-in actors from starting sign-up" do
-    context = SignUp::PolicyContext.build(
+    context = SignUpPolicyContext.build(
       surface: :app,
       actor_authentication: auth(signed_in: true),
       ticket: nil,
@@ -24,7 +24,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   end
 
   test "ticket policy allows anonymous start" do
-    context = SignUp::PolicyContext.build(
+    context = SignUpPolicyContext.build(
       surface: :app,
       actor_authentication: auth(signed_in: false),
       ticket: nil,
@@ -95,7 +95,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
 
   test "ticket policy rejects cross-surface context" do
     ticket = build_ticket(ClientSignUpFlow, entry_method: "email")
-    context = SignUp::PolicyContext.build(
+    context = SignUpPolicyContext.build(
       surface: :com,
       actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
       ticket: ticket,
@@ -193,7 +193,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
         "passcode" => { "cleared" => true },
       },
     )
-    context = SignUp::FinalizationContext.build(
+    context = SignUpFinalizationContext.build(
       surface: :app,
       actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
       ticket: ticket,
@@ -217,7 +217,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
     )
 
     assert_raises(ArgumentError) do
-      SignUp::FinalizationContext.build(
+      SignUpFinalizationContext.build(
         surface: :app,
         actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
         ticket: ticket,
@@ -275,16 +275,16 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
   end
 
   def policy_context(ticket, auth: auth(active_sign_sequence_id: ticket.public_id))
-    SignUp::PolicyContext.build(
-      surface: SignUp::RequirementRegistry.surface_for_ticket(ticket),
+    SignUpPolicyContext.build(
+      surface: SignUpRequirementRegistry.surface_for_ticket(ticket),
       actor_authentication: auth,
       ticket: ticket,
     )
   end
 
   def requirement_context(ticket, requirement:, pending_actor:)
-    SignUp::RequirementContext.build(
-      surface: SignUp::RequirementRegistry.surface_for_ticket(ticket),
+    SignUpRequirementContext.build(
+      surface: SignUpRequirementRegistry.surface_for_ticket(ticket),
       actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
       ticket: ticket,
       requirement: requirement,

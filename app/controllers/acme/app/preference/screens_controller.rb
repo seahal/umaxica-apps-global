@@ -5,7 +5,7 @@ module Acme
   module App
     module Preference
       class ScreensController < Acme::App::PreferencesBaseController
-        include ::Acme::PreferenceScreenDispatch
+        include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open
 

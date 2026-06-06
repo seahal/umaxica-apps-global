@@ -4,7 +4,7 @@
 module Core
   module Org
     class JwksController < BareController
-      include Authentication::JwksRendering
+      include AuthenticationJwksRendering
 
       AUTHENTICATION_MODE = :bare
       JWT_KEY_NAMESPACE = "CORE_ORG"

@@ -8,7 +8,7 @@ module Security
     fixtures_none!
 
     class ParentController < ApplicationController
-      include Authentication::Base
+      include AuthenticationBase
 
       declare_authentication_mode! :open
     end
@@ -17,19 +17,19 @@ module Security
     end
 
     class ConstantController < ApplicationController
-      include Authentication::Base
+      include AuthenticationBase
 
       AUTHENTICATION_MODE = :guest
     end
 
     class PrivateController < ApplicationController
-      include Authentication::Base
+      include AuthenticationBase
 
       declare_authentication_mode! :private
     end
 
     class MixedController < ApplicationController
-      include Authentication::Base
+      include AuthenticationBase
 
       declare_authentication_mode! :deny_all
       declare_authentication_mode! :open, only: :index
@@ -48,7 +48,7 @@ module Security
       controller.define_singleton_method(:action_name) { "index" }
 
       error =
-        assert_raises(Authentication::Base::MissingPolicyError) do
+        assert_raises(AuthenticationBase::MissingPolicyError) do
           controller.send(:enforce_access_policy!)
         end
 

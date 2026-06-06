@@ -35,7 +35,7 @@ class RetentionPurgeJob < ApplicationJob
 
   def perform(batch_size: 500)
     now = Time.current
-    SignUp::ArtifactCleanup.cleanup_pending!(now: now, batch_size: batch_size)
+    SignUpArtifactCleanup.cleanup_pending!(now: now, batch_size: batch_size)
 
     RETAINABLE_MODELS.each do |klass|
       if [Client, Visitor].include?(klass)
@@ -60,7 +60,7 @@ class RetentionPurgeJob < ApplicationJob
   # non-audit cross-DB children must be purged explicitly before deletion.
   def purge_operators(now:, batch_size:)
     Operator.where(purged_at: ..now).in_batches(of: batch_size) do |batch|
-      batch.find_each { |operator| Retention::CrossDatabaseChildPurge.call(actor: operator) }
+      batch.find_each { |operator| RetentionCrossDatabaseChildPurge.call(actor: operator) }
       batch.delete_all
     end
   end
@@ -72,7 +72,7 @@ class RetentionPurgeJob < ApplicationJob
   def anonymize_accounts(klass, now:, batch_size:)
     klass.where(purged_at: ..now).where(terminated_at: nil).in_batches(of: batch_size) do |batch|
       batch.find_each do |actor|
-        Withdrawal::PersonalDataAnonymizer.call(actor: actor)
+        WithdrawalPersonalDataAnonymizer.call(actor: actor)
         if actor.respond_to?(:terminated_at=)
           actor.withdrawn_at = now if actor.respond_to?(:withdrawn_at=)
           actor.terminated_at = now

@@ -177,7 +177,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
     )
 
-    ClientSecretCredentials::Destroy.stub(:call, true) do
+    ClientSecretCredentialsDestroy.stub(:call, true) do
       delete sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: {

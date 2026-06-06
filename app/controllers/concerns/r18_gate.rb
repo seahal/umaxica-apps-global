@@ -3,7 +3,7 @@
 
 module R18Gate
   extend ActiveSupport::Concern
-  include Common::Redirect
+  include CommonRedirect
 
   COOKIE_KEY = :r18_acknowledged
   COOKIE_TTL = 30.days

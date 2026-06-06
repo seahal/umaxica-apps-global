@@ -10,7 +10,7 @@ class Sign::Com::RouteAliasHelperTest < ActionView::TestCase
 
     helper = Object.new
     url_helpers.stub(:public_instance_methods, helper_methods) do
-      helper.extend Sign::Com::RouteAliasHelper
+      helper.extend SignComRouteAliasHelper
     end
 
     helper.define_singleton_method(:sign_com_sample_path) do |id, **options|
@@ -26,7 +26,7 @@ class Sign::Com::RouteAliasHelperTest < ActionView::TestCase
 
     helper = Object.new
     url_helpers.stub(:public_instance_methods, helper_methods) do
-      helper.extend Sign::Com::RouteAliasHelper
+      helper.extend SignComRouteAliasHelper
     end
 
     helper.define_singleton_method(:acme_com_sample_url) do |**options|

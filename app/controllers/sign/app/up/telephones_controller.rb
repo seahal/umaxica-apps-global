@@ -9,9 +9,9 @@ module Sign
       class TelephonesController < Sign::App::ApplicationController
         include CloudflareTurnstile
 
-        include Common::Redirect
+        include CommonRedirect
 
-        include Common::Otp
+        include CommonOtp
 
         AUTHENTICATION_MODE = :guest
 
@@ -98,7 +98,7 @@ module Sign
           end
 
           begin
-            result = Sign::App::Up::TelephoneSignupCreator.call(
+            result = SignAppUpTelephoneSignupCreator.call(
               telephone: @user_telephone,
               existing_telephone: existing_telephone,
               pending_public_id: session_public_id_from_registration,
@@ -184,7 +184,7 @@ module Sign
 
           if @user_telephone
             otp_code = generate_otp_for(@user_telephone)
-            Sign::TelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
+            SignTelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
           else
             perform_dummy_otp_generation
           end
@@ -284,7 +284,7 @@ module Sign
         #
         # The proof is scoped to the registration session and consumed by the
         # passkey step. The durable transition happens in
-        # Sign::App::Up::TelephoneRegistrationFinalizer after passkey setup.
+        # SignAppUpTelephoneRegistrationFinalizer after passkey setup.
         def verify_telephone_ownership!
           @user_telephone.confirm_policy = "1"
           @user_telephone.confirm_using_mfa = "1"
@@ -301,7 +301,7 @@ module Sign
           last_sent_at = session[:user_telephone_otp_last_sent_at]
           return false if last_sent_at.blank?
 
-          last_sent_at.to_i > Common::OtpPolicy::SEND_COOLDOWN.ago.to_i
+          last_sent_at.to_i > CommonOtpPolicy::SEND_COOLDOWN.ago.to_i
         end
 
         def load_registration_telephone(registration_session)
@@ -352,7 +352,7 @@ module Sign
             existing: true,
           }
 
-          Sign::TelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
+          SignTelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
 
           redirect_to(
             sign_app_up_check_telephone_otp_path(ri: params[:ri]),
@@ -382,7 +382,7 @@ module Sign
           return unless @user_telephone&.errors&.any?
 
           Rails.logger.warn(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.signup.telephone.validation_failed",
               errors: @user_telephone.errors.full_messages,
             ),
@@ -424,7 +424,7 @@ module Sign
             pending_contact_type: "telephone",
             pending_contact_id: telephone.id,
           )
-          SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
+          SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
 
@@ -432,10 +432,10 @@ module Sign
           cycle = sign_up_flow_locator.current
           return unless cycle
 
-          result = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+          result = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
           if result.status == :advanced
-            SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-            result = SignUp::StateMachine.call(
+            SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+            result = SignUpStateMachine.call(
               ticket: cycle.reload,
               event: :clear_requirement,
               actor_context: Actor.authn,
@@ -445,7 +445,7 @@ module Sign
           return if result.status == :advanced
 
           Rails.logger.warn(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.signup.telephone.sequence_advance_failed",
               cycle_id: cycle.public_id,
               result_status: result.status,
@@ -455,7 +455,7 @@ module Sign
         end
 
         def sign_up_flow_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
+          SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         def ensure_signup_reference_defaults!

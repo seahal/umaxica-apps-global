@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentityTelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -18,7 +18,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       now: @now,
       expires_at: @now + 10.minutes,
     )
-    @replay_store = Identity::TelephoneCeremony::ReplayStore.for("app")
+    @replay_store = IdentityTelephoneCeremonyReplayStore.for("app")
   end
 
   teardown do
@@ -27,7 +27,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   test "acme transaction creates a valid telephone ceremony grant" do
     travel_to(@now) do
-      issuance = Identity::TelephoneCeremony::GrantIssuer.issue!(
+      issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: "actor-client-2",
         session_ref: "session-2",
@@ -37,16 +37,16 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         now: @now,
       )
 
-      grant = Identity::TelephoneCeremony::Grant.decode(
+      grant = IdentityTelephoneCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::TelephoneCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityTelephoneCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
       assert_predicate issuance.transaction, :persisted?
-      assert_equal Identity::TelephoneCeremony::Contract.acme_issuer("app"), grant["iss"]
-      assert_equal Identity::TelephoneCeremony::Contract.sign_audience("app"), grant["aud"]
-      assert_equal Identity::TelephoneCeremony::Grant::PURPOSE, grant["purpose"]
+      assert_equal IdentityTelephoneCeremonyContract.acme_issuer("app"), grant["iss"]
+      assert_equal IdentityTelephoneCeremonyContract.sign_audience("app"), grant["aud"]
+      assert_equal IdentityTelephoneCeremonyGrant::PURPOSE, grant["purpose"]
       assert_equal "app", grant["surface"]
       assert_equal "registration", grant["operation"]
       assert_equal "actor-client-2", grant["actor_ref"]
@@ -91,10 +91,10 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       first_reader = ClientTelephoneCeremonyTransaction.find_by!(transaction_id: "txn-1")
       second_reader = ClientTelephoneCeremonyTransaction.find_by!(transaction_id: "txn-1")
 
-      Identity::TelephoneCeremony::ResultConsumer.new(transaction: first_reader, now: @now).call(token)
+      IdentityTelephoneCeremonyResultConsumer.new(transaction: first_reader, now: @now).call(token)
 
       assert_ceremony_error(/already consumed/) do
-        Identity::TelephoneCeremony::ResultConsumer.new(transaction: second_reader, now: @now).call(token)
+        IdentityTelephoneCeremonyResultConsumer.new(transaction: second_reader, now: @now).call(token)
       end
     end
   end
@@ -129,7 +129,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
 
     travel_to(@now) do
-      Identity::TelephoneCeremony::ResultConsumer.new(transaction: @transaction, now: @now).call(
+      IdentityTelephoneCeremonyResultConsumer.new(transaction: @transaction, now: @now).call(
         issue_result_token(valid_result_claims.merge("result_jti" => "duplicate-result")),
       )
       second = ClientTelephoneCeremonyTransaction.create_transaction!(
@@ -151,7 +151,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       )
 
       assert_ceremony_error(/already been consumed/) do
-        Identity::TelephoneCeremony::ResultConsumer.new(transaction: second, now: @now).call(duplicate)
+        IdentityTelephoneCeremonyResultConsumer.new(transaction: second, now: @now).call(duplicate)
       end
     end
   end
@@ -174,7 +174,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "acme result consumer rejects wrong audience purpose surface actor session transaction and grant" do
     travel_to(@now) do
       {
-        "aud" => Identity::TelephoneCeremony::Contract.acme_audience("com"),
+        "aud" => IdentityTelephoneCeremonyContract.acme_audience("com"),
         "purpose" => "wrong",
         "surface" => "com",
         "actor_ref" => "actor-client-2",
@@ -295,7 +295,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
     counts = nil
     assert_no_telephone_account_mutation do
-      counts = Identity::TelephoneCeremony::TransactionPurger.new(now: @now, batch_size: 2).call
+      counts = IdentityTelephoneCeremonyTransactionPurger.new(now: @now, batch_size: 2).call
     end
 
     assert_equal({ app: 1, com: 1, org: 1 }, counts)
@@ -304,7 +304,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_not OperatorTelephoneCeremonyTransaction.exists?(org_consumed_old.id)
     assert ClientTelephoneCeremonyTransaction.exists?(app_active.id)
     assert ClientTelephoneCeremonyTransaction.exists?(app_recent.id)
-    assert_equal({ app: 0, com: 0, org: 0 }, Identity::TelephoneCeremony::TransactionPurger.new(now: @now).call)
+    assert_equal({ app: 0, com: 0, org: 0 }, IdentityTelephoneCeremonyTransactionPurger.new(now: @now).call)
   end
 
   test "telephone ceremony transaction purge job delegates to retention purger" do
@@ -320,15 +320,15 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     consumed = create_app_transaction("consumer-consumed", expires_at: @now + 10.minutes)
     purged = create_app_transaction("consumer-purged", expires_at: @now - 8.days)
     consumed.consume_result!(result_jti: "consumer-consumed-result", consumed_at: @now)
-    Identity::TelephoneCeremony::TransactionPurger.new(now: @now).call
+    IdentityTelephoneCeremonyTransactionPurger.new(now: @now).call
 
     assert_ceremony_error(/transaction is expired/) do
-      Identity::TelephoneCeremony::ResultConsumer.new(transaction: expired, now: @now).call(
+      IdentityTelephoneCeremonyResultConsumer.new(transaction: expired, now: @now).call(
         issue_result_token(valid_result_claims_for(expired, result_jti: "consumer-expired-result")),
       )
     end
     assert_ceremony_error(/already consumed/) do
-      Identity::TelephoneCeremony::ResultConsumer.new(transaction: consumed, now: @now).call(
+      IdentityTelephoneCeremonyResultConsumer.new(transaction: consumed, now: @now).call(
         issue_result_token(valid_result_claims_for(consumed, result_jti: "consumer-consumed-replay")),
       )
     end
@@ -337,7 +337,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
     valid = create_app_transaction("consumer-valid", expires_at: @now + 10.minutes)
 
-    consumption = Identity::TelephoneCeremony::ResultConsumer.new(transaction: valid, now: @now).call(
+    consumption = IdentityTelephoneCeremonyResultConsumer.new(transaction: valid, now: @now).call(
       issue_result_token(valid_result_claims_for(valid, result_jti: "consumer-valid-result")),
     )
 
@@ -354,7 +354,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         otp_private_key: "secret_credential",
         otp_expires_at: 10.minutes.from_now,
       )
-      issuance = Identity::TelephoneCeremony::GrantIssuer.issue!(
+      issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: user.public_id,
         session_ref: "session-app-commit",
@@ -363,7 +363,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         normalized_number_digest: telephone.number_digest,
         now: @now,
       )
-      result_token = Identity::TelephoneCeremony::ResultIssuer.issue!(
+      result_token = IdentityTelephoneCeremonyResultIssuer.issue!(
         grant_token: issuance.grant,
         candidate: telephone,
         surface: "app",
@@ -383,7 +383,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         },
         1,
       ) do
-        commit = Identity::TelephoneCeremony::FinalCommitter.call!(
+        commit = IdentityTelephoneCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: user,
           session_ref: "session-app-commit",
@@ -408,7 +408,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         otp_private_key: "secret_credential",
         otp_expires_at: 10.minutes.from_now,
       )
-      issuance = Identity::TelephoneCeremony::GrantIssuer.issue!(
+      issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: user.public_id,
         session_ref: "session-app-replay",
@@ -417,7 +417,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         normalized_number_digest: telephone.number_digest,
         now: @now,
       )
-      result_token = Identity::TelephoneCeremony::ResultIssuer.issue!(
+      result_token = IdentityTelephoneCeremonyResultIssuer.issue!(
         grant_token: issuance.grant,
         candidate: telephone,
         surface: "app",
@@ -428,7 +428,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       )
 
       assert_ceremony_error(/result session does not match current session/) do
-        Identity::TelephoneCeremony::FinalCommitter.call!(
+        IdentityTelephoneCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: user,
           session_ref: "wrong-session",
@@ -438,7 +438,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       end
       assert_equal ClientTelephoneStatus::UNVERIFIED, telephone.reload.user_telephone_status_id
 
-      Identity::TelephoneCeremony::FinalCommitter.call!(
+      IdentityTelephoneCeremonyFinalCommitter.call!(
         result_token: result_token,
         actor: user,
         session_ref: "session-app-replay",
@@ -447,7 +447,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       )
 
       assert_ceremony_error(/transaction is already consumed/) do
-        Identity::TelephoneCeremony::FinalCommitter.call!(
+        IdentityTelephoneCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: user,
           session_ref: "session-app-replay",
@@ -461,7 +461,7 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   private
 
   def consumer
-    Identity::TelephoneCeremony::ResultConsumer.new(transaction: @transaction, now: @now)
+    IdentityTelephoneCeremonyResultConsumer.new(transaction: @transaction, now: @now)
   end
 
   def valid_result_claims
@@ -512,33 +512,33 @@ class Identity::TelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_result_token(claims)
-    Identity::TelephoneCeremony::Result.issue(
+    IdentityTelephoneCeremonyResult.issue(
       claims,
-      issuer_id: Identity::TelephoneCeremony::Contract.sign_issuer_id("app"),
+      issuer_id: IdentityTelephoneCeremonyContract.sign_issuer_id("app"),
       now: @now,
     )
   end
 
   def sign_result_payload(claims)
     payload = valid_result_claims.merge(
-      "typ" => Identity::TelephoneCeremony::Result::TOKEN_TYPE,
-      "iss" => Identity::TelephoneCeremony::Contract.sign_issuer(claims.fetch("surface", "app")),
-      "aud" => Identity::TelephoneCeremony::Contract.acme_audience(claims.fetch("surface", "app")),
-      "purpose" => Identity::TelephoneCeremony::Result::PURPOSE,
-      "proof_method" => Identity::TelephoneCeremony::Result::PROOF_METHOD,
+      "typ" => IdentityTelephoneCeremonyResult::TOKEN_TYPE,
+      "iss" => IdentityTelephoneCeremonyContract.sign_issuer(claims.fetch("surface", "app")),
+      "aud" => IdentityTelephoneCeremonyContract.acme_audience(claims.fetch("surface", "app")),
+      "purpose" => IdentityTelephoneCeremonyResult::PURPOSE,
+      "proof_method" => IdentityTelephoneCeremonyResult::PROOF_METHOD,
       "iat" => @now.to_i,
       "exp" => claims.fetch("expires_at", valid_result_claims["expires_at"]),
     ).merge(claims)
 
-    private_key = Jit::Security::Jwt::Keyring.private_key_for_active(
-      Identity::TelephoneCeremony::Contract.sign_issuer_id("app"),
+    private_key = JitSecurityJwtKeyring.private_key_for_active(
+      IdentityTelephoneCeremonyContract.sign_issuer_id("app"),
     )
-    kid = Jit::Security::Jwt::Keyring.active_kid(Identity::TelephoneCeremony::Contract.sign_issuer_id("app"))
+    kid = JitSecurityJwtKeyring.active_kid(IdentityTelephoneCeremonyContract.sign_issuer_id("app"))
     JWT.encode(payload, private_key, "ES384", { "typ" => payload.fetch("typ"), "kid" => kid })
   end
 
   def assert_ceremony_error(pattern)
-    error = assert_raises(Identity::TelephoneCeremony::Error) { yield }
+    error = assert_raises(IdentityTelephoneCeremony::Error) { yield }
     assert_match pattern, error.message
   end
 

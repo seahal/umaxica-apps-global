@@ -3,19 +3,19 @@
 
 require "test_helper"
 
-class Sign::ComVerificationBaseTest < ActiveSupport::TestCase
+class SignComVerificationBaseTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   VisitorStruct = Struct.new(:id, :public_id, :visitor_emails, :visitor_passkeys)
 
   class Harness
-    include Sign::VerificationStepUpSessionStore
-    include Sign::ComVerificationBase::Overrides
+    include SignVerificationStepUpSessionStore
+    include SignComVerificationBase::Overrides
 
-    ALLOWED_SCOPES = Sign::ComVerificationBase::ALLOWED_SCOPES
-    STEP_UP_SESSION_KEY = Sign::ComVerificationBase::STEP_UP_SESSION_KEY
-    EMAIL_OTP_SESSION_KEY = Sign::ComVerificationBase::EMAIL_OTP_SESSION_KEY
-    STEP_UP_TTL = Sign::ComVerificationBase::STEP_UP_TTL
+    ALLOWED_SCOPES = SignComVerificationBase::ALLOWED_SCOPES
+    STEP_UP_SESSION_KEY = SignComVerificationBase::STEP_UP_SESSION_KEY
+    EMAIL_OTP_SESSION_KEY = SignComVerificationBase::EMAIL_OTP_SESSION_KEY
+    STEP_UP_TTL = SignComVerificationBase::STEP_UP_TTL
 
     attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp
 

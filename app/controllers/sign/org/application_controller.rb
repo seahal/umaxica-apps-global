@@ -6,15 +6,15 @@ module Sign
     class ApplicationController < ActionController::Base
       include ::RateLimit
       include ::Session
-      include ::Preference::Global
-      include ::Preference::Adoption
-      include ::Authentication::Operator
-      include ::Sign::ErrorResponses
+      include ::PreferenceGlobal
+      include ::PreferenceAdoption
+      include ::AuthenticationOperator
+      include ::SignErrorResponses
       include ::SessionLimitGate
       include ::AuthorizationAudit
-      include ::Authentication::CredentialInventoryReader
-      include ::Authorization::Operator
-      include ::Verification::Operator
+      include ::AuthenticationCredentialInventoryReader
+      include ::AuthorizationOperator
+      include ::VerificationOperator
       include ActionPolicy::Controller
       include ::RestrictedSessionGuard
       include ::ActorSupport
@@ -25,14 +25,14 @@ module Sign
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: Jit::HostOriginEnv.trusted_origins(
+                           trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
                            ),
                            with: :exception
 
       authorize :user, through: :current_policy_user
       authorize :actor, through: :current_actor
-      rescue_from Authentication::Base::LoginCooldownError, with: :render_login_cooldown
+      rescue_from AuthenticationBase::LoginCooldownError, with: :render_login_cooldown
       rescue_from ApplicationError, with: :handle_application_error
       rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error

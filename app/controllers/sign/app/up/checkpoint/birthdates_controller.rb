@@ -6,7 +6,7 @@ module Sign
     module Up
       module Checkpoint
         class BirthdatesController < Sign::App::ApplicationController
-          include Sign::Up::SequenceControllerSupport
+          include SignUpSequenceControllerSupport
 
           AUTHENTICATION_MODE = :guest
 
@@ -29,7 +29,7 @@ module Sign
             birthdate = sign_up_birthdate_param
             unless AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
               sign_up_session_state.age_restricted = true
-              result = SignUp::Termination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
+              result = SignUpTermination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
               return render_sign_up_result(result) unless result.success? || result.status == :failed
 
               render_sign_up_age_restricted
@@ -38,7 +38,7 @@ module Sign
 
             create_social_signup_actor!(birthdate)
             run_sign_up_requirement_event(payload: { requirement: :birthdate })
-          rescue SocialAuth::BaseError, Identity::SocialCeremony::Error
+          rescue SocialAuth::BaseError, IdentitySocialCeremonyContract::Error
             render plain: I18n.t("errors.social_auth.provider_error"), status: :unprocessable_content
           end
 
@@ -69,7 +69,7 @@ module Sign
                 return if @sign_up_ticket.principal_id.present?
 
                 candidate = consume_social_signup_candidate!
-                result = SocialAuth::SignupFinalizer.call(
+                result = SocialAuthSignupFinalizer.call(
                   auth_hash: candidate.auth_hash,
                   birthdate: birthdate,
                 )
@@ -88,29 +88,29 @@ module Sign
 
           def consume_social_signup_candidate!
             evidence = social_signup_evidence
-            candidate = Identity::SocialCeremony::CandidateStore.consume!(evidence.fetch("candidate_ref"))
-            raise Identity::SocialCeremony::Error, "candidate digest mismatch" unless
+            candidate = IdentitySocialCeremonyCandidateStore.consume!(evidence.fetch("candidate_ref"))
+            raise IdentitySocialCeremonyContract::Error, "candidate digest mismatch" unless
               candidate.digest.to_s == evidence.fetch("candidate_digest").to_s
-            raise Identity::SocialCeremony::Error, "candidate surface mismatch" unless candidate.surface.to_s == "app"
-            raise Identity::SocialCeremony::Error, "candidate actor mismatch" unless
+            raise IdentitySocialCeremonyContract::Error, "candidate surface mismatch" unless candidate.surface.to_s == "app"
+            raise IdentitySocialCeremonyContract::Error, "candidate actor mismatch" unless
               candidate.actor_ref.to_s == @sign_up_ticket.public_id.to_s
-            raise Identity::SocialCeremony::Error, "candidate session mismatch" unless
+            raise IdentitySocialCeremonyContract::Error, "candidate session mismatch" unless
               candidate.session_ref.to_s == @sign_up_ticket.public_id.to_s
-            raise Identity::SocialCeremony::Error, "candidate transaction mismatch" unless
+            raise IdentitySocialCeremonyContract::Error, "candidate transaction mismatch" unless
               candidate.transaction_id.to_s == @sign_up_ticket.public_id.to_s
-            raise Identity::SocialCeremony::Error,
+            raise IdentitySocialCeremonyContract::Error,
                   "candidate operation mismatch" unless candidate.operation.to_s == "signup"
 
             provider = SocialIdentifiable.normalize_provider(candidate.provider)
-            uid = SocialAuth::UidExtractor.call(auth_hash: candidate.auth_hash)
-            raise Identity::SocialCeremony::Error,
+            uid = SocialAuthUidExtractor.call(auth_hash: candidate.auth_hash)
+            raise IdentitySocialCeremonyContract::Error,
                   "candidate provider mismatch" unless provider == @sign_up_ticket.social_provider
-            raise Identity::SocialCeremony::Error,
+            raise IdentitySocialCeremonyContract::Error,
                   "candidate provider evidence mismatch" unless provider == evidence.fetch("provider")
-            raise Identity::SocialCeremony::Error, "candidate uid mismatch" unless
+            raise IdentitySocialCeremonyContract::Error, "candidate uid mismatch" unless
               pending_social_signup_uid_digest(provider: provider, uid: uid) == evidence.fetch("uid_digest")
 
-            SocialAuth::VerifiedProviderAssertion.call(
+            SocialAuthVerifiedProviderAssertion.call(
               auth_hash: candidate.auth_hash,
               expected_provider: candidate.provider,
             )

@@ -9,9 +9,9 @@ module Sign
 
         include EmailValidation
 
-        include Common::Redirect
+        include CommonRedirect
 
-        include Common::Otp
+        include CommonOtp
 
         include SessionLimitGate
 
@@ -200,10 +200,10 @@ module Sign
               redirect_to(new_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
               return
             end
-            @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: @user_email.address)
+            @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: @user_email.address)
           elsif session[:user_email_authentication_address].present?
             @user_email = VisitorEmail.new(address: session[:user_email_authentication_address])
-            @otp_resend_state = Sign::In::OtpResendState.issue(
+            @otp_resend_state = SignInOtpResendState.issue(
               kind: :email,
               target: session[:user_email_authentication_address],
             )
@@ -236,7 +236,7 @@ module Sign
             otp_code = generate_otp_for(existing_email)
 
             Email::Com::OtpMailer.with(
-              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
+              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
               email_address: existing_email.address,
             ).create.deliver_later
           else
@@ -301,7 +301,7 @@ module Sign
         def handle_failed_otp_attempt(user_email, visitor = nil)
           visitor ||= visitor_from_visitor_email(user_email)
           audit_visitor_login_failed(visitor) if visitor
-          Sign::Risk::Emitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
+          SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
           if user_email.locked?
             { success: false, error: email_locked_message }
@@ -337,7 +337,7 @@ module Sign
           last_sent_at = session[:sign_in_email_cooldown_at]
           return false if last_sent_at.blank?
 
-          last_sent_at.to_i > Common::OtpPolicy::SEND_COOLDOWN.ago.to_i
+          last_sent_at.to_i > CommonOtpPolicy::SEND_COOLDOWN.ago.to_i
         end
 
         def record_sign_in_email_cooldown!(normalized_address)

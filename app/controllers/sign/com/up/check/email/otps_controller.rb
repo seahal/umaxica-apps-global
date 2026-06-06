@@ -7,7 +7,7 @@ module Sign
       module Check
         module Email
           class OtpsController < Sign::Com::Up::EmailsController
-            include Sign::Up::ExplicitStepControllerSupport
+            include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
             skip_before_action :enforce_email_flow!
@@ -72,7 +72,7 @@ module Sign
             def sign_up_step = :otp
 
             def issue_otp_ceremony!
-              Sign::OtpCeremony.issue!(
+              SignOtpCeremony.issue!(
                 purpose: :sign_up,
                 surface: :com,
                 channel: :email,
@@ -84,7 +84,7 @@ module Sign
             end
 
             def verify_otp_ceremony!
-              Sign::OtpCeremony.verify!(
+              SignOtpCeremony.verify!(
                 purpose: :sign_up,
                 surface: :com,
                 channel: :email,

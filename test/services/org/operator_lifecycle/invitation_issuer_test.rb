@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Org::OperatorLifecycle::InvitationIssuerTest < ActiveSupport::TestCase
+class OrgOperatorLifecycleInvitationIssuerTest < ActiveSupport::TestCase
   fixtures :operators
 
   test "issues organization invitation from lifecycle request" do
@@ -18,7 +18,7 @@ class Org::OperatorLifecycle::InvitationIssuerTest < ActiveSupport::TestCase
       approved_at: Time.current,
     )
 
-    result = Org::OperatorLifecycle::InvitationIssuer.call(request: request, actor: operators(:two))
+    result = OrgOperatorLifecycleInvitationIssuer.call(request: request, actor: operators(:two))
 
     assert_predicate result, :success?
     assert_equal "invitee@example.com", result.invitation.email

@@ -9,7 +9,7 @@ module Sign
       before_action :skip_metadata_session!
 
       def show
-        render json: ::Oidc::DiscoveryDocument.for_resource_type("visitor")
+        render json: ::OidcDiscoveryDocument.for_resource_type("visitor")
       end
 
       private

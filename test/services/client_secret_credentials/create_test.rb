@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
+class ClientSecretCredentialsCreateTest < ActiveSupport::TestCase
   fixtures :client_statuses, :client_email_statuses
 
   setup do
@@ -21,7 +21,7 @@ class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "creates secret_credential with auto-generated raw secret_credential" do
     params = { name: "api-key-1", enabled: true }
 
-    result = ClientSecretCredentials::Create.call(actor: @user, user: @user, params: params)
+    result = ClientSecretCredentialsCreate.call(actor: @user, user: @user, params: params)
 
     assert_predicate result.secret_credential, :persisted?
     assert_predicate result.raw_secret_credential, :present?
@@ -33,7 +33,7 @@ class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
     params = { name: "api-key-2", enabled: true }
     provided_secret_credential = ClientSecretCredential.generate_raw_secret_credential
 
-    result = ClientSecretCredentials::Create.call(
+    result = ClientSecretCredentialsCreate.call(
       actor: @user,
       user: @user,
       params: params,
@@ -46,7 +46,7 @@ class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "creates secret_credential with enabled=false as revoked" do
     params = { name: "disabled-key", enabled: false }
 
-    result = ClientSecretCredentials::Create.call(actor: @user, user: @user, params: params)
+    result = ClientSecretCredentialsCreate.call(actor: @user, user: @user, params: params)
 
     assert_predicate result.secret_credential, :revoked?
   end
@@ -54,7 +54,7 @@ class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "creates secret_credential with enabled=true as active" do
     params = { name: "enabled-key", enabled: true }
 
-    result = ClientSecretCredentials::Create.call(actor: @user, user: @user, params: params)
+    result = ClientSecretCredentialsCreate.call(actor: @user, user: @user, params: params)
 
     assert_predicate result.secret_credential, :active?
   end
@@ -62,7 +62,7 @@ class ClientSecretCredentials::CreateTest < ActiveSupport::TestCase
   test "strips whitespace from name parameter" do
     params = { name: "  test-name-with-spaces  ", enabled: true }
 
-    result = ClientSecretCredentials::Create.call(actor: @user, user: @user, params: params)
+    result = ClientSecretCredentialsCreate.call(actor: @user, user: @user, params: params)
 
     assert_equal "test-name-with-spaces", result.secret_credential.name
   end

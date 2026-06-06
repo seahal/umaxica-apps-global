@@ -15,7 +15,7 @@ module Sign
             return if require_step_up!(scope: "operator_lifecycle") == false
 
             authorize!(@operator_lifecycle_request, to: :execute?)
-            result = ::Org::OperatorLifecycle::Execute.call(
+            result = ::OrgOperatorLifecycleExecute.call(
               request: @operator_lifecycle_request,
               actor: current_operator,
             )

@@ -8,10 +8,10 @@ module Sign
     module Settings
       class TotpsController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
-        include ::Sign::AcmeAuthorityRedirect
-        include ::Sign::TotpCeremonyDelegation
+        include ::SignAcmeAuthorityRedirect
+        include ::SignTotpCeremonyDelegation
 
-        include ::Verification::Client
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
 

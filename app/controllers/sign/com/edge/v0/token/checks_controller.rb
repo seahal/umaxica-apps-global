@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 class Sign::Com::Edge::V0::Token::ChecksController < Sign::Com::ApplicationController
-  include Sign::EdgeV0JsonApi
+  include SignEdgeV0JsonApi
 
   AUTHENTICATION_MODE = :deny_all
 

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
+class SignAppVerificationBaseTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients
@@ -39,9 +39,9 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
 
     def verification_unavailable_redirect_path = "/verification?ri=jp"
 
-    include Sign::VerificationStepUpSessionStore
-    include Sign::VerificationStepUpLifecycle
-    include Sign::AppVerificationBase
+    include SignVerificationStepUpSessionStore
+    include SignVerificationStepUpLifecycle
+    include SignAppVerificationBase
 
     attr_accessor :user, :user_token, :params_hash, :redirect_args, :hotp_result
 
@@ -85,7 +85,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     end
 
     def start_step_up_session!(scope:, pt_param:)
-      Sign::VerificationStepUpSessionStore.instance_method(:start_step_up_session!).bind_call(
+      SignVerificationStepUpSessionStore.instance_method(:start_step_up_session!).bind_call(
         self,
         scope: scope,
         pt_param: pt_param,
@@ -101,7 +101,7 @@ class Sign::AppVerificationBaseTest < ActiveSupport::TestCase
     end
 
     def app_call(method_name, ...)
-      Sign::AppVerificationBase.instance_method(method_name).bind_call(self, ...)
+      SignAppVerificationBase.instance_method(method_name).bind_call(self, ...)
     end
 
     def clear_step_up_state!

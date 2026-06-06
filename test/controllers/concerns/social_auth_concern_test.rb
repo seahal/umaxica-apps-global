@@ -29,7 +29,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       def rescue_from(*) = nil
     end
 
-    include SocialAuthConcern
+    include SocialAuth
 
     attr_accessor :session_hash, :params_hash, :request_object, :resource, :logged_in_value, :session_token
 
@@ -76,13 +76,13 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     )
 
     assert_predicate state, :present?
-    assert_equal "login", harness.session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY]
-    assert_equal "google", harness.session_hash[SocialAuthConcern::SOCIAL_PROVIDER_SESSION_KEY]
-    assert_equal "encoded-pt", harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
+    assert_equal "login", harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
+    assert_equal "google", harness.session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_equal "encoded-pt", harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
     assert_equal "encoded-pt", harness.send(:current_social_auth_pt)
     assert_equal "sign_up", harness.send(:current_social_auth_entry)
     assert_equal "jp", harness.send(:current_social_auth_ri)
-    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY]
 
     assert_raises(SocialAuth::UnauthorizedError) do
       harness.send(:prepare_social_auth_intent!, "bad")
@@ -98,10 +98,10 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     harness.logged_in_value = true
     harness.resource = clients(:one)
-    harness.session_token = step_up_token(scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
+    harness.session_token = step_up_token(scope: SocialAuth::SOCIAL_LINK_SCOPE)
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
-    assert_equal clients(:one).id, harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_equal clients(:one).id, harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY]
   end
 
   test "prepare social auth link intent rejects resource-level step up without token-bound step up" do
@@ -114,7 +114,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
     end
 
-    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY]
   end
 
   test "validate social auth state handles login missing expired and user mismatch" do
@@ -122,15 +122,15 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     assert_nil harness.send(:validate_social_auth_state!)
 
-    harness.session_hash[SocialAuthConcern::SOCIAL_INTENT_SESSION_KEY] = "link"
+    harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY] = "link"
     assert_raises(SocialAuth::UnauthorizedError) { harness.send(:validate_social_auth_state!) }
 
-    harness.session_hash[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY] = "flow"
-    harness.session_hash[SocialAuthConcern::SOCIAL_STARTED_AT_SESSION_KEY] = 10.minutes.ago.to_i
+    harness.session_hash[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY] = "flow"
+    harness.session_hash[SocialAuth::SOCIAL_STARTED_AT_SESSION_KEY] = 10.minutes.ago.to_i
     assert_raises(SocialAuth::UnauthorizedError) { harness.send(:validate_social_auth_state!) }
 
-    harness.session_hash[SocialAuthConcern::SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    harness.session_hash[SocialAuthConcern::SOCIAL_USER_ID_SESSION_KEY] = clients(:one).id
+    harness.session_hash[SocialAuth::SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
+    harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY] = clients(:one).id
     harness.resource = clients(:two)
     assert_raises(SocialAuth::UnauthorizedError) { harness.send(:validate_social_auth_state!) }
   end
@@ -139,7 +139,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness = Harness.new
     harness.logged_in_value = true
     harness.resource = clients(:one)
-    harness.session_token = step_up_token(scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
+    harness.session_token = step_up_token(scope: SocialAuth::SOCIAL_LINK_SCOPE)
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
     assert_equal "link", harness.send(:current_social_auth_intent)
@@ -158,7 +158,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_nil harness.send(:current_social_auth_pt)
     assert_nil harness.send(:current_social_auth_entry)
     assert_nil harness.send(:current_social_auth_ri)
-    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
   test "process social auth callback returns pt before clearing session" do
@@ -171,7 +171,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
       assert_equal "encoded-pt", result[:pt]
     end
 
-    assert_nil harness.session_hash[SocialAuthConcern::SOCIAL_PT_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
   end
 
   test "grantless established social login callback does not create a sign-side session" do
@@ -192,7 +192,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")
     # Simulate a grantless callback: drop the auto-issued login grant from session.
-    harness.session_hash.delete(SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
+    harness.session_hash.delete(SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
     harness.request_object.set_header("omniauth.auth", OmniAuth::AuthHash.new(provider: "google_app", uid: uid))
 
     # The sign-side inline commit must never run for an established grantless login.
@@ -210,7 +210,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
   test "grantless unknown social login still falls through to compatibility signup" do
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google_app")
-    harness.session_hash.delete(SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
+    harness.session_hash.delete(SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY)
     harness.request_object.set_header(
       "omniauth.auth",
       OmniAuth::AuthHash.new(provider: "google_app", uid: "unknown_#{SecureRandom.hex(4)}"),

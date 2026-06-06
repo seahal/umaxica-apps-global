@@ -3,12 +3,12 @@
 
 require "test_helper"
 
-class Common::RedirectTest < ActiveSupport::TestCase
+class CommonRedirectTest < ActiveSupport::TestCase
   test "private helper methods are not public on including controller" do
     # Define a test controller that includes the concern
     test_controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
       end
 
     controller = test_controller.new
@@ -36,7 +36,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "allowed_hosts is public on including controller" do
     test_controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
       end
 
     controller = test_controller.new
@@ -47,23 +47,23 @@ class Common::RedirectTest < ActiveSupport::TestCase
   end
 
   test "normalize_host returns nil for blank values" do
-    assert_nil Common::Redirect.normalize_host(nil)
-    assert_nil Common::Redirect.normalize_host("")
-    assert_nil Common::Redirect.normalize_host("   ")
+    assert_nil CommonRedirect.normalize_host(nil)
+    assert_nil CommonRedirect.normalize_host("")
+    assert_nil CommonRedirect.normalize_host("   ")
   end
 
   test "normalize_host extracts host from URL" do
-    assert_equal "example.com", Common::Redirect.normalize_host("https://example.com/path")
-    assert_equal "example.com", Common::Redirect.normalize_host("http://example.com")
-    assert_equal "example.com", Common::Redirect.normalize_host("example.com/path")
+    assert_equal "example.com", CommonRedirect.normalize_host("https://example.com/path")
+    assert_equal "example.com", CommonRedirect.normalize_host("http://example.com")
+    assert_equal "example.com", CommonRedirect.normalize_host("example.com/path")
   end
 
   test "normalize_host handles invalid URIs" do
-    assert_equal "not a url", Common::Redirect.normalize_host("not a url")
+    assert_equal "not a url", CommonRedirect.normalize_host("not a url")
   end
 
   test "normalize_host downcases host" do
-    assert_equal "example.com", Common::Redirect.normalize_host("HTTPS://EXAMPLE.COM")
+    assert_equal "example.com", CommonRedirect.normalize_host("HTTPS://EXAMPLE.COM")
   end
 
   # --- Open-redirect regression guards -------------------------------------
@@ -74,7 +74,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
 
   def redirect_helper
     @redirect_helper ||=
-      Class.new(ApplicationController) { include Common::Redirect }.new
+      Class.new(ApplicationController) { include CommonRedirect }.new
   end
 
   test "safe_internal_path rejects blank and control-character input" do
@@ -167,7 +167,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url issues token using controller namespace" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -180,7 +180,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Keyring.stub(:private_key, private_key) do
+      JumpRtKeyring.stub(:private_key, private_key) do
         controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
       end
     end
@@ -200,7 +200,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     assert_no_match(/[=+\/]/, token)
     assert_equal "JWT", header["typ"]
     assert_equal "ES384", header["alg"]
-    assert_equal Jit::Security::Jwt::Registry.surface("SIGN_APP").current_kid, header["kid"]
+    assert_equal JitSecurityJwtRegistry.surface("SIGN_APP").current_kid, header["kid"]
     assert_equal "https://id.umaxica.app", payload["iss"]
     assert_equal "reuse", payload["rpl"]
     assert_equal "https://www.umaxica.app/dashboard", payload["url"]
@@ -210,7 +210,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url logs only safe token metadata" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -242,7 +242,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Keyring.stub(:private_key, private_key) do
+      JumpRtKeyring.stub(:private_key, private_key) do
         Rails.stub(:logger, logger) do
           controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard?secret_credential=hidden")
         end
@@ -275,7 +275,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_external_jump_url validates then redirects through jump as external destination" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -288,7 +288,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Keyring.stub(:private_key, private_key) do
+      JumpRtKeyring.stub(:private_key, private_key) do
         controller.send(
           :redirect_to_external_jump_url,
           "https://rp.example/callback?ok=1",
@@ -312,7 +312,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_external_jump validates registry target then redirects through jump as external destination" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -326,7 +326,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "RP_APP_URL" => "https://rp.example",
     ) do
-      JumpRt::Keyring.stub(:private_key, private_key) do
+      JumpRtKeyring.stub(:private_key, private_key) do
         controller.send(:redirect_to_external_jump, :rp_app, path: "/signed-out", query: { ok: "1", rt: "drop.me" })
       end
     end
@@ -377,7 +377,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
-      JumpRt::Issuer.stub(:call, "aaa.bbb.ccc") do
+      JumpRtIssuer.stub(:call, "aaa.bbb.ccc") do
         controller.send(
           :redirect_to_jump_url,
           "https://id.umaxica.app/sign/in?ri=jp&pt=signed",
@@ -396,7 +396,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url emits jump_rt.fallback_internal warning when token cannot be issued" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -415,7 +415,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Issuer.stub(:call, nil) do
+      JumpRtIssuer.stub(:call, nil) do
         Rails.stub(:logger, logger) do
           controller.send(
             :redirect_to_jump_url,
@@ -441,7 +441,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url emits jump_rt.fallback_internal warning when gateway url is invalid" do
     controller =
       Class.new(ApplicationController) do
-        include Common::Redirect
+        include CommonRedirect
 
         def self.name = "Sign::App::HarnessController"
       end.new
@@ -459,7 +459,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
 
     with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
       Rails.stub(:logger, logger) do
-        JumpRt::Issuer.stub(:call, fake_token) do
+        JumpRtIssuer.stub(:call, fake_token) do
           controller.send(
             :redirect_to_jump_url,
             "https://id.umaxica.app/sign/in",
@@ -505,7 +505,7 @@ class Common::RedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:render) { |**kwargs| renders << kwargs }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
-    JumpRt::Issuer.stub(:call, "xxx") do
+    JumpRtIssuer.stub(:call, "xxx") do
       controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
     end
 

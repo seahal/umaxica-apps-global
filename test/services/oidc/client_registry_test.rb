@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Oidc::ClientRegistryTest < ActiveSupport::TestCase
+class OidcClientRegistryTest < ActiveSupport::TestCase
   def with_oidc_client_secret_credentials(overrides)
     creds = Rails.app.creds
     fetch = ->(key, default: nil) { overrides.fetch(key, default) }
@@ -14,7 +14,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "find returns client for known client_id" do
-    client = Oidc::ClientRegistry.find("core_app")
+    client = OidcClientRegistry.find("core_app")
 
     assert_not_nil client
     assert_equal "core_app", client.client_id
@@ -27,28 +27,28 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "find returns nil for unknown client_id" do
-    assert_nil Oidc::ClientRegistry.find("unknown_client")
+    assert_nil OidcClientRegistry.find("unknown_client")
   end
 
   test "find! raises for unknown client_id" do
-    assert_raises(Oidc::ClientRegistry::ClientNotFound) do
-      Oidc::ClientRegistry.find!("unknown_client")
+    assert_raises(OidcClientRegistry::ClientNotFound) do
+      OidcClientRegistry.find!("unknown_client")
     end
   end
 
   test "valid_redirect_uri? returns true for registered URI" do
-    client = Oidc::ClientRegistry.find("core_app")
+    client = OidcClientRegistry.find("core_app")
     uri = client.redirect_uris.first
 
-    assert Oidc::ClientRegistry.valid_redirect_uri?("core_app", uri)
+    assert OidcClientRegistry.valid_redirect_uri?("core_app", uri)
   end
 
   test "valid_redirect_uri? returns false for unregistered URI" do
-    assert_not Oidc::ClientRegistry.valid_redirect_uri?("core_app", "https://evil.com/callback")
+    assert_not OidcClientRegistry.valid_redirect_uri?("core_app", "https://evil.com/callback")
   end
 
   test "valid_redirect_uri? returns false for unknown client" do
-    assert_not Oidc::ClientRegistry.valid_redirect_uri?("unknown", "http://localhost/callback")
+    assert_not OidcClientRegistry.valid_redirect_uri?("unknown", "http://localhost/callback")
   end
 
   test "all expected clients are registered" do
@@ -61,7 +61,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     )
 
     expected.each do |client_id|
-      client = Oidc::ClientRegistry.find(client_id)
+      client = OidcClientRegistry.find(client_id)
 
       assert_not_nil client, "VisitorAccount #{client_id} should be registered"
       assert_predicate client.redirect_uris, :present?, "VisitorAccount #{client_id} should have redirect_uris"
@@ -71,7 +71,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
 
   test "org clients have operator resource_type" do
     %w(acme_org core_org docs_org news_org help_org).each do |client_id|
-      client = Oidc::ClientRegistry.find(client_id)
+      client = OidcClientRegistry.find(client_id)
 
       assert_equal "operator", client.resource_type, "#{client_id} should be operator type"
     end
@@ -79,7 +79,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
 
   test "app clients have client resource_type" do
     %w(acme_app core_app docs_app news_app help_app).each do |client_id|
-      client = Oidc::ClientRegistry.find(client_id)
+      client = OidcClientRegistry.find(client_id)
 
       assert_equal "client", client.resource_type, "#{client_id} should be client type"
     end
@@ -87,19 +87,19 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
 
   test "com clients have visitor resource_type" do
     %w(acme_com core_com docs_com news_com help_com).each do |client_id|
-      client = Oidc::ClientRegistry.find(client_id)
+      client = OidcClientRegistry.find(client_id)
 
       assert_equal "visitor", client.resource_type, "#{client_id} should be visitor type"
     end
   end
 
   test "authenticate returns false when secret_credentials are not configured" do
-    assert_not Oidc::ClientRegistry.authenticate("core_app", "any_secret_credential")
+    assert_not OidcClientRegistry.authenticate("core_app", "any_secret_credential")
   end
 
   test "find resolves secret_credential from flat credential key" do
     with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: "core-app-secret_credential") do
-      client = Oidc::ClientRegistry.find("core_app")
+      client = OidcClientRegistry.find("core_app")
 
       assert_equal "core-app-secret_credential", client.client_secret
     end
@@ -107,18 +107,18 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
 
   test "authenticate uses flat credential key" do
     with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_ACME_ORG: "acme-org-secret_credential") do
-      assert Oidc::ClientRegistry.authenticate("acme_org", "acme-org-secret_credential")
-      assert_not Oidc::ClientRegistry.authenticate("acme_org", "wrong-secret_credential")
+      assert OidcClientRegistry.authenticate("acme_org", "acme-org-secret_credential")
+      assert_not OidcClientRegistry.authenticate("acme_org", "wrong-secret_credential")
     end
   end
 
   test "authenticate returns false for blank secret_credential" do
-    assert_not Oidc::ClientRegistry.authenticate("core_app", "")
-    assert_not Oidc::ClientRegistry.authenticate("core_app", nil)
+    assert_not OidcClientRegistry.authenticate("core_app", "")
+    assert_not OidcClientRegistry.authenticate("core_app", nil)
   end
 
   test "client_ids returns all registered client IDs" do
-    ids = Oidc::ClientRegistry.client_ids
+    ids = OidcClientRegistry.client_ids
 
     assert_includes ids, "core_app"
     assert_includes ids, "acme_org"
@@ -136,7 +136,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     }
 
     expectations.each do |client_id, namespace|
-      client = Oidc::ClientRegistry.find!(client_id)
+      client = OidcClientRegistry.find!(client_id)
 
       assert_equal "private_key_jwt", client.token_endpoint_auth_method
       assert_equal namespace, client.jwt_namespace
@@ -163,7 +163,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     }
 
     expectations.each do |client_id, expected|
-      client = Oidc::ClientRegistry.find!(client_id)
+      client = OidcClientRegistry.find!(client_id)
       redirect_uri = URI.parse(client.redirect_uris.fetch(0))
 
       assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is not regional"
@@ -194,7 +194,7 @@ class Oidc::ClientRegistryTest < ActiveSupport::TestCase
     }
 
     expectations.each do |client_id, expected|
-      client = Oidc::ClientRegistry.find!(client_id)
+      client = OidcClientRegistry.find!(client_id)
       redirect_uri = URI.parse(client.redirect_uris.fetch(0))
 
       assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is cross-surface"

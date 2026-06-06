@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
+class SignWebauthnConfigTest < ActiveSupport::TestCase
   class ::Sign::App::WebauthnConfigTestController < ApplicationController
-    include Sign::Webauthn
+    include SignWebauthn
 
     def index
       render plain: "ok"
@@ -86,7 +86,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
   test "validate_webauthn_origin! raises error for untrusted origin" do
     @controller.request.host = "evil.example.com"
 
-    assert_raises(Sign::Webauthn::OriginValidationError) do
+    assert_raises(SignWebauthn::OriginValidationError) do
       @controller.validate_webauthn_origin!
     end
   end
@@ -101,7 +101,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
     assert_not_nil challenge_id
 
     # Verify it is in session
-    challenges = @controller.session[Sign::Webauthn::CHALLENGE_SESSION_KEY]
+    challenges = @controller.session[SignWebauthn::CHALLENGE_SESSION_KEY]
 
     assert_not_nil challenges[challenge_id]
     assert_equal "test-challenge", challenges[challenge_id]["challenge"]
@@ -112,7 +112,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
     assert_equal "test-challenge", retrieved_challenge
 
     # Verify it is gone
-    challenges = @controller.session[Sign::Webauthn::CHALLENGE_SESSION_KEY]
+    challenges = @controller.session[SignWebauthn::CHALLENGE_SESSION_KEY]
 
     assert_nil challenges[challenge_id]
   end
@@ -121,7 +121,7 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
     @controller.request.host = "id.app.localhost"
     challenge_id = @controller.send(:store_challenge!, challenge: "test", purpose: :registration)
 
-    assert_raises(Sign::Webauthn::ChallengePurposeMismatchError) do
+    assert_raises(SignWebauthn::ChallengePurposeMismatchError) do
       @controller.send(:fetch_and_delete_challenge!, challenge_id, purpose: :authentication)
     end
   end
@@ -131,10 +131,10 @@ class Sign::Webauthn::ConfigTest < ActiveSupport::TestCase
     challenge_id = @controller.send(:store_challenge!, challenge: "test", purpose: :registration)
 
     # Manually expire it
-    challenges = @controller.session[Sign::Webauthn::CHALLENGE_SESSION_KEY]
+    challenges = @controller.session[SignWebauthn::CHALLENGE_SESSION_KEY]
     challenges[challenge_id]["expires_at"] = 1.minute.ago.to_i
 
-    assert_raises(Sign::Webauthn::ChallengeExpiredError) do
+    assert_raises(SignWebauthn::ChallengeExpiredError) do
       @controller.send(:fetch_and_delete_challenge!, challenge_id, purpose: :registration)
     end
   end

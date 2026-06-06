@@ -7,11 +7,11 @@ module EmailValidation
   private
 
   def validate_and_normalize_email(email)
-    Jit::Utils::EmailValidator.normalize(email)
+    JitUtilsEmailValidator.normalize(email)
   end
 
   def valid_email_format?(email)
-    Jit::Utils::EmailValidator.valid?(email)
+    JitUtilsEmailValidator.valid?(email)
   end
 
   def identity_email_model

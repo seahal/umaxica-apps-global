@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/host_origin_env"
+require "jit_host_origin_env"
 
 module Jit
   class HostOriginEnvTest < ActiveSupport::TestCase
@@ -10,7 +10,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("test")
 
       Rails.stub(:env, env) do
-        origins = Jit::HostOriginEnv.trusted_origins("id.app.localhost")
+        origins = JitHostOriginEnv.trusted_origins("id.app.localhost")
 
         assert_includes origins, "http://id.app.localhost"
         assert_includes origins, "https://id.app.localhost"
@@ -21,7 +21,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
       Rails.stub(:env, env) do
-        origins = Jit::HostOriginEnv.trusted_origins("https://id.app.example.com")
+        origins = JitHostOriginEnv.trusted_origins("https://id.app.example.com")
 
         assert_equal ["https://id.app.example.com"], origins
       end
@@ -31,7 +31,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("development")
 
       Rails.stub(:env, env) do
-        origins = Jit::HostOriginEnv.trusted_origins(nil, "", "id.app.localhost", "id.app.localhost")
+        origins = JitHostOriginEnv.trusted_origins(nil, "", "id.app.localhost", "id.app.localhost")
 
         assert_equal ["http://id.app.localhost", "https://id.app.localhost"], origins
       end
@@ -41,7 +41,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
       Rails.stub(:env, env) do
-        assert_equal ["https://id.app.localhost"], Jit::HostOriginEnv.origins_for("id.app.localhost")
+        assert_equal ["https://id.app.localhost"], JitHostOriginEnv.origins_for("id.app.localhost")
       end
     end
   end

@@ -8,12 +8,12 @@ module Sign
         class RegistrationsController < Sign::App::ApplicationController
           include CloudflareTurnstile
 
-          include Common::Redirect
-          include Common::Otp
-          include Sign::TelephoneRegistrable
-          include Sign::TelephoneCeremonyDelegation
+          include CommonRedirect
+          include CommonOtp
+          include SignTelephoneRegistrable
+          include SignTelephoneCeremonyDelegation
 
-          include ::Verification::Client
+          include ::VerificationClient
 
           AUTHENTICATION_MODE = :private
 

@@ -13,7 +13,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET show without access jwt returns consented false" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     get acme_org_web_v0_cookie_path, as: :json
 
@@ -28,7 +28,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-org-public-id",
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       get acme_org_web_v0_cookie_path, as: :json
@@ -46,7 +46,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "PATCH update without preference jwt writes consent buffer without credential cookies" do
-    cookies.delete(Preference::CookieName.access(surface: :org))
+    cookies.delete(PreferenceCookieName.access(surface: :org))
 
     assert_no_difference -> { OrgPreference.count } do
       patch acme_org_web_v0_cookie_path, params: { consented: true }, as: :json
@@ -60,8 +60,8 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "preference_consented=1"
     assert_includes consent_cookie.downcase, "samesite=strict"
     assert_not_includes consent_cookie.downcase, "httponly"
-    assert_not_includes set_cookie, "#{Preference::CookieName.access(surface: :org)}="
-    assert_not_includes set_cookie, "#{Authentication::Base::ACCESS_COOKIE_KEY}="
+    assert_not_includes set_cookie, "#{PreferenceCookieName.access(surface: :org)}="
+    assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
   end
 
   test "PATCH update with consented true updates org preference cookie and issues access token" do
@@ -80,7 +80,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       public_id: preference.public_id,
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       patch acme_org_web_v0_cookie_path, params: { consented: true }, as: :json
@@ -93,7 +93,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil preference.org_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_includes set_cookie, "#{PreferenceCookieName.access}="
     assert_includes set_cookie, "preference_consented=1"
     consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
@@ -117,7 +117,7 @@ class Acme::Org::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
       public_id: preference.public_id,
       preference_type: "OrgPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       patch acme_org_web_v0_cookie_path,

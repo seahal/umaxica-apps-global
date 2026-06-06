@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
-  COOKIE_NAME = Authentication::Base::ACCESS_COOKIE_KEY
+  COOKIE_NAME = AuthenticationBase::ACCESS_COOKIE_KEY
 
   SURFACES = [
     { host: "www.app.localhost",
@@ -47,7 +47,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:sign_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
@@ -63,7 +63,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oauth/authorize", params: {
         response_type: "code",
         client_id: surface[:client_id],
-        redirect_uri: Oidc::ClientRegistry.find!(surface[:client_id]).redirect_uris.first,
+        redirect_uri: OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first,
         code_challenge: "challenge",
         code_challenge_method: "S256",
         state: "state",
@@ -109,18 +109,18 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     host! "www.app.localhost"
     get "/sso/authorize", headers: browser_headers
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
-    id_token = Oidc::IdTokenIssuer.call(
+    id_token = OidcIdTokenIssuer.call(
       resource: clients(:one),
-      client: Oidc::ClientRegistry.find!("acme_app"),
+      client: OidcClientRegistry.find!("acme_app"),
       nonce: "wrong_nonce",
     )
-    token_result = Oidc::RpTokenClient::Result.new(
+    token_result = OidcRpTokenClient::Result.new(
       success: true,
       token_response: { id_token: id_token },
       error: nil,
     )
 
-    Oidc::RpTokenClient.stub(:call, token_result) do
+    OidcRpTokenClient.stub(:call, token_result) do
       get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
     end
 
@@ -135,18 +135,18 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
-      id_token = Oidc::IdTokenIssuer.call(
+      id_token = OidcIdTokenIssuer.call(
         resource: resource,
-        client: Oidc::ClientRegistry.find!(surface[:client_id]),
+        client: OidcClientRegistry.find!(surface[:client_id]),
         nonce: session.fetch(:oidc_nonce),
       )
-      token_result = Oidc::RpTokenClient::Result.new(
+      token_result = OidcRpTokenClient::Result.new(
         success: true,
         token_response: { id_token: id_token },
         error: nil,
       )
 
-      Oidc::RpTokenClient.stub(:call, token_result) do
+      OidcRpTokenClient.stub(:call, token_result) do
         get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 

@@ -2,13 +2,13 @@
 
 require "test_helper"
 
-class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
+class OidcIdTokenVerifierTest < ActiveSupport::TestCase
   setup do
-    @client = Oidc::ClientRegistry.find!("core_app")
+    @client = OidcClientRegistry.find!("core_app")
     @user = clients(:one)
     @nonce = "nonce-#{SecureRandom.hex(4)}"
-    @issuer = Oidc::Issuer.for_client(@client)
-    @jwt_issuer_id = Oidc::Issuer.jwt_issuer_id_for_client(@client)
+    @issuer = OidcIssuer.for_client(@client)
+    @jwt_issuer_id = OidcIssuer.jwt_issuer_id_for_client(@client)
   end
 
   test "accepts a valid id token for the expected client issuer actor and nonce" do
@@ -38,7 +38,7 @@ class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
     assert_invalid id_token(expires_at: 1.minute.ago)
 
     private_key = OpenSSL::PKey::EC.generate("secp384r1")
-    forged = JWT.encode(valid_claims, private_key, "ES384", { typ: Oidc::IdTokenIssuer::TOKEN_TYPE, kid: "unknown" })
+    forged = JWT.encode(valid_claims, private_key, "ES384", { typ: OidcIdTokenIssuer::TOKEN_TYPE, kid: "unknown" })
 
     assert_invalid forged
   end
@@ -47,7 +47,7 @@ class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
     assert_invalid token_with_claims("typ" => "access-token+jwt")
 
     private_key = OpenSSL::PKey::EC.generate("prime256v1")
-    forged = JWT.encode(valid_claims, private_key, "ES256", { typ: Oidc::IdTokenIssuer::TOKEN_TYPE, kid: "kid" })
+    forged = JWT.encode(valid_claims, private_key, "ES256", { typ: OidcIdTokenIssuer::TOKEN_TYPE, kid: "kid" })
 
     assert_invalid forged
   end
@@ -55,7 +55,7 @@ class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
   private
 
   def id_token(issuer: @issuer, expires_at: 5.minutes.from_now)
-    Oidc::IdTokenIssuer.call(
+    OidcIdTokenIssuer.call(
       resource: @user,
       client: @client,
       nonce: @nonce,
@@ -66,19 +66,19 @@ class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
   end
 
   def token_with_claims(overrides)
-    Jit::Security::Jwt::Keyring.encode(valid_claims.merge(overrides), issuer_id: @jwt_issuer_id)
+    JitSecurityJwtKeyring.encode(valid_claims.merge(overrides), issuer_id: @jwt_issuer_id)
   end
 
   def valid_claims
     now = Time.current.to_i
     {
       "iss" => @issuer,
-      "sub" => Oidc::Subject.for(@user, resource_type: "client"),
+      "sub" => OidcSubject.for(@user, resource_type: "client"),
       "aud" => @client.client_id,
       "exp" => 5.minutes.from_now.to_i,
       "iat" => now,
       "jti" => SecureRandom.uuid,
-      "typ" => Oidc::IdTokenIssuer::TOKEN_TYPE,
+      "typ" => OidcIdTokenIssuer::TOKEN_TYPE,
       "act" => "client",
       "sid" => SecureRandom.urlsafe_base64(18),
       "nonce" => @nonce,
@@ -87,7 +87,7 @@ class Oidc::IdTokenVerifierTest < ActiveSupport::TestCase
   end
 
   def verify(token, expected_nonce: @nonce)
-    Oidc::IdTokenVerifier.call(
+    OidcIdTokenVerifier.call(
       id_token: token,
       client_id: @client.client_id,
       resource_type: "client",

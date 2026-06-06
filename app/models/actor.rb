@@ -178,7 +178,7 @@ class Actor < ActiveSupport::CurrentAttributes
 
     def staff? = operator?
 
-    # Step-up freshness, derived from the resolved step_up context. StepUp::Resolver
+    # Step-up freshness, derived from the resolved step_up context. StepUpResolver
     # already enforces TTL + scope/aal/binding, so a satisfied step_up is a fresh one.
     def step_up_fresh? = step_up.satisfied?
 

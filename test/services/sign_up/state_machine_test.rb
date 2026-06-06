@@ -7,8 +7,8 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
   test "contact submission and verification advance the ticket" do
     ticket = create_cycle(ClientSignUpFlow, entry_method: "email")
 
-    submit = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
-    verify = SignUp::StateMachine.call(ticket: ticket.reload, event: :verify_contact, actor_context: nil)
+    submit = SignUpStateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+    verify = SignUpStateMachine.call(ticket: ticket.reload, event: :verify_contact, actor_context: nil)
 
     assert_equal :advanced, submit.status
     assert_equal :verify_contact, submit.next_event
@@ -20,7 +20,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
   test "expired tickets reject mutation before side effects" do
     ticket = create_cycle(ClientSignUpFlow, issued_at: 2.minutes.ago, expires_at: 1.minute.ago)
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
 
     assert_equal :expired, result.status
     assert_equal ClientSignUpFlowStatus::STARTED, ticket.reload.status_id
@@ -35,7 +35,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       completed_at: Time.current,
     )
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :submit_contact, actor_context: nil)
 
     assert_equal :invalid_transition, result.status
     assert_equal ClientSignUpFlowStatus::COMPLETED, ticket.reload.status_id
@@ -44,7 +44,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
   test "com tickets reject social callback events" do
     ticket = create_cycle(VisitorSignUpFlow, entry_method: "email")
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
 
     assert_equal :invalid_transition, result.status
     assert_equal VisitorSignUpFlowStatus::STARTED, ticket.reload.status_id
@@ -53,8 +53,8 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
   test "app social tickets can enter and complete callback for new identities" do
     ticket = create_cycle(ClientSignUpFlow, entry_method: "google")
 
-    start = SignUp::StateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
-    complete = SignUp::StateMachine.call(ticket: ticket.reload, event: :complete_social_callback, actor_context: nil)
+    start = SignUpStateMachine.call(ticket: ticket, event: :start_social_callback, actor_context: nil)
+    complete = SignUpStateMachine.call(ticket: ticket.reload, event: :complete_social_callback, actor_context: nil)
 
     assert_equal :advanced, start.status
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, ticket.reload.status_id
@@ -75,7 +75,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       },
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
@@ -97,7 +97,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       completed_requirements: { "otp" => { "cleared" => true } },
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
@@ -120,7 +120,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       },
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
@@ -140,7 +140,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       completed_requirements: { "otp" => { "cleared" => true } },
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
@@ -160,7 +160,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       checkpoint_version: 2,
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :clear_requirement,
       actor_context: nil,
@@ -184,7 +184,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       },
     )
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
 
     assert_equal :blocked, result.status
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, ticket.reload.status_id
@@ -202,8 +202,8 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       },
     )
 
-    missing_result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
-    accepted = SignUp::StateMachine.call(
+    missing_result = SignUpStateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
+    accepted = SignUpStateMachine.call(
       ticket: ticket.reload,
       event: :finalize,
       actor_context: nil,
@@ -225,13 +225,13 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       completed_requirements: { "birthdate" => { "cleared" => true } },
     )
 
-    handoff = SignUp::StateMachine.call(
+    handoff = SignUpStateMachine.call(
       ticket: ticket,
       event: :handoff_to_sign_in,
       actor_context: nil,
       payload: { sign_in_handoff_status: :accepted, sign_in_handoff: :boundary_result },
     )
-    complete = SignUp::StateMachine.call(ticket: ticket.reload, event: :complete, actor_context: nil)
+    complete = SignUpStateMachine.call(ticket: ticket.reload, event: :complete, actor_context: nil)
 
     assert_equal :sign_in_handoff_accepted, handoff.status
     assert_equal :complete, handoff.next_event
@@ -250,7 +250,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       completed_requirements: { "birthdate" => { "cleared" => true } },
     )
 
-    result = SignUp::StateMachine.call(
+    result = SignUpStateMachine.call(
       ticket: ticket,
       event: :handoff_to_sign_in,
       actor_context: nil,
@@ -266,9 +266,9 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
     expired = create_cycle(ClientSignUpFlow)
     cancelled = create_cycle(ClientSignUpFlow)
 
-    fail_result = SignUp::StateMachine.call(ticket: failed, event: :fail, actor_context: nil)
-    expire_result = SignUp::StateMachine.call(ticket: expired, event: :expire, actor_context: nil)
-    cancel_result = SignUp::StateMachine.call(ticket: cancelled, event: :cancel, actor_context: nil)
+    fail_result = SignUpStateMachine.call(ticket: failed, event: :fail, actor_context: nil)
+    expire_result = SignUpStateMachine.call(ticket: expired, event: :expire, actor_context: nil)
+    cancel_result = SignUpStateMachine.call(ticket: cancelled, event: :cancel, actor_context: nil)
 
     assert_equal :failed, fail_result.status
     assert_equal ClientSignUpFlowStatus::FAILED, failed.reload.status_id
@@ -287,7 +287,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       step: "finalizing",
     )
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
 
     assert_equal :invalid_transition, result.status
     assert_equal ClientSignUpFlowStatus::FINALIZING, ticket.reload.status_id
@@ -301,7 +301,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       cancelled_at: 1.minute.ago,
     )
 
-    result = SignUp::StateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
+    result = SignUpStateMachine.call(ticket: ticket, event: :cancel, actor_context: nil)
 
     assert_equal :ok, result.status
     assert_equal ClientSignUpFlowStatus::CANCELLED, ticket.reload.status_id

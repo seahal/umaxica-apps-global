@@ -7,13 +7,13 @@ module Sign
       module Emails
         class RegistrationsController < Sign::App::ApplicationController
           include ::CloudflareTurnstile
-          include Common::Redirect
-          include Common::Otp
-          include Sign::EmailRegistrable
-          include Sign::EmailRegistrationFlow
-          include Sign::EmailCeremonyDelegation
+          include CommonRedirect
+          include CommonOtp
+          include SignEmailRegistrable
+          include SignEmailRegistrationFlow
+          include SignEmailCeremonyDelegation
 
-          include ::Verification::Client
+          include ::VerificationClient
 
           AUTHENTICATION_MODE = :private
           before_action :authenticate_client!

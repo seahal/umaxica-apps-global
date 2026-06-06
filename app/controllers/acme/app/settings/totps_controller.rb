@@ -5,7 +5,7 @@ module Acme
   module App
     module Settings
       class TotpsController < Acme::App::ApplicationController
-        include ::Verification::Client
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -29,7 +29,7 @@ module Acme
             return
           end
 
-          issuance = Identity::TotpCeremony::GrantIssuer.issue!(
+          issuance = IdentityTotpCeremonyGrantIssuer.issue!(
             surface: "app",
             actor_ref: current_client.public_id,
             session_ref: current_session_public_id,

@@ -74,9 +74,9 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     assert_equal "jp", query["ri"]
     assert_predicate query["social_ceremony_grant"], :present?
 
-    grant = Identity::SocialCeremony::Grant.decode(
+    grant = IdentitySocialCeremonyGrant.decode(
       query.fetch("social_ceremony_grant"),
-      issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+      issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
     )
 
     assert_equal "login", grant["operation"]

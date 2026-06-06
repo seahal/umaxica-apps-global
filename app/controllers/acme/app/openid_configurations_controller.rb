@@ -9,7 +9,7 @@ module Acme
       before_action :skip_metadata_session!
 
       def show
-        render json: ::Oidc::DiscoveryDocument.for_resource_type("client")
+        render json: ::OidcDiscoveryDocument.for_resource_type("client")
       end
 
       private

@@ -5,7 +5,7 @@ module Acme
   module App
     module Preference
       class ResetsController < Acme::App::PreferencesBaseController
-        include ::Preference::SignScreenActions
+        include ::PreferenceSignScreenActions
 
         AUTHENTICATION_MODE = :open
 

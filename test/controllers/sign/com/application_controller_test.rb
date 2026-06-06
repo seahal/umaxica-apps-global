@@ -8,9 +8,9 @@ module Sign::Com
     test "includes expected concerns" do
       controller = ApplicationController.new
 
-      assert_includes controller.class, ::Authentication::Visitor
-      assert_includes controller.class, ::Authorization::Visitor
-      assert_includes controller.class, ::Verification::Visitor
+      assert_includes controller.class, ::AuthenticationVisitor
+      assert_includes controller.class, ::AuthorizationVisitor
+      assert_includes controller.class, ::VerificationVisitor
       assert_includes controller.class, ActionPolicy::Controller
       assert_includes controller.class, ::ActorSupport
     end

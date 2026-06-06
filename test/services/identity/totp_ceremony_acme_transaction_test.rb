@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels,
@@ -15,20 +15,20 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     @client.client_totp_credentials.destroy_all
     @session_ref = "session-#{SecureRandom.hex(4)}"
     @candidate_store = ActiveSupport::Cache::MemoryStore.new
-    Identity::TotpCeremony::CandidateStore.store = @candidate_store
+    IdentityTotpCeremonyCandidateStore.store = @candidate_store
   end
 
   teardown do
-    Identity::TotpCeremony::CandidateStore.store = nil
+    IdentityTotpCeremonyCandidateStore.store = nil
     travel_back
   end
 
   test "grant issuance creates durable transaction and valid grant" do
     travel_to @now do
       issuance = issue_grant
-      grant = Identity::TotpCeremony::Grant.decode(
+      grant = IdentityTotpCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::TotpCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityTotpCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -55,7 +55,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
             event_id: ClientChronicleEvent::TOTP_ENABLED,
           ).count
         }, 1 do
-          commit = Identity::TotpCeremony::FinalCommitter.call!(
+          commit = IdentityTotpCeremonyFinalCommitter.call!(
             result_token: result_token,
             actor: @client,
             session_ref: @session_ref,
@@ -71,9 +71,9 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       end
 
       assert_predicate issuance.transaction.reload, :consumed?
-      assert_raises(Identity::TotpCeremony::Error) { Identity::TotpCeremony::CandidateStore.fetch!(candidate.ref) }
-      assert_raises(Identity::TotpCeremony::Error) do
-        Identity::TotpCeremony::FinalCommitter.call!(
+      assert_raises(IdentityTotpCeremonyContract::Error) { IdentityTotpCeremonyCandidateStore.fetch!(candidate.ref) }
+      assert_raises(IdentityTotpCeremonyContract::Error) do
+        IdentityTotpCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,
@@ -91,7 +91,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_grant
       candidate = store_candidate(expires_at: issuance.transaction.expires_at)
       result_token = issue_result(issuance.grant, candidate)
-      payload = Identity::TotpCeremony::Contract.decode_unverified_payload(result_token)
+      payload = IdentityTotpCeremonyContract.decode_unverified_payload(result_token)
 
       assert_equal candidate.ref, payload["credential_candidate_ref"]
       assert_equal candidate.digest, payload["credential_candidate_digest"]
@@ -115,8 +115,8 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       candidate = store_candidate(expires_at: issuance.transaction.expires_at)
       result_token = issue_result(issuance.grant, candidate)
 
-      assert_raises(Identity::TotpCeremony::Error) do
-        Identity::TotpCeremony::FinalCommitter.call!(
+      assert_raises(IdentityTotpCeremonyContract::Error) do
+        IdentityTotpCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: clients(:two),
           session_ref: @session_ref,
@@ -124,8 +124,8 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
           now: @now,
         )
       end
-      assert_raises(Identity::TotpCeremony::Error) do
-        Identity::TotpCeremony::FinalCommitter.call!(
+      assert_raises(IdentityTotpCeremonyContract::Error) do
+        IdentityTotpCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: "wrong-session",
@@ -139,7 +139,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "purger removes only retained expired and consumed transactions" do
     travel_to @now do
       active = issue_grant.transaction
-      expired_old = Identity::TotpCeremony::ReplayStore.for("app").create_transaction!(
+      expired_old = IdentityTotpCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-expired",
@@ -147,7 +147,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         expires_at: @now - 8.days,
         now: @now - 9.days,
       )
-      consumed_old = Identity::TotpCeremony::ReplayStore.for("app").create_transaction!(
+      consumed_old = IdentityTotpCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-consumed",
@@ -160,7 +160,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         consumed_at: @now - 8.days,
       )
 
-      counts = Identity::TotpCeremony::TransactionPurger.new(now: @now).call
+      counts = IdentityTotpCeremonyTransactionPurger.new(now: @now).call
 
       assert_equal 2, counts.fetch(:app)
       assert ClientTotpCeremonyTransaction.exists?(active.id)
@@ -172,7 +172,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   private
 
   def issue_grant
-    Identity::TotpCeremony::GrantIssuer.issue!(
+    IdentityTotpCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -182,7 +182,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def store_candidate(expires_at:)
-    Identity::TotpCeremony::CandidateStore.store!(
+    IdentityTotpCeremonyCandidateStore.store!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -194,7 +194,7 @@ class Identity::TotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_result(grant_token, candidate)
-    Identity::TotpCeremony::ResultIssuer.issue!(
+    IdentityTotpCeremonyResultIssuer.issue!(
       grant_token: grant_token,
       candidate: candidate,
       surface: "app",

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class TelephoneConcernTest < ActiveSupport::TestCase
+class TelephoneTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses
 
   setup do

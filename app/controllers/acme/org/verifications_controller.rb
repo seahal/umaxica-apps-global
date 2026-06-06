@@ -4,8 +4,8 @@
 module Acme
   module Org
     class VerificationsController < Acme::Org::ApplicationController
-      include Acme::StepUpIntent
-      include Acme::StepUpCompletion
+      include AcmeStepUpIntent
+      include AcmeStepUpCompletion
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -18,7 +18,7 @@ module Acme
           surface: "org",
           actor: current_operator,
           token: current_session_token,
-          allowed_scopes: StepUp::ScopeCatalog::ORG,
+          allowed_scopes: StepUpScopeCatalog::ORG,
           sign_url_builder: ->(**query) {
             sign_org_verification_url(
               query.merge(host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),

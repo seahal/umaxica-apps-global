@@ -9,7 +9,7 @@ module Outbound
 
     test "accepts a common outbound message payload" do
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-        result = Sms.deliver_later(to: "+819012345678", title: "Title", body: "Body")
+        result = OutboundSms.deliver_later(to: "+819012345678", title: "Title", body: "Body")
 
         assert_predicate result, :accepted?
         assert_equal :sms, result.channel
@@ -23,13 +23,13 @@ module Outbound
       assert_equal "+819012345678", job[:args].first["to"]
       assert_equal "Title", job[:args].first["title"]
       assert_nil job[:args].first["body"]
-      assert_equal "Body", Outbound::SensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
+      assert_equal "Body", OutboundSensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
       assert_not_includes job[:args].inspect, "Body"
     end
 
     test "service call delegates to delayed delivery" do
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-        result = Sms.call(to: "+819012345679", title: "Call Title", body: "Call Body")
+        result = OutboundSms.call(to: "+819012345679", title: "Call Title", body: "Call Body")
 
         assert_predicate result, :accepted?
         assert_equal :sms, result.channel
@@ -40,7 +40,7 @@ module Outbound
       assert_equal "+819012345679", job[:args].first["to"]
       assert_equal "Call Title", job[:args].first["title"]
       assert_nil job[:args].first["body"]
-      assert_equal "Call Body", Outbound::SensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
+      assert_equal "Call Body", OutboundSensitivePayload.decrypt_sms_body(job[:args].first["encrypted_body"])
       assert_not_includes job[:args].inspect, "Call Body"
     end
 
@@ -50,7 +50,7 @@ module Outbound
 
       assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
         assert_raises(ArgumentError) do
-          Sms.deliver_later(to: "+819012345678", title: "Title", body: "Body")
+          OutboundSms.deliver_later(to: "+819012345678", title: "Title", body: "Body")
         end
       end
     ensure

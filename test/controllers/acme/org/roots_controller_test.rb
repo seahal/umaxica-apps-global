@@ -21,8 +21,8 @@ class Acme::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_predicate cookies[Preference::CookieName.access(surface: :org)], :present?
-    assert_predicate cookies[Preference::CookieName.refresh(surface: :org)], :present?
+    assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
+    assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
   end
 
   test "creates preference cookies on root when optional URL preferences are present" do
@@ -33,7 +33,7 @@ class Acme::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_predicate cookies[Preference::CookieName.access(surface: :org)], :present?
-    assert_predicate cookies[Preference::CookieName.refresh(surface: :org)], :present?
+    assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
+    assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
   end
 end

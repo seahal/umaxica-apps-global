@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Oidc::RpTokenClientTest < ActiveSupport::TestCase
+class OidcRpTokenClientTest < ActiveSupport::TestCase
   test "uses private_key_jwt when a client assertion key is configured" do
     captured = nil
     response = Net::HTTPOK.new("1.1", "200", "OK")
@@ -17,7 +17,7 @@ class Oidc::RpTokenClientTest < ActiveSupport::TestCase
                       response
                     },
       ) do
-        result = Oidc::RpTokenClient.call(
+        result = OidcRpTokenClient.call(
           token_url: "https://id.umaxica.app/oauth/token",
           client_id: "acme_app",
           client_secret: nil,
@@ -30,7 +30,7 @@ class Oidc::RpTokenClientTest < ActiveSupport::TestCase
       end
     end
 
-    assert_equal Oidc::ClientAssertionJwt::ASSERTION_TYPE, captured.fetch(:client_assertion_type)
+    assert_equal OidcClientAssertionJwt::ASSERTION_TYPE, captured.fetch(:client_assertion_type)
     assert_predicate captured.fetch(:client_assertion), :present?
     assert_not captured.key?(:client_secret)
   end
@@ -44,13 +44,13 @@ class Oidc::RpTokenClientTest < ActiveSupport::TestCase
       "OIDC_CLIENT_#{namespace}_ACTIVE_KID" => kid,
       "OIDC_CLIENT_#{namespace}_PRIVATE_KEY" => Base64.strict_encode64(key.to_der),
     }
-    previous = Jit::Security::Jwt::Registry.instance_variable_get(:@issuers)
+    previous = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
 
     with_env(env) do
-      Jit::Security::Jwt::Registry.reload!
+      JitSecurityJwtRegistry.reload!
       yield
     ensure
-      Jit::Security::Jwt::Registry.instance_variable_set(:@issuers, previous)
+      JitSecurityJwtRegistry.instance_variable_set(:@issuers, previous)
     end
   end
 

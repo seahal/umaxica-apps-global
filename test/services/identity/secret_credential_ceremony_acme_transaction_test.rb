@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels,
@@ -20,20 +20,20 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
     )
     @session_ref = "session-#{SecureRandom.hex(4)}"
     @candidate_store = ActiveSupport::Cache::MemoryStore.new
-    Identity::SecretCredentialCeremony::CandidateStore.store = @candidate_store
+    IdentitySecretCredentialCeremonyCandidateStore.store = @candidate_store
   end
 
   teardown do
-    Identity::SecretCredentialCeremony::CandidateStore.store = nil
+    IdentitySecretCredentialCeremonyCandidateStore.store = nil
     travel_back
   end
 
   test "grant issuance creates durable transaction and valid grant" do
     travel_to @now do
       issuance = issue_grant
-      grant = Identity::SecretCredentialCeremony::Grant.decode(
+      grant = IdentitySecretCredentialCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::SecretCredentialCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentitySecretCredentialCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -59,7 +59,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
             event_id: ClientChronicleEvent::USER_SECRET_CREATED,
           ).count
         }, 1 do
-          commit = Identity::SecretCredentialCeremony::FinalCommitter.call!(
+          commit = IdentitySecretCredentialCeremonyFinalCommitter.call!(
             result_token: result_token,
             actor: @client,
             session_ref: @session_ref,
@@ -75,9 +75,9 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
       end
 
       assert_predicate issuance.transaction.reload, :consumed?
-      assert_raises(Identity::SecretCredentialCeremony::Error) { Identity::SecretCredentialCeremony::CandidateStore.fetch!(candidate.ref) }
-      assert_raises(Identity::SecretCredentialCeremony::Error) do
-        Identity::SecretCredentialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySecretCredentialCeremonyContract::Error) { IdentitySecretCredentialCeremonyCandidateStore.fetch!(candidate.ref) }
+      assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+        IdentitySecretCredentialCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,
@@ -95,7 +95,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
       issuance = issue_grant
       candidate = store_candidate(expires_at: issuance.transaction.expires_at)
       result_token = issue_result(issuance.grant, candidate)
-      payload = Identity::SecretCredentialCeremony::Contract.decode_unverified_payload(result_token)
+      payload = IdentitySecretCredentialCeremonyContract.decode_unverified_payload(result_token)
 
       assert_equal candidate.ref, payload["credential_candidate_ref"]
       assert_equal candidate.digest, payload["credential_candidate_digest"]
@@ -122,8 +122,8 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
       candidate = store_candidate(expires_at: issuance.transaction.expires_at)
       result_token = issue_result(issuance.grant, candidate)
 
-      assert_raises(Identity::SecretCredentialCeremony::Error) do
-        Identity::SecretCredentialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+        IdentitySecretCredentialCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: clients(:two),
           session_ref: @session_ref,
@@ -131,8 +131,8 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
           now: @now,
         )
       end
-      assert_raises(Identity::SecretCredentialCeremony::Error) do
-        Identity::SecretCredentialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+        IdentitySecretCredentialCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: "wrong-session",
@@ -146,7 +146,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
   test "purger removes only retained expired and consumed transactions" do
     travel_to @now do
       active = issue_grant.transaction
-      expired_old = Identity::SecretCredentialCeremony::ReplayStore.for("app").create_transaction!(
+      expired_old = IdentitySecretCredentialCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-expired",
@@ -154,7 +154,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
         expires_at: @now - 8.days,
         now: @now - 9.days,
       )
-      consumed_old = Identity::SecretCredentialCeremony::ReplayStore.for("app").create_transaction!(
+      consumed_old = IdentitySecretCredentialCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-consumed",
@@ -167,7 +167,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
         consumed_at: @now - 8.days,
       )
 
-      counts = Identity::SecretCredentialCeremony::TransactionPurger.new(now: @now).call
+      counts = IdentitySecretCredentialCeremonyTransactionPurger.new(now: @now).call
 
       assert_equal 2, counts.fetch(:app)
       assert ClientSecretCredentialCeremonyTransaction.exists?(active.id)
@@ -179,7 +179,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
   private
 
   def issue_grant
-    Identity::SecretCredentialCeremony::GrantIssuer.issue!(
+    IdentitySecretCredentialCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -189,7 +189,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
   end
 
   def store_candidate(expires_at:)
-    Identity::SecretCredentialCeremony::CandidateStore.store!(
+    IdentitySecretCredentialCeremonyCandidateStore.store!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -213,7 +213,7 @@ class Identity::SecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::Tes
   end
 
   def issue_result(grant_token, candidate)
-    Identity::SecretCredentialCeremony::ResultIssuer.issue!(
+    IdentitySecretCredentialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
       candidate: candidate,
       surface: "app",

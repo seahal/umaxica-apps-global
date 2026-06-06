@@ -9,9 +9,9 @@ module Sign
 
         include EmailValidation
 
-        include Common::Redirect
+        include CommonRedirect
 
-        include Common::Otp
+        include CommonOtp
 
         include SessionLimitGate
 
@@ -204,15 +204,15 @@ module Sign
             @user_email = find_existing_email_for_verification(state.id)
             return redirect_to_email_session_expired if @user_email.nil?
 
-            @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: @user_email.address)
+            @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: @user_email.address)
           else
             @user_email = ClientEmail.new(address: state.address)
-            @otp_resend_state = Sign::In::OtpResendState.issue(kind: :email, target: state.address)
+            @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: state.address)
           end
         end
 
         def email_authentication_state
-          Sign::App::In::EmailAuthenticationState.load(session)
+          SignAppInEmailAuthenticationState.load(session)
         end
 
         def find_existing_email_for_verification(id)
@@ -241,7 +241,7 @@ module Sign
               return
             end
 
-            Sign::App::In::EmailAuthenticationState.store_existing!(session, existing_email)
+            SignAppInEmailAuthenticationState.store_existing!(session, existing_email)
 
             return :ok if existing_email.locked?
             return :cooldown if otp_request_rate_limited?(existing_email)
@@ -249,14 +249,14 @@ module Sign
             otp_code = generate_otp_for(existing_email)
 
             Email::App::OtpMailer.with(
-              encrypted_hotp_token: Outbound::SensitivePayload.encrypt_email_otp(otp_code),
+              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
               email_address: existing_email.address,
             ).create.deliver_later
           else
             # Dummy work to simulate OTP generation for timing attack protection
             perform_dummy_otp_generation
 
-            Sign::App::In::EmailAuthenticationState.store_dummy!(session, normalized_address)
+            SignAppInEmailAuthenticationState.store_dummy!(session, normalized_address)
           end
 
           :ok
@@ -281,7 +281,7 @@ module Sign
             end
 
             clear_otp(user_email)
-            Sign::App::In::EmailAuthenticationState.clear!(session)
+            SignAppInEmailAuthenticationState.clear!(session)
             pt = peek_pt
             result = establish_signed_in_session!(
               user, pt: pt, ri: params[:ri], auth_method: "email",
@@ -317,7 +317,7 @@ module Sign
         def handle_failed_otp_attempt(user_email, user = nil)
           user ||= user_from_user_email(user_email)
           audit_client_login_failed(user) if user
-          Sign::Risk::Emitter.emit("auth_failed", user_id: user&.id) if user
+          SignRiskEmitter.emit("auth_failed", user_id: user&.id) if user
 
           if user_email.locked?
             { success: false, error: email_locked_message }
@@ -353,7 +353,7 @@ module Sign
           last_sent_at = session[:sign_in_email_cooldown_at]
           return false if last_sent_at.blank?
 
-          last_sent_at.to_i > Common::OtpPolicy::SEND_COOLDOWN.ago.to_i
+          last_sent_at.to_i > CommonOtpPolicy::SEND_COOLDOWN.ago.to_i
         end
 
         def record_sign_in_email_cooldown!(normalized_address)

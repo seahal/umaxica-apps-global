@@ -7,7 +7,7 @@ module Sign
       module Check
         module Telephone
           class OtpsController < Sign::Com::Up::TelephonesController
-            include Sign::Up::ExplicitStepControllerSupport
+            include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
 
@@ -85,7 +85,7 @@ module Sign
             def sign_up_step = :otp
 
             def issue_otp_ceremony!
-              Sign::OtpCeremony.issue!(
+              SignOtpCeremony.issue!(
                 purpose: :sign_up,
                 surface: :com,
                 channel: :telephone,
@@ -97,7 +97,7 @@ module Sign
             end
 
             def verify_otp_ceremony!
-              Sign::OtpCeremony.verify!(
+              SignOtpCeremony.verify!(
                 purpose: :sign_up,
                 surface: :com,
                 channel: :telephone,
@@ -129,7 +129,7 @@ module Sign
               last_sent_at = session[:visitor_telephone_otp_last_sent_at]
               return false if last_sent_at.blank?
 
-              last_sent_at.to_i > Common::OtpPolicy::SEND_COOLDOWN.ago.to_i
+              last_sent_at.to_i > CommonOtpPolicy::SEND_COOLDOWN.ago.to_i
             end
           end
         end

@@ -14,7 +14,7 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
 
   test "recent issued returns 429 with retry_after and header" do
     email = "retry_#{SecureRandom.hex(4)}@example.com"
-    hmac = Occurrence::Hmac.digest(kind: :email, body: email)
+    hmac = OccurrenceHmac.digest(kind: :email, body: email)
     EmailOccurrence.where(body: hmac).delete_all
     EmailOccurrence.create!(
       body: hmac,
@@ -38,7 +38,7 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
     email = "ok_#{SecureRandom.hex(4)}@example.com"
     user.client_emails.create!(address: email, user_email_status_id: ClientEmailStatus::VERIFIED)
 
-    hmac = Occurrence::Hmac.digest(kind: :email, body: email)
+    hmac = OccurrenceHmac.digest(kind: :email, body: email)
     EmailOccurrence.where(body: hmac).delete_all
     EmailOccurrence.create!(
       body: hmac,
@@ -92,7 +92,7 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
     assert_not_nil otp_data
 
     new_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
-    verifier = Class.new { include Common::Otp }.new
+    verifier = Class.new { include CommonOtp }.new
 
     assert_not verifier.send(:verify_otp_code, email_record, old_code)[:success]
     assert verifier.send(:verify_otp_code, email_record, new_code)[:success]
@@ -101,6 +101,6 @@ class Sign::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
   private
 
   def state_for(email)
-    Sign::In::OtpResendState.issue(kind: :email, target: email)
+    SignInOtpResendState.issue(kind: :email, target: email)
   end
 end

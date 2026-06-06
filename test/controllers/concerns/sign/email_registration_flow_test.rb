@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
+class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
   class Harness
     class << self
       def before_action(*) = nil
@@ -11,8 +11,8 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
       def skip_before_action(*) = nil
     end
 
-    include Sign::EmailRegistrable
-    include Sign::EmailRegistrationFlow
+    include SignEmailRegistrable
+    include SignEmailRegistrationFlow
 
     attr_accessor :session_hash, :flash_hash, :reset_called, :target_user, :params_hash, :render_args, :redirect_args
 
@@ -176,7 +176,7 @@ class Sign::EmailRegistrationFlowTest < ActiveSupport::TestCase
   test "abstract path hooks raise not implemented" do
     harness = Harness.new
 
-    assert_raises(NotImplementedError) { Sign::EmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness) }
-    assert_raises(NotImplementedError) { Sign::EmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness) }
+    assert_raises(NotImplementedError) { SignEmailRegistrationFlow.instance_method(:after_email_registration_started_path).bind_call(harness) }
+    assert_raises(NotImplementedError) { SignEmailRegistrationFlow.instance_method(:after_email_registration_verified_path).bind_call(harness) }
   end
 end

@@ -155,9 +155,9 @@ module ActorSupport
 
   def resolved_active_sign_sequence_id
     return unless respond_to?(:session, true)
-    return unless defined?(SignIn::SequenceCarrier)
+    return unless defined?(SignInSequenceCarrier)
 
-    sequence = SignIn::SequenceCarrier.new(session, surface: Actor.tld).current
+    sequence = SignInSequenceCarrier.new(session, surface: Actor.tld).current
     return if sequence.blank?
     return if sequence.expired? || sequence.terminal?
 
@@ -194,10 +194,10 @@ module ActorSupport
   end
 
   def resolved_current_step_up
-    return Actor::StepUp::NULL unless defined?(StepUp::Resolver)
+    return Actor::StepUp::NULL unless defined?(StepUpResolver)
     return Actor::StepUp::NULL unless respond_to?(:current_session_token, true)
 
-    StepUp::Resolver.call(
+    StepUpResolver.call(
       token: current_session_token,
       scope: resolved_current_step_up_scope,
       required_aal: resolved_current_step_up_required_aal,
@@ -215,12 +215,12 @@ module ActorSupport
   def resolved_current_step_up_required_aal
     return verification_required_aal if respond_to?(:verification_required_aal, true)
 
-    StepUp::Resolver::DEFAULT_REQUIRED_AAL
+    StepUpResolver::DEFAULT_REQUIRED_AAL
   end
 
   def raise_actor_resolution_error!(component, exception)
     Rails.logger.warn(
-      Jit::LogEvent.format(
+      JitLogEvent.format(
         "actor.resolution.failed",
         component: component,
         error_class: exception.class.name,

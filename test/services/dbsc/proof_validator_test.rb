@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Dbsc::ProofValidatorTest < ActiveSupport::TestCase
+class DbscProofValidatorTest < ActiveSupport::TestCase
   # Builds a validator whose `proof` is signed by `key` with `algorithm`, so
   # verify_signature exercises the real JWT path against the matching key.
   def validator_for(key, algorithm)
@@ -12,7 +12,7 @@ class Dbsc::ProofValidatorTest < ActiveSupport::TestCase
       { "jti" => "c", "aud" => "https://test.host/x", "iat" => Time.current.to_i },
       key, algorithm, { typ: "dbsc+jwt", jwk: public_jwk },
     )
-    Dbsc::ProofValidator.new(
+    DbscProofValidator.new(
       proof: proof, challenge: "c", challenge_issued_at: Time.current,
     )
   end

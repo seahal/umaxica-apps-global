@@ -28,7 +28,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @token = ClientToken.create!(user_id: @user.id)
     @token.rotate_refresh_token!
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       @user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: @token.public_id,
@@ -38,7 +38,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
     }.freeze
     cookies["csrf_token"] = "test_csrf_token"
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(@token)
     @headers.freeze
 
@@ -52,13 +52,13 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    Identity::TotpCeremony::CandidateStore.store = ActiveSupport::Cache::MemoryStore.new
+    IdentityTotpCeremonyCandidateStore.store = ActiveSupport::Cache::MemoryStore.new
   end
 
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
-    Identity::TotpCeremony::CandidateStore.store = nil
+    IdentityTotpCeremonyCandidateStore.store = nil
   end
 
   def with_prosopite_paused
@@ -77,7 +77,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     user = Client.create!(status_id: ClientStatus::NOTHING)
     token = ClientToken.create!(user_id: user.id)
     satisfy_user_verification(token)
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: token.public_id,
@@ -87,7 +87,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
     }
     cookies["csrf_token"] = "test_csrf_token"
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     with_prosopite_paused do
       get sign_app_settings_totps_url(ri: "jp"), headers: headers
@@ -105,7 +105,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     )
     token = ClientToken.create!(user_id: user.id)
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: token.public_id,
@@ -115,7 +115,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
     }
     cookies["csrf_token"] = "test_csrf_token"
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     with_prosopite_paused do
       get sign_app_settings_totps_url(ri: "jp"), headers: headers
@@ -357,7 +357,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     token.rotate_refresh_token!
     token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
     satisfy_user_verification(token)
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: token.public_id,
@@ -367,7 +367,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
     }
     cookies["csrf_token"] = "test_csrf_token"
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(token)
 
     with_prosopite_paused do
@@ -383,7 +383,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     token.rotate_refresh_token!
     token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
     satisfy_user_verification(token)
-    access_token = Authentication::Base::Token.encode(
+    access_token = AuthenticationToken.encode(
       user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: token.public_id,
@@ -393,7 +393,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
     }
     cookies["csrf_token"] = "test_csrf_token"
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = access_token
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(token)
 
     with_mocked_totp do |secret_credential|

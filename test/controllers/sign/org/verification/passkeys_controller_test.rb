@@ -17,7 +17,7 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   test "creates verification on success" do
     pt = signed_step_up_pt(sign_org_settings_passkeys_path(ri: "jp"))
 
-    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+    StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
           get sign_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp"),
@@ -71,16 +71,16 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
   def step_up_pt_issuer
     @step_up_pt_issuer ||= Class.new do
-      include ::Redirects::SignedTargetSupport
+      include ::RedirectsSignedTargetSupport
 
       def issue(return_to:, surface:, session_nonce:)
         path = signed_target_internal_path(return_to)
         claims = signed_target_claims(flow: "step_up.bootstrap", surface: surface, session_nonce: session_nonce)
         issue_signed_target_token(
           payload: claims.merge("pt" => path),
-          purpose: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
-          salt: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_SALT,
-          expires_in: Verification::Base::STEP_UP_TTL,
+          purpose: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+          salt: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_SALT,
+          expires_in: VerificationBase::STEP_UP_TTL,
         )
       end
     end.new

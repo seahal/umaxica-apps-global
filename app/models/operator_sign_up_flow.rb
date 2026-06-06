@@ -40,7 +40,7 @@
 #
 class OperatorSignUpFlow < OrgTicketRecord
   include SignFlow
-  include Flow::SignUp
+  include FlowSignUp
 
   STATUS_MODEL = OperatorSignUpFlowStatus
   STATUSES = {

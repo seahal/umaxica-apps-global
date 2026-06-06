@@ -31,14 +31,14 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
       @previous_env[key] = ENV[key]
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
-    Jit::Security::Jwt::Registry.reload!
+    JitSecurityJwtRegistry.reload!
   end
 
   teardown do
     @previous_env.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
-    Jit::Security::Jwt::Registry.reload!
+    JitSecurityJwtRegistry.reload!
   end
 
   ENDPOINTS.each do |name, namespace, host|
@@ -55,7 +55,7 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
       assert_includes response.parsed_body.keys, "keys"
       key = response.parsed_body.fetch("keys").first
 
-      assert_equal Jit::Security::Jwt::Registry.surface(namespace).current_kid, key.fetch("kid")
+      assert_equal JitSecurityJwtRegistry.surface(namespace).current_kid, key.fetch("kid")
       assert_equal "EC", key.fetch("kty")
       assert_equal "P-384", key.fetch("crv")
       assert_equal "ES384", key.fetch("alg")

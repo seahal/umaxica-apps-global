@@ -6,9 +6,9 @@ module Acme
     module Web
       module V0
         class ThemesController < Acme::Org::ApplicationController
-          include ::Preference::WebThemeEndpoint
+          include ::PreferenceWebThemeEndpoint
 
-          include ::Preference::WebThemeActions
+          include ::PreferenceWebThemeActions
 
           AUTHENTICATION_MODE = :open
 

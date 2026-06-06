@@ -37,7 +37,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
       sign_count: 0,
     )
 
-    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+    StepUpAvailableMethods.stub(:call, [:passkey]) do
       get sign_org_verification_url(ri: "jp"), headers: @headers
 
       assert_response :success
@@ -53,7 +53,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
   test "org can verify with passkey" do
     return_to = Base64.urlsafe_encode64(sign_org_settings_passkeys_path(ri: "jp"))
 
-    StepUp::AvailableMethods.stub(:call, [:passkey]) do
+    StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
           get sign_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),

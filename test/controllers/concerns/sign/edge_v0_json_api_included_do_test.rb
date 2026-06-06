@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignEdgeV0JsonApiIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Sign::EdgeV0JsonApi
+    include SignEdgeV0JsonApi
   end
 
   test "including edge json api does not register callbacks implicitly" do

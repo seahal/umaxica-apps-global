@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::OperatorTest < ActiveSupport::TestCase
+class AuthStaffTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses
   class FormatMock
     attr_accessor :format_type
@@ -18,7 +18,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
   end
 
   class DummyClass
-    include Authentication::Operator
+    include AuthenticationOperator
 
     attr_accessor :session, :cookies, :request, :response
 
@@ -89,7 +89,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
   end
 
   test "module can be included" do
-    assert_kind_of Authentication::Operator, @obj
+    assert_kind_of AuthenticationOperator, @obj
   end
 
   test "log_in sets access token in cookie" do
@@ -97,7 +97,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @staff)
 
-    assert @obj.cookies[::Authentication::Operator::ACCESS_COOKIE_KEY]
+    assert @obj.cookies[::AuthenticationOperator::ACCESS_COOKIE_KEY]
     assert_predicate @obj, :logged_in?
     assert_equal @staff.id, @obj.current_operator.id
   end
@@ -107,8 +107,8 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @staff)
 
-    access_opts = @obj.cookies.options_for(::Authentication::Operator::ACCESS_COOKIE_KEY)
-    refresh_opts = @obj.cookies.options_for(::Authentication::Operator::REFRESH_COOKIE_KEY)
+    access_opts = @obj.cookies.options_for(::AuthenticationOperator::ACCESS_COOKIE_KEY)
+    refresh_opts = @obj.cookies.options_for(::AuthenticationOperator::REFRESH_COOKIE_KEY)
 
     assert_operator access_opts[:expires], :>, 10.minutes.from_now
     assert_operator access_opts[:expires], :<, 2.hours.from_now
@@ -134,8 +134,8 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
 
     assert_no_difference("OperatorToken.count") { @obj.send(:log_out) }
     assert_predicate token.reload, :revoked?
-    assert_nil @obj.cookies[::Authentication::Operator::ACCESS_COOKIE_KEY]
-    assert_nil @obj.cookies.encrypted[::Authentication::Operator::REFRESH_COOKIE_KEY]
+    assert_nil @obj.cookies[::AuthenticationOperator::ACCESS_COOKIE_KEY]
+    assert_nil @obj.cookies.encrypted[::AuthenticationOperator::REFRESH_COOKIE_KEY]
   end
 
   test "log_in uses host-only cookies" do
@@ -144,8 +144,8 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
 
     @obj.send(:log_in, @staff)
 
-    assert_not @obj.cookies.options_for(::Authentication::Operator::ACCESS_COOKIE_KEY).key?(:domain)
-    assert_not @obj.cookies.options_for(::Authentication::Operator::REFRESH_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::AuthenticationOperator::ACCESS_COOKIE_KEY).key?(:domain)
+    assert_not @obj.cookies.options_for(::AuthenticationOperator::REFRESH_COOKIE_KEY).key?(:domain)
   end
 
   test "log_in returns tokens hash" do
@@ -158,7 +158,7 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
       assert tokens[:access_token]
       assert tokens[:refresh_token]
       assert_equal "Bearer", tokens[:token_type]
-      assert_equal ::Authentication::Base::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
+      assert_equal ::AuthenticationBase::ACCESS_TOKEN_TTL.to_i, tokens[:expires_in]
     end
   end
 
@@ -182,8 +182,8 @@ class Authentication::OperatorTest < ActiveSupport::TestCase
         OperatorToken.create!(staff: @staff)
       end
 
-    # Generate access token using Authentication::Base::Token
-    access_token = Authentication::Base::Token.encode(
+    # Generate access token using AuthenticationToken
+    access_token = AuthenticationToken.encode(
       @staff,
       host: @obj.request.host,
       session_public_id: token_record.public_id,

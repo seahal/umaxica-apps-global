@@ -5,9 +5,9 @@ module Sign
   module Com
     module Settings
       class TelephonesController < Sign::Com::ApplicationController
-        include Common::Otp
+        include CommonOtp
 
-        include ::Verification::Visitor
+        include ::VerificationVisitor
 
         AUTHENTICATION_MODE = :private
 
@@ -137,7 +137,7 @@ module Sign
 
         def send_telephone_verification_sms(visitor_telephone, otp_number)
           message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-          Outbound::Sms.deliver_later(
+          OutboundSms.deliver_later(
             to: visitor_telephone.number,
             title: message,
             body: message,
@@ -154,7 +154,7 @@ module Sign
           return unless count && count > TELEPHONE_VERIFICATION_RATE_LIMIT
 
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "telephone.verification.rate_limited",
               ip: request.remote_ip,
               retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,

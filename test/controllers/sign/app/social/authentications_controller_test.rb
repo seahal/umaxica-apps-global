@@ -20,7 +20,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
     assert_response :redirect
 
-    stored_value = session[SocialAuthConcern::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
+    stored_value = session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
 
     assert_predicate stored_value, :present?
     assert_no_match(/\./, stored_value, "session must not store the signed social ceremony grant JWT")

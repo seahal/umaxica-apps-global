@@ -7,18 +7,18 @@ module Sign
       class BaseController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
 
-        include Sign::AppVerificationBase
-        include ::Preference::Global
-        include Common::Otp
-        include ::Verification::Client
-        include Sign::Webauthn
-        include Sign::VerificationTiming
-        include Sign::VerificationCommonBase
-        include Sign::VerificationAuditAndCookie
-        include Sign::VerificationStepUpSessionStore
-        include Sign::VerificationStepUpLifecycle
-        include Sign::VerificationPasskeyChecks
-        include Sign::VerificationTotpChecks
+        include SignAppVerificationBase
+        include ::PreferenceGlobal
+        include CommonOtp
+        include ::VerificationClient
+        include SignWebauthn
+        include SignVerificationTiming
+        include SignVerificationCommonBase
+        include SignVerificationAuditAndCookie
+        include SignVerificationStepUpSessionStore
+        include SignVerificationStepUpLifecycle
+        include SignVerificationPasskeyChecks
+        include SignVerificationTotpChecks
 
         AUTHENTICATION_MODE = :private
 

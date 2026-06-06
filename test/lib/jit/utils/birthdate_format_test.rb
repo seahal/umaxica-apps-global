@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/utils/birthdate_format"
+require "jit_utils_birthdate_format"
 
 module Jit
   module Utils
@@ -18,7 +18,7 @@ module Jit
         )
 
         valid_values.each do |value|
-          assert_match Jit::Utils::BirthdateFormat::PATTERN, value, "#{value.inspect} should match birthdate format"
+          assert_match JitUtilsBirthdateFormat::PATTERN, value, "#{value.inspect} should match birthdate format"
         end
       end
 
@@ -33,7 +33,7 @@ module Jit
         )
 
         valid_values.each do |value|
-          assert_match Jit::Utils::BirthdateFormat::PATTERN, value, "#{value.inspect} should match birthdate format"
+          assert_match JitUtilsBirthdateFormat::PATTERN, value, "#{value.inspect} should match birthdate format"
         end
       end
 
@@ -50,7 +50,7 @@ module Jit
         )
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end
@@ -64,7 +64,7 @@ module Jit
         )
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end
@@ -78,7 +78,7 @@ module Jit
         )
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end
@@ -92,7 +92,7 @@ module Jit
         )
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end
@@ -108,7 +108,7 @@ module Jit
         ]
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end
@@ -121,7 +121,7 @@ module Jit
         ]
 
         invalid_values.each do |value|
-          assert_no_match Jit::Utils::BirthdateFormat::PATTERN, value,
+          assert_no_match JitUtilsBirthdateFormat::PATTERN, value,
                           "#{value.inspect} should not match birthdate format"
         end
       end

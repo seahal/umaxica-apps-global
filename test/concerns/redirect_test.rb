@@ -4,7 +4,7 @@
 require "test_helper"
 
 class RedirectTest < ActiveSupport::TestCase
-  include Common::Redirect
+  include CommonRedirect
 
   setup do
     @original_env = ENV.to_h

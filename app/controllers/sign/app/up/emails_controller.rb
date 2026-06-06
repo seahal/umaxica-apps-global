@@ -6,9 +6,9 @@ module Sign
     module Up
       class EmailsController < Sign::App::ApplicationController
         include ::CloudflareTurnstile
-        include Common::Redirect
-        include Common::Otp
-        include Sign::EmailRegistrable
+        include CommonRedirect
+        include CommonOtp
+        include SignEmailRegistrable
 
         AUTHENTICATION_MODE = :guest
         before_action :enforce_email_flow!
@@ -228,11 +228,11 @@ module Sign
         end
 
         def session_existing_email_id
-          session[Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
+          session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
         end
 
         def existing_signup_skip_otp?
-          session[Sign::EmailRegistrable::EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] == true
+          session[SignEmailRegistrable::EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] == true
         end
 
         def handle_existing_email_verification(submitted_code)
@@ -259,7 +259,7 @@ module Sign
 
           clear_otp(@user_email)
           reset_email_flow!
-          session.delete(Sign::EmailRegistrable::EXISTING_EMAIL_SESSION_KEY)
+          session.delete(SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY)
           redirect_to(
             new_sign_app_sign_in_path,
             notice: t("sign.app.registration.email.update.sign_in_required"),
@@ -275,7 +275,7 @@ module Sign
           return unless @user_email&.errors&.any?
 
           Rails.logger.warn(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.signup.email.validation_failed",
               errors: @user_email.errors.full_messages,
             ),
@@ -349,7 +349,7 @@ module Sign
               pending_contact_type: "email",
               pending_contact_id: email.id,
             )
-            SignUp::StateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
+            SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
           end
           session[:sign_app_up_sequence_id] = cycle.public_id
         end
@@ -360,10 +360,10 @@ module Sign
 
           result =
             AppTicketRecord.connected_to(role: :writing) do
-              verify = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              verify = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
               if verify.status == :advanced
-                SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-                SignUp::StateMachine.call(
+                SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+                SignUpStateMachine.call(
                   ticket: cycle.reload,
                   event: :clear_requirement,
                   actor_context: Actor.authn,
@@ -376,7 +376,7 @@ module Sign
           return if result.status == :advanced
 
           Rails.logger.warn(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.signup.email.sequence_advance_failed",
               cycle_id: cycle.public_id,
               result_status: result.status,
@@ -386,7 +386,7 @@ module Sign
         end
 
         def sign_up_flow_locator
-          SignUp::CycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
+          SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow)
         end
 
         def sanitized_return_to

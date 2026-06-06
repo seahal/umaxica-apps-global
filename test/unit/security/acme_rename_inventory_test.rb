@@ -9,7 +9,7 @@ module Security
 
     SEARCH_ROOTS = %w(app config lib test docs adr plans notes .github).freeze
     DNS_APEX_ALLOWLIST = [
-      %r{\Aapp/services/core/cookie_domain\.rb\z},
+      %r{\Aapp/services/core_cookie_domain\.rb\z},
       %r{\Atest/lib/core/cookie_domain_test\.rb\z},
       %r{\Aadr/acme-rp-boundary-naming\.md\z},
       %r{\Aadr/cookie-domain-scope-by-surface\.md\z},
@@ -58,7 +58,7 @@ module Security
       assert_respond_to Rails.application.routes.url_helpers, :acme_com_root_path
       assert_respond_to Rails.application.routes.url_helpers, :acme_org_root_path
 
-      client_ids = Oidc::ClientRegistry.client_ids
+      client_ids = OidcClientRegistry.client_ids
 
       assert_includes client_ids, "acme_app"
       assert_includes client_ids, "acme_com"

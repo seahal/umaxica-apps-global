@@ -5,8 +5,8 @@ require "test_helper"
 
 class PreferenceBoosterTest < ActionDispatch::IntegrationTest
   class DummyPreferenceController < ApplicationController
-    include Preference::Base
-    include Preference::Core
+    include PreferenceBase
+    include PreferenceCore
 
     before_action :set_preferences_cookie
 
@@ -115,8 +115,8 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
     get "/test_preference", env: { "HTTP_HOST" => "localhost" }
 
     assert_response :success
-    assert_not_nil cookies[Preference::CookieName.access(surface: :app)]
-    assert_not_nil cookies[Preference::CookieName.refresh(surface: :app)]
+    assert_not_nil cookies[PreferenceCookieName.access(surface: :app)]
+    assert_not_nil cookies[PreferenceCookieName.refresh(surface: :app)]
   end
 
   test "edits and updates region" do

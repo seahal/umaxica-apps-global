@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
+class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
   Request =
     Struct.new(:parameters, :host, :fullpath, :request_id, keyword_init: true) do
       def parameters
@@ -22,8 +22,8 @@ class Verification::BaseRtIssuerTest < ActiveSupport::TestCase
           def helper_method(*) = nil
         end
 
-        include Common::Redirect
-        include Verification::Base
+        include CommonRedirect
+        include VerificationBase
 
         attr_accessor :rt_param, :session_token, :request_fullpath
 

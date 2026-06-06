@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignRiskEventTest < ActiveSupport::TestCase
   test "creates event with name" do
-    event = Sign::Risk::Event.new("login_attempt")
+    event = SignRiskEvent.new("login_attempt")
 
     assert_equal "login_attempt", event.name
     assert_equal({}, event.payload)
@@ -13,21 +13,21 @@ class SignRiskEventTest < ActiveSupport::TestCase
   end
 
   test "creates event with payload" do
-    event = Sign::Risk::Event.new("login_attempt", payload: { user_id: 123 })
+    event = SignRiskEvent.new("login_attempt", payload: { user_id: 123 })
 
     assert_equal({ user_id: 123 }, event.payload)
   end
 
   test "creates event with custom occurred_at" do
     time = 1.day.ago
-    event = Sign::Risk::Event.new("login_attempt", occurred_at: time)
+    event = SignRiskEvent.new("login_attempt", occurred_at: time)
 
     assert_equal time, event.occurred_at
   end
 
   test "to_h returns hash representation" do
     time = Time.current
-    event = Sign::Risk::Event.new("login_attempt", payload: { user_id: 123 }, occurred_at: time)
+    event = SignRiskEvent.new("login_attempt", payload: { user_id: 123 }, occurred_at: time)
 
     result = event.to_h
 

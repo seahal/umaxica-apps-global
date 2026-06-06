@@ -6,7 +6,7 @@ module Acme
     module Edge
       module V0
         class CookiesController < Acme::Org::ApplicationController
-          include ::Preference::WebCookieEndpoint
+          include ::PreferenceWebCookieEndpoint
 
           AUTHENTICATION_MODE = :open
 

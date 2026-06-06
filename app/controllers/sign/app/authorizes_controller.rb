@@ -11,7 +11,7 @@ module Sign
       def show
         access_claims = Actor.authn.access_claims
         amr = access_claims&.dig("amr")
-        result = ::Oidc::AuthorizeService.call(
+        result = ::OidcAuthorizeService.call(
           params: authorize_params,
           resource: current_client,
           auth_method: Array(amr).first,

@@ -19,7 +19,7 @@ current public health endpoints are surface-local and host-constrained:
 
 The application integrates `Authentication::Base` into the application controller hierarchy, where
 controllers without an explicit authentication mode default to `deny_all`. Rails'
-`Rails::HealthController` does not declare this application's authentication mode metadata, so
+`Rails::HealthEndpoint` does not declare this application's authentication mode metadata, so
 `GET /up` is not the supported health-check contract.
 
 ## Endpoint Roles

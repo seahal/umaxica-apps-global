@@ -17,7 +17,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
       Digest::SHA256.digest(@code_verifier),
       padding: false,
     )
-    @client = Oidc::ClientRegistry.find("core_org")
+    @client = OidcClientRegistry.find("core_org")
     @redirect_uri = @client.redirect_uris.first
     @client_secret = "test_secret_credential_for_core_org"
   end
@@ -39,18 +39,18 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Bearer", body["token_type"]
     assert_kind_of Integer, body["expires_in"]
 
-    payload = Authentication::TokenService.decode(
+    payload = AuthenticationTokenService.decode(
       body.fetch("access_token"),
-      host: Oidc::Issuer.host_for_resource_type("operator"),
+      host: OidcIssuer.host_for_resource_type("operator"),
       resource_type: "operator",
-      issuer: Oidc::Issuer.for_resource_type("operator"),
+      issuer: OidcIssuer.for_resource_type("operator"),
       audiences: [@client.aud],
-      jwt_issuer_id: Oidc::Issuer.jwt_issuer_id_for_resource_type("operator"),
+      jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("operator"),
     )
-    header = Jit::Security::Jwt::Keyring.parse_header(body.fetch("access_token"))
-    acme_kids = Jit::Security::Jwt::Registry.jwks_for("surface:ACME_ORG").fetch(:keys).map { |key| key.fetch("kid") }
+    header = JitSecurityJwtKeyring.parse_header(body.fetch("access_token"))
+    acme_kids = JitSecurityJwtRegistry.jwks_for("surface:ACME_ORG").fetch(:keys).map { |key| key.fetch("kid") }
 
-    assert_equal Oidc::Issuer.for_resource_type("operator"), payload.fetch("iss")
+    assert_equal OidcIssuer.for_resource_type("operator"), payload.fetch("iss")
     assert_includes acme_kids, header.fetch("kid")
     assert_empty response.headers["Set-Cookie"].to_s,
                  "OAuth token compatibility must not create a browser session cookie"
@@ -152,7 +152,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
     result = Result.new(success: true, token_response: { access_token: "access", refresh_token: "refresh" })
     captured = nil
 
-    Oidc::TokenExchangeService.stub(
+    OidcTokenExchangeService.stub(
       :call,
       ->(**kwargs) do
         captured = kwargs
@@ -208,7 +208,7 @@ class Sign::Org::TokensControllerTest < ActionDispatch::IntegrationTest
   end
 
   def with_authenticated_client(&block)
-    Oidc::ClientRegistry.stub(
+    OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
                        cid == "core_org" && sec == @client_secret
                      },

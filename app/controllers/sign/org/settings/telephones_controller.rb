@@ -5,9 +5,9 @@ module Sign
   module Org
     module Settings
       class TelephonesController < Sign::Org::ApplicationController
-        include Sign::OperatorTelephoneRegistrable
+        include SignOperatorTelephoneRegistrable
 
-        include ::Verification::Operator
+        include ::VerificationOperator
 
         AUTHENTICATION_MODE = :private
 

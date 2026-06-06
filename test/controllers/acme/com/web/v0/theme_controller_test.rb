@@ -8,13 +8,13 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    _ = Preference::Base # ensure autoload of JwtConfiguration/Token defined in same file
+    _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
     @host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
   end
 
   test "GET show without access jwt returns default theme sy" do
-    cookies.delete(Preference::CookieName.access)
+    cookies.delete(PreferenceCookieName.access)
 
     get acme_com_web_v0_theme_path, as: :json
 
@@ -29,7 +29,7 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-com-public-id",
       preference_type: "ComPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       get acme_com_web_v0_theme_path, as: :json
@@ -48,7 +48,7 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: "pref-com-public-id",
       preference_type: "ComPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       patch acme_com_web_v0_theme_path, params: { theme: "dark" }, as: :json
@@ -58,12 +58,12 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_equal "dr", response.parsed_body["theme"]
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=dr"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::THEME}=dr"
   end
 
   test "PATCH update with preference record updates theme and issues access token" do
     preference = ComPreference.create!(status_id: ComPreferenceStatus::NOTHING)
-    option_class = Preference::ClassRegistry.option_class("Com", :theme)
+    option_class = PreferenceClassRegistry.option_class("Com", :theme)
     ensure_theme_defaults!(option_class)
     ComPreferenceTheme.create!(
       preference: preference,
@@ -75,7 +75,7 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
       public_id: preference.public_id,
       preference_type: "ComPreference",
     )
-    cookies[Preference::CookieName.access] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
       patch acme_com_web_v0_theme_path, params: { theme: "light" }, as: :json
@@ -87,15 +87,15 @@ class Acme::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_equal option_class::LIGHT, preference.com_preference_theme.option_id
     set_cookie = response.headers["Set-Cookie"].to_s
 
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::THEME}=li"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::CURRENCY}=jpy"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::DATE_FORMAT}=iso"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::TIME_FORMAT}=hour_24"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::MOTION}=standard"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::DENSITY}=standard"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::PAGE_SIZE}=20"
-    assert_includes set_cookie, "#{Preference::IoKeys::Cookies::ADULT_CONTENT_GATE}=nothing"
-    assert_includes set_cookie, "#{Preference::CookieName.access}="
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::THEME}=li"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::CURRENCY}=jpy"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::DATE_FORMAT}=iso"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::TIME_FORMAT}=hour_24"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::MOTION}=standard"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::DENSITY}=standard"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::PAGE_SIZE}=20"
+    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE}=nothing"
+    assert_includes set_cookie, "#{PreferenceCookieName.access}="
   end
 
   private

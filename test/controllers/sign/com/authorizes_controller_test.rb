@@ -18,7 +18,7 @@ class Sign::Com::AuthorizesControllerTest < ActionDispatch::IntegrationTest
       Digest::SHA256.digest(@code_verifier),
       padding: false,
     )
-    @client = Oidc::ClientRegistry.find("core_com")
+    @client = OidcClientRegistry.find("core_com")
     @redirect_uri = @client.redirect_uris.first
   end
 

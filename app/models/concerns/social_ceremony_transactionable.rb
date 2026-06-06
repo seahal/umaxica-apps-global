@@ -28,9 +28,9 @@ module SocialCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :provider, :status, :grant_jti,
               :expires_at, presence: true
-    validates :surface, inclusion: { in: Identity::SocialCeremony::Contract::SURFACES }
-    validates :operation, inclusion: { in: Identity::SocialCeremony::Contract::OPERATIONS }
-    validates :provider, inclusion: { in: Identity::SocialCeremony::Contract::PROVIDERS }
+    validates :surface, inclusion: { in: IdentitySocialCeremonyContract::SURFACES }
+    validates :operation, inclusion: { in: IdentitySocialCeremonyContract::OPERATIONS }
+    validates :provider, inclusion: { in: IdentitySocialCeremonyContract::PROVIDERS }
     validates :status, inclusion: { in: STATUSES }
     validate :surface_matches_transaction_class
     validate :consumed_transaction_has_result
@@ -57,7 +57,7 @@ module SocialCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           provider_subject_ref: provider_subject_ref,
           provider_subject_digest: provider_subject_digest,
-          expires_at: expires_at || (now + Identity::SocialCeremony::Transaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + IdentitySocialCeremonyTransaction::DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         }
@@ -108,8 +108,8 @@ module SocialCeremonyTransactionable
     self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
-        raise Identity::SocialCeremony::Error, "transaction is already consumed" if locked.consumed?
-        raise Identity::SocialCeremony::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+        raise IdentitySocialCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
+        raise IdentitySocialCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(
           result_jti: result_jti,
@@ -122,7 +122,7 @@ module SocialCeremonyTransactionable
       end
     end
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
-    raise Identity::SocialCeremony::Error, "result_jti has already been consumed: #{e.message}"
+    raise IdentitySocialCeremonyContract::Error, "result_jti has already been consumed: #{e.message}"
   end
 
   private

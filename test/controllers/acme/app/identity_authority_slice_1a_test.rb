@@ -13,7 +13,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "acme_sign_out_destroy_is_session_mutation" do
     token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
     delete acme_app_sign_out_url(ri: "jp"), headers: session_headers(token)
 

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Authentication::SessionRevokerTest < ActiveSupport::TestCase
+class AuthenticationSessionRevokerTest < ActiveSupport::TestCase
   class FakeRelation
     def initialize(tokens)
       @tokens = tokens
@@ -31,13 +31,13 @@ class Authentication::SessionRevokerTest < ActiveSupport::TestCase
     staff = Operator.new(id: 2)
     visitor = Visitor.new(id: 3)
 
-    assert_equal ClientToken.where(user_id: 1).to_sql, Authentication::SessionRevoker.tokens_for(user).to_sql
-    assert_equal OperatorToken.where(staff_id: 2).to_sql, Authentication::SessionRevoker.tokens_for(staff).to_sql
-    assert_equal VisitorToken.where(visitor_id: 3).to_sql, Authentication::SessionRevoker.tokens_for(visitor).to_sql
+    assert_equal ClientToken.where(user_id: 1).to_sql, AuthenticationSessionRevoker.tokens_for(user).to_sql
+    assert_equal OperatorToken.where(staff_id: 2).to_sql, AuthenticationSessionRevoker.tokens_for(staff).to_sql
+    assert_equal VisitorToken.where(visitor_id: 3).to_sql, AuthenticationSessionRevoker.tokens_for(visitor).to_sql
   end
 
   test "tokens_for rejects unsupported resource types" do
-    error = assert_raises(ArgumentError) { Authentication::SessionRevoker.tokens_for(Object.new) }
+    error = assert_raises(ArgumentError) { AuthenticationSessionRevoker.tokens_for(Object.new) }
 
     assert_match(/Unsupported resource type/, error.message)
   end
@@ -46,8 +46,8 @@ class Authentication::SessionRevokerTest < ActiveSupport::TestCase
     tokens = [FakeToken.new, FakeToken.new]
     relation = FakeRelation.new(tokens)
 
-    Authentication::SessionRevoker.stub(:tokens_for, relation) do
-      Authentication::SessionRevoker.revoke_all_for(Client.new(id: 1))
+    AuthenticationSessionRevoker.stub(:tokens_for, relation) do
+      AuthenticationSessionRevoker.revoke_all_for(Client.new(id: 1))
     end
 
     assert_equal [1, 1], tokens.map(&:revoke_calls)

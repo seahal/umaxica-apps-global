@@ -39,7 +39,7 @@ class OperatorSecretCredential < OrgPrincipalRecord
   alias_attribute :staff_secret_status_id, :staff_identity_secret_status_id
   include ::PublicId
   include ::SecretCredential
-  include OperatorSecretCredential::Kinds
+  include OperatorSecretCredentialKinds
 
   MAX_SECRETS_PER_STAFF = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [OperatorSecretCredentialStatus::ACTIVE].freeze

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/security/jwt/issuer_builder"
+require "jit_security_jwt_issuer_builder"
 
 module Jit
   module Security
@@ -15,11 +15,11 @@ module Jit
         end
 
         test "builds keyset issuer with active private key and grace public key" do
-          record = IssuerBuilder.build_keyset_issuer(
+          record = JitSecurityJwtIssuerBuilder.build_keyset_issuer(
             id: "auth",
             private_keyset: JSON.generate("active-kid" => base64_der(@active_key)),
             private_keyset_source: "AUTH_JWT_PRIVATE_KEYSET",
-            public_keyset: JSON.generate(keys: [Jwk.export_public(@legacy_key, kid: "legacy-kid")]),
+            public_keyset: JSON.generate(keys: [JitSecurityJwtJwk.export_public(@legacy_key, kid: "legacy-kid")]),
             public_keyset_source: "AUTH_JWT_PUBLIC_KEYSET",
             active_kid: "active-kid",
             issuer: "issuer",
@@ -36,12 +36,12 @@ module Jit
         end
 
         test "builds surface issuer with active private key and public jwks" do
-          record = IssuerBuilder.build_surface_issuer(
+          record = JitSecurityJwtIssuerBuilder.build_surface_issuer(
             namespace: "SIGN_APP",
             active_kid: "active-kid",
             private_key: base64_der(@active_key),
             private_key_source: "JWT_SIGN_APP_PRIVATE_KEY",
-            public_keyset: JSON.generate(keys: [Jwk.export_public(@legacy_key, kid: "legacy-kid")]),
+            public_keyset: JSON.generate(keys: [JitSecurityJwtJwk.export_public(@legacy_key, kid: "legacy-kid")]),
             public_keyset_source: "JWT_SIGN_APP_PUBLIC_KEYSET",
             revoked_kids: [],
             issuer: "https://id.umaxica.app",
@@ -56,11 +56,11 @@ module Jit
         end
 
         test "rejects active public jwk mismatch for surface issuer" do
-          wrong_public_jwk = Jwk.export_public(@legacy_key, kid: "active-kid")
+          wrong_public_jwk = JitSecurityJwtJwk.export_public(@legacy_key, kid: "active-kid")
 
           error =
-            assert_raises(IssuerBuilder::Error) do
-              IssuerBuilder.build_surface_issuer(
+            assert_raises(JitSecurityJwtIssuerBuilder::Error) do
+              JitSecurityJwtIssuerBuilder.build_surface_issuer(
                 namespace: "SIGN_APP",
                 active_kid: "active-kid",
                 private_key: base64_der(@active_key),
@@ -77,11 +77,11 @@ module Jit
         end
 
         test "marks revoked public keys as unpublished and unverifiable" do
-          record = IssuerBuilder.build_keyset_issuer(
+          record = JitSecurityJwtIssuerBuilder.build_keyset_issuer(
             id: "auth",
             private_keyset: JSON.generate("active-kid" => base64_der(@active_key)),
             private_keyset_source: "AUTH_JWT_PRIVATE_KEYSET",
-            public_keyset: JSON.generate(keys: [Jwk.export_public(@legacy_key, kid: "legacy-kid")]),
+            public_keyset: JSON.generate(keys: [JitSecurityJwtJwk.export_public(@legacy_key, kid: "legacy-kid")]),
             public_keyset_source: "AUTH_JWT_PUBLIC_KEYSET",
             active_kid: "active-kid",
             issuer: "issuer",

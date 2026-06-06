@@ -8,7 +8,7 @@ class SignInSequencePolicyTest < ActiveSupport::TestCase
 
   setup do
     @user = clients(:one)
-    @sequence = SignIn::Sequence.new(
+    @sequence = SignInSequence.new(
       "id" => SecureRandom.uuid,
       "surface" => "app",
       "actor_type" => "Client",
@@ -36,7 +36,7 @@ class SignInSequencePolicyTest < ActiveSupport::TestCase
   end
 
   test "rejects expired sequence" do
-    expired = SignIn::Sequence.new(@sequence.payload.merge("expires_at" => 1.minute.ago.iso8601))
+    expired = SignInSequence.new(@sequence.payload.merge("expires_at" => 1.minute.ago.iso8601))
     policy = SignIn::SequencePolicy.new(expired, user: @user)
 
     assert_not_predicate policy, :show_checkpoint?

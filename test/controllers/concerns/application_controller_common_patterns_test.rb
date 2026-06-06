@@ -113,62 +113,62 @@ module Concerns
     test "application controllers with user auth include required concerns" do
       user_controllers =
         CONTROLLER_FILES.values.select do |controller|
-          controller[:content].include?("Authentication::Client")
+          controller[:content].include?("AuthenticationClient")
         end
 
       user_controllers.each do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
-        assert_includes content, "Authorization::Client",
-                        "#{controller_name} should include Authorization::Client when using Authentication::Client"
-        assert_includes content, "Verification::Client",
-                        "#{controller_name} should include Verification::Client when using Authentication::Client"
+        assert_includes content, "AuthorizationClient",
+                        "#{controller_name} should include AuthorizationClient when using AuthenticationClient"
+        assert_includes content, "VerificationClient",
+                        "#{controller_name} should include VerificationClient when using AuthenticationClient"
       end
     end
 
     test "application controllers with staff auth include required concerns" do
       staff_controllers =
         CONTROLLER_FILES.values.select do |controller|
-          controller[:content].include?("Authentication::Operator")
+          controller[:content].include?("AuthenticationOperator")
         end
 
       staff_controllers.each do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
-        assert_includes content, "Authorization::Operator",
-                        "#{controller_name} should include Authorization::Operator when using Authentication::Operator"
-        assert_includes content, "Verification::Operator",
-                        "#{controller_name} should include Verification::Operator when using Authentication::Operator"
+        assert_includes content, "AuthorizationOperator",
+                        "#{controller_name} should include AuthorizationOperator when using AuthenticationOperator"
+        assert_includes content, "VerificationOperator",
+                        "#{controller_name} should include VerificationOperator when using AuthenticationOperator"
       end
     end
 
     test "application controllers with visitor auth include required concerns" do
       visitor_controllers =
         CONTROLLER_FILES.values.select do |controller|
-          controller[:content].include?("Authentication::Visitor")
+          controller[:content].include?("AuthenticationVisitor")
         end
 
       visitor_controllers.each do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
-        assert_includes content, "Authorization::Visitor",
-                        "#{controller_name} should include Authorization::Visitor when using Authentication::Visitor"
-        assert_includes content, "Verification::Visitor",
-                        "#{controller_name} should include Verification::Visitor when using Authentication::Visitor"
+        assert_includes content, "AuthorizationVisitor",
+                        "#{controller_name} should include AuthorizationVisitor when using AuthenticationVisitor"
+        assert_includes content, "VerificationVisitor",
+                        "#{controller_name} should include VerificationVisitor when using AuthenticationVisitor"
       end
     end
 
-    test "application controllers with OIDC include Oidc::SsoInitiator" do
+    test "application controllers with OIDC include OidcSsoInitiator" do
       CONTROLLER_FILES.each_value do |controller|
         content = controller[:content]
         controller_name = controller[:path_name]
 
         if content.include?("oidc_client_id")
-          assert_includes content, "Oidc::SsoInitiator",
-                          "#{controller_name} with oidc_client_id should include Oidc::SsoInitiator"
+          assert_includes content, "OidcSsoInitiator",
+                          "#{controller_name} with oidc_client_id should include OidcSsoInitiator"
         end
       end
     end

@@ -40,7 +40,7 @@ class ClientSecretCredential < AppPrincipalRecord
   alias_attribute :user_secret_status_id, :user_identity_secret_status_id
   include ::PublicId
   include ::SecretCredential
-  include ClientSecretCredential::Kinds
+  include ClientSecretCredentialKinds
 
   MAX_SECRETS_PER_USER = 20
   SIGN_IN_ALLOWED_STATUS_IDS = [ClientSecretCredentialStatus::ACTIVE].freeze

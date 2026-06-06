@@ -35,18 +35,18 @@ module Security
       # Allowlist entries document existing reviewed exceptions. They are not
       # blanket permission for new uses: the line snippet must still match.
       # Responsibility: owners of the named component must migrate to
-      # Rails.logger with Jit::LogEvent.format or a sanitized audit sink before
+      # Rails.logger with JitLogEvent.format or a sanitized audit sink before
       # removing the exception.
       ALLOWLIST = [
         {
           pattern: "access policy bypass",
-          path: "app/controllers/concerns/authentication/base.rb",
+          path: "app/controllers/concerns/authentication_base.rb",
           line: /skip_before_action :enforce_access_policy! is prohibited/,
           reason: "Policy guard raises on attempts to skip enforce_access_policy!.",
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/concerns/common/redirect.rb",
+          path: "app/controllers/concerns/common_redirect.rb",
           line: /redirect_to\(result\.value, allow_other_host: true/,
           reason: "Only the Jump gateway facade may enable cross-host redirects after token URL validation.",
         },
@@ -127,7 +127,7 @@ module Security
             lines = content.lines
             lines.each_with_index.filter_map do |line, index|
               next unless line.match?(/\bRails\.logger\.error\b/)
-              next if lines[index, 4].join.include?("Jit::LogEvent.format(")
+              next if lines[index, 4].join.include?("JitLogEvent.format(")
               next if allowlisted?(LOGGER_ALLOWLIST, nil, relative_path, line)
 
               line_number = index + 1
@@ -136,7 +136,7 @@ module Security
           end.flatten
 
         assert_empty offenders,
-                     "Use Rails.logger.error(Jit::LogEvent.format(...)) or a sanitized audit sink instead:\n" \
+                     "Use Rails.logger.error(JitLogEvent.format(...)) or a sanitized audit sink instead:\n" \
                      "#{offenders.join("\n")}"
       end
 

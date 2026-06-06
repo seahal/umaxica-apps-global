@@ -76,7 +76,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "show counts only usable active sessions" do
     active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     rotated_refresh = active_token.rotate_refresh_token!
-    Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenService.call(refresh_token: rotated_refresh)
 
     current_active = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::ACTIVE).order(:created_at).last
     other_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -579,7 +579,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def as_user_headers_with_token(user, token, host:)
-    access_token = Authentication::Base::Token.encode(user, host: host, session_public_id: token.public_id)
+    access_token = AuthenticationToken.encode(user, host: host, session_public_id: token.public_id)
     browser_headers.merge(
       "Host" => host,
       "Origin" => "http://#{host}",
@@ -587,7 +587,7 @@ class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
       "Cookie" => [
         "csrf_token=test_csrf_token",
-        "#{Authentication::Base::ACCESS_COOKIE_KEY}=#{access_token}",
+        "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
       ].join("; "),
     )
   end

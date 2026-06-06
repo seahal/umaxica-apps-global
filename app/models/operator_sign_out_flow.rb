@@ -48,7 +48,7 @@
 #
 class OperatorSignOutFlow < OrgTicketRecord
   include SignOutFlow
-  include Flow::SignOut
+  include FlowSignOut
 
   STATUS_MODEL = OperatorSignOutFlowStatus
   KIND_MODEL = OperatorSignOutFlowKind

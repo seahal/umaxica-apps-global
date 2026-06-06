@@ -48,7 +48,7 @@
 #
 class VisitorSignOutFlow < ComTicketRecord
   include SignOutFlow
-  include Flow::SignOut
+  include FlowSignOut
 
   STATUS_MODEL = VisitorSignOutFlowStatus
   KIND_MODEL = VisitorSignOutFlowKind

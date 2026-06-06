@@ -54,10 +54,10 @@ class Operator < OrgPrincipalRecord
   self.ignored_columns += ["operator_id", "webauthn_id"]
 
   include ::Identity
-  include Authentication::CredentialInventoryOwner
+  include AuthenticationCredentialInventoryOwner
   include MfaLevelConfigurable
   include MfaStatusTrackable
-  include Actor::LifecycleConsistency
+  include ActorLifecycleConsistency
 
   LOGIN_BLOCKED_STATUS_IDS = [OperatorStatus::RESERVED].freeze
   PUBLIC_ID_LENGTH = 16
@@ -123,7 +123,7 @@ class Operator < OrgPrincipalRecord
            dependent: :destroy,
            inverse_of: :staff
   # Cross-database (org_signal DB). Purged explicitly via
-  # Retention::CrossDatabaseChildPurge from the operator purge path, not by an
+  # RetentionCrossDatabaseChildPurge from the operator purge path, not by an
   # implicit cross-DB AR cascade.
   has_many :notification_records,
            class_name: "OperatorNotificationRecord",

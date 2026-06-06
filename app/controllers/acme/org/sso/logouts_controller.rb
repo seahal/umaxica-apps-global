@@ -5,7 +5,7 @@ module Acme
   module Org
     module Sso
       class LogoutsController < Acme::Org::ApplicationController
-        include ::Oidc::RpLogout
+        include ::OidcRpLogout
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open

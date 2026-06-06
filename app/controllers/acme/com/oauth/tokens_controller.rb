@@ -6,8 +6,8 @@ module Acme
     module Oauth
       class TokensController < Acme::Com::BareController
         include ::RateLimit
-        include Acme::OauthEndpoint
-        include Acme::OauthTokenEndpoint
+        include AcmeOauthEndpoint
+        include AcmeOauthTokenEndpoint
 
         AUTHENTICATION_MODE = :open
 

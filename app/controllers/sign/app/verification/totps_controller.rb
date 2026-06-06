@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 class Sign::App::Verification::TotpsController < Sign::App::Verification::BaseController
-  include Sign::VerificationTotpActions
+  include SignVerificationTotpActions
 
   AUTHENTICATION_MODE = :private
 end

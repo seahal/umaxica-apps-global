@@ -7,10 +7,10 @@ module Oidc
   # Regression coverage for the DPoP sender-constraint gate on the UserInfo
   # authenticator. A DPoP-bound access token (one carrying cnf.jkt) must never
   # be accepted as a plain Bearer token, mirroring
-  # Authentication::CurrentResourceResolver#dpop_valid?.
+  # AuthenticationCurrentResourceResolver#dpop_valid?.
   class AccessTokenAuthenticatorDpopTest < ActiveSupport::TestCase
     def build_authenticator(scheme:, dpop_proof: nil, uri: "http://example.com/userinfo", method: "GET")
-      Oidc::AccessTokenAuthenticator.new(
+      OidcAccessTokenAuthenticator.new(
         access_token: "access-token",
         resource_type: "client",
         host: "example.com",
@@ -29,7 +29,7 @@ module Oidc
 
     def build_proof(private_key, jwk, method:, uri:, access_token: nil)
       payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => SecureRandom.uuid }
-      payload["ath"] = Jit::Security::Jwt::ThumbprintCalculator.ath(access_token) if access_token
+      payload["ath"] = JitSecurityJwtThumbprintCalculator.ath(access_token) if access_token
       JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
     end
 
@@ -66,7 +66,7 @@ module Oidc
       private_key, jwk = generate_proof_jwk
       uri = "http://example.com/userinfo"
       proof = build_proof(private_key, jwk, method: "GET", uri: uri, access_token: "access-token")
-      jkt = Jit::Security::Jwt::ThumbprintCalculator.calculate(jwk)
+      jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
       payload = { "sub" => "user-1", "cnf" => { "jkt" => jkt } }
 
       auth = build_authenticator(scheme: "DPoP", dpop_proof: proof, uri: uri, method: "GET")

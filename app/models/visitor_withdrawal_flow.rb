@@ -35,7 +35,7 @@
 #
 class VisitorWithdrawalFlow < ComPrincipalRecord
   include WithdrawalFlow
-  include Flow::Withdrawal
+  include FlowWithdrawal
 
   STATUS_MODEL = VisitorWithdrawalFlowStatus
   EVENT_MODEL = VisitorWithdrawalFlowEvent

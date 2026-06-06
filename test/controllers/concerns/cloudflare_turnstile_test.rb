@@ -26,7 +26,7 @@ class CloudflareTurnstileTest < ActiveSupport::TestCase
   def test_validation_in_real_mode_calls_verifier
     CloudflareTurnstile.test_mode = false
     @controller.stub(:params, ActionController::Parameters.new({ "cf-turnstile-response" => "tok" })) do
-      Jit::Security::TurnstileVerifier.stub(:verify, { "success" => true }) do
+      JitSecurityTurnstileVerifier.stub(:verify, { "success" => true }) do
         assert_equal({ "success" => true }, @controller.cloudflare_turnstile_validation)
       end
     end
@@ -38,7 +38,7 @@ class CloudflareTurnstileTest < ActiveSupport::TestCase
       missing_response = { "success" => false, "error" => "missing cf-turnstile-response" }
       result = nil
 
-      Jit::Security::TurnstileVerifier.stub(:verify, missing_response) do
+      JitSecurityTurnstileVerifier.stub(:verify, missing_response) do
         result = @controller.cloudflare_turnstile_validation
       end
 

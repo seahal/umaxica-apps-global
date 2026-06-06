@@ -2,39 +2,39 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/security/jwt/jti_generator"
+require "jit_security_jwt_jti_generator"
 
 module Jit
   module Security
     module Jwt
       class JtiGeneratorTest < ActiveSupport::TestCase
         test "generate returns a base64url string at the expected length" do
-          jti = Jit::Security::Jwt::JtiGenerator.generate
+          jti = JitSecurityJwtJtiGenerator.generate
 
-          assert_match(Jit::Security::Jwt::JtiGenerator::BASE64URL_REGEX, jti)
-          assert_equal Jit::Security::Jwt::JtiGenerator.encoded_length(Jit::Security::Jwt::JtiGenerator::DEFAULT_BYTES),
+          assert_match(JitSecurityJwtJtiGenerator::BASE64URL_REGEX, jti)
+          assert_equal JitSecurityJwtJtiGenerator.encoded_length(JitSecurityJwtJtiGenerator::DEFAULT_BYTES),
                        jti.length
           assert_no_match(/\A[0-9a-f-]{36}\z/i, jti)
         end
 
         test "generate accepts a custom byte count" do
-          jti = Jit::Security::Jwt::JtiGenerator.generate(Jit::Security::Jwt::JtiGenerator::MINIMUM_BYTES)
+          jti = JitSecurityJwtJtiGenerator.generate(JitSecurityJwtJtiGenerator::MINIMUM_BYTES)
 
-          assert_equal Jit::Security::Jwt::JtiGenerator.encoded_length(Jit::Security::Jwt::JtiGenerator::MINIMUM_BYTES),
+          assert_equal JitSecurityJwtJtiGenerator.encoded_length(JitSecurityJwtJtiGenerator::MINIMUM_BYTES),
                        jti.length
         end
 
         test "generate omits base64url padding for byte counts that would otherwise require it" do
-          jti = Jit::Security::Jwt::JtiGenerator.generate(17)
+          jti = JitSecurityJwtJtiGenerator.generate(17)
 
-          assert_match(Jit::Security::Jwt::JtiGenerator::BASE64URL_REGEX, jti)
-          assert_equal Jit::Security::Jwt::JtiGenerator.encoded_length(17), jti.length
+          assert_match(JitSecurityJwtJtiGenerator::BASE64URL_REGEX, jti)
+          assert_equal JitSecurityJwtJtiGenerator.encoded_length(17), jti.length
           assert_not_includes jti, "="
         end
 
         test "generate returns a different value each call" do
-          first = Jit::Security::Jwt::JtiGenerator.generate
-          second = Jit::Security::Jwt::JtiGenerator.generate
+          first = JitSecurityJwtJtiGenerator.generate
+          second = JitSecurityJwtJtiGenerator.generate
 
           assert_not_equal first, second
         end

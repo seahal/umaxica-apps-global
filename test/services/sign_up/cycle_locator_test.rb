@@ -8,7 +8,7 @@ module SignUp
     test "issue stores a session locator and current resolves the cycle" do
       session = {}
       cycle = create_cycle(nonce: "old-nonce")
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignUpCycleLocator.new(session, surface: :app)
 
       locator.issue!(cycle, nonce: "fresh-nonce")
 
@@ -22,7 +22,7 @@ module SignUp
     test "bad nonce rejects without mutating cycle state" do
       session = {}
       cycle = create_cycle(nonce: "correct-nonce")
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignUpCycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "correct-nonce")
 
       session[:app_sign_up_flow_locator]["nonce"] = "bad-nonce"
@@ -34,7 +34,7 @@ module SignUp
     test "expired and terminal cycles reject" do
       session = {}
       expired = create_cycle(nonce: "expired", issued_at: 2.minutes.ago, expires_at: 1.minute.ago)
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignUpCycleLocator.new(session, surface: :app)
       locator.issue!(expired, nonce: "expired")
 
       assert_nil locator.current
@@ -53,9 +53,9 @@ module SignUp
     test "surface-specific locator does not read another surface key" do
       session = {}
       cycle = create_cycle(nonce: "nonce")
-      CycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
+      SignUpCycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
 
-      assert_nil CycleLocator.new(session, surface: :com).current
+      assert_nil SignUpCycleLocator.new(session, surface: :com).current
     end
 
     private

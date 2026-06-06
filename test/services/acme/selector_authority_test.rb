@@ -3,15 +3,15 @@
 
 require "test_helper"
 
-class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
+class AcmeSelectorAuthorityTest < ActiveSupport::TestCase
   setup do
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    Acme::Selector::BootstrapAuthority.call(surface: :app, principal: @user)
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @user)
   end
 
   test "auto selects when only one valid candidate exists" do
-    result = Acme::Selector::Authority.prepare(surface: :app, principal: @user, session: @token)
+    result = AcmeSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
 
     assert_equal "selected", result[:status]
     assert_equal "/dashboard", result[:next]
@@ -49,7 +49,7 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
       @user,
     )
 
-    result = Acme::Selector::Authority.prepare(surface: :app, principal: @user, session: @token)
+    result = AcmeSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
 
     assert_equal "selection_required", result[:status]
     assert_equal 2, result[:accounts].size
@@ -57,16 +57,16 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
 
   test "rejects another identity selection" do
     other = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
-    Acme::Selector::BootstrapAuthority.call(surface: :app, principal: other)
-    other_candidate = Acme::Selector::Authority.new(
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: other)
+    other_candidate = AcmeSelectorAuthority.new(
       surface: :app, principal: other,
       session: ClientToken.create!(user: other),
     )
       .selectable_candidates
       .first
 
-    assert_raises Acme::Selector::Authority::InvalidSelection do
-      Acme::Selector::Authority.select(
+    assert_raises AcmeSelectorAuthority::InvalidSelection do
+      AcmeSelectorAuthority.select(
         surface: :app,
         principal: @user,
         session: @token,
@@ -76,7 +76,7 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
   end
 
   test "rejects inconsistent account organization avatar combination" do
-    candidate = Acme::Selector::Authority.new(
+    candidate = AcmeSelectorAuthority.new(
       surface: :app, principal: @user,
       session: @token,
     ).selectable_candidates.first
@@ -88,8 +88,8 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
       organization_unit_public_id: unit.public_id,
     )
 
-    assert_raises Acme::Selector::Authority::InvalidSelection do
-      Acme::Selector::Authority.select(surface: :app, principal: @user, session: @token, params: params)
+    assert_raises AcmeSelectorAuthority::InvalidSelection do
+      AcmeSelectorAuthority.select(surface: :app, principal: @user, session: @token, params: params)
     end
   end
 end

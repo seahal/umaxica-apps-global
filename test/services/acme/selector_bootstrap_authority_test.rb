@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Acme::Selector::BootstrapAuthorityTest < ActiveSupport::TestCase
+class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
   setup do
     ensure_reference_rows!
   end
@@ -16,7 +16,7 @@ class Acme::Selector::BootstrapAuthorityTest < ActiveSupport::TestCase
         assert_difference -> { Persona.count }, 1 do
           assert_difference -> { Enterprise.count }, 1 do
             assert_difference -> { Avatar.count }, 1 do
-              Acme::Selector::BootstrapAuthority.call(surface: :app, principal: user)
+              AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
             end
           end
         end
@@ -24,7 +24,7 @@ class Acme::Selector::BootstrapAuthorityTest < ActiveSupport::TestCase
     end
 
     assert_no_difference -> { ClientAccount.count + Persona.count + Enterprise.count + Avatar.count } do
-      Acme::Selector::BootstrapAuthority.call(surface: :app, principal: user)
+      AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
     end
     assert_equal 1, Persona.first.current_memberships.count
   end
@@ -34,8 +34,8 @@ class Acme::Selector::BootstrapAuthorityTest < ActiveSupport::TestCase
     operator = create_operator!
 
     assert_no_difference -> { Avatar.count } do
-      Acme::Selector::BootstrapAuthority.call(surface: :com, principal: visitor)
-      Acme::Selector::BootstrapAuthority.call(surface: :org, principal: operator)
+      AcmeSelectorBootstrapAuthority.call(surface: :com, principal: visitor)
+      AcmeSelectorBootstrapAuthority.call(surface: :org, principal: operator)
     end
 
     assert_equal 1, VisitorAccount.where(visitor_id: visitor.id).count

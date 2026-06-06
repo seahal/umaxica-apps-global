@@ -67,7 +67,7 @@ module Authentication
     end
 
     test "returns failure when access token is blank" do
-      result = Authentication::CurrentResourceResolver.new(
+      result = AuthenticationCurrentResourceResolver.new(
         access_token: nil,
         request_host: "app.localhost",
         resource_type: "client",
@@ -83,11 +83,11 @@ module Authentication
       payload = { "sub" => 123, "sid" => "sess_1", "act" => "client", "jti" => "current-jti" }
       FakeTokenScope.token_oidc_jti = "current-jti"
 
-      Authentication::Base::Token.stub(:decode, payload) do
-        Authentication::Base::Token.stub(:validate_actor_claim!, true) do
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
           connection_calls = []
           OrgTicketRecord.stub(:connected_to, ->(**options, &block) { connection_calls << options; block.call }) do
-            result = Authentication::CurrentResourceResolver.new(
+            result = AuthenticationCurrentResourceResolver.new(
               access_token: "token",
               request_host: "app.localhost",
               resource_type: "client",
@@ -111,10 +111,10 @@ module Authentication
       payload = { "sub" => 123, "sid" => "sess_1", "act" => "client", "jti" => "stale-jti" }
       FakeTokenScope.token_oidc_jti = "current-jti"
 
-      Authentication::Base::Token.stub(:decode, payload) do
-        Authentication::Base::Token.stub(:validate_actor_claim!, true) do
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
           OrgTicketRecord.stub(:connected_to, ->(**, &block) { block.call }) do
-            result = Authentication::CurrentResourceResolver.new(
+            result = AuthenticationCurrentResourceResolver.new(
               access_token: "token",
               request_host: "app.localhost",
               resource_type: "client",
@@ -132,7 +132,7 @@ module Authentication
     end
 
     test "uses the token class connection owner" do
-      resolver = Authentication::CurrentResourceResolver.new(
+      resolver = AuthenticationCurrentResourceResolver.new(
         access_token: "token",
         request_host: "app.localhost",
         resource_type: "client",
@@ -146,9 +146,9 @@ module Authentication
     test "returns actor_mismatch failure when actor claim differs" do
       payload = { "sub" => 123, "sid" => "sess_1", "act" => "operator" }
 
-      Authentication::Base::Token.stub(:decode, payload) do
-        Authentication::Base::Token.stub(:validate_actor_claim!, false) do
-          result = Authentication::CurrentResourceResolver.new(
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, false) do
+          result = AuthenticationCurrentResourceResolver.new(
             access_token: "token",
             request_host: "app.localhost",
             resource_type: "client",

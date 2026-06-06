@@ -7,7 +7,7 @@ module Sign
       module Check
         module Telephone
           class PasscodesController < Sign::Com::Up::Checkpoint::PasscodesController
-            include Sign::Up::ExplicitStepControllerSupport
+            include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
 

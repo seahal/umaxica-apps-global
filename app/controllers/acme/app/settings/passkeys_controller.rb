@@ -6,7 +6,7 @@ module Acme
     module Settings
       class PasskeysController < Acme::App::ApplicationController
         include CloudflareTurnstile
-        include ::Verification::Client
+        include ::VerificationClient
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
@@ -21,7 +21,7 @@ module Acme
 
         def enrollment
           authorize!(ClientPasskey, to: :create?)
-          issuance = Identity::PasskeyCeremony::GrantIssuer.issue!(
+          issuance = IdentityPasskeyCeremonyGrantIssuer.issue!(
             surface: "app",
             actor_ref: current_client.public_id,
             session_ref: current_session_public_id,

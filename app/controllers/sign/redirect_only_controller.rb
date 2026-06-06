@@ -4,7 +4,7 @@
 # FIXME: I want to delete this file.
 module Sign
   class RedirectOnlyController < ApplicationController
-    include ::Sign::AcmeAuthorityRedirect
+    include ::SignAcmeAuthorityRedirect
 
     AUTHENTICATION_MODE = :open
 

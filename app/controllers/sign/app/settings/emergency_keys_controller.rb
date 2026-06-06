@@ -10,11 +10,11 @@ module Sign
 
         before_action :authenticate_client!
         # Object-level authorization (ActionPolicy): only the owner may reveal their own recovery
-        # secret. The one-time token (Identity::OneTimeReveal) still gates the actual value below.
+        # secret. The one-time token (IdentityOneTimeReveal) still gates the actual value below.
         before_action :authorize_emergency_key!, only: :show
 
         def show
-          reveal = Identity::OneTimeReveal.consume!(
+          reveal = IdentityOneTimeReveal.consume!(
             actor: current_client,
             session_nonce: current_session_token&.public_id,
             token: params[:token],
@@ -23,7 +23,7 @@ module Sign
 
           if reveal
             @raw_secret_credential = reveal.value
-            Identity::Audit.record!(
+            IdentityAudit.record!(
               actor: current_client,
               event_id: ClientChronicleEvent::RECOVERY_CODES_GENERATED,
               action: "recovery_secret_credential.reveal",

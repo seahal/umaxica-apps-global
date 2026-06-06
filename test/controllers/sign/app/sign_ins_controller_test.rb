@@ -37,7 +37,7 @@ module Sign
           expires_at: 20.years.from_now,
         )
         AppPreferenceCookie.create!(preference: preference)
-        cookies[::Preference::CookieName.refresh(surface: :app)] = token
+        cookies[::PreferenceCookieName.refresh(surface: :app)] = token
 
         get new_sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 

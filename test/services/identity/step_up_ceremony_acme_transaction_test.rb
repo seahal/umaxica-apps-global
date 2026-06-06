@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentityStepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
@@ -25,9 +25,9 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "grant issuance creates durable step up transaction and valid grant" do
     travel_to @now do
       issuance = issue_transaction!
-      grant = Identity::StepUpCeremony::Grant.decode(
+      grant = IdentityStepUpCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::StepUpCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -44,7 +44,7 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_transaction!
       result_token = result_for(issuance.transaction)
 
-      consumption = Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction, now: @now)
+      consumption = IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
         .call(result_token)
 
       assert_predicate consumption.transaction.reload, :consumed?
@@ -52,7 +52,7 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_equal "totp", consumption.transaction.method
       assert_equal "aal2", consumption.transaction.aal
 
-      Identity::StepUpCeremony::FreshnessCommitter.call!(
+      IdentityStepUpCeremonyFreshnessCommitter.call!(
         result_token: result_token,
         token: @token,
         expected_scope: "settings_email",
@@ -64,8 +64,8 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
       assert_equal @now.to_i, @token.reload.last_step_up_at.to_i
       assert_equal "settings_email", @token.last_step_up_scope
-      assert_raises(Identity::StepUpCeremony::Error) do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction.reload, now: @now)
+      assert_raises(IdentityStepUpCeremonyContract::Error) do
+        IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction.reload, now: @now)
           .call(result_token)
       end
     end
@@ -76,28 +76,28 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_transaction!
 
       assert_step_up_error("actor_ref does not match transaction") do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction, now: @now)
+        IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
           .call(result_for(issuance.transaction, "actor_ref" => "wrong"))
       end
 
       assert_step_up_error("scope does not match transaction") do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction, now: @now)
+        IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
           .call(result_for(issuance.transaction, "scope" => "settings_phone"))
       end
 
       assert_step_up_error("AAL is insufficient") do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction, now: @now)
+        IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
           .call(result_for(issuance.transaction, "aal" => "aal1"))
       end
 
       assert_step_up_error("method is not allowed") do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: issuance.transaction, now: @now)
+        IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
           .call(result_for(issuance.transaction, "method" => "email_otp"))
       end
 
       expired = create_transaction!("expired-txn", expires_at: @now - 1.minute)
       assert_step_up_error("transaction is expired") do
-        Identity::StepUpCeremony::ResultConsumer.new(transaction: expired, now: @now)
+        IdentityStepUpCeremonyResultConsumer.new(transaction: expired, now: @now)
           .call(result_for(expired, "expires_at" => (@now + 1.minute).to_i))
       end
     end
@@ -124,14 +124,14 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_not_includes ClientStepUpCeremonyTransaction.purgeable_at(@now), active
       assert_not_includes ClientStepUpCeremonyTransaction.purgeable_at(@now), expired_recent
 
-      counts = Identity::StepUpCeremony::TransactionPurger.new(now: @now).call
+      counts = IdentityStepUpCeremonyTransactionPurger.new(now: @now).call
 
       assert_equal 2, counts[:app]
       assert_not ClientStepUpCeremonyTransaction.exists?(expired_old.id)
       assert_not ClientStepUpCeremonyTransaction.exists?(consumed_old.id)
       assert ClientStepUpCeremonyTransaction.exists?(active.id)
       assert ClientStepUpCeremonyTransaction.exists?(expired_recent.id)
-      assert_equal({ app: 0, com: 0, org: 0 }, Identity::StepUpCeremony::TransactionPurger.new(now: @now).call)
+      assert_equal({ app: 0, com: 0, org: 0 }, IdentityStepUpCeremonyTransactionPurger.new(now: @now).call)
     end
   end
 
@@ -149,7 +149,7 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   private
 
   def issue_transaction!(transaction_id: nil, expires_at: nil)
-    Identity::StepUpCeremony::GrantIssuer.issue!(
+    IdentityStepUpCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @token.public_id,
@@ -177,12 +177,12 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def result_for(transaction, overrides = {})
-    Identity::StepUpCeremony::Result.issue(
+    IdentityStepUpCeremonyResult.issue(
       {
-        "typ" => Identity::StepUpCeremony::Result::TOKEN_TYPE,
-        "iss" => Identity::StepUpCeremony::Contract.sign_issuer("app"),
-        "aud" => Identity::StepUpCeremony::Contract.acme_audience("app"),
-        "purpose" => Identity::StepUpCeremony::Result::PURPOSE,
+        "typ" => IdentityStepUpCeremonyResult::TOKEN_TYPE,
+        "iss" => IdentityStepUpCeremonyContract.sign_issuer("app"),
+        "aud" => IdentityStepUpCeremonyContract.acme_audience("app"),
+        "purpose" => IdentityStepUpCeremonyResult::PURPOSE,
         "surface" => transaction.surface,
         "actor_ref" => transaction.actor_ref,
         "session_ref" => transaction.session_ref,
@@ -198,13 +198,13 @@ class Identity::StepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         "iat" => @now.to_i,
         "exp" => transaction.expires_at.to_i,
       }.merge(overrides),
-      issuer_id: Identity::StepUpCeremony::Contract.sign_issuer_id("app"),
+      issuer_id: IdentityStepUpCeremonyContract.sign_issuer_id("app"),
       now: @now,
     )
   end
 
   def assert_step_up_error(message)
-    error = assert_raises(Identity::StepUpCeremony::Error) { yield }
+    error = assert_raises(IdentityStepUpCeremonyContract::Error) { yield }
     assert_includes error.message, message
   end
 end

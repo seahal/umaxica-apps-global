@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::OneTimeRevealTest < ActiveSupport::TestCase
+class IdentityOneTimeRevealTest < ActiveSupport::TestCase
   fixtures :clients
 
   setup do
@@ -13,7 +13,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
   test "reveals value once for matching actor session and purpose" do
     actor = clients(:one)
     Rails.stub(:cache, @cache) do
-      issued = Identity::OneTimeReveal.issue!(
+      issued = IdentityOneTimeReveal.issue!(
         actor: actor,
         session_nonce: "session-1",
         value: "secret_credential-value",
@@ -21,7 +21,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
         metadata: { source: "test" },
       )
 
-      reveal = Identity::OneTimeReveal.consume!(
+      reveal = IdentityOneTimeReveal.consume!(
         actor: actor,
         session_nonce: "session-1",
         token: issued.token,
@@ -31,7 +31,7 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
       assert_equal "secret_credential-value", reveal.value
       assert_equal "test", reveal.metadata["source"]
 
-      second_reveal = Identity::OneTimeReveal.consume!(
+      second_reveal = IdentityOneTimeReveal.consume!(
         actor: actor,
         session_nonce: "session-1",
         token: issued.token,
@@ -45,14 +45,14 @@ class Identity::OneTimeRevealTest < ActiveSupport::TestCase
   test "rejects mismatched session" do
     actor = clients(:one)
     Rails.stub(:cache, @cache) do
-      issued = Identity::OneTimeReveal.issue!(
+      issued = IdentityOneTimeReveal.issue!(
         actor: actor,
         session_nonce: "session-1",
         value: "secret_credential-value",
         purpose: "test.reveal",
       )
 
-      reveal = Identity::OneTimeReveal.consume!(
+      reveal = IdentityOneTimeReveal.consume!(
         actor: actor,
         session_nonce: "session-2",
         token: issued.token,

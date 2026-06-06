@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/security/jwt/issuer_record"
+require "jit_security_jwt_issuer_record"
 
 module Jit
   module Security
@@ -48,7 +48,7 @@ module Jit
         private
 
         def issuer_record(revoked_kids: Set.new)
-          IssuerRecord.new(
+          JitSecurityJwtIssuerRecord.new(
             id: "auth",
             namespace: "AUTH",
             issuer: "issuer",

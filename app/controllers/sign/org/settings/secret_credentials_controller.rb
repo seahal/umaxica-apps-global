@@ -5,13 +5,13 @@ module Sign
   module Org
     module Settings
       class SecretCredentialsController < Sign::Org::ApplicationController
-        include ::Verification::Operator
+        include ::VerificationOperator
 
-        include ::Sign::Settings::SecretCredentialTurnstileGuard
+        include ::SignSettingsSecretCredentialTurnstileGuard
 
-        include ::Sign::Settings::SecretCredentialCacheControl
-        include ::Sign::AcmeAuthorityRedirect
-        include ::Sign::SecretCredentialCeremonyDelegation
+        include ::SignSettingsSecretCredentialCacheControl
+        include ::SignAcmeAuthorityRedirect
+        include ::SignSecretCredentialCeremonyDelegation
 
         AUTHENTICATION_MODE = :private
 

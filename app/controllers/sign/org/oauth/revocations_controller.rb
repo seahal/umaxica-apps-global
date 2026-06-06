@@ -9,7 +9,7 @@ module Sign
 
         def create
           # Compatibility endpoint only. acme/www owns token revocation.
-          result = ::Oidc::TokenRevocationService.call(
+          result = ::OidcTokenRevocationService.call(
             token: params[:token],
             client_id: params[:client_id],
             client_secret: params[:client_secret],

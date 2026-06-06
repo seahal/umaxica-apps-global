@@ -4,33 +4,33 @@
 require "test_helper"
 
 class SignComVerificationBaseIncludedDoTest < ActiveSupport::TestCase
-  test "included do does not include Sign::AppVerificationBase module" do
+  test "included do does not include SignAppVerificationBase module" do
     klass =
       Class.new(ApplicationController) do
-        include Authentication::Base
-        include Preference::Base
-        include Authentication::Visitor
-        include Verification::Visitor
-        include Sign::EmailOtpVerificationSupport
-        include Sign::ComVerificationBase
+        include AuthenticationBase
+        include PreferenceBase
+        include AuthenticationVisitor
+        include VerificationVisitor
+        include SignEmailOtpVerificationSupport
+        include SignComVerificationBase
       end
 
-    assert_not_includes klass.included_modules, Sign::AppVerificationBase
+    assert_not_includes klass.included_modules, SignAppVerificationBase
   end
 
   test "included do includes visitor verification dependencies directly" do
     klass =
       Class.new(ApplicationController) do
-        include Authentication::Base
-        include Preference::Base
-        include Authentication::Visitor
-        include Verification::Visitor
-        include Sign::EmailOtpVerificationSupport
-        include Sign::ComVerificationBase
+        include AuthenticationBase
+        include PreferenceBase
+        include AuthenticationVisitor
+        include VerificationVisitor
+        include SignEmailOtpVerificationSupport
+        include SignComVerificationBase
       end
 
-    assert_includes klass.included_modules, Authentication::Visitor
-    assert_includes klass.included_modules, Verification::Visitor
-    assert_includes klass.included_modules, Sign::EmailOtpVerificationSupport
+    assert_includes klass.included_modules, AuthenticationVisitor
+    assert_includes klass.included_modules, VerificationVisitor
+    assert_includes klass.included_modules, SignEmailOtpVerificationSupport
   end
 end

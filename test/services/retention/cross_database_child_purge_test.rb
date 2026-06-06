@@ -23,7 +23,7 @@ module Retention
         ip_address: "192.168.1.1",
       )
 
-      Retention::CrossDatabaseChildPurge.call(actor: user)
+      RetentionCrossDatabaseChildPurge.call(actor: user)
 
       assert_not ClientNotificationRecord.exists?(notification.id),
                  "notification_records (app_signal DB) should be purged"
@@ -35,7 +35,7 @@ module Retention
 
     test "is a no-op for unknown actor types" do
       assert_nothing_raised do
-        Retention::CrossDatabaseChildPurge.call(actor: Object.new)
+        RetentionCrossDatabaseChildPurge.call(actor: Object.new)
       end
     end
   end

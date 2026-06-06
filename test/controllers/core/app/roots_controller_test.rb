@@ -19,7 +19,7 @@ class Core::App::RootsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_predicate cookies[Preference::CookieName.access(surface: :app)], :present?
-    assert_predicate cookies[Preference::CookieName.refresh(surface: :app)], :present?
+    assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
+    assert_predicate cookies[PreferenceCookieName.refresh(surface: :app)], :present?
   end
 end

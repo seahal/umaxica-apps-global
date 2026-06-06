@@ -6,12 +6,12 @@ module Sign
     module Up
       module Guard
         class BaseController < Sign::Com::ApplicationController
-          include Sign::Up::ExplicitStepControllerSupport
+          include SignUpExplicitStepControllerSupport
 
           AUTHENTICATION_MODE = :open
 
           def show
-            gate = SignUp::StepGate.for_show(
+            gate = SignUpStepGate.for_show(
               controller: self,
               surface: sign_up_surface,
               family: sign_up_family,
@@ -32,14 +32,14 @@ module Sign
           def sign_up_sequence_session_key = :sign_com_up_sequence_id
 
           def first_step
-            SignUp::RequirementRegistry.for_entry(
+            SignUpRequirementRegistry.for_entry(
               surface: sign_up_surface,
               entry_method: sign_up_family,
             ).requirements.first
           end
 
           def explicit_step_path(step)
-            helper = SignUp::StepGate::STEP_ROUTES.fetch(sign_up_surface).fetch(sign_up_family).fetch(step)
+            helper = SignUpStepGate::STEP_ROUTES.fetch(sign_up_surface).fetch(sign_up_family).fetch(step)
             public_send(helper, ri: params[:ri], pt: signed_pt_param)
           end
         end

@@ -39,7 +39,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
       user: @client,
       name: "Original Secret",
       password_digest: "test_password_digest",
-      user_secret_kind_id: ClientSecretCredential::Kinds::LOGIN,
+      user_secret_kind_id: ClientSecretCredentialKinds::LOGIN,
     )
 
     CloudflareTurnstile.test_mode = true

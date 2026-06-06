@@ -4,8 +4,8 @@
 module Acme
   module App
     class VerificationsController < Acme::App::ApplicationController
-      include Acme::StepUpIntent
-      include Acme::StepUpCompletion
+      include AcmeStepUpIntent
+      include AcmeStepUpCompletion
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -18,7 +18,7 @@ module Acme
           surface: "app",
           actor: current_client,
           token: current_session_token,
-          allowed_scopes: StepUp::ScopeCatalog::APP,
+          allowed_scopes: StepUpScopeCatalog::APP,
           sign_url_builder: ->(**query) {
             sign_app_verification_url(
               query.merge(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),

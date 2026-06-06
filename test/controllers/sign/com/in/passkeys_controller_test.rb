@@ -33,8 +33,8 @@ class Sign::Com::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
 
   teardown do
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
-    Jit::Security::TurnstileVerifier.test_mode = false
-    Jit::Security::TurnstileVerifier.test_response = nil
+    JitSecurityTurnstileVerifier.test_mode = false
+    JitSecurityTurnstileVerifier.test_response = nil
   end
 
   test "should get new" do

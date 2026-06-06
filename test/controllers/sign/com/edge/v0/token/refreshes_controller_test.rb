@@ -19,15 +19,15 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies["csrf_token"] = @csrf_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers,
          as: :json
 
     assert_response :ok
-    assert response_has_cookie?(Authentication::Base::ACCESS_COOKIE_KEY)
-    assert response_has_cookie?(Authentication::Base::REFRESH_COOKIE_KEY)
+    assert response_has_cookie?(AuthenticationBase::ACCESS_COOKIE_KEY)
+    assert response_has_cookie?(AuthenticationBase::REFRESH_COOKIE_KEY)
     assert response.parsed_body["refreshed"]
   end
 
@@ -36,7 +36,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies["csrf_token"] = @csrf_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers,
@@ -45,7 +45,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     assert_response :ok
 
     response_cookies = extract_cookies_from_response
-    cookies[Authentication::Base::ACCESS_COOKIE_KEY] = response_cookies[Authentication::Base::ACCESS_COOKIE_KEY]
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = response_cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
 
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },
@@ -64,7 +64,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     refresh_plain = token_record.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
     cookies["csrf_token"] = @csrf_token
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     post "/edge/v0/token/refresh",
          headers: json_headers,
@@ -78,7 +78,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
     token_record = VisitorToken.create!(visitor: @visitor)
     refresh_plain = token_record.rotate_refresh_token!
 
-    cookies[Authentication::Base::REFRESH_COOKIE_KEY] = refresh_plain
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = refresh_plain
 
     with_forgery_protection do
       post "/edge/v0/token/refresh",

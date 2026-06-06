@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
+class StaffSecretCredentialsUpdateTest < ActiveSupport::TestCase
   fixtures :operator_statuses, :operator_email_statuses, :operator_secret_credential_statuses, :operators
 
   setup do
@@ -24,7 +24,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
   test "updates secret_credential name" do
     params = { name: "Updated Name" }
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -35,7 +35,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
   test "updates secret_credential status to revoked" do
     params = { enabled: false }
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -47,7 +47,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
     @secret_credential.update!(staff_secret_status_id: OperatorSecretCredentialStatus::REVOKED)
     params = { enabled: true }
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -58,7 +58,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
   test "strips whitespace from name parameter" do
     params = { name: "  updated-name-with-spaces  " }
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -70,7 +70,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
     original_name = @secret_credential.name
     params = { enabled: false }
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -82,7 +82,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
     params = { name: "New Name" }
     original_status = @secret_credential.staff_secret_status_id
 
-    result = OperatorSecretCredentials::Update.call(
+    result = OperatorSecretCredentialsUpdate.call(
       actor: @staff, secret_credential: @secret_credential,
       params: params,
     )
@@ -94,7 +94,7 @@ class OperatorSecretCredentials::UpdateTest < ActiveSupport::TestCase
     params = { name: "Audit Test" }
 
     assert_difference("OperatorChronicle.count", 1) do
-      OperatorSecretCredentials::Update.call(actor: @staff, secret_credential: @secret_credential, params: params)
+      OperatorSecretCredentialsUpdate.call(actor: @staff, secret_credential: @secret_credential, params: params)
     end
 
     activity = OperatorChronicle.last

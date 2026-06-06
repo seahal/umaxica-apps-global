@@ -38,7 +38,7 @@ module Sign
         end
 
         def route_pending_guard(cycle)
-          result = SignIn::GuardrailParticipant.new(cycle: cycle, actor: sign_in_flow_actor(cycle)).evaluate
+          result = SignInGuardrailParticipant.new(cycle: cycle, actor: sign_in_flow_actor(cycle)).evaluate
           return render plain: I18n.t("errors.messages.not_authorized"), status: :forbidden if result.blocking?
 
           redirect_to_guard_check(cycle)

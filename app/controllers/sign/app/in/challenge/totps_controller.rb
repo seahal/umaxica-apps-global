@@ -72,7 +72,7 @@ module Sign
             if last_otp_at
               handle_totp_success(user, totp_record, last_otp_at)
             else
-              Sign::Risk::Emitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_mismatch")
+              SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_mismatch")
               @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
               render :new, status: :unprocessable_content
             end

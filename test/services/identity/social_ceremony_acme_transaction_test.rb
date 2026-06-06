@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels,
@@ -23,9 +23,9 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "grant issuance creates durable transaction and valid grant" do
     travel_to @now do
       issuance = issue_grant
-      grant = Identity::SocialCeremony::Grant.decode(
+      grant = IdentitySocialCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::SocialCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -43,7 +43,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       result_token = issue_result(issuance.grant)
 
       assert_difference -> { ClientGoogleIdentity.where(user: @client).count }, 1 do
-        commit = Identity::SocialCeremony::FinalCommitter.call!(
+        commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
           auth_hash: auth_hash,
           actor: @client,
@@ -59,8 +59,8 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       end
 
       assert_predicate issuance.transaction.reload, :consumed?
-      assert_raises(Identity::SocialCeremony::Error) do
-        Identity::SocialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySocialCeremonyContract::Error) do
+        IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
           auth_hash: auth_hash,
           actor: @client,
@@ -78,7 +78,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     travel_to @now do
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
-      payload = Identity::SocialCeremony::Contract.decode_unverified_payload(result_token)
+      payload = IdentitySocialCeremonyContract.decode_unverified_payload(result_token)
 
       assert_not_includes payload.to_json, auth_hash["credentials"]["token"]
       assert_not_includes payload.to_json, auth_hash["credentials"]["refresh_token"]
@@ -100,8 +100,8 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
 
-      assert_raises(Identity::SocialCeremony::Error) do
-        Identity::SocialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySocialCeremonyContract::Error) do
+        IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
           auth_hash: auth_hash,
           actor: clients(:two),
@@ -110,8 +110,8 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
           now: @now,
         )
       end
-      assert_raises(Identity::SocialCeremony::Error) do
-        Identity::SocialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySocialCeremonyContract::Error) do
+        IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
           auth_hash: auth_hash,
           actor: @client,
@@ -121,8 +121,8 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         )
       end
       wrong_auth_hash = auth_hash.merge("uid" => "different-subject")
-      assert_raises(Identity::SocialCeremony::Error) do
-        Identity::SocialCeremony::FinalCommitter.call!(
+      assert_raises(IdentitySocialCeremonyContract::Error) do
+        IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
           auth_hash: wrong_auth_hash,
           actor: @client,
@@ -139,7 +139,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   test "purger removes only retained expired and consumed transactions" do
     travel_to @now do
       active = issue_grant.transaction
-      expired_old = Identity::SocialCeremony::ReplayStore.for("app").create_transaction!(
+      expired_old = IdentitySocialCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-expired",
@@ -148,7 +148,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         expires_at: @now - 8.days,
         now: @now - 9.days,
       )
-      consumed_old = Identity::SocialCeremony::ReplayStore.for("app").create_transaction!(
+      consumed_old = IdentitySocialCeremonyReplayStore.for("app").create_transaction!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-consumed",
@@ -162,7 +162,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         consumed_at: @now - 8.days,
       )
 
-      counts = Identity::SocialCeremony::TransactionPurger.new(now: @now).call
+      counts = IdentitySocialCeremonyTransactionPurger.new(now: @now).call
 
       assert_equal 2, counts.fetch("app")
       assert ClientSocialCeremonyTransaction.exists?(active.id)
@@ -174,7 +174,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   private
 
   def issue_grant
-    Identity::SocialCeremony::GrantIssuer.issue!(
+    IdentitySocialCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
@@ -185,7 +185,7 @@ class Identity::SocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   end
 
   def issue_result(grant_token)
-    Identity::SocialCeremony::ResultIssuer.issue!(
+    IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
       auth_hash: auth_hash,
       surface: "app",

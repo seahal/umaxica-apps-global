@@ -58,7 +58,7 @@ module CloudflareTurnstile
       return CloudflareTurnstile.validation_override_response || { "success" => true }
     end
 
-    Jit::Security::TurnstileVerifier.verify(
+    JitSecurityTurnstileVerifier.verify(
       token: request.request_parameters["cf-turnstile-response"].to_s,
       remote_ip: request.remote_ip,
       mode: :visible,
@@ -70,7 +70,7 @@ module CloudflareTurnstile
       return CloudflareTurnstile.validation_override_response || { "success" => true }
     end
 
-    Jit::Security::TurnstileVerifier.verify(
+    JitSecurityTurnstileVerifier.verify(
       token: request.request_parameters["cf-turnstile-response"].to_s,
       remote_ip: request.remote_ip,
       mode: :stealth,

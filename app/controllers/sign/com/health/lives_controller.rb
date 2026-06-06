@@ -5,10 +5,10 @@ module Sign
   module Com
     module Health
       class LivesController < BareController
-        include ::Health::Controller
+        include ::HealthEndpoint
 
         AUTHENTICATION_MODE = :bare
-        HEALTH_PROFILE = ::Health::Profiles::SignCom
+        HEALTH_PROFILE = ::HealthProfilesSignCom
 
         def show
           show_live

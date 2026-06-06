@@ -43,8 +43,8 @@ class Acme::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   private
 
   def select_token!(surface:, principal:, token:)
-    Acme::Selector::BootstrapAuthority.call(surface: surface, principal: principal)
-    Acme::Selector::Authority.prepare(surface: surface, principal: principal, session: token)
+    AcmeSelectorBootstrapAuthority.call(surface: surface, principal: principal)
+    AcmeSelectorAuthority.prepare(surface: surface, principal: principal, session: token)
   end
 
   def session_headers(token)

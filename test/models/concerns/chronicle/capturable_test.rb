@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Chronicle::CapturableTest < ActiveSupport::TestCase
+class ChronicleCapturableTest < ActiveSupport::TestCase
   fixtures_none!
 
   class BusinessFailure < StandardError; end
@@ -57,8 +57,8 @@ class Chronicle::CapturableTest < ActiveSupport::TestCase
     event_uuid = SecureRandom.uuid
 
     SecureRandom.stub(:uuid, event_uuid) do
-      Chronicle::ResultWriter.stub(:call, ->(**_args) { raise StandardError, "result failed" }) do
-        Chronicle::Invalidator.stub(:call, ->(**args) { invalidator_calls << args }) do
+      ChronicleResultWriter.stub(:call, ->(**_args) { raise StandardError, "result failed" }) do
+        ChronicleInvalidator.stub(:call, ->(**args) { invalidator_calls << args }) do
           result =
             Chronicle.capture(
               action: "auth.sign_in.failed",
@@ -84,8 +84,8 @@ class Chronicle::CapturableTest < ActiveSupport::TestCase
 
     SecureRandom.stub(:uuid, event_uuid) do
       Rails.stub(:logger, logger) do
-        Chronicle::ResultWriter.stub(:call, ->(**_args) { raise StandardError, "result failed" }) do
-          Chronicle::Invalidator.stub(:call, ->(**_args) { raise StandardError, "invalidation failed" }) do
+        ChronicleResultWriter.stub(:call, ->(**_args) { raise StandardError, "result failed" }) do
+          ChronicleInvalidator.stub(:call, ->(**_args) { raise StandardError, "invalidation failed" }) do
             Chronicle.capture(
               action: "auth.sign_in.failed",
               request_id: "request-invalidation-failure",
@@ -107,10 +107,10 @@ class Chronicle::CapturableTest < ActiveSupport::TestCase
   test "event_uuid is reused for intent and result writes" do
     event_uuid = SecureRandom.uuid
     result_writer_calls = []
-    original_result_writer = Chronicle::ResultWriter.method(:call)
+    original_result_writer = ChronicleResultWriter.method(:call)
 
     SecureRandom.stub(:uuid, event_uuid) do
-      Chronicle::ResultWriter.stub(
+      ChronicleResultWriter.stub(
         :call,
         lambda do |**args|
           result_writer_calls << args

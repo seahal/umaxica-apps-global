@@ -26,7 +26,7 @@ module OidcConnectionRecord
   end
 
   def rp_client
-    Oidc::ClientRegistry.find(client_id)
+    OidcClientRegistry.find(client_id)
   end
 
   def rp_name

@@ -13,7 +13,7 @@ module SingleUseToken
   # this short window such a presentation is treated as a benign sibling request
   # rather than a stolen-token replay. Kept intentionally tight: it widens the
   # "consumed token still honored" window, so only just-rotated tokens that still
-  # have a usable replacement qualify (see Preference::Base grace handling).
+  # have a usable replacement qualify (see PreferenceBase grace handling).
   PREFERENCE_REFRESH_GRACE_WINDOW = 30.seconds
 
   PREFERENCE_CHILD_SUFFIXES = %w(
@@ -86,7 +86,7 @@ module SingleUseToken
       attrs = {
         status_id: consumed.status_id,
         discarded_at: now + PREFERENCE_REFRESH_TTL,
-        jti: Jit::Security::Jwt::JtiGenerator.generate,
+        jti: JitSecurityJwtJtiGenerator.generate,
         binding_method_id: consumed.binding_method_id,
         dbsc_status_id: consumed.dbsc_status_id,
         dbsc_session_id: consumed.dbsc_session_id,

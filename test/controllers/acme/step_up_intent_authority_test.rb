@@ -195,7 +195,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       "app/controllers/acme/app/verifications_controller.rb",
       "app/controllers/acme/com/verifications_controller.rb",
       "app/controllers/acme/org/verifications_controller.rb",
-      "app/controllers/concerns/acme/step_up_completion.rb",
+      "app/controllers/concerns/acme_step_up_completion.rb",
     ].each do |path|
       assert_not_includes Rails.root.join(path).read, "skip_forgery_protection"
     end
@@ -466,14 +466,14 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   def decode_grant(token, surface:)
-    Identity::StepUpCeremony::Grant.decode(
+    IdentityStepUpCeremonyGrant.decode(
       token,
-      issuer_id: Identity::StepUpCeremony::Contract.acme_issuer_id(surface),
+      issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id(surface),
     )
   end
 
   def issue_step_up_grant!(surface:, actor_ref:, session_ref:, scope:, methods:, return_to:)
-    Identity::StepUpCeremony::GrantIssuer.issue!(
+    IdentityStepUpCeremonyGrantIssuer.issue!(
       surface: surface,
       actor_ref: actor_ref,
       session_ref: session_ref,
@@ -486,7 +486,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   def issue_step_up_result!(surface:, actor_ref:, session_ref:, transaction:, method:)
-    Identity::StepUpCeremony::ResultIssuer.issue!(
+    IdentityStepUpCeremonyResultIssuer.issue!(
       surface: surface,
       actor_ref: actor_ref,
       session_ref: session_ref,

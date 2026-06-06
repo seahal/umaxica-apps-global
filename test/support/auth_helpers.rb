@@ -1,9 +1,9 @@
 # typed: false
 # frozen_string_literal: true
 
-require_relative "../../app/controllers/concerns/authentication/base"
-require_relative "../../app/controllers/concerns/authentication/client"
-require_relative "../../app/controllers/concerns/authentication/operator"
+require_relative "../../app/controllers/concerns/authentication_base"
+require_relative "../../app/controllers/concerns/authentication_client"
+require_relative "../../app/controllers/concerns/authentication_operator"
 
 module AuthHelpers
   TEST_USER_HEADER = "X-TEST-CURRENT-USER"
@@ -106,7 +106,7 @@ module AuthHelpers
       when Visitor then "visitor"
       end
 
-    ::Authentication::Base::Token.encode(
+    ::AuthenticationToken.encode(
       resource,
       host: host_value,
       session_id: session_id,
@@ -146,11 +146,11 @@ module AuthHelpers
   end
 
   def set_access_cookie(token)
-    cookies[::Authentication::Base::ACCESS_COOKIE_KEY] = token
+    cookies[::AuthenticationBase::ACCESS_COOKIE_KEY] = token
   end
 
   def set_refresh_cookie(token)
-    cookies[::Authentication::Base::REFRESH_COOKIE_KEY] = token
+    cookies[::AuthenticationBase::REFRESH_COOKIE_KEY] = token
   end
 
   def satisfy_user_verification(user_token)

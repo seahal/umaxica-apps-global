@@ -5,7 +5,7 @@ require "test_helper"
 
 class AuthBoosterTest < ActionDispatch::IntegrationTest
   class DummyAuthController < ApplicationController
-    include Authentication::Base
+    include AuthenticationBase
 
     class ClientAudit
       def self.create!(*args)
@@ -174,8 +174,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     post "/test_auth_login"
 
     assert_response :success
-    assert response.cookies.key?(Authentication::CookieName.access)
-    assert response.cookies.key?(Authentication::CookieName.refresh)
+    assert response.cookies.key?(AuthenticationCookieName.access)
+    assert response.cookies.key?(AuthenticationCookieName.refresh)
   end
 
   test "logout clears cookies" do
@@ -185,8 +185,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     post "/test_auth_logout"
 
     assert_response :success
-    assert_predicate response.cookies[Authentication::CookieName.access], :blank?
-    assert_predicate response.cookies[Authentication::CookieName.refresh], :blank?
+    assert_predicate response.cookies[AuthenticationCookieName.access], :blank?
+    assert_predicate response.cookies[AuthenticationCookieName.refresh], :blank?
   end
 
   test "transparent refresh" do
@@ -195,9 +195,9 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     post "/test_auth_login"
 
     # We need to simulate the request with cookies set
-    response.cookies[Authentication::CookieName.access]
-    refresh_cookie = response.cookies[Authentication::CookieName.refresh]
-    cookies[Authentication::CookieName.refresh] = refresh_cookie
+    response.cookies[AuthenticationCookieName.access]
+    refresh_cookie = response.cookies[AuthenticationCookieName.refresh]
+    cookies[AuthenticationCookieName.refresh] = refresh_cookie
 
     # Intentionally don't set access cookie so it triggers transparent refresh
     post "/test_auth_refresh"
@@ -221,8 +221,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Authentication::CookieName.access]
-    cookies[Authentication::CookieName.access] = access_cookie
+    access_cookie = response.cookies[AuthenticationCookieName.access]
+    cookies[AuthenticationCookieName.access] = access_cookie
 
     get "/test_auth_check"
 
@@ -234,8 +234,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Authentication::CookieName.access]
-    cookies[Authentication::CookieName.access] = access_cookie
+    access_cookie = response.cookies[AuthenticationCookieName.access]
+    cookies[AuthenticationCookieName.access] = access_cookie
 
     get "/test_auth_reject"
 
@@ -248,8 +248,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     Client.create!(id: 1, status_id: 1) unless Client.exists?(1)
     post "/test_auth_login"
 
-    access_cookie = response.cookies[Authentication::CookieName.access]
-    cookies[Authentication::CookieName.access] = access_cookie
+    access_cookie = response.cookies[AuthenticationCookieName.access]
+    cookies[AuthenticationCookieName.access] = access_cookie
 
     get "/test_auth_ensure"
 

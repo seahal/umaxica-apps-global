@@ -93,12 +93,12 @@ class SignOutFlowTest < ActiveSupport::TestCase
     end
   end
 
-  test "sign-out cycle methods reject reverse transitions through Flow::Base" do
+  test "sign-out cycle methods reject reverse transitions through FlowBase" do
     cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
     cycle.mark_access_discarded!
 
     error =
-      assert_raises(Flow::InvalidTransition) do
+      assert_raises(FlowInvalidTransition) do
         cycle.transition_cycle_to!(
           ClientSignOutFlowStatus::REQUESTED,
           allowed_from: [ClientSignOutFlowStatus::REQUESTED],

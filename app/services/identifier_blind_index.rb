@@ -7,7 +7,7 @@ module IdentifierBlindIndex
   module_function
 
   def normalize_email(value)
-    Jit::Utils::EmailValidator.normalize(value)
+    JitUtilsEmailValidator.normalize(value)
   end
 
   def normalize_telephone(value)

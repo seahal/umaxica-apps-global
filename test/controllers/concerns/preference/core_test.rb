@@ -8,7 +8,7 @@ class PreferenceCoreHarness < ApplicationController
     def before_action(*) = nil
   end
 
-  include Preference::Core
+  include PreferenceCore
 
   attr_accessor :params_hash, :session_hash, :render_args, :written_cookies
 
@@ -40,7 +40,7 @@ class PreferenceCoreHarness < ApplicationController
   def preference_snapshot_for(*) = {}
 end
 
-class Preference::CoreTest < ActiveSupport::TestCase
+class PreferenceCoreTest < ActiveSupport::TestCase
   FakeOption = Struct.new(:name)
   FakeAssociation = Struct.new(:option_id, :option)
   FakeCookie = Struct.new(:consented, :functional, :performant, :targetable)
@@ -167,7 +167,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
     end
 
     error =
-      assert_raises(Preference::ResolutionError) do
+      assert_raises(PreferenceBase::ResolutionError) do
         @controller.send(:preference_write_owner_id)
       end
 
@@ -183,7 +183,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
     end
 
     error =
-      assert_raises(Preference::ResolutionError) do
+      assert_raises(PreferenceBase::ResolutionError) do
         @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
       end
 
@@ -196,7 +196,7 @@ class Preference::CoreTest < ActiveSupport::TestCase
     end
 
     error =
-      assert_raises(Preference::ResolutionError) do
+      assert_raises(PreferenceBase::ResolutionError) do
         @controller.send(:sync_to_resource_preference!)
       end
 

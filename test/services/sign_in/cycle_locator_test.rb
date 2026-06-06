@@ -8,7 +8,7 @@ module SignIn
     test "issue stores a session locator and current resolves the db cycle" do
       session = {}
       cycle = create_client_cycle(nonce: "old-nonce")
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignInCycleLocator.new(session, surface: :app)
 
       locator.issue!(cycle, nonce: "fresh-nonce")
 
@@ -22,7 +22,7 @@ module SignIn
     test "bad nonce rejects without mutating cycle state" do
       session = {}
       cycle = create_client_cycle(nonce: "correct-nonce")
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignInCycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "correct-nonce")
       original_status_id = cycle.status_id
       original_nonce_digest = cycle.nonce_digest
@@ -44,7 +44,7 @@ module SignIn
         issued_at: now - 20.minutes,
         expires_at: now - 1.minute,
       )
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignInCycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "nonce")
 
       travel_to now do
@@ -59,11 +59,11 @@ module SignIn
       actor = create_client
       other_actor = create_client
       cycle = create_client_cycle(nonce: "nonce", principal_id: actor.id)
-      CycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
 
-      assert_nil CycleLocator.new(session, surface: :app).current
-      assert_nil CycleLocator.new(session, surface: :app, actor: other_actor).current
-      assert_equal cycle, CycleLocator.new(session, surface: :app, actor: actor).current
+      assert_nil SignInCycleLocator.new(session, surface: :app).current
+      assert_nil SignInCycleLocator.new(session, surface: :app, actor: other_actor).current
+      assert_equal cycle, SignInCycleLocator.new(session, surface: :app, actor: actor).current
     end
 
     test "token-bound cycle requires matching current token" do
@@ -72,11 +72,11 @@ module SignIn
       token = ClientToken.create!(user: actor)
       other_token = ClientToken.create!(user: actor)
       cycle = create_client_cycle(nonce: "nonce", principal_id: actor.id, token: token)
-      CycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
 
-      assert_nil CycleLocator.new(session, surface: :app, actor: actor).current
-      assert_nil CycleLocator.new(session, surface: :app, actor: actor, token: other_token).current
-      assert_equal cycle, CycleLocator.new(session, surface: :app, actor: actor, token: token).current
+      assert_nil SignInCycleLocator.new(session, surface: :app, actor: actor).current
+      assert_nil SignInCycleLocator.new(session, surface: :app, actor: actor, token: other_token).current
+      assert_equal cycle, SignInCycleLocator.new(session, surface: :app, actor: actor, token: token).current
     end
 
     test "terminal cycles reject" do
@@ -87,24 +87,24 @@ module SignIn
         step: "completed",
         completed_at: Time.current,
       )
-      CycleLocator.new(session, surface: :app).issue!(completed, nonce: "nonce")
+      SignInCycleLocator.new(session, surface: :app).issue!(completed, nonce: "nonce")
 
-      assert_nil CycleLocator.new(session, surface: :app).current
+      assert_nil SignInCycleLocator.new(session, surface: :app).current
 
       failed = create_client_cycle(
         nonce: "failed-nonce",
         status_id: ClientSignInFlowStatus::FAILED,
         step: "failed",
       )
-      CycleLocator.new(session, surface: :app).issue!(failed, nonce: "failed-nonce")
+      SignInCycleLocator.new(session, surface: :app).issue!(failed, nonce: "failed-nonce")
 
-      assert_nil CycleLocator.new(session, surface: :app).current
+      assert_nil SignInCycleLocator.new(session, surface: :app).current
     end
 
     test "rotate replaces nonce and old session nonce no longer resolves" do
       session = {}
       cycle = create_client_cycle(nonce: "old-nonce")
-      locator = CycleLocator.new(session, surface: :app)
+      locator = SignInCycleLocator.new(session, surface: :app)
       locator.issue!(cycle, nonce: "old-nonce")
       old_payload = session[:app_sign_in_flow_locator].dup
 
@@ -122,9 +122,9 @@ module SignIn
     test "surface-specific locator does not read another surface key" do
       session = {}
       cycle = create_client_cycle(nonce: "nonce")
-      CycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
+      SignInCycleLocator.new(session, surface: :app).issue!(cycle, nonce: "nonce")
 
-      assert_nil CycleLocator.new(session, surface: :com).current
+      assert_nil SignInCycleLocator.new(session, surface: :com).current
     end
 
     private

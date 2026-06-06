@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OperatorSecretCredentials::DestroyTest < ActiveSupport::TestCase
+class StaffSecretCredentialsDestroyTest < ActiveSupport::TestCase
   fixtures :operator_statuses, :operator_email_statuses, :operator_secret_credential_statuses, :operators
 
   setup do
@@ -23,13 +23,13 @@ class OperatorSecretCredentials::DestroyTest < ActiveSupport::TestCase
 
   test "destroys staff secret_credential" do
     assert_difference("OperatorSecretCredential.count", -1) do
-      OperatorSecretCredentials::Destroy.call(actor: @staff, secret_credential: @secret_credential)
+      OperatorSecretCredentialsDestroy.call(actor: @staff, secret_credential: @secret_credential)
     end
   end
 
   test "creates OperatorChronicle audit" do
     assert_difference("OperatorChronicle.count", 1) do
-      OperatorSecretCredentials::Destroy.call(actor: @staff, secret_credential: @secret_credential)
+      OperatorSecretCredentialsDestroy.call(actor: @staff, secret_credential: @secret_credential)
     end
 
     activity = OperatorChronicle.last

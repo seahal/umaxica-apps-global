@@ -9,7 +9,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(ClientSignInFlow, actor)
 
-      result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+      result = SignInSessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
       assert_instance_of ClientToken, result.token
       assert_predicate result.token, :restricted?
@@ -27,7 +27,7 @@ module SignIn
       ].each do |cycle_class, actor, token_class, foreign_key|
         cycle = create_cycle(cycle_class, actor)
 
-        result = SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+        result = SignInSessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
         assert_instance_of token_class, result.token
         assert_predicate result.token, :restricted?
@@ -40,7 +40,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(ClientSignInFlow, actor)
 
-      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
+      result = SignInSessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
 
       assert_nil result.token
       assert_predicate result.cycle, :sign_in_guardrail_pending?
@@ -53,8 +53,8 @@ module SignIn
       create_active_client_token(actor)
       cycle = create_cycle(ClientSignInFlow, actor)
 
-      assert_raises(SessionLimitManager::PromotionBlocked) do
-        SessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
+      assert_raises(SignInSessionLimitManager::PromotionBlocked) do
+        SignInSessionLimitManager.new(cycle: cycle.reload, actor: actor).promote!
       end
 
       assert_predicate cycle.reload, :sign_in_session_limit_pending?
@@ -64,7 +64,7 @@ module SignIn
       actor = create_client
       cycle = create_cycle(ClientSignInFlow, actor)
 
-      result = SessionLimitManager.new(cycle: cycle.reload, actor: actor).cancel!
+      result = SignInSessionLimitManager.new(cycle: cycle.reload, actor: actor).cancel!
 
       assert_nil result.token
       assert_predicate result.cycle, :sign_in_failed?
@@ -77,8 +77,8 @@ module SignIn
       cycle = create_cycle(ClientSignInFlow, actor)
 
       assert_no_difference("ClientToken.count") do
-        assert_raises(SessionLimitManager::ActorMismatch) do
-          SessionLimitManager.new(cycle: cycle, actor: other).issue_restricted!
+        assert_raises(SignInSessionLimitManager::ActorMismatch) do
+          SignInSessionLimitManager.new(cycle: cycle, actor: other).issue_restricted!
         end
       end
 
@@ -91,8 +91,8 @@ module SignIn
       cycle = create_cycle(ClientSignInFlow, actor, status_name: "GUARDRAIL_PENDING")
 
       assert_no_difference("ClientToken.count") do
-        assert_raises(SessionLimitManager::InvalidCycle) do
-          SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+        assert_raises(SignInSessionLimitManager::InvalidCycle) do
+          SignInSessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
         end
       end
 
@@ -105,8 +105,8 @@ module SignIn
       cycle = create_cycle(ClientSignInFlow, actor, issued_at: 20.minutes.ago, expires_at: 1.second.ago)
 
       assert_no_difference("ClientToken.count") do
-        assert_raises(SessionLimitManager::InvalidCycle) do
-          SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+        assert_raises(SignInSessionLimitManager::InvalidCycle) do
+          SignInSessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
         end
       end
 
@@ -117,11 +117,11 @@ module SignIn
     test "rejects issuing a second restricted token for an already bound cycle" do
       actor = create_client
       cycle = create_cycle(ClientSignInFlow, actor)
-      SessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
+      SignInSessionLimitManager.new(cycle: cycle, actor: actor).issue_restricted!
 
       assert_no_difference("ClientToken.count") do
-        assert_raises(SessionLimitManager::InvalidCycle) do
-          SessionLimitManager.new(cycle: cycle.reload, actor: actor).issue_restricted!
+        assert_raises(SignInSessionLimitManager::InvalidCycle) do
+          SignInSessionLimitManager.new(cycle: cycle.reload, actor: actor).issue_restricted!
         end
       end
     end

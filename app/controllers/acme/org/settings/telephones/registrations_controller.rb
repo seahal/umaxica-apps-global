@@ -6,7 +6,7 @@ module Acme
     module Settings
       module Telephones
         class RegistrationsController < Acme::Org::ApplicationController
-          include ::Verification::Operator
+          include ::VerificationOperator
 
           AUTHENTICATION_MODE = :private
           declare_authentication_mode! :private
@@ -15,7 +15,7 @@ module Acme
 
           def create
             authorize!(OperatorTelephone, to: :create?)
-            issuance = Identity::TelephoneCeremony::GrantIssuer.issue!(
+            issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
               surface: "org",
               actor_ref: current_operator.public_id,
               session_ref: current_session_public_id,

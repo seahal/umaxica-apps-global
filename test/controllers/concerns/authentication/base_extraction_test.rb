@@ -3,18 +3,18 @@
 
 require "test_helper"
 
-class Authentication::BaseExtractionTest < ActiveSupport::TestCase
+class AuthenticationBaseExtractionTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Authentication::Base
+    include AuthenticationBase
   end
 
   test "base includes extracted authentication concerns" do
-    assert_includes Harness.included_modules, Authentication::Redirects
-    assert_includes Harness.included_modules, Authentication::CookieStore
-    assert_includes Harness.included_modules, Authentication::JwtTokens
-    assert_includes Harness.included_modules, Authentication::BulletinGate
-    assert_includes Harness.included_modules, Authentication::SequenceGate
-    assert_includes Harness.included_modules, Authentication::WithdrawalGate
+    assert_includes Harness.included_modules, AuthenticationRedirects
+    assert_includes Harness.included_modules, AuthenticationCookieStore
+    assert_includes Harness.included_modules, AuthenticationJwtTokens
+    assert_includes Harness.included_modules, AuthenticationBulletinGate
+    assert_includes Harness.included_modules, AuthenticationSequenceGate
+    assert_includes Harness.included_modules, AuthenticationWithdrawalGate
   end
 
   test "extracted public methods remain public on controllers" do

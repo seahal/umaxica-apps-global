@@ -8,21 +8,21 @@ module Acme
       declare_authentication_mode! :private
 
       def show
-        Acme::Selector::BootstrapAuthority.call(surface: :com, principal: current_visitor)
-        render json: Acme::Selector::Authority.prepare(
+        AcmeSelectorBootstrapAuthority.call(surface: :com, principal: current_visitor)
+        render json: AcmeSelectorAuthority.prepare(
           surface: :com, principal: current_visitor,
           session: current_session,
         )
       end
 
       def update
-        render json: Acme::Selector::Authority.select(
+        render json: AcmeSelectorAuthority.select(
           surface: :com,
           principal: current_visitor,
           session: current_session,
           params: selector_params,
         )
-      rescue Acme::Selector::Authority::InvalidSelection => e
+      rescue AcmeSelectorAuthority::InvalidSelection => e
         render json: { status: "invalid_selection", error: e.message }, status: :unprocessable_content
       end
 

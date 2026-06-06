@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
+class SignRefreshTokenServiceTest < ActiveSupport::TestCase
   test "invalid refresh token format returns failure reason" do
-    result = Sign::RefreshTokenService.call(refresh_token: "not-a-refresh-token")
+    result = SignRefreshTokenService.call(refresh_token: "not-a-refresh-token")
 
     assert_not result.success?
     assert_equal :invalid_format, result.reason
@@ -14,7 +14,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
   test "unknown refresh token public id returns failure reason" do
     refresh = ClientToken.build_refresh_token("missing-public-id", "verifier")
 
-    result = Sign::RefreshTokenService.call(refresh_token: refresh)
+    result = SignRefreshTokenService.call(refresh_token: refresh)
 
     assert_not result.success?
     assert_equal :token_not_found, result.reason
@@ -27,7 +27,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
       purged_at: 2.days.from_now,
     )
     first_refresh = token.rotate_refresh_token!
-    result = Sign::RefreshTokenService.call(refresh_token: first_refresh)
+    result = SignRefreshTokenService.call(refresh_token: first_refresh)
 
     new_token = result[:token]
 
@@ -48,7 +48,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     device_session = token.device_session
     refresh = token.rotate_refresh_token!
 
-    result = Sign::RefreshTokenService.call(refresh_token: refresh)
+    result = SignRefreshTokenService.call(refresh_token: refresh)
     new_token = result[:token]
 
     assert_predicate device_session, :present?
@@ -67,7 +67,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     )
     first_refresh = token.rotate_refresh_token!
 
-    result = Sign::RefreshTokenService.call(refresh_token: first_refresh)
+    result = SignRefreshTokenService.call(refresh_token: first_refresh)
 
     assert_equal jkt, result[:token].dpop_jkt
     assert_equal token.refresh_token_family_id, result[:token].refresh_token_family_id
@@ -77,10 +77,10 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     user = create_verified_user_with_email(email_address: "refresh-reuse-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     initial_refresh = token.rotate_refresh_token!
-    rotated = Sign::RefreshTokenService.call(refresh_token: initial_refresh)
+    rotated = SignRefreshTokenService.call(refresh_token: initial_refresh)
     rotated_refresh = rotated[:refresh_token]
 
-    reuse_result = Sign::RefreshTokenService.call(refresh_token: initial_refresh)
+    reuse_result = SignRefreshTokenService.call(refresh_token: initial_refresh)
 
     assert_not reuse_result.success?
     assert_equal :refresh_token_reuse_detected, reuse_result.reason
@@ -91,7 +91,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     assert_operator ClientToken.where(user_id: user.id).maximum(:discarded_at), :<=, Time.current,
                     "All actor tokens should be revoked"
 
-    rotated_result = Sign::RefreshTokenService.call(refresh_token: rotated_refresh)
+    rotated_result = SignRefreshTokenService.call(refresh_token: rotated_refresh)
 
     assert_not rotated_result.success?
     assert_equal :inactive_token, rotated_result.reason
@@ -106,7 +106,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     refresh = token.rotate_refresh_token!
     token.revoke!
 
-    result = Sign::RefreshTokenService.call(refresh_token: refresh)
+    result = SignRefreshTokenService.call(refresh_token: refresh)
 
     assert_not result.success?
     assert_equal :inactive_token, result.reason
@@ -122,7 +122,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     public_id, = ClientToken.parse_refresh_token(refresh)
     forged_refresh = ClientToken.build_refresh_token(public_id, "wrong-verifier")
 
-    result = Sign::RefreshTokenService.call(refresh_token: forged_refresh)
+    result = SignRefreshTokenService.call(refresh_token: forged_refresh)
 
     assert_not result.success?
     assert_equal :invalid_digest, result.reason
@@ -141,7 +141,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
       refresh = token.rotate_refresh_token!
       travel 6.minutes
 
-      result = Sign::RefreshTokenService.call(refresh_token: refresh)
+      result = SignRefreshTokenService.call(refresh_token: refresh)
 
       assert_not result.success?
       assert_equal :inactive_token, result.reason
@@ -166,7 +166,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     )
     refresh = token.rotate_refresh_token!
 
-    Sign::RefreshTokenService.call(refresh_token: refresh)
+    SignRefreshTokenService.call(refresh_token: refresh)
 
     # Verify that connected_to was called with role: :writing
     assert connection_calls.any? { |opts| opts[:role] == :writing },
@@ -187,7 +187,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     refresh = token.rotate_refresh_token!
 
     assert_nothing_raised do
-      result = Sign::RefreshTokenService.call(refresh_token: refresh)
+      result = SignRefreshTokenService.call(refresh_token: refresh)
 
       assert_predicate result, :success?
       assert_not_equal token.id, result[:token].id
@@ -203,7 +203,7 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     )
     refresh = token.rotate_refresh_token!
 
-    result = Sign::RefreshTokenService.call(refresh_token: refresh)
+    result = SignRefreshTokenService.call(refresh_token: refresh)
 
     assert_instance_of VisitorToken, result[:token]
     assert_not_equal token.id, result[:token].id
@@ -216,15 +216,15 @@ class Sign::RefreshTokenServiceTest < ActiveSupport::TestCase
     visitor = create_refresh_visitor
     token = VisitorToken.create!(visitor: visitor, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
     first_refresh = token.rotate_refresh_token!
-    rotated = Sign::RefreshTokenService.call(refresh_token: first_refresh)
+    rotated = SignRefreshTokenService.call(refresh_token: first_refresh)
 
-    reuse_result = Sign::RefreshTokenService.call(refresh_token: first_refresh)
+    reuse_result = SignRefreshTokenService.call(refresh_token: first_refresh)
 
     assert_not reuse_result.success?
     assert_equal :refresh_token_reuse_detected, reuse_result.reason
 
     assert_operator VisitorToken.where(visitor_id: visitor.id).maximum(:discarded_at), :<=, Time.current
-    rotated_result = Sign::RefreshTokenService.call(refresh_token: rotated[:refresh_token])
+    rotated_result = SignRefreshTokenService.call(refresh_token: rotated[:refresh_token])
 
     assert_not rotated_result.success?
     assert_equal :inactive_token, rotated_result.reason

@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class Redirects::PriorityResolverTest < ActiveSupport::TestCase
+class RedirectsPriorityResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
       def sign_app_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
@@ -50,7 +50,7 @@ class Redirects::PriorityResolverTest < ActiveSupport::TestCase
   private
 
   def resolve(priority, default: "/default")
-    Redirects::PriorityResolver.call(
+    RedirectsPriorityResolver.call(
       priority: priority,
       routes: Routes.new,
       params: { ri: "jp", surface: "app" },

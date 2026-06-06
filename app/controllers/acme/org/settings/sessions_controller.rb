@@ -5,7 +5,7 @@ module Acme
   module Org
     module Settings
       class SessionsController < Acme::Org::ApplicationController
-        include Acme::Settings::SessionManagement
+        include AcmeSettingsSessionManagement
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private

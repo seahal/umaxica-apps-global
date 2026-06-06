@@ -5,7 +5,7 @@ module Acme
   module Org
     module Settings
       class ConnectionsController < Acme::Org::ApplicationController
-        include Acme::Settings::OidcConnectionsManagement
+        include AcmeSettingsOidcConnectionsManagement
 
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private

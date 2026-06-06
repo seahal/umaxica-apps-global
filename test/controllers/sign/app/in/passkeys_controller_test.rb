@@ -13,8 +13,8 @@ module Sign::App::In
       host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
-      Jit::Security::TurnstileVerifier.test_mode = true
-      Jit::Security::TurnstileVerifier.test_response = { "success" => true }
+      JitSecurityTurnstileVerifier.test_mode = true
+      JitSecurityTurnstileVerifier.test_response = { "success" => true }
       @user = create_verified_user_with_email(email_address: "passkey_test_user_#{SecureRandom.hex(6)}@example.com")
       @user_email = @user.client_emails.first # Use the email created by the helper
 
@@ -45,8 +45,8 @@ module Sign::App::In
       end
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
-      Jit::Security::TurnstileVerifier.test_mode = false
-      Jit::Security::TurnstileVerifier.test_response = nil
+      JitSecurityTurnstileVerifier.test_mode = false
+      JitSecurityTurnstileVerifier.test_response = nil
     end
     test "should get new" do
       get new_sign_app_in_passkey_path(ri: "jp")
@@ -191,7 +191,7 @@ module Sign::App::In
         assert_equal "ok", json["status"]
         assert_not_nil json["access_token"]
         assert_equal "Bearer", json["token_type"]
-        assert_equal Authentication::Base::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
+        assert_equal AuthenticationBase::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
         assert_equal sign_app_in_check_path(ri: "jp"), json["redirect_url"]
 
         # Challenge verification updates sign count
@@ -377,7 +377,7 @@ module Sign::App::In
       email = ClientEmail.find_by(user: @user).address
       post options_sign_app_in_passkeys_path(ri: "jp"), params: options_params(identifier: email)
       challenge_id = response.parsed_body["challenge_id"]
-      mismatch_error = Sign::Webauthn::ChallengePurposeMismatchError.new("purpose mismatch")
+      mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
       original_method = Sign::App::In::PasskeysController.instance_method(:with_challenge)
       Sign::App::In::PasskeysController.define_method(:with_challenge) do |*_args, &_block|
@@ -425,8 +425,8 @@ module Sign::App::In
 
     test "options returns turnstile error when response token is missing" do
       CloudflareTurnstile.test_mode = false
-      Jit::Security::TurnstileVerifier.test_mode = false
-      Jit::Security::TurnstileVerifier.test_response = nil
+      JitSecurityTurnstileVerifier.test_mode = false
+      JitSecurityTurnstileVerifier.test_response = nil
 
       post options_sign_app_in_passkeys_path(ri: "jp"), params: { identifier: @user_email.address }
 
@@ -448,7 +448,7 @@ module Sign::App::In
       refresh = token.rotate_refresh_token!
 
       rotations.times do
-        refresh = Sign::RefreshTokenService.call(refresh_token: refresh)[:refresh_token]
+        refresh = SignRefreshTokenService.call(refresh_token: refresh)[:refresh_token]
       end
     end
   end

@@ -70,7 +70,7 @@ class Sign::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
 
   def signed_return_target(return_to:, flow:, surface:, session_nonce:, expires_in: 15.minutes)
     harness = Class.new do
-      include ::Redirects::SignedTargetSupport
+      include ::RedirectsSignedTargetSupport
 
       def issue(return_to:, flow:, surface:, session_nonce:, expires_in:)
         path = signed_target_internal_path(return_to)

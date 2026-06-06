@@ -4,10 +4,10 @@
 module Acme
   module Com
     class HealthsController < BareController
-      include ::Health::Controller
+      include ::HealthEndpoint
 
       AUTHENTICATION_MODE = :bare
-      HEALTH_PROFILE = ::Health::Profiles::Com
+      HEALTH_PROFILE = ::HealthProfilesCom
 
       def show
         show_health_snapshot

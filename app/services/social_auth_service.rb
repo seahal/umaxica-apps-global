@@ -98,7 +98,7 @@ class SocialAuthService
       identity.destroy!
 
       Rails.logger.info(
-        Jit::LogEvent.format(
+        JitLogEvent.format(
           "social_auth.unlinked",
           user_id: @current_client.id,
           provider: provider,
@@ -138,7 +138,7 @@ class SocialAuthService
   end
 
   def extract_uid
-    SocialAuth::UidExtractor.call(auth_hash: @auth_hash)
+    SocialAuthUidExtractor.call(auth_hash: @auth_hash)
   end
 
   # Intent: login (or nil for backward compatibility)
@@ -146,7 +146,7 @@ class SocialAuthService
   # - If identity exists without user -> create user and sign in
   # - If identity doesn't exist -> create identity and user, sign in
   def handle_login(identity_class, provider, uid)
-    SocialAuth::LoginHandler.call(
+    SocialAuthLoginHandler.call(
       auth_hash: @auth_hash,
       identity_class: identity_class,
       provider: provider,
@@ -161,7 +161,7 @@ class SocialAuthService
   # - If identity exists and belongs to current_client -> update and return (reactivate if REVOKED)
   # - If identity doesn't exist -> create and link to current_client
   def handle_link(identity_class, provider, uid)
-    SocialAuth::LinkHandler.call(
+    SocialAuthLinkHandler.call(
       auth_hash: @auth_hash,
       current_client: @current_client,
       identity_class: identity_class,

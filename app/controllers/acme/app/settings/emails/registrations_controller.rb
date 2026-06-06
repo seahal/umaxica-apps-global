@@ -13,7 +13,7 @@ module Acme
 
           def create
             authorize!(ClientEmail, to: :create?)
-            issuance = Identity::EmailCeremony::GrantIssuer.issue!(
+            issuance = IdentityEmailCeremonyGrantIssuer.issue!(
               surface: "app",
               actor_ref: current_client.public_id,
               session_ref: current_session_public_id,

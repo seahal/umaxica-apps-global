@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
+class IdentityPasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels
@@ -20,7 +20,7 @@ class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   test "grant issuance creates durable transaction and valid grant" do
     travel_to @now do
-      issuance = Identity::PasskeyCeremony::GrantIssuer.issue!(
+      issuance = IdentityPasskeyCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: @session_ref,
@@ -28,9 +28,9 @@ class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         now: @now,
       )
 
-      grant = Identity::PasskeyCeremony::Grant.decode(
+      grant = IdentityPasskeyCeremonyGrant.decode(
         issuance.grant,
-        issuer_id: Identity::PasskeyCeremony::Contract.acme_issuer_id("app"),
+        issuer_id: IdentityPasskeyCeremonyContract.acme_issuer_id("app"),
         now: @now,
       )
 
@@ -43,21 +43,21 @@ class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   test "valid result consumes once and commits passkey under acme authority" do
     travel_to @now do
-      issuance = Identity::PasskeyCeremony::GrantIssuer.issue!(
+      issuance = IdentityPasskeyCeremonyGrantIssuer.issue!(
         surface: "app",
         actor_ref: @client.public_id,
         session_ref: @session_ref,
         operation: "registration",
         now: @now,
       )
-      candidate = Identity::PasskeyCeremony::ResultIssuer::Candidate.new(
+      candidate = IdentityPasskeyCeremonyResultIssuer::Candidate.new(
         webauthn_id: "passkey-ceremony-#{SecureRandom.hex(4)}",
         public_key: "public-key",
         sign_count: 0,
         description: "Ceremony Passkey",
         transports: ["internal"],
       )
-      result_token = Identity::PasskeyCeremony::ResultIssuer.issue!(
+      result_token = IdentityPasskeyCeremonyResultIssuer.issue!(
         grant_token: issuance.grant,
         candidate: candidate,
         surface: "app",
@@ -68,7 +68,7 @@ class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       )
 
       assert_difference -> { ClientPasskey.where(user: @client).count }, 1 do
-        commit = Identity::PasskeyCeremony::FinalCommitter.call!(
+        commit = IdentityPasskeyCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,
@@ -82,8 +82,8 @@ class Identity::PasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       end
 
       assert_predicate issuance.transaction.reload, :consumed?
-      assert_raises(Identity::PasskeyCeremony::Error) do
-        Identity::PasskeyCeremony::FinalCommitter.call!(
+      assert_raises(IdentityPasskeyCeremonyContract::Error) do
+        IdentityPasskeyCeremonyFinalCommitter.call!(
           result_token: result_token,
           actor: @client,
           session_ref: @session_ref,

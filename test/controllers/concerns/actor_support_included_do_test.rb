@@ -121,7 +121,7 @@ class ActorSupportIncludedDoTest < ActiveSupport::TestCase
     controller = actor_support_controller
     actor = Client.new(id: 1)
     Actor.tld = :app
-    carrier = SignIn::SequenceCarrier.new(controller.session, surface: :app)
+    carrier = SignInSequenceCarrier.new(controller.session, surface: :app)
     sequence = carrier.start!(
       surface: :app,
       actor: actor,

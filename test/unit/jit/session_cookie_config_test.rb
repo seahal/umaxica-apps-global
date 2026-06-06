@@ -2,30 +2,30 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "jit/session_cookie_config"
+require "jit_session_cookie_config"
 
 module Jit
   class SessionCookieConfigTest < ActiveSupport::TestCase
     # --- cookie_key ---
 
     test "cookie_key returns __Host-session when force_secure is true" do
-      assert_equal "__Host-session", Jit::SessionCookieConfig.cookie_key(force_secure: true)
+      assert_equal "__Host-session", JitSessionCookieConfig.cookie_key(force_secure: true)
     end
 
     test "cookie_key returns session when force_secure is false" do
-      assert_equal "session", Jit::SessionCookieConfig.cookie_key(force_secure: false)
+      assert_equal "session", JitSessionCookieConfig.cookie_key(force_secure: false)
     end
 
     test "partitioned is true in production" do
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
-      assert Jit::SessionCookieConfig.partitioned?(rails_env: env)
+      assert JitSessionCookieConfig.partitioned?(rails_env: env)
     end
 
     test "partitioned is false outside production" do
       env = ActiveSupport::EnvironmentInquirer.new("test")
 
-      assert_not Jit::SessionCookieConfig.partitioned?(rails_env: env)
+      assert_not JitSessionCookieConfig.partitioned?(rails_env: env)
     end
 
     # --- force_secure? in production ---
@@ -33,7 +33,7 @@ module Jit
     test "force_secure is true in production" do
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
-      assert Jit::SessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
+      assert JitSessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
     end
 
     # --- force_secure? in test ---
@@ -41,7 +41,7 @@ module Jit
     test "force_secure is false in test even with production-like host" do
       env = ActiveSupport::EnvironmentInquirer.new("test")
 
-      assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
+      assert_not JitSessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
     end
 
     # --- force_secure? in development ---
@@ -49,19 +49,19 @@ module Jit
     test "force_secure is false in development with localhost" do
       env = ActiveSupport::EnvironmentInquirer.new("development")
 
-      assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "id.app.localhost", rails_env: env)
+      assert_not JitSessionCookieConfig.force_secure?(id_service_host: "id.app.localhost", rails_env: env)
     end
 
     test "force_secure is false in development even with non-local host" do
       env = ActiveSupport::EnvironmentInquirer.new("development")
 
-      assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
+      assert_not JitSessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
     end
 
     test "force_secure is false in development with empty host" do
       env = ActiveSupport::EnvironmentInquirer.new("development")
 
-      assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
+      assert_not JitSessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
     end
 
     # --- FORCE_SECURE_COOKIES env var ---
@@ -70,7 +70,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("development")
 
       with_env("FORCE_SECURE_COOKIES" => "1") do
-        assert Jit::SessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
+        assert JitSessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
       end
     end
 
@@ -78,7 +78,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("test")
 
       with_env("FORCE_SECURE_COOKIES" => "1") do
-        assert_not Jit::SessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
+        assert_not JitSessionCookieConfig.force_secure?(id_service_host: "", rails_env: env)
       end
     end
 
@@ -87,7 +87,7 @@ module Jit
     test "force_secure is false with 127.x host in production-like staging" do
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
-      assert Jit::SessionCookieConfig.force_secure?(id_service_host: "127.0.0.1", rails_env: env),
+      assert JitSessionCookieConfig.force_secure?(id_service_host: "127.0.0.1", rails_env: env),
              "production always forces secure regardless of host"
     end
 
@@ -95,7 +95,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("staging")
 
       with_env("FORCE_SECURE_COOKIES" => nil) do
-        assert Jit::SessionCookieConfig.force_secure?(id_service_host: "0.0.0.0", rails_env: env)
+        assert JitSessionCookieConfig.force_secure?(id_service_host: "0.0.0.0", rails_env: env)
       end
     end
 
@@ -103,7 +103,7 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("staging")
 
       with_env("FORCE_SECURE_COOKIES" => nil) do
-        assert Jit::SessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
+        assert JitSessionCookieConfig.force_secure?(id_service_host: "sign.app.example.com", rails_env: env)
       end
     end
 

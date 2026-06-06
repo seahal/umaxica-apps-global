@@ -44,8 +44,8 @@ class VerificationBaseStepUpLoggingTest < ActiveSupport::TestCase
       def helper_method(*) = nil
     end
 
-    include Common::Redirect
-    include Verification::Base
+    include CommonRedirect
+    include VerificationBase
 
     attr_accessor :session_token
 

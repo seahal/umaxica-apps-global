@@ -3,10 +3,10 @@
 
 require "test_helper"
 require "openssl"
-require_relative "../../app/controllers/concerns/preference/jwt_configuration"
-require_relative "../../app/controllers/concerns/preference/token"
+require_relative "../../app/controllers/concerns/preference_jwt_configuration"
+require_relative "../../app/controllers/concerns/preference_token"
 
-class PreferenceTokenServiceTest < ActiveSupport::TestCase
+class PreferenceTokenTest < ActiveSupport::TestCase
   setup do
     @prefs = { "ct" => "dr" }.freeze
     @host = "example.com".freeze
@@ -21,7 +21,7 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
 
   test "encodes and decodes token" do
     with_jwt_keys do
-      token = Preference::Token.encode(
+      token = PreferenceToken.encode(
         @prefs,
         host: @host,
         preference_type: @preference_type,
@@ -34,19 +34,19 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
       _payload, header = JWT.decode(token, nil, false)
 
       assert_predicate header["kid"], :present?
-      assert_equal Preference::Token::TOKEN_TYPE, header["typ"]
+      assert_equal PreferenceToken::TOKEN_TYPE, header["typ"]
 
-      decoded = Preference::Token.decode(token, host: @host)
+      decoded = PreferenceToken.decode(token, host: @host)
 
       assert_not_nil decoded
       assert_equal "dr", decoded.dig("preferences", "ct")
       assert_equal @jti, decoded["jti"]
-      assert_equal Preference::Token::TOKEN_TYPE, decoded["typ"]
+      assert_equal PreferenceToken::TOKEN_TYPE, decoded["typ"]
     end
   end
 
   test "encodes and decodes with a sign surface issuer without using legacy preference issuer" do
-    token = Preference::Token.encode(
+    token = PreferenceToken.encode(
       @prefs,
       host: "id.umaxica.app",
       preference_type: @preference_type,
@@ -56,9 +56,9 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
     )
 
     assert_not_nil token
-    assert_nil Preference::Token.decode(token, host: "id.umaxica.app")
+    assert_nil PreferenceToken.decode(token, host: "id.umaxica.app")
 
-    decoded = Preference::Token.decode(
+    decoded = PreferenceToken.decode(
       token,
       host: "id.umaxica.app",
       jwt_issuer_id: "surface:SIGN_APP",
@@ -70,13 +70,13 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
 
   test "returns nil for invalid token" do
     with_jwt_keys do
-      assert_nil Preference::Token.decode("invalid", host: @host)
+      assert_nil PreferenceToken.decode("invalid", host: @host)
     end
   end
 
   test "returns nil for wrong host" do
     with_jwt_keys do
-      token = Preference::Token.encode(
+      token = PreferenceToken.encode(
         @prefs,
         host: @host,
         preference_type: @preference_type,
@@ -84,13 +84,13 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
         jti: @jti,
       )
 
-      assert_nil Preference::Token.decode(token, host: "wrong.com")
+      assert_nil PreferenceToken.decode(token, host: "wrong.com")
     end
   end
 
   test "returns nil for alg none token" do
     with_jwt_keys do
-      token = Preference::Token.encode(
+      token = PreferenceToken.encode(
         @prefs,
         host: @host,
         preference_type: @preference_type,
@@ -98,15 +98,15 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
         jti: @jti,
       )
       payload, _header = JWT.decode(token, nil, false)
-      tampered = JWT.encode(payload, nil, "none", { typ: Preference::Token::TOKEN_TYPE })
+      tampered = JWT.encode(payload, nil, "none", { typ: PreferenceToken::TOKEN_TYPE })
 
-      assert_nil Preference::Token.decode(tampered, host: @host)
+      assert_nil PreferenceToken.decode(tampered, host: @host)
     end
   end
 
   test "returns nil for unknown kid" do
     with_jwt_keys do
-      token = Preference::Token.encode(
+      token = PreferenceToken.encode(
         @prefs,
         host: @host,
         preference_type: @preference_type,
@@ -116,7 +116,7 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
       payload, header = JWT.decode(token, nil, false)
       tampered = JWT.encode(payload, @private_key, "ES384", header.merge("kid" => "unknown-kid"))
 
-      assert_nil Preference::Token.decode(tampered, host: @host)
+      assert_nil PreferenceToken.decode(tampered, host: @host)
     end
   end
 
@@ -124,14 +124,14 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
     audiences = ["id.umaxica.app", "id.umaxica.com"].freeze
     key_for = ->(kid) { (kid == "default") ? @public_key : nil }
 
-    Preference::JwtConfiguration.stub(:private_key, @private_key) do
-      Preference::JwtConfiguration.stub(:public_key, @public_key) do
-        Preference::JwtConfiguration.stub(:private_key_for_active, @private_key) do
-          Preference::JwtConfiguration.stub(:public_key_for, key_for) do
-            Preference::JwtConfiguration.stub(:active_kid, "default") do
-              Preference::JwtConfiguration.stub(:issuer, @issuer) do
-                Preference::JwtConfiguration.stub(:audiences, audiences) do
-                  app_token = Preference::Token.encode(
+    PreferenceJwtConfiguration.stub(:private_key, @private_key) do
+      PreferenceJwtConfiguration.stub(:public_key, @public_key) do
+        PreferenceJwtConfiguration.stub(:private_key_for_active, @private_key) do
+          PreferenceJwtConfiguration.stub(:public_key_for, key_for) do
+            PreferenceJwtConfiguration.stub(:active_kid, "default") do
+              PreferenceJwtConfiguration.stub(:issuer, @issuer) do
+                PreferenceJwtConfiguration.stub(:audiences, audiences) do
+                  app_token = PreferenceToken.encode(
                     @prefs,
                     host: "id.umaxica.app",
                     preference_type: "AppPreference",
@@ -140,7 +140,7 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
                   )
 
                   assert_not_nil app_token
-                  assert_nil Preference::Token.decode(app_token, host: "id.umaxica.com"),
+                  assert_nil PreferenceToken.decode(app_token, host: "id.umaxica.com"),
                              "audience scoped to .app TLD must not validate on a .com host"
                 end
               end
@@ -155,8 +155,8 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
     original = ENV["PREFERENCE_JWT_AUDIENCES"]
     begin
       ENV.delete("PREFERENCE_JWT_AUDIENCES")
-      assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
-        Preference::JwtConfiguration.audiences
+      assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
+        PreferenceJwtConfiguration.audiences
       end
     ensure
       ENV["PREFERENCE_JWT_AUDIENCES"] = original
@@ -164,9 +164,9 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
   end
 
   test "audience_for requires a host" do
-    Preference::JwtConfiguration.stub(:audiences, ["example.com"]) do
-      assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for(nil) }
-      assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for("") }
+    PreferenceJwtConfiguration.stub(:audiences, ["example.com"]) do
+      assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for(nil) }
+      assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for("") }
     end
   end
 
@@ -175,13 +175,13 @@ class PreferenceTokenServiceTest < ActiveSupport::TestCase
   def with_jwt_keys
     key_for = ->(kid) { (kid == "default") ? @public_key : nil }
 
-    Preference::JwtConfiguration.stub(:private_key, @private_key) do
-      Preference::JwtConfiguration.stub(:public_key, @public_key) do
-        Preference::JwtConfiguration.stub(:private_key_for_active, @private_key) do
-          Preference::JwtConfiguration.stub(:public_key_for, key_for) do
-            Preference::JwtConfiguration.stub(:active_kid, "default") do
-              Preference::JwtConfiguration.stub(:issuer, @issuer) do
-                Preference::JwtConfiguration.stub(:audiences, @audiences) do
+    PreferenceJwtConfiguration.stub(:private_key, @private_key) do
+      PreferenceJwtConfiguration.stub(:public_key, @public_key) do
+        PreferenceJwtConfiguration.stub(:private_key_for_active, @private_key) do
+          PreferenceJwtConfiguration.stub(:public_key_for, key_for) do
+            PreferenceJwtConfiguration.stub(:active_kid, "default") do
+              PreferenceJwtConfiguration.stub(:issuer, @issuer) do
+                PreferenceJwtConfiguration.stub(:audiences, @audiences) do
                   yield
                 end
               end

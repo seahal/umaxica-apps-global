@@ -19,7 +19,7 @@
 #
 # State Parameter:
 # - SocialCallbackGuard validates callback state through CallbackStateStore for all app providers.
-# - SocialAuthConcern stores intent context; provider callback CSRF protection is not solely owned
+# - SocialAuth stores intent context; provider callback CSRF protection is not solely owned
 #   by that concern.
 # - Apple provider_ignores_state disables provider-side state handling only; app-side
 #   CallbackStateStore/SocialCallbackGuard validation still runs.

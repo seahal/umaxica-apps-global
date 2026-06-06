@@ -117,7 +117,7 @@ module Preference
 
       assert_nothing_raised do
         @adoption.send(:adopt_preference_for!, @user)
-        @preference.update!(jti: Jit::Security::Jwt::JtiGenerator.generate)
+        @preference.update!(jti: JitSecurityJwtJtiGenerator.generate)
       end
 
       assert_not_equal existing_app_preference.public_id, @preference.reload.public_id
@@ -287,16 +287,16 @@ module Preference
     def build_adoption_context(preference, preference_class_name: "AppPreference")
       pref_class = PREFERENCE_CLASSES.fetch(preference_class_name)
       ctx = Object.new
-      ctx.extend(Preference::Adoption)
+      ctx.extend(PreferenceAdoption)
 
       ctx.define_singleton_method(:preference_class) { pref_class }
       ctx.define_singleton_method(:preference_prefix) { |_pref = nil| pref_class.name.gsub("Preference", "") }
       ctx.define_singleton_method(:preference_option_classes) do |prefix|
         {
-          language: Preference::ClassRegistry.option_class(prefix, :language),
-          timezone: Preference::ClassRegistry.option_class(prefix, :timezone),
-          region: Preference::ClassRegistry.option_class(prefix, :region),
-          theme: Preference::ClassRegistry.option_class(prefix, :theme),
+          language: PreferenceClassRegistry.option_class(prefix, :language),
+          timezone: PreferenceClassRegistry.option_class(prefix, :timezone),
+          region: PreferenceClassRegistry.option_class(prefix, :region),
+          theme: PreferenceClassRegistry.option_class(prefix, :theme),
         }
       end
       ctx.instance_variable_set(:@preferences, preference)

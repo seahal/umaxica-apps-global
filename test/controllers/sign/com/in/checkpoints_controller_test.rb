@@ -92,7 +92,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     @checkpoint_headers = as_visitor_headers(@visitor, host: @host)
     get(sign_com_dashboard_url(ri: "jp"), headers: checkpoint_headers)
 
-    SignIn::SequenceCarrier.new(session, surface: :com).start!(
+    SignInSequenceCarrier.new(session, surface: :com).start!(
       surface: :com,
       actor: @visitor,
       method: :email_otp,
@@ -110,7 +110,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
       expires_at: 15.minutes.from_now,
     )
     cycle.save!(validate: false)
-    SignIn::CycleLocator.new(session, surface: :com, actor: @visitor).issue!(cycle)
+    SignInCycleLocator.new(session, surface: :com, actor: @visitor).issue!(cycle)
   end
 
   def checkpoint_headers

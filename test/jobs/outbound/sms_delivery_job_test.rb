@@ -7,7 +7,7 @@ module Outbound
   class SmsDeliveryJobTest < ActiveSupport::TestCase
     test "perform calls outbound sms immediate delivery" do
       called = false
-      Sms.stub(
+      OutboundSms.stub(
         :deliver_now, ->(to:, title:, body:) {
           called = true
 
@@ -19,7 +19,7 @@ module Outbound
         SmsDeliveryJob.perform_now(
           to: "+819012345678",
           title: "Verification",
-          encrypted_body: Outbound::SensitivePayload.encrypt_sms_body("Your code is 123456"),
+          encrypted_body: OutboundSensitivePayload.encrypt_sms_body("Your code is 123456"),
         )
       end
 
@@ -33,7 +33,7 @@ module Outbound
     test "legacy plaintext payload is discarded" do
       called = false
 
-      Sms.stub(:deliver_now, ->(**) { called = true }) do
+      OutboundSms.stub(:deliver_now, ->(**) { called = true }) do
         SmsDeliveryJob.perform_now(to: "+819012345678", title: "Verification", body: "Your code is 123456")
       end
 

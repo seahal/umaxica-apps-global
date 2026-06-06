@@ -4,10 +4,10 @@
 module Sign
   module Org
     class HealthsController < BareController
-      include ::Health::Controller
+      include ::HealthEndpoint
 
       AUTHENTICATION_MODE = :bare
-      HEALTH_PROFILE = ::Health::Profiles::SignOrg
+      HEALTH_PROFILE = ::HealthProfilesSignOrg
 
       def show
         show_health_snapshot

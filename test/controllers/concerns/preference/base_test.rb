@@ -4,7 +4,7 @@
 require "test_helper"
 
 class PreferenceSanitizeTestController < ::ApplicationController
-  include ::Preference::Base
+  include ::PreferenceBase
 
   attr_accessor :test_params, :test_controller_path
 
@@ -33,9 +33,9 @@ end
 module Preference
   class BaseTest < ActiveSupport::TestCase
     test "preference cookie key constants are stable" do
-      assert_equal "ct", Preference::Base::THEME_COOKIE_KEY
-      assert_equal "language", Preference::Base::LANGUAGE_COOKIE_KEY
-      assert_equal "tz", Preference::Base::TIMEZONE_COOKIE_KEY
+      assert_equal "ct", PreferenceBase::THEME_COOKIE_KEY
+      assert_equal "language", PreferenceBase::LANGUAGE_COOKIE_KEY
+      assert_equal "tz", PreferenceBase::TIMEZONE_COOKIE_KEY
     end
   end
 
@@ -255,7 +255,7 @@ module Preference
         with_preference_jwt_keys(host: @controller.request.host) do
           @controller.send(:issue_access_token_from, preference)
           first_token = @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
-          first_payload = Preference::Token.decode(
+          first_payload = PreferenceToken.decode(
             first_token,
             host: @controller.request.host,
             jwt_issuer_id: @controller.send(:preference_jwt_issuer_id),
@@ -284,7 +284,7 @@ module Preference
         with_preference_jwt_keys(host: @controller.request.host) do
           @controller.send(:issue_access_token_from, preference)
           first_token = @controller.send(:cookies)[@controller.send(:access_token_cookie_name)]
-          first_payload = Preference::Token.decode(
+          first_payload = PreferenceToken.decode(
             first_token,
             host: @controller.request.host,
             jwt_issuer_id: @controller.send(:preference_jwt_issuer_id),
@@ -314,32 +314,32 @@ module Preference
   class JwtConfigurationTest < ActiveSupport::TestCase
     test "active_kid returns value from ENV" do
       with_env("PREFERENCE_JWT_ACTIVE_KID" => "test_kid") do
-        assert_equal Jit::Security::Jwt::Registry.issuer("preference").current_kid,
-                     Preference::JwtConfiguration.active_kid
+        assert_equal JitSecurityJwtRegistry.issuer("preference").current_kid,
+                     PreferenceJwtConfiguration.active_kid
       end
     end
 
     test "leeway_seconds returns value from ENV" do
       with_env("PREFERENCE_JWT_LEEWAY_SECONDS" => "45") do
-        assert_equal 45, Preference::JwtConfiguration.leeway_seconds
+        assert_equal 45, PreferenceJwtConfiguration.leeway_seconds
       end
     end
 
     test "issuer returns value from ENV" do
       with_env("PREFERENCE_JWT_ISSUER" => "test-issuer") do
-        assert_equal "test-issuer", Preference::JwtConfiguration.issuer
+        assert_equal "test-issuer", PreferenceJwtConfiguration.issuer
       end
     end
 
     test "audiences returns split values from ENV" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "aud1, aud2 , aud3") do
-        assert_equal %w(aud1 aud2 aud3), Preference::JwtConfiguration.audiences
+        assert_equal %w(aud1 aud2 aud3), PreferenceJwtConfiguration.audiences
       end
     end
 
     test "audience_for filters to matching TLD only" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = Preference::JwtConfiguration.audience_for("id.umaxica.app")
+        result = PreferenceJwtConfiguration.audience_for("id.umaxica.app")
 
         assert_includes result, "umaxica.app"
         assert_includes result, "localhost", "localhost is included in non-production"
@@ -349,7 +349,7 @@ module Preference
 
     test "audience_for returns only matching TLD for com host" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = Preference::JwtConfiguration.audience_for("wwww.umaxica.com")
+        result = PreferenceJwtConfiguration.audience_for("wwww.umaxica.com")
 
         assert_includes result, "umaxica.com"
         assert_includes result, "localhost"
@@ -359,7 +359,7 @@ module Preference
 
     test "audience_for includes localhost for localhost host" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = Preference::JwtConfiguration.audience_for("id.app.localhost")
+        result = PreferenceJwtConfiguration.audience_for("id.app.localhost")
 
         assert_includes result, "localhost"
         assert_not_includes result, "umaxica.app"
@@ -369,8 +369,8 @@ module Preference
 
     test "audience_for raises when host is blank" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for("") }
-        assert_raises(ArgumentError) { Preference::JwtConfiguration.audience_for(nil) }
+        assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for("") }
+        assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for(nil) }
       end
     end
 
@@ -379,38 +379,38 @@ module Preference
       # fail loudly. Silently falling back to [host] would defeat audience
       # scoping by accepting tokens issued for any new surface.
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
-          Preference::JwtConfiguration.audience_for("example.org")
+        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
+          PreferenceJwtConfiguration.audience_for("example.org")
         end
       end
     end
 
     test "audience_for raises for an .org host when only .app/.com are configured" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
-          Preference::JwtConfiguration.audience_for("id.umaxica.org")
+        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
+          PreferenceJwtConfiguration.audience_for("id.umaxica.org")
         end
       end
     end
 
     test "host_scope_for uses matching configured audience for sibling hosts" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_equal "umaxica.app", Preference::JwtConfiguration.host_scope_for("id.umaxica.app")
-        assert_equal "umaxica.com", Preference::JwtConfiguration.host_scope_for("www.umaxica.com")
+        assert_equal "umaxica.app", PreferenceJwtConfiguration.host_scope_for("id.umaxica.app")
+        assert_equal "umaxica.com", PreferenceJwtConfiguration.host_scope_for("www.umaxica.com")
       end
     end
 
     test "host_scope_for raises when no configured audience matches" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(Preference::JwtConfiguration::MissingAudienceError) do
-          Preference::JwtConfiguration.host_scope_for("id.umaxica.org")
+        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
+          PreferenceJwtConfiguration.host_scope_for("id.umaxica.org")
         end
       end
     end
 
     test "parse_header decodes token header" do
       token = JWT.encode({ foo: "bar" }, nil, "none", { kid: "test_kid" })
-      header = Preference::JwtConfiguration.parse_header(token)
+      header = PreferenceJwtConfiguration.parse_header(token)
 
       assert_equal "test_kid", header["kid"]
     end
@@ -441,10 +441,10 @@ module Preference
     end
 
     test "encode and decode a valid token" do
-      Preference::JwtConfiguration.stub(:private_key_for_active, @key) do
-        Preference::JwtConfiguration.stub(:public_key_for, @key) do
-          Preference::JwtConfiguration.stub(:active_kid, "test_kid") do
-            token = Preference::Token.encode(
+      PreferenceJwtConfiguration.stub(:private_key_for_active, @key) do
+        PreferenceJwtConfiguration.stub(:public_key_for, @key) do
+          PreferenceJwtConfiguration.stub(:active_kid, "test_kid") do
+            token = PreferenceToken.encode(
               @preferences,
               host: @host,
               preference_type: @type,
@@ -454,11 +454,11 @@ module Preference
 
             assert_not_nil token
 
-            decoded = Preference::Token.decode(token, host: @host)
+            decoded = PreferenceToken.decode(token, host: @host)
 
             assert_not_nil decoded
             assert_equal @preferences, decoded["preferences"]
-            assert_equal Preference::JwtConfiguration.host_scope_for(@host), decoded["host"]
+            assert_equal PreferenceJwtConfiguration.host_scope_for(@host), decoded["host"]
             assert_equal @type, decoded["preference_type"]
             assert_equal @public_id, decoded["public_id"]
             assert_equal @jti, decoded["jti"]
@@ -468,10 +468,10 @@ module Preference
     end
 
     test "decode returns nil for invalid host" do
-      Preference::JwtConfiguration.stub(:private_key_for_active, @key) do
-        Preference::JwtConfiguration.stub(:public_key_for, @key) do
-          Preference::JwtConfiguration.stub(:active_kid, "test_kid") do
-            token = Preference::Token.encode(
+      PreferenceJwtConfiguration.stub(:private_key_for_active, @key) do
+        PreferenceJwtConfiguration.stub(:public_key_for, @key) do
+          PreferenceJwtConfiguration.stub(:active_kid, "test_kid") do
+            token = PreferenceToken.encode(
               @preferences,
               host: @host,
               preference_type: @type,
@@ -479,7 +479,7 @@ module Preference
               jti: @jti,
             )
 
-            assert_nil Preference::Token.decode(token, host: "wrong.host")
+            assert_nil PreferenceToken.decode(token, host: "wrong.host")
           end
         end
       end
@@ -488,8 +488,8 @@ module Preference
     test "extract_preferences returns preferences from payload" do
       payload = { "preferences" => { "theme" => "light" } }
 
-      assert_equal({ "theme" => "light" }, Preference::Token.extract_preferences(payload))
-      assert_equal({}, Preference::Token.extract_preferences(nil))
+      assert_equal({ "theme" => "light" }, PreferenceToken.extract_preferences(payload))
+      assert_equal({}, PreferenceToken.extract_preferences(nil))
     end
   end
 
@@ -600,23 +600,23 @@ module Preference
 
     test "preference child records are created with the parent association" do
       preference = Object.new
-      option_ids = Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
+      option_ids = PreferenceClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
       created_records = []
       record_class =
         Class.new do
           define_singleton_method(:create!) { |attributes| created_records << attributes }
         end
-      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+      PreferenceClassRegistry::CHILD_RECORD_TYPES.each do |type|
         preference.define_singleton_method(:"create_app_preference_#{type}!") do |attributes|
           created_records << attributes
         end
       end
 
-      Preference::ClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
+      PreferenceClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
         @controller.send(:create_preference_option_records, "App", preference, option_ids)
       end
 
-      assert_equal Preference::ClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
+      assert_equal PreferenceClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
       assert_equal option_ids.values, created_records.pluck(:option_id)
       assert created_records.none? { |attributes| attributes.key?(:preference_id) }
       assert created_records.none? { |attributes| attributes.key?(:preference) }
@@ -624,10 +624,10 @@ module Preference
 
     test "preference child records are created on their model writing connection" do
       preference = Object.new
-      option_ids = Preference::ClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
+      option_ids = PreferenceClassRegistry::CHILD_RECORD_TYPES.index_with.with_index { |_, index| index + 1 }
       roles = []
       created_records = []
-      Preference::ClassRegistry::CHILD_RECORD_TYPES.each do |type|
+      PreferenceClassRegistry::CHILD_RECORD_TYPES.each do |type|
         preference.define_singleton_method(:"create_app_preference_#{type}!") do |attributes|
           created_records << attributes
         end
@@ -645,12 +645,12 @@ module Preference
       record_class = Class.new(connection_owner)
       record_class.define_singleton_method(:create!) { |attributes| created_records << attributes }
 
-      Preference::ClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
+      PreferenceClassRegistry.stub(:record_class, ->(_prefix, _type) { record_class }) do
         @controller.send(:create_preference_option_records, "App", preference, option_ids)
       end
 
-      assert_equal Array.new(Preference::ClassRegistry::CHILD_RECORD_TYPES.size, :writing), roles
-      assert_equal Preference::ClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
+      assert_equal Array.new(PreferenceClassRegistry::CHILD_RECORD_TYPES.size, :writing), roles
+      assert_equal PreferenceClassRegistry::CHILD_RECORD_TYPES.size, created_records.size
     end
 
     test "preference cookie is created with the parent association" do
@@ -664,7 +664,7 @@ module Preference
           define_singleton_method(:create!) { |attributes| created_attributes = attributes }
         end
 
-      Preference::ClassRegistry.stub(:cookie_class, ->(_prefix) { cookie_class }) do
+      PreferenceClassRegistry.stub(:cookie_class, ->(_prefix) { cookie_class }) do
         @controller.send(:create_preference_cookie, "App", preference)
       end
 
@@ -698,18 +698,18 @@ module Preference
     end
 
     test "host_matches? handles direct and subdomain matches" do
-      # Since host_matches? is in Preference::Token (which is a class)
-      # Wait, I see host_matches? in Preference::Token class << self
-      assert Preference::Token.send(:host_matches?, "example.com", "example.com")
-      assert Preference::Token.send(:host_matches?, "example.com", "sub.example.com")
-      assert_not Preference::Token.send(:host_matches?, "example.com", "other.com")
-      assert_not Preference::Token.send(:host_matches?, nil, "example.com")
+      # Since host_matches? is in PreferenceToken (which is a class)
+      # Wait, I see host_matches? in PreferenceToken class << self
+      assert PreferenceToken.send(:host_matches?, "example.com", "example.com")
+      assert PreferenceToken.send(:host_matches?, "example.com", "sub.example.com")
+      assert_not PreferenceToken.send(:host_matches?, "example.com", "other.com")
+      assert_not PreferenceToken.send(:host_matches?, nil, "example.com")
     end
 
     test "audience_matches? handles multiple audiences" do
-      assert Preference::Token.send(:audience_matches?, ["a.com", "b.com"], "a.com")
-      assert Preference::Token.send(:audience_matches?, ["a.com", "b.com"], "sub.b.com")
-      assert_not Preference::Token.send(:audience_matches?, ["a.com", "b.com"], "c.com")
+      assert PreferenceToken.send(:audience_matches?, ["a.com", "b.com"], "a.com")
+      assert PreferenceToken.send(:audience_matches?, ["a.com", "b.com"], "sub.b.com")
+      assert_not PreferenceToken.send(:audience_matches?, ["a.com", "b.com"], "c.com")
     end
 
     test "cookie banner endpoint returns nil when host is not expected" do
@@ -870,9 +870,9 @@ module Preference
         @controller.instance_variable_set(:@preferences, nil)
         @controller.instance_variable_set(:@preference_payload, nil)
 
-        Preference::Token.stub(:decode, payload) do
-          Preference::Token.stub(:extract_preference_type, klass.name) do
-            Preference::Token.stub(:extract_public_id, "missing-public") do
+        PreferenceToken.stub(:decode, payload) do
+          PreferenceToken.stub(:extract_preference_type, klass.name) do
+            PreferenceToken.stub(:extract_public_id, "missing-public") do
               klass.stub(:includes, relation) do
                 @controller.define_singleton_method(:preference_class) { klass }
                 @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
@@ -905,9 +905,9 @@ module Preference
       roles = []
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
-      Preference::Token.stub(:decode, payload) do
-        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
-          Preference::Token.stub(:extract_public_id, "existing-public") do
+      PreferenceToken.stub(:decode, payload) do
+        PreferenceToken.stub(:extract_preference_type, AppPreference.name) do
+          PreferenceToken.stub(:extract_public_id, "existing-public") do
             AppPreference.stub(:includes, relation) do
               @controller.define_singleton_method(:with_preference_connection) do |role, &block|
                 roles << role
@@ -940,10 +940,10 @@ module Preference
 
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
-      Preference::Token.stub(:decode, payload) do
-        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
-          Preference::Token.stub(:extract_public_id, preference.public_id) do
-            Preference::Token.stub(:extract_jti, "stale-jti") do
+      PreferenceToken.stub(:decode, payload) do
+        PreferenceToken.stub(:extract_preference_type, AppPreference.name) do
+          PreferenceToken.stub(:extract_public_id, preference.public_id) do
+            PreferenceToken.stub(:extract_jti, "stale-jti") do
               AppPreference.stub(:includes, relation) do
                 @controller.define_singleton_method(:preference_class) { AppPreference }
 
@@ -974,9 +974,9 @@ module Preference
 
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
-      Preference::Token.stub(:decode, payload) do
-        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
-          Preference::Token.stub(:extract_public_id, preference.public_id) do
+      PreferenceToken.stub(:decode, payload) do
+        PreferenceToken.stub(:extract_preference_type, AppPreference.name) do
+          PreferenceToken.stub(:extract_public_id, preference.public_id) do
             AppPreference.stub(:includes, relation) do
               @controller.define_singleton_method(:preference_class) { AppPreference }
 
@@ -1007,9 +1007,9 @@ module Preference
 
       @controller.send(:cookies)[@controller.send(:access_token_cookie_name)] = "access-token"
 
-      Preference::Token.stub(:decode, payload) do
-        Preference::Token.stub(:extract_preference_type, AppPreference.name) do
-          Preference::Token.stub(:extract_public_id, preference.public_id) do
+      PreferenceToken.stub(:decode, payload) do
+        PreferenceToken.stub(:extract_preference_type, AppPreference.name) do
+          PreferenceToken.stub(:extract_public_id, preference.public_id) do
             AppPreference.stub(:includes, relation) do
               @controller.define_singleton_method(:preference_class) { AppPreference }
 
@@ -1042,7 +1042,7 @@ module Preference
 
     test "set color theme uses actor preference before jwt payload and cookie" do
       Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
-      @controller.send(:cookies)[Preference::Base::THEME_COOKIE_KEY] = "li"
+      @controller.send(:cookies)[PreferenceBase::THEME_COOKIE_KEY] = "li"
       @controller.define_singleton_method(:preference_payload_value) { |_| "sy" }
 
       @controller.send(:set_color_theme)
@@ -1070,16 +1070,16 @@ module Preference
       @controller.send(:set_color_theme)
       cookies = @controller.send(:cookies)
 
-      assert_equal "dr", cookies[Preference::IoKeys::Cookies::THEME]
-      assert_equal "Etc/UTC", cookies[Preference::IoKeys::Cookies::TIMEZONE]
-      assert_equal "usd", cookies[Preference::IoKeys::Cookies::CURRENCY]
-      assert_equal "slash", cookies[Preference::IoKeys::Cookies::DATE_FORMAT]
-      assert_equal "hour_12", cookies[Preference::IoKeys::Cookies::TIME_FORMAT]
-      assert_equal "reduced", cookies[Preference::IoKeys::Cookies::MOTION]
-      assert_equal "compact", cookies[Preference::IoKeys::Cookies::DENSITY]
-      assert_equal "50", cookies[Preference::IoKeys::Cookies::PAGE_SIZE]
-      assert_equal "warn", cookies[Preference::IoKeys::Cookies::ADULT_CONTENT_GATE]
-      assert_nil cookies[Preference::Base::LANGUAGE_COOKIE_KEY]
+      assert_equal "dr", cookies[PreferenceIoKeys::Cookies::THEME]
+      assert_equal "Etc/UTC", cookies[PreferenceIoKeys::Cookies::TIMEZONE]
+      assert_equal "usd", cookies[PreferenceIoKeys::Cookies::CURRENCY]
+      assert_equal "slash", cookies[PreferenceIoKeys::Cookies::DATE_FORMAT]
+      assert_equal "hour_12", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
+      assert_equal "reduced", cookies[PreferenceIoKeys::Cookies::MOTION]
+      assert_equal "compact", cookies[PreferenceIoKeys::Cookies::DENSITY]
+      assert_equal "50", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
+      assert_equal "warn", cookies[PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE]
+      assert_nil cookies[PreferenceBase::LANGUAGE_COOKIE_KEY]
       assert_nil cookies["ri"]
       assert_nil cookies["lx"]
     end
@@ -1103,22 +1103,22 @@ module Preference
       )
       cookies = @controller.send(:cookies)
 
-      assert_equal "li", cookies[Preference::IoKeys::Cookies::THEME]
-      assert_equal "Asia/Tokyo", cookies[Preference::IoKeys::Cookies::TIMEZONE]
-      assert_equal "jpy", cookies[Preference::IoKeys::Cookies::CURRENCY]
-      assert_equal "iso", cookies[Preference::IoKeys::Cookies::DATE_FORMAT]
-      assert_equal "hour_24", cookies[Preference::IoKeys::Cookies::TIME_FORMAT]
-      assert_equal "standard", cookies[Preference::IoKeys::Cookies::MOTION]
-      assert_equal "standard", cookies[Preference::IoKeys::Cookies::DENSITY]
-      assert_equal "20", cookies[Preference::IoKeys::Cookies::PAGE_SIZE]
-      assert_equal "nothing", cookies[Preference::IoKeys::Cookies::ADULT_CONTENT_GATE]
+      assert_equal "li", cookies[PreferenceIoKeys::Cookies::THEME]
+      assert_equal "Asia/Tokyo", cookies[PreferenceIoKeys::Cookies::TIMEZONE]
+      assert_equal "jpy", cookies[PreferenceIoKeys::Cookies::CURRENCY]
+      assert_equal "iso", cookies[PreferenceIoKeys::Cookies::DATE_FORMAT]
+      assert_equal "hour_24", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
+      assert_equal "standard", cookies[PreferenceIoKeys::Cookies::MOTION]
+      assert_equal "standard", cookies[PreferenceIoKeys::Cookies::DENSITY]
+      assert_equal "20", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
+      assert_equal "nothing", cookies[PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE]
       assert_nil cookies["ri"]
       assert_nil cookies["lx"]
     end
 
     test "set color theme ignores explicit request parameter after actor overlay is resolved" do
       Actor.install_context!(preferences: Actor::Preference.new(theme: "dr"))
-      @controller.test_params = { Preference::IoKeys::Params::CT => "li" }
+      @controller.test_params = { PreferenceIoKeys::Params::CT => "li" }
 
       @controller.send(:set_color_theme)
 

@@ -5,25 +5,25 @@ require "test_helper"
 
 class SignTelephoneRegistrableIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Common::Redirect
-    include Common::Otp
-    include Sign::TelephoneRegistrable
+    include CommonRedirect
+    include CommonOtp
+    include SignTelephoneRegistrable
   end
 
-  test "terminal controller includes Common::Redirect explicitly" do
-    assert_includes Harness.included_modules, Common::Redirect
+  test "terminal controller includes CommonRedirect explicitly" do
+    assert_includes Harness.included_modules, CommonRedirect
   end
 
-  test "terminal controller includes Common::Otp explicitly" do
-    assert_includes Harness.included_modules, Common::Otp
+  test "terminal controller includes CommonOtp explicitly" do
+    assert_includes Harness.included_modules, CommonOtp
   end
 
   test "TELEPHONE_VERIFICATION_RATE_LIMIT constant is defined" do
-    assert_equal 5, Sign::TelephoneRegistrable::TELEPHONE_VERIFICATION_RATE_LIMIT
+    assert_equal 5, SignTelephoneRegistrable::TELEPHONE_VERIFICATION_RATE_LIMIT
   end
 
   test "TELEPHONE_VERIFICATION_RATE_WINDOW constant is defined" do
-    assert_equal 60, Sign::TelephoneRegistrable::TELEPHONE_VERIFICATION_RATE_WINDOW
+    assert_equal 60, SignTelephoneRegistrable::TELEPHONE_VERIFICATION_RATE_WINDOW
   end
 
   test "initiate_telephone_verification method exists" do

@@ -28,8 +28,8 @@ module EmailCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :status, :grant_jti, :expires_at,
               presence: true
-    validates :surface, inclusion: { in: Identity::EmailCeremony::Contract::SURFACES }
-    validates :operation, inclusion: { in: Identity::EmailCeremony::Contract::OPERATIONS }
+    validates :surface, inclusion: { in: IdentityEmailCeremonyContract::SURFACES }
+    validates :operation, inclusion: { in: IdentityEmailCeremonyContract::OPERATIONS }
     validates :status, inclusion: { in: STATUSES }
     validate :surface_matches_transaction_class
     validate :consumed_transaction_has_result
@@ -54,7 +54,7 @@ module EmailCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           email_candidate_ref: email_candidate_ref,
           normalized_email_digest: normalized_email_digest,
-          expires_at: expires_at || (now + Identity::EmailCeremony::Transaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + IdentityEmailCeremonyTransaction::DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )
@@ -99,15 +99,15 @@ module EmailCeremonyTransactionable
     self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
-        raise Identity::EmailCeremony::Error, "transaction is already consumed" if locked.consumed?
-        raise Identity::EmailCeremony::Error, "transaction is expired" if locked.expired?(now: consumed_at)
+        raise IdentityEmailCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
+        raise IdentityEmailCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(result_jti: result_jti, consumed_at: consumed_at, status: STATUS_CONSUMED)
         locked
       end
     end
   rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
-    raise Identity::EmailCeremony::Error, "result_jti has already been consumed: #{e.message}"
+    raise IdentityEmailCeremonyContract::Error, "result_jti has already been consumed: #{e.message}"
   end
 
   private

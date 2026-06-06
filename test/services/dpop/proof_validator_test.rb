@@ -27,7 +27,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api")
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -39,7 +39,7 @@ module Dpop
     end
 
     test "missing proof returns error" do
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: nil,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -50,7 +50,7 @@ module Dpop
     end
 
     test "malformed proof returns error" do
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: "not.a.jwt",
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -65,7 +65,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -81,7 +81,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, rsa, "RS256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -96,7 +96,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt" })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -112,7 +112,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -126,7 +126,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "POST", uri: "http://example.com/api")
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -140,7 +140,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/other")
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -154,7 +154,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", iat: Time.current.to_i - 120)
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -169,7 +169,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -183,7 +183,7 @@ module Dpop
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", ath: "wrong_ath")
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -197,10 +197,10 @@ module Dpop
     test "ath match succeeds" do
       private_key, jwk = generate_proof_jwk
       access_token = "real_access_token"
-      ath = Jit::Security::Jwt::ThumbprintCalculator.ath(access_token)
+      ath = JitSecurityJwtThumbprintCalculator.ath(access_token)
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", ath: ath)
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -212,24 +212,24 @@ module Dpop
 
     test "nonce match succeeds and consumes nonce" do
       private_key, jwk = generate_proof_jwk
-      nonce = Dpop::NonceService.generate
+      nonce = DpopNonceService.generate
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", nonce: nonce)
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
       ).call
 
       assert_predicate result, :valid?
-      assert_not Dpop::NonceService.verify(nonce)
+      assert_not DpopNonceService.verify(nonce)
     end
 
     test "unknown nonce fails" do
       private_key, jwk = generate_proof_jwk
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", nonce: "missing")
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -244,7 +244,7 @@ module Dpop
       jti = SecureRandom.uuid
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
 
-      first = ProofValidator.new(
+      first = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -253,7 +253,7 @@ module Dpop
       assert_predicate first, :valid?
       assert_equal 1, ClientDpopProofState.where(jti: jti).count
 
-      replay = ProofValidator.new(
+      replay = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -269,7 +269,7 @@ module Dpop
       proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: jti)
 
       assert_no_difference -> { ClientDpopProofState.count } do
-        first = ProofValidator.new(
+        first = DpopProofValidator.new(
           proof_jwt: proof,
           request_method: "GET",
           request_uri: "http://example.com/api",
@@ -279,7 +279,7 @@ module Dpop
         assert_predicate first, :valid?
 
         # Same proof again still validates because uniqueness is not tracked.
-        second = ProofValidator.new(
+        second = DpopProofValidator.new(
           proof_jwt: proof,
           request_method: "GET",
           request_uri: "http://example.com/api",
@@ -295,7 +295,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",
@@ -312,7 +312,7 @@ module Dpop
       payload = { "htm" => "GET", "htu" => "http://example.com/api", "iat" => Time.current.to_i }
       proof = JWT.encode(payload, other_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
 
-      result = ProofValidator.new(
+      result = DpopProofValidator.new(
         proof_jwt: proof,
         request_method: "GET",
         request_uri: "http://example.com/api",

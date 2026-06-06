@@ -9,10 +9,10 @@ module Sign
 
         include ActionPolicy::Controller
 
-        # Note: Authentication::Operator is NOT included here for unauthenticated sign-up
-        include ::Preference::Global
+        # Note: AuthenticationOperator is NOT included here for unauthenticated sign-up
+        include ::PreferenceGlobal
 
-        include ::Preference::Adoption
+        include ::PreferenceAdoption
 
         include ::ActorSupport
 
@@ -34,7 +34,7 @@ module Sign
         append_after_action :finish_request
 
         protect_from_forgery using: :header_or_legacy_token,
-                             trusted_origins: Jit::HostOriginEnv.trusted_origins(
+                             trusted_origins: JitHostOriginEnv.trusted_origins(
                                ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
                              ),
                              with: :exception

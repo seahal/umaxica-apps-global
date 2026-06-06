@@ -6,9 +6,9 @@ module Core
     module Edge
       module V0
         class DbscController < Core::Org::ApplicationController
-          include ::Preference::WebCookieEndpoint
+          include ::PreferenceWebCookieEndpoint
 
-          include ::Preference::DbscRegistrationEndpoint
+          include ::PreferenceDbscRegistrationEndpoint
 
           AUTHENTICATION_MODE = :deny_all
 

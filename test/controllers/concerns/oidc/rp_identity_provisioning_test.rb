@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
+class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
   setup do
     ClientIdentityState.ensure_defaults!
     VisitorIdentityState.ensure_defaults!
@@ -18,8 +18,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("core_app")),
-        "sub" => Oidc::Subject.for(client, resource_type: "client"),
+        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core_app")),
+        "sub" => OidcSubject.for(client, resource_type: "client"),
         "aud" => "core_app",
       },
     )
@@ -28,8 +28,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
     bridge = CoreAppClientBridge.find_by!(client_id: client.id)
 
     assert_equal client, actor
-    assert_equal Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("core_app")), identity.issuer
-    assert_equal Oidc::Subject.for(client, resource_type: "client"), identity.subject
+    assert_equal OidcIssuer.for_client(OidcClientRegistry.find!("core_app")), identity.issuer
+    assert_equal OidcSubject.for(client, resource_type: "client"), identity.subject
     assert_equal "core_app", identity.audience
     assert_equal ClientIdentityState::ACTIVE, identity.status_id
     assert_equal "core_app", bridge.rp_client_id
@@ -69,8 +69,8 @@ class Oidc::RpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => Oidc::Issuer.for_client(Oidc::ClientRegistry.find!("acme_com")),
-        "sub" => Oidc::Subject.for(visitor, resource_type: "visitor"),
+        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("acme_com")),
+        "sub" => OidcSubject.for(visitor, resource_type: "visitor"),
         "aud" => "acme_com",
       },
     )

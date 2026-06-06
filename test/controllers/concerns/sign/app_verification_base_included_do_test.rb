@@ -5,79 +5,79 @@ require "test_helper"
 
 class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
-    include Preference::Global
-    include Common::Otp
-    include Verification::Client
-    include Sign::Webauthn
-    include Sign::VerificationTiming
-    include Sign::VerificationCommonBase
-    include Sign::VerificationAuditAndCookie
-    include Sign::VerificationStepUpSessionStore
-    include Sign::VerificationStepUpLifecycle
-    include Sign::VerificationPasskeyChecks
-    include Sign::VerificationTotpChecks
-    include Sign::AppVerificationBase
+    include PreferenceGlobal
+    include CommonOtp
+    include VerificationClient
+    include SignWebauthn
+    include SignVerificationTiming
+    include SignVerificationCommonBase
+    include SignVerificationAuditAndCookie
+    include SignVerificationStepUpSessionStore
+    include SignVerificationStepUpLifecycle
+    include SignVerificationPasskeyChecks
+    include SignVerificationTotpChecks
+    include SignAppVerificationBase
   end
 
-  test "included do includes Preference::Global module" do
-    assert_includes Harness.included_modules, Preference::Global
+  test "included do includes PreferenceGlobal module" do
+    assert_includes Harness.included_modules, PreferenceGlobal
   end
 
-  test "included do includes Common::Otp module" do
-    assert_includes Harness.included_modules, Common::Otp
+  test "included do includes CommonOtp module" do
+    assert_includes Harness.included_modules, CommonOtp
   end
 
-  test "included do includes Verification::Client module" do
-    assert_includes Harness.included_modules, Verification::Client
+  test "included do includes VerificationClient module" do
+    assert_includes Harness.included_modules, VerificationClient
   end
 
-  test "included do includes Sign::Webauthn module" do
-    assert_includes Harness.included_modules, Sign::Webauthn
+  test "included do includes SignWebauthn module" do
+    assert_includes Harness.included_modules, SignWebauthn
   end
 
-  test "included do includes Sign::VerificationTiming module" do
-    assert_includes Harness.included_modules, Sign::VerificationTiming
+  test "included do includes SignVerificationTiming module" do
+    assert_includes Harness.included_modules, SignVerificationTiming
   end
 
-  test "included do includes Sign::VerificationCommonBase module" do
-    assert_includes Harness.included_modules, Sign::VerificationCommonBase
+  test "included do includes SignVerificationCommonBase module" do
+    assert_includes Harness.included_modules, SignVerificationCommonBase
   end
 
-  test "included do includes Sign::VerificationAuditAndCookie module" do
-    assert_includes Harness.included_modules, Sign::VerificationAuditAndCookie
+  test "included do includes SignVerificationAuditAndCookie module" do
+    assert_includes Harness.included_modules, SignVerificationAuditAndCookie
   end
 
-  test "included do includes Sign::VerificationStepUpSessionStore module" do
-    assert_includes Harness.included_modules, Sign::VerificationStepUpSessionStore
+  test "included do includes SignVerificationStepUpSessionStore module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpSessionStore
   end
 
-  test "included do includes Sign::VerificationStepUpLifecycle module" do
-    assert_includes Harness.included_modules, Sign::VerificationStepUpLifecycle
+  test "included do includes SignVerificationStepUpLifecycle module" do
+    assert_includes Harness.included_modules, SignVerificationStepUpLifecycle
   end
 
-  test "included do includes Sign::VerificationPasskeyChecks module" do
-    assert_includes Harness.included_modules, Sign::VerificationPasskeyChecks
+  test "included do includes SignVerificationPasskeyChecks module" do
+    assert_includes Harness.included_modules, SignVerificationPasskeyChecks
   end
 
-  test "included do includes Sign::VerificationTotpChecks module" do
-    assert_includes Harness.included_modules, Sign::VerificationTotpChecks
+  test "included do includes SignVerificationTotpChecks module" do
+    assert_includes Harness.included_modules, SignVerificationTotpChecks
   end
 
   test "STEP_UP_TTL constant is defined" do
-    assert_equal 15.minutes, Sign::AppVerificationBase::STEP_UP_TTL
+    assert_equal 15.minutes, SignAppVerificationBase::STEP_UP_TTL
   end
 
   test "STEP_UP_SESSION_KEY constant is defined" do
-    assert_equal :step_up, Sign::AppVerificationBase::STEP_UP_SESSION_KEY
+    assert_equal :step_up, SignAppVerificationBase::STEP_UP_SESSION_KEY
   end
 
   test "EMAIL_OTP_SESSION_KEY constant is defined" do
-    assert_equal :step_up_email_otp, Sign::AppVerificationBase::EMAIL_OTP_SESSION_KEY
+    assert_equal :step_up_email_otp, SignAppVerificationBase::EMAIL_OTP_SESSION_KEY
   end
 
   test "ALLOWED_SCOPES constant is defined" do
-    assert_kind_of Hash, Sign::AppVerificationBase::ALLOWED_SCOPES
-    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("settings_email")
-    assert Sign::AppVerificationBase::ALLOWED_SCOPES.key?("settings_telephone")
+    assert_kind_of Hash, SignAppVerificationBase::ALLOWED_SCOPES
+    assert SignAppVerificationBase::ALLOWED_SCOPES.key?("settings_email")
+    assert SignAppVerificationBase::ALLOWED_SCOPES.key?("settings_telephone")
   end
 end

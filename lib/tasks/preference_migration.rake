@@ -81,12 +81,12 @@ namespace :preference do
       source_option = source_child.option
       next unless source_option&.name
 
-      target_option_class = Preference::ClassRegistry.option_class(target_prefix, type)
+      target_option_class = PreferenceClassRegistry.option_class(target_prefix, type)
       target_option_class.ensure_defaults!
       target_option = target_option_class.find_each.find { |o| o.name&.downcase == source_option.name.downcase }
       next unless target_option
 
-      Preference::ClassRegistry.record_class(target_prefix, type).create!(
+      PreferenceClassRegistry.record_class(target_prefix, type).create!(
         preference_id: target_pref.id,
         option_id: target_option.id,
       )

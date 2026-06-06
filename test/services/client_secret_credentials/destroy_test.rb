@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class ClientSecretCredentials::DestroyTest < ActiveSupport::TestCase
+class ClientSecretCredentialsDestroyTest < ActiveSupport::TestCase
   fixtures :client_statuses, :client_email_statuses, :client_secret_credential_statuses
 
   setup do
@@ -26,13 +26,13 @@ class ClientSecretCredentials::DestroyTest < ActiveSupport::TestCase
 
   test "destroys user secret_credential" do
     assert_difference("ClientSecretCredential.count", -1) do
-      ClientSecretCredentials::Destroy.call(actor: @user, secret_credential: @secret_credential)
+      ClientSecretCredentialsDestroy.call(actor: @user, secret_credential: @secret_credential)
     end
   end
 
   test "creates ClientChronicle audit when actor is Client" do
     assert_difference("ClientChronicle.count", 1) do
-      ClientSecretCredentials::Destroy.call(actor: @user, secret_credential: @secret_credential)
+      ClientSecretCredentialsDestroy.call(actor: @user, secret_credential: @secret_credential)
     end
 
     activity = ClientChronicle.last

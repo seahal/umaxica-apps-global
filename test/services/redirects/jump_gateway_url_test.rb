@@ -3,11 +3,11 @@
 
 require "test_helper"
 
-class Redirects::JumpGatewayUrlTest < ActiveSupport::TestCase
+class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
   test "builds jump gateway url with rt query" do
     with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
       token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
-      result = Redirects::JumpGatewayUrl.call(token)
+      result = RedirectsJumpGatewayUrl.call(token)
 
       assert_predicate result, :ok?
       assert_equal "https://jump.umaxica.net/?rt=#{token}", result.value
@@ -18,18 +18,18 @@ class Redirects::JumpGatewayUrlTest < ActiveSupport::TestCase
   end
 
   test "rejects malformed tokens" do
-    assert_not Redirects::JumpGatewayUrl.call("xxx").ok?
-    assert_not Redirects::JumpGatewayUrl.call("").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa..ccc").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc=").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc+").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc/").ok?
-    assert_not Redirects::JumpGatewayUrl.call("aaa.bbb.ccc\n").ok?
+    assert_not RedirectsJumpGatewayUrl.call("xxx").ok?
+    assert_not RedirectsJumpGatewayUrl.call("").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa.bbb").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa..ccc").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa.bbb.ccc=").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa.bbb.ccc+").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa.bbb.ccc/").ok?
+    assert_not RedirectsJumpGatewayUrl.call("aaa.bbb.ccc\n").ok?
   end
 
   test "rejects extremely short three-part tokens" do
-    result = Redirects::JumpGatewayUrl.call("aaa.bbb.ccc")
+    result = RedirectsJumpGatewayUrl.call("aaa.bbb.ccc")
 
     assert_not result.ok?
     assert_equal "token_too_short", result.failure_reason
@@ -42,9 +42,9 @@ class Redirects::JumpGatewayUrlTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
-      JumpRt::Keyring.stub(:private_key, private_key) do
-        token = JumpRt::Issuer.call(namespace: "SIGN_APP", url: "https://www.umaxica.app/dashboard")
-        result = Redirects::JumpGatewayUrl.call(token)
+      JumpRtKeyring.stub(:private_key, private_key) do
+        token = JumpRtIssuer.call(namespace: "SIGN_APP", url: "https://www.umaxica.app/dashboard")
+        result = RedirectsJumpGatewayUrl.call(token)
 
         assert_predicate result, :ok?
         assert_equal token, Rack::Utils.parse_query(URI.parse(result.value).query).fetch("rt")
@@ -54,7 +54,7 @@ class Redirects::JumpGatewayUrlTest < ActiveSupport::TestCase
 
   test "rejects unsafe gateway origins" do
     with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
-      result = Redirects::JumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
+      result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
 
       assert_not result.ok?
       assert_equal "https_required", result.failure_reason

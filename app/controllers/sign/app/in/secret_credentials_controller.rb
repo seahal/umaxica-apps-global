@@ -11,7 +11,7 @@ module Sign
 
         include IdentifierDetection
 
-        include Common::Redirect
+        include CommonRedirect
 
         include SessionLimitGate
 
@@ -172,7 +172,7 @@ module Sign
 
         def handle_successful_mfa(user, secret_credential)
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
                                               method: "secret_credential", secret_credential_id: secret_credential.id,
             ),
@@ -196,7 +196,7 @@ module Sign
 
         def handle_failed_mfa(user, reason, details = {})
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
                                             method: "secret_credential",
             ),
@@ -331,7 +331,7 @@ module Sign
 
         def report_authentication_error(error, flow:)
           Rails.logger.error(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.authentication.secret_credential.error",
               flow: flow,
               error_class: error.class.name,
@@ -348,7 +348,7 @@ module Sign
 
           # Detailed failure logging (failure_reason=...) as requested
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "sign.authentication.secret_credential.failed",
               reason: reason,
               identifier_type: detect_identifier_type(identifier.to_s),
@@ -360,7 +360,7 @@ module Sign
             ),
           )
 
-          Sign::Risk::Emitter.emit("auth_failed", user_id: user&.id) if user
+          SignRiskEmitter.emit("auth_failed", user_id: user&.id) if user
 
           render_new_with_unprocessable_entity
         end

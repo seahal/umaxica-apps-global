@@ -6,11 +6,11 @@ require "test_helper"
 class AuthenticationVisitorIncludedDoTest < ActiveSupport::TestCase
   class Harness < ApplicationController
     include AuthorizationAudit
-    include Authentication::Visitor
+    include AuthenticationVisitor
   end
 
-  test "included do includes Authentication::Base module" do
-    assert_includes Harness.included_modules, Authentication::Base
+  test "included do includes AuthenticationBase module" do
+    assert_includes Harness.included_modules, AuthenticationBase
   end
 
   test "included do includes AuthorizationAudit module" do
@@ -18,18 +18,18 @@ class AuthenticationVisitorIncludedDoTest < ActiveSupport::TestCase
   end
 
   test "active_visitor? method exists" do
-    assert_includes Authentication::Visitor.instance_methods(false), :active_visitor?
+    assert_includes AuthenticationVisitor.instance_methods(false), :active_visitor?
   end
 
   test "audit_visitor_login_failed method exists" do
-    assert_includes Authentication::Visitor.instance_methods(false), :audit_visitor_login_failed
+    assert_includes AuthenticationVisitor.instance_methods(false), :audit_visitor_login_failed
   end
 
   test "ACCESS_COOKIE_KEY constant is defined" do
-    assert_equal Authentication::Base::ACCESS_COOKIE_KEY, Authentication::Visitor::ACCESS_COOKIE_KEY
+    assert_equal AuthenticationBase::ACCESS_COOKIE_KEY, AuthenticationVisitor::ACCESS_COOKIE_KEY
   end
 
   test "REFRESH_COOKIE_KEY constant is defined" do
-    assert_equal Authentication::Base::REFRESH_COOKIE_KEY, Authentication::Visitor::REFRESH_COOKIE_KEY
+    assert_equal AuthenticationBase::REFRESH_COOKIE_KEY, AuthenticationVisitor::REFRESH_COOKIE_KEY
   end
 end

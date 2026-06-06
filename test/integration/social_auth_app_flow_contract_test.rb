@@ -170,7 +170,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_match %r{/verification}, response.location
     assert_match "scope=social_link", response.location
-    assert_nil session[SocialAuthConcern::SOCIAL_FLOW_ID_SESSION_KEY]
+    assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
   test "Google settings unlink rejects passcode as the only remaining method" do
@@ -429,7 +429,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def token_bound_step_up_for_social_link(user)
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    mark_token_step_up_satisfied_for_test(token, scope: SocialAuthConcern::SOCIAL_LINK_SCOPE)
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
     token
   end
 

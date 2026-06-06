@@ -8,7 +8,7 @@ module Email::App
     layout "email/application"
 
     def create
-      @pass_code = Outbound::SensitivePayload.decrypt_email_otp(params[:encrypted_hotp_token])
+      @pass_code = OutboundSensitivePayload.decrypt_email_otp(params[:encrypted_hotp_token])
       @verification_token = params[:verification_token]
       @public_id = params[:public_id]
       @verification_url = verification_url

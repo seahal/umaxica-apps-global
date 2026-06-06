@@ -5,9 +5,9 @@ module Sign
   module App
     module Settings
       class WithdrawalsController < Sign::App::ApplicationController
-        include ::Sign::SettingsAuthorityRedirect
-        include ::Verification::Client
-        include Acme::Settings::WithdrawalFlow
+        include ::SignSettingsAuthorityRedirect
+        include ::VerificationClient
+        include AcmeSettingsWithdrawalFlow
 
         AUTHENTICATION_MODE = :private
 
@@ -78,7 +78,7 @@ module Sign
 
         def handle_deactivation_failure(actor)
           Rails.logger.info(
-            Jit::LogEvent.format(
+            JitLogEvent.format(
               "user.withdrawal.suspension_failed",
               user_id: actor.id,
               errors: actor.errors.full_messages,

@@ -406,7 +406,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     refresh = token.rotate_refresh_token!
 
     rotations.times do
-      refresh = Sign::RefreshTokenService.call(refresh_token: refresh)[:refresh_token]
+      refresh = SignRefreshTokenService.call(refresh_token: refresh)[:refresh_token]
     end
   end
 end

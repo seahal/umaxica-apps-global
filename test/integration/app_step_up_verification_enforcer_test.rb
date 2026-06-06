@@ -27,8 +27,8 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to setup when configured methods are zero" do
     @user.update!(mfa_status_id: ClientMfaStatus::UNCONFIGURED)
 
-    StepUp::ConfiguredMethods.stub(:call, []) do
-      StepUp::AvailableMethods.stub(:call, []) do
+    StepUpConfiguredMethods.stub(:call, []) do
+      StepUpAvailableMethods.stub(:call, []) do
         get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
@@ -42,8 +42,8 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
-    StepUp::ConfiguredMethods.stub(:call, [:email_otp]) do
-      StepUp::AvailableMethods.stub(:call, []) do
+    StepUpConfiguredMethods.stub(:call, [:email_otp]) do
+      StepUpAvailableMethods.stub(:call, []) do
         get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
@@ -83,7 +83,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
-    assert_equal Verification::Base::STEP_UP_REQUIRED_MESSAGE, response.body
+    assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
   end
 
   test "successful verification enables protected POST and records audit" do

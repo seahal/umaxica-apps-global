@@ -12,8 +12,8 @@ class PreferenceExplicitModelRegistryTest < ActiveSupport::TestCase
   test "extended preference records and options are explicit model files" do
     PREFIXES.each do |prefix|
       TYPES.each do |type|
-        record_class = Preference::ClassRegistry.record_class(prefix, type)
-        option_class = Preference::ClassRegistry.option_class(prefix, type)
+        record_class = PreferenceClassRegistry.record_class(prefix, type)
+        option_class = PreferenceClassRegistry.option_class(prefix, type)
 
         assert_match %r{/app/models/}, record_class.instance_method(:set_option_id).source_location.first
         assert_match %r{/app/models/}, option_class.instance_method(:name).source_location.first
@@ -23,7 +23,7 @@ class PreferenceExplicitModelRegistryTest < ActiveSupport::TestCase
 
   test "extended preference records are dependent destroy children" do
     PREFIXES.each do |prefix|
-      parent_class = Preference::ClassRegistry.fetch(prefix).fetch(:preference)
+      parent_class = PreferenceClassRegistry.fetch(prefix).fetch(:preference)
 
       TYPES.each do |type|
         association = parent_class.reflect_on_association(:"#{prefix.underscore}_preference_#{type}")

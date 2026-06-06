@@ -308,8 +308,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   end
 
   test "POST redirects to setup when bootstrap and no usable step-up methods exist" do
-    StepUp::ConfiguredMethods.stub(:call, []) do
-      StepUp::AvailableMethods.stub(:call, []) do
+    StepUpConfiguredMethods.stub(:call, []) do
+      StepUpAvailableMethods.stub(:call, []) do
         with_prosopite_paused do
           post sign_app_verification_totp_url(ri: "jp"),
                params: { verification: { code: "123456" } },
@@ -330,16 +330,16 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
   def step_up_pt_issuer
     @step_up_pt_issuer ||= Class.new do
-      include ::Redirects::SignedTargetSupport
+      include ::RedirectsSignedTargetSupport
 
       def issue(return_to:, surface:, session_nonce:)
         path = signed_target_internal_path(return_to)
         claims = signed_target_claims(flow: "step_up.bootstrap", surface: surface, session_nonce: session_nonce)
         issue_signed_target_token(
           payload: claims.merge("pt" => path),
-          purpose: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
-          salt: Verification::Base::STEP_UP_PATH_TARGET_TOKEN_SALT,
-          expires_in: Verification::Base::STEP_UP_TTL,
+          purpose: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_PURPOSE,
+          salt: VerificationBase::STEP_UP_PATH_TARGET_TOKEN_SALT,
+          expires_in: VerificationBase::STEP_UP_TTL,
         )
       end
     end.new

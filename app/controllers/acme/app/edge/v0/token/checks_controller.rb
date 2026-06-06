@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 class Acme::App::Edge::V0::Token::ChecksController < Acme::App::ApplicationController
-  include Sign::EdgeV0JsonApi
+  include SignEdgeV0JsonApi
 
   AUTHENTICATION_MODE = :deny_all
 

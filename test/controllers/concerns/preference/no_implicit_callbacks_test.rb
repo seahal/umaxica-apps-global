@@ -5,7 +5,7 @@ require "test_helper"
 
 class PreferenceNoImplicitCallbacksTest < ActiveSupport::TestCase
   test "preference concerns do not register callbacks through included blocks" do
-    files = Rails.root.glob("app/controllers/concerns/preference/**/*.rb")
+    files = Rails.root.glob("app/controllers/concerns/preference_*.rb")
     offenders =
       files.filter_map do |file|
         path = Pathname(file).relative_path_from(Rails.root).to_s

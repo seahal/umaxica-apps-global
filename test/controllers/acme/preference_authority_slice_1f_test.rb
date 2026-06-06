@@ -33,8 +33,8 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "[data-controller='theme']", count: 1
-      assert_predicate cookies[Preference::CookieName.access(surface: surface)], :present?
-      assert_predicate cookies[Preference::CookieName.refresh(surface: surface)], :present?
+      assert_predicate cookies[PreferenceCookieName.access(surface: surface)], :present?
+      assert_predicate cookies[PreferenceCookieName.refresh(surface: surface)], :present?
     end
   end
 

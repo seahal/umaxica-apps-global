@@ -26,7 +26,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "new sends otp and redirects to edit" do
     return_to = sign_com_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
         get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -50,7 +50,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
     return_to = sign_com_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
       get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -69,7 +69,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "update verifies otp and redirects to return_to" do
     return_to = sign_com_settings_emails_path(ri: "jp")
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
         get sign_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -202,7 +202,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       assert email.update(visitor_email_status_id: VisitorEmailStatus::UNVERIFIED)
     end
 
-    StepUp::AvailableMethods.stub(:call, [:email_otp]) do
+    StepUpAvailableMethods.stub(:call, [:email_otp]) do
       get new_sign_com_verification_email_url(ri: "jp"), headers: @headers
 
       assert_response :unprocessable_content

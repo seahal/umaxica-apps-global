@@ -35,7 +35,7 @@
 #
 class ClientWithdrawalFlow < AppPrincipalRecord
   include WithdrawalFlow
-  include Flow::Withdrawal
+  include FlowWithdrawal
 
   STATUS_MODEL = ClientWithdrawalFlowStatus
   EVENT_MODEL = ClientWithdrawalFlowEvent

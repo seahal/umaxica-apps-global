@@ -10,7 +10,7 @@ module CspViolationReport
     report = JSON.parse(request.body.read)
     payload = report["csp-report"] || {}
 
-    Rails.logger.info(Jit::LogEvent.format("security.csp_violation", **payload.symbolize_keys))
+    Rails.logger.info(JitLogEvent.format("security.csp_violation", **payload.symbolize_keys))
   rescue JSON::ParserError
     nil
   end
