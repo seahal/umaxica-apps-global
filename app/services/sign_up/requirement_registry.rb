@@ -12,22 +12,32 @@ module SignUp
 
     DEFINITIONS = {
       app: {
-        "email" => Definition.new(surface: :app, entry_method: "email", requirements: %i(birthdate), social: false),
+        "email" => Definition.new(surface: :app, entry_method: "email", requirements: %i(otp birthdate), social: false),
         "telephone" => Definition.new(
           surface: :app,
           entry_method: "telephone",
-          requirements: %i(birthdate passkey passcode),
+          requirements: %i(otp passkey passcode birthdate),
           social: false,
         ),
-        "google" => Definition.new(surface: :app, entry_method: "google", requirements: %i(birthdate), social: true),
-        "apple" => Definition.new(surface: :app, entry_method: "apple", requirements: %i(birthdate), social: true),
+        "google" => Definition.new(
+          surface: :app,
+          entry_method: "google",
+          requirements: %i(confirmation birthdate),
+          social: true,
+        ),
+        "apple" => Definition.new(
+          surface: :app,
+          entry_method: "apple",
+          requirements: %i(confirmation birthdate),
+          social: true,
+        ),
       },
       com: {
-        "email" => Definition.new(surface: :com, entry_method: "email", requirements: %i(birthdate), social: false),
+        "email" => Definition.new(surface: :com, entry_method: "email", requirements: %i(otp birthdate), social: false),
         "telephone" => Definition.new(
           surface: :com,
           entry_method: "telephone",
-          requirements: %i(birthdate passkey passcode),
+          requirements: %i(otp passkey passcode birthdate),
           social: false,
         ),
       },
@@ -71,6 +81,21 @@ module SignUp
 
     def missing_requirements(completed_requirements)
       requirements.reject { |requirement| requirement_cleared?(completed_requirements, requirement) }
+    end
+
+    def prior_requirements(requirement)
+      index = requirements.index(requirement.to_sym)
+      return [] unless index
+
+      requirements.first(index)
+    end
+
+    def prior_requirements_cleared?(completed_requirements, requirement)
+      prior_requirements(requirement).all? { |prior| requirement_cleared?(completed_requirements, prior) }
+    end
+
+    def next_requirement(completed_requirements)
+      missing_requirements(completed_requirements).first
     end
 
     def requirement_cleared?(completed_requirements, requirement)

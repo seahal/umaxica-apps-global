@@ -286,11 +286,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       pt: "encoded-pt",
     )
 
-    assert_match "/sign/up/guard?ri=jp&pt=encoded-pt", redirects.last.first.first
+    assert_match %r{/sign/up/guard/google\?(pt=encoded-pt&ri=jp|ri=jp&pt=encoded-pt)}, redirects.last.first.first
     assert_equal user.id, cycle.reload.principal_id
     assert_equal "social_identity", cycle.pending_contact_type
     assert_equal identity.id, cycle.pending_contact_id
-    assert_equal "contact_verified", cycle.step
+    assert_equal "checkpoint", cycle.step
   end
 
   test "social callback sign up cycle stores decoded pt as return_to" do

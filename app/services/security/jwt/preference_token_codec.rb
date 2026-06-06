@@ -20,7 +20,7 @@ module Security
             JWT_ALGORITHM,
             { kid: jwt_active_kid(issuer_id), typ: TOKEN_TYPE },
           )
-        rescue StandardError => e
+        rescue JWT::EncodeError, OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
           Rails.logger.error(Jit::LogEvent.format("preference.token.encoding_failed", error_class: e.class.name))
           nil
         end
@@ -69,7 +69,7 @@ module Security
           report_decode_error(host: host, header: header, error: e)
           Rails.logger.debug { "PreferenceToken.decode invalid token: #{e.message}" }
           nil
-        rescue StandardError => e
+        rescue OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
           Rails.logger.error(Jit::LogEvent.format("preference.token.decoding_failed", error_class: e.class.name))
           nil
         end

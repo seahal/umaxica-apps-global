@@ -52,7 +52,7 @@ class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
 
     logged_message = nil
     Rails.logger.stub(:error, proc { |message = nil| logged_message = message if message }) do
-      JwtAnomalyEvent.stub(:create!, ->(**) { raise StandardError, "explode" }) do
+      JwtAnomalyEvent.stub(:create!, ->(**) { raise ActiveRecord::ActiveRecordError, "explode" }) do
         JwtAnomalySubscriber.new.emit(
           MockEvent.new(
             name: "jwt.anomaly.detected",

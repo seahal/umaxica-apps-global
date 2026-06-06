@@ -112,7 +112,7 @@ module Sign
             session[:user_telephone_registration] = result.session_payload
             bind_sign_up_flow_to_telephone!(@user_telephone)
             redirect_to(
-              edit_sign_app_up_telephone_path,
+              sign_app_up_check_telephone_otp_path,
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           rescue ActiveRecord::RecordInvalid => e
@@ -168,7 +168,7 @@ module Sign
           verify_telephone_ownership!
           advance_sign_up_flow_after_telephone_otp!
           redirect_to(
-            sign_app_up_guard_path(ri: params[:ri]),
+            sign_app_up_guard_telephone_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.update.passkey_required"),
           )
         end
@@ -313,7 +313,7 @@ module Sign
 
         def resend_redirect_path
           if @user_telephone
-            edit_sign_app_up_telephone_path(ri: params[:ri])
+            sign_app_up_check_telephone_otp_path(ri: params[:ri])
           else
             new_sign_app_up_telephone_path(ri: params[:ri])
           end
@@ -355,7 +355,7 @@ module Sign
           Sign::TelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
 
           redirect_to(
-            edit_sign_app_up_telephone_path(ri: params[:ri]),
+            sign_app_up_check_telephone_otp_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.create.verification_code_sent"),
           )
         end
@@ -433,6 +433,15 @@ module Sign
           return unless cycle
 
           result = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+          if result.status == :advanced
+            SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+            result = SignUp::StateMachine.call(
+              ticket: cycle.reload,
+              event: :clear_requirement,
+              actor_context: Actor.authn,
+              payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
+            )
+          end
           return if result.status == :advanced
 
           Rails.logger.warn(

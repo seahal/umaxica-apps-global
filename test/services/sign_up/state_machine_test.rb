@@ -57,9 +57,9 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
     complete = SignUp::StateMachine.call(ticket: ticket.reload, event: :complete_social_callback, actor_context: nil)
 
     assert_equal :advanced, start.status
-    assert_equal ClientSignUpFlowStatus::CONTACT_VERIFIED, ticket.reload.status_id
-    assert_equal "contact_verified", ticket.step
-    assert_equal :enter_guardrail, complete.next_event
+    assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, ticket.reload.status_id
+    assert_equal "checkpoint", ticket.step
+    assert_equal :clear_requirement, complete.next_event
   end
 
   test "checkpoint requirement clearing persists safe requirement state" do
@@ -68,6 +68,11 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       entry_method: "telephone",
       status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "passkey" => { "cleared" => true },
+        "passcode" => { "cleared" => true },
+      },
     )
 
     result = SignUp::StateMachine.call(
@@ -78,9 +83,29 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
     )
 
     assert_equal :advanced, result.status
-    assert_equal :clear_requirement, result.next_event
+    assert_equal :finalize, result.next_event
     assert ticket.reload.requirement_cleared?(:birthdate)
-    assert_not ticket.requirement_cleared?(:passkey)
+    assert ticket.requirement_cleared?(:passkey)
+  end
+
+  test "checkpoint requirement clearing rejects out of order requirements" do
+    ticket = create_cycle(
+      ClientSignUpFlow,
+      entry_method: "telephone",
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      completed_requirements: { "otp" => { "cleared" => true } },
+    )
+
+    result = SignUp::StateMachine.call(
+      ticket: ticket,
+      event: :clear_requirement,
+      actor_context: nil,
+      payload: { requirement: :birthdate, checkpoint_version: ticket.checkpoint_version },
+    )
+
+    assert_equal :invalid_transition, result.status
+    assert_not ticket.reload.requirement_cleared?(:birthdate)
   end
 
   test "checkpoint requirement clearing rejects stale replay after requirement is clear" do
@@ -89,7 +114,10 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       entry_method: "email",
       status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
-      completed_requirements: { "birthdate" => { "cleared" => true } },
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "birthdate" => { "cleared" => true },
+      },
     )
 
     result = SignUp::StateMachine.call(
@@ -109,6 +137,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       entry_method: "email",
       status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
+      completed_requirements: { "otp" => { "cleared" => true } },
     )
 
     result = SignUp::StateMachine.call(
@@ -149,7 +178,10 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       entry_method: "telephone",
       status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
-      completed_requirements: { "birthdate" => { "cleared" => true } },
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "birthdate" => { "cleared" => true },
+      },
     )
 
     result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)
@@ -164,7 +196,10 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
       entry_method: "email",
       status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
       step: "checkpoint",
-      completed_requirements: { "birthdate" => { "cleared" => true } },
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "birthdate" => { "cleared" => true },
+      },
     )
 
     missing_result = SignUp::StateMachine.call(ticket: ticket, event: :finalize, actor_context: nil)

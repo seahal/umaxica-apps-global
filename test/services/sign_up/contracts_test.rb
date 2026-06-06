@@ -16,19 +16,25 @@ class SignUpContractsTest < ActiveSupport::TestCase
   end
 
   test "requirement registry exposes app entry requirements" do
-    assert_equal %i(birthdate), SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "email").requirements
+    assert_equal %i(otp birthdate),
+                 SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "email").requirements
     assert_equal(
-      %i(birthdate passkey passcode),
+      %i(otp passkey passcode birthdate),
       SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "telephone").requirements,
     )
+    assert_equal %i(confirmation birthdate),
+                 SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "google").requirements
+    assert_equal %i(confirmation birthdate),
+                 SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "apple").requirements
     assert_predicate SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "google"), :social?
     assert_predicate SignUp::RequirementRegistry.for_entry(surface: :app, entry_method: "apple"), :social?
   end
 
   test "requirement registry rejects com social entry methods" do
-    assert_equal %i(birthdate), SignUp::RequirementRegistry.for_entry(surface: :com, entry_method: "email").requirements
+    assert_equal %i(otp birthdate),
+                 SignUp::RequirementRegistry.for_entry(surface: :com, entry_method: "email").requirements
     assert_equal(
-      %i(birthdate passkey passcode),
+      %i(otp passkey passcode birthdate),
       SignUp::RequirementRegistry.for_entry(surface: :com, entry_method: "telephone").requirements,
     )
 
@@ -83,6 +89,7 @@ class SignUpContractsTest < ActiveSupport::TestCase
       ClientSignUpFlow,
       entry_method: "telephone",
       completed_requirements: {
+        "otp" => { "cleared" => true },
         "birthdate" => { "cleared" => true },
         "passkey" => { "cleared" => true },
       },

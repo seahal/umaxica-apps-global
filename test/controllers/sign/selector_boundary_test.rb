@@ -9,8 +9,11 @@ class SignSelectorBoundaryTest < ActionDispatch::IntegrationTest
     user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    assert_no_difference -> { ClientAccount.count + ClientIdentity.count + Persona.count + Enterprise.count + Avatar.count } do
-      get sign_app_selector_url(host: host), headers: as_user_headers(user, host: host, session_public_id: token.public_id)
+    assert_no_difference -> {
+      ClientAccount.count + ClientIdentity.count + Persona.count + Enterprise.count + Avatar.count
+    } do
+      get sign_app_selector_url(host: host),
+          headers: as_user_headers(user, host: host, session_public_id: token.public_id)
     end
 
     assert_response :redirect

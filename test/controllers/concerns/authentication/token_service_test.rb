@@ -116,7 +116,7 @@ class AuthTokenServiceTest < ActiveSupport::TestCase
   test "encode returns nil when keyring raises" do
     user = clients(:one)
 
-    Jit::Security::Jwt::Keyring.stub(:encode, ->(*) { raise StandardError, "boom" }) do
+    Jit::Security::Jwt::Keyring.stub(:encode, ->(*) { raise JWT::EncodeError, "boom" }) do
       assert_nil Authentication::TokenService.encode(user, host: "example.com", resource_type: "client")
     end
   end

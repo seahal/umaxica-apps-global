@@ -9,7 +9,10 @@ module Acme
 
       def show
         Acme::Selector::BootstrapAuthority.call(surface: :app, principal: current_client)
-        render json: Acme::Selector::Authority.prepare(surface: :app, principal: current_client, session: current_session)
+        render json: Acme::Selector::Authority.prepare(
+          surface: :app, principal: current_client,
+          session: current_session,
+        )
       end
 
       def update
@@ -20,14 +23,16 @@ module Acme
           params: selector_params,
         )
       rescue Acme::Selector::Authority::InvalidSelection => e
-        render json: { status: "invalid_selection", error: e.message }, status: :unprocessable_entity
+        render json: { status: "invalid_selection", error: e.message }, status: :unprocessable_content
       end
 
       private
 
       def selector_params
-        params.permit(:account_public_id, :organization_public_id, :organization_unit_public_id,
-                      :collective_public_id, :collective_unit_public_id, :avatar_public_id).to_h.symbolize_keys
+        params.permit(
+          :account_public_id, :organization_public_id, :organization_unit_public_id,
+          :collective_public_id, :collective_unit_public_id, :avatar_public_id,
+        ).to_h.symbolize_keys
       end
     end
   end

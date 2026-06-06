@@ -30,7 +30,7 @@ module Sign
         else
           persist_user_occurrence(event, user_id, context)
         end
-      rescue StandardError => e
+      rescue ActiveRecord::ActiveRecordError => e
         Rails.logger.error(
           Jit::LogEvent.format(
             "sign.risk.emitter.persist_failed",

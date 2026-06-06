@@ -63,8 +63,8 @@ auth トークンの `prf` 生成撤去は別タスク（当面 prf は unread �
   `test/security/invariants/controller_lifecycle_order_invariant_test.rb` の `REQUIRED_ORDER`
   で順序固定済み）。→ payload からの hydration は
   **追加DB/再発行なしの read-only**（ADR の read 制約を満たす）。
-- payload `preferences` のキー（`lx/ri/tz/ct/cu/df/tf/mo/dn/ipp/r18s`、`base.rb:618-657`）は
-  `Actor::Preference.from_jwt`（`app/models/concerns/actor/preference.rb:186-210`）と**完全一致**。
+- The payload `preferences` keys (`lx/ri/tz/ct/cu/df/tf/mo/dn/ipp/r18s`, `base.rb:618-657`) exactly
+  match `Actor::Preference.from_jwt` (`app/models/actor/preference.rb:186-210`).
 - `preference_payload_preferences`（`base.rb:738`）が `@preference_payload["preferences"]`
   を返す既存入口。
 
@@ -108,9 +108,9 @@ _明示的に ja を選んだ_ ように見え、ユーザールール（**未�
 
 ### B-3. Actor 値オブジェクトに明示情報を保持
 
-- `Actor::Preference`（`app/models/concerns/actor/preference.rb`）に「明示済みフィールド集合」を持たせ、
-  `language_explicit?` 等の述語を追加。`from_jwt` で payload の `explicit` を読む。
-  `==`/`hash`/`to_h` の整合も更新。
+- Store the explicit-field set on `Actor::Preference` (`app/models/actor/preference.rb`), add
+  predicates such as `language_explicit?`, and read the payload `explicit` list in `from_jwt`. Keep
+  `==`, `hash`, and `to_h` consistent with the new field.
 
 ### B-4. hydration とロケール解決
 

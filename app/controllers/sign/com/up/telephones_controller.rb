@@ -99,7 +99,7 @@ module Sign
           session[:visitor_telephone_registration] = result.session_payload
           bind_sign_up_flow_to_telephone!(@visitor_telephone)
           redirect_to(
-            edit_sign_com_up_telephone_path(ri: params[:ri]),
+            sign_com_up_check_telephone_otp_path(ri: params[:ri]),
           )
         rescue ActiveRecord::RecordInvalid
           render :new, status: :unprocessable_content
@@ -163,7 +163,7 @@ module Sign
           end
 
           redirect_to(
-            sign_com_up_guard_path(ri: params[:ri]),
+            sign_com_up_guard_telephone_path(ri: params[:ri]),
             notice: t("sign.com.registration.telephone.success"),
           )
         end
@@ -247,7 +247,7 @@ module Sign
           Sign::TelephoneOtpDelivery.deliver!(@visitor_telephone, otp_number)
 
           redirect_to(
-            edit_sign_com_up_telephone_path(ri: params[:ri]),
+            sign_com_up_check_telephone_otp_path(ri: params[:ri]),
           )
         end
 
@@ -315,7 +315,18 @@ module Sign
 
           result =
             ComTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              verify = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              if verify.status == :advanced
+                SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+                SignUp::StateMachine.call(
+                  ticket: cycle.reload,
+                  event: :clear_requirement,
+                  actor_context: Actor.authn,
+                  payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
+                )
+              else
+                verify
+              end
             end
           result.status == :advanced
         end

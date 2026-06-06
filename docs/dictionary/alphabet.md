@@ -70,8 +70,7 @@ _No entries yet._
 
 ## M
 
-- **Motion Key** — `mo`, motion preference transport key. See
-  `preference-request-context-keys.md`.
+- **Motion Key** — `mo`, motion preference transport key. See `preference-request-context-keys.md`.
 
 ## N
 

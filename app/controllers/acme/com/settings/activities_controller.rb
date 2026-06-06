@@ -8,23 +8,15 @@ module Acme
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
 
-        LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
-        EVENT_LABELS = {
-          ClientChronicleEvent::LOGGED_IN => "logged_in",
-          ClientChronicleEvent::LOGIN_SUCCESS => "login_success",
-        }.freeze
-        SENSITIVE_CONTEXT_PATTERNS = %w(user_agent authorization token secret_credential code email telephone phone
-                                        otp).freeze
-
         before_action :authenticate_visitor!
         before_action :authorize_activity_log!, only: %i(index show)
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
 
         def index
-          @activities = current_visitor_activities.limit(100)
+          @activities = activity_log.activities.limit(100)
           render "acme/com/settings/activities/index"
-        rescue StandardError
+        rescue ActiveRecord::ActiveRecordError
           @activities = ClientChronicle.none
           render "acme/com/settings/activities/index"
         end
@@ -37,80 +29,19 @@ module Acme
           authorize!(ClientChronicle, to: :index?)
         end
 
-        def current_visitor_activities
-          ClientChronicle
-            .where(subject_type: "Visitor", subject_id: current_visitor.id, event_id: LOGIN_EVENT_IDS)
-            .order(Arel.sql("COALESCE(occurred_at, created_at) DESC"))
-        end
+        def activity_log = @activity_log ||= Acme::Com::Settings::ActivityLog.new(current_visitor)
 
-        def activity_occurred_at(activity) = activity.occurred_at || activity.created_at
+        def activity_occurred_at(activity) = activity_log.occurred_at(activity)
 
-        def activity_event_label(activity)
-          key = EVENT_LABELS[activity.event_id]
-          return t("sign.app.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
+        def activity_event_label(activity) = activity_log.event_label(activity)
 
-          I18n.t("sign.app.settings.activity.events." + key)
-        end
+        def activity_ip_address(activity) = activity_log.ip_address(activity)
 
-        def activity_ip_address(activity)
-          raw = activity.ip_address.to_s
-          return "-" if raw.blank?
+        def activity_context_text(activity) = activity_log.context_text(activity)
 
-          parts = raw.split(".")
-          return raw unless parts.size == 4
+        def activity_user_agent_summary(activity) = activity_log.user_agent_summary(activity)
 
-          "#{parts[0]}.#{parts[1]}.#{parts[2]}.x"
-        end
-
-        def activity_context_text(activity)
-          context = activity.context
-          return "{}" unless context.is_a?(Hash)
-
-          JSON.generate(context.deep_stringify_keys.reject { |key, _| sensitive_context_key?(key) })
-        rescue StandardError
-          "{}"
-        end
-
-        def sensitive_context_key?(key)
-          SENSITIVE_CONTEXT_PATTERNS.any? { |pattern| key.to_s.downcase.include?(pattern) }
-        end
-
-        def activity_user_agent_summary(activity)
-          user_agent = activity_context_value(activity, "user_agent")
-          return "-" if user_agent.blank?
-
-          "#{detect_browser(user_agent)} / #{detect_device_type(user_agent)}"
-        end
-
-        def activity_login_method(activity)
-          method = activity_context_value(activity, "auth_method") || activity_context_value(activity, "method")
-          method.present? ? method.to_s : "-"
-        end
-
-        def activity_context_value(activity, key)
-          context = activity.context
-          return nil unless context.is_a?(Hash)
-
-          context.deep_stringify_keys[key]
-        end
-
-        def detect_browser(user_agent)
-          ua = user_agent.to_s
-          return "Edge" if ua.include?("Edg/")
-          return "Chrome" if ua.include?("Chrome/")
-          return "Safari" if ua.include?("Safari/") && ua.exclude?("Chrome/")
-          return "Firefox" if ua.include?("Firefox/")
-
-          "Other"
-        end
-
-        def detect_device_type(user_agent)
-          ua = user_agent.to_s
-          return "Mobile" if ua.match?(/Mobile|iPhone|Android/i)
-          return "Tablet" if ua.match?(/iPad|Tablet/i)
-
-          "Desktop"
-        end
+        def activity_login_method(activity) = activity_log.login_method(activity)
       end
     end
   end

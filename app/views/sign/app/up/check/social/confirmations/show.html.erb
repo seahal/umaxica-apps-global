@@ -1,0 +1,21 @@
+<% content_for :page_title, t("sign.app.registration.checkpoint.show.social.confirm_title", default: "Confirm registration") %>
+
+<h1><%= t("sign.app.registration.checkpoint.show.social.confirm_title", default: "Confirm registration") %></h1>
+<p><%= t("sign.app.registration.checkpoint.show.social.unregistered", provider: @sign_up_ticket.social_provider.to_s.titleize) %></p>
+<p><%= t("sign.app.registration.checkpoint.show.social.create_identity") %></p>
+<p><%= t("sign.app.registration.checkpoint.show.social.no_merge") %></p>
+<p><%= t("sign.app.registration.checkpoint.show.social.cancel_if_wrong") %></p>
+
+<%= form_with url: request.path, method: :patch, local: true, data: { turbo: false } do %>
+  <% if signed_pt_param.present? %>
+    <%= hidden_field_tag :pt, signed_pt_param %>
+  <% end %>
+  <%= hidden_field_tag :checkpoint_version, @sign_up_ticket.checkpoint_version %>
+  <div>
+    <%= check_box_tag :confirm_new_social_identity, "1", false, required: true %>
+    <%= label_tag :confirm_new_social_identity, t("sign.app.registration.checkpoint.show.social.confirm_label") %>
+  </div>
+  <%= submit_tag t("actions.continue", default: "Continue") %>
+<% end %>
+
+<%= button_to t("actions.cancel"), request.path, method: :delete, form: { data: { turbo: false } } %>

@@ -70,6 +70,8 @@ module Sign
                 visitor_secret_credential_kind_id: VisitorSecretCredentialKind::LOGIN,
               ),
             )
+            raise ActiveRecord::RecordInvalid.new(secret_credential) unless secret_credential.valid?
+
             secret_credential.save!(validate: false)
             secret_credential
           end

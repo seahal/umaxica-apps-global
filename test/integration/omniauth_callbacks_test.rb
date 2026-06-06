@@ -54,15 +54,12 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_google_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=birthdate_year]"
-    assert_select "input[name=birthdate_month]"
-    assert_select "input[name=birthdate_day]"
     assert_select "input[name=confirm_new_social_identity][required]"
   end
 
@@ -114,15 +111,12 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=birthdate_year]"
-    assert_select "input[name=birthdate_month]"
-    assert_select "input[name=birthdate_day]"
     assert_select "input[name=confirm_new_social_identity][required]"
   end
 
@@ -149,15 +143,12 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
-    assert_select "input[name=birthdate_year]"
-    assert_select "input[name=birthdate_month]"
-    assert_select "input[name=birthdate_day]"
     assert_select "input[name=confirm_new_social_identity][required]"
   end
 

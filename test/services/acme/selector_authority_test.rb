@@ -16,7 +16,7 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
     assert_equal "selected", result[:status]
     assert_equal "/dashboard", result[:next]
     assert_predicate @token.reload, :selected_actor_context?
-    assert @token.selected_avatar_public_id.present?
+    assert_predicate @token.selected_avatar_public_id, :present?
   end
 
   test "returns selection required when multiple valid candidates exist" do
@@ -32,8 +32,10 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
       primary: false,
       metadata: {},
     )
-    handle = Handle.create!(handle: "second-#{SecureRandom.hex(5)}", handle_status_id: HandleStatus::ACTIVE,
-                            cooldown_until: Time.current)
+    handle = Handle.create!(
+      handle: "second-#{SecureRandom.hex(5)}", handle_status_id: HandleStatus::ACTIVE,
+      cooldown_until: Time.current,
+    )
     Avatar.create_with_owner(
       {
         moniker: "Second Avatar",
@@ -56,7 +58,10 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
   test "rejects another identity selection" do
     other = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     Acme::Selector::BootstrapAuthority.call(surface: :app, principal: other)
-    other_candidate = Acme::Selector::Authority.new(surface: :app, principal: other, session: ClientToken.create!(user: other))
+    other_candidate = Acme::Selector::Authority.new(
+      surface: :app, principal: other,
+      session: ClientToken.create!(user: other),
+    )
       .selectable_candidates
       .first
 
@@ -71,7 +76,10 @@ class Acme::Selector::AuthorityTest < ActiveSupport::TestCase
   end
 
   test "rejects inconsistent account organization avatar combination" do
-    candidate = Acme::Selector::Authority.new(surface: :app, principal: @user, session: @token).selectable_candidates.first
+    candidate = Acme::Selector::Authority.new(
+      surface: :app, principal: @user,
+      session: @token,
+    ).selectable_candidates.first
     enterprise = Enterprise.create!(name: "Foreign Combination")
     unit = EnterpriseUnit.create!(enterprise: enterprise, name: "Default")
 

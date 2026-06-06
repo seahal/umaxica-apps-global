@@ -214,29 +214,35 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to public_send(:"sign_app_up_guard_#{config.fetch(:normalized)}_url", ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp")
     follow_redirect!
 
     assert_response :ok
-    assert_select "input[name=birthdate_year]"
-    assert_select "input[name=birthdate_month]"
-    assert_select "input[name=birthdate_day]"
+    assert_select "input[name=confirm_new_social_identity]"
     assert_select "input[name=confirm_new_social_identity][required]"
 
     cycle = ClientSignUpFlow.order(:id).last
 
+    patch(
+      public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp"),
+      params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
+      headers: browser_headers.merge(@callback_headers),
+    )
+
+    assert_redirected_to public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
+    follow_redirect!
+
     assert_difference("Client.count", 1) do
       assert_difference("#{config.fetch(:model)}.count", 1) do
         patch(
-          sign_app_up_check_birthdate_url(ri: "jp"),
+          public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
-            checkpoint_version: cycle.checkpoint_version,
-            confirm_new_social_identity: "1",
+            checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: browser_headers.merge(@callback_headers),
         )

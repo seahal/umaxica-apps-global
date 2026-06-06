@@ -263,6 +263,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   # ============================================================================
   # New user creation
   # ============================================================================
+  # rubocop:disable Minitest/MultipleAssertions
   test "Google login with new uid waits for signup confirmation before creating user and identity" do
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
@@ -289,10 +290,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_google_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -310,7 +311,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                patch sign_app_up_check_birthdate_url(ri: "jp"),
+                patch sign_app_up_check_google_birthdate_url(ri: "jp"),
                       params: {
                         requirement: "birthdate",
                         birthdate: "2000-02-03",
@@ -326,14 +327,19 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
 
+    patch sign_app_up_check_google_confirmation_url(ri: "jp"),
+          params: { confirm_new_social_identity: "1", checkpoint_version: cycle.reload.checkpoint_version },
+          headers: browser_headers.merge(@callback_headers)
+
+    assert_redirected_to sign_app_up_check_google_birthdate_url(ri: "jp")
+
     assert_difference("Client.count", 1) do
       assert_difference("ClientGoogleIdentity.count", 1) do
-        patch sign_app_up_check_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_google_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
                 checkpoint_version: cycle.reload.checkpoint_version,
-                confirm_new_social_identity: "1",
               },
               headers: browser_headers.merge(@callback_headers)
       end
@@ -350,6 +356,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "2000-02-03", identity.user.birthdate.to_s
     assert_not_nil identity.last_authenticated_at
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   test "duplicate Google callback failure after new-account checkpoint returns to sign in" do
     new_uid = "duplicate_callback_google_#{SecureRandom.hex(4)}"
@@ -418,10 +425,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -430,14 +437,19 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     cycle = ClientSignUpFlow.order(:id).last
 
+    patch sign_app_up_check_apple_confirmation_url(ri: "jp"),
+          params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
+          headers: browser_headers.merge(@callback_headers)
+
+    assert_redirected_to sign_app_up_check_apple_birthdate_url(ri: "jp")
+
     assert_difference("Client.count", 1) do
       assert_difference("ClientAppleIdentity.count", 1) do
-        patch sign_app_up_check_birthdate_url(ri: "jp"),
+        patch sign_app_up_check_apple_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
-                checkpoint_version: cycle.checkpoint_version,
-                confirm_new_social_identity: "1",
+                checkpoint_version: cycle.reload.checkpoint_version,
               },
               headers: browser_headers.merge(@callback_headers)
       end

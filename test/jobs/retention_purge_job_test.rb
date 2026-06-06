@@ -127,9 +127,8 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     cycle_index = models.index(ClientSignUpFlow)
     token_index = models.index(ClientToken)
 
-    skip "ClientToken not registered" unless token_index
-
     assert cycle_index, "ClientSignUpFlow missing from RETAINABLE_MODELS"
+    assert token_index, "ClientToken missing from RETAINABLE_MODELS"
     assert_operator cycle_index, :<, token_index,
                     "ClientSignUpFlow must precede ClientToken to avoid cascade-deletion of active cycles"
   end
@@ -139,9 +138,8 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
     cycle_index = models.index(VisitorSignUpFlow)
     token_index = models.index(VisitorToken)
 
-    skip "VisitorToken not registered" unless token_index
-
     assert cycle_index, "VisitorSignUpFlow missing from RETAINABLE_MODELS"
+    assert token_index, "VisitorToken missing from RETAINABLE_MODELS"
     assert_operator cycle_index, :<, token_index,
                     "VisitorSignUpFlow must precede VisitorToken"
   end

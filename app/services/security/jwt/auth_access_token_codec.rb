@@ -55,7 +55,7 @@ module Security
             jwt_issuer_id: jwt_issuer_id,
           )
           token_issuer_id ? Jit::Security::Jwt::Keyring.encode(payload, issuer_id: token_issuer_id) : Jit::Security::Jwt::Keyring.encode(payload)
-        rescue StandardError => e
+        rescue JWT::EncodeError, OpenSSL::PKey::PKeyError, ArgumentError, TypeError => e
           Rails.logger.error(
             Jit::LogEvent.format(
               "authentication.token.encoding.error",

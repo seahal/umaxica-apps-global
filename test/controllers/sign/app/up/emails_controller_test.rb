@@ -71,7 +71,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
-    get edit_sign_app_up_email_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
   end
@@ -153,7 +153,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_equal "/sign/up/email/edit", path
+    assert_equal "/sign/up/check/email/otp", path
   end
 
   test "create renders unprocessable when user_email param missing" do
@@ -408,7 +408,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     user_email = ClientEmail.find_by(public_id: email_id)
 
     # Attempt wrong code
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -441,7 +441,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     user_email = ClientEmail.find_by(public_id: email_id)
 
     # Attempt with blank code
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -475,7 +475,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     # Travel to expire OTP
     travel 16.minutes do
-      patch sign_app_up_email_url(ri: "jp"),
+      patch sign_app_up_check_email_otp_url(ri: "jp"),
             params: {
               id: user_email.id,
               user_email: {
@@ -484,13 +484,12 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             },
             headers: default_headers
 
-      assert_response :redirect
-      assert_includes response.location, "/sign/up/email/new"
-      assert_equal I18n.t("sign.app.registration.email.edit.session_expired"), flash[:notice]
+      assert_response :unprocessable_content
+      assert_equal "ticket is required", response.body
     end
   end
 
-  test "deletes email record after max OTP attempts" do
+  test "max OTP attempts renders lockout error without clearing otp" do
     email = "test_max_attempts@example.com"
 
     # Create registration record
@@ -510,9 +509,11 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect, "Expected redirect but got #{response.status}: #{response.body[0..500]}"
     email_id = ClientEmail.order(:created_at).last.public_id
     user_email = ClientEmail.find_by(public_id: email_id)
+    cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
+    completed_requirements = cycle.completed_requirements.deep_dup
 
     Email::MAX_OTP_ATTEMPTS.times do
-      patch sign_app_up_email_url(ri: "jp"),
+      patch sign_app_up_check_email_otp_url(ri: "jp"),
             params: {
               id: user_email.id,
               user_email: {
@@ -522,15 +523,13 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             headers: default_headers
     end
 
-    # Verify redirect and record deletion
-    assert_response :redirect
-    assert_includes response.location, "/sign/up/email/new"
-    assert_not_includes response.location, "alert="
-    assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), flash[:alert]
-    assert_includes response.location, "ri=jp"
-    assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), flash[:alert]
-    assert_includes response.location, "ri=jp"
-    assert_nil ClientEmail.find_by(public_id: user_email.public_id)
+    assert_response :too_many_requests
+    assert_includes response.body, I18n.t("sign.app.registration.email.update.attempts_exceeded")
+    assert_empty flash.to_hash
+    assert ClientEmail.exists?(public_id: user_email.public_id)
+    assert_predicate user_email.reload, :locked?
+    assert_equal completed_requirements, cycle.reload.completed_requirements
+    assert_nil cycle.completed_requirements["otp"]
   end
 
   test "telephone i18n flash messages exist" do
@@ -627,7 +626,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
     # Submit correct OTP with pt parameter
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -638,7 +637,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Should redirect directly to the decoded pt destination
-    assert_redirected_to sign_app_up_guard_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_email_path(ri: "jp")
   end
 
   # Transaction Tests for Client Creation
@@ -670,7 +669,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     initial_user_count = Client.count
 
     # Submit correct OTP
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -680,7 +679,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_up_guard_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_email_path(ri: "jp")
 
     # Verify Client count unchanged (pending user was updated, not created)
     assert_equal initial_user_count, Client.count
@@ -725,7 +724,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     initial_audit_count = ClientChronicle.count
 
     # Submit correct OTP
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -735,7 +734,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_up_guard_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_email_path(ri: "jp")
 
     # Sign-up completion and sign-in audit are delayed until checkpoint finalization.
     assert_equal initial_audit_count, ClientChronicle.count
@@ -763,7 +762,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -772,7 +771,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guard_path(ri: "jp")
+    assert_redirected_to sign_app_up_guard_email_path(ri: "jp")
     assert_equal initial_audit_count, ClientChronicle.count
   end
 
@@ -801,7 +800,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
     # Submit correct OTP
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -838,7 +837,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -870,17 +869,17 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guard_url(ri: "jp")
+    assert_redirected_to sign_app_up_guard_email_url(ri: "jp")
 
-    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_up_check_url(ri: "jp")
+    assert_redirected_to sign_app_up_check_email_birthdate_url(ri: "jp")
 
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
@@ -888,25 +887,25 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_birthdate_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_app_up_check_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_app_up_check_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_app_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=delete]"
     assert_select "a[href*=?]", new_sign_app_sign_up_path, count: 0
     assert_select "a[href*=?]", new_sign_app_sign_in_path, count: 0
 
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
 
     cycle = current_sign_up_flow(user_email)
 
-    patch sign_app_up_check_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-01-01",
-            checkpoint_version: cycle.checkpoint_version,
+            checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: default_headers
 
@@ -947,7 +946,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil user_email.get_otp
 
     # Submit correct OTP
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -987,7 +986,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     old_session_id = session.id.to_s
 
     # Submit correct OTP
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -1054,14 +1053,14 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             user_email: { pass_code: pass_code },
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_up_guard_path(ri: "jp")
-    assert_equal "contact_verified", cycle.reload.step
+    assert_redirected_to sign_app_up_guard_email_path(ri: "jp")
+    assert_equal "checkpoint", cycle.reload.step
   end
 
   test "email signup checkpoint persists birthdate requirement" do
@@ -1080,28 +1079,28 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: {
             user_email: { pass_code: pass_code },
           },
           headers: default_headers
 
-    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_up_check_path(ri: "jp")
+    assert_redirected_to sign_app_up_check_email_birthdate_path(ri: "jp")
 
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "[data-birthdate-format=iso]"
 
-    patch sign_app_up_check_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate_year: "2000",
             birthdate_month: "02",
             birthdate_day: "03",
-            checkpoint_version: cycle.checkpoint_version,
+            checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: default_headers
 
@@ -1127,23 +1126,24 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
-    delete sign_app_up_check_url(ri: "jp"), headers: default_headers
-
-    assert_redirected_to "/"
-    assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
-
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    delete sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
+    assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
+
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+
+    assert_response :unprocessable_content
+    assert_equal "ticket is required", response.body
   end
 
   test "email signup checkpoint birthdate is idempotent after requirement is cleared" do
@@ -1162,29 +1162,33 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_up_email_url(ri: "jp"),
+    patch sign_app_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_up_guard_url(ri: "jp"), headers: default_headers
-    get sign_app_up_check_url(ri: "jp"), headers: default_headers
+    get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
+    get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     user_email.user.update!(birthdate: "2000-02-03")
     cycle.update!(
       completed_requirements: {
+        "otp" => {
+          "cleared" => true,
+          "cleared_at" => Time.current.iso8601,
+        },
         "birthdate" => {
           "cleared" => true,
           "cleared_at" => Time.current.iso8601,
         },
       },
-      checkpoint_version: 1,
+      checkpoint_version: cycle.reload.checkpoint_version,
     )
 
-    patch sign_app_up_check_birthdate_url(ri: "jp"),
+    patch sign_app_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
-            checkpoint_version: 0,
+            checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: default_headers
 
@@ -1210,25 +1214,25 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       otp_data = user_email.get_otp
       pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-      patch sign_app_up_email_url(ri: "jp"),
+      patch sign_app_up_check_email_otp_url(ri: "jp"),
             params: { user_email: { pass_code: pass_code } },
             headers: default_headers
 
-      assert_redirected_to sign_app_up_guard_url(ri: "jp")
+      assert_redirected_to sign_app_up_guard_email_url(ri: "jp")
 
-      get sign_app_up_guard_url(ri: "jp"), headers: default_headers
+      get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
 
-      assert_redirected_to sign_app_up_check_url(ri: "jp")
+      assert_redirected_to sign_app_up_check_email_birthdate_url(ri: "jp")
 
-      get sign_app_up_check_url(ri: "jp"), headers: default_headers
+      get sign_app_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
       assert_response :success
 
-      patch sign_app_up_check_birthdate_url(ri: "jp"),
+      patch sign_app_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2011-03-01",
-              checkpoint_version: cycle.checkpoint_version,
+              checkpoint_version: cycle.reload.checkpoint_version,
             },
             headers: default_headers
 
@@ -1236,7 +1240,7 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "この登録方法ではアカウントを作成できません"
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
 
-      patch sign_app_up_check_birthdate_url(ri: "jp"),
+      patch sign_app_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2000-01-01",
@@ -1244,7 +1248,8 @@ class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
             },
             headers: default_headers
 
-      assert_response :success
+      assert_response :unprocessable_content
+      assert_equal "ticket is required", response.body
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
       assert_not cycle.requirement_cleared?(:birthdate)
     end

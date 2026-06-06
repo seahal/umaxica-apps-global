@@ -16,9 +16,10 @@ module Acme
 
       def respond_to_missing_selected_context
         if request.format.json?
-          render json: { status: "selection_required", next: acme_app_selector_path(ri: params[:ri]) }, status: :forbidden
+          render json: { status: "selection_required", next: acme_app_selector_path(ri: params[:ri]) },
+                 status: :forbidden
         else
-          redirect_to acme_app_selector_path(ri: params[:ri])
+          redirect_to(acme_app_selector_path(ri: params[:ri]))
         end
       end
     end

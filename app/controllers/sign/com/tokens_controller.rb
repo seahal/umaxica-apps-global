@@ -13,7 +13,7 @@ module Sign
       prepend_before_action :skip_compatibility_session_cookie, only: :create
       protect_from_forgery with: :null_session, only: :create
       skip_before_action :reset_flash, raise: false
-      skip_before_action :transparent_refresh_access_token, raise: false
+      skip_before_action :transparent_refresh_access_token
       skip_before_action :set_region, raise: false
       skip_before_action :set_preferences_cookie, raise: false
       skip_before_action :apply_localization_preferences, raise: false

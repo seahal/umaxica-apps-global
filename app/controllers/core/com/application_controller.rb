@@ -41,6 +41,18 @@ module Core
       # Existing jump-return handling runs before rate limiting; keep that order
       # for this extraction and review the risk in a follow-up lifecycle PR.
       before_action :verify_jump_return_rt!, if: :jump_return_rt_request?
+      # Surface-wide default web request limit (defense-in-depth baseline).
+      # RateLimit stays a side-effect-free helper; the limit and its numeric
+      # value are declared here on the inheriting controller.
+      rate_limit(
+        to: 300,
+        within: 1.minute,
+        by: -> { request.remote_ip },
+        scope: "core_com_default_web",
+        name: "default_web",
+        store: rate_limit_store,
+        with: -> { render_rate_limited(rule_name: "core_com_default_web", retry_after: 60) },
+      )
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie

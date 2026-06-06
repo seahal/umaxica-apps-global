@@ -54,6 +54,8 @@ class OperatorChronicle < ChronicleRecord
 
   attribute :level_id, default: OperatorChronicleLevel::NOTHING
 
+  scope :recent_activity_first, -> { order(arel_table[:occurred_at].desc, arel_table[:created_at].desc) }
+
   validates :event_id, numericality: { only_integer: true }, allow_nil: true
   validates :level_id, numericality: { only_integer: true }, allow_nil: true
   # Validate that event_id exists in staff_chronicle_events table

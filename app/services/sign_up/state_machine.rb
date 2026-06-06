@@ -144,7 +144,7 @@ module SignUp
           next_event: :handoff_to_sign_in,
         )
       else
-        transition_to!("CONTACT_VERIFIED", step: "contact_verified", next_event: :enter_guardrail)
+        transition_to!("CHECKPOINT_PENDING", step: "checkpoint", next_event: :clear_requirement)
       end
     end
 
@@ -157,6 +157,8 @@ module SignUp
       registry = RequirementRegistry.for_ticket(ticket)
       return invalid("requirement is required") if requirement.blank?
       return invalid("requirement does not belong to entry method") unless registry.requirement?(requirement)
+      return invalid("prior requirement is not clear") unless
+        registry.prior_requirements_cleared?(ticket.completed_requirements, requirement)
       return invalid("requirement is already clear") if
         registry.requirement_cleared?(ticket.completed_requirements, requirement)
 

@@ -36,7 +36,7 @@ class OperatorVerification < OrgTicketRecord
   validates :token_digest, presence: true, uniqueness: true
   validates :discarded_at, presence: true
 
-  scope :active, -> { where("discarded_at > ?", Time.current) }
+  scope :active, -> { where(arel_table[:discarded_at].gt(Time.current)) }
 
   def active?
     discarded_at.present? && discarded_at > Time.current

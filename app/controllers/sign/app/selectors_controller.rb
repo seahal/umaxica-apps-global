@@ -9,7 +9,7 @@ module Sign
       before_action :authenticate_client!
 
       def show
-        redirect_to acme_app_selector_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+        redirect_to(acme_app_selector_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")))
       end
     end
   end

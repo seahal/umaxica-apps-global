@@ -72,6 +72,8 @@ module Sign
                 user_secret_kind_id: ClientSecretCredentialKind::LOGIN,
               ),
             )
+            raise ActiveRecord::RecordInvalid.new(secret_credential) unless secret_credential.valid?
+
             secret_credential.save!(validate: false)
             secret_credential
           end

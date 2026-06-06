@@ -55,6 +55,8 @@ class ClientChronicle < ChronicleRecord
   attribute :level_id, default: ClientChronicleLevel::NOTHING
   attribute :subject_id, :string
 
+  scope :recent_activity_first, -> { order(arel_table[:occurred_at].desc, arel_table[:created_at].desc) }
+
   validates :event_id, numericality: { only_integer: true }, allow_nil: true
   validates :level_id, numericality: { only_integer: true }, allow_nil: true
   # Validate that event_id exists in client_chronicle_events table

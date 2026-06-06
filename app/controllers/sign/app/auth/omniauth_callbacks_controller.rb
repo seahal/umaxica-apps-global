@@ -182,7 +182,8 @@ module Sign
           end
 
           redirect_to(
-            sign_app_up_guard_path(
+            public_send(
+              :"sign_app_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -205,7 +206,8 @@ module Sign
           end
 
           redirect_to(
-            sign_app_up_guard_path(
+            public_send(
+              :"sign_app_up_guard_#{provider}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),

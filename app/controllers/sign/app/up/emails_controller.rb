@@ -120,7 +120,7 @@ module Sign
           redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
           flash[:notice] = redirect_params.delete(:notice)
           sanitize_redirect_params!(redirect_params)
-          redirect_to(edit_sign_app_up_email_path(redirect_params))
+          redirect_to(sign_app_up_check_email_otp_path(redirect_params))
         end
 
         def update
@@ -190,7 +190,7 @@ module Sign
           progress_email_flow!(:update)
           advance_sign_up_flow_after_email_otp!
           redirect_to(
-            sign_app_up_guard_path(
+            sign_app_up_guard_email_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),
@@ -360,7 +360,18 @@ module Sign
 
           result =
             AppTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              verify = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              if verify.status == :advanced
+                SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+                SignUp::StateMachine.call(
+                  ticket: cycle.reload,
+                  event: :clear_requirement,
+                  actor_context: Actor.authn,
+                  payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
+                )
+              else
+                verify
+              end
             end
           return if result.status == :advanced
 

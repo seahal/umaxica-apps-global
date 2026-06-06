@@ -22,6 +22,7 @@ module Health
 
     def status_for(results)
       return :ok if results.all?(&:ok?)
+      return :starting if results.any? { |result| result.status == :starting }
       return :degraded_acceptable if degraded_acceptable?(results)
 
       :unready

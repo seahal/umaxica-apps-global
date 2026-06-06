@@ -16,8 +16,8 @@ from JS-readable cookies.
 - Definition: `ct`, the stable transport key for the current client theme preference.
 - Context: `app`, `org`, `com`; GET request context, JS-readable preference cookies, preference
   payload projections, and UI theme code.
-- Notes: Accepted by `adr/theme-preference-cookie-and-param-contract.md`. Typical values are
-  `li`, `dr`, and `sy`, with long-form compatibility values `light`, `dark`, and `system`.
+- Notes: Accepted by `adr/theme-preference-cookie-and-param-contract.md`. Typical values are `li`,
+  `dr`, and `sy`, with long-form compatibility values `light`, `dark`, and `system`.
 - Status: `accepted`.
 
 ### Language Key

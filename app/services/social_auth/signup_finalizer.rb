@@ -17,10 +17,13 @@ module SocialAuth
 
       AppPrincipalRecord.transaction do
         ensure_identity_status!
+        existing_identity = identity_class.lock.find_by(uid: uid, provider: provider)
+        raise ProviderError.new("errors.social_auth.identity_conflict") if existing_identity&.user_id.present?
+
         user = build_user
         user.save!
 
-        identity = identity_class.new(uid: uid, provider: provider)
+        identity = existing_identity || identity_class.new(uid: uid, provider: provider)
         identity.assign_auth_credentials(auth_hash)
         identity.user = user
         identity.save!

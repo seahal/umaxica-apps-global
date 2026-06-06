@@ -115,7 +115,8 @@ module Acme
           selected_collective_unit_public_id: public_ids[:organization_unit_public_id],
           selected_at: Time.current,
         }
-        attributes[:selected_avatar_public_id] = public_ids[:avatar_public_id] if session.respond_to?(:selected_avatar_public_id=)
+        attributes[:selected_avatar_public_id] =
+          public_ids[:avatar_public_id] if session.respond_to?(:selected_avatar_public_id=)
 
         connection_owner(session.class).connected_to(role: :writing) { session.update!(attributes) }
       end

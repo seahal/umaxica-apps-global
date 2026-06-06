@@ -184,7 +184,6 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case E-3: Verify success
   test "verification creates passkey on success" do
-    # skip "Route sign_app_settings_emergency_key_path is undefined in controller - needs implementation fix"
     # Get challenge
     post options_sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     challenge_id = response.parsed_body["challenge_id"]

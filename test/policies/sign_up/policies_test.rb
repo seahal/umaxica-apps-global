@@ -187,6 +187,7 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
       step: "checkpoint",
       principal_id: 42,
       completed_requirements: {
+        "otp" => { "cleared" => true },
         "birthdate" => { "cleared" => true },
         "passkey" => { "cleared" => true },
         "passcode" => { "cleared" => true },

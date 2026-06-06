@@ -24,7 +24,7 @@ module Sign
             return if performed?
             return continue_after_cleared_sign_up_requirement if sign_up_requirement_cleared?(:birthdate)
             return unless validate_sign_up_checkpoint_version!
-            return render_missing_social_signup_confirmation unless social_signup_confirmed?
+            return render_missing_social_signup_confirmation unless social_signup_confirmation_cleared?
 
             birthdate = sign_up_birthdate_param
             unless AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
@@ -54,8 +54,8 @@ module Sign
               social_signup_evidence.present?
           end
 
-          def social_signup_confirmed?
-            ActiveModel::Type::Boolean.new.cast(params[:confirm_new_social_identity])
+          def social_signup_confirmation_cleared?
+            @sign_up_ticket.requirement_cleared?(:confirmation)
           end
 
           def render_missing_social_signup_confirmation

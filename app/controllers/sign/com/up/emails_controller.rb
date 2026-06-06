@@ -114,7 +114,7 @@ module Sign
           bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow?
           progress_email_flow!(:create)
           flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_up_email_path(ri: params[:ri], pt: sanitized_rt_param))
+          redirect_to(sign_com_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
         end
 
         def update
@@ -133,7 +133,7 @@ module Sign
 
           progress_email_flow!(:update)
           redirect_to(
-            sign_com_up_guard_path(
+            sign_com_up_guard_email_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),
@@ -446,7 +446,18 @@ module Sign
 
           result =
             ComTicketRecord.connected_to(role: :writing) do
-              SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              verify = SignUp::StateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
+              if verify.status == :advanced
+                SignUp::StateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
+                SignUp::StateMachine.call(
+                  ticket: cycle.reload,
+                  event: :clear_requirement,
+                  actor_context: Actor.authn,
+                  payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
+                )
+              else
+                verify
+              end
             end
           result.status == :advanced
         end

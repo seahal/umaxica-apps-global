@@ -265,12 +265,19 @@ pages, so this row remains a target until a change flow is implemented.
 
 | event or control              | subject | 1 sec |   1 min |  1 hour | 1 day | 1 week | 1 month | 1 year | all time | counter source | implementation | source                                                                                                                      |
 | ----------------------------- | ------- | ----: | ------: | ------: | ----: | -----: | ------: | -----: | -------: | -------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| default web request limit     | ip      |  1e18 |     300 |    1e18 |  1e18 |   1e18 |    1e18 |   1e18 |     1e18 | valkey         | implemented    | `app/controllers/concerns/rate_limit.rb`                                                                                    |
+| default web request limit     | ip      |  1e18 |     300 |    1e18 |  1e18 |   1e18 |    1e18 |   1e18 |     1e18 | valkey         | implemented    | `app/controllers/{acme,core,sign}/*/application_controller.rb` (`default_web`)                                              |
 | telephone verification create | ip      |  1e18 |       5 |    1e18 |  1e18 |   1e18 |    1e18 |   1e18 |     1e18 | valkey         | implemented    | `app/controllers/concerns/sign/telephone_registrable.rb`, `app/controllers/concerns/sign/operator_telephone_registrable.rb` |
 | sign-in OTP resend            | target  |  1e18 | dynamic | dynamic |  1e18 |   1e18 |    1e18 |   1e18 |     1e18 | occurrence     | implemented    | `app/services/sign/in/otp_resend_policy.rb`                                                                                 |
 
 `dynamic` means the implementation uses recent event history and exponential cooldown instead of a
 single fixed count for that window.
+
+The `default web request limit` is a surface-wide baseline declared on each surface-local
+`ApplicationController` (scope `<surface>_default_web`, e.g. `acme_app_default_web`). The
+`RateLimit` concern (`app/controllers/concerns/rate_limit.rb`) is a side-effect-free helper —
+including it does not install any rate limit; the limit and its numeric value are declared on the
+inheriting controller via the Rails-native `rate_limit` DSL. Per-endpoint limits in the rows below
+stack on top of this baseline as defense-in-depth.
 
 ## Related
 

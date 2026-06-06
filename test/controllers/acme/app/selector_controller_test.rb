@@ -20,14 +20,18 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
     get acme_app_selector_url(host: @host), headers: as_user_headers(@user, host: @host), as: :json
 
     assert_response :success
-    body = JSON.parse(response.body)
+    body = response.parsed_body
+
     assert_equal "selected", body.fetch("status")
     assert_predicate @token.reload, :selected_actor_context?
   end
 
   test "selector update persists valid selected actor context" do
     Acme::Selector::BootstrapAuthority.call(surface: :app, principal: @user)
-    candidate = Acme::Selector::Authority.new(surface: :app, principal: @user, session: @token).selectable_candidates.first
+    candidate = Acme::Selector::Authority.new(
+      surface: :app, principal: @user,
+      session: @token,
+    ).selectable_candidates.first
 
     patch acme_app_selector_url(host: @host),
           params: candidate[:public],
@@ -35,7 +39,7 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
           as: :json
 
     assert_response :success
-    assert_equal "selected", JSON.parse(response.body).fetch("status")
+    assert_equal "selected", response.parsed_body.fetch("status")
     assert_equal candidate[:public][:account_public_id], @token.reload.selected_account_public_id
   end
 end

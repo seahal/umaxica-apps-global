@@ -37,7 +37,6 @@ module Sign
             telephone.clear_otp
             telephone.visitor_telephone_status_id = VisitorTelephoneStatus::VERIFIED_WITH_SIGN_UP
             telephone.save!
-
           end
 
           Result.new(visitor: visitor)

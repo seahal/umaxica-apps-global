@@ -5,13 +5,9 @@
 module RateLimit
   extend ActiveSupport::Concern
 
-  def self.store
-    Rails.configuration.x.rate_limit.fetch(:store)
-  end
-
   class_methods do
     def rate_limit_store
-      RateLimit.store
+      Rails.configuration.x.rate_limit.fetch(:store)
     end
   end
 

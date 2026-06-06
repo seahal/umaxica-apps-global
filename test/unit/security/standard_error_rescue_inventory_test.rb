@@ -8,7 +8,7 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
 
   REVIEWED_RESCUES = {
     "app/controllers/concerns/actor_support.rb" => {
-      count: 5,
+      count: 6,
       classification: "auth boundary; each rescue logs and re-raises ActorSupport::ResolutionError",
     },
     "app/controllers/concerns/authentication/logoutable.rb" => {
@@ -30,10 +30,6 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
     "app/controllers/concerns/authorization_audit.rb" => {
       count: 1,
       classification: "best-effort authorization failure audit side effect",
-    },
-    "app/controllers/concerns/health.rb" => {
-      count: 3,
-      classification: "health probe degradation path; not an auth boundary",
     },
     "app/controllers/concerns/preference/adoption.rb" => {
       count: 2,

@@ -30,8 +30,10 @@ module Acme
           ensure_membership!(account: account, collective: collective, unit: unit)
           ensure_avatar!(account: account, collective: collective) if config.requires_avatar
 
-          BootstrapResult.new(rp_account: rp_account, identity: identity, account: account,
-                              collective: collective, unit: unit)
+          BootstrapResult.new(
+            rp_account: rp_account, identity: identity, account: account,
+            collective: collective, unit: unit,
+          )
         end
       end
 
@@ -93,7 +95,7 @@ module Acme
         association_key = :"#{config.account_identity_association}_id"
         create_unique(
           config.account_class,
-          { association_key => identity.id, moniker: config.account_moniker },
+          { association_key => identity.id, :moniker => config.account_moniker },
           lookup: { association_key => identity.id },
         )
       end
@@ -107,7 +109,7 @@ module Acme
 
       def ensure_root_unit!(collective)
         collective.root_units.order(:created_at, :id).first ||
-          config.unit_class.create!(config.unit_collective_association => collective, name: "Default")
+          config.unit_class.create!(config.unit_collective_association => collective, :name => "Default")
       end
 
       def ensure_membership!(account:, collective:, unit:)
@@ -118,18 +120,18 @@ module Acme
           config.membership_account_association => account,
           config.membership_collective_association => collective,
           config.membership_unit_association => unit,
-          membership_kind_id: config.membership_kind_class::OWNER,
-          membership_state_id: config.membership_state_class::ACTIVE,
-          primary: true,
-          metadata: {},
-          starts_at: Time.current,
+          :membership_kind_id => config.membership_kind_class::OWNER,
+          :membership_state_id => config.membership_state_class::ACTIVE,
+          :primary => true,
+          :metadata => {},
+          :starts_at => Time.current,
         )
       rescue ActiveRecord::RecordNotUnique
         account.memberships.current.primary_first.first || raise
       end
 
       def ensure_avatar!(account:, collective:)
-        return if AvatarAssignment.where(user_id: principal.id, role: "owner").exists?
+        return if AvatarAssignment.exists?(user_id: principal.id, role: "owner")
 
         handle = create_unique(
           Handle,

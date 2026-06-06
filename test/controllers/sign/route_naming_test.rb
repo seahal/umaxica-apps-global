@@ -18,14 +18,18 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "sign state route helpers use guard check and challenge terminology" do
-    assert_equal "/sign/up/guard", sign_app_up_guard_path
-    assert_equal "/sign/up/check", sign_app_up_check_path
-    assert_equal "/sign/up/check/birthdate", sign_app_up_check_birthdate_path
-    assert_equal "/sign/up/check/passcode/new", new_sign_app_up_check_passcode_path
-    assert_equal "/sign/up/check/passcode", sign_app_up_check_passcode_path
-    assert_equal "/sign/up/check/passkey/new", new_sign_app_up_check_passkey_path
-    assert_equal "/sign/up/check/passkey", sign_app_up_check_passkey_path
-    assert_equal "/sign/up/check/passkey/begin", begin_sign_app_up_check_passkey_path
+    assert_equal "/sign/up/guard/apple", sign_app_up_guard_apple_path
+    assert_equal "/sign/up/guard/google", sign_app_up_guard_google_path
+    assert_equal "/sign/up/guard/email", sign_app_up_guard_email_path
+    assert_equal "/sign/up/guard/telephone", sign_app_up_guard_telephone_path
+    assert_equal "/sign/up/check/apple/confirmation", sign_app_up_check_apple_confirmation_path
+    assert_equal "/sign/up/check/google/confirmation", sign_app_up_check_google_confirmation_path
+    assert_equal "/sign/up/check/email/otp", sign_app_up_check_email_otp_path
+    assert_equal "/sign/up/check/email/birthdate", sign_app_up_check_email_birthdate_path
+    assert_equal "/sign/up/check/telephone/otp", sign_app_up_check_telephone_otp_path
+    assert_equal "/sign/up/check/telephone/passkey", sign_app_up_check_telephone_passkey_path
+    assert_equal "/sign/up/check/telephone/passcode", sign_app_up_check_telephone_passcode_path
+    assert_equal "/sign/up/check/telephone/birthdate", sign_app_up_check_telephone_birthdate_path
     assert_equal "/sign/in/guard", sign_app_in_guard_path
     assert_equal "/sign/in/check", sign_app_in_check_path
     assert_equal "/sign/in/challenge", sign_app_in_challenge_path
@@ -43,15 +47,38 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "canonical app sign state routes resolve to existing controllers" do
-    assert_recognizes_sign_route(:app, "/sign/up/guard", :get, "up/guards", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/check", :get, "up/checkpoints", "show")
-    assert_recognizes_sign_route(:app, "/sign/up/check", :delete, "up/checkpoints", "destroy")
-    assert_recognizes_sign_route(:app, "/sign/up/check/birthdate", :patch, "up/checkpoint/birthdates", "update")
-    assert_recognizes_sign_route(:app, "/sign/up/check/passcode/new", :get, "up/checkpoint/passcodes", "new")
-    assert_recognizes_sign_route(:app, "/sign/up/check/passcode", :post, "up/checkpoint/passcodes", "create")
-    assert_recognizes_sign_route(:app, "/sign/up/check/passkey/new", :get, "up/checkpoint/passkeys", "new")
-    assert_recognizes_sign_route(:app, "/sign/up/check/passkey", :post, "up/checkpoint/passkeys", "create")
-    assert_recognizes_sign_route(:app, "/sign/up/check/passkey/begin", :post, "up/checkpoint/passkeys", "begin")
+    assert_recognizes_sign_route(:app, "/sign/up/guard/apple", :get, "up/guard/apples", "show")
+    assert_recognizes_sign_route(:app, "/sign/up/guard/google", :get, "up/guard/googles", "show")
+    assert_recognizes_sign_route(:app, "/sign/up/guard/email", :get, "up/guard/emails", "show")
+    assert_recognizes_sign_route(:app, "/sign/up/guard/telephone", :get, "up/guard/telephones", "show")
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/apple/confirmation", :get, "up/check/apple/confirmations",
+      "show",
+    )
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/apple/confirmation", :patch, "up/check/apple/confirmations",
+      "update",
+    )
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/google/confirmation", :get, "up/check/google/confirmations",
+      "show",
+    )
+    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :get, "up/check/email/otps", "show")
+    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :post, "up/check/email/otps", "create")
+    assert_recognizes_sign_route(:app, "/sign/up/check/email/otp", :patch, "up/check/email/otps", "update")
+    assert_recognizes_sign_route(:app, "/sign/up/check/email/birthdate", :patch, "up/check/email/birthdates", "update")
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/telephone/passkey", :post, "up/check/telephone/passkeys",
+      "create",
+    )
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/telephone/passkey", :patch, "up/check/telephone/passkeys",
+      "update",
+    )
+    assert_recognizes_sign_route(
+      :app, "/sign/up/check/telephone/passcode", :patch, "up/check/telephone/passcodes",
+      "update",
+    )
     assert_recognizes_sign_route(:app, "/sign/in/guard", :get, "in/guards", "show")
     assert_recognizes_sign_route(:app, "/sign/in/check", :get, "in/checkpoints", "show")
     assert_recognizes_sign_route(:app, "/sign/in/check", :patch, "in/checkpoints", "update")
@@ -62,8 +89,13 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "canonical com and org sign check routes resolve on their surfaces" do
-    assert_recognizes_sign_route(:com, "/sign/up/guard", :get, "up/guards", "show")
-    assert_recognizes_sign_route(:com, "/sign/up/check", :get, "up/checkpoints", "show")
+    assert_recognizes_sign_route(:com, "/sign/up/guard/email", :get, "up/guard/emails", "show")
+    assert_recognizes_sign_route(:com, "/sign/up/guard/telephone", :get, "up/guard/telephones", "show")
+    assert_recognizes_sign_route(:com, "/sign/up/check/email/otp", :get, "up/check/email/otps", "show")
+    assert_recognizes_sign_route(
+      :com, "/sign/up/check/telephone/passkey", :patch, "up/check/telephone/passkeys",
+      "update",
+    )
     assert_recognizes_sign_route(:com, "/sign/in/guard", :get, "in/guards", "show")
     assert_recognizes_sign_route(:com, "/sign/in/check", :get, "in/checkpoints", "show")
     assert_recognizes_sign_route(:org, "/sign/in/guard", :get, "in/guards", "show")
@@ -80,32 +112,21 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "old app sign state paths redirect to canonical routes with only safe query params" do
-    get "/sign/up/guardrail?ri=jp&pt=signed&sid=public&token=secret",
-        headers: { "Host" => SURFACES.fetch(:app) }
-
-    assert_response :temporary_redirect
-    assert_redirect_location_path("/sign/up/guard", "pt" => "signed", "ri" => "jp", "sid" => "public")
-
-    get "/sign/up/checkpoint?ri=jp&pt=signed&sid=public&token=secret",
-        headers: { "Host" => SURFACES.fetch(:app) }
-
-    assert_response :temporary_redirect
-    assert_redirect_location_path("/sign/up/check", "pt" => "signed", "ri" => "jp", "sid" => "public")
+  test "old app sign state paths are not recognized" do
+    assert_unrecognized(:app, "/sign/up/guard", :get)
+    assert_unrecognized(:app, "/sign/up/guardrail", :get)
+    assert_unrecognized(:app, "/sign/up/check", :get)
+    assert_unrecognized(:app, "/sign/up/check", :delete)
+    assert_unrecognized(:app, "/sign/up/checkpoint", :get)
+    assert_unrecognized(:app, "/sign/up/checkpoint", :delete)
   end
 
-  test "old app nested check paths redirect without handling the mutation" do
-    patch "/sign/up/checkpoint/birthdate?ri=jp&authenticity_token=raw",
-          headers: { "Host" => SURFACES.fetch(:app) }
-
-    assert_response :temporary_redirect
-    assert_redirect_location_path("/sign/up/check/birthdate", "ri" => "jp")
-
-    post "/sign/up/checkpoint/passkey/begin?ri=jp&credential=raw",
-         headers: { "Host" => SURFACES.fetch(:app) }
-
-    assert_response :temporary_redirect
-    assert_redirect_location_path("/sign/up/check/passkey/begin", "ri" => "jp")
+  test "old app nested check paths are not recognized" do
+    assert_unrecognized(:app, "/sign/up/check/birthdate", :patch)
+    assert_unrecognized(:app, "/sign/up/check/passkey", :get)
+    assert_unrecognized(:app, "/sign/up/check/passkey/begin", :post)
+    assert_unrecognized(:app, "/sign/up/check/passcode", :post)
+    assert_unrecognized(:app, "/sign/up/check/social/confirmation", :get)
   end
 
   test "old sign in checkpoint path redirects to check while challenge remains canonical" do
@@ -134,6 +155,12 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
 
     assert_equal "sign/#{surface}/#{controller_name}", route.fetch(:controller)
     assert_equal action, route.fetch(:action)
+  end
+
+  def assert_unrecognized(surface, path, method)
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{SURFACES.fetch(surface)}#{path}", method: method)
+    end
   end
 
   def assert_redirect_location_path(expected_path, expected_query)

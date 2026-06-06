@@ -56,17 +56,17 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = visitor_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: { visitor_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_com_up_guard_url(ri: "jp")
+    assert_redirected_to sign_com_up_guard_email_url(ri: "jp")
 
-    get sign_com_up_guard_url(ri: "jp"), headers: default_headers
+    get sign_com_up_guard_email_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_com_up_check_url(ri: "jp")
+    assert_redirected_to sign_com_up_check_email_birthdate_url(ri: "jp")
 
-    get sign_com_up_check_url(ri: "jp"), headers: default_headers
+    get sign_com_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
@@ -74,10 +74,10 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_birthdate_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_com_up_check_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_path(ri: "jp")}']"
-    assert_select "form[action='#{sign_com_up_check_path(ri: "jp")}'] input[name=_method][value=delete]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=patch]"
+    assert_select "form[data-turbo=false][method=post][action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}']"
+    assert_select "form[action='#{sign_com_up_check_email_birthdate_path(ri: "jp")}'] input[name=_method][value=delete]"
     assert_select "a[href*=?]", new_sign_com_sign_up_path, count: 0
     assert_select "a[href*=?]", new_sign_com_sign_in_path, count: 0
 
@@ -87,7 +87,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       pending_contact_id: visitor_email.id,
     )
 
-    patch sign_com_up_check_birthdate_url(ri: "jp"),
+    patch sign_com_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-01-01",
@@ -168,7 +168,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_response :success
-    assert_equal "/sign/up/email/edit", path
+    assert_equal "/sign/up/check/email/otp", path
   end
 
   test "successful OTP verification routes to guardrail without finalization" do
@@ -188,7 +188,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     otp_data = visitor_email.get_otp
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: {
             visitor_email: {
               pass_code: hotp.at(otp_data[:otp_counter]).to_s,
@@ -196,7 +196,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
           },
           headers: default_headers
 
-    assert_redirected_to sign_com_up_guard_path(ri: "jp")
+    assert_redirected_to sign_com_up_guard_email_path(ri: "jp")
     visitor = visitor_email.reload.visitor
     cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 
@@ -205,7 +205,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert_equal visitor.id, cycle.principal_id
     assert_equal "email", cycle.pending_contact_type
     assert_equal visitor_email.id, cycle.pending_contact_id
-    assert_equal "contact_verified", cycle.step
+    assert_equal "checkpoint", cycle.step
   end
 
   test "successful OTP verification does not record signup or login audits before finalization" do
@@ -226,7 +226,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
 
     assert_no_difference("ClientChronicle.count") do
-      patch sign_com_up_email_url(ri: "jp"),
+      patch sign_com_up_check_email_otp_url(ri: "jp"),
             params: {
               visitor_email: {
                 pass_code: hotp.at(otp_data[:otp_counter]).to_s,
@@ -307,7 +307,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_includes response.location, "/sign/up/email/edit"
+    assert_includes response.location, "/sign/up/check/email/otp"
     assert_equal I18n.t("sign.com.registration.email.create.verification_code_sent"), flash[:notice]
     assert_nil session[:com_sign_up_flow_locator]
   end
@@ -333,22 +333,23 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: { visitor_email: { pass_code: "000000" } },
           headers: default_headers
 
-    assert_redirected_to new_sign_com_sign_in_path(ri: "jp")
-    assert_equal I18n.t("sign.app.registration.email.update.sign_in_required"), flash[:notice]
+    assert_response :unprocessable_content
+    assert_equal "ticket is required", response.body
     assert_nil session[:com_sign_up_flow_locator]
   end
 
   test "edit missing email resets flow and redirects to new" do
-    get edit_sign_com_up_email_url(ri: "jp"), headers: default_headers
+    get sign_com_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to new_sign_com_up_email_path(ri: "jp")
+    assert_response :unprocessable_content
+    assert_equal "ticket is required", response.body
   end
 
-  test "edit with expired session redirects to new" do
+  test "edit with expired session renders form error without clearing requirements" do
     post sign_com_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
@@ -362,11 +363,16 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     public_id = VisitorEmail.order(:created_at).last.public_id
     email = VisitorEmail.find_by(public_id: public_id)
     email.update!(otp_expires_at: 1.minute.ago)
+    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
+    completed_requirements = cycle.completed_requirements.deep_dup
+    flow_count = VisitorSignUpFlow.count
 
-    get edit_sign_com_up_email_url(ri: "jp"), headers: default_headers
+    get sign_com_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to new_sign_com_up_email_path(ri: "jp")
-    assert_equal I18n.t("sign.app.registration.email.edit.session_expired"), flash[:notice]
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.edit.session_expired")
+    assert_equal completed_requirements, cycle.reload.completed_requirements
+    assert_equal flow_count, VisitorSignUpFlow.count
   end
 
   test "update without code renders edit" do
@@ -382,7 +388,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     VisitorEmail.order(:created_at).last.public_id
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: { visitor_email: { pass_code: "" } },
           headers: default_headers
 
@@ -398,11 +404,12 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       otp_expires_at: 5.minutes.from_now,
     )
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: { visitor_email: { pass_code: "123456" } },
           headers: default_headers
 
-    assert_redirected_to new_sign_com_up_email_path(ri: "jp")
+    assert_response :unprocessable_content
+    assert_equal "ticket is required", response.body
   end
 
   test "create with invalid email fails" do
@@ -495,7 +502,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     assert VisitorEmail.exists?(public_id: new_public_id)
   end
 
-  test "patch update with attempts exceeded redirects to new" do
+  test "patch update with attempts exceeded renders error without clearing otp" do
     post sign_com_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: "locked@example.com", confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
@@ -503,16 +510,20 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
 
     public_id = VisitorEmail.order(:created_at).last.public_id
     email = VisitorEmail.find_by(public_id: public_id)
+    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
+    completed_requirements = cycle.completed_requirements.deep_dup
 
     # Simulate locked state
     email.update!(otp_attempts_count: 10)
 
-    patch sign_com_up_email_url(ri: "jp"),
+    patch sign_com_up_check_email_otp_url(ri: "jp"),
           params: { visitor_email: { pass_code: "123456" } },
           headers: default_headers
 
-    assert_redirected_to new_sign_com_up_email_path(ri: "jp")
-    assert_equal I18n.t("sign.app.registration.email.update.attempts_exceeded"), flash[:alert]
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("sign.app.registration.email.update.invalid_code")
+    assert_equal completed_requirements, cycle.reload.completed_requirements
+    assert_nil cycle.completed_requirements["otp"]
   end
 
   test "direct controller private branches for flow and existing verification" do
@@ -531,8 +542,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:new_sign_com_up_email_path) { |ri: nil| "/sign/up/email/new?ri=#{ri}" }
-    controller.define_singleton_method(:edit_sign_com_up_email_path) { |_email, ri: nil, pt: nil|
-      "/sign/up/email/edit?ri=#{ri}&pt=#{pt}"
+    controller.define_singleton_method(:sign_com_up_check_email_otp_path) { |_email, ri: nil, pt: nil|
+      "/sign/up/check/email/otp?ri=#{ri}&pt=#{pt}"
     }
     controller.define_singleton_method(:new_sign_com_sign_in_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }

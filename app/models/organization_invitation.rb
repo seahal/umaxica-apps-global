@@ -39,7 +39,7 @@ class OrganizationInvitation < OrgTicketRecord
   before_validation :generate_code, on: :create
   before_validation :set_expiration, on: :create
 
-  scope :active, -> { where(consumed_at: nil).where("expires_at > ?", Time.current) }
+  scope :active, -> { where(consumed_at: nil).where(arel_table[:expires_at].gt(Time.current)) }
   scope :expired, -> { where(expires_at: ..Time.current) }
   scope :consumed, -> { where.not(consumed_at: nil) }
 

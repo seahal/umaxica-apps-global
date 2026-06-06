@@ -25,7 +25,7 @@ module Sign
         before_action :set_actor_token
         before_action :require_ri!
         before_action :enforce_step_up_prereqs!
-        skip_before_action :enforce_verification_if_required, raise: false
+        skip_before_action :enforce_verification_if_required
         before_action :authorize_verification_actor!
 
         private

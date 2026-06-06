@@ -4,6 +4,7 @@
 # typed: false
 # frozen_string_literal: true
 
+# TODO: remove these code!!!
 safe_sign_state_redirect =
   lambda do |path|
     redirect(status: 307) do |_params, request|
@@ -49,12 +50,10 @@ scope module: :sign, as: :sign do
             namespace :email do
               resource :otp, only: :create
             end
-
             namespace :telephone do
               resource :otp, only: :create
             end
           end
-
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
@@ -67,7 +66,6 @@ scope module: :sign, as: :sign do
           get :stopped
         end
       end
-
       if Rails.env.local?
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
         namespace :__dev, module: :dev, path: "__dev" do
@@ -111,52 +109,58 @@ scope module: :sign, as: :sign do
         post "emails/:id", to: "emails#create"
       end
 
+      # FIXME: use resource and namespace
       # Sign-up and sign-in
       scope path: "sign" do
         # Sign-up: account registration via email or telephone
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
-          resource :email, only: %i(new create edit update)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show destroy), controller: "checkpoints"
+          resource :email, only: %i(new create)
+          resource :telephone, only: %i(new create)
 
-          get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
-          get "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
-          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
-
-          scope path: "check", as: :check, module: :checkpoint do
-            resource :birthdate, only: :update
-            resource :passcode, only: %i(new create)
-            resource :passkey, only: %i(new create) do
-              post :begin, on: :member
-            end
+          namespace :guard do
+            resource :apple, only: %i(show)
+            resource :google, only: %i(show)
+            resource :email, only: %i(show)
+            resource :telephone, only: %i(show)
           end
 
-          # FIXME: use rails way which resource routing!
-          patch "checkpoint/birthdate", to: safe_sign_state_redirect.call("/sign/up/check/birthdate"), as: nil
-          get "checkpoint/passcode/new", to: safe_sign_state_redirect.call("/sign/up/check/passcode/new"), as: nil
-          post "checkpoint/passcode", to: safe_sign_state_redirect.call("/sign/up/check/passcode"), as: nil
-          get "checkpoint/passkey/new", to: safe_sign_state_redirect.call("/sign/up/check/passkey/new"), as: nil
-          post "checkpoint/passkey", to: safe_sign_state_redirect.call("/sign/up/check/passkey"), as: nil
-          post "checkpoint/passkey/begin", to: safe_sign_state_redirect.call("/sign/up/check/passkey/begin"), as: nil
+          namespace :check do
+            namespace :apple do
+              resource :confirmation, only: %i(show update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
 
-          resource :telephone, only: %i(new create edit update) do
-            post :resend
+            namespace :google do
+              resource :confirmation, only: %i(show update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
+
+            namespace :email do
+              resource :otp, only: %i(show create update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
+
+            namespace :telephone do
+              resource :otp, only: %i(show create update destroy)
+              resource :passkey, only: %i(show create update destroy)
+              resource :passcode, only: %i(show update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
           end
         end
 
+        # FIXME: use resource and namespace
         # Sign-in: credential entry and session establishment
         resource :sign_in, path: "in", controller: "sign_ins", only: %i(new)
         namespace :in do
           resource :email, only: %i(new create edit update)
-
           resources :passkeys, only: [:new] do
             collection do
               post :options
               post :verification
             end
           end
-
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
           resource :guard, only: :show, controller: "guards"
@@ -165,13 +169,11 @@ scope module: :sign, as: :sign do
           patch "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           delete "checkpoint", to: safe_sign_state_redirect.call("/sign/in/check"), as: nil
           resource :challenge, only: %i(show)
-
           namespace :challenge do
             resource :totp, only: %i(new create)
             resource :passkey, only: %i(new create)
           end
         end
-
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
 
@@ -205,10 +207,10 @@ scope module: :sign, as: :sign do
       # Step-up verification
       resource :verification, only: %i(show)
       namespace :verification do
+        # TODO: what is the following line? check it out!
         resource :setup, only: %i(new)
         resource :passkey, only: %i(new create)
         resource :totp, only: %i(new create)
-
         resources :emails, only: %i(new create edit update) do
           post :resend, on: :member
         end
@@ -237,47 +239,44 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :totps, only: %i(index new create edit update destroy)
-
         resources :passkeys do
           collection do
             post :options
             post :verification
           end
         end
-        resource :emergency_key, only: :show
-
+        # TODO: what is the following line? check it out!
         namespace :mfa do
           resource :challenge, only: %i(show)
         end
-
+        resources :emails, only: %i(index edit update destroy)
         namespace :emails do
           resource :registration, only: %i(new create edit update) do
+            # TODO: what is the following line? check it out!
             post :resend
           end
         end
-        resources :emails, only: %i(index edit update destroy)
-
+        # FIXME: merge those two namespaces.
+        resources :telephones, only: %i(new create edit)
+        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(new create edit)
-        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
-
         resource :birthdate, only: :show
         resource :apple, only: :show
-        resource :google, only: %i(show)
-
+        resource :google, only: :show
+        # FIXME: rename this to "secrets"
+        resource :emergency_key, only: :show
         resources :secret_credentials, only: %i(index show new edit create update destroy) do
           post :regenerate, on: :member
         end
-
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
             delete :revoke_all
           end
         end
-
+        # FIXME: I did delete this entrypoint last month.
         resources :connections, only: %i(index show destroy), controller: "connections"
         resources :activities, only: :index, controller: "activities"
         resource :withdrawal, only: %i(new update create edit destroy)
@@ -375,30 +374,27 @@ scope module: :sign, as: :sign do
         # Sign-up: account registration via email or telephone
         resource :sign_up, path: "up", controller: "sign_ups", only: :new
         namespace :up do
-          resource :email, only: %i(new create edit update)
-          resource :guard, only: :show, controller: "guards"
-          resource :check, only: %i(show destroy), controller: "checkpoints"
+          resource :email, only: %i(new create)
+          resource :telephone, only: %i(new create)
 
-          get "guardrail", to: safe_sign_state_redirect.call("/sign/up/guard"), as: nil
-          get "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
-          delete "checkpoint", to: safe_sign_state_redirect.call("/sign/up/check"), as: nil
-
-          scope path: "check", as: :check, module: :checkpoint do
-            resource :birthdate, only: :update
-            resource :passcode, only: %i(new create)
-            resource :passkey, only: %i(new create) do
-              post :begin, on: :member
-            end
+          namespace :guard do
+            resource :email, only: %i(show)
+            resource :telephone, only: %i(show)
           end
 
-          patch "checkpoint/birthdate", to: safe_sign_state_redirect.call("/sign/up/check/birthdate"), as: nil
-          get "checkpoint/passcode/new", to: safe_sign_state_redirect.call("/sign/up/check/passcode/new"), as: nil
-          post "checkpoint/passcode", to: safe_sign_state_redirect.call("/sign/up/check/passcode"), as: nil
-          get "checkpoint/passkey/new", to: safe_sign_state_redirect.call("/sign/up/check/passkey/new"), as: nil
-          post "checkpoint/passkey", to: safe_sign_state_redirect.call("/sign/up/check/passkey"), as: nil
-          post "checkpoint/passkey/begin", to: safe_sign_state_redirect.call("/sign/up/check/passkey/begin"), as: nil
+          namespace :check do
+            namespace :email do
+              resource :otp, only: %i(show create update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
 
-          resource :telephone, only: %i(new create edit update)
+            namespace :telephone do
+              resource :otp, only: %i(show create update destroy)
+              resource :passkey, only: %i(show create update destroy)
+              resource :passcode, only: %i(show update destroy)
+              resource :birthdate, only: %i(show update destroy)
+            end
+          end
         end
 
         # Sign-in: credential entry and session establishment

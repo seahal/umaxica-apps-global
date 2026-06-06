@@ -17,8 +17,8 @@ module Acme
 
           skip_before_action :set_color_theme, raise: false
           skip_before_action :enforce_withdrawal_gate!, raise: false
-          skip_before_action :transparent_refresh_access_token, raise: false
-          skip_before_action :enforce_verification_if_required, raise: false
+          skip_before_action :transparent_refresh_access_token
+          skip_before_action :enforce_verification_if_required
 
           private
 

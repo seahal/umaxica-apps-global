@@ -336,10 +336,10 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
     end
   end
 
-  test "encode returns nil and logs error on StandardError" do
+  test "encode returns nil and logs error on JWT encode error" do
     # Temporarily override with faulty implementation
     original = Preference::JwtConfiguration.method(:private_key_for_active)
-    Preference::JwtConfiguration.define_singleton_method(:private_key_for_active) { raise StandardError, "forced error" }
+    Preference::JwtConfiguration.define_singleton_method(:private_key_for_active) { raise JWT::EncodeError, "forced error" }
     begin
       assert_nil Preference::Token.encode(
         @preferences,
@@ -353,7 +353,7 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
     end
   end
 
-  test "decode returns nil and logs error on StandardError" do
+  test "decode returns nil and logs error on key resolution error" do
     with_jwt_keys do
       token = Preference::Token.encode(
         @preferences,
@@ -364,7 +364,7 @@ class PreferenceTokenModelTest < ActiveSupport::TestCase
       )
 
       original = Preference::JwtConfiguration.method(:public_key_for)
-      Preference::JwtConfiguration.define_singleton_method(:public_key_for) { |_kid| raise StandardError, "forced error" }
+      Preference::JwtConfiguration.define_singleton_method(:public_key_for) { |_kid| raise OpenSSL::PKey::PKeyError, "forced error" }
       begin
         assert_nil Preference::Token.decode(token, host: @host)
       ensure

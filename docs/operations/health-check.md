@@ -24,12 +24,12 @@ controllers without an explicit authentication mode default to `deny_all`. Rails
 
 ## Endpoint Roles
 
-| Path              | Role                                                               |
-| ----------------- | ------------------------------------------------------------------ |
-| `/health`         | HTML readiness snapshot for the current surface.                   |
-| `/health/live`    | JSON liveness probe. It should remain dependency-free.             |
-| `/health/ready`   | JSON readiness probe for dependencies relevant to the surface.      |
-| `/health/startup` | JSON startup probe for boot-time checks relevant to the surface.   |
+| Path              | Role                                                             |
+| ----------------- | ---------------------------------------------------------------- |
+| `/health`         | HTML readiness snapshot for the current surface.                 |
+| `/health/live`    | JSON liveness probe. It should remain dependency-free.           |
+| `/health/ready`   | JSON readiness probe for dependencies relevant to the surface.   |
+| `/health/startup` | JSON startup probe for boot-time checks relevant to the surface. |
 
 All probe responses must avoid exposing internal topology, exception details, credentials, or full
 dependency names.

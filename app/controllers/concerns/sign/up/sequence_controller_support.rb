@@ -460,9 +460,9 @@ module Sign
       def sign_up_telephone_edit_path
         case sign_up_surface
         when :app
-          edit_sign_app_up_telephone_path(ri: params[:ri])
+          sign_app_up_check_telephone_otp_path(ri: params[:ri])
         when :com
-          edit_sign_com_up_telephone_path(ri: params[:ri])
+          sign_com_up_check_telephone_otp_path(ri: params[:ri])
         else
           sign_up_default_sign_in_path
         end
@@ -515,7 +515,7 @@ module Sign
         :failed
       end
 
-      def finalize_com_sign_up_actor!(actor)
+      def finalize_com_sign_up_actor!(_actor)
         case @sign_up_ticket.pending_contact_type
         when "telephone"
           telephone = VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
@@ -523,8 +523,7 @@ module Sign
 
           Sign::Com::Up::TelephoneRegistrationFinalizer.call(telephone: telephone)
         when "email"
-          Visitor.transaction do
-          end
+          # Email sign-up has no additional com-side credential finalizer here.
         else
           return :failed
         end

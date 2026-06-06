@@ -44,7 +44,7 @@ class ClientAuthorizationCode < AppTicketRecord
   validates :code_challenge_method, inclusion: { in: %w(S256) }
   validates :discarded_at, presence: true
 
-  scope :valid, -> { where(consumed_at: nil).where("discarded_at > ?", Time.current) }
+  scope :valid, -> { where(consumed_at: nil).where(arel_table[:discarded_at].gt(Time.current)) }
 
   def resource
     user

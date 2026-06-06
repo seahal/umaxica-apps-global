@@ -44,7 +44,7 @@ module SocialAuth
         "[SocialAuth] Existing identity - user_id: #{user&.id}, orphaned: #{user.nil?}"
       end
 
-      user ||= create_user_for_identity(identity)
+      return pending_social_signup if user.blank?
 
       identity.update_from_auth_hash!(auth_hash)
       Rails.logger.debug { "[SocialAuth] Identity updated from auth_hash" }

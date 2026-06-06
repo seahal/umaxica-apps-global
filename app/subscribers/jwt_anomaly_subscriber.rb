@@ -26,7 +26,7 @@ class JwtAnomalySubscriber
       metadata: build_metadata(payload),
       occurred_at: event.time || Time.current,
     )
-  rescue StandardError => e
+  rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error(
       Jit::LogEvent.format(
         "jwt.anomaly.subscriber_failed",

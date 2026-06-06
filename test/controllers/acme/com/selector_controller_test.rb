@@ -18,7 +18,7 @@ class Acme::Com::SelectorControllerTest < ActionDispatch::IntegrationTest
     ), as: :json
 
     assert_response :success
-    assert_equal "selected", JSON.parse(response.body).fetch("status")
+    assert_equal "selected", response.parsed_body.fetch("status")
     assert_predicate @token.reload, :selected_actor_context?
     assert_nil @token.selected_avatar_public_id if @token.respond_to?(:selected_avatar_public_id)
   end

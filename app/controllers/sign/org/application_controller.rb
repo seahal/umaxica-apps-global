@@ -44,6 +44,18 @@ module Sign
       # NOTE: Order matters (dependencies rely on this sequence)
       # Layer order: explicit RateLimit -> CurrentContext -> Preference -> AuthN ->
       # CurrentActor -> side-effect reflection -> Verification -> AuthZ
+      # Surface-wide default web request limit (defense-in-depth baseline).
+      # RateLimit stays a side-effect-free helper; the limit and its numeric
+      # value are declared here on the inheriting controller.
+      rate_limit(
+        to: 300,
+        within: 1.minute,
+        by: -> { request.remote_ip },
+        scope: "sign_org_default_web",
+        name: "default_web",
+        store: rate_limit_store,
+        with: -> { render_rate_limited(rule_name: "sign_org_default_web", retry_after: 60) },
+      )
       before_action :set_current_context
       before_action :reset_flash
       before_action :set_preferences_cookie
