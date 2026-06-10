@@ -61,25 +61,25 @@ class Sign::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::IntegrationTe
 
   test "sign_in_and_sign_up_entry_routes_still_resolve_on_sign" do
     sign_in = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in/new",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in/entrance",
       method: :get,
     )
     sign_up = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/new",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/entrance",
       method: :get,
     )
     guard = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/guard",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/guard/email",
       method: :get,
     )
     checkpoint = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/check",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/check/email/birthdate",
       method: :get,
     )
 
-    assert_equal "sign/app/sign_ins", sign_in.fetch(:controller)
-    assert_equal "sign/app/sign_ups", sign_up.fetch(:controller)
-    assert_equal "sign/app/up/guards", guard.fetch(:controller)
-    assert_equal "sign/app/up/checkpoints", checkpoint.fetch(:controller)
+    assert_equal "sign/app/sign/in/entrances", sign_in.fetch(:controller)
+    assert_equal "sign/app/sign/up/entrances", sign_up.fetch(:controller)
+    assert_equal "sign/app/sign/up/guard/emails", guard.fetch(:controller)
+    assert_equal "sign/app/sign/up/check/email/birthdates", checkpoint.fetch(:controller)
   end
 end

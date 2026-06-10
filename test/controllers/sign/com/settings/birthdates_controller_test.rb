@@ -75,7 +75,7 @@ module Sign::Com::Settings
       uri = URI.parse(response.location)
 
       assert_equal "jump.umaxica.net", uri.host
-      assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
+      assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/entrance\?ri=jp\z}, jump_rt_url_from_location(response.location)
     end
 
     test "does not route mutation or edit actions" do

@@ -49,7 +49,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "destroy consumes bulletin and continues to dashboard with pt" do
+  test "destroy is rejected by routing" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
@@ -58,10 +58,10 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy without pt redirects to default" do
+  test "destroy without pt is rejected by routing" do
     start_checkpoint_sequence
 
     delete sign_org_sign_in_check_url(ri: "jp"),
@@ -69,7 +69,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   test "show and update return timeout when expired" do
@@ -89,7 +89,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "destroy still redirects when expired" do
+  test "destroy is rejected by routing when expired" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings")
 
@@ -98,7 +98,7 @@ class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   private

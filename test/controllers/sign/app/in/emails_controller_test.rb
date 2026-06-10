@@ -225,7 +225,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -285,7 +285,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_challenge_path
+    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
   end
 
   def test_setup_cooldown_test_email
@@ -570,7 +570,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -614,7 +614,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
   end
 
   test "resets session ID after successful email login" do
@@ -691,7 +691,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_session_path
+    assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # The current session-limit gate keeps the pending login in session state.
@@ -737,7 +737,7 @@ class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
     json = response.parsed_body
 
     assert_equal "session_restricted", json["status"]
-    assert_equal sign_app_sign_in_session_path, json["redirect_url"]
+    assert_equal sign_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
   end
 
   test "cooldown applies identically for non-existing emails (anti-enumeration)" do

@@ -54,17 +54,12 @@ class Sign::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     location = URI.parse(response.location)
 
-    assert_equal "/sign/out", location.path
+    assert_equal "/sign/out/completion", location.path
     assert_equal "ri=jp", location.query
 
-    get "/sign/out", params: { ri: "jp" }, headers: browser_headers.merge("Host" => @host)
+    get "/sign/out/completion", params: { ri: "jp" }, headers: browser_headers.merge("Host" => @host)
 
-    assert_response :see_other
-    location = URI.parse(response.location)
-
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
-    assert_equal "/sign/out", location.path
-    assert_equal "ri=jp", location.query
+    assert_response :success
   end
 
   test "rejects client id mismatch with signed logout request" do

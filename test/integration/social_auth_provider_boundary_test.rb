@@ -36,7 +36,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
     assert_no_difference("ClientGoogleIdentity.count") do
-      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+      get sign_app_auth_google_app_callback_url(ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)
     end
@@ -59,7 +59,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ClientAppleIdentity.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        get sign_app_auth_google_app_callback_url(ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
       end
@@ -86,7 +86,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
     assert_no_difference("ClientGoogleIdentity.count") do
-      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+      get sign_app_auth_google_app_callback_url(ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)
     end

@@ -7,7 +7,7 @@ class RedirectsPriorityResolverTest < ActiveSupport::TestCase
     Struct.new(:calls) do
       def sign_app_sign_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
-      def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
+      def sign_app_sign_in_entrance_path(ri:) = "/sign/in/entrance?ri=#{ri}"
 
       def acme_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 

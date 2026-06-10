@@ -52,7 +52,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "destroy with checkpoint notice state without sequence authorization is rejected" do
+  test "destroy is rejected by routing" do
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings?ri=jp")
 
@@ -61,10 +61,10 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
-  test "destroy without pt redirects to default" do
+  test "destroy without pt is rejected by routing" do
     start_checkpoint_sequence
 
     delete sign_com_sign_in_check_url(ri: "jp"),
@@ -72,7 +72,7 @@ class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
+    assert_response :not_found
   end
 
   test "expired checkpoint returns timeout" do

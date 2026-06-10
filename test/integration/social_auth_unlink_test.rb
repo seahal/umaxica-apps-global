@@ -64,10 +64,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: stale_step_up_headers
 
-    assert_response :unauthorized
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
     google_identity.reload
 
     assert_equal ClientGoogleIdentityStatus::ACTIVE, google_identity.status_id
@@ -90,10 +90,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
+    post sign_app_social_apple_disconnection_attempt_url(ri: "jp", host: @host),
            headers: stale_step_up_headers
 
-    assert_response :unauthorized
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
     apple_identity.reload
 
     assert_equal ClientAppleIdentityStatus::ACTIVE, apple_identity.status_id
@@ -113,7 +113,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
@@ -162,7 +162,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
+    post sign_app_social_apple_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
@@ -192,7 +192,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -220,7 +220,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
+    post sign_app_social_apple_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -254,7 +254,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     email.destroy!
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -285,7 +285,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       description: "Test Passkey",
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -306,7 +306,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -323,7 +323,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:revoked),
     )
 
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -332,7 +332,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   test "unlink requires authentication" do
     # No auth header
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: { "Host" => @host }
 
     # Should redirect to login
@@ -358,7 +358,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     assert_response :temporary_redirect
     assert_equal @host, URI.parse(response.location).host
-    assert_equal "/social/auth/google_app", URI.parse(response.location).path
+    assert_equal "/social/google/disconnection_attempt", URI.parse(response.location).path
     assert ClientGoogleIdentity.exists?(google_identity.id)
   end
 
@@ -390,7 +390,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Apple - should succeed because user has email as backup
-    delete sign_app_social_authentication_url(provider: "apple", ri: "jp", host: @host),
+    post sign_app_social_apple_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -419,7 +419,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Google - should fail because it's the only ACTIVE identity
-    delete sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post sign_app_social_google_disconnection_attempt_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)

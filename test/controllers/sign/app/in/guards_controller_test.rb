@@ -15,7 +15,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   test "route resolves to guard controller" do
     route = Rails.application.routes.recognize_path("https://#{@host}/sign/in/guard", method: :get)
 
-    assert_equal "sign/app/in/guards", route.fetch(:controller)
+    assert_equal "sign/app/sign/in/guards", route.fetch(:controller)
     assert_equal "show", route.fetch(:action)
   end
 
@@ -99,7 +99,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
 
     controller.show
 
-    assert_equal "/sign/in/new?ri=jp", controller.redirected_to
+    assert_equal "/sign/in/entrance?ri=jp", controller.redirected_to
     assert_equal "CHECKPOINT_PENDING", cycle.reload.state
   end
 
@@ -109,7 +109,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
 
     controller.show
 
-    assert_equal "/sign/in/new?ri=jp", controller.redirected_to
+    assert_equal "/sign/in/entrance?ri=jp", controller.redirected_to
     assert_equal "CHECKPOINT_PENDING", cycle.reload.state
   end
 
@@ -117,14 +117,14 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
     controller = build_controller(cycle: nil, actor: nil)
     controller.show
 
-    assert_equal "/sign/in/new?ri=jp", controller.redirected_to
+    assert_equal "/sign/in/entrance?ri=jp", controller.redirected_to
   end
 
   test "surface mismatch redirects to sign in entry without flash" do
     controller = build_controller(cycle: nil, actor: @user)
     controller.show
 
-    assert_equal "/sign/in/new?ri=jp", controller.redirected_to
+    assert_equal "/sign/in/entrance?ri=jp", controller.redirected_to
   end
 
   private
@@ -151,7 +151,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:path_from_signed_pt) { |_| path_target }
     controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle }
     controller.define_singleton_method(:sign_in_flow_actor) { |_| actor }
-    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
+    controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil| "/sign/in/entrance?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_sign_in_check_path) { |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }

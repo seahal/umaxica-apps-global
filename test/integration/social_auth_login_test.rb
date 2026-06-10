@@ -47,7 +47,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     # Callback
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -85,7 +85,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -126,7 +126,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
     assert_no_difference("ClientSignInFlow.count") do
-      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+      get sign_app_auth_google_app_callback_url(ri: "jp"),
           params: { state: state },
           headers: browser_headers.merge(@callback_headers)
     end
@@ -179,7 +179,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "google", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -279,7 +279,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+                get sign_app_auth_google_app_callback_url(ri: "jp"),
                     params: { state: state },
                     headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
@@ -364,7 +364,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -472,7 +472,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -511,7 +511,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "login")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!

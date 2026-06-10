@@ -1135,6 +1135,12 @@ en:
           create:
             success: Invitation accepted. Your operator ID is %{public_id}. Use Google sign-in with the invited email address, or ask an operator to help configure another sign-in method.
             turnstile_failed: Verification failed. Please try again later.
+      sign:
+        up:
+          invitations:
+            create:
+              success: Invitation accepted. Your operator ID is %{public_id}. Use Google sign-in with the invited email address, or ask an operator to help configure another sign-in method.
+              turnstile_failed: Verification failed. Please try again later.
       registration:
         email:
           create:

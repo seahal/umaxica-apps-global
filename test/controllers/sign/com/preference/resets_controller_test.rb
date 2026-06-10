@@ -23,10 +23,10 @@ module Sign
 
         test "sign reset mutation redirects without local preference authority" do
           assert_no_difference("ComPreference.count") do
-            delete sign_com_preference_reset_url(ri: "jp"), params: { preference_reset: { option_id: "test" } }
+            post sign_com_preference_reset_attempt_url(ri: "jp"), params: { preference_reset: { option_id: "test" } }
           end
 
-          assert_redirected_to acme_com_preference_reset_url(ri: "jp", host: @acme_host)
+          assert_redirected_to "http://#{@acme_host}/preference/reset_attempt?ri=jp"
         end
       end
     end

@@ -36,7 +36,7 @@ class Sign::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query)
 
-    assert_equal "/sign/up/new", uri.path
+    assert_equal "/sign/up/entrance", uri.path
     assert_equal "jp", query["ri"]
   end
 

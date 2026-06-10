@@ -250,7 +250,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_callback_url(provider: "google_app", ri: "jp", state: @social_state),
+        get sign_app_auth_google_app_callback_url(ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
     end

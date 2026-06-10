@@ -12,38 +12,40 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     @user = clients(:one)
   end
 
-  test "sign_out_get_redirect_is_not_session_mutation" do
+  test "sign out confirmation does not mutate the session" do
     token = ClientToken.create!(user: @user)
 
-    get sign_app_sign_out_url(ri: "jp"), headers: session_headers(token)
+    get sign_app_sign_out_confirmation_url(ri: "jp"), headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
+    assert_response :success
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "sign_out_post_redirect_uses_acme_authority" do
+  test "sign out attempt logs out and shows completion" do
     token = ClientToken.create!(user: @user)
 
-    post sign_app_sign_out_url(ri: "jp"), params: { confirm: "1" }, headers: session_headers(token)
+    post sign_app_sign_out_attempt_url(ri: "jp"), params: { confirm: "1" }, headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
-    assert_predicate token.reload, :currently_usable?
+    assert_redirected_to sign_app_sign_out_completion_url(ri: "jp")
   end
 
-  test "sign_out_destroy_redirect_is_not_session_mutation" do
+  test "sign out attempt without confirmation redirects back without mutation" do
     token = ClientToken.create!(user: @user)
 
-    delete sign_app_sign_out_url(ri: "jp"), headers: session_headers(token)
+    post sign_app_sign_out_attempt_url(ri: "jp"), headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
+    assert_redirected_to sign_app_sign_out_confirmation_url(ri: "jp")
     assert_predicate token.reload, :currently_usable?
   end
 
   test "sign_out_redirect_target_is_not_user_controlled" do
-    get sign_app_sign_out_url(ri: "jp", return_to: "https://evil.example/logout"),
-        headers: { "Host" => @host }
+    token = ClientToken.create!(user: @user)
 
-    assert_redirect_to_acme_sign_out
+    get sign_app_sign_out_confirmation_url(ri: "jp", return_to: "https://evil.example/logout"),
+        headers: session_headers(token)
+
+    assert_response :success
+    assert_no_match("evil.example", response.body)
   end
 
   private
@@ -54,14 +56,5 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
-  end
-
-  def assert_redirect_to_acme_sign_out
-    assert_response :see_other
-    location = URI.parse(response.location)
-
-    assert_equal @acme_host, location.host
-    assert_equal "/sign/out", location.path
-    assert_equal "ri=jp", location.query
   end
 end

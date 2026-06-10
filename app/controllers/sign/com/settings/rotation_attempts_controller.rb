@@ -12,7 +12,7 @@ module Sign
         include ::SignAcmeAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
-        before_action :authenticate_client!
+        before_action :authenticate_visitor!
 
         def create
           redirect_to_acme_authority!(canonical_resource_path, query: request.query_parameters)

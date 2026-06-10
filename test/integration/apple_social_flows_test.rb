@@ -71,11 +71,11 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        delete sign_app_sign_up_check_apple_confirmation_url(ri: "jp"), headers: @callback_headers
+        post sign_app_sign_up_check_apple_cancellation_url(ri: "jp"), headers: @callback_headers
       end
     end
 
-    assert_response :redirect
+    assert_response :forbidden
     assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_cancel")
   end
 

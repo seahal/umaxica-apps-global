@@ -73,7 +73,7 @@ module Sign::Org::Settings
       Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal "jump.umaxica.net", uri.host
-      assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
+      assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/entrance\?ri=jp\z}, jump_rt_url_from_location(response.location)
     end
 
     test "does not route mutation or edit actions" do

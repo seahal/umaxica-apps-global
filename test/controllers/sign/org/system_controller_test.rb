@@ -24,7 +24,7 @@ class Sign::Org::SystemControllerTest < ActionDispatch::IntegrationTest
     get sign_org_system_index_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/new\?ri=jp\z}, jump_rt_url_from_location(response.location)
+    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/entrance\?ri=jp\z}, jump_rt_url_from_location(response.location)
   end
 
   test "index renders for any authenticated operator (no object authorization yet)" do

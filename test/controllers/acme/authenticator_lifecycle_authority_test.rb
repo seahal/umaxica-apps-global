@@ -203,7 +203,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
       recognize_sign_path("/settings/passkeys/new", method: :get),
     )
     assert_equal(
-      { controller: "sign/app/settings/passkeys", action: "options" },
+      { controller: "sign/app/settings/passkeys/options", action: "create" },
       recognize_sign_path("/settings/passkeys/options", method: :post),
     )
     assert_equal(
@@ -235,7 +235,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
 
     assert_equal @sign_host, uri.host
-    assert_equal "/social/auth/google_app/continue", uri.path
+    assert_equal "/social/google/connection", uri.path
 
     query = URI.decode_www_form(uri.query).to_h
 
@@ -267,7 +267,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_response :temporary_redirect
     assert_equal @sign_host, URI.parse(response.location).host
-    assert_equal "/social/auth/google_app", URI.parse(response.location).path
+    assert_equal "/social/google/disconnection_attempt", URI.parse(response.location).path
     assert ClientGoogleIdentity.exists?(google_identity.id)
     assert ClientAppleIdentity.exists?(apple_identity.id)
   end

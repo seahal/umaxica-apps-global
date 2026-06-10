@@ -5,12 +5,15 @@ class RedirectsNavigationTargetResolver
   REGISTRY = {
     checkpoint: ->(routes, params) {
       routes.public_send(
-        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_in_check_path",
+        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_check_path",
         ri: params[:ri],
       )
     },
     selector: ->(routes, params) {
-      routes.public_send("sign_#{RedirectsNavigationTargetResolver.surface(params)}_in_path", ri: params[:ri])
+      routes.public_send(
+        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_entrance_path",
+        ri: params[:ri],
+      )
     },
     dashboard: ->(routes, params) {
       routes.public_send(
@@ -25,7 +28,7 @@ class RedirectsNavigationTargetResolver
       )
     },
     signed_out: ->(_routes, params) {
-      "/sign/out/complete#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}"
+      "/sign/out/completion#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}"
     },
     home: ->(_routes, params) { "/#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}" },
   }.freeze

@@ -36,7 +36,7 @@ class Sign::App::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, I18n.t("errors.messages.not_authorized")
   end
 
-  test "destroy without sign in sequence is rejected" do
+  test "destroy is rejected by routing" do
     pt = Base64.urlsafe_encode64("/settings")
 
     delete sign_app_sign_in_check_url(ri: "jp", pt: pt),
@@ -44,8 +44,7 @@ class Sign::App::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :bad_request
-    assert_includes response.body, I18n.t("errors.messages.not_authorized")
+    assert_response :not_found
   end
 
   private

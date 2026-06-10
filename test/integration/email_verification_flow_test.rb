@@ -44,7 +44,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     assert_no_emails do
       assert_no_difference("Client.count") do
         assert_no_difference("ClientAppleIdentity.count") do
-          patch sign_app_sign_up_check_birthdate_url(ri: "jp"),
+          patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
                 params: {
                   requirement: "birthdate",
                   birthdate: "2000-02-03",
@@ -55,6 +55,6 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :forbidden
+    assert_response :unprocessable_content
   end
 end

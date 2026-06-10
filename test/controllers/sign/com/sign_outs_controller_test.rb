@@ -8,32 +8,35 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-out-#{SecureRandom.hex(4)}@example.com")
+    @visitor.visitor_telephones.create!(
+      number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
   end
 
-  test "sign_out_get_redirect_is_not_session_mutation" do
+  test "sign out confirmation does not mutate the session" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    get sign_com_sign_out_url(ri: "jp"), headers: session_headers(token)
+    get sign_com_sign_out_confirmation_url(ri: "jp"), headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
+    assert_response :success
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "sign_out_post_redirect_uses_acme_authority" do
+  test "sign out attempt logs out and shows completion" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    post sign_com_sign_out_url(ri: "jp"), params: { confirm: "1" }, headers: session_headers(token)
+    post sign_com_sign_out_attempt_url(ri: "jp"), params: { confirm: "1" }, headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
-    assert_predicate token.reload, :currently_usable?
+    assert_redirected_to sign_com_sign_out_completion_url(ri: "jp")
   end
 
-  test "sign_out_destroy_redirect_is_not_session_mutation" do
+  test "sign out attempt without confirmation redirects back without mutation" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    delete sign_com_sign_out_url(ri: "jp"), headers: session_headers(token)
+    post sign_com_sign_out_attempt_url(ri: "jp"), headers: session_headers(token)
 
-    assert_redirect_to_acme_sign_out
+    assert_redirected_to sign_com_sign_out_confirmation_url(ri: "jp")
     assert_predicate token.reload, :currently_usable?
   end
 
@@ -47,12 +50,4 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     }
   end
 
-  def assert_redirect_to_acme_sign_out
-    assert_response :see_other
-    location = URI.parse(response.location)
-
-    assert_equal @acme_host, location.host
-    assert_equal "/sign/out", location.path
-    assert_equal "ri=jp", location.query
-  end
 end

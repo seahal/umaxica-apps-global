@@ -151,7 +151,7 @@ scope module: :sign, as: :sign do
             resource :verification, only: :create
           end
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update)
+          resource :session, only: %i(show update destroy)
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)
@@ -188,8 +188,15 @@ scope module: :sign, as: :sign do
 
       # OmniAuth callbacks: Google uses GET; Apple may return GET or POST depending on response_mode.
       namespace :auth, path: "auth" do
-        get "google_app/callback", to: "omniauth_callbacks#omniauth", as: :google_app_callback
-        match "apple/callback", to: "omniauth_callbacks#omniauth", via: %i(get post), as: :apple_callback
+        get "google_app/callback",
+            to: "omniauth_callbacks#omniauth",
+            as: :google_app_callback,
+            defaults: { provider: "google_app" }
+        match "apple/callback",
+              to: "omniauth_callbacks#omniauth",
+              via: %i(get post),
+              as: :apple_callback,
+              defaults: { provider: "apple" }
 
         get "failure",
             to: "omniauth_callbacks#failure"
@@ -253,7 +260,7 @@ scope module: :sign, as: :sign do
         resource :google, only: :show
         # FIXME: rename this to "secrets"
         resource :emergency_key, only: :show
-        resources :secret_credentials, only: %i(index show new edit create update) do
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
           resource :rotation_attempt, only: :create
           resource :removal_attempt, only: :create
         end
@@ -397,7 +404,7 @@ scope module: :sign, as: :sign do
           end
 
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update)
+          resource :session, only: %i(show update destroy)
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)
@@ -469,7 +476,7 @@ scope module: :sign, as: :sign do
 
         resource :birthdate, only: :show
 
-        resources :secret_credentials, only: %i(index show new edit create update) do
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
           resource :rotation_attempt, only: :create
           resource :removal_attempt, only: :create
         end
@@ -592,7 +599,7 @@ scope module: :sign, as: :sign do
           end
 
           resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update)
+          resource :session, only: %i(show update destroy)
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)

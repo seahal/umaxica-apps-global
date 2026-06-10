@@ -1605,6 +1605,12 @@ ja:
           create:
             success: 招待を受諾しました。operator ID は %{public_id} です。招待メールアドレスの Google ログインを使うか、別の operator にログイン方法の設定を依頼してください。
             turnstile_failed: 検証に失敗しました。もう一度お試しください。
+      sign:
+        up:
+          invitations:
+            create:
+              success: 招待を受諾しました。operator ID は %{public_id} です。招待メールアドレスの Google ログインを使うか、別の operator にログイン方法の設定を依頼してください。
+              turnstile_failed: 検証に失敗しました。もう一度お試しください。
       verification:
         errors:
           no_passkey: パスキーが登録されていません。

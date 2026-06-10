@@ -38,7 +38,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     user_count_before = Client.count
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         headers: social_callback_headers(@host)
 
     assert_response :forbidden
@@ -52,7 +52,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
 
-    get sign_app_auth_callback_url(provider: "google_app"),
+    get sign_app_auth_google_app_callback_url,
         headers: social_callback_headers(@host)
 
     assert_response :forbidden

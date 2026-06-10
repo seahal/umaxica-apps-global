@@ -66,12 +66,12 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
 
   test "checkpoint destroy is routed for sign up cancellation" do
     route = Rails.application.routes.recognize_path(
-      "http://#{host}/sign/up/check/email/birthdate",
-      method: :delete,
+      "http://#{host}/sign/up/check/email/cancellation",
+      method: :post,
     )
 
-    assert_equal "sign/com/up/check/email/birthdates", route[:controller]
-    assert_equal "destroy", route[:action]
+    assert_equal "sign/com/sign/up/check/email/cancellations", route[:controller]
+    assert_equal "create", route[:action]
   end
 
   private

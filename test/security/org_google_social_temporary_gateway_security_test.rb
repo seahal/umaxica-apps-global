@@ -43,7 +43,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     source = read("config/routes/sign.rb")
     org_block = surface_block(source, "scope module: :org")
 
-    assert_match(/resources :passkeys, only: \[:new\]/, org_block)
+    assert_match(/resource :passkey, only: :new/, org_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, org_block)
     assert_match(/resource :passkey, only: %i\(new create\)/, org_block)
     assert_no_match(/namespace :social|namespace :auth|resource :totp|resources :totps/, org_block)

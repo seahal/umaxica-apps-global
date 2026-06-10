@@ -192,14 +192,13 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                  secret_credential.reload.visitor_secret_credential_status_id
 
     I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
-    post regenerate_sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"), headers: {
+    post sign_com_settings_secret_credential_rotation_attempt_url(secret_credential.public_id, ri: "jp"), headers: {
       "Host" => @host,
       "X-TEST-CURRENT-RESOURCE" => visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
     assert_response :see_other
-    assert_equal I18n.t("messages.not_implemented"), flash[:alert]
   end
 
   test "create requires successful stealth turnstile" do

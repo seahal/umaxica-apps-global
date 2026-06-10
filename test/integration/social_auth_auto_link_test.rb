@@ -60,7 +60,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app", intent: "link", user: user)
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+      get sign_app_auth_google_app_callback_url(ri: "jp"),
           params: { state: state },
           headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end

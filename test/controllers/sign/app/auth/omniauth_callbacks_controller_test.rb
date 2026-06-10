@@ -55,10 +55,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| safe_redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
-      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/in/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:sign_app_sign_up_entrance_path) { |ri: nil|
-      "/sign/up/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/up/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
@@ -98,7 +98,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@login_result_for_test, true)
     controller.send(:handle_login_intent, user, "Apple", true)
 
-    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/entrance?ri=jp", redirects.last.first.first
 
     controller.send(
       :handle_login_failure,
@@ -109,12 +109,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.send(:handle_login_failure, { status: :mfa_required, redirect_path: "/mfa" }, "Apple", user)
 
-    assert_equal [["/mfa"], { fallback: "/sign/in/new", notice: I18n.t("sign.app.in.mfa.required") }],
+    assert_equal [["/mfa"], { fallback: "/sign/in/entrance", notice: I18n.t("sign.app.in.mfa.required") }],
                  safe_redirects.last
 
     controller.send(:handle_login_failure, { status: :unknown }, "Apple", user)
 
-    assert_match "/sign/in/new", redirects.last.first.first
+    assert_match "/sign/in/entrance", redirects.last.first.first
 
     auth = OpenStruct.new(provider: "apple")
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
@@ -351,7 +351,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
-      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/in/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:sign_app_sign_up_guard_path) {
       raise StandardError, "should not continue sign up"
@@ -378,7 +378,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       pt: "encoded-pt",
     )
 
-    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/entrance?ri=jp", redirects.last.first.first
   end
 
   test "rejected established social sign in keeps account records" do
@@ -394,7 +394,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
-      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/in/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:redirect_to) { |*| nil }
     controller.define_singleton_method(:sign_in) { raise StandardError, "should not sign in" }
@@ -417,10 +417,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "apple", message: "cancelled", strategy: "apple") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
-      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/in/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:sign_app_sign_up_entrance_path) { |ri: nil|
-      "/sign/up/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/up/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
     controller.define_singleton_method(:action_name) { @action_name_for_test }
@@ -429,12 +429,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.omniauth
 
-    assert_match "/sign/in/new", redirects.last.first.first
+    assert_match "/sign/in/entrance", redirects.last.first.first
 
     controller.failure
 
     assert controller.instance_variable_get(:@cleared_for_test)
-    assert_match "/sign/in/new", redirects.last.first.first
+    assert_match "/sign/in/entrance", redirects.last.first.first
 
     controller.instance_variable_set(:@action_name_for_test, "omniauth")
     controller.instance_variable_set(:@verified_social_for_test, true)
@@ -447,16 +447,16 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_equal "bad_state", controller.instance_variable_get(:@rejection_for_test)[:reason]
 
-    assert_equal "/sign/in/new", controller.send(:social_auth_failure_redirect_path)
+    assert_equal "/sign/in/entrance", controller.send(:social_auth_failure_redirect_path)
 
     session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY] = "sign_up"
     session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY] = "jp"
 
-    assert_equal "/sign/up/new?ri=jp", controller.send(:social_auth_failure_redirect_path)
+    assert_equal "/sign/up/entrance?ri=jp", controller.send(:social_auth_failure_redirect_path)
 
     session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY] = "sign_in"
 
-    assert_equal "/sign/in/new?ri=jp", controller.send(:social_auth_failure_redirect_path)
+    assert_equal "/sign/in/entrance?ri=jp", controller.send(:social_auth_failure_redirect_path)
   end
 
   private
@@ -478,7 +478,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
-      "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
+      "/sign/in/entrance#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
@@ -494,6 +494,6 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       pt: "encoded-pt",
     )
 
-    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/entrance?ri=jp", redirects.last.first.first
   end
 end

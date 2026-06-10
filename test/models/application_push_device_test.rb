@@ -23,7 +23,7 @@ require "test_helper"
 
 class ApplicationPushDeviceTest < ActionDispatch::IntegrationTest
   test "ApplicationPushDevice inherits from ActionPushNative::Device" do
-    assert_equal ActionPushNative::Device, ApplicationPushDevice.superclass
+    assert_equal "ActionPushNative::Device", ApplicationPushDevice.superclass.name
   end
 
   test "device class can be referenced" do

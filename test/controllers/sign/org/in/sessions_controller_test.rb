@@ -29,7 +29,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_match %r{/sign/in/new}, response.location
+    assert_match %r{/sign/in/entrance}, response.location
   end
 
   test "protected settings sessions redirects to acme session authority" do
@@ -97,7 +97,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
           )
 
     assert_response :redirect
-    assert_match %r{/sign/in/new}, response.location
+    assert_match %r{/sign/in/entrance}, response.location
   end
 
   test "update with active session returns forbidden" do
@@ -356,7 +356,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
            )
 
     assert_response :redirect
-    assert_match %r{/sign/in/new}, response.location
+    assert_match %r{/sign/in/entrance}, response.location
   end
 
   test "destroy with active session returns forbidden" do
@@ -379,7 +379,7 @@ class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     delete sign_org_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
-    assert_match %r{/sign/in/new}, response.location
+    assert_match %r{/sign/in/entrance}, response.location
 
     token.reload
 

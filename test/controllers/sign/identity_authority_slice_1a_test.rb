@@ -4,12 +4,11 @@
 require "test_helper"
 
 class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
-  test "sign out redirect uses acme authority" do
-    get sign_app_sign_out_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
+  test "sign out confirmation remains on sign authority" do
+    get sign_app_sign_out_confirmation_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
 
-    assert_response :see_other
-    assert_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
-    assert_equal "/sign/out", URI.parse(response.location).path
+    assert_response :redirect
+    assert_not_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
   end
 
   test "sign settings sessions redirect uses acme authority" do
@@ -29,18 +28,18 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "sign in and sign up entry routes still resolve on sign" do
     sign_in = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in/new",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in/entrance",
       method: :get,
     )
     sign_up = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/new",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/entrance",
       method: :get,
     )
 
-    assert_equal "sign/app/sign_ins", sign_in.fetch(:controller)
-    assert_equal "new", sign_in.fetch(:action)
-    assert_equal "sign/app/sign_ups", sign_up.fetch(:controller)
-    assert_equal "new", sign_up.fetch(:action)
+    assert_equal "sign/app/sign/in/entrances", sign_in.fetch(:controller)
+    assert_equal "show", sign_in.fetch(:action)
+    assert_equal "sign/app/sign/up/entrances", sign_up.fetch(:controller)
+    assert_equal "show", sign_up.fetch(:action)
   end
 
   test "acme authority routes resolve for sign out sessions and withdrawal" do
@@ -65,23 +64,20 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "update", withdrawal.fetch(:action)
   end
 
-  test "sign controllers do not call authority mutation primitives" do
+  test "sign controllers keep withdrawal authority out of sign" do
     files = Rails.root.glob("app/controllers/sign/**/*.rb") +
       Rails.root.glob("app/controllers/concerns/sign_*.rb")
-    forbidden = /(logout_current_session!|logout_all_sessions_for!|WithdrawalLifecycle\.)/
+    forbidden = /WithdrawalLifecycle\./
     offenders =
       files.filter do |file|
         File.read(file).match?(forbidden)
       end
 
-    assert_empty offenders, "sign controllers must be redirect-only for Slice 1A authority routes"
+    assert_empty offenders, "sign controllers must not own withdrawal authority routes"
   end
 
   test "redirect only sign controllers avoid heavy sign application callback stack" do
     redirect_only_controllers = [
-      Sign::App::SignOutsController,
-      Sign::Com::SignOutsController,
-      Sign::Org::SignOutsController,
       Sign::App::Settings::SessionsController,
       Sign::Com::Settings::SessionsController,
       Sign::Org::Settings::SessionsController,

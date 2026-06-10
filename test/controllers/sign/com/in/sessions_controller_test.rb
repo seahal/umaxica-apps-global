@@ -20,7 +20,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_sign_in_session_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_redirected_to %r{/sign/in/new\?ri=jp}
+    assert_redirected_to %r{/sign/in/entrance\?ri=jp}
   end
 
   test "protected settings sessions redirects to acme session authority" do
@@ -98,7 +98,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     delete sign_com_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
-    assert_match %r{/sign/in/new\?ri=jp}, response.location
+    assert_match %r{/sign/in/entrance\?ri=jp}, response.location
   end
 
   test "destroy with ref belonging to another visitor does not revoke" do
@@ -148,7 +148,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:head) { |status| heads << status }
-    controller.define_singleton_method(:sign_com_sign_in_entrance_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
+    controller.define_singleton_method(:sign_com_sign_in_entrance_path) { |ri: nil| "/sign/in/entrance?ri=#{ri}" }
     controller.define_singleton_method(:sign_com_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
 
     controller.instance_variable_set(:@logged_in_for_test, true)
@@ -173,7 +173,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.instance_variable_set(:@gate_for_test, false)
     controller.send(:require_authentication_or_gate)
 
-    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/entrance?ri=jp", redirects.last.first.first
 
     controller.instance_variable_set(:@resource_for_test, @visitor)
 
@@ -244,7 +244,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
     controller.destroy
 
     assert controller.instance_variable_get(:@logged_out_for_test)
-    assert_match "/sign/in/new?ri=jp", redirects.last.first.first
+    assert_match "/sign/in/entrance?ri=jp", redirects.last.first.first
   end
 
   private

@@ -49,11 +49,10 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
   end
 
-  test "checkpoint without active registration redirects to sign up start" do
-    get sign_com_sign_up_check_url(ri: "jp"), headers: default_headers
+  test "sign up entrance renders without an active registration" do
+    get sign_com_sign_up_entrance_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_com_sign_up_entrance_url(ri: "jp")
-    assert_equal I18n.t("sign.com.registration.session_missing"), flash[:alert]
+    assert_response :success
   end
 
   private

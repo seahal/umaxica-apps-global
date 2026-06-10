@@ -156,8 +156,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       get "/accounts?ri=jp", headers: browser_headers
 
-      assert_response :success
-      assert_includes response.body, "account"
+      assert_redirected_to "http://#{surface[:host]}/selector?ri=jp"
     end
   end
 

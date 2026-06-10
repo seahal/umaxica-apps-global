@@ -33,7 +33,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     grant_session = seed_app_social_link_grant_session(provider: "google_app", user: user, ri: "jp")
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+      get sign_app_auth_google_app_callback_url(ri: "jp"),
           params: { state: grant_session.state },
           headers: @callback_headers.merge(grant_session.user_headers)
     end
@@ -68,7 +68,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(location.query)
 
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), location.host
-    assert_equal "/social/auth/google_app/continue", location.path
+    assert_equal "/social/google/connection", location.path
     assert_equal "login", query["intent"]
     assert_equal "sign_in", query["entry"]
     assert_equal "jp", query["ri"]
@@ -86,7 +86,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "sign com and org surfaces expose no social routes" do
     # The app surface owns the social link route helper...
-    assert_respond_to self, :continue_sign_app_social_authentication_path
+    assert_respond_to self, :sign_app_social_google_connection_attempt_path
 
     # ...while com/org sign surfaces expose no social authentication route at all.
     %w(com org).each do |surface|

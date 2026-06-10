@@ -48,7 +48,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+        get sign_app_auth_google_app_callback_url(ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
       end
@@ -79,7 +79,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app"),
+    get sign_app_auth_google_app_callback_url,
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -223,7 +223,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -263,7 +263,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -305,7 +305,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -337,7 +337,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -379,7 +379,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google_app")
 
-    get sign_app_auth_callback_url(provider: "google_app", ri: "jp"),
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
