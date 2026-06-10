@@ -111,7 +111,7 @@ module Sign
           preserve_pt
 
           flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-          redirect_to(edit_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
+          redirect_to(edit_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
         end
 
         def update
@@ -197,7 +197,7 @@ module Sign
 
             unless @user_email
               flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
+              redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
               return
             end
             @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: @user_email.address)
@@ -209,7 +209,7 @@ module Sign
             )
           else
             flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-            redirect_to(new_sign_com_in_email_path(pt: peek_pt, ri: params[:ri]))
+            redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
           end
         end
 

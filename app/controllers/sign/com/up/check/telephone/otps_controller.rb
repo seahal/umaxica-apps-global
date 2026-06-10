@@ -35,7 +35,7 @@ module Sign
               registration["expires_at"] = @visitor_telephone.reload.otp_expires_at.to_i
               session[:visitor_telephone_registration] = registration
               session[:visitor_telephone_otp_last_sent_at] = Time.current.to_i
-              redirect_to(sign_com_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
+              redirect_to(sign_com_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
             end
 
             def update
@@ -65,7 +65,7 @@ module Sign
 
               verify_telephone_ownership!
               advance_sign_up_flow_after_telephone_otp!
-              redirect_to(sign_com_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
+              redirect_to(sign_com_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
             end
 
             def destroy

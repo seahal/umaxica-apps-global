@@ -458,9 +458,9 @@ module SignUpSequenceControllerSupport
   def sign_up_telephone_edit_path
     case sign_up_surface
     when :app
-      sign_app_up_check_telephone_otp_path(ri: params[:ri])
+      sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
     when :com
-      sign_com_up_check_telephone_otp_path(ri: params[:ri])
+      sign_com_sign_up_check_telephone_otp_path(ri: params[:ri])
     else
       sign_up_default_sign_in_path
     end

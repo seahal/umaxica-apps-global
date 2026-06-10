@@ -30,7 +30,7 @@ module Sign
               result = issue_otp_ceremony!
               return render_otp_ceremony_result(result) unless result.success?
 
-              redirect_to(sign_com_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
+              redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
             end
 
             def update
@@ -48,7 +48,7 @@ module Sign
               progress_email_flow!(:update)
               advance_sign_up_flow_after_email_otp!
               redirect_to(
-                sign_com_up_guard_email_path(
+                sign_com_sign_up_guard_email_path(
                   ri: params[:ri],
                   pt: signed_pt_token(path_target_value),
                 ),

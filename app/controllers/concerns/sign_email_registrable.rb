@@ -65,7 +65,7 @@ module SignEmailRegistrable
 
   def redirect_flow_violation
     flash[:alert] = t("sign.app.registration.email.flow.invalid")
-    redirect_to(new_sign_app_up_email_path)
+    redirect_to(new_sign_app_sign_up_email_path)
   end
 
   def initiate_email_verification!(

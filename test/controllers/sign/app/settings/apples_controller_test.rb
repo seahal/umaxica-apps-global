@@ -30,7 +30,7 @@ module Sign::App::Settings
       get sign_app_settings_apple_url(ri: "jp")
 
       assert_response :redirect
-      assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/new\?ri=jp(?:&pt=.*)?\z},
+      assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/entrance\?ri=jp(?:&pt=.*)?\z},
                    jump_rt_url_from_location(response.location)
     end
 
@@ -47,9 +47,8 @@ module Sign::App::Settings
       get sign_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple"), count: 0
-      assert_select "form[action*=?]", "/social/auth/apple/continue", count: 1
-      assert_select "form[action*=?]", "intent=link", count: 1
+      assert_select "form[action=?]", sign_app_social_apple_disconnection_attempt_path(ri: "jp"), count: 0
+      assert_select "form[action=?]", sign_app_social_apple_connection_attempt_path(ri: "jp", intent: "link"), count: 1
     end
 
     test "show posts apple unlink to sign authority" do
@@ -65,7 +64,7 @@ module Sign::App::Settings
       get sign_app_settings_apple_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "form[action=?]", sign_app_social_authentication_path(provider: "apple", ri: "jp"), count: 1
+      assert_select "form[action=?]", sign_app_social_apple_disconnection_attempt_path(ri: "jp"), count: 1
     end
   end
 end

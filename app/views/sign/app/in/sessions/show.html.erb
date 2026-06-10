@@ -16,7 +16,7 @@
 
   <p><%= t("sign.app.in.session.description") %></p>
 
-  <%= form_with url: sign_app_in_session_path, method: :patch, data: { turbo: false } do |form| %>
+  <%= form_with url: sign_app_sign_in_session_path, method: :patch, data: { turbo: false } do |form| %>
     <% if @active_sessions.present? %>
       <div>
         <div>
@@ -98,7 +98,7 @@
 
   <% if current_session_restricted? %>
     <%= button_to t("sign.app.in.session.cancel_logout"),
-                  sign_app_in_session_path,
+                  sign_app_sign_in_session_path,
                   method: :delete,
                   form: {
                     data: {

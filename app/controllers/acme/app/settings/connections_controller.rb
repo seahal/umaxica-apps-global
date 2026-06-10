@@ -36,8 +36,8 @@ module Acme
         def social_link
           provider = social_provider_param
           redirect_to(
-            continue_sign_app_social_authentication_url(
-              provider: provider,
+            social_connection_url_for(
+              provider,
               intent: "link",
               ri: params[:ri],
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
@@ -50,8 +50,8 @@ module Acme
         def social_unlink
           provider = social_provider_param
           redirect_to(
-            sign_app_social_authentication_url(
-              provider: provider,
+            social_disconnection_attempt_url_for(
+              provider,
               ri: params[:ri],
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
             ),
@@ -117,6 +117,16 @@ module Acme
 
         def verification_scope
           (action_name == "social_unlink") ? "social_unlink" : SocialAuth::SOCIAL_LINK_SCOPE
+        end
+
+        def social_connection_url_for(provider, **params)
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
+        end
+
+        def social_disconnection_attempt_url_for(provider, **params)
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          public_send(:"sign_app_social_#{normalized_provider}_disconnection_attempt_url", **params)
         end
       end
     end

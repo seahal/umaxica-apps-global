@@ -11,17 +11,17 @@ module Sign
       end
 
       test "should get new with authentication links" do
-        get new_sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
 
         query = {}
 
-        assert_select "a[href=?]", new_sign_app_in_email_path(query, ri: "jp"),
+        assert_select "a[href=?]", new_sign_app_sign_in_email_path(query, ri: "jp"),
                       I18n.t("sign.app.authentication.new.links.email")
-        assert_select "a[href=?]", new_sign_app_in_passkey_path(query, ri: "jp"),
+        assert_select "a[href=?]", new_sign_app_sign_in_passkey_path(query, ri: "jp"),
                       I18n.t("sign.app.authentication.new.links.passkey")
-        assert_select "a[href=?]", new_sign_app_in_secret_credential_path(query, ri: "jp"),
+        assert_select "a[href=?]", new_sign_app_sign_in_secret_credential_path(query, ri: "jp"),
                       I18n.t("sign.app.authentication.new.links.secret_credential")
       end
 
@@ -39,7 +39,7 @@ module Sign
         AppPreferenceCookie.create!(preference: preference)
         cookies[::PreferenceCookieName.refresh(surface: :app)] = token
 
-        get new_sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
       end
@@ -47,41 +47,41 @@ module Sign
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://id.umaxica.app/settings/sessions?ri=jp", padding: false)
 
-        get new_sign_app_sign_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_app_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_app_in_secret_credential_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_app_sign_in_email_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_app_sign_in_passkey_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_app_sign_in_secret_credential_path(ri: "jp")
       end
 
       test "sign up link includes pt when pt is present" do
-        get new_sign_app_sign_in_url(ri: "jp", pt: "abc"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: "abc"), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp"
+        assert_includes response.body, "/sign/up/entrance?ri=jp"
         assert_not_includes response.body, "pt=abc"
       end
 
       test "sign up link includes only ri when pt is absent" do
-        get new_sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp"
+        assert_includes response.body, "/sign/up/entrance?ri=jp"
         assert_not_includes response.body, "pt="
       end
 
       test "sign up link preserves encoded-like pt value safely" do
         pt = "aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%3D%3D"
-        get new_sign_app_sign_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_includes response.body, "/sign/up/new?ri=jp"
+        assert_includes response.body, "/sign/up/entrance?ri=jp"
         assert_not_includes response.body, "pt="
       end
 
       test "should render in english when lx=en" do
-        get new_sign_app_sign_in_url(lx: "en", ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(lx: "en", ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "html[lang=en]"
@@ -89,15 +89,15 @@ module Sign
       end
 
       test "shows social login buttons" do
-        get new_sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action=?][data-turbo=?]",
-                      continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
+                      sign_app_social_google_connection_attempt_path(ri: "jp"),
                       "false",
                       count: 1
         assert_select "form[action=?][data-turbo=?]",
-                      continue_sign_app_social_authentication_path(provider: "apple", ri: "jp"),
+                      sign_app_social_apple_connection_attempt_path(ri: "jp"),
                       "false",
                       count: 1
       end
@@ -105,7 +105,7 @@ module Sign
       test "redirects to dashboard when logged in" do
         user = clients(:one)
 
-        get new_sign_app_sign_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
+        get sign_app_sign_in_entrance_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
         assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
       end

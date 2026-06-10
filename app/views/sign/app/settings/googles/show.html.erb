@@ -37,8 +37,8 @@
           <div>
             <% if current_client.active_social_provider?("google") %>
               <% unlink_allowed = current_client.social_unlink_methods_remaining?(excluding_provider: "google_app") %>
-              <%= form_with url: sign_app_social_authentication_path(provider: "google_app", ri: params[:ri]),
-                            method: :delete do |f| %>
+              <%= form_with url: sign_app_social_google_disconnection_attempt_path(ri: params[:ri]),
+                            method: :post do |f| %>
                 <%= render "shared/cloudflare_turnstile_stealth" if unlink_allowed %>
                 <%= f.submit t('actions.disconnect'), disabled: !unlink_allowed %>
               <% end %>
@@ -48,11 +48,7 @@
               <% end %>
             <% else %>
               <%= button_to t('actions.connect'),
-                            continue_sign_app_social_authentication_path(
-                              provider: "google_app",
-                              intent: "link",
-                              ri: params[:ri],
-                            ),
+                            sign_app_social_google_connection_attempt_path(ri: params[:ri], intent: "link"),
                             method: :post,
                             form: { data: { turbo: false } } %>
             <% end %>

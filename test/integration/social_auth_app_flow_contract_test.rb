@@ -147,14 +147,15 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "step_up_backup_apple")
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    delete(
-      sign_app_social_authentication_url(provider: "google_app", ri: "jp", host: @host),
+    post(
+      social_disconnection_attempt_url_for(PROVIDERS.fetch(:google_app), ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_response :unauthorized
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert_response :see_other
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_not PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
   test "Google settings link rejects settings step-up scope" do
@@ -163,13 +164,12 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
     post(
-      continue_sign_app_social_authentication_url(provider: "google_app", intent: "link", ri: "jp"),
+      social_connection_attempt_url_for(PROVIDERS.fetch(:google_app), intent: "link", ri: "jp"),
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
     )
 
-    assert_response :see_other
-    assert_match %r{/verification}, response.location
-    assert_match "scope=social_link", response.location
+    assert_response :found
+    assert_redirected_to sign_app_settings_url(ri: "jp", host: @host)
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -180,7 +180,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -214,10 +214,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to public_send(:"sign_app_up_guard_#{config.fetch(:normalized)}_url", ri: "jp")
+    assert_redirected_to public_send(:"sign_app_sign_up_guard_#{config.fetch(:normalized)}_url", ri: "jp")
     follow_redirect!
 
-    assert_redirected_to public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp")
+    assert_redirected_to public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -227,18 +227,18 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     cycle = ClientSignUpFlow.order(:id).last
 
     patch(
-      public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp"),
+      public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp"),
       params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
       headers: browser_headers.merge(@callback_headers),
     )
 
-    assert_redirected_to public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
+    assert_redirected_to public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
     follow_redirect!
 
     assert_difference("Client.count", 1) do
       assert_difference("#{config.fetch(:model)}.count", 1) do
         patch(
-          public_send(:"sign_app_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
+          public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
@@ -347,7 +347,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
     assert config.fetch(:model).exists?(identity.id)
   end
 
@@ -355,7 +355,11 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     if config.fetch(:provider) == "apple"
       post(sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
     else
-      get(sign_app_auth_callback_url(provider: config.fetch(:provider), ri: "jp"), params: params, headers: headers)
+      get(
+        sign_app_auth_google_app_callback_url(provider: config.fetch(:provider), ri: "jp"),
+        params: params,
+        headers: headers,
+      )
     end
     submit_social_completion_if_present!
   end
@@ -412,11 +416,19 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
-    delete(
-      sign_app_social_authentication_url(provider: config.fetch(:provider), ri: "jp", host: @host),
+    post(
+      social_disconnection_attempt_url_for(config, ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
+  end
+
+  def social_connection_attempt_url_for(config, **params)
+    public_send(:"sign_app_social_#{config.fetch(:normalized)}_connection_attempt_path", **params)
+  end
+
+  def social_disconnection_attempt_url_for(config, **params)
+    public_send(:"sign_app_social_#{config.fetch(:normalized)}_disconnection_attempt_path", **params)
   end
 
   def sign_user_headers(user, token)

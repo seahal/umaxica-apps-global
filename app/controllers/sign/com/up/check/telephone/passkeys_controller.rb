@@ -50,7 +50,7 @@ module Sign
             private
 
             def success_redirect_url
-              sign_com_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)
+              sign_com_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)
             end
 
             def sign_up_family = "telephone"

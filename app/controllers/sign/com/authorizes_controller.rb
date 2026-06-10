@@ -35,7 +35,7 @@ module Sign
         return super unless params[:screen_hint].to_s == "signup"
 
         _ = return_to
-        new_sign_com_sign_up_url(
+        sign_com_sign_up_entrance_url(
           ri: params[:ri].presence,
           host: sign_com_redirect_host,
           protocol: "https",

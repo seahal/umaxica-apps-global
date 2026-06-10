@@ -3,7 +3,7 @@
 <h1><%= t("sign.app.registration.checkpoint.show.passcode.title") %></h1>
 <p><%= t("sign.app.registration.checkpoint.show.passcode.description") %></p>
 
-<%= form_with(model: @secret_credential, url: sign_app_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param), method: :patch) do |form| %>
+<%= form_with(model: @secret_credential, url: sign_app_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param), method: :patch) do |form| %>
   <%= hidden_field_tag :checkpoint_version, params[:checkpoint_version].presence || @sign_up_ticket.checkpoint_version %>
 
   <% if @secret_credential.errors.any? %>
@@ -27,6 +27,6 @@
     <p><%= t("views.sign.app.settings.secret_credentials.new.one_time_notice") %></p>
   </div>
 
-  <%= button_to t("actions.cancel"), sign_app_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param), method: :delete, form: { data: { turbo: false } } %>
+  <%= button_to t("actions.cancel"), sign_app_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param), method: :delete, form: { data: { turbo: false } } %>
   <%= form.submit t("actions.save") %>
 <% end %>

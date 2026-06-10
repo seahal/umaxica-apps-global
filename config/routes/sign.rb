@@ -14,7 +14,6 @@ scope module: :sign, as: :sign do
                only: :show,
                path: ".well-known/openid-configuration",
                format: false
-
       # Basic public endpoints
       resource :health, only: :show
       namespace :health do

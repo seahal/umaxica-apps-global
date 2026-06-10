@@ -17,7 +17,7 @@ module Sign
 
         def update
           refresh_bulletin_dimension!
-          redirect_to(sign_org_in_check_path(pt: signed_pt_param, ri: params[:ri]))
+          redirect_to(sign_org_sign_in_check_path(pt: signed_pt_param, ri: params[:ri]))
         end
 
         def destroy

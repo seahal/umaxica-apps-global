@@ -67,7 +67,7 @@ module Sign
           end
 
           def success_redirect_url
-            sign_app_up_check_path(ri: params[:ri], pt: signed_pt_param)
+            sign_app_sign_up_check_path(ri: params[:ri], pt: signed_pt_param)
           end
 
           def sign_up_requirement_context

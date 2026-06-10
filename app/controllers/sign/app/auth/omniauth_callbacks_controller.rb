@@ -183,7 +183,7 @@ module Sign
 
           redirect_to(
             public_send(
-              :"sign_app_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
+              :"sign_app_sign_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -207,7 +207,7 @@ module Sign
 
           redirect_to(
             public_send(
-              :"sign_app_up_guard_#{provider}_path",
+              :"sign_app_sign_up_guard_#{provider}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -385,7 +385,7 @@ module Sign
 
           if login_result.is_a?(Hash) && login_result[:restricted]
             return redirect_to(
-              sign_app_in_session_path,
+              sign_app_sign_in_session_path,
               notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           end

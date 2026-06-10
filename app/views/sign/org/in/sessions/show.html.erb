@@ -23,7 +23,7 @@
       </div>
     <% end %>
 
-    <%= form_with url: sign_org_in_session_path, method: :patch, data: { turbo: false } do |f| %>
+    <%= form_with url: sign_org_sign_in_session_path, method: :patch, data: { turbo: false } do |f| %>
       <div>
         <h2>
           <%= t("session_limit.edit.active_sessions") %>
@@ -74,7 +74,7 @@
     <% end %>
 
     <%= button_to t("session_limit.edit.cancel_logout"),
-                  sign_org_in_session_path,
+                  sign_org_sign_in_session_path,
                   method: :delete,
                   form: {
                     data: {

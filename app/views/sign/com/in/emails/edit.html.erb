@@ -15,7 +15,7 @@
 
       <%= form_with model: @user_email,
                     scope: :user_email,
-                    url: sign_com_in_email_path,
+                    url: sign_com_sign_in_email_path,
                     method: :patch,
                     data: {
                       turbo: false,
@@ -75,7 +75,7 @@
       <p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
 
       <div>
-        <%= link_to new_sign_com_in_email_path(pt: pt) do %>
+        <%= link_to new_sign_com_sign_in_email_path(pt: pt) do %>
           <span><%= t("sign.app.authentication.email.edit.return_page") %></span>
         <% end %>
       </div>

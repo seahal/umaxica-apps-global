@@ -37,7 +37,7 @@ module Sign
 
             return render_sign_up_result(result) unless result.success?
 
-            redirect_to(sign_com_up_check_path(ri: params[:ri], pt: signed_pt_param))
+            redirect_to(sign_com_sign_up_check_path(ri: params[:ri], pt: signed_pt_param))
           rescue ActiveRecord::RecordInvalid => e
             @secret_credential = e.record
             @raw_secret_credential = session[passcode_registration_raw_session_key]

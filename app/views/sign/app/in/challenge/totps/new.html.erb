@@ -7,7 +7,7 @@
   </div>
 
   <%= form_with model: @totp_form,
-                url: sign_app_in_challenge_totp_path,
+                url: sign_app_sign_in_challenge_totp_path,
                 data: { turbo: false } do |f| %>
     <% if @totp_form.errors.any? %>
       <div>
@@ -34,7 +34,7 @@
 
     <div>
       <%= f.submit t("sign.app.in.mfa.totp.submit") %>
-      <%= link_to t("sign.app.in.mfa.totp.back"), sign_app_in_challenge_path %>
+      <%= link_to t("sign.app.in.mfa.totp.back"), sign_app_sign_in_challenge_path %>
     </div>
   <% end %>
 </div>

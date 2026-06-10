@@ -26,34 +26,34 @@ class SignUpStepGate
   STEP_ROUTES = {
     app: {
       "apple" => {
-        confirmation: :sign_app_up_check_apple_confirmation_path,
-        birthdate: :sign_app_up_check_apple_birthdate_path,
+        confirmation: :sign_app_sign_up_check_apple_confirmation_path,
+        birthdate: :sign_app_sign_up_check_apple_birthdate_path,
       },
       "google" => {
-        confirmation: :sign_app_up_check_google_confirmation_path,
-        birthdate: :sign_app_up_check_google_birthdate_path,
+        confirmation: :sign_app_sign_up_check_google_confirmation_path,
+        birthdate: :sign_app_sign_up_check_google_birthdate_path,
       },
       "email" => {
-        otp: :sign_app_up_check_email_otp_path,
-        birthdate: :sign_app_up_check_email_birthdate_path,
+        otp: :sign_app_sign_up_check_email_otp_path,
+        birthdate: :sign_app_sign_up_check_email_birthdate_path,
       },
       "telephone" => {
-        otp: :sign_app_up_check_telephone_otp_path,
-        passkey: :sign_app_up_check_telephone_passkey_path,
-        passcode: :sign_app_up_check_telephone_passcode_path,
-        birthdate: :sign_app_up_check_telephone_birthdate_path,
+        otp: :sign_app_sign_up_check_telephone_otp_path,
+        passkey: :sign_app_sign_up_check_telephone_passkey_path,
+        passcode: :sign_app_sign_up_check_telephone_passcode_path,
+        birthdate: :sign_app_sign_up_check_telephone_birthdate_path,
       },
     },
     com: {
       "email" => {
-        otp: :sign_com_up_check_email_otp_path,
-        birthdate: :sign_com_up_check_email_birthdate_path,
+        otp: :sign_com_sign_up_check_email_otp_path,
+        birthdate: :sign_com_sign_up_check_email_birthdate_path,
       },
       "telephone" => {
-        otp: :sign_com_up_check_telephone_otp_path,
-        passkey: :sign_com_up_check_telephone_passkey_path,
-        passcode: :sign_com_up_check_telephone_passcode_path,
-        birthdate: :sign_com_up_check_telephone_birthdate_path,
+        otp: :sign_com_sign_up_check_telephone_otp_path,
+        passkey: :sign_com_sign_up_check_telephone_passkey_path,
+        passcode: :sign_com_sign_up_check_telephone_passcode_path,
+        birthdate: :sign_com_sign_up_check_telephone_birthdate_path,
       },
     },
   }.freeze

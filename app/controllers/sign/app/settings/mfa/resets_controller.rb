@@ -19,7 +19,7 @@ module Sign
           def create
             authorize!(current_client, to: :update?)
             redirect_to(
-              sign_app_mfa_reset_path(ri: params[:ri]),
+              sign_app_settings_mfa_reset_path(ri: params[:ri]),
               alert: t("sign.app.settings.mfa.show.reset_unavailable"),
             )
           end

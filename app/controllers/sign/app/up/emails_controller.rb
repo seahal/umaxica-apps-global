@@ -55,7 +55,7 @@ module Sign
           if @user_email.blank?
             reset_email_flow!
             redirect_to(
-              new_sign_app_up_email_path,
+              new_sign_app_sign_up_email_path,
               notice: t("sign.app.registration.email.edit.not_found"),
             )
             return
@@ -67,7 +67,7 @@ module Sign
           reset_email_flow!
           redirect_params = build_notice_params(t("sign.app.registration.email.edit.session_expired"))
           flash[:notice] = redirect_params.delete(:notice)
-          redirect_to(new_sign_app_up_email_path(redirect_params))
+          redirect_to(new_sign_app_sign_up_email_path(redirect_params))
           nil
         end
 
@@ -120,7 +120,7 @@ module Sign
           redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
           flash[:notice] = redirect_params.delete(:notice)
           sanitize_redirect_params!(redirect_params)
-          redirect_to(sign_app_up_check_email_otp_path(redirect_params))
+          redirect_to(sign_app_sign_up_check_email_otp_path(redirect_params))
         end
 
         def update
@@ -149,7 +149,7 @@ module Sign
           reset_email_flow!
           redirect_params = build_notice_params(t("sign.app.registration.email.edit.session_expired"))
           flash[:notice] = redirect_params.delete(:notice)
-          redirect_to(new_sign_app_up_email_path(redirect_params))
+          redirect_to(new_sign_app_sign_up_email_path(redirect_params))
         end
 
         def validate_code_present
@@ -183,14 +183,14 @@ module Sign
         def handle_locked_result
           reset_email_flow!
           flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
-          redirect_to(new_sign_app_up_email_path)
+          redirect_to(new_sign_app_sign_up_email_path)
         end
 
         def complete_update_and_redirect
           progress_email_flow!(:update)
           advance_sign_up_flow_after_email_otp!
           redirect_to(
-            sign_app_up_guard_email_path(
+            sign_app_sign_up_guard_email_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),

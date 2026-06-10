@@ -279,8 +279,9 @@ module MissingHelpers
     host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
-    continue_path = continue_sign_app_social_authentication_path(
-      provider: provider,
+    normalized_provider = SocialIdentifiable.normalize_provider(provider)
+    continue_path = public_send(
+      :"sign_app_social_#{normalized_provider}_connection_attempt_path",
       intent: intent,
       ri: ri,
       entry: entry,
@@ -334,8 +335,9 @@ module MissingHelpers
       provider: provider,
     )
 
-    continue_path = continue_sign_app_social_authentication_path(
-      provider: provider,
+    normalized_provider = SocialIdentifiable.normalize_provider(provider)
+    continue_path = public_send(
+      :"sign_app_social_#{normalized_provider}_connection_attempt_path",
       intent: "link",
       ri: ri,
       social_ceremony_grant: issuance.grant,

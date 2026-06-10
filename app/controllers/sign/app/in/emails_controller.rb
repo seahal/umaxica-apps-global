@@ -109,7 +109,7 @@ module Sign
           preserve_pt
 
           flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-          redirect_to(edit_sign_app_in_email_path(pt: peek_pt))
+          redirect_to(edit_sign_app_sign_in_email_path(pt: peek_pt))
         end
 
         def update
@@ -225,7 +225,7 @@ module Sign
 
         def redirect_to_email_session_expired
           flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-          redirect_to(new_sign_app_in_email_path(pt: peek_pt))
+          redirect_to(new_sign_app_sign_in_email_path(pt: peek_pt))
         end
 
         def process_email_authentication(normalized_address)

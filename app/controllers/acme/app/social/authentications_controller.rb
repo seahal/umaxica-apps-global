@@ -21,8 +21,8 @@ module Acme
           )
 
           redirect_to(
-            continue_sign_app_social_authentication_url(
-              provider: provider,
+            social_connection_url_for(
+              provider,
               intent: "login",
               entry: social_entry_param,
               ri: params[:ri],
@@ -60,13 +60,13 @@ module Acme
           complete_social_login!(commit, provider)
         rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
           redirect_to(
-            new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
           )
         rescue SocialAuth::BaseError => e
           redirect_to(
-            new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t(e.message),
             allow_other_host: cross_host_redirect_allowed?,
           )
@@ -142,7 +142,7 @@ module Acme
           cycle = create_social_sign_up_flow!(commit)
           bind_social_sign_up_flow!(cycle, commit)
           redirect_to(
-            sign_app_up_guard_url(
+            sign_app_sign_up_guard_url(
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
@@ -161,7 +161,7 @@ module Acme
           end
 
           redirect_to(
-            new_sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
           )
@@ -235,6 +235,11 @@ module Acme
           return nil if value.blank?
 
           path_from_signed_pt(signed_pt_token(value))
+        end
+
+        def social_connection_url_for(provider, **params)
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
         end
       end
     end

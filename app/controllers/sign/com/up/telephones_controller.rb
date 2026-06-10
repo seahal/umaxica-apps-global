@@ -26,7 +26,7 @@ module Sign
           return if valid_telephone_session?
 
           redirect_to(
-            new_sign_com_up_telephone_path,
+            new_sign_com_sign_up_telephone_path,
             notice: t("sign.com.registration.telephone.edit.session_expired"),
           )
         end
@@ -99,7 +99,7 @@ module Sign
           session[:visitor_telephone_registration] = result.session_payload
           bind_sign_up_flow_to_telephone!(@visitor_telephone)
           redirect_to(
-            sign_com_up_check_telephone_otp_path(ri: params[:ri]),
+            sign_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
           )
         rescue ActiveRecord::RecordInvalid
           render :new, status: :unprocessable_content
@@ -107,11 +107,11 @@ module Sign
 
         def update
           @visitor_telephone = current_registration_telephone
-          return redirect_to(new_sign_com_up_telephone_path) unless @visitor_telephone
+          return redirect_to(new_sign_com_sign_up_telephone_path) unless @visitor_telephone
 
           registration_session = session[:visitor_telephone_registration]
-          return redirect_to(new_sign_com_up_telephone_path) unless valid_registration_session?(registration_session)
-          return redirect_to(new_sign_com_up_telephone_path) if otp_session_expired?(registration_session)
+          return redirect_to(new_sign_com_sign_up_telephone_path) unless valid_registration_session?(registration_session)
+          return redirect_to(new_sign_com_sign_up_telephone_path) if otp_session_expired?(registration_session)
 
           submitted_code = params.dig("visitor_telephone", "pass_code")
           if submitted_code.blank?
@@ -126,7 +126,7 @@ module Sign
             if @visitor_telephone.locked?
               session[:visitor_telephone_registration] = nil
               redirect_to(
-                new_sign_com_up_telephone_path(ri: params[:ri]),
+                new_sign_com_sign_up_telephone_path(ri: params[:ri]),
                 alert: t("sign.app.registration.telephone.update.attempts_exceeded"),
               )
               return
@@ -156,14 +156,14 @@ module Sign
           unless sequence_advanced
             session[:visitor_telephone_registration] = nil
             redirect_to(
-              new_sign_com_up_telephone_path(ri: params[:ri]),
+              new_sign_com_sign_up_telephone_path(ri: params[:ri]),
               notice: t("sign.com.registration.telephone.edit.session_expired"),
             )
             return
           end
 
           redirect_to(
-            sign_com_up_guard_telephone_path(ri: params[:ri]),
+            sign_com_sign_up_guard_telephone_path(ri: params[:ri]),
             notice: t("sign.com.registration.telephone.success"),
           )
         end
@@ -247,7 +247,7 @@ module Sign
           SignTelephoneOtpDelivery.deliver!(@visitor_telephone, otp_number)
 
           redirect_to(
-            sign_com_up_check_telephone_otp_path(ri: params[:ri]),
+            sign_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
           )
         end
 

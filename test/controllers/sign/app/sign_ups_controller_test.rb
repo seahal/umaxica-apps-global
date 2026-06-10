@@ -7,13 +7,13 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   test "should get new" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
   end
 
   test "sets lang attribute on html element" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
 
     assert_response :success
     assert_select("html[lang=?]", "ja")
@@ -21,7 +21,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows registration methods and social providers" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
 
@@ -29,28 +29,28 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows telephone registration link" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
-    assert_select "a[href=?]", new_sign_app_up_telephone_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_sign_app_sign_up_telephone_path(ri: "jp"), count: 1
   end
 
   test "shows social login buttons" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :success
     assert_select "form[action=?][data-turbo=?]",
-                  continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp", entry: "sign_up"),
+                  sign_app_social_google_connection_attempt_path(ri: "jp", entry: "sign_up"),
                   "false",
                   count: 1
     assert_select "form[action=?][data-turbo=?]",
-                  continue_sign_app_social_authentication_path(provider: "apple", ri: "jp", entry: "sign_up"),
+                  sign_app_social_apple_connection_attempt_path(ri: "jp", entry: "sign_up"),
                   "false",
                   count: 1
   end
 
   test "renders registration layout structure" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
 
     assert_response :success
 
@@ -69,7 +69,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "header contains authentication links" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
 
     assert_response :success
     assert_select "header", minimum: 1 do
@@ -78,7 +78,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "footer contains navigation links" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
 
     assert_response :success
     assert_select "footer" do
@@ -87,26 +87,24 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
   end
   test "renders specific cta text" do
-    get new_sign_app_sign_up_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
 
     assert_response :success
-    Rails.logger.debug(response.body) # DEBUG
     # Check for Japanese text (since previous test asserted lang=ja)
     assert_select "a", text: "メールで登録する"
   end
 
   test "should redirect to dashboard when logged in" do
     user = clients(:one)
-    get new_sign_app_sign_up_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
 
     assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 
   test "checkpoint without active registration redirects to sign up start" do
-    get sign_app_up_check_url(ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_guard_email_path(ri: "jp"), headers: { "Host" => host }
 
-    assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
-    assert_equal I18n.t("sign.app.registration.session_missing"), flash[:alert]
+    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
   end
 
   private

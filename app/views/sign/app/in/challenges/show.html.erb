@@ -9,13 +9,13 @@
   <div>
     <% if @can_use_totp %>
       <p>
-        <%= link_to t("sign.app.in.mfa.methods.totp"), new_sign_app_in_challenge_totp_path %>
+        <%= link_to t("sign.app.in.mfa.methods.totp"), new_sign_app_sign_in_challenge_totp_path %>
       </p>
     <% end %>
 
     <% if @can_use_passkey %>
       <p>
-        <%= link_to t("sign.app.in.mfa.methods.passkey"), new_sign_app_in_challenge_passkey_path %>
+        <%= link_to t("sign.app.in.mfa.methods.passkey"), new_sign_app_sign_in_challenge_passkey_path %>
       </p>
     <% end %>
 

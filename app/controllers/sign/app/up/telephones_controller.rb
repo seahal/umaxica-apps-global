@@ -32,7 +32,7 @@ module Sign
           return if valid_telephone_session?
 
           redirect_to(
-            new_sign_app_up_telephone_path,
+            new_sign_app_sign_up_telephone_path,
             notice: t("sign.app.registration.telephone.edit.session_expired"),
           )
         end
@@ -112,7 +112,7 @@ module Sign
             session[:user_telephone_registration] = result.session_payload
             bind_sign_up_flow_to_telephone!(@user_telephone)
             redirect_to(
-              sign_app_up_check_telephone_otp_path,
+              sign_app_sign_up_check_telephone_otp_path,
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           rescue ActiveRecord::RecordInvalid => e
@@ -150,7 +150,7 @@ module Sign
             end
           if verification_result == :locked
             flash[:alert] = t("sign.app.registration.telephone.update.attempts_exceeded")
-            redirect_to(new_sign_app_up_telephone_path(ri: params[:ri]))
+            redirect_to(new_sign_app_sign_up_telephone_path(ri: params[:ri]))
             return
           end
           return render_invalid_telephone_code unless verification_result
@@ -168,7 +168,7 @@ module Sign
           verify_telephone_ownership!
           advance_sign_up_flow_after_telephone_otp!
           redirect_to(
-            sign_app_up_guard_telephone_path(ri: params[:ri]),
+            sign_app_sign_up_guard_telephone_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.update.passkey_required"),
           )
         end
@@ -215,7 +215,7 @@ module Sign
 
         def redirect_telephone_session_expired
           redirect_to(
-            new_sign_app_up_telephone_path,
+            new_sign_app_sign_up_telephone_path,
             notice: t("sign.app.registration.telephone.edit.session_expired"),
           )
         end
@@ -313,9 +313,9 @@ module Sign
 
         def resend_redirect_path
           if @user_telephone
-            sign_app_up_check_telephone_otp_path(ri: params[:ri])
+            sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
           else
-            new_sign_app_up_telephone_path(ri: params[:ri])
+            new_sign_app_sign_up_telephone_path(ri: params[:ri])
           end
         end
 
@@ -355,7 +355,7 @@ module Sign
           SignTelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
 
           redirect_to(
-            sign_app_up_check_telephone_otp_path(ri: params[:ri]),
+            sign_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
             notice: t("sign.app.registration.telephone.create.verification_code_sent"),
           )
         end

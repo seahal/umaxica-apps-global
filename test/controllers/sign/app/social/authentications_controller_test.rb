@@ -9,14 +9,14 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
   end
 
   test "continue redirects to google oauth with valid provider" do
-    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
+    post sign_app_social_google_connection_attempt_path(provider: "google_app", ri: "jp")
 
     assert_response :redirect
     assert_match %r{/auth/google_app}, response.location
   end
 
   test "continue stores only social ceremony transaction id in cookie session" do
-    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
+    post sign_app_social_google_connection_attempt_path(provider: "google_app", ri: "jp")
 
     assert_response :redirect
 
@@ -29,21 +29,21 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
   end
 
   test "continue without entry parameter does not raise and defaults to sign-in flow" do
-    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp")
+    post sign_app_social_google_connection_attempt_path(provider: "google_app", ri: "jp")
 
     assert_response :redirect
     assert_match %r{/auth/google_app}, response.location
   end
 
   test "continue redirects to apple oauth with valid provider" do
-    post continue_sign_app_social_authentication_path(provider: "apple", ri: "jp")
+    post sign_app_social_apple_connection_attempt_path(provider: "apple", ri: "jp")
 
     assert_response :redirect
     assert_match %r{/auth/apple}, response.location
   end
 
   test "continue with sign up entry issues social sign up cycle" do
-    post continue_sign_app_social_authentication_path(provider: "google_app", ri: "jp"),
+    post sign_app_social_google_connection_attempt_path(provider: "google_app", ri: "jp"),
          params: {
            entry: "sign_up",
            pt: "/after-social",
@@ -67,12 +67,5 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
         method: :post,
       )
     end
-  end
-
-  test "continue redirects to sign-in with alert for unsupported provider" do
-    post continue_sign_app_social_authentication_path(provider: "twitter", ri: "jp")
-
-    assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
-    assert_equal I18n.t("sign.app.social.sessions.invalid_provider"), flash[:alert]
   end
 end

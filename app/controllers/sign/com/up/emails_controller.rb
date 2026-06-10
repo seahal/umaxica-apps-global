@@ -58,7 +58,7 @@ module Sign
           if @user_email.blank?
             reset_email_flow!
             redirect_to(
-              new_sign_com_up_email_path(ri: params[:ri]),
+              new_sign_com_sign_up_email_path(ri: params[:ri]),
               notice: t("sign.app.registration.email.edit.not_found"),
             )
             return
@@ -68,7 +68,7 @@ module Sign
 
           reset_email_flow!
           flash[:notice] = t("sign.app.registration.email.edit.session_expired")
-          redirect_to(new_sign_com_up_email_path(ri: params[:ri]))
+          redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
         end
 
         def create
@@ -114,7 +114,7 @@ module Sign
           bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow?
           progress_email_flow!(:create)
           flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
-          redirect_to(sign_com_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
+          redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
         end
 
         def update
@@ -133,7 +133,7 @@ module Sign
 
           progress_email_flow!(:update)
           redirect_to(
-            sign_com_up_guard_email_path(
+            sign_com_sign_up_guard_email_path(
               ri: params[:ri],
               pt: signed_pt_token(path_target_value),
             ),
@@ -156,7 +156,7 @@ module Sign
           return if current == required
 
           flash[:alert] = t("sign.app.registration.email.flow.invalid")
-          redirect_to(new_sign_com_up_email_path(ri: params[:ri]))
+          redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
         end
 
         def email_flow_state
@@ -181,7 +181,7 @@ module Sign
         def redirect_invalid_session
           reset_email_flow!
           flash[:notice] = t("sign.app.registration.email.edit.session_expired")
-          redirect_to(new_sign_com_up_email_path(ri: params[:ri]))
+          redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
         end
 
         def render_code_required
@@ -192,7 +192,7 @@ module Sign
         def handle_locked_result
           reset_email_flow!
           flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
-          redirect_to(new_sign_com_up_email_path(ri: params[:ri]))
+          redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
         end
 
         def valid_email_session?

@@ -9,7 +9,7 @@
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), sign_app_settings_passkeys_path %></li>
     <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), sign_app_settings_secret_credentials_path %></li>
     <li><%= link_to t("sign.app.settings.show.mfa"), sign_app_settings_mfa_challenge_path %></li>
-    <li><%= link_to t("sign.app.settings.show.mfa_reset"), sign_app_mfa_reset_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.mfa_reset"), sign_app_settings_mfa_reset_path(ri: params[:ri]) %></li>
   </ul>
 </section>
 <br />

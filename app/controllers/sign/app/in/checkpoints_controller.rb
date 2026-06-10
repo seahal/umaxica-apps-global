@@ -23,8 +23,8 @@ module Sign
 
           refresh_bulletin_dimension!
           safe_redirect_to(
-            sign_app_in_check_path(pt: signed_pt_param, ri: params[:ri]),
-            fallback: sign_app_in_check_path(ri: params[:ri]),
+            sign_app_sign_in_check_path(pt: signed_pt_param, ri: params[:ri]),
+            fallback: sign_app_sign_in_check_path(ri: params[:ri]),
           )
         end
 

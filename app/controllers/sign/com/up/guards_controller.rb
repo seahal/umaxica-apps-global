@@ -15,7 +15,7 @@ module Sign
           cycle = validated_guard_cycle
           return redirect_to(sign_up_restart_path) unless cycle
 
-          redirect_to(sign_com_up_check_path(ri: params[:ri], pt: guard_pt_for(cycle)))
+          redirect_to(sign_com_sign_up_check_path(ri: params[:ri], pt: guard_pt_for(cycle)))
         end
 
         private
