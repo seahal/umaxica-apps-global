@@ -10,7 +10,9 @@ module RequestContext
       assert_equal %i(pt nt), RequestContextContract.redirect_target_keys
       assert_equal %i(lx ct tz cu df tf mo dn ps r18s), RequestContextContract.optional_overlay_keys
 
-      union = RequestContextContract.required_keys + RequestContextContract.redirect_target_keys + RequestContextContract.optional_overlay_keys
+      union = RequestContextContract.required_keys +
+        RequestContextContract.redirect_target_keys +
+        RequestContextContract.optional_overlay_keys
 
       assert_equal union.sort, RequestContextContract.public_keys.sort
       assert_equal union.uniq.size, RequestContextContract.public_keys.size

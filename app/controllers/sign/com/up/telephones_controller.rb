@@ -110,7 +110,8 @@ module Sign
           return redirect_to(new_sign_com_sign_up_telephone_path) unless @visitor_telephone
 
           registration_session = session[:visitor_telephone_registration]
-          return redirect_to(new_sign_com_sign_up_telephone_path) unless valid_registration_session?(registration_session)
+          return redirect_to(new_sign_com_sign_up_telephone_path) unless
+            valid_registration_session?(registration_session)
           return redirect_to(new_sign_com_sign_up_telephone_path) if otp_session_expired?(registration_session)
 
           submitted_code = params.dig("visitor_telephone", "pass_code")

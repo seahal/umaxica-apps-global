@@ -3,6 +3,7 @@
 
 require_relative "boot"
 
+require "ipaddr"
 require "rails/all"
 
 Bundler.require(*Rails.groups)
@@ -13,6 +14,25 @@ require_relative "../app/middleware/core/surface_middleware" if File.exist?(surf
 require_relative "../lib/jit_security_active_record_encryption_key_provider"
 
 module Jit
+  module TrustedProxiesConfig
+    module_function
+
+    def parse(value)
+      value.to_s.split(",").filter_map do |proxy|
+        normalized = proxy.strip
+        next if normalized.empty?
+
+        parse_proxy(normalized)
+      end
+    end
+
+    def parse_proxy(value)
+      IPAddr.new(value)
+    rescue IPAddr::InvalidAddressError => e
+      raise ArgumentError, "Invalid TRUSTED_PROXIES entry: #{value.inspect}", cause: e
+    end
+  end
+
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults(8.2)
@@ -36,12 +56,7 @@ module Jit
     ### Added by user
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)
     # This allows Rails to correctly determine the protocol (HTTP/HTTPS) and host
-    config.action_dispatch.trusted_proxies =
-      (ENV["TRUSTED_PROXIES"]&.split(",") || []).filter_map do |proxy|
-        IPAddr.new(proxy.strip)
-      rescue IPAddr::InvalidAddressError
-        nil
-      end
+    config.action_dispatch.trusted_proxies = TrustedProxiesConfig.parse(ENV["TRUSTED_PROXIES"])
 
     # Active Record Encryption Configuration
     if %w(test production development).include?(Rails.env)

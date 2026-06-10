@@ -22,7 +22,7 @@ module Sign
         private
 
         # Strip the trailing "/removal_attempt" so the user lands on the resource's acme page.
-        def canonical_resource_path = request.path.sub(%r{/removal_attempt\z}, "")
+        def canonical_resource_path = request.path.delete_suffix("/removal_attempt")
       end
     end
   end

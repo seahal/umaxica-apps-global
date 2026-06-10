@@ -14,7 +14,7 @@ and subdomain matter in both development and production.
 
 ## Stack
 
-- Ruby `4.0.2`
+- Ruby `4.0.x`
 - PostgreSQL
   - Solid Queue
 - Valkey/Redis
@@ -42,7 +42,7 @@ bin/rails assets:clobber        # Remove compiled assets
 ## Local Setup
 
 - Docker and Docker Compose
-- Ruby `4.0.2`
+- Ruby `4.0.x`
 - Bundler
 - Node.js `22.13+`
 - `pnpm@11.0.8`

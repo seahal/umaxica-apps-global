@@ -40,7 +40,7 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
       cookie.assign_attributes(flag => nil)
 
       assert_not cookie.valid?
-      assert_includes cookie.errors[flag], "は一覧にありません"
+      assert_includes cookie.errors[flag], I18n.t("errors.messages.inclusion")
     end
   end
 
@@ -62,7 +62,7 @@ class AppPreferenceCookieTest < ActiveSupport::TestCase
     cookie = AppPreferenceCookie.new(targetable: true)
 
     assert_not cookie.valid?
-    assert_includes cookie.errors[:preference], "を入力してください"
+    assert_includes cookie.errors[:preference], I18n.t("errors.messages.required")
   end
 
   test "has false as default for all flags" do

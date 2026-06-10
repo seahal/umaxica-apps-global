@@ -31,7 +31,8 @@ class AcmeOrgSettingsActivityLog
     key = EVENT_LABELS[activity.event_id]
     return I18n.t("sign.org.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
 
-    I18n.t("sign.org.settings.activity.events.#{key}")
+    translation_key = "sign.org.settings.activity.events.#{key}"
+    I18n.t(translation_key)
   end
 
   def ip_address(activity)

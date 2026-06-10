@@ -48,12 +48,14 @@ class AcmeSelectorBootstrapAuthority
   end
 
   def connection_owners
-    [
+    result = [
       connection_owner(config.principal_class),
       connection_owner(config.rp_account_class),
       connection_owner(config.token_class),
       (connection_owner(Avatar) if config.requires_avatar),
-    ].compact.uniq
+    ].compact
+    result.uniq!
+    result
   end
 
   def connection_owner(klass)

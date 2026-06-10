@@ -48,9 +48,9 @@ module Sign::App::Up
       finish_path = sign_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
       assert_select "[data-passkey-registration-finish-url-value='#{finish_path}']"
-      assert_select "[data-passkey-registration-success-redirect-url-value='#{sign_app_sign_up_check_telephone_passcode_path(
-        ri: "jp",
-      )}']"
+      passcode_path = sign_app_sign_up_check_telephone_passcode_path(ri: "jp")
+
+      assert_select "[data-passkey-registration-success-redirect-url-value='#{passcode_path}']"
       assert_select "[data-passkey-registration-checkpoint-version-value='#{cycle.checkpoint_version}']"
     end
 

@@ -21,7 +21,7 @@ module Sign
         private
 
         # Strip the trailing "/rotation_attempt" so the user lands on the resource's acme page.
-        def canonical_resource_path = request.path.sub(%r{/rotation_attempt\z}, "")
+        def canonical_resource_path = request.path.delete_suffix("/rotation_attempt")
       end
     end
   end

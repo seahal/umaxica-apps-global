@@ -23,7 +23,8 @@ Rails.application.configure do
         SIGN_CORPORATE_URL
         ID_STAFF_URL
         SIGN_STAFF_URL
-      ).filter_map { |key| ENV[key].presence }.uniq.map { |host| "https://#{host}" }
+      ).filter_map { |key| ENV[key].presence }.uniq
+    sign_form_hosts.map! { |host| "https://#{host}" }
 
     policy.default_src(:self)
     policy.base_uri(:self)

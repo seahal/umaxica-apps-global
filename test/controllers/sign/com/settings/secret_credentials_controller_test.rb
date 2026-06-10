@@ -201,6 +201,28 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :see_other
   end
 
+  test "removal attempt uses visitor authentication and redirects to acme without local mutation" do
+    assert_no_changes -> { @secret_credential.reload.visitor_secret_credential_status_id } do
+      post sign_com_settings_secret_credential_removal_attempt_url(@secret_credential.public_id, ri: "jp"),
+           headers: request_headers
+    end
+
+    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+  end
+
+  test "removal attempt rejects client authentication on com surface" do
+    user = create_verified_user_with_email(email_address: "com-removal-client-#{SecureRandom.hex(4)}@example.com")
+    client_headers = as_user_headers(user, host: @host)
+
+    assert_no_changes -> { @secret_credential.reload.visitor_secret_credential_status_id } do
+      post sign_com_settings_secret_credential_removal_attempt_url(@secret_credential.public_id, ri: "jp"),
+           headers: client_headers
+    end
+
+    assert_response :found
+    assert_not_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), URI.parse(response.location).host
+  end
+
   test "create requires successful stealth turnstile" do
     get new_sign_com_settings_secret_credential_url(ri: "jp"), headers: request_headers
     CloudflareTurnstile.validation_override_response = { "success" => false }

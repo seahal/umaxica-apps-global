@@ -47,5 +47,4 @@ class Sign::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
   end
-
 end

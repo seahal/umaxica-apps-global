@@ -164,7 +164,8 @@ class IdentitySecretCredentialCeremonyFinalCommitter
   end
 
   def transaction
-    @transaction ||= IdentitySecretCredentialCeremonyReplayStore.for(surface).find_transaction!(result["transaction_id"])
+    @transaction ||= IdentitySecretCredentialCeremonyReplayStore.for(surface)
+      .find_transaction!(result["transaction_id"])
   end
 
   def config

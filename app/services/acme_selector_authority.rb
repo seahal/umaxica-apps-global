@@ -137,7 +137,8 @@ class AcmeSelectorAuthority
   end
 
   def serialize_candidates(candidates)
-    candidates.flatten.map do |candidate|
+    candidates = candidates.flatten
+    candidates.map! do |candidate|
       public_ids = candidate.fetch(:public)
       {
         public_id: public_ids[:account_public_id],
