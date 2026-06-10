@@ -28,7 +28,7 @@
 
   <div>
     <%= button_to t("otp.resend.button"),
-                  resend_sign_com_verification_email_path(
+                  sign_com_verification_email_redelivery_path(
                     params[:id],
                     ri: params[:ri],
                     scope: verification_scope,

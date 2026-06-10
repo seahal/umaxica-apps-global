@@ -403,7 +403,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "session management path raises route helper errors" do
-    @controller.define_singleton_method(:sign_app_in_session_path) do
+    @controller.define_singleton_method(:sign_app_sign_in_session_path) do
       raise StandardError, "route missing"
     end
 

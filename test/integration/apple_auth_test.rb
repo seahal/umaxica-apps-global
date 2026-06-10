@@ -40,10 +40,10 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -91,7 +91,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
     ComSettingRecord.connected_to(role: :writing) do
       assert AppPreferenceTimezoneOption.exists?(id: AppPreferenceTimezoneOption::ASIA_TOKYO)
@@ -126,7 +126,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before login completion"
   end
 
@@ -160,10 +160,10 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -255,10 +255,10 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_google_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_google_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_google_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -291,7 +291,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     provider = cycle.social_provider
 
     patch(
-      public_send(:"sign_app_up_check_#{provider}_confirmation_url", ri: "jp"),
+      public_send(:"sign_app_sign_up_check_#{provider}_confirmation_url", ri: "jp"),
       params: {
         confirm_new_social_identity: "1",
         checkpoint_version: cycle.checkpoint_version,
@@ -300,7 +300,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     )
 
     patch(
-      public_send(:"sign_app_up_check_#{provider}_birthdate_url", ri: "jp"),
+      public_send(:"sign_app_sign_up_check_#{provider}_birthdate_url", ri: "jp"),
       params: {
         requirement: "birthdate",
         birthdate: "2000-02-03",

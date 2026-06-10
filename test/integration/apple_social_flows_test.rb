@@ -29,25 +29,25 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok
     assert_select "input[name=confirm_new_social_identity][required]"
 
     cycle = ClientSignUpFlow.order(:id).last
-    patch sign_app_up_check_apple_confirmation_url(ri: "jp"),
+    patch sign_app_sign_up_check_apple_confirmation_url(ri: "jp"),
           params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
           headers: @callback_headers
 
-    assert_redirected_to sign_app_up_check_apple_birthdate_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_birthdate_url(ri: "jp")
 
     assert_difference("Client.count", 1) do
       assert_difference("ClientAppleIdentity.count", 1) do
-        patch sign_app_up_check_apple_birthdate_url(ri: "jp"),
+        patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
                 birthdate: "2000-02-03",
@@ -67,11 +67,11 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
          params: { state: state },
          headers: @callback_headers
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        delete sign_app_up_check_apple_confirmation_url(ri: "jp"), headers: @callback_headers
+        delete sign_app_sign_up_check_apple_confirmation_url(ri: "jp"), headers: @callback_headers
       end
     end
 

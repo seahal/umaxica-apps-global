@@ -49,13 +49,44 @@ every `sign/.../sign/up/check/...` route now resolves to an existing controller 
    `sign/{app,com}/verification/redeliveries#create`. These controllers do not exist; the routes
    will raise on request.
 
-3. **Broad pre-existing test-suite breakage.** `bin/rails test test/controllers/sign` shows ~33
-   failures / ~329 errors on a clean baseline (confirmed by stashing this change — they pre-date
-   it). Cause: many sign test files still use pre-rename helpers (`sign_app_in_*`, `sign_com_in_*`,
-   `sign_app_up_*`). The test files need the same helper sweep applied to the controllers/views.
-   Examples: `test/controllers/sign/app/in/challenges_controller_test.rb`,
-   `test/controllers/sign/com/in/emails_controller_test.rb`,
-   `test/controllers/sign/app/in/checkpoints_controller_test.rb`.
+3. **Broad pre-existing test-suite breakage (partially addressed).** Baseline at HEAD:
+   `bin/rails test test/controllers/sign` = ~33 failures / ~329 errors (confirmed pre-existing by
+   stashing this change). Applied two verified, mechanical sweeps to `test/`:
+   - `sign_<surface>_<in|up|out>_X_(path|url)` → `sign_<surface>_sign_<in|up|out>_X_(path|url)` (474
+     literal + 2 interpolated occurrences across 46 files; non-helper tokens like
+     `:sign_app_up_sequence_id` preserved).
+   - Landing reshape: `new_sign_<surface>_(in|up)_*` → `sign_<surface>_sign_<in|up>_entrance_*` (50
+     occurrences; the sign-in/up landing became the `entrance` resource).
+
+   Then applied further sweeps:
+   - **app/views** + **lib/** + auth concerns (`authentication_base.rb`,
+     `authentication_redirects.rb`, `authentication_sequence_gate.rb`) and 2 passkey controllers:
+     same `<in|up|out>` → `sign_<in|up|out>` rename (these were live runtime paths, e.g.
+     `sign_app_in_session_path` used in session redirects). Fixed a stale doc-comment helper in
+     `session_limit_gate.rb`.
+   - **Verified reshapes** in tests + views: `resend_sign_{app,com}_verification_email` →
+     `sign_{app,com}_verification_email_redelivery`; `resend_sign_app_settings_emails_registration`
+     → `..._registration_redelivery`; `sign_app_mfa_reset` → `sign_app_settings_mfa_reset` (and the
+     `/mfa/reset` path assertion → `/settings/mfa/reset`).
+
+   **Result: ~94 problems remain (≈67 failures / ≈27 errors), down from the 362 baseline (~74%
+   reduction). `zeitwerk:check` green.** Everything remaining is blocked or needs a decision:
+   - **Blocked on gap-2 missing controllers.** `resend`→`redelivery` now resolves the route helper,
+     but `Sign::{App,Com}::Verification::RedeliveriesController` and
+     `Sign::App::Settings::Emails::RedeliveriesController` do not exist (MissingController).
+     Likewise most ~35 `404` failures (settings sessions/secret_credentials destroy,
+     removal/rotation attempts, oauth). These pass only once those controllers are created.
+   - **Obsolete test files for restructured controllers.**
+     `test/controllers/sign/{app,com,org}/ sign_outs_controller_test.rb` exercise a removed single
+     sign-out resource (GET/POST/DELETE on `sign_<surface>_sign_out`); the new shape is three
+     resources `sign_<surface>_sign_out_{confirmation,attempt,completion}`, and
+     `route_naming_test.rb` _asserts_ `sign_app_sign_out_path` must NOT exist. They need rewriting
+     against the new shape or deletion — not a rename. Same for the preference-reset `DELETE` tests
+     (`sign_<surface>_preference_reset` was restructured to `..._preference_reset_attempt`).
+   - **Behavior/assertion mismatches**: several tests expect a redirect with `?ri=jp` but the
+     controller now drops the `ri` query param (e.g. `/sign/in/check?ri=jp` vs `/sign/in/check`),
+     and one expects the old `/sign/in/new` path. Could indicate a real `ri`-propagation regression;
+     needs investigation rather than a test edit.
 
 ## Verified-green tests touched by this change
 

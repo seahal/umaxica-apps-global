@@ -21,8 +21,8 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   test "old top-level sign helper aliases are gone" do
     helpers = Rails.application.routes.url_helpers
 
-    assert_not_respond_to helpers, :new_sign_app_sign_in_path
-    assert_not_respond_to helpers, :new_sign_app_sign_up_path
+    assert_not_respond_to helpers, :sign_app_sign_in_entrance_path
+    assert_not_respond_to helpers, :sign_app_sign_up_entrance_path
     assert_not_respond_to helpers, :sign_app_sign_out_path
     assert_not_respond_to helpers, :edit_sign_app_sign_out_path
   end

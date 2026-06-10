@@ -58,7 +58,7 @@ module Sign::App::In
     end
 
     test "new redirects to sign in when pending_mfa is missing" do
-      get new_sign_app_in_challenge_passkey_path(ri: "jp")
+      get new_sign_app_sign_in_challenge_passkey_path(ri: "jp")
 
       assert_response :see_other
       assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
@@ -68,7 +68,7 @@ module Sign::App::In
     test "create verifies passkey and finalizes login with pending_mfa" do
       establish_pending_mfa_via_secret_credential!
 
-      get new_sign_app_in_challenge_passkey_path(ri: "jp")
+      get new_sign_app_sign_in_challenge_passkey_path(ri: "jp")
 
       assert_response :success
 
@@ -85,7 +85,7 @@ module Sign::App::In
       end
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post sign_app_in_challenge_passkey_path(ri: "jp"), params: {
+        post sign_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
           mfa_passkey_form: {
             challenge_id: challenge_id,
             credential_json: {
@@ -114,7 +114,7 @@ module Sign::App::In
 
     def establish_pending_mfa_via_secret_credential!
       post(
-        sign_app_in_secret_credential_path(ri: "jp"), params: {
+        sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
           secret_credential_login_form: {
             identifier: @email,
             secret_credential_value: @raw_secret_credential,
@@ -122,8 +122,8 @@ module Sign::App::In
           "cf-turnstile-response": "test_token",
         },
       )
-      # Skip redirect verification - route helper sign_app_in_mfa_path is undefined
-      # assert_redirected_to sign_app_in_mfa_path(ri: "jp")
+      # Skip redirect verification - route helper sign_app_sign_in_mfa_path is undefined
+      # assert_redirected_to sign_app_sign_in_mfa_path(ri: "jp")
       assert_response :redirect
     end
   end

@@ -39,7 +39,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
     active3.save!(validate: false)
     active3.rotate_refresh_token!
 
-    patch sign_app_in_session_url(ri: "jp"),
+    patch sign_app_sign_in_session_url(ri: "jp"),
           params: { ref: active1.signed_ref },
           headers: headers
 
@@ -56,7 +56,7 @@ class Sign::App::In::SessionsControllerExtraTest < ActionDispatch::IntegrationTe
     restricted = create_restricted_session(@user)
     headers = as_user_headers_with_token(@user, restricted, host: @host)
 
-    delete sign_app_in_session_url(ri: "jp"),
+    delete sign_app_sign_in_session_url(ri: "jp"),
            params: { ref: active.signed_ref },
            headers: headers
 

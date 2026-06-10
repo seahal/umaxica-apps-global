@@ -15,7 +15,7 @@ class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
   end
 
   test "layout links when not logged in" do
-    get new_sign_app_up_email_url(ri: "jp"), headers: default_headers
+    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
@@ -29,7 +29,7 @@ class Sign::App::LayoutTest < ActionDispatch::IntegrationTest
 
   # test "layout links when logged in" do
   #   user = users(:one)
-  #   get new_sign_app_up_telephone_url, headers: login_headers(user)
+  #   get new_sign_app_sign_up_telephone_url, headers: login_headers(user)
 
   #   assert_response :success
 

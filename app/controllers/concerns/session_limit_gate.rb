@@ -20,7 +20,7 @@
 #
 #   # In login flow (when session limit exceeded):
 #   issue_session_limit_gate!(pt: request.fullpath, flow: "in.email.session")
-#   redirect_to edit_sign_app_in_email_session_path
+#   redirect_to edit_sign_app_sign_in_email_path
 #
 #   # In session management controller:
 #   before_action :require_valid_gate

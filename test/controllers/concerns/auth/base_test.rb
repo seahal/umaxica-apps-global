@@ -158,7 +158,7 @@ module Auth
         ri.present? ? "/settings?ri=#{ri}" : "/settings"
       end
 
-      def sign_app_in_check_path(ri: nil, pt: nil)
+      def sign_app_sign_in_check_path(ri: nil, pt: nil)
         path = "/sign/in/check"
         query = []
         query << "ri=#{ri}" if ri.present?

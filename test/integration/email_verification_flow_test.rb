@@ -38,13 +38,13 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    assert_equal sign_app_up_guard_apple_path, path
+    assert_equal sign_app_sign_up_guard_apple_path, path
 
     assert_nil ClientAppleIdentity.find_by(uid: "flow_uid")
     assert_no_emails do
       assert_no_difference("Client.count") do
         assert_no_difference("ClientAppleIdentity.count") do
-          patch sign_app_up_check_birthdate_url(ri: "jp"),
+          patch sign_app_sign_up_check_birthdate_url(ri: "jp"),
                 params: {
                   requirement: "birthdate",
                   birthdate: "2000-02-03",

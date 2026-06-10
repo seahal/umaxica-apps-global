@@ -11,7 +11,7 @@ module Sign
       end
 
       test "should get new" do
-        get new_sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
@@ -20,16 +20,16 @@ module Sign
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://id.umaxica.com/settings/sessions?ri=jp", padding: false)
 
-        get new_sign_com_sign_in_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_com_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_com_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_com_in_secret_credential_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_com_sign_in_email_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_com_sign_in_passkey_path(ri: "jp")
+        assert_select "a[href=?]", new_sign_com_sign_in_secret_credential_path(ri: "jp")
       end
 
       test "does not show social login buttons" do
-        get new_sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action='/auth/google_app']", count: 0
@@ -40,7 +40,7 @@ module Sign
 
       test "does not show temporary google signin button when legacy flag is set" do
         with_env("COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "true") do
-          get new_sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+          get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
         end
 
         assert_response :success
@@ -55,7 +55,7 @@ module Sign
           visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
         )
 
-        get new_sign_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
+        get sign_com_sign_in_entrance_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
 
         assert_redirected_to acme_com_dashboard_url(
           ri: "jp",

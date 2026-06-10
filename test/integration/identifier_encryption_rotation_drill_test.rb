@@ -95,7 +95,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
 
   def assert_app_sign_in_email_flow(address)
     post(
-      sign_app_in_email_url(ri: "jp"),
+      sign_app_sign_in_email_url(ri: "jp"),
       params: {
         user_email: { address: address },
         "cf-turnstile-response": "test",
@@ -110,13 +110,13 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
     patch(
-      sign_app_in_email_url(ri: "jp"),
+      sign_app_sign_in_email_url(ri: "jp"),
       params: { user_email: { pass_code: code } },
       headers: { "Host" => @service_host },
     )
 
     assert_response :found
-    assert_redirected_to sign_app_in_check_path(ri: "jp")
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
   end
 
   def encryption_key_provider(*passwords)

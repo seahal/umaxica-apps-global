@@ -91,9 +91,9 @@ class Sign::Com::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "missing or expired cycle redirects to sign in entry without flash" do
-    get sign_com_in_guard_url(ri: "jp"), headers: host_headers(@host)
+    get sign_com_sign_in_guard_url(ri: "jp"), headers: host_headers(@host)
 
-    assert_redirected_to new_sign_com_sign_in_url(ri: "jp")
+    assert_redirected_to sign_com_sign_in_entrance_url(ri: "jp")
     assert_empty flash.to_hash
   end
 
@@ -122,10 +122,10 @@ class Sign::Com::In::GuardsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle }
     controller.define_singleton_method(:sign_in_flow_actor) { |_| @visitor }
     controller.define_singleton_method(:sign_com_sign_in_entrance_path) { |ri: nil| "/sign/in/new?ri=#{ri}" }
-    controller.define_singleton_method(:sign_com_in_check_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:sign_com_sign_in_check_path) { |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_com_in_session_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:sign_com_sign_in_session_path) { |ri: nil, pt: nil|
       "/sign/in/session?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_in_selector_path) { |pt: nil| "/sign/in/selector?pt=#{pt}" }

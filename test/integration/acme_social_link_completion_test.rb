@@ -53,7 +53,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
            headers: social_completion_browser_headers
     end
 
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 
   test "acme social login start delegates to sign with a login ceremony grant" do

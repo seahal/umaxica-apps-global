@@ -36,7 +36,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show requires pending_mfa - redirects with alert" do
-    get sign_app_in_challenge_path(ri: "jp")
+    get sign_app_sign_in_challenge_path(ri: "jp")
 
     assert_response :see_other
     assert_redirected_to sign_app_sign_in_entrance_path(ri: "jp")
@@ -44,7 +44,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders for pending_mfa user with MFA enabled" do
-    post sign_app_in_secret_credential_path(ri: "jp"), params: {
+    post sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -52,7 +52,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
       "cf-turnstile-response": "test_token",
     }
 
-    assert_redirected_to sign_app_in_challenge_path(ri: "jp")
+    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
 
     follow_redirect!
 
@@ -66,7 +66,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   test "show does not display totp method when disabled" do
     @user.client_totp_credentials.delete_all
 
-    post sign_app_in_secret_credential_path(ri: "jp"), params: {
+    post sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -74,7 +74,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
       "cf-turnstile-response": "test_token",
     }
 
-    assert_redirected_to sign_app_in_challenge_path(ri: "jp")
+    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
 
     follow_redirect!
 
@@ -85,7 +85,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   test "show does not display passkey method when disabled" do
     @user.client_passkeys.delete_all
 
-    post sign_app_in_secret_credential_path(ri: "jp"), params: {
+    post sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
       secret_credential_login_form: {
         identifier: @email,
         secret_credential_value: @raw_secret_credential,
@@ -93,7 +93,7 @@ class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
       "cf-turnstile-response": "test_token",
     }
 
-    assert_redirected_to sign_app_in_challenge_path(ri: "jp")
+    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
 
     follow_redirect!
 

@@ -425,7 +425,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     get edit_sign_app_settings_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
 
     assert_response :success
-    assert_select "form[action^='#{resend_sign_app_settings_emails_registration_path(ri: "jp")}'][method='post']"
+    assert_select "form[action^='#{sign_app_settings_emails_registration_redelivery_path(ri: "jp")}'][method='post']"
     assert_select "button", text: I18n.t("otp.resend.button")
   end
 
@@ -444,7 +444,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_enqueued_emails 1 do
-        post resend_sign_app_settings_emails_registration_url(ri: "jp"), headers: request_headers
+        post sign_app_settings_emails_registration_redelivery_url(ri: "jp"), headers: request_headers
       end
     end
 
@@ -464,7 +464,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
          headers: request_headers
 
     assert_enqueued_emails 0 do
-      post resend_sign_app_settings_emails_registration_url(ri: "jp"), headers: request_headers
+      post sign_app_settings_emails_registration_redelivery_url(ri: "jp"), headers: request_headers
     end
 
     assert_redirected_to edit_sign_app_settings_emails_registration_url(ri: "jp")

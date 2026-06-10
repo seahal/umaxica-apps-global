@@ -9,6 +9,8 @@ module Sign
 
         def index = redirect_to_acme_sessions!
 
+        def show = redirect_to_acme_sessions!
+
         def destroy = redirect_to_acme_sessions!
 
         def others = redirect_to_acme_sessions!

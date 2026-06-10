@@ -14,17 +14,17 @@ class Sign::App::Settings::Mfa::ResetsControllerTest < ActionDispatch::Integrati
   end
 
   test "routes to the MFA reset request endpoint" do
-    assert_equal "/mfa/reset", URI.parse(sign_app_mfa_reset_url(ri: "jp")).path
+    assert_equal "/settings/mfa/reset", URI.parse(sign_app_settings_mfa_reset_url(ri: "jp")).path
   end
 
   test "show requires an authenticated client" do
-    get sign_app_mfa_reset_url(ri: "jp")
+    get sign_app_settings_mfa_reset_url(ri: "jp")
 
     assert_response :redirect
   end
 
   test "show is reachable for an authenticated client" do
-    get sign_app_mfa_reset_url(ri: "jp"), headers: @headers
+    get sign_app_settings_mfa_reset_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_equal "sign/app/settings/mfa/resets", @controller.controller_path
@@ -35,7 +35,7 @@ class Sign::App::Settings::Mfa::ResetsControllerTest < ActionDispatch::Integrati
   test "show is reachable from a restricted MFA session" do
     token = create_restricted_session(@user)
 
-    get sign_app_mfa_reset_url(ri: "jp"),
+    get sign_app_settings_mfa_reset_url(ri: "jp"),
         headers: as_user_headers_with_token(@user, token, host: @host)
 
     assert_response :success
@@ -43,9 +43,9 @@ class Sign::App::Settings::Mfa::ResetsControllerTest < ActionDispatch::Integrati
   end
 
   test "create is routed for future reset request submission" do
-    post sign_app_mfa_reset_url(ri: "jp"), headers: @headers
+    post sign_app_settings_mfa_reset_url(ri: "jp"), headers: @headers
 
-    assert_redirected_to sign_app_mfa_reset_url(ri: "jp")
+    assert_redirected_to sign_app_settings_mfa_reset_url(ri: "jp")
     assert_equal I18n.t("sign.app.settings.mfa.show.reset_unavailable"), flash[:alert]
   end
 

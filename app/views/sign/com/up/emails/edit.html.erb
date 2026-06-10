@@ -11,7 +11,7 @@
         </p>
       </div>
 
-      <%= form_with model: @user_email, url: sign_com_up_check_email_otp_path(ri: params[:ri]), method: :patch, data: { turbo: false } do |form| %>
+      <%= form_with model: @user_email, url: sign_com_sign_up_check_email_otp_path(ri: params[:ri]), method: :patch, data: { turbo: false } do |form| %>
         <% pt = signed_pt_param %>
         <%= hidden_field_tag :pt, pt if pt.present? %>
 

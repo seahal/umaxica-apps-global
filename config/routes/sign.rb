@@ -216,7 +216,7 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo"
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
         resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
       end
@@ -436,7 +436,7 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo"
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
         resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
       end
@@ -627,7 +627,7 @@ scope module: :sign, as: :sign do
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo"
+        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
         resource :revocation, only: :create, path: "revoke"
         resource :jwks, only: :show
       end

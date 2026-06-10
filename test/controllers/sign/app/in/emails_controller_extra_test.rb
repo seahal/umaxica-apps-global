@@ -21,7 +21,7 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
   test "post create with Turnstile failure" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: {
            user_email: { address: "test@example.com" },
            "cf-turnstile-response": "fail",
@@ -34,13 +34,13 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
   test "post create with email cooldown active" do
     address = "cooldown@example.com"
 
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: { user_email: { address: address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
     assert_response :redirect
 
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: { user_email: { address: address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
@@ -56,14 +56,14 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
       confirm_policy: "1",
     )
 
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
     email.reload
     otp_code = ROTP::HOTP.new(email.otp_private_key).at(email.otp_counter.to_i)
 
-    patch sign_app_in_email_url(format: :json),
+    patch sign_app_sign_in_email_url(format: :json),
           params: { user_email: { pass_code: otp_code } },
           headers: { "Host" => @host }
 
@@ -82,11 +82,11 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
       confirm_policy: "1",
     )
 
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
-    patch sign_app_in_email_url(format: :json),
+    patch sign_app_sign_in_email_url(format: :json),
           params: { user_email: { pass_code: "000000" } },
           headers: { "Host" => @host }
 
@@ -98,7 +98,7 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
 
   test "patch update with dummy OTP" do
     # Unknown email
-    post sign_app_in_email_url,
+    post sign_app_sign_in_email_url,
          params: { user_email: { address: "unknown@example.com" }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
@@ -107,7 +107,7 @@ class Sign::App::In::EmailsControllerExtraTest < ActionDispatch::IntegrationTest
     # The controller does ClientEmail.new(address: ...) which is invalid.
     # So it will render :edit with errors.
 
-    patch sign_app_in_email_url,
+    patch sign_app_sign_in_email_url,
           params: { user_email: { pass_code: "123456" } },
           headers: { "Host" => @host }
 

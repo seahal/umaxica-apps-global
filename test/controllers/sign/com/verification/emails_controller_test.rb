@@ -156,7 +156,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     cache_email_nonce!(nonce)
 
     assert_enqueued_emails 1 do
-      post resend_sign_com_verification_email_url(
+      post sign_com_verification_email_redelivery_url(
         nonce,
         ri: "jp",
         scope: "settings_email",
@@ -184,11 +184,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     cache_email_nonce!(nonce)
 
     assert_enqueued_emails 1 do
-      post resend_sign_com_verification_email_url(nonce, ri: "jp"), headers: @headers
+      post sign_com_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
     end
 
     assert_enqueued_emails 0 do
-      post resend_sign_com_verification_email_url(nonce, ri: "jp"), headers: @headers
+      post sign_com_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
     end
 
     assert_response :redirect

@@ -5,7 +5,7 @@ require "test_helper"
 class RedirectsPriorityResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
-      def sign_app_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
+      def sign_app_sign_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
       def sign_app_in_path(ri:) = "/sign/in?ri=#{ri}"
 

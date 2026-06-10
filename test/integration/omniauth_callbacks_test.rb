@@ -54,10 +54,10 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_google_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_google_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_google_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -111,10 +111,10 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -143,10 +143,10 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_up_guard_apple_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_up_check_apple_confirmation_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_apple_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_select "input[name=confirm_new_social_identity][required]"
@@ -267,7 +267,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to new_sign_app_sign_in_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before birthdate checkpoint"
   end
 

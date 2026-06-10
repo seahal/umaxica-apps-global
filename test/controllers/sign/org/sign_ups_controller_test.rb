@@ -11,13 +11,13 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
   end
 
   test "does not show registration method choices" do
-    get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 0
@@ -28,7 +28,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   test "does not show google signup button even if legacy flag is set" do
     with_env("ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+      get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
     end
 
     assert_response :success
@@ -37,7 +37,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders recruit contact and home links" do
-    get new_sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
 
@@ -88,7 +88,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   test "rejects when logged in" do
     staff = operators(:one)
 
-    get new_sign_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+    get sign_org_sign_up_entrance_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
     assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end

@@ -26,7 +26,7 @@ module Sign::App::Up
     end
 
     test "should get new" do
-      get new_sign_app_up_telephone_url(ri: "jp")
+      get new_sign_app_sign_up_telephone_url(ri: "jp")
 
       assert_response :success
     end
@@ -34,7 +34,7 @@ module Sign::App::Up
     test "new redirects to dashboard when user is already logged in" do
       user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
 
-      get new_sign_app_up_telephone_url(ri: "jp"),
+      get new_sign_app_sign_up_telephone_url(ri: "jp"),
           headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
       assert_response :unauthorized
@@ -45,7 +45,7 @@ module Sign::App::Up
       user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
 
       assert_no_difference("ClientTelephone.count") do
-        post sign_app_up_telephone_url(ri: "jp"),
+        post sign_app_sign_up_telephone_url(ri: "jp"),
              params: {
                user_telephone: {
                  raw_number: "+1234567890",
@@ -62,7 +62,7 @@ module Sign::App::Up
     end
 
     test "edit route uses registration session" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -72,7 +72,7 @@ module Sign::App::Up
       }
       telephone = registration_telephone
 
-      get sign_app_up_check_telephone_otp_url(ri: "jp")
+      get sign_app_sign_up_check_telephone_otp_url(ri: "jp")
 
       assert_response :success
       assert_nil request.path_parameters[:id]
@@ -89,7 +89,7 @@ module Sign::App::Up
     test "should create telephone and redirect to edit" do
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
         assert_difference("ClientTelephone.count") do
-          post sign_app_up_telephone_url, params: {
+          post sign_app_sign_up_telephone_url, params: {
             user_telephone: {
               raw_number: "+1234567890",
               confirm_policy: "1",
@@ -102,7 +102,7 @@ module Sign::App::Up
 
       registration_telephone
 
-      assert_redirected_to sign_app_up_check_telephone_otp_url
+      assert_redirected_to sign_app_sign_up_check_telephone_otp_url
       assert_not_nil session[:user_telephone_registration]
       assert_predicate session[:app_sign_up_flow_locator], :present?
       cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
@@ -125,7 +125,7 @@ module Sign::App::Up
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
         assert_no_difference("Client.count") do
           assert_no_difference("ClientTelephone.count") do
-            post sign_app_up_telephone_url, params: {
+            post sign_app_sign_up_telephone_url, params: {
               user_telephone: {
                 raw_number: existing_telephone.number,
                 confirm_policy: "1",
@@ -137,7 +137,7 @@ module Sign::App::Up
         end
       end
 
-      assert_redirected_to sign_app_up_check_telephone_otp_url
+      assert_redirected_to sign_app_sign_up_check_telephone_otp_url
       assert_equal I18n.t("sign.app.registration.telephone.create.verification_code_sent"), flash[:notice]
       assert_nil flash[:alert]
     end
@@ -152,7 +152,7 @@ module Sign::App::Up
         confirm_using_mfa: "1",
       )
 
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: existing_telephone.number,
           confirm_policy: "1",
@@ -164,7 +164,7 @@ module Sign::App::Up
       existing_location = response.location
       existing_notice = flash[:notice]
 
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+819012300000",
           confirm_policy: "1",
@@ -180,7 +180,7 @@ module Sign::App::Up
     end
 
     test "rejects invalid telephone format" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "invalid-telephone",
           confirm_policy: "1",
@@ -196,7 +196,7 @@ module Sign::App::Up
       assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
         assert_no_difference("Client.count") do
           assert_no_difference("ClientTelephone.count") do
-            post sign_app_up_telephone_url, params: {
+            post sign_app_sign_up_telephone_url, params: {
               "cf-turnstile-response": "test",
             }
           end
@@ -212,7 +212,7 @@ module Sign::App::Up
       assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
         assert_no_difference("Client.count") do
           assert_no_difference("ClientTelephone.count") do
-            post sign_app_up_telephone_url, params: {
+            post sign_app_sign_up_telephone_url, params: {
               user_telephone: {
                 raw_number: "+1234567897",
                 confirm_policy: "1",
@@ -229,7 +229,7 @@ module Sign::App::Up
 
     test "should update telephone with valid otp" do
       # 1. Create telephone via request to set up session
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -245,11 +245,11 @@ module Sign::App::Up
       code = hotp.at(otp_data[:otp_counter])
 
       # 3. Submit OTP
-      patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
         user_telephone: { pass_code: code },
       }
 
-      assert_redirected_to sign_app_up_guard_telephone_url(regional_defaults)
+      assert_redirected_to sign_app_sign_up_guard_telephone_url(regional_defaults)
 
       telephone.reload
       cycle = ClientSignUpFlow.find_by!(public_id: session.dig(:app_sign_up_flow_locator, "public_id"))
@@ -264,7 +264,7 @@ module Sign::App::Up
     end
 
     test "otp success keeps telephone pending and records cycle proof in session" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -279,12 +279,12 @@ module Sign::App::Up
       code = hotp.at(otp_data[:otp_counter])
 
       assert_no_difference("ClientToken.count") do
-        patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+        patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
           user_telephone: { pass_code: code },
         }
       end
 
-      assert_redirected_to sign_app_up_guard_telephone_url(regional_defaults)
+      assert_redirected_to sign_app_sign_up_guard_telephone_url(regional_defaults)
 
       # The telephone must stay UNVERIFIED_WITH_SIGN_UP so an abandoned cycle
       # stays collectable by the pending-signup cleanup (no number lock).
@@ -299,7 +299,7 @@ module Sign::App::Up
     end
 
     test "telephone sign up still requires passkey even if pending user has a passkey" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567891",
           confirm_policy: "1",
@@ -327,20 +327,20 @@ module Sign::App::Up
       # a signed-in session: telephone sign-up always routes through the
       # passkey step and the durable finalizer.
       assert_no_difference("ClientToken.count") do
-        patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+        patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
           user_telephone: { pass_code: code },
         }
       end
 
-      assert_redirected_to sign_app_up_guard_telephone_url(regional_defaults)
+      assert_redirected_to sign_app_sign_up_guard_telephone_url(regional_defaults)
       assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY].presence
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, user.reload.status_id
 
-      get sign_app_up_guard_telephone_url(regional_defaults)
+      get sign_app_sign_up_guard_telephone_url(regional_defaults)
 
-      assert_redirected_to sign_app_up_check_telephone_passkey_url(regional_defaults)
+      assert_redirected_to sign_app_sign_up_check_telephone_passkey_url(regional_defaults)
 
-      get sign_app_up_check_telephone_passkey_url(regional_defaults)
+      get sign_app_sign_up_check_telephone_passkey_url(regional_defaults)
 
       assert_response :success
       assert_select "[data-controller='passkey-registration']"
@@ -349,7 +349,7 @@ module Sign::App::Up
     test "abandoned telephone sign up after otp can re-register the same number" do
       number = "+1234567892"
 
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: number,
           confirm_policy: "1",
@@ -364,7 +364,7 @@ module Sign::App::Up
       hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
       code = hotp.at(otp_data[:otp_counter])
 
-      patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
         user_telephone: { pass_code: code },
       }
       # Cycle abandoned here: OTP passed but passkey never completed.
@@ -372,7 +372,7 @@ module Sign::App::Up
       # Past the re-registration overwrite window the same number must be
       # registrable again — the abandoned pending row/user is cleaned up.
       travel(CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second) do
-        post sign_app_up_telephone_url, params: {
+        post sign_app_sign_up_telephone_url, params: {
           user_telephone: {
             raw_number: number,
             confirm_policy: "1",
@@ -382,7 +382,7 @@ module Sign::App::Up
         }
       end
 
-      assert_redirected_to sign_app_up_check_telephone_otp_url
+      assert_redirected_to sign_app_sign_up_check_telephone_otp_url
       new_telephone = registration_telephone
 
       assert_not_equal telephone.id, new_telephone.id
@@ -393,7 +393,7 @@ module Sign::App::Up
     end
 
     test "should reject blank pass code" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -403,7 +403,7 @@ module Sign::App::Up
       }
       registration_telephone
 
-      patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
         user_telephone: { pass_code: "" },
       }
 
@@ -411,7 +411,7 @@ module Sign::App::Up
     end
 
     test "should lockout after max failed otp attempts" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567893",
           confirm_policy: "1",
@@ -426,7 +426,7 @@ module Sign::App::Up
 
       Prosopite.pause do
         Telephone::MAX_OTP_ATTEMPTS.times do
-          patch sign_app_up_check_telephone_otp_url(ri: "jp"), params: {
+          patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
             user_telephone: { pass_code: "000000" },
           }
         end
@@ -446,7 +446,7 @@ module Sign::App::Up
 
     test "should cleanup existing unverified telephones on create" do
       # Create first registration
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567894",
           confirm_policy: "1",
@@ -459,7 +459,7 @@ module Sign::App::Up
 
       travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
         # Create second registration with the same number
-        post sign_app_up_telephone_url, params: {
+        post sign_app_sign_up_telephone_url, params: {
           user_telephone: {
             raw_number: "+1234567894",
             confirm_policy: "1",
@@ -475,7 +475,7 @@ module Sign::App::Up
     end
 
     test "create rejects duplicate unverified telephone inside overwrite window" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567895",
           confirm_policy: "1",
@@ -488,7 +488,7 @@ module Sign::App::Up
 
       assert_no_difference("ClientTelephone.count") do
         assert_no_difference("Client.count") do
-          post sign_app_up_telephone_url, params: {
+          post sign_app_sign_up_telephone_url, params: {
             user_telephone: {
               raw_number: "+1234567895",
               confirm_policy: "1",
@@ -505,7 +505,7 @@ module Sign::App::Up
     end
 
     test "resend sends code for active registration session" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -516,17 +516,17 @@ module Sign::App::Up
       registration_telephone
 
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-        post sign_app_up_check_telephone_otp_url(ri: "jp")
+        post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
       end
 
-      assert_redirected_to sign_app_up_check_telephone_otp_url(ri: "jp")
+      assert_redirected_to sign_app_sign_up_check_telephone_otp_url(ri: "jp")
       assert_predicate session[:user_telephone_otp_last_sent_at], :present?
     end
 
     test "resend returns success even without registration session" do
       assert_no_difference("ClientTelephone.count") do
         assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
-          post sign_app_up_check_telephone_otp_url(ri: "jp")
+          post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
       end
 
@@ -535,7 +535,7 @@ module Sign::App::Up
     end
 
     test "resend rate limits repeated requests" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567890",
           confirm_policy: "1",
@@ -546,10 +546,10 @@ module Sign::App::Up
       registration_telephone
 
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-        post sign_app_up_check_telephone_otp_url(ri: "jp")
+        post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
       end
       assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
-        post sign_app_up_check_telephone_otp_url(ri: "jp")
+        post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
       end
 
       assert_response :too_many_requests
@@ -557,7 +557,7 @@ module Sign::App::Up
     end
 
     test "resend cooldown is 30 seconds" do
-      post sign_app_up_telephone_url, params: {
+      post sign_app_sign_up_telephone_url, params: {
         user_telephone: {
           raw_number: "+1234567892",
           confirm_policy: "1",
@@ -568,7 +568,7 @@ module Sign::App::Up
 
       assert_response :redirect
 
-      post sign_app_up_check_telephone_otp_url(ri: "jp")
+      post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
       sent_at = session[:user_telephone_otp_last_sent_at]
       telephone = registration_telephone
       otp_data = telephone.get_otp
@@ -576,11 +576,11 @@ module Sign::App::Up
       completed_requirements = cycle.completed_requirements.deep_dup
 
       assert_predicate sent_at, :present?
-      assert_redirected_to sign_app_up_check_telephone_otp_url(ri: "jp")
+      assert_redirected_to sign_app_sign_up_check_telephone_otp_url(ri: "jp")
 
       travel 29.seconds do
         assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
-          post sign_app_up_check_telephone_otp_url(ri: "jp")
+          post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
         assert_response :too_many_requests
         assert_includes response.body, I18n.t("sign.app.registration.email.create.otp_resend_too_soon")
@@ -591,9 +591,9 @@ module Sign::App::Up
 
       travel 31.seconds do
         assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-          post sign_app_up_check_telephone_otp_url(ri: "jp")
+          post sign_app_sign_up_check_telephone_otp_url(ri: "jp")
         end
-        assert_redirected_to sign_app_up_check_telephone_otp_url(ri: "jp")
+        assert_redirected_to sign_app_sign_up_check_telephone_otp_url(ri: "jp")
         assert_operator session[:user_telephone_otp_last_sent_at], :>, sent_at
       end
     end

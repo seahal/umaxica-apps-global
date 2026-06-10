@@ -2041,12 +2041,12 @@ module AuthenticationBase
   end
 
   def session_management_path
-    if respond_to?(:sign_app_in_session_path, true)
-      sign_app_in_session_path
-    elsif respond_to?(:sign_org_in_session_path, true)
-      sign_org_in_session_path
-    elsif respond_to?(:sign_com_in_session_path, true)
-      sign_com_in_session_path
+    if respond_to?(:sign_app_sign_in_session_path, true)
+      sign_app_sign_in_session_path
+    elsif respond_to?(:sign_org_sign_in_session_path, true)
+      sign_org_sign_in_session_path
+    elsif respond_to?(:sign_com_sign_in_session_path, true)
+      sign_com_sign_in_session_path
     else
       "/sign/in/session"
     end
@@ -2532,10 +2532,10 @@ module AuthenticationBase
   end
 
   def mfa_entry_path(ri: nil)
-    if respond_to?(:sign_app_in_challenge_path, true)
-      sign_app_in_challenge_path(ri: ri)
-    elsif respond_to?(:sign_org_in_challenge_path, true)
-      sign_org_in_challenge_path(ri: ri)
+    if respond_to?(:sign_app_sign_in_challenge_path, true)
+      sign_app_sign_in_challenge_path(ri: ri)
+    elsif respond_to?(:sign_org_sign_in_challenge_path, true)
+      sign_org_sign_in_challenge_path(ri: ri)
     else
       "/sign/in/challenge"
     end

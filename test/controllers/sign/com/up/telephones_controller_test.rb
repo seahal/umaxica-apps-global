@@ -34,7 +34,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get new" do
-    get new_sign_com_up_telephone_url(ri: "jp"), headers: default_headers
+    get new_sign_com_sign_up_telephone_url(ri: "jp"), headers: default_headers
 
     assert_response :success
   end
@@ -46,7 +46,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get new_sign_com_up_telephone_url(ri: "jp"),
+    get new_sign_com_sign_up_telephone_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
@@ -57,7 +57,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     assert_no_difference("VisitorTelephone.count") do
-      post sign_com_up_telephone_url(ri: "jp"),
+      post sign_com_sign_up_telephone_url(ri: "jp"),
            params: {
              visitor_telephone: {
                raw_number: "+819012300099",
@@ -78,7 +78,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to edit and creates pending visitor telephone" do
     assert_difference("Visitor.count", 1) do
       assert_difference("VisitorTelephone.count", 1) do
-        post sign_com_up_telephone_url(ri: "jp"),
+        post sign_com_sign_up_telephone_url(ri: "jp"),
              params: {
                visitor_telephone: {
                  raw_number: "+819012300001",
@@ -99,7 +99,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "edit renders authentication code copy" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300002",
@@ -110,7 +110,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
          },
          headers: default_headers
 
-    get sign_com_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    get sign_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
@@ -123,7 +123,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update routes to guardrail without signup audits or client account" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300010",
@@ -138,7 +138,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     code = otp_code_for(telephone)
 
     assert_no_difference("ClientChronicle.count") do
-      patch sign_com_up_check_telephone_otp_url(ri: "jp"),
+      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { visitor_telephone: { pass_code: code } },
             headers: default_headers
     end
@@ -146,7 +146,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     visitor = telephone.reload.visitor
     cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
 
-    assert_redirected_to sign_com_up_guard_telephone_path(ri: "jp")
+    assert_redirected_to sign_com_sign_up_guard_telephone_path(ri: "jp")
     assert_nil visitor.rp_account
     assert_equal VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, telephone.visitor_telephone_status_id
     assert session.dig(:visitor_telephone_registration, "otp_verified")
@@ -169,7 +169,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create with invalid telephone fails" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "not-a-phone",
@@ -195,7 +195,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_no_difference("VisitorTelephone.count") do
-        post sign_com_up_telephone_url(ri: "jp"),
+        post sign_com_sign_up_telephone_url(ri: "jp"),
              params: {
                visitor_telephone: {
                  raw_number: "+819012300011",
@@ -222,7 +222,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     code = otp_code_for(existing_telephone.reload)
 
     assert_no_difference("ClientChronicle.count") do
-      patch sign_com_up_check_telephone_otp_url(ri: "jp"),
+      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { visitor_telephone: { pass_code: code } },
             headers: default_headers
     end
@@ -238,7 +238,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
       assert_no_difference("Visitor.count") do
         assert_no_difference("VisitorTelephone.count") do
-          post sign_com_up_telephone_url(ri: "jp"),
+          post sign_com_sign_up_telephone_url(ri: "jp"),
                params: { "cf-turnstile-response": "test" },
                headers: default_headers
         end
@@ -251,7 +251,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   test "create with turnstile failure returns unprocessable content" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300002",
@@ -266,7 +266,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update with missing visitor_telephone params renders unprocessable" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300098",
@@ -279,13 +279,13 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
 
     VisitorTelephone.order(:created_at).last
 
-    patch sign_com_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
   end
 
   test "update with invalid OTP does not create session" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300097",
@@ -299,7 +299,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     telephone = VisitorTelephone.order(:created_at).last
 
     assert_no_difference("VisitorToken.count") do
-      patch sign_com_up_check_telephone_otp_url(ri: "jp"),
+      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { visitor_telephone: { pass_code: "000000" } },
             headers: default_headers
     end
@@ -309,7 +309,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update locks after max failed OTP attempts" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300096",
@@ -326,7 +326,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
 
     Prosopite.pause do
       Telephone::MAX_OTP_ATTEMPTS.times do
-        patch sign_com_up_check_telephone_otp_url(ri: "jp"),
+        patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
               params: { visitor_telephone: { pass_code: "000000" } },
               headers: default_headers
       end
@@ -351,7 +351,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
       otp_expires_at: 5.minutes.from_now,
     )
 
-    patch sign_com_up_check_telephone_otp_url(ri: "jp"),
+    patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { visitor_telephone: { pass_code: "123456" } },
           headers: default_headers
 
@@ -360,7 +360,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create rejects duplicate unverified telephone inside overwrite window" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300004",
@@ -377,7 +377,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("VisitorTelephone.count") do
       assert_no_difference("Visitor.count") do
-        post sign_com_up_telephone_url(ri: "jp"),
+        post sign_com_sign_up_telephone_url(ri: "jp"),
              params: {
                visitor_telephone: {
                  raw_number: "+819012300004",
@@ -396,7 +396,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create after overwrite window replaces duplicate unverified telephone" do
-    post sign_com_up_telephone_url(ri: "jp"),
+    post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300005",
@@ -412,7 +412,7 @@ class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
     first_visitor = first_telephone.visitor
 
     travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
-      post sign_com_up_telephone_url(ri: "jp"),
+      post sign_com_sign_up_telephone_url(ri: "jp"),
            params: {
              visitor_telephone: {
                raw_number: "+819012300005",

@@ -13,9 +13,9 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "guard redirects direct access without a cycle to signup entry" do
-    get sign_app_up_guard_email_url(ri: "jp"), headers: default_headers
+    get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
     assert_empty flash.to_hash
   end
 
@@ -26,9 +26,9 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
       completed_requirements: { "otp" => { "cleared" => true } },
     )
 
-    get sign_app_up_guard_email_url(ri: "jp", sid: ticket.public_id), headers: default_headers
+    get sign_app_sign_up_guard_email_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
-    assert_redirected_to new_sign_app_sign_up_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
     assert_empty flash.to_hash
   end
 
@@ -52,14 +52,14 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   test "checkpoint show rejects ticket id without session binding" do
     ticket = create_ticket(status_id: ClientSignUpFlowStatus::GUARDRAIL_PENDING, step: "guardrail")
 
-    get sign_app_up_check_email_birthdate_url(ri: "jp", sid: ticket.public_id), headers: default_headers
+    get sign_app_sign_up_check_email_birthdate_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
     assert_response :unprocessable_content
     assert_empty flash.to_hash
   end
 
   test "checkpoint update rejects direct access without a ticket" do
-    patch sign_app_up_check_email_birthdate_url(ri: "jp"),
+    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: { requirement: "birthdate" },
           headers: default_headers
 
@@ -135,7 +135,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
     controller.define_singleton_method(:path_target_value) { nil }
     controller.define_singleton_method(:signed_pt_param) { nil }
     controller.define_singleton_method(:signed_pt_token) { |path| path.presence && "signed-pt" }
-    controller.define_singleton_method(:sign_app_up_check_email_birthdate_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:sign_app_sign_up_check_email_birthdate_path) { |ri: nil, pt: nil|
       "/sign/up/check/email/birthdate?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:redirect_to) { |path, **_options| @redirected_to = path }

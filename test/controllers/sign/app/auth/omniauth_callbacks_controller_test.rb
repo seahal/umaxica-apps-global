@@ -64,8 +64,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_in_check_path) do |ri: nil, pt: nil|
+    controller.define_singleton_method(:sign_app_sign_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:sign_app_sign_in_check_path) do |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
     controller.define_singleton_method(:social_auth_success_redirect_path) { "/settings" }
@@ -274,7 +274,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_up_guard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:sign_app_sign_up_guard_path) { |ri: nil, pt: nil|
       "/sign/up/guard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_up_flow_locator) { locator }
@@ -353,7 +353,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_entrance_path) { |ri: nil|
       "/sign/in/new#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_up_guard_path) {
+    controller.define_singleton_method(:sign_app_sign_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }

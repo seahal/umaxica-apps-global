@@ -190,12 +190,12 @@ class Auth::MfaInterceptUnitTest < ActiveSupport::TestCase
         end
 
         define_method(:respond_to?) do |name, include_private = false|
-          return true if name == :sign_app_in_mfa_path
+          return true if name == :sign_app_sign_in_mfa_path
 
           super(name, include_private)
         end
 
-        define_method(:sign_app_in_mfa_path) do |ri: nil|
+        define_method(:sign_app_sign_in_mfa_path) do |ri: nil|
           ri ? "/sign/in/mfa?ri=#{ri}" : "/sign/in/mfa"
         end
       end
