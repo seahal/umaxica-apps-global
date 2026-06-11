@@ -188,6 +188,11 @@ en:
       submit: Revoke Selected Sessions and Log In
       cancel: Cancel
   sign:
+    recovery_passcodes:
+      required:
+        title: Recovery passcodes required
+        description: "You need at least %{minimum} unused recovery passcodes before registering this MFA method. You currently have %{count}."
+        setup_link: Manage recovery passcodes
     common:
       cancel: Cancel
       birthdate_parts:

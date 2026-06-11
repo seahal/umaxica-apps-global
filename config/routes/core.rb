@@ -104,6 +104,7 @@ scope module: :core, as: :core do
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+      resource :configuration, only: :show
 
       namespace :web do
         namespace :v0 do

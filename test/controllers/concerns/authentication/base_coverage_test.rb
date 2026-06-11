@@ -28,6 +28,7 @@ class AuthenticationBaseTestController < ApplicationController
     issue_dbsc_challenge_for! legacy_unbound_refresh_allowed? dbsc_registration_challenge_expired?
     downgrade_pending_dbsc_to_nothing! dbsc_registration_eligible_kind? default_dbsc_token_attributes
     refresh_dpop_allowed? refresh_idle_allowed? handle_refresh_idle_timeout
+    detect_session_network_change!
   )
 
   def index
@@ -1230,7 +1231,76 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert cleared, "auth cookies must be cleared on idle timeout"
   end
 
+  # ---------------------------------------------------------------
+  # IP/ASN-anomaly network-change detection (token-theft hardening, Phase C)
+  # ---------------------------------------------------------------
+
+  test "detect_session_network_change! emits ip_change_detected when the coarse network changes" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    device = fake_device_session(last_network_hmac: "old-network")
+    token = Struct.new(:device_session, :public_id).new(device, "tok-1")
+    resource = Struct.new(:id).new(@user.id)
+
+    emitted = []
+    OccurrenceHmac.stub(:network_hmac, ->(_ip) { "new-network" }) do
+      SignRiskEmitter.stub(:emit, ->(name, **kwargs) { emitted << [name, kwargs] }) do
+        @controller.detect_session_network_change!(token, resource)
+      end
+    end
+
+    assert_equal "new-network", device.last_network_hmac, "stored fingerprint is refreshed"
+    assert_equal 1, emitted.size
+    assert_equal "ip_change_detected", emitted.first[0]
+    assert_equal @user.id, emitted.first[1][:user_id]
+  end
+
+  test "detect_session_network_change! stays quiet within the same coarse network" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    device = fake_device_session(last_network_hmac: "same-network")
+    token = Struct.new(:device_session, :public_id).new(device, "tok-1")
+    resource = Struct.new(:id).new(@user.id)
+
+    emitted = []
+    OccurrenceHmac.stub(:network_hmac, ->(_ip) { "same-network" }) do
+      SignRiskEmitter.stub(:emit, ->(name, **kwargs) { emitted << [name, kwargs] }) do
+        @controller.detect_session_network_change!(token, resource)
+      end
+    end
+
+    assert_empty emitted
+  end
+
+  test "detect_session_network_change! records a baseline without emitting on first observation" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    device = fake_device_session(last_network_hmac: nil)
+    token = Struct.new(:device_session, :public_id).new(device, "tok-1")
+    resource = Struct.new(:id).new(@user.id)
+
+    emitted = []
+    OccurrenceHmac.stub(:network_hmac, ->(_ip) { "first-network" }) do
+      SignRiskEmitter.stub(:emit, ->(name, **kwargs) { emitted << [name, kwargs] }) do
+        @controller.detect_session_network_change!(token, resource)
+      end
+    end
+
+    assert_equal "first-network", device.last_network_hmac
+    assert_empty emitted
+  end
+
   private
+
+  def fake_device_session(last_network_hmac:)
+    Struct.new(:last_network_hmac) do
+      def has_attribute?(attribute)
+        attribute.to_sym == :last_network_hmac
+      end
+
+      def update_columns(attrs)
+        attrs.each { |key, value| self[key] = value }
+        true
+      end
+    end.new(last_network_hmac)
+  end
 
   def build_legacy_client_token(dbsc_status_id, challenge_issued_at: Time.current)
     ClientToken.create!(

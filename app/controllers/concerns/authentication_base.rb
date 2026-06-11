@@ -1019,6 +1019,9 @@ module AuthenticationBase
     best_effort_refresh_side_effect { emit_refresh_rotated(resource, token_record) }
     best_effort_refresh_side_effect { notify_token_refreshed(resource, token_record, previous_token_record) }
     best_effort_refresh_side_effect { record_audit(AUDIT_EVENTS[:token_refreshed], resource: resource) }
+    # Detect a coarse-network change before the enforcer runs so an
+    # ip_change_detected signal emitted here is scored in the same pass.
+    best_effort_refresh_side_effect { detect_session_network_change!(token_record, resource) }
     best_effort_refresh_side_effect { SignRiskEnforcer.call(resource) }
     best_effort_refresh_side_effect { issue_dbsc_registration_header_for(token_record) }
     populate_current_attributes!(resource, nil)
@@ -1035,6 +1038,44 @@ module AuthenticationBase
       user_agent: request&.user_agent,
       request_id: request&.request_id,
     )
+  end
+
+  # Compare the request's coarse network (HMAC of the /24 IPv4 or /48 IPv6
+  # network, never the full IP) against the value stored on the device session.
+  # A change emits an `ip_change_detected` risk signal; the feature-flagged
+  # engine rule then decides whether SignRiskEnforcer hard-revokes the session
+  # (see adr/ip-anomaly-session-revocation.md). The stored fingerprint is
+  # refreshed on every change (including the first observation) so a legitimate
+  # move only costs one signal. Coarse granularity tolerates ordinary NAT/IP
+  # churn; only a network-level change counts.
+  def detect_session_network_change!(token_record, resource)
+    device_session = token_record.try(:device_session)
+    return if device_session.blank?
+    return unless device_session.has_attribute?(:last_network_hmac)
+
+    current = network_hmac_for_request
+    return if current.blank?
+
+    stored = device_session.last_network_hmac
+    device_session.update_columns(last_network_hmac: current) if stored != current
+
+    return if stored.blank? || stored == current
+
+    SignRiskEmitter.emit(
+      "ip_change_detected",
+      **risk_actor_payload(resource.id),
+      user_token_id: token_record.public_id,
+      ip: request&.remote_ip,
+      user_agent: request&.user_agent,
+      request_id: request&.request_id,
+      meta: { reason: "network_change" },
+    )
+  end
+
+  def network_hmac_for_request
+    OccurrenceHmac.network_hmac(request_ip_address)
+  rescue OccurrenceHmac::MissingSecretError
+    nil
   end
 
   def notify_token_refreshed(resource, token_record, previous_token_record)

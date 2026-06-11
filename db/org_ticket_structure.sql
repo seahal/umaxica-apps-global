@@ -118,7 +118,8 @@ CREATE TABLE public.operator_device_sessions (
     revoked_at timestamp(6) with time zone,
     revoke_reason character varying,
     created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
+    updated_at timestamp(6) with time zone NOT NULL,
+    last_network_hmac character varying
 );
 
 
@@ -2264,6 +2265,7 @@ ALTER TABLE ONLY public.operator_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260611100100'),
 ('20260606120002'),
 ('20260603130001'),
 ('20260603123001'),

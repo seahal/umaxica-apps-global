@@ -165,9 +165,11 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       session_ref: @token.public_id,
       operation: "registration",
     )
-    get new_sign_org_settings_emails_registration_url(
-      ri: "jp",
-      email_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+    get(
+      new_sign_org_settings_emails_registration_url(
+        ri: "jp",
+        email_ceremony_grant: issuance.grant,
+      ), headers: request_headers,
+    )
   end
 end

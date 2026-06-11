@@ -9,6 +9,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
            :client_statuses,
            :client_token_statuses,
            :client_token_kinds,
+           :client_secret_credential_kinds,
+           :client_secret_credential_statuses,
            :client_totp_credential_statuses,
            :app_preference_chronicle_levels,
            :client_chronicle_events,
@@ -19,6 +21,9 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @user = clients(:one)
     # Clear existing TOTPs to avoid limit error
     @user.client_totp_credentials.destroy_all
+    @user.client_secret_credentials.destroy_all
+    create_client_recovery_passcode!(@user, name: "recovery 1")
+    create_client_recovery_passcode!(@user, name: "recovery 2")
     ClientEmail.create!(
       user: @user,
       address: "totp-config-test@example.com",
@@ -151,6 +156,51 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "届きます"
     assert_not_includes response.body, "送信され"
     assert_select "input[name='cf-turnstile-response']"
+  end
+
+  test "new denies with zero unused usable recovery passcodes" do
+    @user.client_secret_credentials.destroy_all
+
+    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+
+    assert_response :forbidden
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, acme_app_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
+    assert_empty flash.to_hash
+  end
+
+  test "create denies with one unused usable recovery passcode and does not return json" do
+    @user.client_totp_credentials.destroy_all
+    @user.client_secret_credentials.destroy_all
+    create_client_recovery_passcode!(@user, name: "only recovery")
+
+    assert_no_difference("ClientTotpCredential.count") do
+      post sign_app_settings_totps_url(ri: "jp"),
+           params: { user_totp_credential: { first_token: "000000" } },
+           headers: @headers,
+           as: :json
+    end
+
+    assert_response :forbidden
+    assert_equal "text/html", response.media_type
+    assert_empty flash.to_hash
+  end
+
+  test "used and revoked recovery passcodes are not counted" do
+    @user.client_secret_credentials.destroy_all
+    create_client_recovery_passcode!(@user, name: "used", last_used_at: Time.current)
+    create_client_recovery_passcode!(
+      @user,
+      name: "revoked",
+      status_id: ClientSecretCredentialStatus::REVOKED,
+    )
+
+    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+
+    assert_response :forbidden
   end
 
   test "should get edit with public_id" do
@@ -386,6 +436,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "initial setup user can create first totp without step-up" do
     user = create_verified_user_with_email(email_address: "initial_totp_create@example.com")
+    create_client_recovery_passcode!(user, name: "initial 1")
+    create_client_recovery_passcode!(user, name: "initial 2")
     token = ClientToken.create!(user_id: user.id)
     token.rotate_refresh_token!
     token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
@@ -440,5 +492,22 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     ROTP::Base32.stub(:random_base32, known_secret_credential) do
       yield known_secret_credential
     end
+  end
+
+  def create_client_recovery_passcode!(
+    user,
+    name:,
+    status_id: ClientSecretCredentialStatus::ACTIVE,
+    last_used_at: nil
+  )
+    credential = user.client_secret_credentials.new(
+      name: name,
+      user_secret_kind_id: ClientSecretCredentialKind::RECOVERY,
+      user_identity_secret_status_id: status_id,
+      last_used_at: last_used_at,
+    )
+    credential.password = ClientSecretCredential.generate_raw_secret_credential
+    credential.save!(validate: false)
+    credential
   end
 end

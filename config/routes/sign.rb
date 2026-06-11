@@ -385,6 +385,7 @@ scope module: :sign, as: :sign do
       resource :dashboard, only: :show
 
       # Staff management top-level areas
+      resource :configuration, only: :show
       resources :accounts, only: :index
       resources :iam, only: :index
       resources :system, only: :index

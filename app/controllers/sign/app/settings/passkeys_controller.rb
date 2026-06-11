@@ -24,6 +24,7 @@ module Sign
 
         include SignWebauthn
         include SignPasskeyCeremonyDelegation
+        include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
         include ::SignAcmeAuthorityRedirect
@@ -32,6 +33,7 @@ module Sign
 
         before_action :authenticate_client!
         step_up only: %i(new create options verification), bootstrap: true
+        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_app_passkey_ceremony_grant!, only: %i(new options verification)
         before_action :set_passkey, only: []
         before_action :verify_settings_passkey_turnstile!, only: :options
@@ -144,7 +146,6 @@ module Sign
 
             passkey = commit_passkey_ceremony!(credential, challenge_id)
 
-            issue_emergency_key_if_available!
             render_verification_success(passkey)
           end
         rescue SignWebauthn::ChallengeNotFoundError,
@@ -267,12 +268,10 @@ module Sign
         end
 
         def render_verification_success(passkey)
-          default_redirect_url =
-            if emergency_key_reveal_token.present?
-              sign_app_settings_emergency_key_path(ri: params[:ri], token: emergency_key_reveal_token)
-            else
-              acme_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
-            end
+          default_redirect_url = acme_app_settings_passkeys_url(
+            ri: params[:ri],
+            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          )
           redirect_url = bootstrap_return_path(default_redirect_url)
 
           render json: {
@@ -297,24 +296,6 @@ module Sign
           I18n.t("errors.webauthn.verification_required")
         end
 
-        def issue_emergency_key_if_available!
-          return unless current_client.has_verified_recovery_identity?
-
-          result = ClientSecretCredentialsIssueRecovery.call(actor: current_client, user: current_client)
-          reveal = IdentityOneTimeReveal.issue!(
-            actor: current_client,
-            session_nonce: current_session_token&.public_id,
-            value: result.raw_secret_credential,
-            purpose: ::Sign::App::Settings::EmergencyKeysController::REVEAL_PURPOSE,
-            metadata: { secret_credential_public_id: result.secret_credential.public_id },
-          )
-          @emergency_key_reveal_token = reveal.token
-        end
-
-        def emergency_key_reveal_token
-          @emergency_key_reveal_token
-        end
-
         def passkey_description
           params[:description].presence || I18n.t("sign.default_passkey_description")
         end
@@ -325,6 +306,21 @@ module Sign
 
         def verification_scope
           "settings_passkey"
+        end
+
+        def recovery_passcode_requirement_actor
+          current_client
+        end
+
+        def recovery_passcode_requirement_credential_class
+          ClientSecretCredential
+        end
+
+        def recovery_passcode_setup_url
+          acme_app_settings_secret_credentials_url(
+            ri: params[:ri],
+            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          )
         end
 
         # Compatibility entry only. acme/www owns account-facing passkey lifecycle.

@@ -309,6 +309,7 @@ scope module: :acme, as: :acme do
       resources :welcomes, only: :show
       resource :selector, only: %i(show update)
       resource :dashboard, only: :show
+      resource :configuration, only: :show
       resource :verification, only: :show do
         post :completion
       end

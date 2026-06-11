@@ -46,9 +46,26 @@ class SignRiskEngine
     evaluate_rules(scope)
   end
 
+  # IP/ASN-anomaly hard revocation is feature-flagged for staged rollout
+  # (see adr/ip-anomaly-session-revocation.md). Default OFF everywhere; opt in
+  # explicitly via IP_ANOMALY_REVOKE_ENABLED or config.x.ip_anomaly_revoke.enabled
+  # so the mobile-network false-positive rate can be monitored before any
+  # default-on decision. While off, ip_change_detected is recorded as a signal
+  # only and does not score.
+  def self.ip_anomaly_revoke_enabled?
+    ENV["IP_ANOMALY_REVOKE_ENABLED"] == "true" ||
+      !!Rails.configuration.try(:x).try(:ip_anomaly_revoke).try(:enabled)
+  end
+
   def self.evaluate_rules(scope)
     # Rule 1: Refresh Token Reuse Detected -> 100
     if scope.exists?(event_type: "risk.refresh_reuse_detected")
+      return 100
+    end
+
+    # Rule 1b: Same-session coarse-network change (possible stolen-cookie
+    # replay from another network) -> 100, only when the feature flag is on.
+    if ip_anomaly_revoke_enabled? && scope.exists?(event_type: "risk.ip_change_detected")
       return 100
     end
 

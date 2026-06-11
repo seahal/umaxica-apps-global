@@ -2,11 +2,12 @@
 
 ## Status
 
-Proposed (2026-06-11)
+Accepted (2026-06-11)
 
 Supersedes section 7 ("IP / UA / device as risk signal") of
-`adr/session-token-hardening-baseline.md` for the specific case described below. Not yet
-implemented; implementation is planned in `plans/active/token-theft-defense-hardening.md` (Phase C).
+`adr/session-token-hardening-baseline.md` for the specific case described below. Implemented in
+Phase C of `plans/active/token-theft-defense-hardening.md`; the revocation behavior ships behind a
+default-off feature flag for staged rollout (see Decision point 3).
 
 ## Context
 
@@ -30,9 +31,12 @@ feature-flagged case.
    `OccurrenceHmac` secret. Full IPs are still never stored.
 2. On refresh, if the presenting request's network HMAC differs from the stored one within the risk
    window, emit a `ip_change_detected` risk event.
-3. Under the feature flag `IP_ANOMALY_REVOKE_ENABLED` (default OFF outside production), this event
-   scores ≥100 in `SignRiskEngine` and triggers a full `token.revoke!` via `SignRiskEnforcer`. With
-   the flag off, behavior is unchanged from §7 (signal only).
+3. Under the feature flag `IP_ANOMALY_REVOKE_ENABLED` (default OFF everywhere, including production;
+   opt in via the env var or `config.x.ip_anomaly_revoke.enabled`), this event scores ≥100 in
+   `SignRiskEngine` and triggers a full `token.revoke!` via `SignRiskEnforcer`. The flag defaults
+   off so the mobile-network false-positive rate can be measured before any default-on decision.
+   With the flag off, behavior is unchanged from §7 (the event is recorded as a signal only and does
+   not score).
 
 ## Consequences
 

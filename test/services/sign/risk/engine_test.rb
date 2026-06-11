@@ -54,6 +54,22 @@ module Sign
         assert_equal 100, SignRiskEngine.score(user_id: @user.id)
       end
 
+      test "ip_change_detected returns 100 when the anomaly-revoke flag is enabled" do
+        SignRiskEmitter.send(:persist, SignRiskEvent.new("ip_change_detected", payload: { user_id: @user.id }))
+
+        SignRiskEngine.stub(:ip_anomaly_revoke_enabled?, true) do
+          assert_equal 100, SignRiskEngine.score(user_id: @user.id)
+        end
+      end
+
+      test "ip_change_detected is signal-only when the anomaly-revoke flag is disabled" do
+        SignRiskEmitter.send(:persist, SignRiskEvent.new("ip_change_detected", payload: { user_id: @user.id }))
+
+        SignRiskEngine.stub(:ip_anomaly_revoke_enabled?, false) do
+          assert_equal 0, SignRiskEngine.score(user_id: @user.id)
+        end
+      end
+
       test "returns 0 for safe events" do
         SignRiskEmitter.send(:persist, SignRiskEvent.new("session_issued", payload: { user_id: @user.id }))
 

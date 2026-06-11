@@ -53,7 +53,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     user = Client.create!(status_id: ClientStatus::NOTHING)
     token = ClientToken.create!(user_id: user.id)
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
-    headers = request_headers.merge(
+    request_headers.merge!(
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
@@ -555,14 +555,16 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       session_ref: token.public_id,
       operation: "registration",
     )
-    get new_sign_app_settings_emails_registration_url(
-      {
-        ri: "jp",
-        email_ceremony_grant: issuance.grant,
-      }.merge(params)
-    ), headers: request_headers.merge(
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    get(
+      new_sign_app_settings_emails_registration_url(
+        {
+          ri: "jp",
+          email_ceremony_grant: issuance.grant,
+        }.merge(params),
+      ), headers: request_headers.merge(
+        "X-TEST-CURRENT-USER" => user.id.to_s,
+        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      ),
     )
   end
 end

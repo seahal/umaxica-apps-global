@@ -11,6 +11,7 @@
 #  dbsc_public_key_thumbprint :string
 #  dbsc_session_id_digest     :string
 #  dpop_jkt                   :string
+#  last_network_hmac          :string
 #  last_seen_at               :datetime
 #  revoke_reason              :string
 #  revoked_at                 :datetime

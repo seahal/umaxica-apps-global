@@ -10,6 +10,9 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     @visitor = create_verified_visitor_with_email(email_address: "com_passkey_config@example.com")
+    @visitor.visitor_secret_credentials.destroy_all
+    create_visitor_recovery_passcode!(@visitor, name: "recovery 1")
+    create_visitor_recovery_passcode!(@visitor, name: "recovery 2")
     @visitor.visitor_telephones.create!(
       number: "+819044444444",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
@@ -61,6 +64,20 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :ok
     assert_not_nil response.parsed_body["challenge_id"]
+  end
+
+  test "options denies with fewer than two unused usable recovery passcodes" do
+    @visitor.visitor_secret_credentials.destroy_all
+    create_visitor_recovery_passcode!(@visitor, name: "only recovery")
+
+    post sign_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers), as: :json
+
+    assert_response :forbidden
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, acme_com_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+    )
   end
 
   test "verification creates passkey on success" do
@@ -130,5 +147,17 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
     assert_equal path, uri.request_uri
+  end
+
+  def create_visitor_recovery_passcode!(visitor, name:, last_used_at: nil)
+    credential = visitor.visitor_secret_credentials.new(
+      name: name,
+      visitor_secret_credential_kind_id: VisitorSecretCredentialKind::RECOVERY,
+      visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
+      last_used_at: last_used_at,
+    )
+    credential.password = VisitorSecretCredential.generate_raw_secret_credential
+    credential.save!
+    credential
   end
 end

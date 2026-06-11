@@ -24,6 +24,7 @@ module Sign
 
         include SignWebauthn
         include SignPasskeyCeremonyDelegation
+        include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
         include ::SignAcmeAuthorityRedirect
@@ -37,6 +38,7 @@ module Sign
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)
         step_up only: %i(new create options verification), bootstrap: true
+        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_org_passkey_ceremony_grant!, only: %i(new options verification)
         before_action :set_passkey, only: []
         before_action :verify_settings_passkey_turnstile!, only: :options
@@ -285,6 +287,21 @@ module Sign
 
         def verification_scope
           "settings_passkey"
+        end
+
+        def recovery_passcode_requirement_actor
+          current_operator
+        end
+
+        def recovery_passcode_requirement_credential_class
+          OperatorSecretCredential
+        end
+
+        def recovery_passcode_setup_url
+          acme_org_settings_secret_credentials_url(
+            ri: params[:ri],
+            host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+          )
         end
 
         # Compatibility entry only. acme/www owns account-facing passkey lifecycle.

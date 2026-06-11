@@ -507,6 +507,11 @@ ja:
             promotional_messages_description: プロモーションやイベント情報を受け取ります。
             submit: スタッフ設定を保存
   sign:
+    recovery_passcodes:
+      required:
+        title: リカバリーパスコードが必要です
+        description: "このMFA方法を登録するには、未使用のリカバリーパスコードが%{minimum}個以上必要です。現在は%{count}個です。"
+        setup_link: リカバリーパスコードを管理する
     settings:
       connections:
         index:

@@ -10,6 +10,7 @@ module Sign
         include ::CloudflareTurnstile
         include ::SignAcmeAuthorityRedirect
         include ::SignTotpCeremonyDelegation
+        include ::SignRequiresRecoveryPasscodes
 
         include ::VerificationClient
 
@@ -19,6 +20,7 @@ module Sign
         before_action :authenticate_client!
         step_up only: %i(new create), bootstrap: true
         step_up only: []
+        before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
         before_action :accept_app_totp_ceremony_grant!, only: %i(new create)
 
         def index
@@ -173,6 +175,21 @@ module Sign
 
         def verification_scope
           "settings_totp"
+        end
+
+        def recovery_passcode_requirement_actor
+          current_client
+        end
+
+        def recovery_passcode_requirement_credential_class
+          ClientSecretCredential
+        end
+
+        def recovery_passcode_setup_url
+          acme_app_settings_secret_credentials_url(
+            ri: params[:ri],
+            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          )
         end
 
         # Compatibility entry only. acme/www owns account-facing TOTP lifecycle.

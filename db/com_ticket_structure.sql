@@ -163,7 +163,8 @@ CREATE TABLE public.visitor_device_sessions (
     revoked_at timestamp(6) with time zone,
     revoke_reason character varying,
     created_at timestamp(6) with time zone NOT NULL,
-    updated_at timestamp(6) with time zone NOT NULL
+    updated_at timestamp(6) with time zone NOT NULL,
+    last_network_hmac character varying
 );
 
 
@@ -2212,6 +2213,7 @@ ALTER TABLE ONLY public.visitor_sign_up_flows
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260611100200'),
 ('20260606120001'),
 ('20260603130002'),
 ('20260603123002'),
