@@ -22,7 +22,7 @@ module SignVerificationStepUpLifecycle
     ActiveRecord::Base.connected_to(role: :writing) do
       transaction = current_step_up_ceremony_transaction!(scope: scope, now: now)
       result_token = issue_step_up_result!(transaction:, scope:, method:, rs:, now:)
-      record_step_up_success!(scope: scope, method: method, now: now)
+      record_step_up_success!
 
       clear_step_up_state!
       rs.destroy!
@@ -48,14 +48,11 @@ module SignVerificationStepUpLifecycle
     )
   end
 
-  def record_step_up_success!(scope:, method:, now:)
-    actor_token.update!(
-      last_step_up_at: now,
-      last_step_up_scope: scope,
-      last_step_up_aal: "aal2",
-      last_step_up_method: method,
-      last_step_up_session_public_id: actor_token.public_id,
-    )
+  # acme/www owns step-up freshness. sign/id only records the ceremony audit fact and returns a
+  # signed ceremony result. The freshness columns (last_step_up_*) are committed by
+  # IdentityStepUpCeremonyFreshnessCommitter when acme/www consumes that result. sign must not write
+  # freshness here (see adr/sign-residual-idp-surface-retirement.md).
+  def record_step_up_success!
     create_audit_event!(verification_success_event_id, subject: current_verification_actor)
   end
 
@@ -126,19 +123,10 @@ module SignVerificationStepUpLifecycle
         )
     return transaction if transaction.present?
 
-    # Compatibility for direct sign verification entries until every caller
-    # starts through an acme intent route.
-    IdentityStepUpCeremonyGrantIssuer.issue!(
-      surface: step_up_ceremony_surface,
-      actor_ref: step_up_ceremony_actor_ref,
-      session_ref: actor_token.public_id,
-      required_scope: scope,
-      required_aal: verification_required_aal,
-      allowed_methods: available_step_up_methods,
-      return_to: current_step_up_session&.return_to,
-      expires_at: current_step_up_session&.discarded_at,
-      now: now,
-    ).transaction
+    # acme/www owns step-up intent. sign/id must not self-issue a ceremony grant; a pending
+    # transaction must already exist from an acme-issued grant (see
+    # adr/sign-residual-idp-surface-retirement.md).
+    raise ActionController::BadRequest, "missing acme step-up ceremony grant"
   end
 
   def render_acme_step_up_completion!(result_token:, ri:)

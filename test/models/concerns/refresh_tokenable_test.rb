@@ -32,9 +32,11 @@ class RefreshTokenableTest < ActiveSupport::TestCase
     token = ClientToken.new(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     token.refresh_token = "verifier-1"
+
     assert_predicate token.refresh_token_digest, :present?
 
     token.refresh_token = ""
+
     assert_nil token.refresh_token_digest
   end
 

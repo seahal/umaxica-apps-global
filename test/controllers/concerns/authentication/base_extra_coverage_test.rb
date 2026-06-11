@@ -212,11 +212,12 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
 
   test "load_authentication_session returns the record when the validation block passes" do
     record = Client.new
-    model_class = Class.new do
-      define_singleton_method(:find_by) do |id:|
-        record if id == "record-id"
+    model_class =
+      Class.new do
+        define_singleton_method(:find_by) do |id:|
+          record if id == "record-id"
+        end
       end
-    end
     @harness.session["key"] = "record-id"
 
     loaded =
@@ -229,11 +230,12 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "load_authentication_session rejects the record when the validation block fails" do
-    model_class = Class.new do
-      define_singleton_method(:find_by) do |**_kwargs|
-        Client.new
+    model_class =
+      Class.new do
+        define_singleton_method(:find_by) do |**_kwargs|
+          Client.new
+        end
       end
-    end
     @harness.session["key"] = "record-id"
 
     result =
@@ -302,7 +304,7 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "validate_login_dpop_proof returns error for invalid proof" do
-    proof = Object.new
+    Object.new
     result = Struct.new(:valid?, :error, :jkt).new(false, "bad-proof", nil)
     validator = Struct.new(:call).new(result)
     @harness.request.headers["DPoP"] = "proof"
@@ -444,6 +446,7 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     original = AuthenticationBase.login_cooldown_enabled
 
     AuthenticationBase.login_cooldown_enabled = !original
+
     assert_equal !original, AuthenticationBase.login_cooldown_enabled
   ensure
     AuthenticationBase.login_cooldown_enabled = original

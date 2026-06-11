@@ -20,11 +20,17 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     end
 
     def sign_in_session_limit_pending? = states[:session_limit]
+
     def sign_in_checkpoint_pending? = states[:checkpoint]
+
     def sign_in_selector_pending? = states[:selector]
+
     def sign_in_completed? = states[:completed]
+
     def sign_in_guardrail_pending? = states[:guardrail]
+
     def sign_in_dashboard_pending? = states[:dashboard]
+
     def sign_in_return_pending? = states[:return_pending]
 
     def reload = self
@@ -84,8 +90,11 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     end
 
     def session = @session_hash
+
     def params = @params_hash.with_indifferent_access
+
     def request = @request_obj
+
     def current_resource
       @current_resource
     end
@@ -93,7 +102,9 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     def current_resource=(value)
       @current_resource = value
     end
+
     def logged_in? = current_resource.present?
+
     def current_session
       @current_session_value
     end
@@ -101,16 +112,27 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     def current_session=(value)
       @current_session_value = value
     end
+
     def after_dashboard_path = "/dashboard"
+
     def after_welcome_path = "/welcome"
+
     def after_login_allows_other_host? = false
+
     def redirect_to(path, **kwargs) = @redirected = [path, kwargs]
+
     def render(**kwargs) = @rendered = kwargs
+
     def sign_in_sequence_surface = :app
+
     def signed_pt_token(value) = value ? "pt:#{value}" : nil
+
     def path_from_signed_pt(value) = value&.sub(/\Apt:/, "")
+
     def clear_welcome_gate! = session.delete(welcome_gate_key)
+
     def clear_current_sign_in_flow_locator! = (@locator_cleared = true)
+
     def allow_to?(rule, *_args)
       return @allowed_policy.fetch(rule) if @allowed_policy.is_a?(Hash)
       return @allowed_policy unless @allowed_policy.nil?
@@ -120,6 +142,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     alias allowed_to? allow_to?
 
     def current_db_sign_in_flow_for_sequence = @cycle
+
     def sign_in_sequence_carrier
       @sign_in_sequence_carrier ||= Struct.new(:current) do
         def start!(**kwargs)
@@ -128,30 +151,49 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
         end
       end.new(nil)
     end
+
     def with_sign_in_flow_writing(_cycle)
       yield
     end
+
     def sign_in_guardrail_participant(_cycle) = GuardrailParticipant.new(@guardrail_result)
+
     def sign_in_checkpoint_participant(_cycle) = CheckpointParticipant.new(@checkpoint_result)
+
     def sign_in_dashboard_participant(_cycle) = GuardrailParticipant.new(@guardrail_result)
+
     def sign_in_flow_actor(_cycle) = current_resource
+
     def issue_active_session_for_selector!(_cycle) = @selector_result
+
     def reset_current_db_sign_in_flow_for_sequence! = (@cycle = nil)
+
     def sign_in_flow_locator_for(*)
       Struct.new(:issued, :cleared) do
         def issue!(_cycle) = self.issued = true
+
         def clear! = self.cleared = true
       end.new(false, false)
     end
+
     def sign_in_selector_path(pt: nil) = super
+
     def sign_in_session_limit_path(pt: nil) = super
+
     def sign_in_checkpoint_path(pt: nil) = "/checkpoint?pt=#{pt}"
+
     def sign_in_welcome_path(pt: nil) = "/welcome?pt=#{pt}"
+
     def sign_app_sign_in_session_path(**attrs) = "/app/session?#{attrs.compact.to_query}"
+
     def sign_app_selector_path(**attrs) = "/app/selector?#{attrs.compact.to_query}"
+
     def sign_in_sequence_required_for_participant?(_participant) = true
+
     def bulletin_state = nil
+
     def controller_path = "sign/app/checkpoints"
+
     def log_in(*)
       { status: :success }
     end
@@ -187,6 +229,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_equal "/welcome?pt=/after", path
     gate = @harness.session[@harness.send(:welcome_gate_key)]
+
     assert_equal 5, gate["remaining"]
     assert_equal "seq-1", gate["sequence_id"]
   end
@@ -195,36 +238,46 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     gate_key = @harness.send(:welcome_gate_key)
 
     @harness.session[gate_key] = "bad"
+
     assert_not @harness.send(:consume_welcome_gate!)
 
     @harness.session[gate_key] = { "remaining" => 1, "expires_at" => 1.minute.ago.to_i }
+
     assert_not @harness.send(:consume_welcome_gate!)
 
     @harness.session[gate_key] = { "remaining" => 1, "expires_at" => 1.minute.from_now.to_i, "sequence_id" => "seq-x" }
+
     assert_not @harness.send(:consume_welcome_gate!, sequence_id: "seq-y")
 
     @harness.session[gate_key] = { "remaining" => 2, "expires_at" => 1.minute.from_now.to_i, "sequence_id" => "seq-y" }
+
     assert @harness.send(:consume_welcome_gate!, sequence_id: "seq-y")
     assert_equal 1, @harness.session[gate_key]["remaining"]
   end
 
   test "sign_in_sequence_redirect_path follows cycle state branches" do
     @harness.cycle = FakeCycle.new(states: { session_limit: true })
+
     assert_equal "/app/session?pt=pt%3Apt%3A%2Freturn&ri=jp", @harness.sign_in_sequence_redirect_path
 
     @harness.cycle = FakeCycle.new(states: { checkpoint: true })
+
     assert_equal "/checkpoint?pt=pt:/return", @harness.sign_in_sequence_redirect_path
 
     @harness.cycle = FakeCycle.new(states: { selector: true })
+
     assert_equal "/app/selector?pt=pt%3Apt%3A%2Freturn&ri=jp", @harness.sign_in_sequence_redirect_path
 
     @harness.cycle = FakeCycle.new(states: { completed: true })
+
     assert_equal "/welcome?pt=pt:/return", @harness.sign_in_sequence_redirect_path
 
     @harness.cycle = FakeCycle.new(states: { guardrail: false })
+
     assert_equal "/dashboard", @harness.sign_in_sequence_redirect_path
 
     @harness.cycle = FakeCycle.new(states: { guardrail: true })
+
     assert_equal "/checkpoint?pt=pt:/return", @harness.sign_in_sequence_redirect_path
   end
 
@@ -263,7 +316,10 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     end.new(sequence)
     @harness.instance_variable_set(:@sign_in_sequence_carrier, carrier)
 
-    assert_not @harness.send(:require_sign_in_sequence_participant!, participant: :checkpoint, policy_rule: :show_checkpoint?)
+    assert_not @harness.send(
+      :require_sign_in_sequence_participant!, participant: :checkpoint,
+                                              policy_rule: :show_checkpoint?,
+    )
     assert_equal :bad_request, @harness.rendered[:status]
   end
 

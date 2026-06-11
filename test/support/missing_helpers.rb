@@ -170,6 +170,25 @@ module MissingHelpers
     )
   end
 
+  # Simulate acme/www issuing a step-up ceremony grant for the given actor/session/scope. This both
+  # persists the pending acme ceremony transaction (so sign re-entry resolves it) and returns the
+  # signed grant token to pass as `step_up_ceremony_grant` on the sign verification entry. sign/id no
+  # longer self-issues grants (see adr/sign-residual-idp-surface-retirement.md), so tests must seed
+  # the acme-issued grant the way the real acme intent route does.
+  def signed_step_up_grant_for(actor:, token:, scope:, return_to:, surface:,
+                               methods: %i(email_otp totp passkey), aal: "aal2")
+    IdentityStepUpCeremonyGrantIssuer.issue!(
+      surface: surface.to_s,
+      actor_ref: actor.public_id,
+      session_ref: token.public_id,
+      required_scope: scope.to_s,
+      required_aal: aal,
+      allowed_methods: methods,
+      return_to: return_to,
+      expires_at: 15.minutes.from_now,
+    ).grant
+  end
+
   def browser_headers
     {
       "Client-Agent" => "Mozilla/5.0 (Test Browser)",

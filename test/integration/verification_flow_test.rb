@@ -74,6 +74,13 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
               headers: @headers
           get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
 
+          # Seed the acme-issued ceremony transaction the real acme intent route would create. sign
+          # no longer self-issues grants; it can only emit a result against an acme-issued ceremony.
+          signed_step_up_grant_for(
+            actor: @user, token: @token, scope: "settings_email",
+            return_to: sign_app_settings_emails_path(ri: "jp"), surface: "app",
+          )
+
           post sign_app_verification_passkey_url(ri: "jp"),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
                headers: @headers

@@ -108,6 +108,13 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
+    # Seed the acme-issued ceremony transaction the real acme intent route would create. sign no
+    # longer self-issues grants; it can only emit a result against an acme-issued ceremony.
+    signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "withdrawal",
+      return_to: new_sign_app_settings_withdrawal_path(ri: "jp"), surface: "app",
+    )
+
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
     post sign_app_verification_totp_url(ri: "jp"),
          params: { verification: { code: code } },

@@ -34,9 +34,13 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    return_to = sign_app_settings_emails_path(ri: "jp")
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+    )
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
           headers: @headers
     end
 
@@ -70,13 +74,7 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :success
     assert_includes response.body, "step-up-completion-form"
 
-    @token.reload
-
-    assert_predicate @token.last_step_up_at, :present?
-    assert_equal "settings_email", @token.last_step_up_scope
-    assert_equal "aal2", @token.last_step_up_aal
-    assert_equal "totp", @token.last_step_up_method
-    assert_equal @token.public_id, @token.last_step_up_session_public_id
+    # sign no longer writes freshness; acme commits it on completion (below).
     assert_nil session[:step_up]
     assert_nil session[:step_up_email_otp]
 
@@ -101,10 +99,14 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    return_to = sign_app_settings_emails_path(ri: "jp")
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+    )
 
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
           headers: @headers
     end
 
@@ -124,14 +126,8 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     assert_response :success
     assert_includes response.body, "step-up-completion-form"
     assert_equal 0, ClientStepUpSession.where(user_token: @token).count
-    @token.reload
 
-    assert_predicate @token.last_step_up_at, :present?
-    assert_equal "settings_email", @token.last_step_up_scope
-    assert_equal "aal2", @token.last_step_up_aal
-    assert_equal "totp", @token.last_step_up_method
-    assert_equal @token.public_id, @token.last_step_up_session_public_id
-
+    # sign no longer writes freshness; acme commits it when it consumes the result.
     assert_no_difference -> { ClientVerification.count } do
       with_prosopite_paused do
         post sign_app_verification_totp_url(ri: "jp"),
@@ -142,7 +138,6 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_response :redirect
     assert_redirected_to sign_app_settings_url(ri: "jp")
-    assert_predicate @token.reload.last_step_up_at, :present?
   end
 
   test "renders new on failure" do
@@ -237,10 +232,14 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_totps_path(ri: "jp"))
+    return_to = sign_app_settings_totps_path(ri: "jp")
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @user, token: @token, scope: "settings_totp", return_to: return_to, surface: "app",
+    )
 
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp"),
+      get sign_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
           headers: @headers
     end
 

@@ -8,7 +8,7 @@ RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 if ENV["COVERAGE"] == "true"
   require "simplecov"
 
-  SimpleCov.start "rails" do
+  SimpleCov.start("rails") do
     enable_coverage :branch
 
     add_filter "/test/"
@@ -32,7 +32,7 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    parallelize(workers: ENV["COVERAGE"] == "true" ? 1 : :number_of_processors)
+    parallelize(workers: (ENV["COVERAGE"] == "true") ? 1 : :number_of_processors)
 
     fixtures :all
   end

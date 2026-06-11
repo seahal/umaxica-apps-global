@@ -114,7 +114,6 @@ scope module: :sign, as: :sign do
             resource :passkey, only: %i(new create)
           end
         end
-
       end
 
       # Social auth: settings-side social connection lifecycle.
@@ -317,7 +316,6 @@ scope module: :sign, as: :sign do
             resource :passkey, only: %i(new create)
           end
         end
-
       end
 
       # Step-up verification
@@ -458,7 +456,6 @@ scope module: :sign, as: :sign do
             resource :passkey, only: %i(new create)
           end
         end
-
       end
 
       # Step-up verification
@@ -468,6 +465,7 @@ scope module: :sign, as: :sign do
         resource :passkey, only: %i(new create)
       end
 
+      # TODO: move settings to acme's identity entrypoints.
       # Account settings and identity management
       resource :settings, only: :show
       namespace :settings do

@@ -8,6 +8,6 @@ class Sign::Org::JwksControllerTest < ActionDispatch::IntegrationTest
     get sign_org_jwks_url(host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"), ri: "jp")
 
     assert_response :ok
-    assert response.parsed_body.fetch("keys").present?
+    assert_predicate response.parsed_body.fetch("keys"), :present?
   end
 end

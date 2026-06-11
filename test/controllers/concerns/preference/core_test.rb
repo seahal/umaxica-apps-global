@@ -96,9 +96,10 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     end
   end
 
-  FakeResource = Struct.new(:id, :user_preference, :staff_preference, :visitor_preference) do
-    def blank? = false
-  end
+  FakeResource =
+    Struct.new(:id, :user_preference, :staff_preference, :visitor_preference) do
+      def blank? = false
+    end
 
   setup do
     @controller = PreferenceCoreHarness.new
@@ -255,14 +256,17 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     resource = FakeResource.new(42, user_pref, staff_pref, visitor_pref)
 
     @controller.define_singleton_method(:preference_class) { AppPreference }
+
     assert_same user_pref, @controller.send(:preference_write_resource_preference!, resource)
 
     org_controller = PreferenceCoreHarness.new
     org_controller.define_singleton_method(:preference_class) { OrgPreference }
+
     assert_same staff_pref, org_controller.send(:preference_write_resource_preference!, resource)
 
     com_controller = PreferenceCoreHarness.new
     com_controller.define_singleton_method(:preference_class) { ComPreference }
+
     assert_same visitor_pref, com_controller.send(:preference_write_resource_preference!, resource)
 
     created = Object.new
@@ -373,6 +377,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     assert_equal "Asia/Tokyo", @controller.send(:resolved_writable_timezone, FakeAssociation.new(1, nil), "Asia/Tokyo")
 
     @controller.define_singleton_method(:option_id_to_timezone) { |_id, _prefix| "Europe/Paris" }
+
     assert_equal "Europe/Paris", @controller.send(:resolved_writable_timezone, FakeAssociation.new(1, nil), nil)
   end
 
@@ -389,7 +394,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
   end
 
   test "preference option label falls back to titleized default and localized lookup" do
-    I18n.stub(:t, ->(key, default:) { key == "acme.app.preference.theme.options.dark" ? "Dark mode" : default }) do
+    I18n.stub(:t, ->(key, default:) { (key == "acme.app.preference.theme.options.dark") ? "Dark mode" : default }) do
       assert_equal "Dark mode", @controller.send(:preference_option_label, :theme, "dark")
       assert_equal "Page Size", @controller.send(:preference_option_label, :page_size, "page_size")
     end

@@ -3,9 +3,10 @@
 
 require "test_helper"
 
-AdoptionSnapshotPreference = Struct.new(:language, :region, :timezone, :theme) do
-  def blank? = false
-end
+AdoptionSnapshotPreference =
+  Struct.new(:language, :region, :timezone, :theme) do
+    def blank? = false
+  end
 
 class AdoptionFallbackPreference; end
 
@@ -240,22 +241,27 @@ module Preference
       assert_equal "user_preference", @adoption.send(:preference_child_association_prefix, client_pref)
       assert_equal "staff_preference", @adoption.send(:preference_child_association_prefix, operator_pref)
       assert_equal "visitor_preference", @adoption.send(:preference_child_association_prefix, visitor_pref)
-      assert_equal "adoption_fallback_preference", @adoption.send(:preference_child_association_prefix, AdoptionFallbackPreference.new)
+      assert_equal "adoption_fallback_preference",
+                   @adoption.send(:preference_child_association_prefix, AdoptionFallbackPreference.new)
       assert_equal "Client", @adoption.send(:resource_pref_prefix)
       assert_equal [ClientPreference, :user_id], @adoption.send(:resource_preference_mapping)
 
       org_adoption = build_adoption_context(@preference, preference_class_name: "OrgPreference")
+
       assert_equal "Operator", org_adoption.send(:resource_pref_prefix)
       assert_equal [OperatorPreference, :staff_id], org_adoption.send(:resource_preference_mapping)
 
       com_adoption = build_adoption_context(@preference, preference_class_name: "ComPreference")
+
       assert_equal [nil, nil], com_adoption.send(:resource_preference_mapping)
 
       yielded = false
-      result = @adoption.send(:with_preference_writing_connection, nil) do
-        yielded = true
-        :ok
-      end
+      result =
+        @adoption.send(:with_preference_writing_connection, nil) do
+          yielded = true
+          :ok
+        end
+
       assert_equal :ok, result
       assert yielded
     end

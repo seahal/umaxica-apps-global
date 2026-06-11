@@ -80,26 +80,20 @@ module SignVerificationStepUpSessionStore
     end
   end
 
+  # acme/www owns step-up intent. sign/id never self-issues a ceremony grant
+  # (see adr/sign-residual-idp-surface-retirement.md). sign only manages local ceremony state here;
+  # when an acme-issued grant is presented it is validated and the acme completion state is recorded.
+  # The acme-issued transaction is required later, at result issuance
+  # (SignVerificationStepUpLifecycle#current_step_up_ceremony_transaction!), which is the security
+  # boundary: sign cannot emit a ceremony result without an acme-issued ceremony.
   def issue_step_up_ceremony_grant!(token:, scope:, return_to:)
     return unless respond_to?(:step_up_ceremony_surface, true)
 
     grant_token = params[:step_up_ceremony_grant].presence
-    return validate_acme_step_up_ceremony_grant!(
-      grant_token, token: token, scope: scope,
-                   return_to: return_to,
-    ) if grant_token
+    return unless grant_token
 
-    # Compatibility entry only. acme/www owns step-up intent and freshness.
-    clear_acme_step_up_completion_state!
-    IdentityStepUpCeremonyGrantIssuer.issue!(
-      surface: step_up_ceremony_surface,
-      actor_ref: step_up_ceremony_actor_ref,
-      session_ref: token.public_id,
-      required_scope: scope,
-      required_aal: verification_required_aal,
-      allowed_methods: available_step_up_methods,
-      return_to: return_to,
-      expires_at: self.class::STEP_UP_TTL.from_now,
+    validate_acme_step_up_ceremony_grant!(
+      grant_token, token: token, scope: scope, return_to: return_to,
     )
   end
 

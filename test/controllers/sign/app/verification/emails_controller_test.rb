@@ -34,7 +34,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+        grant = signed_step_up_grant_for(
+          actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+        )
+        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
             headers: @headers
 
         assert_response :success
@@ -251,7 +254,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+        grant = signed_step_up_grant_for(
+          actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
+        )
+        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
             headers: @headers
 
         assert_response :success
@@ -271,7 +277,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
             assert_response :success
             assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
-            assert_not_nil @token.last_step_up_at
+            # sign no longer writes freshness; acme commits it on completion (asserted below).
             assert_nil Rails.cache.read(email_otp_cache_key_for_id(@step_up_session_id))
 
             submit_step_up_completion_if_present!(

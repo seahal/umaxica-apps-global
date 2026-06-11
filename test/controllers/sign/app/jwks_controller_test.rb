@@ -8,7 +8,7 @@ class Sign::App::JwksControllerTest < ActionDispatch::IntegrationTest
     get sign_app_jwks_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), ri: "jp")
 
     assert_response :ok
-    assert response.parsed_body.fetch("keys").present?
+    assert_predicate response.parsed_body.fetch("keys"), :present?
   end
 
   test "sign app oauth jwks route is retired" do

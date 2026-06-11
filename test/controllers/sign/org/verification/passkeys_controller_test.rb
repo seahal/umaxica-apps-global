@@ -15,12 +15,16 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "creates verification on success" do
-    pt = signed_step_up_pt(sign_org_settings_passkeys_path(ri: "jp"))
+    return_to = sign_org_settings_passkeys_path(ri: "jp")
+    pt = signed_step_up_pt(return_to)
+    grant = signed_step_up_grant_for(
+      actor: @staff, token: @token, scope: "settings_passkey", return_to: return_to, surface: "org",
+    )
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
-          get sign_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp"),
+          get sign_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
               headers: @headers
 
           assert_response :success
@@ -38,11 +42,7 @@ class Sign::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           @token.reload
 
-          assert_predicate @token.last_step_up_at, :present?
-          assert_equal "settings_passkey", @token.last_step_up_scope
-          assert_equal "aal2", @token.last_step_up_aal
-          assert_equal "passkey", @token.last_step_up_method
-          assert_equal @token.public_id, @token.last_step_up_session_public_id
+          # sign no longer writes freshness; acme commits it on completion (asserted below).
           assert_nil @token.step_up_session
           assert_nil session[:step_up]
 

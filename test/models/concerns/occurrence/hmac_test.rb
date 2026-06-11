@@ -47,6 +47,34 @@ class OccurrenceHmacTest < ActiveSupport::TestCase
     end
   end
 
+  test "network prefix masks ipv4 to /24 and ipv6 to /48" do
+    assert_equal "192.0.2.0/24", OccurrenceHmac.network_prefix("192.0.2.55")
+    assert_equal "2001:db8::/48", OccurrenceHmac.network_prefix("2001:db8::1234:5678")
+  end
+
+  test "network prefix returns nil for blank or invalid address" do
+    assert_nil OccurrenceHmac.network_prefix("")
+    assert_nil OccurrenceHmac.network_prefix("not-an-ip")
+  end
+
+  test "network hmac is stable within the same network and differs across networks" do
+    Rails.app.creds.stub(:option, "secret_credential") do
+      same_a = OccurrenceHmac.network_hmac("192.0.2.10")
+      same_b = OccurrenceHmac.network_hmac("192.0.2.250")
+      other = OccurrenceHmac.network_hmac("198.51.100.10")
+
+      assert_equal same_a, same_b
+      assert_not_equal same_a, other
+      assert_match(/\A\h{64}\z/, same_a)
+    end
+  end
+
+  test "network hmac returns nil for unparseable address" do
+    Rails.app.creds.stub(:option, "secret_credential") do
+      assert_nil OccurrenceHmac.network_hmac("garbage")
+    end
+  end
+
   test "secret_credential raises when missing" do
     Rails.app.creds.stub(:option, nil) do
       assert_raises(OccurrenceHmac::MissingSecretError) do

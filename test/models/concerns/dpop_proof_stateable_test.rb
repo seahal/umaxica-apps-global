@@ -54,7 +54,7 @@ class DpopProofStateableTest < ActiveSupport::TestCase
 
     assert_equal now.to_i, state.seen_at.to_i
     assert_equal (now + DpopProofStateable::TTL_SECONDS.seconds).to_i, state.expires_at.to_i
-    assert VisitorDpopProofState.active_at(now).exists?
+    assert_predicate VisitorDpopProofState.active_at(now), :exists?
     assert VisitorDpopProofState.consume_nonce!(nonce, now: now + 1.second)
     assert_equal (now + 1.second).to_i, state.reload.nonce_used_at.to_i
     assert_not VisitorDpopProofState.consume_nonce!(nonce, now: now + 2.seconds)

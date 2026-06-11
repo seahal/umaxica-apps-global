@@ -163,11 +163,12 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     preference = Struct.new(:app_preference_theme).new(preference_theme)
     @harness.instance_variable_set(:@preferences, preference)
     @harness.define_singleton_method(:preference_theme_association) { "app_preference_theme" }
-    @harness.define_singleton_method(:option_id_to_theme) { |option_id, _prefix| option_id == 7 ? "dark" : nil }
-    @harness.define_singleton_method(:theme_short_code) { |value| value == "dark" ? "dr" : nil }
+    @harness.define_singleton_method(:option_id_to_theme) { |option_id, _prefix| (option_id == 7) ? "dark" : nil }
+    @harness.define_singleton_method(:theme_short_code) { |value| (value == "dark") ? "dr" : nil }
 
     assert_equal "dr", @harness.send(:preference_record_theme)
     @harness.instance_variable_set(:@preferences, nil)
+
     assert_nil @harness.send(:preference_record_theme)
   end
 
@@ -183,12 +184,13 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     end
 
     association_calls = []
-    association_class = Class.new do
-      define_singleton_method(:create!) do |attrs|
-        association_calls << attrs
-        :created
+    association_class =
+      Class.new do
+        define_singleton_method(:create!) do |attrs|
+          association_calls << attrs
+          :created
+        end
       end
-    end
     association = Struct.new(:klass).new(association_class)
     fallback_preference = Object.new
     fallback_preference.define_singleton_method(:association) do |_name|
@@ -200,7 +202,10 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal({ foo: 1 }, creator_attrs)
 
     assert_equal :created,
-                 @harness.send(:create_preference_association!, fallback_preference, "app_preference_cookie", { foo: 2 })
+                 @harness.send(
+                   :create_preference_association!, fallback_preference, "app_preference_cookie",
+                   { foo: 2 },
+                 )
     assert_equal([{ foo: 2, preference: fallback_preference }], association_calls)
   end
 
