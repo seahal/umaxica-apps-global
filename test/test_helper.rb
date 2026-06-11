@@ -1,24 +1,39 @@
 # frozen_string_literal: true
 
+ENV["RAILS_ENV"] ||= "test"
+
+# Enable YJIT before Rails boots.
+RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
+
+if ENV["COVERAGE"] == "true"
+  require "simplecov"
+
+  SimpleCov.start "rails" do
+    enable_coverage :branch
+
+    add_filter "/test/"
+    add_filter "/config/"
+    add_filter "/vendor/"
+
+    add_group "Controllers", "app/controllers"
+    add_group "Models", "app/models"
+    add_group "Services", "app/services"
+    add_group "Values", "app/values"
+    add_group "Jobs", "app/jobs"
+    add_group "Mailers", "app/mailers"
+
+    minimum_coverage line: 80
+    minimum_coverage_by_file line: 60
+  end
+end
+
 require_relative "../config/environment"
 require "rails/test_help"
 
-ENV["RAILS_ENV"] ||= "test"
-# Enable YJIT before Rails boots so the boot path and per-test code both
-# benefit. The development image doesn't set RUBY_YJIT_ENABLE the way the
-# production image does, so the test runner would otherwise execute interpreted.
-RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
-
 module ActiveSupport
   class TestCase
-    # Keep the default conservative for low-shared-memory local containers.
-    # Developers and CI can opt into more workers when the database host has
-    # enough shared memory for parallel schema loads.
-    parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 16).to_i)
+    parallelize(workers: ENV["COVERAGE"] == "true" ? 1 : :number_of_processors)
 
-    # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
-
-    # Add more helper methods to be used by all tests here...
   end
 end

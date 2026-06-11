@@ -16,11 +16,9 @@ Return-target rule:
 
 Current identity authority implementation plan:
 
-- `plans/identity-authority-inversion-implementation.md` is the controlling implementation plan for
-  the Identity Authority boundary. It supersedes old plan directions that treat `sign/id` as
-  credential-ceremony-only or move Refresh, Logout, Step-up, browser/request Preference, or app
-  social link/unlink authority to `acme/www`.
-- `plans/active/identity-authority-inversion-first-slice.md` is the first active implementation
-  slice. It records the current implementation conflicts and limits the first code slice to
-  route/controller classification, Sign authority facade cleanup, Acme compatibility cleanup, and
-  compatibility redirects or delegation in the correct direction.
+- `adr/sign-residual-idp-surface-retirement.md` is the current operational decision for retiring
+  residual Sign IdP surfaces while keeping the `id.*` credential-gateway host boundary.
+- `plans/identity-authority-inversion-implementation.md` and
+  `plans/active/identity-authority-inversion-first-slice.md` are superseded where they assign
+  Identity, Refresh, Logout, Step-up freshness, Preference, or app social link/unlink authority to
+  `sign/id`.

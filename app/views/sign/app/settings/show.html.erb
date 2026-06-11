@@ -36,7 +36,7 @@
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), sign_app_sign_out_confirmation_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), edit_acme_app_sign_out_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")) %></li>
     <li><%= link_to t("sign.app.settings.show.withdrawal"), new_sign_app_settings_withdrawal_path %></li>
   </ul>
 </section>

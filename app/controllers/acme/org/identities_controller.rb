@@ -11,7 +11,7 @@ module Acme
 
       def show
         authorize!(current_operator, to: :show?)
-        render "acme/shared/self_service/show", locals: { page_title: "Identity" }
+        render "acme/shared/identities/show", locals: { surface: :org, page_title: "Identity" }
       end
     end
   end

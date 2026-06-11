@@ -11,7 +11,7 @@ module Acme
 
       def show
         authorize!(current_client, to: :show?)
-        render "acme/shared/self_service/show", locals: { page_title: "Identity" }
+        render "acme/shared/identities/show", locals: { surface: :app, page_title: "Identity" }
       end
     end
   end

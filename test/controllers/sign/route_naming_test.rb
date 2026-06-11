@@ -10,28 +10,28 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     org: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
   }.freeze
 
-  test "sign entrance and sign out helpers use explicit lifecycle resources" do
+  test "sign entrance helpers use explicit lifecycle resources" do
     assert_equal "/sign/up/entrance", sign_app_sign_up_entrance_path
     assert_equal "/sign/in/entrance", sign_app_sign_in_entrance_path
-    assert_equal "/sign/out/confirmation", sign_app_sign_out_confirmation_path
-    assert_equal "/sign/out/attempt", sign_app_sign_out_attempt_path
-    assert_equal "/sign/out/completion", sign_app_sign_out_completion_path
   end
 
-  test "old top-level sign helper aliases are gone" do
+  test "sign logout helpers are gone from id host" do
     helpers = Rails.application.routes.url_helpers
 
     assert_not_respond_to helpers, :sign_app_sign_out_path
     assert_not_respond_to helpers, :edit_sign_app_sign_out_path
+    assert_not_respond_to helpers, :sign_app_sign_out_confirmation_path
+    assert_not_respond_to helpers, :sign_app_sign_out_attempt_path
+    assert_not_respond_to helpers, :sign_app_sign_out_completion_path
   end
 
-  test "top-level sign lifecycle routes resolve conventionally on every sign surface" do
+  test "top-level sign entry routes resolve conventionally on every sign surface" do
     SURFACES.each_key do |surface|
       assert_recognizes_sign_route(surface, "/sign/up/entrance", :get, "sign/up/entrances", "show")
       assert_recognizes_sign_route(surface, "/sign/in/entrance", :get, "sign/in/entrances", "show")
-      assert_recognizes_sign_route(surface, "/sign/out/confirmation", :get, "sign/out/confirmations", "show")
-      assert_recognizes_sign_route(surface, "/sign/out/attempt", :post, "sign/out/attempts", "create")
-      assert_recognizes_sign_route(surface, "/sign/out/completion", :get, "sign/out/completions", "show")
+      assert_unrecognized(surface, "/sign/out/confirmation", :get)
+      assert_unrecognized(surface, "/sign/out/attempt", :post)
+      assert_unrecognized(surface, "/sign/out/completion", :get)
     end
   end
 
@@ -66,14 +66,8 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_unrecognized(:org, "/social/google/connection", :get)
   end
 
-  test "preference routes do not carry preference screen defaults" do
-    route = Rails.application.routes.recognize_path(
-      "https://#{SURFACES.fetch(:app)}/preference/language/edit",
-      method: :get,
-    )
-
-    assert_equal "sign/app/preference/languages", route.fetch(:controller)
-    assert_not route.key?(:preference_screen)
+  test "preference routes are not exposed on sign" do
+    assert_unrecognized(:app, "/preference/language/edit", :get)
   end
 
   test "settings mfa reset resolves through conventional settings mfa namespace" do
@@ -118,6 +112,10 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
       "post :" + "regenerate",
       "delete :" + "others",
       "delete :" + "revoke_all",
+      "resource :openid_" + "configuration",
+      "namespace :" + "oauth",
+      "namespace :" + "oidc",
+      "resource :" + "refresh",
     ]
 
     forbidden.each { |pattern| assert_not_includes source, pattern }

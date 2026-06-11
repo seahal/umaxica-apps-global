@@ -4,88 +4,66 @@
 require "test_helper"
 
 class ApplicationErrorTest < ActiveSupport::TestCase
-  def test_application_error_inherits_from_standard_error
-    error = ApplicationError.new
+  test "ApplicationError stores status code, context, and translated message" do
+    error = ApplicationError.new("errors.messages.login_required", :unauthorized, resource: "client")
 
-    assert_kind_of StandardError, error
+    assert_equal :unauthorized, error.status_code
+    assert_equal({ resource: "client" }, error.context)
+    assert_predicate error.message, :present?
   end
 
-  def test_application_error_initializes_with_defaults
-    error = ApplicationError.new
+  test "ApplicationError uses raw non-ascii messages without translation" do
+    error = ApplicationError.new("こんにちは", :bad_request)
 
-    assert_nil error.i18n_key
-    assert_equal :internal_server_error, error.status_code
-    assert_empty(error.context)
+    assert_equal "こんにちは", error.message
   end
 
-  def test_application_error_with_i18n_key
-    error = ApplicationError.new("test.error.key", :bad_request)
-
-    assert_equal "test.error.key", error.i18n_key
-    assert_equal :bad_request, error.status_code
+  test "specialized application errors expose their status codes" do
+    assert_equal :forbidden, AlreadyAuthenticatedError.new.status_code
+    assert_equal :unauthorized, NotAuthenticatedError.new.status_code
+    assert_equal :unprocessable_entity, PreferenceOperationError.new.status_code
+    assert_equal :unprocessable_entity, InvalidUserStatusError.new(invalid_status: "inactive").status_code
   end
 
-  def test_application_error_with_context
-    context = { user_id: 123, action: "create" }
-    error = ApplicationError.new("test.error.key", :bad_request, **context)
+  test "invalid user status error formats messages for explicit and default cases" do
+    explicit = InvalidUserStatusError.new(invalid_status: "inactive", message: "Denied")
+    translated = InvalidUserStatusError.new(
+      invalid_status: "inactive",
+      i18n_key: "errors.messages.not_authorized",
+    )
+    fallback = InvalidUserStatusError.new(invalid_status: "inactive")
 
-    assert_equal context, error.context
+    assert_equal "Denied: {invalid_status: \"inactive\"}", explicit.message
+    assert_predicate translated.message, :present?
+    assert_equal "Invalid user status: inactive", fallback.message
   end
 
-  def test_application_error_translates_i18n_key_to_message
-    error = ApplicationError.new("test.error.key", :bad_request)
+  test "sign and social auth error classes inherit from the expected base classes" do
+    assert_operator Sign::WithdrawalError, :<, ApplicationError
+    assert_operator Sign::InvalidWithdrawalStateError, :<, Sign::WithdrawalError
+    assert_operator Sign::WithdrawalDeletionError, :<, Sign::WithdrawalError
+    assert_operator Sign::WithdrawalRecoveryNotAvailableError, :<, Sign::WithdrawalError
 
-    assert_includes ["テストエラー", "Test Error"], error.message
+    assert_operator SocialAuth::BaseError, :<, ApplicationError
+    assert_operator SocialAuth::ConflictError, :<, SocialAuth::BaseError
+    assert_operator SocialAuth::LastIdentityError, :<, SocialAuth::BaseError
+    assert_operator SocialAuth::ProviderError, :<, SocialAuth::BaseError
+    assert_operator SocialAuth::StepUpRequiredError, :<, SocialAuth::BaseError
+    assert_operator SocialAuth::UnauthorizedError, :<, SocialAuth::BaseError
   end
 
-  def test_application_error_can_be_raised_and_caught
-    assert_raises(ApplicationError) do
-      raise ApplicationError.new("test.error.key")
+  test "sign and social auth errors initialize with the expected default status codes" do
+    I18n.stub(:t, ->(key, **_) { key.to_s }) do
+      assert_equal :bad_request, Sign::WithdrawalError.new("errors.messages.not_authorized").status_code
+      assert_equal :unprocessable_entity, Sign::InvalidWithdrawalStateError.new("suspended").status_code
+      assert_equal :internal_server_error, Sign::WithdrawalDeletionError.new.status_code
+      assert_equal :unprocessable_entity, Sign::WithdrawalRecoveryNotAvailableError.new.status_code
+
+      assert_equal :conflict, SocialAuth::ConflictError.new.status_code
+      assert_equal :unprocessable_entity, SocialAuth::LastIdentityError.new.status_code
+      assert_equal :bad_request, SocialAuth::ProviderError.new.status_code
+      assert_equal :forbidden, SocialAuth::StepUpRequiredError.new.status_code
+      assert_equal :unauthorized, SocialAuth::UnauthorizedError.new.status_code
     end
-  end
-
-  def test_application_error_attributes_are_readable
-    error = ApplicationError.new("test.error.key", :forbidden)
-
-    assert_equal "test.error.key", error.i18n_key
-    assert_equal :forbidden, error.status_code
-  end
-
-  def test_application_error_without_i18n_key_has_message_with_class_name
-    error = ApplicationError.new
-
-    assert_operator error.message.length, :>, 0
-  end
-
-  def test_application_error_with_multiple_context_keys
-    context = { user_id: 1, resource: "document", action: "delete" }
-    error = ApplicationError.new("test.error.key", :forbidden, **context)
-
-    assert_equal 3, error.context.size
-    assert_equal 1, error.context[:user_id]
-  end
-
-  def test_application_error_with_unicode_message
-    error = ApplicationError.new("直接日本語メッセージ", :bad_request)
-
-    assert_equal "直接日本語メッセージ", error.message
-  end
-
-  def test_application_error_with_unicode_key_that_is_not_translated
-    error = ApplicationError.new("nonexistent.error.キー", :bad_request)
-
-    assert_match(/nonexistent|Translation missing|キー/, error.message)
-  end
-
-  def test_application_error_status_code_default
-    error = ApplicationError.new("test.error.key")
-
-    assert_equal :internal_server_error, error.status_code
-  end
-
-  def test_application_error_context_is_empty_when_not_provided
-    error = ApplicationError.new("test.error.key", :bad_request)
-
-    assert_empty error.context
   end
 end

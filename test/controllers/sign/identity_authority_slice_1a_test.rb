@@ -4,11 +4,13 @@
 require "test_helper"
 
 class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
-  test "sign out confirmation remains on sign authority" do
-    get sign_app_sign_out_confirmation_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
-
-    assert_response :redirect
-    assert_not_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
+  test "sign out lifecycle routes are retired from sign authority" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/confirmation",
+        method: :get,
+      )
+    end
   end
 
   test "sign settings sessions redirect uses acme authority" do
@@ -19,11 +21,16 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "/settings/sessions", URI.parse(response.location).path
   end
 
-  test "sign withdrawal remains sign-owned identity settings" do
-    get new_sign_app_settings_withdrawal_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
+  test "sign withdrawal delegates to acme identity authority" do
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/withdrawal/new",
+      method: :get,
+    )
+    source = Rails.root.join("app/controllers/sign/app/settings/withdrawals_controller.rb").read
 
-    assert_response :redirect
-    assert_not_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
+    assert_equal "sign/app/settings/withdrawals", route.fetch(:controller)
+    assert_includes source, "redirect_to_acme_withdrawal!"
+    assert_includes source, 'redirect_to_acme_authority!("/settings/withdrawal")'
   end
 
   test "sign in and sign up entry routes still resolve on sign" do

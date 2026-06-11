@@ -6,30 +6,13 @@ require "test_helper"
 class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   fixtures_none!
 
-  SIGN_TOKEN_ENDPOINTS = %w(
-    app/controllers/sign/app/tokens_controller.rb
-    app/controllers/sign/com/tokens_controller.rb
-    app/controllers/sign/org/tokens_controller.rb
-  ).freeze
+  test "sign routes do not expose oidc provider endpoints" do
+    source = file_content("config/routes/sign.rb")
 
-  SIGN_USERINFO_ENDPOINTS = %w(
-    app/controllers/sign/app/oauth/user_info_controller.rb
-    app/controllers/sign/com/oauth/user_info_controller.rb
-    app/controllers/sign/org/oauth/user_info_controller.rb
-  ).freeze
-
-  SIGN_REVOCATION_ENDPOINTS = %w(
-    app/controllers/sign/app/oauth/revocations_controller.rb
-    app/controllers/sign/com/oauth/revocations_controller.rb
-    app/controllers/sign/org/oauth/revocations_controller.rb
-  ).freeze
-
-  test "sign oauth compatibility endpoints declare acme token authority" do
-    # rubocop:disable I18n/RailsI18n/DecorateString
-    assert_files_include(SIGN_TOKEN_ENDPOINTS, "Compatibility endpoint only. acme/www owns token issuance.")
-    assert_files_include(SIGN_USERINFO_ENDPOINTS, "Compatibility endpoint only. acme/www owns userinfo authority.")
-    assert_files_include(SIGN_REVOCATION_ENDPOINTS, "Compatibility endpoint only. acme/www owns token revocation.")
-    # rubocop:enable I18n/RailsI18n/DecorateString
+    assert_not_includes source, "resource :openid_configuration"
+    assert_not_includes source, "namespace :oauth"
+    assert_not_includes source, "namespace :oidc"
+    assert_not_includes source, "resource :refresh"
   end
 
   test "refresh rotation target path uses acme authority" do

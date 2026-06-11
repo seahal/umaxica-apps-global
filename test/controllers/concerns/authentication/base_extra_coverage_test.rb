@@ -210,6 +210,41 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal ["/login", { notice: "translated:errors.messages.not_authorized" }], @harness.redirected
   end
 
+  test "load_authentication_session returns the record when the validation block passes" do
+    record = Client.new
+    model_class = Class.new do
+      define_singleton_method(:find_by) do |id:|
+        record if id == "record-id"
+      end
+    end
+    @harness.session["key"] = "record-id"
+
+    loaded =
+      @harness.load_authentication_session("key", model_class, "/login", "errors.messages.not_authorized") do |found|
+        found == record
+      end
+
+    assert_equal record, loaded
+    assert_nil @harness.redirected
+  end
+
+  test "load_authentication_session rejects the record when the validation block fails" do
+    model_class = Class.new do
+      define_singleton_method(:find_by) do |**_kwargs|
+        Client.new
+      end
+    end
+    @harness.session["key"] = "record-id"
+
+    result =
+      @harness.load_authentication_session("key", model_class, "/login", "errors.messages.not_authorized") do |_found|
+        false
+      end
+
+    assert_nil result
+    assert_equal ["/login", { notice: "translated:errors.messages.not_authorized" }], @harness.redirected
+  end
+
   test "validate_session_expiry" do
     assert @harness.validate_session_expiry({ "expires_at" => 1.hour.from_now })
     assert_not @harness.validate_session_expiry({ "expires_at" => 1.hour.ago })
@@ -223,6 +258,60 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
 
     assert_nil @harness.session["a"]
     assert_nil @harness.session["b"]
+  end
+
+  test "ensure_not_logged_in_for_registration redirects for html and renders for json" do
+    @harness.current_resource = Client.new
+
+    @harness.ensure_not_logged_in_for_registration(redirect_path: "/dashboard", message_key: "auth.denied")
+
+    assert_equal ["/dashboard", { alert: "translated:auth.denied" }], @harness.redirected
+
+    @harness.request.format = Struct.new(:json?).new(true)
+    @harness.ensure_not_logged_in_for_registration(redirect_path: "/dashboard", message_key: "auth.denied")
+
+    assert_equal :unauthorized, @harness.rendered[:status]
+    assert_equal "translated:auth.denied", @harness.rendered[:plain]
+  end
+
+  test "ensure_not_logged_in_for_registration no-ops when logged out" do
+    assert_nil @harness.ensure_not_logged_in_for_registration
+    assert_nil @harness.redirected
+    assert_nil @harness.rendered
+  end
+
+  test "reject_if_logged_in returns false when logged out" do
+    assert_not @harness.reject_if_logged_in("auth.denied")
+    assert_nil @harness.rendered
+  end
+
+  test "session_limit_hard_reject_result returns forbidden payload" do
+    resource = Client.new(id: 123)
+
+    result = @harness.send(:session_limit_hard_reject_result, resource)
+
+    assert_equal :session_limit_hard_reject, result[:status]
+    assert_equal :forbidden, result[:http_status]
+    assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
+  end
+
+  test "validate_login_dpop_proof returns success when proof is blank" do
+    @harness.request.headers["DPoP"] = nil
+
+    assert_equal({ status: :success, jkt: nil }, @harness.send(:validate_login_dpop_proof))
+  end
+
+  test "validate_login_dpop_proof returns error for invalid proof" do
+    proof = Object.new
+    result = Struct.new(:valid?, :error, :jkt).new(false, "bad-proof", nil)
+    validator = Struct.new(:call).new(result)
+    @harness.request.headers["DPoP"] = "proof"
+    @harness.request.request_method = "POST"
+    @harness.request.original_url = "http://localhost/test"
+
+    DpopProofValidator.stub(:new, ->(**) { validator }) do
+      assert_equal({ status: :dpop_proof_invalid, error: "bad-proof" }, @harness.send(:validate_login_dpop_proof))
+    end
   end
 
   test "reject_logged_in_session renders unauthorized if logged in" do
@@ -277,6 +366,14 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_nil @harness.current_session_public_id
   end
 
+  test "current_session_public_id uses Actor authn first" do
+    authn = Struct.new(:login_public_id).new("actor-session-id")
+
+    Actor.stub(:authn, authn) do
+      assert_equal "actor-session-id", @harness.current_session_public_id
+    end
+  end
+
   test "authenticate! redirects for html" do
     @harness.authenticate!
 
@@ -295,6 +392,17 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     @harness.authenticate!
 
     assert_equal :unauthorized, @harness.rendered[:status]
+  end
+
+  test "authenticate! short-circuits when already logged in" do
+    @harness.current_resource = Client.new
+
+    SignRiskEnforcer.stub(:call, nil) do
+      @harness.authenticate!
+    end
+
+    assert_nil @harness.rendered
+    assert_nil @harness.redirected
   end
 
   test "log_out clears session and cookies" do
@@ -330,5 +438,14 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal 60, @harness.epoch_seconds(1.minute)
     assert_equal 123, @harness.epoch_seconds("123")
     assert_equal 0, @harness.epoch_seconds(nil)
+  end
+
+  test "login_cooldown_enabled is a shared toggle" do
+    original = AuthenticationBase.login_cooldown_enabled
+
+    AuthenticationBase.login_cooldown_enabled = !original
+    assert_equal !original, AuthenticationBase.login_cooldown_enabled
+  ensure
+    AuthenticationBase.login_cooldown_enabled = original
   end
 end

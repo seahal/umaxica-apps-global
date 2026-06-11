@@ -10,10 +10,6 @@ scope module: :sign, as: :sign do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               format: false
       # Basic public endpoints
       resource :health, only: :show
       namespace :health do
@@ -25,11 +21,6 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # FIXME: how about csp? csp_violation_report is so long naming.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      # FIXME: Remove this once we've migrated to the new welcome flow
-      get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
-      # FIXME: move to check entry point.
-      resource :selector, only: :show
       # for those who are logged in
       resource :dashboard, only: :show
       # Public web API: OTP delivery, cookie consent, theme
@@ -48,30 +39,12 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # TODO: ckeck this code!
-      namespace :r18 do
-        resource :gate, only: %i(show create) do
-          get :blocked
-          get :stopped
-        end
-      end
-      if Rails.env.local?
-        # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
-        namespace :__dev, module: :dev, path: "__dev" do
-          namespace :r18 do
-            resource :open, only: %i(show create), controller: "open_smokes"
-            resource :private, only: %i(show create), controller: "private_smokes"
-          end
-        end
-      end
-
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
       namespace :edge do
         namespace :v0 do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
@@ -142,12 +115,6 @@ scope module: :sign, as: :sign do
           end
         end
 
-        # Sign-out: current-session logout lifecycle.
-        namespace :out do
-          resource :confirmation, only: :show
-          resource :attempt, only: :create
-          resource :completion, only: :show
-        end
       end
 
       # Social auth: settings-side social connection lifecycle.
@@ -191,20 +158,6 @@ scope module: :sign, as: :sign do
         resources :emails, only: %i(new create edit update) do
           resource :redelivery, only: :create
         end
-      end
-
-      # OIDC
-      namespace :oidc do
-        resource :logout, only: :show
-      end
-
-      # OAuth
-      namespace :oauth do
-        resource :authorization, only: :show, path: "authorize"
-        resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke"
-        resource :jwks, only: :show
       end
 
       # Account settings and linked identity management
@@ -263,14 +216,6 @@ scope module: :sign, as: :sign do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               format: false
-
-      get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
-      resource :selector, only: :show
       resource :dashboard, only: :show
 
       # Basic public endpoints
@@ -315,7 +260,6 @@ scope module: :sign, as: :sign do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
@@ -374,11 +318,6 @@ scope module: :sign, as: :sign do
           end
         end
 
-        namespace :out do
-          resource :confirmation, only: :show
-          resource :attempt, only: :create
-          resource :completion, only: :show
-        end
       end
 
       # Step-up verification
@@ -390,20 +329,6 @@ scope module: :sign, as: :sign do
         resources :emails, only: %i(new create edit update) do
           resource :redelivery, only: :create
         end
-      end
-
-      # OIDC
-      namespace :oidc do
-        resource :logout, only: :show
-      end
-
-      # OAuth
-      namespace :oauth do
-        resource :authorization, only: :show, path: "authorize"
-        resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke"
-        resource :jwks, only: :show
       end
 
       # Account settings and linked identity management
@@ -459,14 +384,6 @@ scope module: :sign, as: :sign do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               format: false
-
-      get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
-      resource :selector, only: :show
       resource :dashboard, only: :show
 
       # Staff management top-level areas
@@ -509,7 +426,6 @@ scope module: :sign, as: :sign do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
@@ -543,11 +459,6 @@ scope module: :sign, as: :sign do
           end
         end
 
-        namespace :out do
-          resource :confirmation, only: :show
-          resource :attempt, only: :create
-          resource :completion, only: :show
-        end
       end
 
       # Step-up verification
@@ -555,20 +466,6 @@ scope module: :sign, as: :sign do
       namespace :verification do
         resource :setup, only: %i(new)
         resource :passkey, only: %i(new create)
-      end
-
-      # OIDC
-      namespace :oidc do
-        resource :logout, only: :show
-      end
-
-      # OAuth
-      namespace :oauth do
-        resource :authorization, only: :show, path: "authorize"
-        resource :token, only: :create
-        resource :user_info, only: :show, path: "userinfo", controller: "user_info"
-        resource :revocation, only: :create, path: "revoke"
-        resource :jwks, only: :show
       end
 
       # Account settings and identity management

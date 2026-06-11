@@ -2,9 +2,12 @@
 
 ## Status
 
-Active implementation slice. This plan refines
-`plans/identity-authority-inversion-implementation.md` and must not be used to restore the old
-`sign/id` ceremony-only or Acme aggregation model.
+Superseded by `adr/sign-residual-idp-surface-retirement.md` where this slice assigns Identity,
+Refresh, Logout, Step-up freshness, Preference, or app social link/unlink authority to `sign/id`.
+
+Do not use this slice to reintroduce Sign IdP, session, refresh, token, preference, account, or
+settings authority. The current implementation direction is Acme-only IdP with Sign retained as the
+`id.*` credential-gateway and ceremony host boundary.
 
 ## Current Implementation Conflicts
 

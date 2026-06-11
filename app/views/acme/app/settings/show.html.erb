@@ -2,6 +2,8 @@
 
 <h1><%= t("sign.app.settings.show.page_title") %></h1>
 
+<p><%= link_to "Identity", acme_app_identity_path(ri: params[:ri]) %></p>
+
 <section>
   <h2><%= t("sign.app.settings.show.security_settings") %></h2>
   <ul>

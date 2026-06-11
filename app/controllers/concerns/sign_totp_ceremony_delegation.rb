@@ -7,24 +7,14 @@ module SignTotpCeremonyDelegation
   private
 
   def start_totp_ceremony!(surface:, actor:, session_ref:, operation: "registration")
-    return if totp_ceremony_grant_token.present?
+    return totp_ceremony_grant_token if totp_ceremony_grant_token.present?
 
-    issuance = IdentityTotpCeremonyGrantIssuer.issue!(
-      surface: surface,
-      actor_ref: actor.public_id,
-      session_ref: session_ref,
-      operation: operation,
-    )
-    session[totp_ceremony_session_key] = {
-      "grant" => issuance.grant,
-      "transaction_id" => issuance.transaction.transaction_id,
-    }
-    issuance
+    raise IdentityTotpCeremonyContract::Error, "TOTP ceremony grant is required"
   end
 
   def accept_totp_ceremony_grant!(surface:)
     token = params[:totp_ceremony_grant].to_s
-    return true if token.blank?
+    return false if token.blank?
 
     grant = IdentityTotpCeremonyGrant.decode(
       token,
@@ -42,14 +32,7 @@ module SignTotpCeremonyDelegation
   def finish_totp_ceremony!(surface:, actor:, session_ref:, private_key:, title:, last_otp_at:,
                             operation: "registration")
     grant_token = totp_ceremony_grant_token
-    if grant_token.blank?
-      grant_token = start_totp_ceremony!(
-        surface: surface,
-        actor: actor,
-        session_ref: session_ref,
-        operation: operation,
-      ).grant
-    end
+    raise IdentityTotpCeremonyContract::Error, "TOTP ceremony grant is required" if grant_token.blank?
 
     grant = IdentityTotpCeremonyGrant.decode(
       grant_token,

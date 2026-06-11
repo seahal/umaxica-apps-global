@@ -15,7 +15,7 @@ module Sign
       private
 
       def oidc_logout_completed_path(ri:)
-        sign_org_sign_out_completion_path(ri: ri)
+        acme_org_sign_out_path(ri: ri, host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
       end
     end
   end

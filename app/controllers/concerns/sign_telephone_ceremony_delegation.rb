@@ -7,26 +7,14 @@ module SignTelephoneCeremonyDelegation
   private
 
   def start_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
-    return if telephone_ceremony_grant_token.present?
+    return telephone_ceremony_grant_token if telephone_ceremony_grant_token.present?
 
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: surface,
-      actor_ref: actor.public_id,
-      session_ref: session_ref,
-      operation: operation,
-      telephone_candidate_ref: telephone_candidate_ref(candidate),
-      normalized_number_digest: candidate.number_digest,
-    )
-    session[telephone_ceremony_session_key] = {
-      "grant" => issuance.grant,
-      "transaction_id" => issuance.transaction.transaction_id,
-    }
-    issuance
+    raise IdentityTelephoneCeremony::Error, "telephone ceremony grant is required"
   end
 
   def accept_telephone_ceremony_grant!(surface:)
     token = params[:telephone_ceremony_grant].to_s
-    return true if token.blank?
+    return false if token.blank?
 
     grant = IdentityTelephoneCeremonyGrant.decode(
       token,
@@ -43,15 +31,7 @@ module SignTelephoneCeremonyDelegation
 
   def finish_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
     grant_token = telephone_ceremony_grant_token
-    if grant_token.blank?
-      grant_token = start_telephone_ceremony!(
-        surface: surface,
-        actor: actor,
-        session_ref: session_ref,
-        candidate: candidate,
-        operation: operation,
-      ).grant
-    end
+    raise IdentityTelephoneCeremony::Error, "telephone ceremony grant is required" if grant_token.blank?
 
     result_token = IdentityTelephoneCeremonyResultIssuer.issue!(
       grant_token: grant_token,

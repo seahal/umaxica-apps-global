@@ -7,24 +7,14 @@ module SignSecretCredentialCeremonyDelegation
   private
 
   def start_secret_credential_ceremony!(surface:, actor:, session_ref:, operation: "enrollment")
-    return if secret_credential_ceremony_grant_token.present?
+    return secret_credential_ceremony_grant_token if secret_credential_ceremony_grant_token.present?
 
-    issuance = IdentitySecretCredentialCeremonyGrantIssuer.issue!(
-      surface: surface,
-      actor_ref: actor.public_id,
-      session_ref: session_ref,
-      operation: operation,
-    )
-    session[secret_credential_ceremony_session_key] = {
-      "grant" => issuance.grant,
-      "transaction_id" => issuance.transaction.transaction_id,
-    }
-    issuance
+    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required"
   end
 
   def accept_secret_credential_ceremony_grant!(surface:)
     token = params[:secret_credential_ceremony_grant].to_s
-    return true if token.blank?
+    return false if token.blank?
 
     grant = IdentitySecretCredentialCeremonyGrant.decode(
       token,
@@ -43,12 +33,7 @@ module SignSecretCredentialCeremonyDelegation
                                          raw_secret_credential:, operation: "enrollment")
     grant_token = secret_credential_ceremony_grant_token
     if grant_token.blank?
-      grant_token = start_secret_credential_ceremony!(
-        surface: surface,
-        actor: actor,
-        session_ref: session_ref,
-        operation: operation,
-      ).grant
+      raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required"
     end
 
     grant = IdentitySecretCredentialCeremonyGrant.decode(

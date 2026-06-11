@@ -48,14 +48,13 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal OidcIssuer.for_resource_type("operator"), response.parsed_body["issuer"]
   end
 
-  test "sign discovery is compatibility metadata for acme issuer" do
-    get sign_app_openid_configuration_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
-
-    assert_response :ok
-    assert_equal OidcIssuer.for_resource_type("client"), response.parsed_body["issuer"]
-    assert_not_includes response.parsed_body["issuer"], ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    assert_includes response.parsed_body["token_endpoint"], ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    assert_includes response.parsed_body["jwks_uri"], ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+  test "sign discovery route is retired" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/.well-known/openid-configuration",
+        method: :get,
+      )
+    end
   end
 
   test "sign jwks remains public compatibility metadata only" do
@@ -106,29 +105,13 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "no-cache", response.headers["Pragma"]
   end
 
-  test "sign token endpoint is compatibility wrapper and does not select sign issuer namespace" do
-    captured = nil
-    result = TokenResult.new(
-      success: true,
-      token_response: { access_token: "access", refresh_token: "refresh", token_type: "Bearer" },
-    )
-
-    OidcTokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      post sign_app_oauth_token_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-           params: {
-             grant_type: "authorization_code",
-             code: "code",
-             redirect_uri: "https://client.example/callback",
-             client_id: "core_app",
-             client_secret: "secret",
-             code_verifier: "verifier",
-           }
+  test "sign token endpoint is retired" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/token",
+        method: :post,
+      )
     end
-
-    assert_response :ok
-    assert_equal "POST", captured[:request_method]
-    assert_includes captured[:token_endpoint_uri], ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme token endpoint rejects get" do
@@ -156,19 +139,13 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "proof", captured[:dpop_proof]
   end
 
-  test "sign userinfo is compatibility wrapper over acme issuer authenticator" do
-    captured = nil
-    result = AuthResult.new(success: false, error: "invalid_token")
-
-    OidcAccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      get sign_app_oauth_user_info_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-          headers: { "Authorization" => "Bearer access" }
+  test "sign userinfo endpoint is retired" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/userinfo",
+        method: :get,
+      )
     end
-
-    assert_response :unauthorized
-    assert_equal "client", captured[:resource_type]
-    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), captured[:host]
-    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme revocation delegates with acme host binding" do
@@ -191,24 +168,13 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), captured[:host]
   end
 
-  test "sign revocation is compatibility wrapper over shared revocation service" do
-    captured = nil
-    result = RevocationResult.new(success: true)
-
-    OidcTokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      post sign_app_oauth_revocation_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-           params: {
-             token: "refresh",
-             client_id: "core_app",
-             client_secret: "secret",
-             token_type_hint: "refresh_token",
-           }
+  test "sign revocation endpoint is retired" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/revoke",
+        method: :post,
+      )
     end
-
-    assert_response :ok
-    assert_equal "refresh", captured[:token]
-    assert_equal "core_app", captured[:client_id]
-    assert_equal "surface:ACME_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
   end
 
   test "acme edge token refresh is post only and does not accept url-only mutation" do
@@ -245,9 +211,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_not_includes source, "SignRefreshTokenService.call"
 
     %w(app com org).each do |surface|
-      refresh_source = Rails.root.join("app/controllers/sign/#{surface}/edge/v0/token/refreshes_controller.rb").read
-
-      assert_not_includes refresh_source, "SignRefreshTokenService"
+      assert_not Rails.root.join("app/controllers/sign/#{surface}/edge/v0/token/refreshes_controller.rb").exist?
     end
   end
 

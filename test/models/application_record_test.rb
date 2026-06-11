@@ -117,6 +117,15 @@ class ApplicationRecordTest < ActiveSupport::TestCase
     assert_match(/SELECT "application_record_test_models"."id"/, table_selects.first)
   end
 
+  test "insert_missing_fixed_ids! falls back to first_or_create! when insert_all raises" do
+    ids = [611, 612]
+    ApplicationRecordTestModel.stub(:insert_all, ->(*) { raise ActiveRecord::RecordNotUnique }) do
+      ApplicationRecordTestModel.insert_missing_fixed_ids!(ids)
+    end
+
+    assert_equal [611, 612], ApplicationRecordTestModel.order(:id).pluck(:id)
+  end
+
   test "insert_missing_fixed_ids! repairs stale cache when a fixed row is missing" do
     ApplicationRecordTestModel.insert_missing_fixed_ids!([601])
     ApplicationRecordTestModel.where(id: 601).delete_all
@@ -126,6 +135,28 @@ class ApplicationRecordTest < ActiveSupport::TestCase
     end
 
     assert ApplicationRecordTestModel.exists?(id: 601)
+  end
+
+  test "insert_missing_fixed_ids! skips when the table is not available" do
+    connection = Minitest::Mock.new
+    connection.expect(:data_source_exists?, false, [ApplicationRecordTestModel.table_name])
+
+    ApplicationRecordTestModel.stub(:lease_connection, connection) do
+      assert_no_difference "ApplicationRecordTestModel.count" do
+        assert_nil ApplicationRecordTestModel.insert_missing_fixed_ids!([701])
+      end
+    end
+
+    assert_mock connection
+  end
+
+  test "clear_fixed_id_seed_cache! removes cached seeds" do
+    cache = ApplicationRecord.send(:const_get, :FIXED_ID_SEED_CACHE)
+    cache["ApplicationRecordTestModel:test:801"] = true
+
+    ApplicationRecord.clear_fixed_id_seed_cache!
+
+    assert_empty cache
   end
 
   private

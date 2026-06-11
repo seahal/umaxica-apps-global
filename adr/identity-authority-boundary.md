@@ -115,6 +115,7 @@ The following ADRs are still required to operationalize this authority boundary:
 
 - acme session and token authority;
 - sign/id credential gateway surface;
+- sign residual IdP surface retirement (see `adr/sign-residual-idp-surface-retirement.md`);
 - delegated credential ceremony grant/result;
 - step-up ceremony delegation;
 - WebAuthn RP ID and origin boundary;

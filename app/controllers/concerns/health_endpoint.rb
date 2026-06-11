@@ -10,7 +10,7 @@ module HealthEndpoint
     @health_report = HealthReadiness.call(profile: health_profile)
 
     render(
-      "health/show",
+      "shared/health/show",
       formats: :html,
       status: HealthStatusPolicy.http_status(@health_report.status, probe: :ready),
     )

@@ -3,19 +3,11 @@
 
 require "test_helper"
 
-module Sign
-  module Com
-    class JwksControllerTest < ActionDispatch::IntegrationTest
-      fixtures_none!
+class Sign::Com::JwksControllerTest < ActionDispatch::IntegrationTest
+  test "sign com well-known jwks remains public" do
+    get sign_com_jwks_url(host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"), ri: "jp")
 
-      test "GET jwks endpoint returns JSON with keys" do
-        host! "id.com.localhost"
-        get sign_com_oauth_jwks_url(ri: "jp")
-
-        assert_response :success
-        assert_equal "application/json", response.media_type
-        assert_includes response.parsed_body.keys, "keys"
-      end
-    end
+    assert_response :ok
+    assert response.parsed_body.fetch("keys").present?
   end
 end

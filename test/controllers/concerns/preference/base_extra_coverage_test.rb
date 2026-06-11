@@ -105,6 +105,20 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     assert called
   end
 
+  test "preference_current_resource wraps failures in a resolution error" do
+    @harness.define_singleton_method(:current_resource) do
+      raise StandardError, "boom"
+    end
+
+    error =
+      assert_raises(PreferenceBase::ResolutionError) do
+        @harness.send(:preference_current_resource)
+      end
+
+    assert_match(/Preference current_resource resolution failed/, error.message)
+    assert_instance_of StandardError, error.cause
+  end
+
   test "cookie_banner_endpoint_url and available_for_request?" do
     with_env("ACME_SERVICE_URL" => "id.app.localhost") do
       assert @harness.send(:cookie_banner_endpoint_available_for_request?)
@@ -116,6 +130,97 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
     assert @harness.send(:extract_cookie_banner_consent, { "preferences" => { "consent" => true } })
     assert_not @harness.send(:extract_cookie_banner_consent, { "preferences" => { "consented" => false } })
     assert_nil @harness.send(:extract_cookie_banner_consent, {})
+  end
+
+  test "public_option_cookie_payload reads from hash and object sources" do
+    assert_equal({}, @harness.send(:public_option_cookie_payload, nil))
+
+    hash_source = { PreferenceIoKeys::Cookies::THEME => "dark", PreferenceIoKeys::Cookies::TIMEZONE => "Asia/Tokyo" }
+    object_source = Object.new
+    object_source.define_singleton_method(:theme) { "light" }
+    object_source.define_singleton_method(:timezone) { "Etc/UTC" }
+    object_source.define_singleton_method(:currency) { "jpy" }
+
+    assert_equal(
+      {
+        PreferenceIoKeys::Cookies::THEME => "dark",
+        PreferenceIoKeys::Cookies::TIMEZONE => "Asia/Tokyo",
+      },
+      @harness.send(:public_option_cookie_payload, hash_source),
+    )
+    assert_equal(
+      {
+        PreferenceIoKeys::Cookies::THEME => "light",
+        PreferenceIoKeys::Cookies::TIMEZONE => "Etc/UTC",
+        PreferenceIoKeys::Cookies::CURRENCY => "jpy",
+      },
+      @harness.send(:public_option_cookie_payload, object_source),
+    )
+  end
+
+  test "preference_record_theme returns a short code when theme is present" do
+    preference_theme = Struct.new(:option_id).new(7)
+    preference = Struct.new(:app_preference_theme).new(preference_theme)
+    @harness.instance_variable_set(:@preferences, preference)
+    @harness.define_singleton_method(:preference_theme_association) { "app_preference_theme" }
+    @harness.define_singleton_method(:option_id_to_theme) { |option_id, _prefix| option_id == 7 ? "dark" : nil }
+    @harness.define_singleton_method(:theme_short_code) { |value| value == "dark" ? "dr" : nil }
+
+    assert_equal "dr", @harness.send(:preference_record_theme)
+    @harness.instance_variable_set(:@preferences, nil)
+    assert_nil @harness.send(:preference_record_theme)
+  end
+
+  test "create_preference_association! uses creator method when available and falls back to association" do
+    creator_attrs = nil
+    creator_preference = Object.new
+    creator_preference.define_singleton_method(:respond_to?) do |name, include_private = false|
+      name == :create_app_preference_cookie! || super(name, include_private)
+    end
+    creator_preference.define_singleton_method(:create_app_preference_cookie!) do |attrs|
+      creator_attrs = attrs
+      :created
+    end
+
+    association_calls = []
+    association_class = Class.new do
+      define_singleton_method(:create!) do |attrs|
+        association_calls << attrs
+        :created
+      end
+    end
+    association = Struct.new(:klass).new(association_class)
+    fallback_preference = Object.new
+    fallback_preference.define_singleton_method(:association) do |_name|
+      association
+    end
+
+    assert_equal :created,
+                 @harness.send(:create_preference_association!, creator_preference, "app_preference_cookie", { foo: 1 })
+    assert_equal({ foo: 1 }, creator_attrs)
+
+    assert_equal :created,
+                 @harness.send(:create_preference_association!, fallback_preference, "app_preference_cookie", { foo: 2 })
+    assert_equal([{ foo: 2, preference: fallback_preference }], association_calls)
+  end
+
+  test "preference_param_value maps known keys and falls back to the original type" do
+    params_hash = { lx: "ja", ri: "jp", tz: "Asia/Tokyo", ct: "dark", custom: "value" }
+
+    assert_equal "ja", @harness.send(:preference_param_value, params_hash, :language)
+    assert_equal "jp", @harness.send(:preference_param_value, params_hash, :region)
+    assert_equal "Asia/Tokyo", @harness.send(:preference_param_value, params_hash, :timezone)
+    assert_equal "dark", @harness.send(:preference_param_value, params_hash, :theme)
+    assert_equal "value", @harness.send(:preference_param_value, params_hash, :custom)
+  end
+
+  test "normalize_theme and theme_short_code map full and short values" do
+    assert_nil @harness.send(:normalize_theme, nil)
+    assert_equal "dr", @harness.send(:normalize_theme, "dark")
+    assert_equal "li", @harness.send(:normalize_theme, "li")
+
+    assert_nil @harness.send(:theme_short_code, nil)
+    assert_equal "dr", @harness.send(:theme_short_code, "dark")
   end
 
   test "option_id_to_language with EN" do

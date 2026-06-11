@@ -84,6 +84,22 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       def blank? = false
     end
 
+  class FakeWritablePreference
+    attr_reader :updates
+
+    def initialize
+      @updates = []
+    end
+
+    def update!(attrs)
+      @updates << attrs
+    end
+  end
+
+  FakeResource = Struct.new(:id, :user_preference, :staff_preference, :visitor_preference) do
+    def blank? = false
+  end
+
   setup do
     @controller = PreferenceCoreHarness.new
     @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
@@ -203,6 +219,14 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     assert_match "Preference current_resource resolution failed", error.message
   end
 
+  test "sync_to_resource_preference! returns nil when current_resource is unavailable or blank" do
+    assert_nil PreferenceCoreHarness.new.send(:sync_to_resource_preference!)
+
+    @controller.define_singleton_method(:current_resource) { nil }
+
+    assert_nil @controller.send(:sync_to_resource_preference!)
+  end
+
   test "sync_to_resource_preference keeps shared preference public_id" do
     Prosopite.pause do
       [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
@@ -222,6 +246,77 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     @controller.send(:sync_direct_resource_preference!, resource_pref)
 
     assert_equal original_public_id, preference.reload.public_id
+  end
+
+  test "preference_write_resource_preference! returns existing resource preference per surface and falls back to creation" do
+    user_pref = Object.new
+    staff_pref = Object.new
+    visitor_pref = Object.new
+    resource = FakeResource.new(42, user_pref, staff_pref, visitor_pref)
+
+    @controller.define_singleton_method(:preference_class) { AppPreference }
+    assert_same user_pref, @controller.send(:preference_write_resource_preference!, resource)
+
+    org_controller = PreferenceCoreHarness.new
+    org_controller.define_singleton_method(:preference_class) { OrgPreference }
+    assert_same staff_pref, org_controller.send(:preference_write_resource_preference!, resource)
+
+    com_controller = PreferenceCoreHarness.new
+    com_controller.define_singleton_method(:preference_class) { ComPreference }
+    assert_same visitor_pref, com_controller.send(:preference_write_resource_preference!, resource)
+
+    created = Object.new
+    called = nil
+    creator = PreferenceCoreHarness.new
+    creator.define_singleton_method(:preference_class) { AppPreference }
+    creator.define_singleton_method(:create_resource_preference_for_write!) do |model, fk, resource_id|
+      called = [model, fk, resource_id]
+      created
+    end
+    missing = FakeResource.new(7, nil, nil, nil)
+
+    assert_same created, creator.send(:preference_write_resource_preference!, missing)
+    assert_equal [ClientPreference, :user_id, 7], called
+  end
+
+  test "sync_direct_resource_preference! only writes when there is data to sync" do
+    resource_pref = FakeWritablePreference.new
+
+    @controller.define_singleton_method(:resolved_preference_snapshot) { |_pref| {} }
+    @controller.define_singleton_method(:resolved_preference_cookie) { |_pref| {} }
+
+    assert_nil @controller.send(:sync_direct_resource_preference!, resource_pref)
+    assert_empty resource_pref.updates
+
+    @controller.define_singleton_method(:resolved_preference_snapshot) { |_pref| { language: "en" } }
+    @controller.define_singleton_method(:resolved_preference_cookie) { |_pref| { consented: true } }
+
+    @controller.send(:sync_direct_resource_preference!, resource_pref)
+
+    assert_equal [{ language: "en", consented: true }], resource_pref.updates
+  end
+
+  test "write_resource_preference_cookie! ignores blank and unsupported attributes" do
+    resource_pref = FakeWritablePreference.new
+
+    assert_nil @controller.send(:write_resource_preference_cookie!, resource_pref, {})
+    assert_empty resource_pref.updates
+
+    attrs = ActionController::Parameters.new(
+      consented: "1",
+      functional: "1",
+      performant: "0",
+      targetable: "0",
+      ignored: "x",
+    ).permit(:consented, :functional, :performant, :targetable, :ignored)
+
+    @controller.send(:write_resource_preference_cookie!, resource_pref, attrs)
+
+    assert_equal 1, resource_pref.updates.size
+    assert_equal(
+      { "consented" => "1", "functional" => "1", "performant" => "0", "targetable" => "0" },
+      resource_pref.updates.first,
+    )
   end
 
   test "cookie params and update params cover nested and flat forms" do
@@ -257,6 +352,47 @@ class PreferenceCoreTest < ActiveSupport::TestCase
 
     assert_nil @controller.send(:safe_return_to_path)
     assert_equal "dr", @controller.send(:preference_theme_params)[:option_id]
+  end
+
+  test "preference routing helpers map screens and authorities" do
+    @controller.define_singleton_method(:controller_path) { "sign/app/preferences" }
+
+    assert_equal "sign", @controller.send(:preference_route_authority)
+    assert_equal :region, @controller.send(:preference_group_screen, :currency)
+    assert_nil @controller.send(:preference_group_screen, :theme)
+    assert_equal :cu, @controller.send(:preference_context_key_for_screen, :currency)
+    assert_nil @controller.send(:preference_context_key_for_screen, :theme)
+    assert_equal "sign_app_preference_currency_url", @controller.send(:preference_url_helper_name, :currency)
+    assert_equal "edit_sign_app_preference_currency_url", @controller.send(:preference_edit_url_helper_name, :currency)
+    assert_raises(ArgumentError) { @controller.send(:preference_url_helper_name, :unknown) }
+  end
+
+  test "resolved writable timezone and timezone normalization handle valid and invalid values" do
+    assert_equal "Asia/Tokyo", @controller.send(:normalize_known_timezone, "Asia/Tokyo")
+    assert_nil @controller.send(:normalize_known_timezone, "Invalid/Zone")
+    assert_equal "Asia/Tokyo", @controller.send(:resolved_writable_timezone, FakeAssociation.new(1, nil), "Asia/Tokyo")
+
+    @controller.define_singleton_method(:option_id_to_timezone) { |_id, _prefix| "Europe/Paris" }
+    assert_equal "Europe/Paris", @controller.send(:resolved_writable_timezone, FakeAssociation.new(1, nil), nil)
+  end
+
+  test "reset_preference_state clears memoized preference state" do
+    @controller.instance_variable_set(:@preferences, FakePreference.new)
+    @controller.instance_variable_set(:@preference_payload, { "x" => 1 })
+    @controller.instance_variable_set(:@refresh_token_value, "token")
+
+    @controller.send(:reset_preference_state)
+
+    assert_nil @controller.instance_variable_get(:@preferences)
+    assert_nil @controller.instance_variable_get(:@preference_payload)
+    assert_nil @controller.instance_variable_get(:@refresh_token_value)
+  end
+
+  test "preference option label falls back to titleized default and localized lookup" do
+    I18n.stub(:t, ->(key, default:) { key == "acme.app.preference.theme.options.dark" ? "Dark mode" : default }) do
+      assert_equal "Dark mode", @controller.send(:preference_option_label, :theme, "dark")
+      assert_equal "Page Size", @controller.send(:preference_option_label, :page_size, "page_size")
+    end
   end
 
   test "preference write redirect consumes the edited context parameter" do

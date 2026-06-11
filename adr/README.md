@@ -20,6 +20,10 @@ Current identity authority decision:
 - `adr/sign-credential-gateway-surface.md` — refines the identity authority boundary for permitted
   `sign/id` credential inventory, ceremony state, ceremony execution, signed ceremony results, and
   ceremony-only audit records.
+- `adr/sign-residual-idp-surface-retirement.md` — operational decision to retire the residual
+  `sign/id` OIDC provider, `SIGN_*` signing keys, refresh-rotation endpoint, session-mutating
+  sign-out paths, and step-up freshness writes; keeps step-up credential ceremony execution on
+  `sign/id` as an explicit WebAuthn URL-binding exception.
 
 Implementation note: the accepted authority boundary is ahead of parts of the current code. Active
 implementation work is tracked in `plans/identity-authority-inversion-implementation.md` and
