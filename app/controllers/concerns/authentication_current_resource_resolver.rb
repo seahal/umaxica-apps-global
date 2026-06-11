@@ -65,12 +65,23 @@ class AuthenticationCurrentResourceResolver
     return failure(:dpop_binding_mismatch, payload: payload) unless token_dpop_binding_current?(token_record, payload)
     return failure(:token_jti_mismatch, payload: payload) unless token_jti_current?(token_record, payload)
 
+    # Idle timeout: a still-valid access JWT must not let a session that has
+    # been inactive beyond its surface idle window keep authenticating.
+    if session_idle_expired?(token_record)
+      return failure(
+        :idle_timeout, payload: payload,
+                       session_public_id: current_session_public_id(token_record, sid),
+      )
+    end
+
     resource = @resource_class.find_by(id: AuthenticationToken.extract_subject(payload))
     return failure(
       :resource_not_found, payload: payload,
                            session_public_id: current_session_public_id(token_record, sid),
                            token_public_id: token_record_public_id(token_record),
     ) if resource.blank?
+
+    touch_session_activity!(token_record)
 
     Result.new(
       resource: resource,
@@ -82,6 +93,38 @@ class AuthenticationCurrentResourceResolver
   end
 
   private
+
+  # A session is idle-expired when its last activity (last_used_at, falling back
+  # to created_at for a session that has not been touched yet) is older than the
+  # surface idle window. A record with no usable timestamp is not treated as
+  # expired, leaving the absolute-lifetime checks to govern it.
+  def session_idle_expired?(token_record)
+    reference = session_activity_reference(token_record)
+    return false if reference.blank?
+
+    reference < Time.current - SecurityTokenLifetimes.idle_ttl_for(@resource_type)
+  end
+
+  # Throttled per-request activity write: refresh last_used_at only when it is
+  # missing or older than the throttle window, so authenticated requests do not
+  # write to the session row on every hit. update_columns keeps this off the
+  # validation/callback path; the write uses the primary (writing) connection.
+  def touch_session_activity!(token_record)
+    return unless token_record.respond_to?(:has_attribute?) && token_record.has_attribute?(:last_used_at)
+
+    now = Time.current
+    last = token_record.last_used_at
+    return if last.present? && (now - last) < SecurityTokenLifetimes::ACTIVITY_TOUCH_THROTTLE
+
+    token_connection_owner.connected_to(role: :writing) do
+      token_record.update_columns(last_used_at: now)
+    end
+  end
+
+  def session_activity_reference(token_record)
+    token_record_attribute(token_record, :last_used_at).presence ||
+      (token_record.respond_to?(:created_at) ? token_record.created_at : nil)
+  end
 
   def dpop_valid?(payload)
     token_jkt = payload.dig("cnf", "jkt")

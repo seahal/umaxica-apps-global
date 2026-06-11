@@ -525,6 +525,8 @@ module AuthenticationBase
     token_record = find_refresh_token_record(refresh_public_id)
     return handle_restricted_refresh_rejected(token_record, refresh_public_id) if token_record&.restricted?
 
+    return handle_refresh_idle_timeout(token_record, refresh_public_id) unless refresh_idle_allowed?(token_record)
+
     return handle_refresh_binding_denied(
       token_record,
       refresh_public_id,
@@ -905,6 +907,37 @@ module AuthenticationBase
     nil
   end
 
+  # Idle timeout on the refresh path: a session inactive longer than its
+  # surface idle window can no longer refresh. This is an inactivity expiry, not
+  # a security revocation, so the refresh is denied and the auth cookies are
+  # cleared; the token family is left for ordinary expiry/cleanup rather than
+  # hard-revoked.
+  def handle_refresh_idle_timeout(_token_record, refresh_public_id)
+    set_refresh_failure!(:unauthorized, "invalid_refresh_token")
+    destroy_refresh_token_from_cookie
+    clear_auth_cookies!
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        "#{resource_type}.token.refresh.failed",
+        refresh_token_id: refresh_public_id,
+        reason: "idle_timeout",
+        ip_address: request_ip_address,
+      ),
+    )
+
+    SignRiskEmitter.emit(
+      "refresh_failed",
+      user_token_id: refresh_public_id,
+      ip: request&.remote_ip,
+      user_agent: request&.user_agent,
+      request_id: request&.request_id,
+      meta: { reason: "idle_timeout" },
+    )
+
+    nil
+  end
+
   def handle_inactive_resource(resource, refresh_public_id, token_record)
     set_inactive_resource_refresh_failure!(resource)
     notify_inactive_resource_refresh_failed(resource, refresh_public_id)
@@ -1184,6 +1217,23 @@ module AuthenticationBase
     @refresh_dpop_reason = nil
     @refresh_dbsc_reason = nil
     @refresh_dbsc_verified = false
+  end
+
+  # Idle timeout guard for the refresh path. A refresh is allowed only while the
+  # session's last activity (last_used_at, falling back to created_at) is within
+  # the surface idle window. Activity is recorded per-request by the resolver
+  # (touch_session_activity!) and on each rotation, so an actively used session
+  # never trips this; a session left idle past the window can no longer refresh.
+  # A missing token or missing timestamps fail open here so the existing
+  # invalid-token and absolute-lifetime checks remain authoritative.
+  def refresh_idle_allowed?(token_record)
+    return true if token_record.blank?
+
+    reference = token_record_attribute(token_record, :last_used_at).presence ||
+      (token_record.respond_to?(:created_at) ? token_record.created_at : nil)
+    return true if reference.blank?
+
+    reference >= Time.current - SecurityTokenLifetimes.idle_ttl_for(resource_type)
   end
 
   def refresh_dpop_allowed?(token_record)

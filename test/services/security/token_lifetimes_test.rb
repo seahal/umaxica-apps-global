@@ -21,6 +21,20 @@ module Security
                    SecurityTokenLifetimes.old_kid_verification_window(SecurityTokenLifetimes::JUMP_RT_TTL)
     end
 
+    test "defines per-surface idle timeout windows" do
+      assert_equal 8.hours, SecurityTokenLifetimes::CLIENT_IDLE_TTL
+      assert_equal 30.minutes, SecurityTokenLifetimes::OPERATOR_IDLE_TTL
+      assert_equal 8.hours, SecurityTokenLifetimes::VISITOR_IDLE_TTL
+      assert_equal 60.seconds, SecurityTokenLifetimes::ACTIVITY_TOUCH_THROTTLE
+    end
+
+    test "idle_ttl_for maps each surface and falls back to the client window" do
+      assert_equal 30.minutes, SecurityTokenLifetimes.idle_ttl_for("operator")
+      assert_equal 8.hours, SecurityTokenLifetimes.idle_ttl_for("visitor")
+      assert_equal 8.hours, SecurityTokenLifetimes.idle_ttl_for("client")
+      assert_equal 8.hours, SecurityTokenLifetimes.idle_ttl_for("unknown")
+    end
+
     test "keeps existing family constants aligned with the application policy" do
       assert_equal SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL, AuthenticationBase::ACCESS_TOKEN_TTL
       assert_equal SecurityTokenLifetimes::PREFERENCE_JWT_TTL, PreferenceBase::ACCESS_TOKEN_TTL

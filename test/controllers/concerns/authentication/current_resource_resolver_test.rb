@@ -9,18 +9,30 @@ module Authentication
 
     class FakeTokenScope
       FakeToken =
-        Struct.new(:public_id, :oidc_jti) do
+        Struct.new(:public_id, :oidc_jti, :last_used_at, :created_at) do
           def has_attribute?(attribute)
-            %i(public_id oidc_jti).include?(attribute.to_sym)
+            %i(public_id oidc_jti last_used_at created_at).include?(attribute.to_sym)
+          end
+
+          # Records the throttled activity write so tests can assert when a
+          # per-request last_used_at touch did (or did not) happen.
+          def update_columns(attrs)
+            FakeTokenScope.touches << attrs
+            attrs.each { |key, value| self[key] = value }
+            true
           end
         end
 
-      def self.token_oidc_jti
-        @token_oidc_jti
-      end
+      class << self
+        attr_accessor :token_oidc_jti, :token_last_used_at, :token_created_at
 
-      def self.token_oidc_jti=(value)
-        @token_oidc_jti = value
+        def touches
+          @touches ||= []
+        end
+
+        def reset_touches!
+          @touches = []
+        end
       end
 
       def where(*)
@@ -40,7 +52,10 @@ module Authentication
       end
 
       def first
-        FakeToken.new("token_public_id", self.class.token_oidc_jti)
+        FakeToken.new(
+          "token_public_id", self.class.token_oidc_jti,
+          self.class.token_last_used_at, self.class.token_created_at,
+        )
       end
     end
 
@@ -160,6 +175,68 @@ module Authentication
           assert_equal payload, result.payload
         end
       end
+    end
+
+    test "returns idle_timeout when the session has been inactive beyond the window" do
+      payload = { "sub" => 123, "sid" => "sess_1", "act" => "client", "jti" => "current-jti" }
+      FakeTokenScope.token_oidc_jti = "current-jti"
+      FakeTokenScope.token_last_used_at = 9.hours.ago # client idle window is 8h
+
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
+          OrgTicketRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            result = resolve_client_resource
+
+            assert_equal :idle_timeout, result.failure_reason
+            assert_nil result.resource
+          end
+        end
+      end
+    ensure
+      FakeTokenScope.token_oidc_jti = nil
+      FakeTokenScope.token_last_used_at = nil
+    end
+
+    test "writes last_used_at only when activity is past the throttle window" do
+      payload = { "sub" => 123, "sid" => "sess_1", "act" => "client", "jti" => "current-jti" }
+      FakeTokenScope.token_oidc_jti = "current-jti"
+
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
+          OrgTicketRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            # Within the throttle window: no activity write.
+            FakeTokenScope.token_last_used_at = 10.seconds.ago
+            FakeTokenScope.reset_touches!
+            resolve_client_resource
+
+            assert_empty FakeTokenScope.touches
+
+            # Past the throttle window (still within the idle window): one write.
+            FakeTokenScope.token_last_used_at = 5.minutes.ago
+            FakeTokenScope.reset_touches!
+            result = resolve_client_resource
+
+            assert_equal 123, result.resource.id
+            assert_equal 1, FakeTokenScope.touches.size
+            assert FakeTokenScope.touches.first.key?(:last_used_at)
+          end
+        end
+      end
+    ensure
+      FakeTokenScope.token_oidc_jti = nil
+      FakeTokenScope.token_last_used_at = nil
+    end
+
+    private
+
+    def resolve_client_resource
+      AuthenticationCurrentResourceResolver.new(
+        access_token: "token",
+        request_host: "app.localhost",
+        resource_type: "client",
+        resource_class: FakeResourceClass,
+        token_class: FakeTokenClass,
+      ).call
     end
   end
 end

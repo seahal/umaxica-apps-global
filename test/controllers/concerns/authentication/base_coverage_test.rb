@@ -27,7 +27,7 @@ class AuthenticationBaseTestController < ApplicationController
     reissue_access_token! log_in populate_current_attributes! path_from_signed_pt signed_pt_token
     issue_dbsc_challenge_for! legacy_unbound_refresh_allowed? dbsc_registration_challenge_expired?
     downgrade_pending_dbsc_to_nothing! dbsc_registration_eligible_kind? default_dbsc_token_attributes
-    refresh_dpop_allowed?
+    refresh_dpop_allowed? refresh_idle_allowed? handle_refresh_idle_timeout
   )
 
   def index
@@ -1186,6 +1186,48 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     )
 
     assert_not @controller.refresh_dpop_allowed?(bound)
+  end
+
+  # ---------------------------------------------------------------
+  # Idle timeout on the refresh path (token-theft hardening, Phase B)
+  # ---------------------------------------------------------------
+
+  test "refresh_idle_allowed? denies a session idle beyond the surface window" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    assert @controller.refresh_idle_allowed?(nil)
+    assert @controller.refresh_idle_allowed?(ClientToken.new(last_used_at: 1.hour.ago))
+    assert_not @controller.refresh_idle_allowed?(ClientToken.new(last_used_at: 9.hours.ago))
+  end
+
+  test "refresh_idle_allowed? falls back to created_at when last_used_at is missing" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+
+    assert @controller.refresh_idle_allowed?(ClientToken.new(last_used_at: nil, created_at: 1.hour.ago))
+    assert_not @controller.refresh_idle_allowed?(ClientToken.new(last_used_at: nil, created_at: 9.hours.ago))
+  end
+
+  test "refresh_idle_allowed? uses the tighter operator window" do
+    @controller.define_singleton_method(:resource_type) { "operator" }
+
+    # 1h idle is within the client window but past the 30-minute operator window.
+    assert_not @controller.refresh_idle_allowed?(OperatorToken.new(last_used_at: 1.hour.ago))
+    assert @controller.refresh_idle_allowed?(OperatorToken.new(last_used_at: 5.minutes.ago))
+  end
+
+  test "handle_refresh_idle_timeout fails the refresh and clears auth state" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    cleared = false
+    @controller.define_singleton_method(:destroy_refresh_token_from_cookie) { nil }
+    @controller.define_singleton_method(:clear_auth_cookies!) { cleared = true }
+
+    SignRiskEmitter.stub(:emit, nil) do
+      assert_nil @controller.handle_refresh_idle_timeout(ClientToken.new(last_used_at: 9.hours.ago), "rt-public")
+    end
+
+    assert_equal :unauthorized, @controller.refresh_failure_status
+    assert_equal "invalid_refresh_token", @controller.refresh_failure_code
+    assert cleared, "auth cookies must be cleared on idle timeout"
   end
 
   private
