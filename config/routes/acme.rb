@@ -55,6 +55,8 @@ scope module: :acme, as: :acme do
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
       end
       # Public web API: cookie consent, theme
       namespace :web do
@@ -205,6 +207,8 @@ scope module: :acme, as: :acme do
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
       end
       # Public web API: cookie consent, theme
       namespace :web do
@@ -324,6 +328,8 @@ scope module: :acme, as: :acme do
         resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
         resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
         resource :reset, only: %i(edit destroy)
+        resources :emails, only: %i(edit destroy)
+        post "emails/:id", to: "emails#create"
       end
       # Public web API: cookie consent, theme
       namespace :web do

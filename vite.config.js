@@ -18,8 +18,11 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    root: "/home/global/workspace",
-    include: ["test/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+    // vite-plugin-ruby sets the Vite root to app/javascript (config/vite.json
+    // sourceCodeDir), so test globs would otherwise resolve under app/javascript.
+    // Anchor the include glob to the repo root so JS tests under test/ are found.
+    root: import.meta.dirname,
+    include: [`${import.meta.dirname}/test/**/*.{test,spec}.?(c|m)[jt]s?(x)`],
     exclude: [
       "**/node_modules/**",
       "**/vendor/**",

@@ -76,27 +76,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Preferences
-      resource :preference, only: [:show]
-      namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
-        resource :reset, only: :edit
-        resource :reset_attempt, only: :create
-        resources :emails, only: %i(edit destroy)
-        post "emails/:id", to: "emails#create"
-      end
-
       # Sign: sign-up, sign-in, and sign-out lifecycle routes.
       namespace :sign do
         # Sign-up: account registration via email or telephone
@@ -341,27 +320,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Preferences
-      resource :preference, only: [:show]
-      namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
-        resources :emails, only: %i(edit destroy)
-        post "emails/:id", to: "emails#create"
-        resource :reset, only: :edit
-        resource :reset_attempt, only: :create
-      end
-
       # Sign-up and sign-in
       namespace :sign do
         # Sign-up: account registration via email or telephone
@@ -554,32 +512,6 @@ scope module: :sign, as: :sign do
             resource :refresh, only: :create
           end
         end
-      end
-
-      # Preferences
-      resource :preference, only: [:show]
-      namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
-
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-
-        resource :page_size, only: %i(edit update)
-        resource :adult_content_gate, only: %i(edit update)
-
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
-
-        resources :emails, only: %i(edit destroy)
-        post "emails/:id", to: "emails#create"
-
-        resource :reset, only: :edit
-        resource :reset_attempt, only: :create
       end
 
       # Sign-up: email registration and staff invitation flows

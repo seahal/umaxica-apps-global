@@ -53,7 +53,7 @@ importers:
     devDependencies:
       '@mermaid-js/mermaid-cli':
         specifier: ^11.15.0
-        version: 11.15.0(@types/react@19.2.16)(playwright-core@1.60.0)(puppeteer@24.43.1(typescript@6.0.3))
+        version: 11.15.0(@types/react@19.2.16)(puppeteer@24.43.1(typescript@6.0.3))
       '@vitest/coverage-v8':
         specifier: ^4.1.8
         version: 4.1.8(vitest@4.1.8)
@@ -159,8 +159,8 @@ packages:
     peerDependencies:
       '@csstools/css-tokenizer': ^4.0.0
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.4':
-    resolution: {integrity: sha512-wgsqt92b7C7tQhIdPNxj0n9zuUbQlvAuI1exyzeNrOKOi62SD7ren8zqszmpVREjAOqg8cD2FqYhQfAuKjk4sw==}
+  '@csstools/css-syntax-patches-for-csstree@1.1.5':
+    resolution: {integrity: sha512-oNjBvzLq2GPZtJphCjLqXow/cHySHSgtxvKZb7OqSZ/xHgw6NWNhfad+6AB9cLeVm6eA9d/qMll3JdEHjy6M+A==}
     peerDependencies:
       css-tree: ^3.2.1
     peerDependenciesMeta:
@@ -1269,12 +1269,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@zenuml/core@3.49.0':
-    resolution: {integrity: sha512-15hZEYfZYtuJXYK3JVR7cwy95uRfLYn+nlJgJOALDM6Q/xsRqpP+npHoBnfQ3ZmERFjn71Icwuh5B7I3FR6vPA==}
+  '@zenuml/core@3.49.2':
+    resolution: {integrity: sha512-qeQMapuE0XETML2mRw2MIIrMCjcZBhRDSwW10//q8XQ+VyExzkAn39VCBwxIbbPdTBt6gJnaBBixF9A4hsIxcA==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
-      playwright-core: ^1.59.1
+      playwright-core: 1.57.0
     peerDependenciesMeta:
       playwright-core:
         optional: true
@@ -1734,8 +1734,8 @@ packages:
   dlv@1.1.3:
     resolution: {integrity: sha512-+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA==}
 
-  dompurify@3.4.7:
-    resolution: {integrity: sha512-2jBxDJY4RR06tQNy4w5FlFH7kfxsQZlufd0sbv+chfHCxeJwrFw2baUDsSwvBISD4K4RDbd0PTfy3uNXsR6siA==}
+  dompurify@3.4.8:
+    resolution: {integrity: sha512-yb1cEmaOum7wFvOCSQxyfgVlv5D47Rc30iZWoMpbDIWTnJ6grDDQyu2KFJzB2k7u0pMuJcQ1zphH//fFnw2tjQ==}
 
   elkjs@0.9.3:
     resolution: {integrity: sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==}
@@ -1748,6 +1748,10 @@ packages:
 
   enhanced-resolve@5.22.1:
     resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.22.2:
+    resolution: {integrity: sha512-0rxICaFZ7NQho/sHely2bvOPRP0Eu2B0NZ9zM54YvRvWMn7jfz3DmnOZDR9LlXDdDcqntAVc6Hfy4gr/tdH/Ag==}
     engines: {node: '>=10.13.0'}
 
   entities@8.0.0:
@@ -3049,7 +3053,7 @@ snapshots:
     dependencies:
       '@csstools/css-tokenizer': 4.0.0
 
-  '@csstools/css-syntax-patches-for-csstree@1.1.4(css-tree@3.2.1)':
+  '@csstools/css-syntax-patches-for-csstree@1.1.5(css-tree@3.2.1)':
     optionalDependencies:
       css-tree: 3.2.1
 
@@ -3206,11 +3210,11 @@ snapshots:
       mermaid: 11.15.0
     optional: true
 
-  '@mermaid-js/mermaid-cli@11.15.0(@types/react@19.2.16)(playwright-core@1.60.0)(puppeteer@24.43.1(typescript@6.0.3))':
+  '@mermaid-js/mermaid-cli@11.15.0(@types/react@19.2.16)(puppeteer@24.43.1(typescript@6.0.3))':
     dependencies:
       '@fortawesome/fontawesome-free': 7.2.0
       '@mermaid-js/layout-elk': 0.2.1(mermaid@11.15.0)
-      '@mermaid-js/mermaid-zenuml': 0.2.3(@types/react@19.2.16)(mermaid@11.15.0)(playwright-core@1.60.0)
+      '@mermaid-js/mermaid-zenuml': 0.2.3(@types/react@19.2.16)(mermaid@11.15.0)
       chalk: 5.6.2
       commander: 13.1.0
       import-meta-resolve: 4.2.0
@@ -3228,9 +3232,9 @@ snapshots:
       - tsx
       - yaml
 
-  '@mermaid-js/mermaid-zenuml@0.2.3(@types/react@19.2.16)(mermaid@11.15.0)(playwright-core@1.60.0)':
+  '@mermaid-js/mermaid-zenuml@0.2.3(@types/react@19.2.16)(mermaid@11.15.0)':
     dependencies:
-      '@zenuml/core': 3.49.0(@types/react@19.2.16)(playwright-core@1.60.0)
+      '@zenuml/core': 3.49.2(@types/react@19.2.16)
       mermaid: 11.15.0
     transitivePeerDependencies:
       - '@babel/core'
@@ -3552,7 +3556,7 @@ snapshots:
   '@tailwindcss/node@4.3.0':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.22.1
+      enhanced-resolve: 5.22.2
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
@@ -3929,7 +3933,7 @@ snapshots:
   '@voidzero-dev/vite-plus-win32-x64-msvc@0.1.24':
     optional: true
 
-  '@zenuml/core@3.49.0(@types/react@19.2.16)(playwright-core@1.60.0)':
+  '@zenuml/core@3.49.2(@types/react@19.2.16)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@headlessui/react': 2.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -3938,7 +3942,7 @@ snapshots:
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       color-string: 2.1.4
-      dompurify: 3.4.7
+      dompurify: 3.4.8
       highlight.js: 11.11.1
       html-to-image: 1.11.13
       immer: 10.2.0
@@ -3953,7 +3957,6 @@ snapshots:
       tailwindcss: 3.4.19
     optionalDependencies:
       '@napi-rs/canvas': 0.1.100
-      playwright-core: 1.60.0
     transitivePeerDependencies:
       - '@babel/core'
       - '@babel/template'
@@ -4408,7 +4411,7 @@ snapshots:
 
   dlv@1.1.3: {}
 
-  dompurify@3.4.7:
+  dompurify@3.4.8:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -4421,6 +4424,11 @@ snapshots:
       once: 1.4.0
 
   enhanced-resolve@5.22.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.22.2:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
@@ -4672,7 +4680,7 @@ snapshots:
       '@asamuzakjp/css-color': 5.1.11
       '@asamuzakjp/dom-selector': 7.1.1
       '@bramus/specificity': 2.4.2
-      '@csstools/css-syntax-patches-for-csstree': 1.1.4(css-tree@3.2.1)
+      '@csstools/css-syntax-patches-for-csstree': 1.1.5(css-tree@3.2.1)
       '@exodus/bytes': 1.15.1
       css-tree: 3.2.1
       data-urls: 7.0.0
@@ -4810,7 +4818,7 @@ snapshots:
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
       dayjs: 1.11.21
-      dompurify: 3.4.7
+      dompurify: 3.4.8
       es-toolkit: 1.47.0
       katex: 0.16.47
       khroma: 2.1.0

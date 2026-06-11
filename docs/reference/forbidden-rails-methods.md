@@ -32,7 +32,8 @@ params[:user]&.permit(:email, :name) || ActionController::Parameters.new
 
 ### `skip_before_action`
 
-Do not use `skip_before_action`.
+Do not use `skip_before_action` to remove an authentication, authorization, verification, CSRF,
+rate-limit, or sequencing guard.
 
 Reason:
 
@@ -42,6 +43,22 @@ Reason:
 
 If an endpoint needs different protection, place it under the correct public or private controller
 boundary and use the established lifecycle for that surface.
+
+Enforced boundary (the only sanctioned exceptions):
+
+- `AuthenticationBase` overrides `skip_before_action` / `skip_action_callback` to **hard-block**
+  skipping `:enforce_access_policy!` (raises `SkipNotAllowedError`). The authorization gate can
+  never be skipped.
+- Skipping `:enforce_verification_if_required`, `:enforce_step_up_prereqs!`, or
+  `:authenticate_client!` is permitted only for controllers in the reviewed
+  `SENSITIVE_SKIP_ALLOWLIST`, mechanically enforced by
+  `test/unit/security/forbidden_rails_patterns_test.rb`. A new file that skips one of these fails
+  that test until the boundary change is deliberately reviewed.
+- Skipping non-security context/preference callbacks (for example `:set_region`,
+  `:set_preferences_cookie`, `:set_color_theme`) is allowed where an endpoint legitimately does not
+  participate in that context, and is not a security relaxation.
+
+See `.harnes/policies/forbidden_patterns.md` for the same enforced-regression-guard summary.
 
 ### `skip_authorization`
 
@@ -177,6 +194,23 @@ Reason:
 - It bypasses validations and callbacks.
 - It can silently update large data sets.
 - It can skip audit or domain invariants.
+
+### ADR-sanctioned data-retention exceptions
+
+The retention/purge pipeline is the standing, accepted exception to the `delete_all` / `update_all`
+rules above, per `adr/retainable-concern-and-retention-purge.md` (Accepted). Set-based `delete_all`
+is intentional there: it issues a real connection-local SQL `DELETE` that skips per-row callbacks
+and cross-database `dependent:` traversal, which is exactly the property the cross-database child
+purge needs.
+
+Sanctioned call sites (do not "fix" these into row-by-row `destroy`):
+
+- `app/jobs/retention_purge_job.rb`, `app/jobs/dpop_proof_state_purge_job.rb`
+- `app/services/retention_cross_database_child_purge.rb`
+- `app/services/identity_*_ceremony_transaction_purger.rb`
+- discard/expiry sweeps such as `acme_refresh_token_service.rb` (`update_all(discarded_at:)`)
+
+New destructive-op call sites still require explicit approval and should reference an Accepted ADR.
 
 ### `execute(...)`
 

@@ -1,6 +1,15 @@
 # typed: false
 # frozen_string_literal: true
 
+# Periodic physical deletion of records past their `purged_at` window.
+#
+# The set-based `delete_all` here is the Accepted, ADR-sanctioned exception to
+# the forbidden-method rule on `delete_all`: see
+# `adr/retainable-concern-and-retention-purge.md` and the "ADR-sanctioned
+# data-retention exceptions" section of
+# `docs/reference/forbidden-rails-methods.md`. Do not rewrite it as row-by-row
+# `destroy` — the batch DELETE (FK cascades, no AR callbacks) is the intended
+# behavior.
 class RetentionPurgeJob < ApplicationJob
   queue_as :retention
 

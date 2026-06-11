@@ -14,7 +14,7 @@ module ActiveSupport
     # Keep the default conservative for low-shared-memory local containers.
     # Developers and CI can opt into more workers when the database host has
     # enough shared memory for parallel schema loads.
-    parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 1).to_i)
+    parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 16).to_i)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

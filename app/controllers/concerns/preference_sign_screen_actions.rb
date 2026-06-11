@@ -86,7 +86,10 @@ module PreferenceSignScreenActions
     @preference.require_reset_confirmation(params[:confirm_reset])
 
     unless @preference.valid?(:reset)
-      render :edit, status: :unprocessable_content
+      # Render the same shared reset template the edit action uses. Acme routes
+      # every preference screen through shared templates and has no per-surface
+      # resets/edit view, so `render :edit` would raise MissingTemplate.
+      render "acme/shared/preference/resets", status: :unprocessable_content
       return
     end
 

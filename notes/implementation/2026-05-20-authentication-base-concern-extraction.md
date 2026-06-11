@@ -106,3 +106,26 @@ No extracted concern in this stage registers callbacks or rescue handlers.
 - Fixed `LogoutAllSessions` N+1 detection by telling the single-session primitive not to re-query
   and cascade all device-session tokens during a bulk revoke. Bulk revoke still delegates each token
   to `Authentication::LogoutCurrentSession`.
+
+## Audit Update 2026-06-10
+
+State of the concern extraction as observed during a read-only repository audit (full suite green:
+6960 runs, 0 failures, 0 errors, 0 skips):
+
+- The live concern is the **flat** `AuthenticationBase` at
+  `app/controllers/concerns/authentication_base.rb`, included by 31 files through
+  `AuthenticationClient` / `AuthenticationVisitor` / `AuthenticationOperator`. The namespaced
+  `Authentication::Base` / `concerns/authentication/base.rb` names used in the prose above do
+  **not** exist in the tree; the extraction landed under flat `Authentication*` names instead
+  (`AuthenticationAuditWriter`, `AuthenticationJwtTokens`, `AuthenticationDeviceBinding`,
+  `AuthenticationBulletinGate`, `AuthenticationSequenceGate`, `AuthenticationCookieService`,
+  `AuthenticationLogoutable`, `AuthenticationWithdrawalGate`, ~23 siblings total). Treat the
+  namespaced names above as the original intent, not current paths.
+- Despite those extractions, `AuthenticationBase` is still ~2611 lines / ~185 methods. The "thin
+  orchestrator" target in this note is **not yet reached**: session lifecycle, `log_in`, refresh /
+  token rotation, login-cooldown, and the access-policy DSL still live in `Base`. The classification
+  table above still maps the remaining session-lifecycle cluster as the next extraction candidate.
+- No refactor was performed in this audit. Decomposition remains an outstanding follow-up and should
+  proceed in small, behavior-stable slices consistent with the two-base direction
+  (`adr/two-base-authentication-mode-boundaries.md`, Accepted 2026-05-25), re-running the suite per
+  slice. Avoid a big-bang split: the concern is included by 31 controllers/concerns.

@@ -19,6 +19,11 @@
 # Chronicle (audit) children are intentionally NOT purged here: chronicle is
 # append-only audit history that must outlive actor purge. See
 # adr/chronicle-audit-db-consolidation.md.
+#
+# The set-based `delete_all` below is the Accepted, ADR-sanctioned exception to
+# the forbidden-method rule on `delete_all`: see
+# adr/retainable-concern-and-retention-purge.md and the "ADR-sanctioned
+# data-retention exceptions" section of docs/reference/forbidden-rails-methods.md.
 class RetentionCrossDatabaseChildPurge
   def self.call(actor:)
     new(actor:).call

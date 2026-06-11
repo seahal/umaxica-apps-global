@@ -54,10 +54,10 @@ class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
       end
 
     email = mailer.with(email_record: email_record).sample
-    expected_url = Rails.application.routes.url_helpers.sign_com_preference_email_url(
+    expected_url = Rails.application.routes.url_helpers.acme_com_preference_email_url(
       email_record,
       token: email_record.promotional_unsubscribe_token,
-      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
     )
 
     assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value

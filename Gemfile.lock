@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 71671aded0c2fff1c0c784f88c3b042ec0f212fa
+  revision: dd638903abd641892dab8729f06b279a3749af2d
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -130,7 +130,7 @@ GEM
       version_gem (~> 1.1, >= 1.1.10)
     aws-eventstream (1.4.0)
     aws-partitions (1.1259.0)
-    aws-sdk-core (3.251.0)
+    aws-sdk-core (3.252.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
       aws-sigv4 (~> 1.9)
@@ -486,7 +486,7 @@ GEM
       monetize (~> 2.0)
       money (~> 7.0)
       railties (>= 7.0)
-    msgpack (1.8.2)
+    msgpack (1.8.3)
     multi_xml (0.9.1)
       bigdecimal (>= 3.1, < 5)
     mutant (0.16.3)
@@ -733,7 +733,7 @@ GEM
       opentelemetry-common (~> 0.20)
       opentelemetry-registry (~> 0.2)
       opentelemetry-semantic_conventions
-    opentelemetry-semantic_conventions (1.40.0)
+    opentelemetry-semantic_conventions (1.41.0)
       opentelemetry-api (~> 1.0)
     os (1.1.4)
     ostruct (0.6.3)
@@ -992,15 +992,15 @@ GEM
       fugit (~> 1.11)
       railties (>= 7.1)
       thor (>= 1.3.1)
-    sorbet (0.6.13294)
-      sorbet-static (= 0.6.13294)
-    sorbet-runtime (0.6.13294)
-    sorbet-static (0.6.13294-aarch64-linux)
-    sorbet-static (0.6.13294-universal-darwin)
-    sorbet-static (0.6.13294-x86_64-linux)
-    sorbet-static-and-runtime (0.6.13294)
-      sorbet (= 0.6.13294)
-      sorbet-runtime (= 0.6.13294)
+    sorbet (0.6.13295)
+      sorbet-static (= 0.6.13295)
+    sorbet-runtime (0.6.13295)
+    sorbet-static (0.6.13295-aarch64-linux)
+    sorbet-static (0.6.13295-universal-darwin)
+    sorbet-static (0.6.13295-x86_64-linux)
+    sorbet-static-and-runtime (0.6.13295)
+      sorbet (= 0.6.13295)
+      sorbet-runtime (= 0.6.13295)
     spoom (1.7.16)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
@@ -1247,7 +1247,7 @@ CHECKSUMS
   auth-sanitizer (0.2.1) sha256=917dcf01f7589b06c26726afe90568cf2fb29d37a1f94facfc664f11967cc577
   aws-eventstream (1.4.0) sha256=116bf85c436200d1060811e6f5d2d40c88f65448f2125bc77ffce5121e6e183b
   aws-partitions (1.1259.0) sha256=1a61c53f85cee1e69e4ab7946c7350b2237d724acf589023715e7117c03c18c6
-  aws-sdk-core (3.251.0) sha256=ef8186cb5509147e590310da58fab4c5b0901eba0e85a72955abdf772e425c87
+  aws-sdk-core (3.252.0) sha256=09c042cbfc2acf2239441cc9b982ebab2a999bed2ef6bdc51849e7b3d6e48a1c
   aws-sdk-sns (1.117.0) sha256=90ae4cc870342a5b6f718e35810229258259a5d81fea36b64ecc670f0196cdfb
   aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
@@ -1375,7 +1375,7 @@ CHECKSUMS
   monetize (2.0.0) sha256=152980cadff9fd11a95817d56e3d7d69b07998c4506f15d971edf05851f82aba
   money (7.0.2) sha256=615c27c1fd1d190dceda5c5f4dd5af5f4d20f790ff3b62ea2fe2d96eb22e2c60
   money-rails (3.0.0) sha256=f4bd1c8e1c98d221e7bf452eeb52e240f41224e43da2a477a5659a87c0c95bae
-  msgpack (1.8.2) sha256=e440d11c99d6dfe8b2fbc4feb74c3518c1ba024357c70bbd734d9bb1a44d0d25
+  msgpack (1.8.3) sha256=8bda4a6428d3244e50d6bd55854d354edbada88a4e1f4f5731a39a0f86bee6a1
   multi_xml (0.9.1) sha256=7ce766b59c17241ed62976caeae1fae9b2431b263398c35396239a68c4a64e57
   mutant (0.16.3) sha256=7e10fb09b80a78d82f8e38283fc1e4d562cbb1392451e2a21611ea2bc44b5023
   mutant-minitest (0.16.3) sha256=504d110c1bd503528a7e57a4f062960e571bba4e3939e4a66ddc0f75d2071d90
@@ -1457,7 +1457,7 @@ CHECKSUMS
   opentelemetry-instrumentation-trilogy (0.69.0) sha256=0676dd720eeab284abfa52f273967442156fcac7084a1e1411373cf14ec026ad
   opentelemetry-registry (0.6.0) sha256=5d3ed32ab9eee0fbdb30d4f0d0bb61ad11a4040b267b475ae815b80a8498a728
   opentelemetry-sdk (1.12.0) sha256=a224abe0c59023d41cb7ac1c634d9d28843907efcd045ed1ae320796c48b864b
-  opentelemetry-semantic_conventions (1.40.0) sha256=32839d4127102986447080098d1dbad9945d18ab96e9c8cb6657166baf64f441
+  opentelemetry-semantic_conventions (1.41.0) sha256=3be5e4c141f9c5e9db17ab491ac76826519296ea80994bf7b9ada95c668cc010
   os (1.1.4) sha256=57816d6a334e7bd6aed048f4b0308226c5fb027433b67d90a9ab435f35108d3f
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
   packwerk (3.3.0) sha256=5a23dfb161ce225dea02a7171dd038b21b77b7c685e37edd635cd75fb8b1a74f
@@ -1562,12 +1562,12 @@ CHECKSUMS
   snaky_hash (2.0.5) sha256=70e74137d6738aef067950a3bb9a4d2655778be4bc9725efc36e7607feb22cdd
   solid_cache (1.0.10) sha256=bc05a2fb3ac78a6f43cbb5946679cf9db67dd30d22939ededc385cb93e120d41
   solid_queue (1.4.0) sha256=e6a18d196f0b27cb6e3c77c5b31258b05fb634f8ed64fb1866ed164047216c2a
-  sorbet (0.6.13294) sha256=acd548c8697bbfa5434cc61a57434f3778735dfe3d34a07795b3fb163224510e
-  sorbet-runtime (0.6.13294) sha256=4a077c87f2277fff19f24e83729f05824f398508c1692654fc2681cb8e905b4a
-  sorbet-static (0.6.13294-aarch64-linux) sha256=07d30a326fcc484f4e3193f14ce4aa110ba324d097b1ef624c6bfb5ef7dee163
-  sorbet-static (0.6.13294-universal-darwin) sha256=61c7bb3b35e481c22c537b39d1de4a871208756fbb9384af24f439deee6b45ec
-  sorbet-static (0.6.13294-x86_64-linux) sha256=f3c61374dc9c0b5269d23d007b10abfa8e8cc15c2c38c8a382314b8d1a11520c
-  sorbet-static-and-runtime (0.6.13294) sha256=93dd90c2532cac81f7af56b0ce1bb8b3c0877f2e189309d174400da94853b883
+  sorbet (0.6.13295) sha256=27fedd42503626c99572fa97f4346ace3a6a6280df4bf55e56cc94602ca26d7f
+  sorbet-runtime (0.6.13295) sha256=c61a89c1a2c6ed79b4d38c64b9ce2c03de4d362e6803be2a871562000964114e
+  sorbet-static (0.6.13295-aarch64-linux) sha256=a4af5aae89707f2aa2e80ac0b683715bda6b009c4ed3c9b82cafdc7511dd496a
+  sorbet-static (0.6.13295-universal-darwin) sha256=6a2b3373846e1656c74234a71e8c1b7786b6971577017de006933bf36dcbf4fb
+  sorbet-static (0.6.13295-x86_64-linux) sha256=1b7bf58f5e4316ebaf208671fc177c73ef2ecbc34cd4869b46bab0bc1c1840a4
+  sorbet-static-and-runtime (0.6.13295) sha256=8e08f6d83c946461fdffed1b4e4321403af25ad8e3a6d2aff11a3eb561f98ef2
   spoom (1.7.16) sha256=b6033d1aaede800ef37505474d260d57a02fa63364b4725ea40b6f606e932d59
   stackprof (0.2.28) sha256=4ec2ace02f386012b40ca20ef80c030ad711831f59511da12e83b34efb0f9a04
   stimulus-rails (1.3.4) sha256=765676ffa1f33af64ce026d26b48e8ffb2e0b94e0f50e9119e11d6107d67cb06

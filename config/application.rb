@@ -50,8 +50,13 @@ module Jit
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
-    # Add app/errors to autoload paths
-    config.autoload_paths << Rails.root.join("app/errors")
+    # Register app/errors as an eager-load path (not autoload-only). Adding it to
+    # autoload_paths alone excluded it from the default app/* eager-load set, so in
+    # eager-loading environments (test/production) the error classes were resolved
+    # lazily on first reference and skipped by `zeitwerk:check`. eager_load_paths
+    # entries are also autoload paths, so this keeps autoloading and restores
+    # boot-time constant verification.
+    config.eager_load_paths << Rails.root.join("app/errors")
 
     ### Added by user
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)

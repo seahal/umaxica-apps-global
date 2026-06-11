@@ -286,15 +286,15 @@ module PreferenceGlobal
   end
 
   def redirect_to_context_query(redirect_params)
-    redirect_url = url_for(
-      protocol: request.protocol,
-      host: request.host,
-      port: request.port,
-      controller: controller_path,
-      action: action_name,
-      **redirect_params.symbolize_keys,
-      only_path: false,
-    )
+    # Preserve the actual request path rather than regenerating it from
+    # controller/action. Acme routes every preference screen through a single
+    # `screens` controller, so url_for(controller:, action:) would collapse to
+    # the first screen route (region) and bounce the user off their current
+    # screen. Building on request.path (as build_ri_redirect_url does) keeps the
+    # redirect on the same screen for both sign and acme surfaces.
+    base = "#{request.base_url}#{request.path}"
+    query_string = redirect_params.to_query
+    redirect_url = query_string.blank? ? base : "#{base}?#{query_string}"
 
     redirect_to(redirect_url, status: redirect_status_for_ri?)
   end

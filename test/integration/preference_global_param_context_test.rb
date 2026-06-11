@@ -11,9 +11,9 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
   end
 
   DOMAINS = [
-    { name: "sign_app", host: "id.app.localhost", preference_url_method: :sign_app_preference_url },
-    { name: "sign_org", host: "id.org.localhost", preference_url_method: :sign_org_preference_url },
-    { name: "sign_com", host: "id.com.localhost", preference_url_method: :sign_com_preference_url },
+    { name: "acme_app", host: "www.app.localhost", preference_url_method: :acme_app_preference_url },
+    { name: "acme_org", host: "www.org.localhost", preference_url_method: :acme_org_preference_url },
+    { name: "acme_com", host: "www.com.localhost", preference_url_method: :acme_com_preference_url },
   ].freeze
 
   # =============================================================================
@@ -72,8 +72,8 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} timezone edit includes United States timezone options" do
       host!(domain[:host])
 
-      surface = domain[:name].delete_prefix("sign_")
-      get public_send("edit_sign_#{surface}_preference_timezone_url", ri: "jp", lx: "ja")
+      surface = domain[:name].delete_prefix("acme_")
+      get public_send("edit_acme_#{surface}_preference_timezone_url", ri: "jp", lx: "ja")
 
       assert_response :success
       assert_select "html[lang='ja']"
@@ -274,8 +274,8 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} jst timezone param is removed from theme edit URL" do
       host!(domain[:host])
 
-      surface = domain[:name].delete_prefix("sign_")
-      get public_send("edit_sign_#{surface}_preference_theme_url", ri: "us", lx: "en", tz: "jst")
+      surface = domain[:name].delete_prefix("acme_")
+      get public_send("edit_acme_#{surface}_preference_theme_url", ri: "us", lx: "en", tz: "jst")
 
       assert_response :redirect
       location = URI.parse(response.headers.fetch("Location"))
@@ -290,8 +290,8 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} canonicalizes timezone param in request URL to lowercase" do
       host!(domain[:host])
 
-      surface = domain[:name].delete_prefix("sign_")
-      get public_send("edit_sign_#{surface}_preference_theme_url", ri: "jp", tz: "Asia/Tokyo")
+      surface = domain[:name].delete_prefix("acme_")
+      get public_send("edit_acme_#{surface}_preference_theme_url", ri: "jp", tz: "Asia/Tokyo")
 
       assert_response :redirect
       location = URI.parse(response.headers.fetch("Location"))

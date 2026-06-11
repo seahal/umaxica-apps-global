@@ -76,10 +76,6 @@ module AcmePreferenceScreenDispatch
   end
 
   def preference_screen_template
-    screen = preference_key.to_s
-    sign_template = "sign/#{controller_path.split("/").second}/preference/#{screen.pluralize}/edit"
-    return sign_template if controller_path.start_with?("sign/") && lookup_context.exists?(sign_template)
-
     "acme/shared/preference/#{preference_screen_template_name}"
   end
 

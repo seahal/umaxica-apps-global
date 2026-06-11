@@ -96,13 +96,19 @@
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
     "ghcr.io/devcontainers-extra/features/opencode:1": {}
   },
+  // Host bind mounts are pinned readonly so in-container writes cannot
+  // be re-owned to a subuid on the host under rootless podman. Side
+  // effects: ~/.ssh/known_hosts cannot be appended from inside the
+  // container (accept new host keys on the host first); git/opencode
+  // config edits must happen on the host. ~/.claude and ~/.codex use
+  // named volumes for the same isolation reason (see compose.override.yml).
   "mounts": [
     "source=global-claude,target=/home/global/.claude,type=volume",
     "source=global-codex,target=/home/global/.codex,type=volume",
-    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind",
-    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind",
+    "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind,readonly",
     "type=bind,source=/etc/timezone,target=/etc/timezone,readonly"
   ]
 }
