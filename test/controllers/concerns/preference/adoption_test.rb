@@ -8,7 +8,7 @@ AdoptionSnapshotPreference =
     def blank? = false
   end
 
-class AdoptionFallbackPreference; end
+class AdoptionFallbackPreference; end # rubocop:disable Lint/EmptyClass
 
 module Preference
   class AdoptionTest < ActiveSupport::TestCase

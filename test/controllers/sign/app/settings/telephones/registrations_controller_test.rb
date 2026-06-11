@@ -46,6 +46,17 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current user without signup confirmation params" do
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @user.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get new_sign_app_settings_telephones_registration_url(
+      ri: "jp",
+      telephone_ceremony_grant: issuance.grant,
+    ), headers: request_headers
+
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("ClientTelephone.count", 1) do
         post sign_app_settings_telephones_registration_url(ri: "jp"),
@@ -84,6 +95,16 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       user: @user,
       user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @user.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get new_sign_app_settings_telephones_registration_url(
+      ri: "jp",
+      telephone_ceremony_grant: issuance.grant,
+    ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_no_difference("ClientTelephone.count") do
@@ -101,8 +122,16 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_equal ClientTelephoneStatus::UNVERIFIED, reused.user_telephone_status_id
   end
   test "new renders successfully and resets session" do
-    get new_sign_app_settings_telephones_registration_url(ri: "jp"),
-        headers: request_headers
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @user.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get new_sign_app_settings_telephones_registration_url(
+      ri: "jp",
+      telephone_ceremony_grant: issuance.grant,
+    ), headers: request_headers
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
@@ -366,12 +395,28 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       ClientTelephone.find(id)
     end
 
+    grant = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @user.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    ).grant
+
+    original_grant_method = Sign::App::Settings::Telephones::RegistrationsController.instance_method(:telephone_ceremony_grant_token)
+    Sign::App::Settings::Telephones::RegistrationsController.define_method(:telephone_ceremony_grant_token) do
+      grant
+    end
+
     begin
       yield if block_given?
     ensure
       Sign::App::Settings::Telephones::RegistrationsController.define_method(
         :current_registration_telephone,
         original_method,
+      )
+      Sign::App::Settings::Telephones::RegistrationsController.define_method(
+        :telephone_ceremony_grant_token,
+        original_grant_method,
       )
     end
   end

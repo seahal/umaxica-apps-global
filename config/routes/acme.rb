@@ -34,8 +34,8 @@ scope module: :acme, as: :acme do
       # TODO: I think following two lines of routing are same meaing.
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resources :welcomes, only: :show
-      resource :selector, only: %i(show update)
       resource :dashboard, only: :show
+      resource :selector, only: %i(show update)
       resource :verification, only: :show do
         post :completion
       end

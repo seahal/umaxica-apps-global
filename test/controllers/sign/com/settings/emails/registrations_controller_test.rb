@@ -29,7 +29,16 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "new renders notification preference only" do
-    get new_sign_com_settings_emails_registration_url(ri: "jp"), headers: @headers
+    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: @visitor.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get new_sign_com_settings_emails_registration_url(
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: @headers
 
     assert_response :success
     assert_select "input[type=email][name='visitor_email[address]']", count: 1
@@ -47,7 +56,16 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get new_sign_com_settings_emails_registration_url(ri: "jp"), headers: headers
+    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: visitor.public_id,
+      session_ref: token.public_id,
+      operation: "registration",
+    )
+    get new_sign_com_settings_emails_registration_url(
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: headers
 
     assert_response :success
     assert_equal VisitorMfaStatus::UNCONFIGURED, visitor.reload.mfa_status_id
@@ -68,6 +86,17 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create sends OTP email and stores notification preference" do
+    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: @visitor.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get new_sign_com_settings_emails_registration_url(
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: @headers
+
     assert_enqueued_emails 1 do
       post sign_com_settings_emails_registration_url(ri: "jp"),
            params: {

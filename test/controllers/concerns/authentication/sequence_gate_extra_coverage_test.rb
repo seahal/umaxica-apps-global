@@ -95,14 +95,6 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     def request = @request_obj
 
-    def current_resource
-      @current_resource
-    end
-
-    def current_resource=(value)
-      @current_resource = value
-    end
-
     def logged_in? = current_resource.present?
 
     def current_session

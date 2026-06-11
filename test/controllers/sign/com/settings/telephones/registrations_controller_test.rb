@@ -34,9 +34,18 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   test "new does not require step-up while registering first telephone" do
     visitor = create_verified_visitor_with_email(email_address: "first-telephone-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: visitor.public_id,
+      session_ref: token.public_id,
+      operation: "registration",
+    )
 
     get(
-      new_sign_com_settings_telephones_registration_url(ri: "jp"),
+      new_sign_com_settings_telephones_registration_url(
+        ri: "jp",
+        telephone_ceremony_grant: issuance.grant,
+      ),
       headers: request_headers_for(visitor, token),
     )
 
@@ -62,6 +71,19 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current visitor" do
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: @visitor.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
+    get(
+      new_sign_com_settings_telephones_registration_url(
+        ri: "jp",
+        telephone_ceremony_grant: issuance.grant,
+      ),
+      headers: request_headers,
+    )
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("VisitorTelephone.count", 1) do
         post sign_com_settings_telephones_registration_url(ri: "jp"),
@@ -80,8 +102,17 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "new renders stealth turnstile" do
+    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: @visitor.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    )
     get(
-      new_sign_com_settings_telephones_registration_url(ri: "jp"),
+      new_sign_com_settings_telephones_registration_url(
+        ri: "jp",
+        telephone_ceremony_grant: issuance.grant,
+      ),
       headers: request_headers,
     )
 
@@ -302,11 +333,30 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     Sign::Com::Settings::Telephones::RegistrationsController.define_method(:current_registration_telephone) do
       telephone
     end
-    yield
-  ensure
-    Sign::Com::Settings::Telephones::RegistrationsController.define_method(
-      :current_registration_telephone,
-      original_method,
-    )
+
+    grant = IdentityTelephoneCeremonyGrantIssuer.issue!(
+      surface: "com",
+      actor_ref: @visitor.public_id,
+      session_ref: @token.public_id,
+      operation: "registration",
+    ).grant
+
+    original_grant_method = Sign::Com::Settings::Telephones::RegistrationsController.instance_method(:telephone_ceremony_grant_token)
+    Sign::Com::Settings::Telephones::RegistrationsController.define_method(:telephone_ceremony_grant_token) do
+      grant
+    end
+
+    begin
+      yield
+    ensure
+      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
+        :current_registration_telephone,
+        original_method,
+      )
+      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
+        :telephone_ceremony_grant_token,
+        original_grant_method,
+      )
+    end
   end
 end
