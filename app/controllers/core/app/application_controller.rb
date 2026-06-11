@@ -78,6 +78,10 @@ module Core
       def oidc_sign_host
         ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       end
+
+      def oidc_acme_host
+        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      end
     end
   end
 end

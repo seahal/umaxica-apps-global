@@ -81,6 +81,13 @@ module Acme
         assert_respond_to controller, :oidc_sign_host
       end
 
+      def test_has_oidc_acme_host_method
+        controller = ApplicationController.new
+
+        assert_respond_to controller, :oidc_acme_host
+        assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), controller.send(:oidc_acme_host)
+      end
+
       def test_trusts_sign_origin_for_same_site_ceremony_posts
         trusted_origins = ApplicationController.forgery_protection_trusted_origins
 

@@ -75,6 +75,10 @@ module Core
       def oidc_sign_host
         ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
       end
+
+      def oidc_acme_host
+        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      end
     end
   end
 end

@@ -27,6 +27,7 @@ class OidcAuthorizeRequestValidator < ApplicationService
     raise ArgumentError, "redirect_uri is required" if redirect_uri.blank?
     raise ArgumentError, "code_challenge is required" if params[:code_challenge].blank?
     raise ArgumentError, "code_challenge_method must be 'S256'" unless params[:code_challenge_method] == "S256"
+    raise ArgumentError, "scope must include openid" unless scope_includes_openid?
   end
 
   def validate_state_and_nonce!
@@ -35,6 +36,8 @@ class OidcAuthorizeRequestValidator < ApplicationService
   end
 
   def validate_resource!
+    return if resource.blank?
+
     raise ArgumentError, "resource is not active" unless resource&.active?
   end
 
@@ -55,5 +58,9 @@ class OidcAuthorizeRequestValidator < ApplicationService
 
   def redirect_uri
     params[:redirect_uri]
+  end
+
+  def scope_includes_openid?
+    params[:scope].to_s.split.include?("openid")
   end
 end

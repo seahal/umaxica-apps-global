@@ -95,6 +95,10 @@ module Acme
         ENV.fetch("ID_STAFF_URL", "id.org.localhost")
       end
 
+      def oidc_acme_host
+        ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+      end
+
       private
 
       def actor_verification_path(**args)

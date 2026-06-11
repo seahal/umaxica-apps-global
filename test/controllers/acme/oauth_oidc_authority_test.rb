@@ -237,4 +237,117 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   ensure
     OidcLogoutRequest.replay_store = nil
   end
+
+  test "acme oauth authorize starts sign in ceremony on unauthenticated requests" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+
+    get "/oauth/authorize", params: oidc_authorize_params, headers: browser_headers
+
+    assert_response :redirect
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_equal "/sign/in/entrance", uri.path
+    assert_predicate query["login_challenge"], :present?
+
+    transaction = ClientOidcAuthorizationTransaction.find_by!(login_challenge: query["login_challenge"])
+
+    assert_equal "app", transaction.surface
+    assert_equal "sign_in", transaction.intent
+    assert_equal "openid profile", transaction.scope
+  end
+
+  test "acme oauth authorize starts sign up ceremony when screen_hint requests signup" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+
+    get "/oauth/authorize", params: oidc_authorize_params(screen_hint: "signup"), headers: browser_headers
+
+    assert_response :redirect
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+
+    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_equal "/sign/up/entrance", uri.path
+  end
+
+  test "acme oauth authorize rejects requests without openid scope" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+
+    assert_no_difference "ClientOidcAuthorizationTransaction.count" do
+      get "/oauth/authorize", params: oidc_authorize_params(scope: "profile email"), headers: browser_headers
+    end
+
+    assert_response :bad_request
+    assert_equal "invalid_request", response.parsed_body["error"]
+    assert_equal "scope must include openid", response.parsed_body["error_description"]
+  end
+
+  test "acme oauth authorize consumes login challenge once" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+    issuance = OidcAuthorizationTransactionService.issue!(surface: "app", intent: "sign_in", params: oidc_authorize_params)
+
+    OidcAuthorizationTransactionService.register_result!(
+      surface: "app",
+      login_challenge: issuance.transaction.login_challenge,
+      actor: clients(:one),
+      session_ref: "session-1",
+      auth_method: "passkey",
+    )
+
+    get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge }, headers: browser_headers
+
+    assert_response :redirect
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_predicate query["code"], :present?
+    assert_equal oidc_authorize_params[:state], query["state"]
+    assert_predicate issuance.transaction.reload, :consumed?
+
+    get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge }, headers: browser_headers
+
+    assert_response :bad_request
+    assert_equal "authorization transaction already consumed", response.parsed_body["error_description"]
+  end
+
+  test "acme oauth authorize rejects expired login challenge" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+    issuance =
+      OidcAuthorizationTransactionService.issue!(
+        surface: "app",
+        intent: "sign_in",
+        params: oidc_authorize_params,
+        login_challenge_ttl: 1.second,
+        now: Time.current,
+      )
+
+    travel 2.seconds do
+      get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge }, headers: browser_headers
+    end
+
+    assert_response :bad_request
+    assert_equal "authorization transaction expired", response.parsed_body["error_description"]
+  end
+
+  private
+
+  def oidc_authorize_params(screen_hint: nil, scope: "openid profile")
+    params = {
+      response_type: "code",
+      client_id: "core_app",
+      redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+      code_challenge: "challenge",
+      code_challenge_method: "S256",
+      state: "state",
+      nonce: "nonce",
+      scope: scope,
+    }
+    params[:screen_hint] = screen_hint if screen_hint.present?
+    params
+  end
 end

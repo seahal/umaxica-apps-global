@@ -80,6 +80,13 @@ module Acme
         assert_respond_to controller, :oidc_sign_host
         assert_equal ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"), controller.send(:oidc_sign_host)
       end
+
+      test "has oidc_acme_host method" do
+        controller = ApplicationController.new
+
+        assert_respond_to controller, :oidc_acme_host
+        assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), controller.send(:oidc_acme_host)
+      end
     end
   end
 end

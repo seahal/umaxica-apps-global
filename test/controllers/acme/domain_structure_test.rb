@@ -31,11 +31,25 @@ module Acme
                         "Acme::App should have oidc_sign_host method"
     end
 
+    test "acme/app has oidc_acme_host method" do
+      controller = Acme::App::ApplicationController.new
+
+      assert_respond_to controller, :oidc_acme_host,
+                        "Acme::App should have oidc_acme_host method"
+    end
+
     test "acme/com has oidc_sign_host method" do
       controller = Acme::Com::ApplicationController.new
 
       assert_respond_to controller, :oidc_sign_host,
                         "Acme::Com should have oidc_sign_host method"
+    end
+
+    test "acme/com has oidc_acme_host method" do
+      controller = Acme::Com::ApplicationController.new
+
+      assert_respond_to controller, :oidc_acme_host,
+                        "Acme::Com should have oidc_acme_host method"
     end
   end
 end

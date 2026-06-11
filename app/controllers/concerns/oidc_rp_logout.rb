@@ -30,8 +30,8 @@ module OidcRpLogout
   def idp_session_management_url
     ri = params[:ri].presence || "jp"
     uri = URI::Generic.build(
-      scheme: oidc_sign_scheme,
-      host: oidc_sign_host,
+      scheme: oidc_acme_scheme,
+      host: oidc_acme_host,
       port: oidc_port,
       path: "/settings/sessions",
     )
@@ -39,8 +39,8 @@ module OidcRpLogout
     uri.to_s
   end
 
-  def oidc_sign_scheme
-    return "http" if !request.ssl? && oidc_sign_host.to_s.end_with?(".localhost")
+  def oidc_acme_scheme
+    return "http" if !request.ssl? && oidc_acme_host.to_s.end_with?(".localhost")
 
     "https"
   end

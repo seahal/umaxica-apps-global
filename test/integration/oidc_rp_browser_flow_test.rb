@@ -9,19 +9,19 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     { host: "www.app.localhost",
       client_id: "acme_app",
-      sign_host: ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
+      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       resource: -> {
         clients(:one)
       }, },
     { host: "www.org.localhost",
       client_id: "acme_org",
-      sign_host: ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
+      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
       resource: -> {
         operators(:one)
       }, },
     { host: "www.com.localhost",
       client_id: "acme_com",
-      sign_host: ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"),
+      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
       resource: -> {
         create_visitor!
       }, },
@@ -34,7 +34,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     OperatorIdentityState.ensure_defaults!
   end
 
-  test "app com and org sso authorize redirects to IdP with state nonce and PKCE" do
+  test "app com and org sso authorize redirects to Acme OP with state nonce and PKCE" do
     SURFACES.each do |surface|
       host! surface[:host]
 
@@ -44,7 +44,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
-      assert_equal surface[:sign_host], uri.host
+      assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
       assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
@@ -56,9 +56,9 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "app com and org IdP authorization endpoints are exposed at oauth authorize" do
+  test "app com and org authorization endpoints are exposed at Acme oauth authorize" do
     SURFACES.each do |surface|
-      host! surface[:sign_host]
+      host! surface[:acme_host]
 
       get "/oauth/authorize", params: {
         response_type: "code",
@@ -160,7 +160,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "logout clears only RP session and redirects locally with IdP session-management guidance" do
+  test "logout clears only RP session and redirects locally with Acme session-management guidance" do
     SURFACES.each do |surface|
       host! surface[:host]
 
@@ -169,7 +169,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
       assert_match "/settings/sessions", flash[:notice]
-      assert_match surface[:sign_host], flash[:notice]
+      assert_match surface[:acme_host], flash[:notice]
     end
   end
 

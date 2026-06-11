@@ -56,8 +56,8 @@ module OidcSsoInitiator
 
   def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)
     uri = URI::Generic.build(
-      scheme: oidc_sign_scheme,
-      host: oidc_sign_host,
+      scheme: oidc_acme_scheme,
+      host: oidc_acme_host,
       port: oidc_port,
       path: "/oauth/authorize",
     )
@@ -80,7 +80,7 @@ module OidcSsoInitiator
     uri = URI.parse(url.to_s)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
     return [] unless uri.is_a?(URI::HTTP)
-    return [] unless uri.host == oidc_sign_host
+    return [] unless uri.host == oidc_acme_host
     return [] unless uri.path == "/oauth/authorize"
     return [] unless query["client_id"] == oidc_client_id
     return [] unless query["redirect_uri"] == oidc_callback_url
@@ -96,8 +96,8 @@ module OidcSsoInitiator
 
   def oidc_token_url
     uri = URI::Generic.build(
-      scheme: oidc_sign_scheme,
-      host: oidc_sign_host,
+      scheme: oidc_acme_scheme,
+      host: oidc_acme_host,
       port: oidc_port,
       path: "/oauth/token",
     )
@@ -108,8 +108,8 @@ module OidcSsoInitiator
     [80, 443].include?(request.port) ? nil : request.port
   end
 
-  def oidc_sign_scheme
-    return "http" if !request.ssl? && oidc_sign_host.to_s.end_with?(".localhost")
+  def oidc_acme_scheme
+    return "http" if !request.ssl? && oidc_acme_host.to_s.end_with?(".localhost")
 
     "https"
   end
@@ -163,5 +163,9 @@ module OidcSsoInitiator
 
   def oidc_sign_host
     raise NotImplementedError, "controller must define oidc_sign_host"
+  end
+
+  def oidc_acme_host
+    raise NotImplementedError, "controller must define oidc_acme_host"
   end
 end

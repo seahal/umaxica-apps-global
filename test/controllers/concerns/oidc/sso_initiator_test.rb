@@ -27,6 +27,10 @@ class OidcSsoInitiatorTestController < ApplicationController
     "id.app.localhost"
   end
 
+  def oidc_acme_host
+    "www.app.localhost"
+  end
+
   def oidc_callback_url
     "http://www.example.com/auth/callback"
   end
@@ -54,7 +58,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     location = jump_rt_url_from_location(response.location)
 
-    assert_match %r{\Ahttp://id\.app\.localhost/oauth/authorize\?}, location
+    assert_match %r{\Ahttp://www\.app\.localhost/oauth/authorize\?}, location
     authorize_params = Rack::Utils.parse_nested_query(URI.parse(location).query)
 
     assert_equal "acme_app", authorize_params.fetch("client_id")

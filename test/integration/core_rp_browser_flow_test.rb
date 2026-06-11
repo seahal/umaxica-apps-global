@@ -8,19 +8,19 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     {
       host: ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
       client_id: "core_app",
-      sign_host: ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
+      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       resource: -> { clients(:one) },
     },
     {
       host: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
       client_id: "core_org",
-      sign_host: ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
+      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
       resource: -> { operators(:one) },
     },
     {
       host: ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
       client_id: "core_com",
-      sign_host: ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com"),
+      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
       resource: -> { create_visitor! },
     },
   ].freeze
@@ -61,7 +61,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "regional core sso authorize redirects to IdP with state nonce and PKCE" do
+  test "regional core sso authorize redirects to Acme OP with state nonce and PKCE" do
     SURFACES.each do |surface|
       host! surface[:host]
       https!
@@ -72,7 +72,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
-      assert_equal surface[:sign_host], uri.host
+      assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
       assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
@@ -94,7 +94,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       uri = URI.parse(jump_rt_url_from_location(response.location))
       query = Rack::Utils.parse_nested_query(uri.query)
 
-      assert_equal surface[:sign_host], uri.host
+      assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
       assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
@@ -135,7 +135,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "regional core logout clears only RP session and redirects locally with IdP guidance" do
+  test "regional core logout clears only RP session and redirects locally with Acme guidance" do
     SURFACES.each do |surface|
       host! surface[:host]
       https!
@@ -145,7 +145,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_equal "https://#{surface[:host]}/", response.location
       assert_match "/settings/sessions", flash[:notice]
-      assert_match surface[:sign_host], flash[:notice]
+      assert_match surface[:acme_host], flash[:notice]
     end
   end
 

@@ -99,6 +99,10 @@ module Acme
         ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       end
 
+      def oidc_acme_host
+        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      end
+
       private
 
       def actor_verification_path(**args)

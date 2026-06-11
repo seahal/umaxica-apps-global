@@ -129,6 +129,8 @@ module Sign
       end
 
       def after_login_path
+        return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
+
         acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
       end
 
@@ -158,6 +160,28 @@ module Sign
 
       def cross_host_redirect_allowed?
         true
+      end
+
+      def oidc_authorization_login_challenge
+        session[:oidc_authorization_login_challenge]
+      end
+
+      def oidc_authorization_after_login_path
+        challenge = oidc_authorization_login_challenge
+        result =
+          OidcAuthorizationTransactionService.register_result!(
+            surface: "com",
+            login_challenge: challenge,
+            actor: current_resource,
+            session_ref: current_session_public_id,
+            auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
+            acr: Actor.authn.access_claims&.dig("acr"),
+          )
+        session.delete(:oidc_authorization_login_challenge)
+        result.resume_url
+      rescue StandardError
+        session.delete(:oidc_authorization_login_challenge)
+        acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
       end
     end
   end

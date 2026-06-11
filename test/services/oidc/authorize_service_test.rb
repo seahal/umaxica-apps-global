@@ -94,6 +94,17 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     assert_equal "invalid_request", result.error
   end
 
+  test "fails when scope does not include openid" do
+    result = OidcAuthorizeService.call(
+      params: valid_params.merge(scope: "profile email"),
+      resource: @user,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+    assert_equal "scope must include openid", result.error_description
+  end
+
   test "state is included in redirect URL when provided" do
     result = OidcAuthorizeService.call(
       params: valid_params.merge(state: "my_state_123"),
@@ -170,6 +181,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
         code_challenge_method: "S256",
         state: "staff_state",
         nonce: "staff_nonce",
+        scope: "openid profile email",
       },
       resource: staff,
     )
@@ -197,7 +209,8 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
           state: "staff_state",
-          nonce: "staff_nonce",
+        nonce: "staff_nonce",
+        scope: "openid profile email",
         },
         resource: staff,
       )
@@ -223,6 +236,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
         code_challenge_method: "S256",
         state: "visitor_state",
         nonce: "visitor_nonce",
+        scope: "openid profile email",
       },
       resource: visitor,
     )
@@ -249,7 +263,8 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
           state: "visitor_state",
-          nonce: "visitor_nonce",
+        nonce: "visitor_nonce",
+        scope: "openid profile email",
         },
         resource: visitor,
       )
@@ -272,6 +287,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
       code_challenge_method: "S256",
       state: "test_state",
       nonce: "test_nonce",
+      scope: "openid profile email",
     }
   end
 

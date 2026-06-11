@@ -80,6 +80,8 @@ module Sign
 
       # Post-session landing belongs to acme/www.
       def after_login_path
+        return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
+
         acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
       end
 
@@ -89,6 +91,28 @@ module Sign
 
       def cross_host_redirect_allowed?
         true
+      end
+
+      def oidc_authorization_login_challenge
+        session[:oidc_authorization_login_challenge]
+      end
+
+      def oidc_authorization_after_login_path
+        challenge = oidc_authorization_login_challenge
+        result =
+          OidcAuthorizationTransactionService.register_result!(
+            surface: "app",
+            login_challenge: challenge,
+            actor: current_resource,
+            session_ref: current_session_public_id,
+            auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
+            acr: Actor.authn.access_claims&.dig("acr"),
+          )
+        session.delete(:oidc_authorization_login_challenge)
+        result.resume_url
+      rescue StandardError
+        session.delete(:oidc_authorization_login_challenge)
+        acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
       end
     end
   end
