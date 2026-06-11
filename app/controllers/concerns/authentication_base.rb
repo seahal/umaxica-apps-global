@@ -1250,11 +1250,42 @@ module AuthenticationBase
     # Only genuinely non-DBSC binding methods are eligible here.
     return false unless token_record.binding_method_nothing? || token_record.binding_method_legacy?
 
-    # A non-DBSC token in any DBSC lifecycle state (pending/active/failed/revoke)
+    # Browser-login tokens are issued LEGACY + PENDING (DBSC registration
+    # offered). A capable browser completes registration and becomes
+    # DBSC/ACTIVE, which is handled earlier in refresh_binding_allowed? and
+    # never reaches here. A token still PENDING at refresh time means
+    # registration has not completed: allow the refresh (do not lock out a
+    # non-DBSC browser), and once the registration challenge has expired without
+    # a proof, downgrade it to an explicit NOTHING fallback so its binding state
+    # is consistent and observable. Within the grace window leave it PENDING so
+    # a capable browser can still bind on a later interaction.
+    if token_record.binding_method_legacy? && token_record.dbsc_status_pending?
+      downgrade_pending_dbsc_to_nothing!(token_record) if dbsc_registration_challenge_expired?(token_record)
+      return true
+    end
+
+    # A non-DBSC token in any other DBSC lifecycle state (active/failed/revoke)
     # is inconsistent; fail closed instead of accepting it unbound.
     return false unless token_record.dbsc_status_nothing?
 
     true
+  end
+
+  # A DBSC registration challenge is considered expired (registration not
+  # completed in time) once DBSC_COOKIE_TTL has elapsed since it was issued. A
+  # token with no recorded challenge timestamp has nothing left to wait for, so
+  # it is treated as expired too.
+  def dbsc_registration_challenge_expired?(token_record)
+    issued_at = token_record.try(:dbsc_challenge_issued_at)
+    return true if issued_at.blank?
+
+    issued_at <= Time.current - DBSC_COOKIE_TTL
+  end
+
+  def downgrade_pending_dbsc_to_nothing!(token_record)
+    ActiveRecord::Base.connected_to(role: :writing) do
+      token_record.downgrade_dbsc_status_to_nothing!
+    end
   end
 
   def device_session_refresh_allowed?(token_record)
@@ -1748,7 +1779,7 @@ module AuthenticationBase
       end
 
       token_attributes.merge!(default_status_token_attributes(token_status_id))
-      token_attributes.merge!(default_dbsc_token_attributes)
+      token_attributes.merge!(default_dbsc_token_attributes(token_kind_id))
       token_attributes.merge!(scheduled_login_token_attributes)
       ensure_login_token_reference_data!(token_attributes)
 
@@ -1758,25 +1789,50 @@ module AuthenticationBase
 
   # LEGACY here means "no DBSC binding". Non-DBSC sessions are ordinary
   # sessions and must not fall back to a pseudo device guarantee.
-  def default_dbsc_token_attributes
+  #
+  # Browser-login tokens are eligible for DBSC: issue them LEGACY + PENDING so
+  # the "registration offered / awaiting binding" state is explicit and
+  # time-boxed. issue_dbsc_registration_header_for offers the challenge on the
+  # same response (login and refresh); a capable browser then upgrades to
+  # DBSC/ACTIVE via DbscRegistrationService, while a browser that never binds is
+  # downgraded to an explicit NOTHING fallback on its first refresh after the
+  # challenge expires (see legacy_unbound_refresh_allowed?). Native-app tokens
+  # (CLIENT_IOS/ANDROID) cannot perform browser DBSC, so they stay NOTHING.
+  # OIDC token-endpoint tokens never reach this path (no interactive browser).
+  def default_dbsc_token_attributes(token_kind_id = nil)
+    pending = dbsc_registration_eligible_kind?(token_kind_id)
     case resource_type
     when "client"
       {
         user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
-        user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+        user_token_dbsc_status_id: pending ? ClientTokenDbscStatus::PENDING : ClientTokenDbscStatus::NOTHING,
       }
     when "operator"
       {
         staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
-        staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+        staff_token_dbsc_status_id: pending ? OperatorTokenDbscStatus::PENDING : OperatorTokenDbscStatus::NOTHING,
       }
     when "visitor"
       {
         visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
-        visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+        visitor_token_dbsc_status_id: pending ? VisitorTokenDbscStatus::PENDING : VisitorTokenDbscStatus::NOTHING,
       }
     else
       {}
+    end
+  end
+
+  # Only interactive browser sessions can complete DBSC registration (it relies
+  # on the Sec-Session-Registration/Response header exchange). Native-app and
+  # unknown kinds are not offered PENDING.
+  def dbsc_registration_eligible_kind?(token_kind_id)
+    return false if token_kind_id.blank?
+
+    case resource_type
+    when "client" then token_kind_id == ClientTokenKind::BROWSER_WEB
+    when "operator" then token_kind_id == OperatorTokenKind::BROWSER_WEB
+    when "visitor" then token_kind_id == VisitorTokenKind::BROWSER_WEB
+    else false
     end
   end
 

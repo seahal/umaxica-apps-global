@@ -25,7 +25,9 @@ class AuthenticationBaseTestController < ApplicationController
     token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
     session_limit_gate_pt session_limit_gate_flow build_auth_preference_snapshot
     reissue_access_token! log_in populate_current_attributes! path_from_signed_pt signed_pt_token
-    issue_dbsc_challenge_for!
+    issue_dbsc_challenge_for! legacy_unbound_refresh_allowed? dbsc_registration_challenge_expired?
+    downgrade_pending_dbsc_to_nothing! dbsc_registration_eligible_kind? default_dbsc_token_attributes
+    refresh_dpop_allowed?
   )
 
   def index
@@ -1044,7 +1046,163 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_nil @controller.signed_pt_token(nil)
   end
 
+  # ---------------------------------------------------------------
+  # DBSC preferred-when-supported (token-theft hardening, Phase A)
+  # ---------------------------------------------------------------
+  # Browser-login tokens are issued LEGACY + PENDING so a capable browser is
+  # nudged to bind via DBSC, while a browser that never registers is downgraded
+  # to an explicit NOTHING fallback on its first refresh after the challenge
+  # expires. Native-app and OIDC tokens stay NOTHING.
+
+  test "default_dbsc_token_attributes issues PENDING only for browser-web logins" do
+    {
+      "client" => [ClientTokenKind, ClientTokenDbscStatus, ClientTokenBindingMethod,
+                   :user_token_dbsc_status_id, :user_token_binding_method_id,],
+      "operator" => [OperatorTokenKind, OperatorTokenDbscStatus, OperatorTokenBindingMethod,
+                     :staff_token_dbsc_status_id, :staff_token_binding_method_id,],
+      "visitor" => [VisitorTokenKind, VisitorTokenDbscStatus, VisitorTokenBindingMethod,
+                    :visitor_token_dbsc_status_id, :visitor_token_binding_method_id,],
+    }.each do |surface, (kind, status, binding, status_key, binding_key)|
+      @controller.define_singleton_method(:resource_type) { surface }
+
+      browser = @controller.default_dbsc_token_attributes(kind::BROWSER_WEB)
+      native = @controller.default_dbsc_token_attributes(kind::CLIENT_IOS)
+      unknown = @controller.default_dbsc_token_attributes(nil)
+
+      assert_equal binding::LEGACY, browser[binding_key], "#{surface}: browser binding stays LEGACY"
+      assert_equal status::PENDING, browser[status_key], "#{surface}: browser session is PENDING"
+      assert_equal status::NOTHING, native[status_key], "#{surface}: native session stays NOTHING"
+      assert_equal status::NOTHING, unknown[status_key], "#{surface}: unknown kind stays NOTHING"
+    end
+  end
+
+  test "log_in issues a browser session as LEGACY + PENDING DBSC" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal :success, result[:status]
+    token = ClientToken.order(created_at: :desc).first
+
+    assert_predicate token, :binding_method_legacy?
+    assert_predicate token, :dbsc_status_pending?
+  end
+
+  test "legacy_unbound_refresh_allowed? accepts an explicit non-DBSC fallback token" do
+    assert @controller.legacy_unbound_refresh_allowed?(build_legacy_client_token(ClientTokenDbscStatus::NOTHING))
+  end
+
+  test "legacy_unbound_refresh_allowed? rejects a non-DBSC token in an inconsistent DBSC lifecycle state" do
+    assert_not @controller.legacy_unbound_refresh_allowed?(build_legacy_client_token(ClientTokenDbscStatus::ACTIVE))
+  end
+
+  test "legacy_unbound_refresh_allowed? keeps a within-grace PENDING token pending and allows refresh" do
+    token = build_legacy_client_token(ClientTokenDbscStatus::PENDING, challenge_issued_at: Time.current)
+
+    assert @controller.legacy_unbound_refresh_allowed?(token)
+    assert_predicate token.reload, :dbsc_status_pending?
+  end
+
+  test "legacy_unbound_refresh_allowed? downgrades an expired PENDING token to a NOTHING fallback" do
+    token = build_legacy_client_token(ClientTokenDbscStatus::PENDING, challenge_issued_at: 11.minutes.ago)
+
+    assert @controller.legacy_unbound_refresh_allowed?(token)
+    assert_predicate token.reload, :dbsc_status_nothing?
+    assert_predicate token, :binding_method_legacy?
+  end
+
+  test "legacy_unbound_refresh_allowed? downgrades a PENDING token with no challenge timestamp" do
+    token = build_legacy_client_token(ClientTokenDbscStatus::PENDING, challenge_issued_at: nil)
+
+    assert @controller.legacy_unbound_refresh_allowed?(token)
+    assert_predicate token.reload, :dbsc_status_nothing?
+  end
+
+  test "dbsc_registration_challenge_expired? respects DBSC_COOKIE_TTL" do
+    # Read-only over dbsc_challenge_issued_at; unsaved records keep the test
+    # clear of the per-user concurrent-session limit.
+    assert_not @controller.dbsc_registration_challenge_expired?(ClientToken.new(dbsc_challenge_issued_at: Time.current))
+    assert @controller.dbsc_registration_challenge_expired?(ClientToken.new(dbsc_challenge_issued_at: 11.minutes.ago))
+    assert @controller.dbsc_registration_challenge_expired?(ClientToken.new(dbsc_challenge_issued_at: nil))
+  end
+
+  test "expired PENDING downgrade applies to operator and visitor tokens too" do
+    operator = OperatorToken.create!(
+      staff: operators(:one),
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::NOTHING,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::PENDING,
+      discarded_at: 1.day.from_now, purged_at: 1.day.from_now,
+      dbsc_challenge_issued_at: 11.minutes.ago,
+    )
+    visitor_token = VisitorToken.create!(
+      visitor: create_verified_visitor_with_email(email_address: "phase-a-visitor@example.com"),
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::PENDING,
+      discarded_at: 1.day.from_now, purged_at: 1.day.from_now,
+      dbsc_challenge_issued_at: 11.minutes.ago,
+    )
+
+    assert @controller.legacy_unbound_refresh_allowed?(operator)
+    assert @controller.legacy_unbound_refresh_allowed?(visitor_token)
+    assert_predicate operator.reload, :dbsc_status_nothing?
+    assert_predicate visitor_token.reload, :dbsc_status_nothing?
+  end
+
+  # A3: DPoP sender-constraint stays enforced on the refresh path. A jkt-bound
+  # token must present a valid DPoP proof for the matching key; the OIDC bearer
+  # path is covered separately in access_token_authenticator_dpop_test.
+  test "refresh_dpop_allowed? enforces the sender-constraint on jkt-bound tokens" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @request.host = "id.app.localhost"
+    private_key, jwk = generate_dpop_jwk
+    expected_jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
+    bound = ClientToken.new(dpop_jkt: expected_jkt)
+
+    # Unbound token: nothing to enforce.
+    assert @controller.refresh_dpop_allowed?(ClientToken.new(dpop_jkt: nil))
+
+    # jkt-bound token presented with no DPoP proof is refused (none set yet).
+    assert_not @controller.refresh_dpop_allowed?(bound)
+
+    # jkt-bound token with a valid proof for the matching key is allowed.
+    @request.headers["DPoP"] = build_dpop_proof(
+      private_key, jwk, method: @request.request_method, uri: @request.original_url,
+    )
+
+    assert @controller.refresh_dpop_allowed?(bound)
+
+    # jkt-bound token with a proof for a different key is refused (jkt mismatch).
+    other_key, other_jwk = generate_dpop_jwk
+    @request.headers["DPoP"] = build_dpop_proof(
+      other_key, other_jwk, method: @request.request_method, uri: @request.original_url,
+    )
+
+    assert_not @controller.refresh_dpop_allowed?(bound)
+  end
+
   private
+
+  def build_legacy_client_token(dbsc_status_id, challenge_issued_at: Time.current)
+    ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: dbsc_status_id,
+      discarded_at: 1.day.from_now,
+      purged_at: 1.day.from_now,
+      dbsc_challenge: challenge_issued_at && SecureRandom.hex(16),
+      dbsc_challenge_issued_at: challenge_issued_at,
+    )
+  end
 
   def generate_dpop_jwk
     ec = OpenSSL::PKey::EC.generate("prime256v1")

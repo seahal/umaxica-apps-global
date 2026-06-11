@@ -90,6 +90,18 @@ module DbscBindable
     binding_method_dbsc?
   end
 
+  # Downgrade a DBSC registration that was offered but never completed to an
+  # explicit non-DBSC (NOTHING) fallback session. Called when a browser-login
+  # token issued as LEGACY + PENDING reaches a refresh after its registration
+  # challenge has expired without the browser binding. The binding method stays
+  # LEGACY so the row reads as a deliberate fallback session rather than an
+  # inconsistent "pending forever" one, and downstream refresh checks accept it.
+  def downgrade_dbsc_status_to_nothing!
+    return if dbsc_status_nothing?
+
+    update!(dbsc_status_attribute => self.class.dbsc_status_class::NOTHING)
+  end
+
   private
 
   def binding_method_value
