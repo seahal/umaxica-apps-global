@@ -11,9 +11,9 @@ historical context only.
 the work was in flight. The current implementation now uses DB-backed step-up sessions, separate
 configured/available method services, and Acme-bound `login_challenge` delegation into the sign
 ceremony surfaces. The authoritative DB names are `app_ticket`, `com_ticket`, and `org_ticket`.
-`settings_connection` and `operator_lifecycle` are step-up scopes added by later features, so do
-not delete them. WebAuthn challenges remain in the session store; the Solid Cache move is treated
-as canceled.
+`settings_connection` and `operator_lifecycle` are step-up scopes added by later features, so do not
+delete them. WebAuthn challenges remain in the session store; the Solid Cache move is treated as
+canceled.
 
 ## Implementation Status
 

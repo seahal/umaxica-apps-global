@@ -1,5 +1,11 @@
 # Cookie Domain Scope
 
+> **Supersession (2026-06-12):** Core's target browser session cookie is `__Host-core_sid`, is
+> host-only, and must not use `Domain=.example.com`. Core and Base do not share cookies or sessions.
+> Use `adr/acme-sign-core-base-port-boundary.md` and
+> `docs/architecture/acme-sign-core-base-port.md` for the target component boundary. The details
+> below remain historical Rails cookie-scope context where they describe `acme/www` or `sign/id`.
+
 > **Partially superseded by Identity Authority inversion:** Cookie scope does not imply logical
 > authority. `acme/www` is the Session, Token, Account, Preference, Authorization, and
 > downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models

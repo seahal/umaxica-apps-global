@@ -1,5 +1,10 @@
 # Identity Control Plane Configuration Hardening
 
+> **Supersession (2026-06-12):** Use `adr/acme-sign-core-base-port-boundary.md` for the target
+> component model. Base is the Rails foundation/control-plane subdomain. Sign is a special RP and
+> Acme is the only IdP / Authorization Server. This plan remains historical where it describes older
+> `sign/id` and `acme/www` ownership.
+
 > **Updated by the current Identity Authority boundary:** Identity, Credential, Refresh, Logout,
 > Step-up, browser/request Preference, and app social link/unlink authority belong to `sign/id`.
 > Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body authority

@@ -10,7 +10,8 @@
 
 ## Decisions Made During Implementation
 
-- Rebuilt the test database set with `RAILS_ENV=test bin/rails db:drop db:create db:migrate db:schema:dump`.
+- Rebuilt the test database set with
+  `RAILS_ENV=test bin/rails db:drop db:create db:migrate db:schema:dump`.
   - Why: `db:prepare` had left the chronicle database without the `app_preference_chronicle_*`
     tables because `db/chronicle_structure.sql` was stale/empty.
   - Alternatives considered: patching the missing table in place or hand-editing the SQL dump.
@@ -35,8 +36,8 @@
 
 - The plan called for continuing the OIDC/step-up implementation work, but the first blocker was a
   broken multi-DB test bootstrap rather than application logic.
-  - Why: the chronicle schema dump was stale enough that targeted tests could not load fixture-backed
-    models.
+  - Why: the chronicle schema dump was stale enough that targeted tests could not load
+    fixture-backed models.
   - Risk: regenerating the schema dumps touched many `db/*_structure.sql` files, but that change is
     consistent with the current migrations and was required to make the test DB usable.
 

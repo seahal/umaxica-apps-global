@@ -26,6 +26,7 @@ Rules:
 
 Current content-model references:
 
+- `docs/architecture/acme-sign-core-base-port.md`
 - `docs/identity/authority-boundary.md`
 - `docs/architecture/actor-naming.md`
 - `docs/architecture/current_context.md`

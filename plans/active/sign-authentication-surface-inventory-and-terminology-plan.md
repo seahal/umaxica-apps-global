@@ -1,5 +1,9 @@
 # Sign Authentication Surface Inventory And Terminology Plan
 
+> **Supersession (2026-06-12):** Use `adr/acme-sign-core-base-port-boundary.md` for the target
+> component model. Sign is a special RP, not an IdP, token issuer, or credential-gateway authority.
+> This plan remains historical inventory where it describes current Rails sign-in/sign-up code.
+
 > **Updated by the current Identity Authority boundary:** `sign/id` owns Identity, Credential,
 > Refresh, Logout, Step-up, browser/request Preference, and app social link/unlink authority.
 > `acme/www` owns Account, Organization, Avatar, Selector, Dashboard, RP Authorization, and SNS-body

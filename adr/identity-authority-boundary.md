@@ -4,6 +4,13 @@
 
 Accepted (2026-06-02)
 
+> **Supersession (2026-06-12):** The target component model is now defined by
+> `adr/acme-sign-core-base-port-boundary.md`. Acme is the only IdP / Authorization Server, Sign is a
+> special RP, Core is the Next.js web RP/BFF, Base is the Rails foundation/control-plane subdomain,
+> and Port is the native bearer-token API Resource Server. This ADR remains historical and useful for
+> Rails migration context, but its `acme/www` / `sign/id` authority assignment is superseded where it
+> conflicts with that component model.
+
 ## Context
 
 Earlier ADRs described `sign/id` as the identity provider and `acme/www` as a relying-party

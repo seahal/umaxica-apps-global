@@ -2,6 +2,11 @@
 
 ## Status
 
+Superseded by `adr/acme-sign-core-base-port-boundary.md` where this slice uses the older Rails-only
+`acme/www` / `sign/id` authority model. The target boundary is Acme as the only IdP / Authorization
+Server, Sign as a special RP, Core as the Next.js web RP/BFF, Base as the Rails
+foundation/control-plane subdomain, and Port as the native bearer-token API Resource Server.
+
 Superseded by `adr/sign-residual-idp-surface-retirement.md` where this slice assigns Identity,
 Refresh, Logout, Step-up freshness, Preference, or app social link/unlink authority to `sign/id`.
 

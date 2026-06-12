@@ -1,5 +1,12 @@
 # Session And Token Authority
 
+> **Supersession (2026-06-12):** Use
+> `adr/acme-sign-core-base-port-boundary.md` and
+> `docs/architecture/acme-sign-core-base-port.md` for the target component model. Acme is the only
+> IdP / Authorization Server, Core owns the browser web session, Base does not share Core cookies or
+> sessions, and Port uses bearer access tokens only. Older `acme/www` session/token language is
+> historical where it conflicts with that boundary.
+
 ## Current Authority
 
 `acme/www` owns all user sessions, refresh token families, OAuth/OIDC token authority, access-token
