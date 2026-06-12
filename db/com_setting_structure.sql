@@ -1764,6 +1764,7 @@ ALTER TABLE ONLY public.com_preference_themes
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
 ('20260530120000'),
 ('20260530031000'),
 ('20260526120202'),

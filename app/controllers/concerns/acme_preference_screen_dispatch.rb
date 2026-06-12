@@ -15,7 +15,6 @@ module AcmePreferenceScreenDispatch
     "motion" => [:motion, :selectable],
     "density" => [:density, :selectable],
     "page_size" => [:page_size, :selectable],
-    "adult_content_gate" => [:adult_content_gate, :selectable],
     "theme" => %i(edit_theme_preference_screen update_theme_preference_screen),
     "cookie" => %i(edit_cookie_preference_screen update_cookie_preference_screen),
   }.freeze
@@ -47,7 +46,6 @@ module AcmePreferenceScreenDispatch
       "motions" => "motion",
       "densities" => "density",
       "page_sizes" => "page_size",
-      "adult_content_gates" => "adult_content_gate",
       "themes" => "theme",
       "cookies" => "cookie",
     }[controller_name.to_s]

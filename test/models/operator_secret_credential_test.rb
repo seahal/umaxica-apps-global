@@ -7,13 +7,32 @@
 # Database name: org_principal
 #
 #  id                              :bigint           not null, primary key
+#  consumed_at                     :datetime
+#  delivery_method                 :string
 #  discarded_at                    :datetime         default(Infinity), not null
+#  failure_count                   :integer          default(0), not null
+#  issued_at                       :datetime
+#  issued_by_ref                   :string
+#  issued_by_type                  :string
+#  last_failed_at                  :datetime
 #  last_used_at                    :datetime
+#  locked_at                       :datetime
+#  lookup_digest                   :string
+#  max_failures                    :integer
+#  max_uses                        :integer
 #  name                            :string           not null
+#  not_before_at                   :datetime
 #  password_digest                 :string
 #  purged_at                       :datetime         default(Infinity), not null
+#  revoked_at                      :datetime
+#  safe_prefix                     :string
+#  scope                           :string
+#  secret_kind                     :string
+#  usage_policy                    :string
+#  use_count                       :integer          default(0), not null
 #  created_at                      :datetime         not null
 #  updated_at                      :datetime         not null
+#  issued_by_id                    :bigint
 #  public_id                       :string(21)       not null
 #  staff_id                        :bigint           not null
 #  staff_identity_secret_status_id :bigint           default(1), not null
@@ -22,6 +41,7 @@
 # Indexes
 #
 #  idx_on_staff_identity_secret_status_id_1e2bab9ca1          (staff_identity_secret_status_id)
+#  index_operator_secret_credentials_on_lookup_digest         (lookup_digest)
 #  index_operator_secret_credentials_on_public_id             (public_id) UNIQUE
 #  index_operator_secret_credentials_on_staff_id              (staff_id)
 #  index_operator_secret_credentials_on_staff_secret_kind_id  (staff_secret_kind_id)
@@ -223,28 +243,24 @@ class OperatorSecretCredentialTest < ActiveSupport::TestCase
     assert_not_includes OperatorSecretCredential.allowed_for_secret_credential_sign_in, non_login_secret_credential
   end
 
-  test "usable_for_secret_credential_sign_in? allows records without expires_at column" do
+  test "usable_for_secret_credential_sign_in? allows records until discarded_at" do
     secret_credential, = OperatorSecretCredential.issue!(name: "Permanent Key", staff: @staff, staff_secret_kind_id: OperatorSecretCredentialKind::LOGIN)
 
     assert_predicate secret_credential, :usable_for_secret_credential_sign_in?
   end
 
-  test "expired_for_secret_credential_sign_in? handles nil infinite and elapsed expires_at values" do
+  test "expired_for_secret_credential_sign_in? handles nil infinite and elapsed discarded_at values" do
     secret_credential = OperatorSecretCredential.new
 
-    secret_credential.define_singleton_method(:respond_to?) do |name, include_private = false|
-      name == :expires_at || super(name, include_private)
-    end
-
-    secret_credential.define_singleton_method(:expires_at) { nil }
+    secret_credential.define_singleton_method(:discarded_at) { nil }
 
     assert_not secret_credential.send(:expired_for_secret_credential_sign_in?, Time.current)
 
-    secret_credential.define_singleton_method(:expires_at) { Float::INFINITY }
+    secret_credential.define_singleton_method(:discarded_at) { Float::INFINITY }
 
     assert_not secret_credential.send(:expired_for_secret_credential_sign_in?, Time.current)
 
-    secret_credential.define_singleton_method(:expires_at) { 1.minute.ago }
+    secret_credential.define_singleton_method(:discarded_at) { 1.minute.ago }
 
     assert secret_credential.send(:expired_for_secret_credential_sign_in?, Time.current)
   end

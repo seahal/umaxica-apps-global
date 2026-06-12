@@ -7,14 +7,33 @@
 # Database name: app_principal
 #
 #  id                             :bigint           not null, primary key
+#  consumed_at                    :datetime
+#  delivery_method                :string
 #  discarded_at                   :datetime         default(Infinity), not null
+#  failure_count                  :integer          default(0), not null
+#  issued_at                      :datetime
+#  issued_by_ref                  :string
+#  issued_by_type                 :string
+#  last_failed_at                 :datetime
 #  last_used_at                   :datetime
+#  locked_at                      :datetime
+#  lookup_digest                  :string
+#  max_failures                   :integer
+#  max_uses                       :integer
 #  name                           :string           default(""), not null
+#  not_before_at                  :datetime
 #  password_digest                :string           default(""), not null
 #  purged_at                      :datetime         default(Infinity), not null
+#  revoked_at                     :datetime
+#  safe_prefix                    :string
+#  scope                          :string
+#  secret_kind                    :string
+#  usage_policy                   :string
+#  use_count                      :integer          default(0), not null
 #  uses_remaining                 :integer          default(1), not null
 #  created_at                     :datetime         not null
 #  updated_at                     :datetime         not null
+#  issued_by_id                   :bigint
 #  public_id                      :string(21)       not null
 #  user_id                        :bigint           not null
 #  user_identity_secret_status_id :bigint           default(1), not null
@@ -23,6 +42,7 @@
 # Indexes
 #
 #  idx_on_user_identity_secret_status_id_178d36c039        (user_identity_secret_status_id)
+#  index_client_secret_credentials_on_lookup_digest        (lookup_digest)
 #  index_client_secret_credentials_on_public_id            (public_id) UNIQUE
 #  index_client_secret_credentials_on_user_id              (user_id)
 #  index_client_secret_credentials_on_user_secret_kind_id  (user_secret_kind_id)

@@ -6,7 +6,7 @@ module SignTelephoneCeremonyDelegation
 
   private
 
-  def start_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
+  def start_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
     return telephone_ceremony_grant_token if telephone_ceremony_grant_token.present?
 
     raise IdentityTelephoneCeremony::Error, "telephone ceremony grant is required"

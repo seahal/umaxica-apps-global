@@ -165,10 +165,25 @@ module Sign
             details: {},
           ) unless secret_credential.usable_for_secret_credential_sign_in?
 
-          unless secret_credential.verify_for_secret_credential_sign_in!(raw_secret_credential.to_s)
+          verification =
+            if secret_credential.new_axis_secret_credential?
+              Sign::Secret::Verify.call(
+                secret_credential: secret_credential,
+                raw_secret_credential: raw_secret_credential.to_s,
+              )
+            else
+              verified = secret_credential.verify_for_secret_credential_sign_in!(raw_secret_credential.to_s)
+              SecretVerificationResult.new(
+                secret_credential: verified ? secret_credential : nil,
+                reason: verified ? :success : :secret_credential_mismatch,
+                details: { secret_credential_id: secret_credential.id },
+              )
+            end
+
+          unless verification.secret_credential
             return SecretVerificationResult.new(
-              reason: :secret_credential_mismatch,
-              details: { secret_credential_id: secret_credential.id },
+              reason: verification.reason || :secret_credential_mismatch,
+              details: verification.details.presence || { secret_credential_id: secret_credential.id },
             )
           end
 

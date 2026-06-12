@@ -168,7 +168,7 @@ class R18GateTest < ActionDispatch::IntegrationTest
   end
 
   test "logged in adult with token preference stopper is redirected to stopped page" do
-    preference = ::Actor::Preference.new(adult_content_gate: "deny")
+    preference = Preference.new(client_preference_adult_content_gate: Stopper.new(:deny))
     R18GateTestController.test_actor = Actor.new(birthdate: "2000-01-01", user_preference: preference)
 
     get "/test/r18"

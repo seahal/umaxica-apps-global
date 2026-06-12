@@ -209,8 +209,8 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
           state: "staff_state",
-        nonce: "staff_nonce",
-        scope: "openid profile email",
+          nonce: "staff_nonce",
+          scope: "openid profile email",
         },
         resource: staff,
       )
@@ -263,8 +263,8 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
           state: "visitor_state",
-        nonce: "visitor_nonce",
-        scope: "openid profile email",
+          nonce: "visitor_nonce",
+          scope: "openid profile email",
         },
         resource: visitor,
       )

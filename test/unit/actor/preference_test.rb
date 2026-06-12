@@ -20,7 +20,6 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "standard", pref.motion
     assert_equal "standard", pref.density
     assert_equal "20", pref.page_size
-    assert_equal "nothing", pref.adult_content_gate
     assert_equal :ja, pref.locale
     assert_predicate pref, :system_theme?
     assert_not pref.dark_mode?
@@ -209,6 +208,13 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "100", pref.page_size
   end
 
+  test "from_jwt ignores removed r18s payload key" do
+    pref = Actor::Preference.from_jwt({ "lx" => "en", "r18s" => "deny" })
+
+    assert_equal "en", pref.language
+    assert_not_respond_to pref, :adult_content_gate
+  end
+
   test "from_jwt falls back to DEFAULTS for missing keys" do
     prf = { "lx" => "en" } # Only language provided
     pref = Actor::Preference.from_jwt(prf)
@@ -219,7 +225,6 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "sy", pref.theme # DEFAULTS[:theme]
     assert_equal "jpy", pref.currency
     assert_equal "standard", pref.motion
-    assert_equal "nothing", pref.adult_content_gate
   end
 
   test "from_jwt handles empty hash" do

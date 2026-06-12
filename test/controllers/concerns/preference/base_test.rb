@@ -1063,7 +1063,6 @@ module Preference
           motion: "reduced",
           density: "compact",
           page_size: "50",
-          adult_content_gate: "warn",
         ),
       )
 
@@ -1078,7 +1077,6 @@ module Preference
       assert_equal "reduced", cookies[PreferenceIoKeys::Cookies::MOTION]
       assert_equal "compact", cookies[PreferenceIoKeys::Cookies::DENSITY]
       assert_equal "50", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
-      assert_equal "warn", cookies[PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE]
       assert_nil cookies[PreferenceBase::LANGUAGE_COOKIE_KEY]
       assert_nil cookies["ri"]
       assert_nil cookies["lx"]
@@ -1096,7 +1094,6 @@ module Preference
           "mo" => "standard",
           "dn" => "standard",
           "ps" => "20",
-          "r18s" => "nothing",
           "ri" => "jp",
           "lx" => "ja",
         },
@@ -1111,7 +1108,6 @@ module Preference
       assert_equal "standard", cookies[PreferenceIoKeys::Cookies::MOTION]
       assert_equal "standard", cookies[PreferenceIoKeys::Cookies::DENSITY]
       assert_equal "20", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
-      assert_equal "nothing", cookies[PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE]
       assert_nil cookies["ri"]
       assert_nil cookies["lx"]
     end
@@ -1149,7 +1145,6 @@ module Preference
       assert_equal "xx", @controller.send(:option_id_to_region, "XX", "App")
       assert_equal "Mars/Base", @controller.send(:option_id_to_timezone, "Mars/Base", "App")
       assert_equal "contrast", @controller.send(:option_id_to_theme, "contrast", "App")
-      assert_equal "AdultContentGate", @controller.send(:preference_child_class_suffix, :adult_content_gate)
     end
 
     test "refresh failure handlers and render error branches set state" do

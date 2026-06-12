@@ -4,7 +4,7 @@
 module SignEmailCeremonyDelegation
   private
 
-  def start_email_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
+  def start_email_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
     return email_ceremony_grant_token if email_ceremony_grant_token.present?
 
     raise IdentityEmailCeremonyContract::Error, "email ceremony grant is required"

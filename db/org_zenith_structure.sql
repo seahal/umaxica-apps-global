@@ -1123,6 +1123,7 @@ ALTER TABLE ONLY public.agent_memberships
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
 ('20260526130002'),
 ('20260520143102'),
 ('20260520143002'),

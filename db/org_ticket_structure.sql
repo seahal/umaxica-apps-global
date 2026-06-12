@@ -260,6 +260,57 @@ ALTER SEQUENCE public.operator_oauth_callback_states_id_seq OWNED BY public.oper
 
 
 --
+-- Name: operator_oidc_authorization_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.operator_oidc_authorization_transactions (
+    id bigint NOT NULL,
+    transaction_id character varying NOT NULL,
+    surface character varying NOT NULL,
+    intent character varying NOT NULL,
+    client_id character varying NOT NULL,
+    redirect_uri character varying NOT NULL,
+    response_type character varying NOT NULL,
+    scope character varying NOT NULL,
+    state character varying NOT NULL,
+    nonce character varying NOT NULL,
+    code_challenge character varying NOT NULL,
+    code_challenge_method character varying NOT NULL,
+    login_challenge character varying NOT NULL,
+    login_challenge_expires_at timestamp(6) with time zone NOT NULL,
+    authenticated_at timestamp(6) with time zone,
+    actor_ref character varying,
+    session_ref character varying,
+    auth_method character varying,
+    acr character varying,
+    consumed_at timestamp(6) with time zone,
+    expires_at timestamp(6) with time zone NOT NULL,
+    status character varying NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: operator_oidc_authorization_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.operator_oidc_authorization_transactions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: operator_oidc_authorization_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.operator_oidc_authorization_transactions_id_seq OWNED BY public.operator_oidc_authorization_transactions.id;
+
+
+--
 -- Name: operator_oidc_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1082,6 +1133,13 @@ ALTER TABLE ONLY public.operator_oauth_callback_states ALTER COLUMN id SET DEFAU
 
 
 --
+-- Name: operator_oidc_authorization_transactions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_oidc_authorization_transactions ALTER COLUMN id SET DEFAULT nextval('public.operator_oidc_authorization_transactions_id_seq'::regclass);
+
+
+--
 -- Name: operator_oidc_connections id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1322,6 +1380,14 @@ ALTER TABLE ONLY public.operator_oauth_callback_states
 
 
 --
+-- Name: operator_oidc_authorization_transactions operator_oidc_authorization_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.operator_oidc_authorization_transactions
+    ADD CONSTRAINT operator_oidc_authorization_transactions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: operator_oidc_connections operator_oidc_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1525,6 +1591,13 @@ CREATE INDEX idx_on_actor_ref_session_ref_dce233ec55 ON public.operator_secret_c
 
 
 --
+-- Name: idx_on_client_id_login_challenge_bf0bf3ad3f; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_client_id_login_challenge_bf0bf3ad3f ON public.operator_oidc_authorization_transactions USING btree (client_id, login_challenge);
+
+
+--
 -- Name: idx_on_expires_at_feac3d8c3e; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1539,10 +1612,24 @@ CREATE UNIQUE INDEX idx_on_grant_jti_3681a4d031 ON public.operator_secret_creden
 
 
 --
+-- Name: idx_on_login_challenge_48fb6dd61c; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_on_login_challenge_48fb6dd61c ON public.operator_oidc_authorization_transactions USING btree (login_challenge);
+
+
+--
 -- Name: idx_on_result_jti_6830d7796f; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX idx_on_result_jti_6830d7796f ON public.operator_secret_credential_ceremony_transactions USING btree (result_jti) WHERE (result_jti IS NOT NULL);
+
+
+--
+-- Name: idx_on_transaction_id_45064136d6; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_on_transaction_id_45064136d6 ON public.operator_oidc_authorization_transactions USING btree (transaction_id);
 
 
 --
@@ -2265,6 +2352,8 @@ ALTER TABLE ONLY public.operator_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
+('20260611150002'),
 ('20260611100100'),
 ('20260606120002'),
 ('20260603130001'),

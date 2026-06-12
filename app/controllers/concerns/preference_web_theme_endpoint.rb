@@ -9,9 +9,7 @@ module PreferenceWebThemeEndpoint
   private
 
   def current_color_theme
-    theme = theme_from_preference_payload
-    theme ||= normalize_theme(cookies[PreferenceBase::THEME_COOKIE_KEY])
-    theme || "sy"
+    theme_from_preference_payload || "sy"
   end
 
   def theme_from_preference_payload

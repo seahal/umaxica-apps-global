@@ -188,6 +188,7 @@ ALTER TABLE ONLY public.member_notifications
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
 ('20260520143001'),
 ('20260507000000');
 

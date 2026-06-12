@@ -96,7 +96,6 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
       mo: "Reduced",
       dn: "Compact",
       ps: "50",
-      r18s: "Warn",
       bad: "value",
     )
 
@@ -113,7 +112,6 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
         mo: "rd",
         dn: "cp",
         ps: "50",
-        r18s: "warn",
       },
       controller.request_context,
     )
@@ -131,7 +129,6 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
         mo: "rd",
         dn: "cp",
         ps: "50",
-        r18s: "warn",
       },
       controller.requested_context,
     )
@@ -151,7 +148,6 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
       mo: "reduced",
       dn: "compact",
       ps: "50",
-      r18s: "warn",
     )
     controller.define_singleton_method(:preference_payload_preferences) do
       {
@@ -165,7 +161,6 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
         "mo" => "standard",
         "dn" => "standard",
         "ps" => "20",
-        "r18s" => "nothing",
       }
     end
 
@@ -181,9 +176,8 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
         mo: "rd",
         dn: "cp",
         ps: "50",
-        r18s: "warn",
       },
-      controller.effective_context.slice(:ri, :lx, :tz, :ct, :cu, :df, :tf, :mo, :dn, :ps, :r18s),
+      controller.effective_context.slice(:ri, :lx, :tz, :ct, :cu, :df, :tf, :mo, :dn, :ps),
     )
   end
 

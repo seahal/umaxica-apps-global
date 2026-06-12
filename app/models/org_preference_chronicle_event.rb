@@ -25,7 +25,6 @@ class OrgPreferenceChronicleEvent < ChronicleRecord
   UPDATE_PREFERENCE_MOTION = 12
   UPDATE_PREFERENCE_DENSITY = 13
   UPDATE_PREFERENCE_PAGE_SIZE = 14
-  UPDATE_PREFERENCE_ADULT_CONTENT_GATE = 15
 
   # Placeholder for audit event types; ids are string tokens (e.g., 'CREATED')
   has_many :org_preference_chronicles,
@@ -50,7 +49,6 @@ class OrgPreferenceChronicleEvent < ChronicleRecord
     UPDATE_PREFERENCE_MOTION,
     UPDATE_PREFERENCE_DENSITY,
     UPDATE_PREFERENCE_PAGE_SIZE,
-    UPDATE_PREFERENCE_ADULT_CONTENT_GATE,
   ].freeze
 
   def self.ensure_defaults!

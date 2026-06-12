@@ -102,7 +102,6 @@ class Acme::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::MOTION}=standard"
     assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::DENSITY}=standard"
     assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::PAGE_SIZE}=20"
-    assert_includes set_cookie, "#{PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE}=nothing"
     assert_includes set_cookie, "#{PreferenceCookieName.access(surface: :app)}="
     assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
   end

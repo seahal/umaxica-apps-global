@@ -314,7 +314,6 @@ module PreferenceCore
       mo: snapshot[:motion] || "standard",
       dn: snapshot[:density] || "standard",
       ps: snapshot[:page_size] || "20",
-      r18s: snapshot[:adult_content_gate] || "nothing",
       consented: cookie[:consented],
       functional: cookie[:functional],
       performant: cookie[:performant],
@@ -492,7 +491,6 @@ module PreferenceCore
       motion: :mo,
       density: :dn,
       page_size: :ps,
-      adult_content_gate: :r18s,
     }[screen.to_sym]
   end
 
@@ -624,7 +622,6 @@ module PreferenceCore
       when :motion then "motion"
       when :density then "density"
       when :page_size then "page_size"
-      when :adult_content_gate then "adult_content_gate"
       when :theme then "theme"
       when :cookie then "cookie"
       when :reset then "reset"

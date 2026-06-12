@@ -93,7 +93,9 @@ module Acme
             return redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]))
           end
 
-          @secret_credential.update!(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::DELETED)
+          @secret_credential.discard_now!(purge_after: 1.day)
+          @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredentialStatus::DELETED
+          @secret_credential.save!
           flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
           redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end

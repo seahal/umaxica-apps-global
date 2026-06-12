@@ -177,7 +177,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE,
     )
 
-    ClientSecretCredentialsDestroy.stub(:call, true) do
+    assert_no_difference("VisitorSecretCredential.count") do
       delete sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: {
@@ -253,9 +253,11 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "destroy compatibility redirects before local turnstile validation" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
-           params: { "cf-turnstile-response": "bad" },
-           headers: request_headers
+    assert_no_difference("VisitorSecretCredential.count") do
+      delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+             params: { "cf-turnstile-response": "bad" },
+             headers: request_headers
+    end
 
     assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id

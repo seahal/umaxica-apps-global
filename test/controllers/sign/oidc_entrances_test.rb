@@ -15,7 +15,8 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_app_sign_in_entrance_url(login_challenge: issuance.transaction.login_challenge), headers: { "Host" => @sign_host }
+    get sign_app_sign_in_entrance_url(login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @sign_host }
 
     assert_response :success
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
@@ -28,7 +29,8 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_app_sign_up_entrance_url(login_challenge: issuance.transaction.login_challenge), headers: { "Host" => @sign_host }
+    get sign_app_sign_up_entrance_url(login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @sign_host }
 
     assert_response :success
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]

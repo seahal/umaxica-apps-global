@@ -24,10 +24,14 @@ class ClientSecretCredentialsDestroyTest < ActiveSupport::TestCase
     )
   end
 
-  test "destroys user secret_credential" do
-    assert_difference("ClientSecretCredential.count", -1) do
+  test "logically deletes user secret_credential" do
+    assert_no_difference("ClientSecretCredential.count") do
       ClientSecretCredentialsDestroy.call(actor: @user, secret_credential: @secret_credential)
     end
+
+    assert_not_equal Retainable::SENTINEL, @secret_credential.reload.discarded_at
+    assert_operator @secret_credential.purged_at, :>, Time.current
+    assert_equal ClientSecretCredentialStatus::DELETED, @secret_credential.user_identity_secret_status_id
   end
 
   test "creates ClientChronicle audit when actor is Client" do

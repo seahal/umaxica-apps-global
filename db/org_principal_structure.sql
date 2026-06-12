@@ -1404,6 +1404,25 @@ CREATE TABLE public.operator_secret_credentials (
     public_id character varying(21) NOT NULL,
     discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
     purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    secret_kind character varying,
+    usage_policy character varying,
+    lookup_digest character varying,
+    safe_prefix character varying,
+    issued_at timestamp(6) with time zone,
+    issued_by_type character varying,
+    issued_by_id bigint,
+    issued_by_ref character varying,
+    delivery_method character varying,
+    scope character varying,
+    use_count integer DEFAULT 0 NOT NULL,
+    failure_count integer DEFAULT 0 NOT NULL,
+    max_uses integer,
+    max_failures integer,
+    not_before_at timestamp(6) with time zone,
+    consumed_at timestamp(6) with time zone,
+    revoked_at timestamp(6) with time zone,
+    locked_at timestamp(6) with time zone,
+    last_failed_at timestamp(6) with time zone,
     CONSTRAINT chk_staff_secrets_retention_order CHECK ((discarded_at <= purged_at))
 );
 
@@ -3316,6 +3335,13 @@ CREATE UNIQUE INDEX index_operator_preferences_on_staff_id ON public.operator_pr
 
 
 --
+-- Name: index_operator_secret_credentials_on_lookup_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_operator_secret_credentials_on_lookup_digest ON public.operator_secret_credentials USING btree (lookup_digest);
+
+
+--
 -- Name: index_operator_secret_credentials_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4002,6 +4028,7 @@ ALTER TABLE ONLY public.operator_secret_credentials
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612100000'),
 ('20260530032400'),
 ('20260530032100'),
 ('20260530031000'),

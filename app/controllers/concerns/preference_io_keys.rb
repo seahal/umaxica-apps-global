@@ -14,7 +14,6 @@ module PreferenceIoKeys
     MOTION = "mo"
     DENSITY = "dn"
     PAGE_SIZE = "ps"
-    ADULT_CONTENT_GATE = "r18s"
     CONSENTED = "preference_consented"
     ACCESS_BASENAME = "preference_access"
     REFRESH_BASENAME = "preference_refresh"
@@ -29,7 +28,6 @@ module PreferenceIoKeys
     public_constant :MOTION
     public_constant :DENSITY
     public_constant :PAGE_SIZE
-    public_constant :ADULT_CONTENT_GATE
     public_constant :CONSENTED
     public_constant :ACCESS_BASENAME
     public_constant :REFRESH_BASENAME

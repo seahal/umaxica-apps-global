@@ -16,7 +16,8 @@ module Sign
                   surface: "com",
                   login_challenge: params[:login_challenge].to_s,
                 )
-              raise ActionController::BadRequest, "authorization transaction expired" if transaction.login_challenge_expired?
+              raise ActionController::BadRequest,
+                    "authorization transaction expired" if transaction.login_challenge_expired?
               raise ActionController::BadRequest, "authorization transaction already consumed" if transaction.consumed?
 
               session[:oidc_authorization_login_challenge] = transaction.login_challenge

@@ -25,7 +25,8 @@ module Acme
               start_authorization_ceremony!
             end
           end
-        rescue ArgumentError, ActiveRecord::RecordNotFound, OidcClientRegistry::ClientNotFound, OidcClientRegistry::InvalidRedirectUri => e
+        rescue ArgumentError, ActiveRecord::RecordNotFound, OidcClientRegistry::ClientNotFound,
+               OidcClientRegistry::InvalidRedirectUri => e
           render json: { error: "invalid_request", error_description: e.message }, status: :bad_request
         end
 
@@ -72,16 +73,22 @@ module Acme
                 login_challenge: issuance.transaction.login_challenge,
               )
             end
-          redirect_to sign_url, allow_other_host: true
+          redirect_to(sign_url, allow_other_host: true)
         end
 
         def resume_authorization!(transaction)
-          return render(json: { error: "invalid_request", error_description: "authorization transaction expired" },
-                        status: :bad_request) if transaction.login_challenge_expired?
-          return render(json: { error: "invalid_request", error_description: "authorization transaction already consumed" },
-                        status: :bad_request) if transaction.consumed?
-          return render(json: { error: "invalid_request", error_description: "authorization transaction is not ready" },
-                        status: :bad_request) unless transaction.authenticated?
+          return render(
+            json: { error: "invalid_request", error_description: "authorization transaction expired" },
+            status: :bad_request,
+          ) if transaction.login_challenge_expired?
+          return render(
+            json: { error: "invalid_request", error_description: "authorization transaction already consumed" },
+            status: :bad_request,
+          ) if transaction.consumed?
+          return render(
+            json: { error: "invalid_request", error_description: "authorization transaction is not ready" },
+            status: :bad_request,
+          ) unless transaction.authenticated?
 
           resource = Operator.find_by!(public_id: transaction.actor_ref)
           login_result =
@@ -93,15 +100,17 @@ module Acme
               audit_context: { oidc_client_id: transaction.client_id },
               bootstrap_actor: true,
             )
-          return render(json: { error: "invalid_request", error_description: "login_failed" },
-                        status: :bad_request) unless login_result[:status] == :success
+          return render(
+            json: { error: "invalid_request", error_description: "login_failed" },
+            status: :bad_request,
+          ) unless login_result[:status] == :success
 
           transaction.consume!
           issue_authorization_code!(resource, params_hash: transaction.authorize_params)
         end
 
         def authorization_intent
-          params[:screen_hint].to_s == "signup" ? "sign_up" : "sign_in"
+          (params[:screen_hint].to_s == "signup") ? "sign_up" : "sign_in"
         end
 
         def authorize_params

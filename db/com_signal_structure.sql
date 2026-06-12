@@ -119,6 +119,7 @@ CREATE INDEX index_visitor_notification_records_on_visitor_id ON public.visitor_
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
 ('20260520143005'),
 ('20260517070000');
 

@@ -8,7 +8,7 @@ module RequestContext
     test "public key families partition the public key set" do
       assert_equal %i(ri), RequestContextContract.required_keys
       assert_equal %i(pt nt), RequestContextContract.redirect_target_keys
-      assert_equal %i(lx ct tz cu df tf mo dn ps r18s), RequestContextContract.optional_overlay_keys
+      assert_equal %i(lx ct tz cu df tf mo dn ps), RequestContextContract.optional_overlay_keys
 
       union = RequestContextContract.required_keys +
         RequestContextContract.redirect_target_keys +
@@ -32,7 +32,6 @@ module RequestContext
         mo: :motion,
         dn: :density,
         ps: :page_size,
-        r18s: :adult_content_gate,
       }
 
       assert_equal expected, RequestContextContract.internal_names
@@ -46,7 +45,6 @@ module RequestContext
       assert_equal :navigation_target, RequestContextContract.family(:nt)
       assert_equal :optional_overlay, RequestContextContract.family(:lx)
       assert_equal :optional_overlay, RequestContextContract.family(:ps)
-      assert_equal :optional_overlay, RequestContextContract.family(:r18s)
     end
 
     test "redirect_target_key? recognizes only pt and nt" do

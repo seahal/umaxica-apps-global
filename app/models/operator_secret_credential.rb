@@ -7,13 +7,32 @@
 # Database name: org_principal
 #
 #  id                              :bigint           not null, primary key
+#  consumed_at                     :datetime
+#  delivery_method                 :string
 #  discarded_at                    :datetime         default(Infinity), not null
+#  failure_count                   :integer          default(0), not null
+#  issued_at                       :datetime
+#  issued_by_ref                   :string
+#  issued_by_type                  :string
+#  last_failed_at                  :datetime
 #  last_used_at                    :datetime
+#  locked_at                       :datetime
+#  lookup_digest                   :string
+#  max_failures                    :integer
+#  max_uses                        :integer
 #  name                            :string           not null
+#  not_before_at                   :datetime
 #  password_digest                 :string
 #  purged_at                       :datetime         default(Infinity), not null
+#  revoked_at                      :datetime
+#  safe_prefix                     :string
+#  scope                           :string
+#  secret_kind                     :string
+#  usage_policy                    :string
+#  use_count                       :integer          default(0), not null
 #  created_at                      :datetime         not null
 #  updated_at                      :datetime         not null
+#  issued_by_id                    :bigint
 #  public_id                       :string(21)       not null
 #  staff_id                        :bigint           not null
 #  staff_identity_secret_status_id :bigint           default(1), not null
@@ -22,6 +41,7 @@
 # Indexes
 #
 #  idx_on_staff_identity_secret_status_id_1e2bab9ca1          (staff_identity_secret_status_id)
+#  index_operator_secret_credentials_on_lookup_digest         (lookup_digest)
 #  index_operator_secret_credentials_on_public_id             (public_id) UNIQUE
 #  index_operator_secret_credentials_on_staff_id              (staff_id)
 #  index_operator_secret_credentials_on_staff_secret_kind_id  (staff_secret_kind_id)
@@ -127,11 +147,9 @@ class OperatorSecretCredential < OrgPrincipalRecord
   end
 
   def expired_for_secret_credential_sign_in?(now)
-    return false unless respond_to?(:expires_at)
-    return false if expires_at.nil?
-    return false if expires_at.is_a?(Float) && expires_at.infinite?
+    return false if discarded_at.nil?
+    return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
-    comparable_time = expires_at.is_a?(Float) ? Time.zone.at(expires_at) : expires_at
-    now > comparable_time
+    now > discarded_at
   end
 end

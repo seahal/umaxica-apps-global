@@ -2404,7 +2404,6 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         page_size_settings: 1ページあたりの表示件数
-        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2481,7 +2480,6 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         page_size_settings: 1ページあたりの表示件数
-        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2550,15 +2548,6 @@ ja:
               dark: 夜間の監視業務や長時間利用で目の負担を軽減します。
               system: OSのテーマ変更にあわせて自動で切り替わります。
             submit: テーマ設定を保存
-        adult_content_gate:
-          edit:
-            heading: R18表示設定
-            description: R18 コンテンツを未設定、承認、拒否のどれにするかを選択します。
-            option_label: R18表示設定
-          options:
-            nothing: 未設定
-            approved: 承認
-            deny: 拒否
         resets:
           title: 設定のリセット
           description: このブラウザに保存された設定データを削除します。

@@ -33,5 +33,3 @@ update_preference_density:
   id: 13
 update_preference_page_size:
   id: 14
-update_preference_adult_content_gate:
-  id: 15

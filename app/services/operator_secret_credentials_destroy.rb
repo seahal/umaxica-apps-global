@@ -18,6 +18,8 @@ class OperatorSecretCredentialsDestroy
     OperatorChronicle.transaction do
       OperatorSecretCredential.transaction do
         ensure_audit_dependencies!
+        @secret_credential.discard_now!(purge_after: 1.day)
+        @secret_credential.staff_secret_status_id = OperatorSecretCredential.status_id_for(:deleted)
         OperatorChronicle.create!(
           actor: @actor,
           subject_type: "OperatorSecretCredential",
@@ -26,7 +28,7 @@ class OperatorSecretCredentialsDestroy
           occurred_at: Time.current,
           context: { action: ACTION },
         )
-        @secret_credential.destroy!
+        @secret_credential.save!
       end
     end
   end

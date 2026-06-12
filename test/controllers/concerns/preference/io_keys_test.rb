@@ -19,7 +19,6 @@ class PreferenceIoKeysTest < ActiveSupport::TestCase
     assert_equal "mo", PreferenceIoKeys::Cookies::MOTION
     assert_equal "dn", PreferenceIoKeys::Cookies::DENSITY
     assert_equal "ps", PreferenceIoKeys::Cookies::PAGE_SIZE
-    assert_equal "r18s", PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE
     assert_equal "preference_access", PreferenceIoKeys::Cookies::ACCESS_BASENAME
     assert_equal "preference_refresh", PreferenceIoKeys::Cookies::REFRESH_BASENAME
   end

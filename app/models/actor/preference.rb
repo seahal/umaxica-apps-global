@@ -16,8 +16,7 @@ class Actor
   #   Actor.preferences.null?      # => true (for guests)
   class Preference
     attr_reader :language, :region, :timezone, :theme,
-                :currency, :date_format, :time_format, :motion, :density, :page_size,
-                :adult_content_gate
+                :currency, :date_format, :time_format, :motion, :density, :page_size
 
     # Field names (strings) the user set on purpose. Drives localization: an
     # explicitly set field's saved value wins over dynamic region seeding (?ri),
@@ -46,7 +45,6 @@ class Actor
       motion: "standard",
       density: "standard",
       page_size: "20",
-      adult_content_gate: "nothing",
     }.freeze
 
     SCHEMA_VERSION = 1
@@ -65,7 +63,6 @@ class Actor
                    currency: DEFAULTS[:currency], date_format: DEFAULTS[:date_format],
                    time_format: DEFAULTS[:time_format], motion: DEFAULTS[:motion],
                    density: DEFAULTS[:density], page_size: DEFAULTS[:page_size],
-                   adult_content_gate: DEFAULTS[:adult_content_gate],
                    cookie: NULL_COOKIE, null: false, explicit_fields: [])
       @explicit_fields = Array(explicit_fields).map(&:to_s).freeze
       @language = language.freeze
@@ -78,7 +75,6 @@ class Actor
       @motion = motion.freeze
       @density = density.freeze
       @page_size = page_size.freeze
-      @adult_content_gate = adult_content_gate.freeze
       @cookie = cookie
       @null = null
       freeze
@@ -113,7 +109,6 @@ class Actor
         motion == other.motion &&
         density == other.density &&
         page_size == other.page_size &&
-        adult_content_gate == other.adult_content_gate &&
         cookie == other.cookie &&
         null? == other.null? &&
         explicit_fields == other.explicit_fields
@@ -124,7 +119,7 @@ class Actor
     def hash
       [
         self.class, language, region, timezone, theme, currency, date_format, time_format,
-        motion, density, page_size, adult_content_gate, cookie, null?, explicit_fields,
+        motion, density, page_size, cookie, null?, explicit_fields,
       ].hash
     end
 
@@ -164,13 +159,8 @@ class Actor
         motion: @motion,
         density: @density,
         page_size: @page_size,
-        adult_content_gate: @adult_content_gate,
         consented: @cookie.consented?,
       }
-    end
-
-    def adult_content_gate?
-      @adult_content_gate == "deny" || @adult_content_gate == "enabled"
     end
 
     def with_cookie(cookie)
@@ -185,7 +175,6 @@ class Actor
         motion: @motion,
         density: @density,
         page_size: @page_size,
-        adult_content_gate: @adult_content_gate,
         cookie: self.class.cookie_from(cookie),
         null: @null,
         explicit_fields: @explicit_fields,
@@ -215,13 +204,6 @@ class Actor
         density: hash_value(prf_claim, "dn", :dn, "density", :density) || DEFAULTS[:density],
         page_size: hash_value(prf_claim, "ps", :ps, "page_size", :page_size) ||
           DEFAULTS[:page_size],
-        adult_content_gate: hash_value(
-          prf_claim,
-          "r18s",
-          :r18s,
-          "adult_content_gate",
-          :adult_content_gate,
-        ) || DEFAULTS[:adult_content_gate],
         cookie: cookie,
         explicit_fields: hash_value(prf_claim, "explicit", :explicit) || [],
       )

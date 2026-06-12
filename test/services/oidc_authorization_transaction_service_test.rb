@@ -76,15 +76,16 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
       )
 
     travel 2.seconds do
-      error = assert_raises(ArgumentError) do
-        OidcAuthorizationTransactionService.register_result!(
-          surface: "app",
-          login_challenge: issuance.transaction.login_challenge,
-          actor: @client,
-          session_ref: "session-1",
-          auth_method: "passkey",
-        )
-      end
+      error =
+        assert_raises(ArgumentError) do
+          OidcAuthorizationTransactionService.register_result!(
+            surface: "app",
+            login_challenge: issuance.transaction.login_challenge,
+            actor: @client,
+            session_ref: "session-1",
+            auth_method: "passkey",
+          )
+        end
 
       assert_equal "authorization transaction expired", error.message
     end

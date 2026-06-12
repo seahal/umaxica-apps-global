@@ -115,14 +115,14 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "destroy redirects to acme without local mutation" do
-    status_before = @staff_secret_credential.staff_secret_status_id
-
-    delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
-           params: { "cf-turnstile-response": "test" },
-           headers: authenticated_headers
+    assert_no_difference("OperatorSecretCredential.count") do
+      delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+             params: { "cf-turnstile-response": "test" },
+             headers: authenticated_headers
+    end
 
     assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
-    assert_equal status_before, @staff_secret_credential.reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @staff_secret_credential.reload.staff_secret_status_id
   end
 
   test "URL uses public_id not numeric ID in compatibility redirect" do
@@ -177,9 +177,11 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "destroy compatibility redirects before local turnstile validation" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
-           params: { "cf-turnstile-response": "bad" },
-           headers: authenticated_headers
+    assert_no_difference("OperatorSecretCredential.count") do
+      delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+             params: { "cf-turnstile-response": "bad" },
+             headers: authenticated_headers
+    end
 
     assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
     assert_not_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id

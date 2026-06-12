@@ -269,6 +269,57 @@ ALTER SEQUENCE public.visitor_email_ceremony_transactions_id_seq OWNED BY public
 
 
 --
+-- Name: visitor_oidc_authorization_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_oidc_authorization_transactions (
+    id bigint NOT NULL,
+    transaction_id character varying NOT NULL,
+    surface character varying NOT NULL,
+    intent character varying NOT NULL,
+    client_id character varying NOT NULL,
+    redirect_uri character varying NOT NULL,
+    response_type character varying NOT NULL,
+    scope character varying NOT NULL,
+    state character varying NOT NULL,
+    nonce character varying NOT NULL,
+    code_challenge character varying NOT NULL,
+    code_challenge_method character varying NOT NULL,
+    login_challenge character varying NOT NULL,
+    login_challenge_expires_at timestamp(6) with time zone NOT NULL,
+    authenticated_at timestamp(6) with time zone,
+    actor_ref character varying,
+    session_ref character varying,
+    auth_method character varying,
+    acr character varying,
+    consumed_at timestamp(6) with time zone,
+    expires_at timestamp(6) with time zone NOT NULL,
+    status character varying NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: visitor_oidc_authorization_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_oidc_authorization_transactions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_oidc_authorization_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_oidc_authorization_transactions_id_seq OWNED BY public.visitor_oidc_authorization_transactions.id;
+
+
+--
 -- Name: visitor_oidc_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1044,6 +1095,13 @@ ALTER TABLE ONLY public.visitor_email_ceremony_transactions ALTER COLUMN id SET 
 
 
 --
+-- Name: visitor_oidc_authorization_transactions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_oidc_authorization_transactions ALTER COLUMN id SET DEFAULT nextval('public.visitor_oidc_authorization_transactions_id_seq'::regclass);
+
+
+--
 -- Name: visitor_oidc_connections id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1284,6 +1342,14 @@ ALTER TABLE ONLY public.visitor_email_ceremony_transactions
 
 
 --
+-- Name: visitor_oidc_authorization_transactions visitor_oidc_authorization_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_oidc_authorization_transactions
+    ADD CONSTRAINT visitor_oidc_authorization_transactions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: visitor_oidc_connections visitor_oidc_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1479,6 +1545,13 @@ CREATE INDEX idx_on_actor_ref_session_ref_b6a6aeb3f9 ON public.visitor_secret_cr
 
 
 --
+-- Name: idx_on_client_id_login_challenge_8056723634; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_client_id_login_challenge_8056723634 ON public.visitor_oidc_authorization_transactions USING btree (client_id, login_challenge);
+
+
+--
 -- Name: idx_on_expires_at_bcbf526321; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1493,6 +1566,13 @@ CREATE UNIQUE INDEX idx_on_grant_jti_3ce786ea06 ON public.visitor_secret_credent
 
 
 --
+-- Name: idx_on_login_challenge_8c09aab77b; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_on_login_challenge_8c09aab77b ON public.visitor_oidc_authorization_transactions USING btree (login_challenge);
+
+
+--
 -- Name: idx_on_result_jti_9191bba74d; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1504,6 +1584,13 @@ CREATE UNIQUE INDEX idx_on_result_jti_9191bba74d ON public.visitor_secret_creden
 --
 
 CREATE UNIQUE INDEX idx_on_transaction_id_1caf724349 ON public.visitor_telephone_ceremony_transactions USING btree (transaction_id);
+
+
+--
+-- Name: idx_on_transaction_id_391ee3ac66; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_on_transaction_id_391ee3ac66 ON public.visitor_oidc_authorization_transactions USING btree (transaction_id);
 
 
 --
@@ -2213,6 +2300,8 @@ ALTER TABLE ONLY public.visitor_sign_up_flows
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
+('20260611150001'),
 ('20260611100200'),
 ('20260606120001'),
 ('20260603130002'),

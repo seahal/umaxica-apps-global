@@ -191,6 +191,62 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
+  test "legacy secret_credential still uses the legacy verifier" do
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    Sign::Secret::Verify.stub(:call, ->(*) { flunk("new-axis verifier must not be used for legacy rows") }) do
+      post sign_app_sign_in_secret_credential_url(ri: "jp"),
+           params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+           headers: default_headers
+    end
+
+    assert_response :found
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+  end
+
+  test "new-axis recovery secret uses the new verifier" do
+    result = ClientSecretCredentialsIssueRecovery.call(actor: @user, user: @user)
+
+    legacy_method = ClientSecretCredential.instance_method(:verify_for_secret_credential_sign_in!)
+
+    ClientSecretCredential.define_method(:verify_for_secret_credential_sign_in!) do |*|
+      raise "legacy verifier must not be used for new-axis rows"
+    end
+
+    begin
+      Sign::Secret::Verify.stub(
+        :call,
+        lambda do |*args, **kwargs|
+          secret_credential = kwargs[:secret_credential] || args.first&.fetch(:secret_credential)
+          raw_secret_credential = kwargs[:raw_secret_credential] || args.first&.fetch(:raw_secret_credential)
+
+          assert_predicate secret_credential, :new_axis_secret_credential?
+          assert_equal result.raw_secret_credential, raw_secret_credential
+
+          Sign::Secret::Verify::Result.new(
+            secret_credential: secret_credential,
+            reason: :success,
+            details: { secret_credential_id: secret_credential.id },
+          )
+        end,
+      ) do
+        post(
+          sign_app_sign_in_secret_credential_url(ri: "jp"),
+          params: login_params(identifier: @raw_email, secret_credential_value: result.raw_secret_credential),
+          headers: default_headers,
+        )
+      end
+    ensure
+      ClientSecretCredential.define_method(:verify_for_secret_credential_sign_in!, legacy_method)
+    end
+
+    assert_response :found
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+  end
+
   test "reserved user cannot sign in with secret_credential" do
     reserved_user = clients(:reserved_user)
     email = reserved_user.client_emails.create!(

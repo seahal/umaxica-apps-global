@@ -299,16 +299,20 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "should get destroy" do
     satisfy_user_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
+
     AuthMethodGuard.stub(:last_method?, false) do
-      with_prosopite_paused do
-        delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
-               headers: authenticated_headers
+      assert_no_difference("ClientSecretCredential.count") do
+        with_prosopite_paused do
+          delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
+                 headers: authenticated_headers
+        end
       end
     end
 
     assert_response :see_other
     assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
     assert_nil flash[:notice]
+    assert_equal ClientSecretCredentialStatus::ACTIVE, @user_secret_credential.reload.user_identity_secret_status_id
   end
 
   test "URL uses public_id not numeric ID" do
@@ -426,9 +430,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "destroy requires successful stealth turnstile" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    assert_no_difference(
-      "ClientSecretCredential.where.not(user_identity_secret_status_id: ClientSecretCredentialStatus::DELETED).count",
-    ) do
+    assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
         delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
                params: { "cf-turnstile-response": "bad" },

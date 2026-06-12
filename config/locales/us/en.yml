@@ -1792,7 +1792,6 @@ en:
         motion_settings: Motion Settings
         density_settings: Density Settings
         page_size_settings: Page Size
-        adult_content_gate_settings: R18 Display Stopper
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -1885,15 +1884,6 @@ en:
             '50': 50 items
             '100': 100 items
             infinity: Infinite items
-        adult_content_gate:
-          edit:
-            heading: R18 Display Stopper
-            description: Choose whether R18 content is approved, denied, or left unset.
-            option_label: R18 display stopper
-          options:
-            nothing: Unset
-            approved: Approved
-            deny: Deny
         resets:
           title: Reset Preferences
           description: Remove saved preference cookies for this browser.
@@ -1929,7 +1919,6 @@ en:
         motion_settings: Motion Settings
         density_settings: Density Settings
         page_size_settings: Page Size
-        adult_content_gate_settings: R18 Display Stopper
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         email_settings: Email Settings
@@ -2052,7 +2041,6 @@ en:
         motion_settings: Motion Settings
         density_settings: Density Settings
         page_size_settings: Page Size
-        adult_content_gate_settings: R18 Display Stopper
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.

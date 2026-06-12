@@ -67,12 +67,12 @@ module Acme
       before_action :set_preferences_cookie # FIXME: I hate this line.
       before_action :resolve_param_context # FIXME: I hate this line.
       before_action :set_region # FIXME: I hate this line.
-      before_action :set_locale # FIXME: I hate this line.
-      before_action :set_timezone # FIXME: I hate this line.
 
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? } # FIXME: I hate this line.
       before_action :set_current_actor
       before_action :apply_localization_preferences
+      before_action :set_locale # FIXME: I hate this line.
+      before_action :set_timezone # FIXME: I hate this line.
       before_action :set_color_theme # FIXME: I hate this line.
       before_action :enforce_withdrawal_gate! # FIXME: I hate this line.
       before_action :enforce_restricted_session_guard!

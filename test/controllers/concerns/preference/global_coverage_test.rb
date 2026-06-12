@@ -76,8 +76,6 @@ class PreferenceGlobalCoverageTest < ActiveSupport::TestCase
 
     def write_preference_cookie(*) = nil
 
-    def set_locale_from_params = nil
-
     def set_timezone_from_session = nil
 
     def preference_payload_value(_key) = "UTC"
@@ -136,12 +134,26 @@ class PreferenceGlobalCoverageTest < ActiveSupport::TestCase
     assert_not context.key?(:tz)
   end
 
-  test "cookie_context merges payload and record" do
+  test "cookie_context returns jwt payload values" do
+    context = @harness.cookie_context
+
+    assert_equal "us", context[:ri]
+    assert_equal "en", context[:lx]
+  end
+
+  test "cookie_context ignores @preferences db record - jwt payload wins" do
     @harness.instance_variable_set(:@preferences, AppPreference.new)
     context = @harness.cookie_context
 
-    assert_equal "jp", context[:ri]
-    assert_equal "ja", context[:lx]
+    assert_equal "us", context[:ri]
+    assert_equal "en", context[:lx]
+  end
+
+  test "cookie_context returns empty hash when no jwt payload" do
+    @harness.define_singleton_method(:preference_payload_preferences) { nil }
+    context = @harness.cookie_context
+
+    assert_empty context
   end
 
   test "default_url_options includes requested context" do

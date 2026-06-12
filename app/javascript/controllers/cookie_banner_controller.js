@@ -119,7 +119,7 @@ export default class extends Controller {
   }
 
   cookieEndpointQueryKeys() {
-    return ["ri", "lx", "ct", "tz", "cu", "df", "tf", "mo", "dn", "ps", "r18s"];
+    return ["ri", "lx", "ct", "tz", "cu", "df", "tf", "mo", "dn", "ps"];
   }
 
   csrfToken() {

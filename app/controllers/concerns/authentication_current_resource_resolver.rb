@@ -65,31 +65,7 @@ class AuthenticationCurrentResourceResolver
     return failure(:dpop_binding_mismatch, payload: payload) unless token_dpop_binding_current?(token_record, payload)
     return failure(:token_jti_mismatch, payload: payload) unless token_jti_current?(token_record, payload)
 
-    # Idle timeout: a still-valid access JWT must not let a session that has
-    # been inactive beyond its surface idle window keep authenticating.
-    if session_idle_expired?(token_record)
-      return failure(
-        :idle_timeout, payload: payload,
-                       session_public_id: current_session_public_id(token_record, sid),
-      )
-    end
-
-    resource = @resource_class.find_by(id: AuthenticationToken.extract_subject(payload))
-    return failure(
-      :resource_not_found, payload: payload,
-                           session_public_id: current_session_public_id(token_record, sid),
-                           token_public_id: token_record_public_id(token_record),
-    ) if resource.blank?
-
-    touch_session_activity!(token_record)
-
-    Result.new(
-      resource: resource,
-      session_public_id: current_session_public_id(token_record, sid),
-      token_public_id: token_record_public_id(token_record),
-      payload: payload,
-      failure_reason: nil,
-    )
+    resolve_and_build_result!(token_record, payload, sid)
   end
 
   private
@@ -117,7 +93,7 @@ class AuthenticationCurrentResourceResolver
     return if last.present? && (now - last) < SecurityTokenLifetimes::ACTIVITY_TOUCH_THROTTLE
 
     token_connection_owner.connected_to(role: :writing) do
-      token_record.update_columns(last_used_at: now)
+      token_record.update_columns(last_used_at: now) # rubocop:disable Rails/SkipsModelValidations
     end
   end
 
@@ -240,6 +216,32 @@ class AuthenticationCurrentResourceResolver
 
     klass = klass.superclass until klass.connection_class?
     klass
+  end
+
+  def resolve_and_build_result!(token_record, payload, sid)
+    if session_idle_expired?(token_record)
+      return failure(
+        :idle_timeout, payload: payload,
+                       session_public_id: current_session_public_id(token_record, sid),
+      )
+    end
+
+    resource = @resource_class.find_by(id: AuthenticationToken.extract_subject(payload))
+    return failure(
+      :resource_not_found, payload: payload,
+                           session_public_id: current_session_public_id(token_record, sid),
+                           token_public_id: token_record_public_id(token_record),
+    ) if resource.blank?
+
+    touch_session_activity!(token_record)
+
+    Result.new(
+      resource: resource,
+      session_public_id: current_session_public_id(token_record, sid),
+      token_public_id: token_record_public_id(token_record),
+      payload: payload,
+      failure_reason: nil,
+    )
   end
 
   def failure(reason, payload: nil, session_public_id: nil)

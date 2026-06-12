@@ -77,7 +77,6 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
       mo: "rd",
       dn: "cp",
       ps: "50",
-      r18s: "warn",
     }
     preference = Actor::Preference.new(
       language: "ja",
@@ -90,7 +89,6 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
       motion: "standard",
       density: "standard",
       page_size: "20",
-      adult_content_gate: "nothing",
     )
 
     overlaid = @harness.overlay_preference(preference)
@@ -105,6 +103,5 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
     assert_equal "rd", overlaid.motion
     assert_equal "cp", overlaid.density
     assert_equal "50", overlaid.page_size
-    assert_equal "warn", overlaid.adult_content_gate
   end
 end

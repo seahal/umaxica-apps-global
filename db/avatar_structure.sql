@@ -2789,6 +2789,7 @@ ALTER TABLE ONLY public.client_avatar_deletions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
 ('20260518044331'),
 ('20260508151000'),
 ('20260508140999'),

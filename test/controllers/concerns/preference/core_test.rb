@@ -49,11 +49,10 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     Struct.new(
       :language, :region, :timezone, :theme,
       :currency, :date_format, :time_format, :motion, :density, :page_size,
-      :adult_content_gate,
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_page_size, :app_preference_adult_content_gate, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -76,7 +75,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       :app_preference_language, :app_preference_region, :app_preference_timezone,
       :app_preference_theme, :app_preference_currency, :app_preference_date_format,
       :app_preference_time_format, :app_preference_motion, :app_preference_density,
-      :app_preference_page_size, :app_preference_adult_content_gate, :app_preference_cookie,
+      :app_preference_page_size, :app_preference_cookie,
       keyword_init: true,
     ) do
       def class = AppPreference
@@ -144,7 +143,6 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       app_preference_motion: FakeAssociation.new(nil, FakeOption.new("standard")),
       app_preference_density: FakeAssociation.new(nil, FakeOption.new("compact")),
       app_preference_page_size: FakeAssociation.new(nil, FakeOption.new("50")),
-      app_preference_adult_content_gate: FakeAssociation.new(nil, FakeOption.new("warn")),
       app_preference_cookie: FakeCookie.new(false, true, false, true),
     )
 
@@ -160,7 +158,6 @@ class PreferenceCoreTest < ActiveSupport::TestCase
         motion: "standard",
         density: "compact",
         page_size: "50",
-        adult_content_gate: "warn",
       },
       @controller.send(:resolved_preference_snapshot, preference),
     )
@@ -413,7 +410,6 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       mo: "rd",
       dn: "cp",
       ps: "50",
-      r18s: "warn",
     }
 
     {
@@ -426,7 +422,6 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       motion: :mo,
       density: :dn,
       page_size: :ps,
-      adult_content_gate: :r18s,
     }.each do |screen, context_key|
       redirect_params = @controller.send(
         :preference_write_redirect_params,
@@ -447,14 +442,15 @@ class PreferenceCoreTest < ActiveSupport::TestCase
   test "render update response and reset state cover response helpers" do
     @controller.instance_variable_set(
       :@preferences,
-      FakePreference.new(adult_content_gate: "warn", app_preference_cookie: nil),
+      FakePreference.new(language: "en", region: "us", timezone: "Etc/UTC", theme: "dr", app_preference_cookie: nil),
     )
 
     @controller.send(:render_preference_update_response)
 
     assert_equal :ok, @controller.render_args[:status]
     assert @controller.render_args[:json].key?(:preference)
-    assert_equal "warn", @controller.render_args[:json].fetch(:preference).fetch(:r18s)
+    assert_equal "en", @controller.render_args[:json].fetch(:preference).fetch(:lx)
+    assert_not @controller.render_args[:json].fetch(:preference).key?(:r18s)
 
     @controller.instance_variable_set(:@preference_payload, { "x" => 1 })
     @controller.instance_variable_set(:@refresh_token_value, "token")

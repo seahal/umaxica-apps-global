@@ -2386,7 +2386,6 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         page_size_settings: 1ページあたりの表示件数
-        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2467,7 +2466,6 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         page_size_settings: 1ページあたりの表示件数
-        adult_content_gate_settings: R18表示設定
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2620,7 +2618,6 @@ ja:
         motion_settings: モーション設定
         density_settings: 表示密度設定
         page_size_settings: 1ページあたりの表示件数
-        adult_content_gate_settings: R18表示設定
       preference:
         cookie:
           edit:
@@ -2713,15 +2710,6 @@ ja:
             '50': 50件
             '100': 100件
             infinity: 無制限
-        adult_content_gate:
-          edit:
-            heading: R18表示設定
-            description: R18 コンテンツを未設定、承認、拒否のどれにするかを選択します。
-            option_label: R18表示設定
-          options:
-            nothing: 未設定
-            approved: 承認
-            deny: 拒否
         date_format:
           edit:
             heading: 日付形式

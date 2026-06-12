@@ -5,6 +5,18 @@ module SecretCredential
   extend ActiveSupport::Concern
 
   SECRET_PASSWORD_LENGTH = 32
+  NEW_SECRET_KINDS = %w(
+    recovery
+    operator_issued_recovery
+    temporary_access
+    persistent_access
+    mailed_activation
+  ).freeze
+  NEW_USAGE_POLICIES = %w(
+    single_use
+    multi_use
+    limited_session
+  ).freeze
 
   included do
     has_secure_password algorithm: :argon2, validations: false
@@ -15,6 +27,7 @@ module SecretCredential
                 message: "must be #{SECRET_PASSWORD_LENGTH} characters",
               },
               allow_nil: true
+    validate :new_axis_secret_fields_are_consistent
   end
 
   class_methods do
@@ -156,6 +169,15 @@ module SecretCredential
     secret_credential_status_id == self.class.identity_secret_credential_status_class::DELETED
   end
 
+  def new_axis_secret_credential?
+    return false unless respond_to?(:secret_kind)
+    return true if secret_kind.present?
+    return true if respond_to?(:lookup_digest) && lookup_digest.present?
+    return true if respond_to?(:usage_policy) && usage_policy.present?
+
+    false
+  end
+
   private
 
   def secret_credential_status_id
@@ -175,5 +197,24 @@ module SecretCredential
     return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 
     discarded_at <= now
+  end
+
+  private
+
+  def new_axis_secret_fields_are_consistent
+    return unless new_axis_secret_credential?
+
+    if respond_to?(:secret_kind) && secret_kind.present? && NEW_SECRET_KINDS.exclude?(secret_kind.to_s)
+      errors.add(:secret_kind, "is invalid")
+    end
+    errors.add(:secret_kind, "can't be blank") if respond_to?(:secret_kind) && secret_kind.blank?
+
+    if respond_to?(:usage_policy) && usage_policy.present? && NEW_USAGE_POLICIES.exclude?(usage_policy.to_s)
+      errors.add(:usage_policy, "is invalid")
+    end
+    errors.add(:usage_policy, "can't be blank") if respond_to?(:usage_policy) && usage_policy.blank?
+
+    errors.add(:lookup_digest, "can't be blank") if respond_to?(:lookup_digest) && lookup_digest.blank?
+    errors.add(:safe_prefix, "can't be blank") if respond_to?(:safe_prefix) && safe_prefix.blank?
   end
 end

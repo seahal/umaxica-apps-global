@@ -287,18 +287,36 @@ module Sign
             )
           end
 
-          unless latest_eligible_secret_credential.verify_for_secret_credential_sign_in!(raw_secret_credential.to_s)
+          verification =
+            if latest_eligible_secret_credential.new_axis_secret_credential?
+              Sign::Secret::Verify.call(
+                secret_credential: latest_eligible_secret_credential,
+                raw_secret_credential: raw_secret_credential.to_s,
+              )
+            else
+              verified = latest_eligible_secret_credential.verify_for_secret_credential_sign_in!(
+                raw_secret_credential.to_s,
+              )
+              SecretVerificationResult.new(
+                secret_credential: verified ? latest_eligible_secret_credential : nil,
+                reason: verified ? :success : :secret_credential_mismatch,
+                details: { secret_credential_id: latest_eligible_secret_credential.id },
+              )
+            end
+
+          unless verification.secret_credential
             return SecretVerificationResult.new(
-              reason: :secret_credential_mismatch,
-              details: { secret_credential_id: latest_eligible_secret_credential.id },
+              reason: verification.reason || :secret_credential_mismatch,
+              details: verification.details.presence || { secret_credential_id: latest_eligible_secret_credential.id },
             )
           end
 
-          audit_recovery_secret_credential_if_recovery!(user, latest_eligible_secret_credential)
+          secret_credential = verification.secret_credential || latest_eligible_secret_credential
+          audit_recovery_secret_credential_if_recovery!(user, secret_credential)
           SecretVerificationResult.new(
-            secret_credential: latest_eligible_secret_credential,
+            secret_credential: secret_credential,
             reason: :success,
-            details: { secret_credential_id: latest_eligible_secret_credential.id },
+            details: { secret_credential_id: secret_credential.id },
           )
         end
 

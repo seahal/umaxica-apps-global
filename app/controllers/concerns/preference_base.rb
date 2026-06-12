@@ -43,7 +43,6 @@ module PreferenceBase
     PreferenceIoKeys::Cookies::MOTION => :motion,
     PreferenceIoKeys::Cookies::DENSITY => :density,
     PreferenceIoKeys::Cookies::PAGE_SIZE => :page_size,
-    PreferenceIoKeys::Cookies::ADULT_CONTENT_GATE => :adult_content_gate,
   }.freeze
 
   THEME_SHORT_MAP = {
@@ -274,17 +273,6 @@ module PreferenceBase
     else
       default
     end
-  end
-
-  def set_locale_from_params
-    locale = normalized_locale(params[PreferenceIoKeys::Params::LX])
-    locale ||= normalized_locale(cookies[LANGUAGE_COOKIE_KEY])
-    locale ||= normalized_locale(preference_payload_value("lx"))
-    locale ||= locale_from_region(params[PreferenceIoKeys::Params::RI])
-    locale ||= locale_from_region(preference_payload_value("ri"))
-    locale ||= I18n.default_locale
-
-    I18n.locale = locale
   end
 
   def locale_from_region(region)
@@ -680,7 +668,7 @@ module PreferenceBase
 
   def preference_payload_option_ids(preference, association_prefix)
     %i(language region timezone theme currency date_format time_format motion density
-       page_size adult_content_gate).index_with do |type|
+       page_size).index_with do |type|
       association_name = "#{association_prefix}_#{type}"
       next unless preference.respond_to?(association_name)
 
@@ -696,11 +684,6 @@ module PreferenceBase
       "mo" => option_id_to_preference_value(option_ids[:motion], option_prefix, :motion) || "standard",
       "dn" => option_id_to_preference_value(option_ids[:density], option_prefix, :density) || "standard",
       "ps" => option_id_to_preference_value(option_ids[:page_size], option_prefix, :page_size) || "20",
-      "r18s" => option_id_to_preference_value(
-        option_ids[:adult_content_gate],
-        option_prefix,
-        :adult_content_gate,
-      ) || "nothing",
     }
   end
 
@@ -1064,7 +1047,6 @@ module PreferenceBase
       motion: "Motion",
       density: "Density",
       page_size: "PageSize",
-      adult_content_gate: "AdultContentGate",
     }.fetch(type.to_sym)
   end
 

@@ -87,11 +87,3 @@ from JS-readable cookies.
 - Notes: `ps` is the current code and test contract. Older references to `pp` or `ipp` are
   documentation drift unless a separate compatibility plan says otherwise.
 - Status: `accepted`.
-
-### Adult Content Gate Key
-
-- Definition: `r18s`, the transport key for the current adult content gate preference.
-- Context: `app`, `org`, `com`; optional display and content-gating preference projections.
-- Notes: Carries a UI/request-context gate preference. It is not an identity, age-verification,
-  credential, authorization, or compliance record.
-- Status: `accepted`.

@@ -144,7 +144,7 @@ class OrgPreference < OrgSettingRecord
   after_create :persist_self_replacement
 
   def adult_content_gate
-    org_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
+    org_preference_adult_content_gate&.option&.name || "nothing"
   end
 
   private

@@ -24,7 +24,7 @@ module Authentication
         end
 
       class << self
-        attr_accessor :token_oidc_jti, :token_last_used_at, :token_created_at
+        attr_accessor :token_oidc_jti, :token_last_used_at, :token_created_at # rubocop:disable ThreadSafety/ClassAndModuleAttributes
 
         def touches
           @touches ||= []

@@ -26,13 +26,24 @@ class ClientSecretCredentialsIssueRecovery
         ensure_audit_dependencies!
         revoke_existing_recovery_secret_credentials!
 
-        secret_credential = @user.client_secret_credentials.new(
+        result = Sign::Secret::Issue.call(
+          credential_collection: @user.client_secret_credentials,
+          secret_credential_class: ClientSecretCredential,
           name: raw_secret_credential.first(4),
-          user_secret_kind_id: ClientSecretCredentialKind::RECOVERY,
-          user_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
+          secret_kind: "recovery",
+          usage_policy: "single_use",
+          legacy_attributes: {
+            user_secret_kind_id: ClientSecretCredentialKind::RECOVERY,
+            user_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
+          },
+          scope: "recovery",
+          max_uses: 1,
+          max_failures: 5,
+          issued_at: Time.current,
+          raw_secret_credential: raw_secret_credential,
         )
-        secret_credential.password = raw_secret_credential
-        secret_credential.save!
+        secret_credential = result.secret_credential
+        raw_secret_credential = result.raw_secret_credential
 
         audit_class.create!(
           actor: @actor,

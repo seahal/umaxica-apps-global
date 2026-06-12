@@ -334,7 +334,6 @@ module ActorSupport
       motion: preference_record_value(preference_record, :motion),
       density: preference_record_value(preference_record, :density),
       page_size: preference_record_value(preference_record, :page_size),
-      adult_content_gate: preference_record_value(preference_record, :adult_content_gate),
       cookie: cookie,
     )
   end
@@ -356,7 +355,6 @@ module ActorSupport
       motion: context[:mo] || preference.motion,
       density: context[:dn] || preference.density,
       page_size: context[:ps] || preference.page_size,
-      adult_content_gate: context[:r18s] || preference.adult_content_gate,
       cookie: preference.cookie,
       null: preference.null?,
       explicit_fields: preference.explicit_fields,
@@ -403,7 +401,7 @@ module ActorSupport
   def preference_adult_content_gate_value(preference_record)
     association = "#{preference_record.class.name.underscore}_adult_content_gate"
     stopper = preference_record.public_send(association) if preference_record.respond_to?(association)
-    stopper&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
+    stopper&.option&.name || "nothing"
   end
 
   def set_current_observability

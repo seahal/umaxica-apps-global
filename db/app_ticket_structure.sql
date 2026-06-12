@@ -260,6 +260,57 @@ ALTER SEQUENCE public.client_oauth_callback_states_id_seq OWNED BY public.client
 
 
 --
+-- Name: client_oidc_authorization_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_oidc_authorization_transactions (
+    id bigint NOT NULL,
+    transaction_id character varying NOT NULL,
+    surface character varying NOT NULL,
+    intent character varying NOT NULL,
+    client_id character varying NOT NULL,
+    redirect_uri character varying NOT NULL,
+    response_type character varying NOT NULL,
+    scope character varying NOT NULL,
+    state character varying NOT NULL,
+    nonce character varying NOT NULL,
+    code_challenge character varying NOT NULL,
+    code_challenge_method character varying NOT NULL,
+    login_challenge character varying NOT NULL,
+    login_challenge_expires_at timestamp(6) with time zone NOT NULL,
+    authenticated_at timestamp(6) with time zone,
+    actor_ref character varying,
+    session_ref character varying,
+    auth_method character varying,
+    acr character varying,
+    consumed_at timestamp(6) with time zone,
+    expires_at timestamp(6) with time zone NOT NULL,
+    status character varying NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: client_oidc_authorization_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_oidc_authorization_transactions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_oidc_authorization_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_oidc_authorization_transactions_id_seq OWNED BY public.client_oidc_authorization_transactions.id;
+
+
+--
 -- Name: client_oidc_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1177,6 +1228,13 @@ ALTER TABLE ONLY public.client_oauth_callback_states ALTER COLUMN id SET DEFAULT
 
 
 --
+-- Name: client_oidc_authorization_transactions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_oidc_authorization_transactions ALTER COLUMN id SET DEFAULT nextval('public.client_oidc_authorization_transactions_id_seq'::regclass);
+
+
+--
 -- Name: client_oidc_connections id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1431,6 +1489,14 @@ ALTER TABLE ONLY public.client_oauth_callback_states
 
 
 --
+-- Name: client_oidc_authorization_transactions client_oidc_authorization_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_oidc_authorization_transactions
+    ADD CONSTRAINT client_oidc_authorization_transactions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: client_oidc_connections client_oidc_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1664,6 +1730,13 @@ CREATE INDEX idx_on_actor_ref_session_ref_e256c5d4a6 ON public.client_totp_cerem
 
 
 --
+-- Name: idx_on_client_id_login_challenge_8f71e56454; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_client_id_login_challenge_8f71e56454 ON public.client_oidc_authorization_transactions USING btree (client_id, login_challenge);
+
+
+--
 -- Name: idx_on_expires_at_6a705a7bb7; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1675,6 +1748,13 @@ CREATE INDEX idx_on_expires_at_6a705a7bb7 ON public.client_secret_credential_cer
 --
 
 CREATE UNIQUE INDEX idx_on_grant_jti_58e101b1d8 ON public.client_secret_credential_ceremony_transactions USING btree (grant_jti);
+
+
+--
+-- Name: idx_on_login_challenge_91d464d261; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_on_login_challenge_91d464d261 ON public.client_oidc_authorization_transactions USING btree (login_challenge);
 
 
 --
@@ -1815,6 +1895,13 @@ CREATE INDEX index_client_oauth_callback_states_on_expires_at ON public.client_o
 --
 
 CREATE UNIQUE INDEX index_client_oauth_callback_states_on_state_digest ON public.client_oauth_callback_states USING btree (state_digest);
+
+
+--
+-- Name: index_client_oidc_authorization_transactions_on_transaction_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_oidc_authorization_transactions_on_transaction_id ON public.client_oidc_authorization_transactions USING btree (transaction_id);
 
 
 --
@@ -2482,6 +2569,8 @@ ALTER TABLE ONLY public.client_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260612000001'),
+('20260611150000'),
 ('20260611100000'),
 ('20260606120000'),
 ('20260603140000'),

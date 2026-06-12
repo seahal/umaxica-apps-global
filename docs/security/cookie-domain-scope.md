@@ -26,7 +26,7 @@ Rails may write JS-readable cookies only for non-secret UI and request-context m
 
 - `ct` - color theme code used by browser theme bootstrapping.
 - `language` - language code; kept under this name for Hono compatibility.
-- `tz`, `cu`, `df`, `tf`, `mo`, `dn`, `ps`, `r18s` - timezone and display preference mirrors.
+- `tz`, `cu`, `df`, `tf`, `mo`, `dn`, `ps` - timezone and display preference mirrors.
 - `preference_consented` - compact consent-banner state for AJAX/browser UI.
 
 These cookies are compatibility mirrors. Rails request code must not treat them as authoritative

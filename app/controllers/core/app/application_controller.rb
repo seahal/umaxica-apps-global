@@ -59,11 +59,11 @@ module Core
       before_action :set_preferences_cookie
       before_action :resolve_param_context
       before_action :set_region
-      before_action :set_locale
-      before_action :set_timezone
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences
+      before_action :set_locale
+      before_action :set_timezone
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
       before_action :enforce_verification_if_required

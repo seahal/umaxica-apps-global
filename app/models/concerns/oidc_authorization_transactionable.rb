@@ -11,7 +11,7 @@ module OidcAuthorizationTransactionable
   RETENTION_PERIOD = 15.minutes
 
   included do
-    class_attribute :oidc_authorization_surface_name, instance_accessor: false
+    class_attribute :oidc_authorization_surface_name, instance_accessor: false # rubocop:disable ThreadSafety/ClassAndModuleAttributes
 
     scope :pending, -> { where(status: STATUS_PENDING) }
     scope :authenticated, -> { where(status: STATUS_AUTHENTICATED) }
@@ -132,7 +132,7 @@ module OidcAuthorizationTransactionable
   def acme_resume_url
     resource_type = OidcClientRegistry.find!(client_id).resource_type
     host = OidcIssuer.host_for_resource_type(resource_type)
-    scheme = host.to_s.end_with?(".localhost") && !Rails.env.production? ? "http" : "https"
+    scheme = (host.to_s.end_with?(".localhost") && !Rails.env.production?) ? "http" : "https"
     uri = URI::Generic.build(
       scheme: scheme,
       host: host,

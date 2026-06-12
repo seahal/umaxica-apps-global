@@ -288,7 +288,10 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "acme oauth authorize consumes login challenge once" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host!(host)
-    issuance = OidcAuthorizationTransactionService.issue!(surface: "app", intent: "sign_in", params: oidc_authorize_params)
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "app", intent: "sign_in",
+      params: oidc_authorize_params,
+    )
 
     OidcAuthorizationTransactionService.register_result!(
       surface: "app",
@@ -327,7 +330,8 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       )
 
     travel 2.seconds do
-      get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge }, headers: browser_headers
+      get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge },
+                              headers: browser_headers
     end
 
     assert_response :bad_request

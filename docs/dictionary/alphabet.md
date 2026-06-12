@@ -10,8 +10,6 @@ heading.
 
 - **Account** — service-usage subject bound to an Identity. See
   `identity-account-organization-avatar.md`.
-- **Adult Content Gate Key** — `r18s`, adult content gate preference transport key. See
-  `preference-request-context-keys.md`.
 - **Avatar** — SNS-facing embodiment operated by Accounts (app/org only). See
   `identity-account-organization-avatar.md`.
 

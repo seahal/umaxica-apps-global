@@ -18,6 +18,8 @@ class ClientSecretCredentialsDestroy
     audit_class.transaction do
       ClientSecretCredential.transaction do
         ensure_audit_dependencies!
+        @secret_credential.discard_now!(purge_after: 1.day)
+        @secret_credential.user_secret_status_id = ClientSecretCredential.status_id_for(:deleted)
         audit_class.create!(
           actor: @actor,
           subject_type: "ClientSecretCredential",
@@ -26,7 +28,7 @@ class ClientSecretCredentialsDestroy
           occurred_at: Time.current,
           context: { action: ACTION },
         )
-        @secret_credential.destroy!
+        @secret_credential.save!
       end
     end
   end

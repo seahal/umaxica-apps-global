@@ -92,7 +92,7 @@ class OperatorPreference < OrgPrincipalRecord
   before_validation :generate_public_id, on: :create
 
   def adult_content_gate
-    operator_preference_adult_content_gate&.option&.name || Actor::Preference::DEFAULTS.fetch(:adult_content_gate)
+    operator_preference_adult_content_gate&.option&.name || "nothing"
   end
 
   private

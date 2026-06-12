@@ -9,7 +9,9 @@
 
 ## Status
 
-Active.
+Implemented (2026-06-12). All migration steps complete. Remaining auth-side cleanup (removing the
+dead `prf` claim from auth access-token issuance) is deferred as a separate auth-side task per the
+original plan comment.
 
 ## Purpose
 
