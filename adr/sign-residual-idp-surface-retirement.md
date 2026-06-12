@@ -7,8 +7,8 @@ Accepted (2026-06-11)
 > **Supersession (2026-06-12):** The target component model is now defined by
 > `adr/acme-sign-core-base-port-boundary.md`. Sign is a special RP, not a credential-gateway IdP
 > host, and Acme is the only IdP / Authorization Server. This ADR remains useful for identifying
-> residual sign-side IdP behavior to retire, but its retained `sign/id` credential-gateway framing is
-> superseded where it conflicts with Sign as a special RP.
+> residual sign-side IdP behavior to retire, but its retained `sign/id` credential-gateway framing
+> is superseded where it conflicts with Sign as a special RP.
 
 ## Context
 

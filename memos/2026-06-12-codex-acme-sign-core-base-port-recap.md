@@ -2,13 +2,13 @@
 
 ## Context
 
-The accepted naming recap fixes the architecture vocabulary as Acme, Sign, Core, Base, and Port.
-The withdrawn names Deck and Bare are not part of the target architecture.
+The accepted naming recap fixes the architecture vocabulary as Acme, Sign, Core, Base, and Port. The
+withdrawn names Deck and Bare are not part of the target architecture.
 
 ## Observed
 
-- Existing ADRs and docs still contain a Rails-only identity authority model centered on
-  `acme/www` and `sign/id`.
+- Existing ADRs and docs still contain a Rails-only identity authority model centered on `acme/www`
+  and `sign/id`.
 - The new accepted model makes Acme the only IdP / Authorization Server.
 - Sign becomes a special RP, not an IdP.
 - Core becomes the Next.js web RP/BFF.

@@ -43,14 +43,14 @@ presented with `Authorization: Bearer`.
 
 ## Component Classification
 
-| Component | Classification |
-| --- | --- |
-| Acme | IdP / Authorization Server |
-| Sign | Special RP |
-| Core | Next.js web RP / BFF |
-| Base | Rails foundation/control plane; RP for Rails views, Resource Server for APIs |
-| Port | Native bearer-token API Resource Server |
-| iOS / Android | Public RPs |
+| Component     | Classification                                                               |
+| ------------- | ---------------------------------------------------------------------------- |
+| Acme          | IdP / Authorization Server                                                   |
+| Sign          | Special RP                                                                   |
+| Core          | Next.js web RP / BFF                                                         |
+| Base          | Rails foundation/control plane; RP for Rails views, Resource Server for APIs |
+| Port          | Native bearer-token API Resource Server                                      |
+| iOS / Android | Public RPs                                                                   |
 
 APIs are Resource Servers, not RPs. An RP initiates an authorization request and receives a
 callback. A Resource Server validates access tokens and returns API responses.
@@ -66,14 +66,14 @@ Browser -> Core / Next.js -> Acme /authorize -> Core callback -> Core server-sid
 Browsers must not directly hold bearer access tokens. The browser holds only Core's host-only web
 session cookie:
 
-| Attribute | Value |
-| --- | --- |
-| Name | `__Host-core_sid` |
-| Domain | none |
-| Path | `/` |
-| Secure | `true` |
-| HttpOnly | `true` |
-| SameSite | `Lax` |
+| Attribute | Value             |
+| --------- | ----------------- |
+| Name      | `__Host-core_sid` |
+| Domain    | none              |
+| Path      | `/`               |
+| Secure    | `true`            |
+| HttpOnly  | `true`            |
+| SameSite  | `Lax`             |
 
 `Domain=.example.com` must not be used for Core's browser session cookie.
 

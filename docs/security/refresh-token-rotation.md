@@ -1,7 +1,6 @@
 # Refresh Token Rotation
 
-> **Supersession (2026-06-12):** Use
-> `adr/acme-sign-core-base-port-boundary.md` and
+> **Supersession (2026-06-12):** Use `adr/acme-sign-core-base-port-boundary.md` and
 > `docs/architecture/acme-sign-core-base-port.md` for the target component model. Acme is the only
 > IdP / Authorization Server and token issuer. Sign is a special RP, not a refresh-token authority.
 > Older `acme/www` and `sign/id` refresh-token authority wording is historical where it conflicts

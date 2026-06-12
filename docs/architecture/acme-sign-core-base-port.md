@@ -4,13 +4,13 @@
 
 The accepted component model is:
 
-| Component | Role |
-| --- | --- |
-| Acme | IdP / Authorization Server |
-| Sign | Special relying party |
-| Core | Next.js web relying party and BFF |
-| Base | Rails application foundation and control plane |
-| Port | Native bearer-token API Resource Server |
+| Component | Role                                           |
+| --------- | ---------------------------------------------- |
+| Acme      | IdP / Authorization Server                     |
+| Sign      | Special relying party                          |
+| Core      | Next.js web relying party and BFF              |
+| Base      | Rails application foundation and control plane |
+| Port      | Native bearer-token API Resource Server        |
 
 Acme is the only login authority. Sign, Core, Base views, iOS, and Android authenticate through
 Acme. APIs are Resource Servers, not relying parties.
@@ -22,12 +22,12 @@ and subject identity.
 
 Sign owns sign-related UI or special flows as a relying party. Sign is not an issuer.
 
-Core owns the browser-facing web experience, receives the Acme callback, issues the Core web
-session cookie, and calls downstream APIs from the server side.
+Core owns the browser-facing web experience, receives the Acme callback, issues the Core web session
+cookie, and calls downstream APIs from the server side.
 
-Base owns Rails-suitable foundation behavior: settings, preferences, account, profile,
-organization, administration, complex mutations, audit-sensitive operations, and Rails views where
-Rails remains the safer implementation boundary.
+Base owns Rails-suitable foundation behavior: settings, preferences, account, profile, organization,
+administration, complex mutations, audit-sensitive operations, and Rails views where Rails remains
+the safer implementation boundary.
 
 Port owns native API access for iOS, Android, and other native clients. It accepts only Acme-issued
 bearer access tokens with the Port audience.
@@ -48,14 +48,14 @@ session cookie.
 
 Core's cookie contract:
 
-| Attribute | Value |
-| --- | --- |
-| Name | `__Host-core_sid` |
-| Domain | none |
-| Path | `/` |
-| Secure | `true` |
-| HttpOnly | `true` |
-| SameSite | `Lax` |
+| Attribute | Value             |
+| --------- | ----------------- |
+| Name      | `__Host-core_sid` |
+| Domain    | none              |
+| Path      | `/`               |
+| Secure    | `true`            |
+| HttpOnly  | `true`            |
+| SameSite  | `Lax`             |
 
 Do not use `Domain=.example.com` for Core browser sessions.
 

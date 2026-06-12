@@ -1,11 +1,11 @@
 # Identity Authority Boundary
 
 > **Supersession (2026-06-12):** The target component model is now
-> `docs/architecture/acme-sign-core-base-port.md` and
-> `adr/acme-sign-core-base-port-boundary.md`. Acme is the only IdP / Authorization Server, Sign is a
-> special RP, Core is the Next.js web RP/BFF, Base is the Rails foundation/control-plane subdomain,
-> and Port is the native bearer-token API Resource Server. This document remains historical Rails
-> migration context where it describes `acme/www` and `sign/id`.
+> `docs/architecture/acme-sign-core-base-port.md` and `adr/acme-sign-core-base-port-boundary.md`.
+> Acme is the only IdP / Authorization Server, Sign is a special RP, Core is the Next.js web RP/BFF,
+> Base is the Rails foundation/control-plane subdomain, and Port is the native bearer-token API
+> Resource Server. This document remains historical Rails migration context where it describes
+> `acme/www` and `sign/id`.
 
 ## Current Boundary
 

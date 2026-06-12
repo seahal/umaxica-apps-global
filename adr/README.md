@@ -29,11 +29,11 @@ Current identity authority decision:
   ceremony-only audit records; superseded where it conflicts with Sign as a special RP.
 - `adr/sign-residual-idp-surface-retirement.md` — operational decision to retire the residual
   `sign/id` OIDC provider, `SIGN_*` signing keys, refresh-rotation endpoint, session-mutating
-  sign-out paths, and step-up freshness writes; superseded where it conflicts with Sign as a
-  special RP and Acme as the only IdP / Authorization Server.
+  sign-out paths, and step-up freshness writes; superseded where it conflicts with Sign as a special
+  RP and Acme as the only IdP / Authorization Server.
 
-Implementation note: the accepted Acme / Sign / Core / Base / Port boundary is ahead of parts of
-the current code and older plans. Active implementation work is tracked in
+Implementation note: the accepted Acme / Sign / Core / Base / Port boundary is ahead of parts of the
+current code and older plans. Active implementation work is tracked in
 `plans/active/acme-sign-core-base-port-implementation.md`; existing Rails-only compatibility routes
 or storage do not create a competing ADR-level authority assignment.
 
