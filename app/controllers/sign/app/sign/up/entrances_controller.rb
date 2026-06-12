@@ -21,7 +21,8 @@ module Sign
             raise ActionController::BadRequest,
                   "authorization transaction expired" if transaction.login_challenge_expired?
             raise ActionController::BadRequest, "authorization transaction already consumed" if transaction.consumed?
-            raise ActionController::BadRequest, "authorization transaction intent mismatch" unless transaction.intent == "sign_up"
+            raise ActionController::BadRequest,
+                  "authorization transaction intent mismatch" unless transaction.intent == "sign_up"
 
             session[:oidc_authorization_login_challenge] = transaction.login_challenge
             @oidc_authorization_intent = transaction.intent

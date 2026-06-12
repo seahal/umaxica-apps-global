@@ -45,7 +45,6 @@ module Sign
 
         def new
           @user_email = ClientEmail.new
-          sign_up_flow_locator.clear!
         end
 
         def edit
@@ -294,13 +293,17 @@ module Sign
             return ClientEmail.find_by(id: session_existing_email_id)
           end
 
-          pending_user_id = session[:pending_sign_up_user_id]
-          return if pending_user_id.blank?
+          cycle = sign_up_flow_locator.current
+          return unless cycle&.pending_contact_type == "email"
 
-          ClientEmail.find_by(
-            user_id: pending_user_id,
-            user_email_status_id: ClientEmailStatus::UNVERIFIED_WITH_SIGN_UP,
-          )
+          ClientEmail.find_by(id: cycle.pending_contact_id)
+        end
+
+        def cleanup_pending_signup!
+          cycle = sign_up_flow_locator.current
+          return unless cycle&.principal_id
+
+          Client.find_by(id: cycle.principal_id, status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)&.destroy!
         end
 
         # Derives a per-address rate-limit bucket. Uses the same SHA-256

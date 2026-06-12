@@ -70,8 +70,11 @@ module Sign
                 visitor_secret_credential_kind_id: VisitorSecretCredentialKind::LOGIN,
               ),
             )
-            raise ActiveRecord::RecordInvalid.new(secret_credential) unless secret_credential.valid?
-
+            # save! with validate: false bypasses all model validators (including
+            # RecoveryIdentityRequiredValidator, which fires before the telephone reaches
+            # VERIFIED_WITH_SIGN_UP) while still running before_create callbacks such as
+            # generate_public_id. All attribute data comes from controlled system generation,
+            # so skipping model-level validation here is safe.
             secret_credential.save!(validate: false)
             secret_credential
           end

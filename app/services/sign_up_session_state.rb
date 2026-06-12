@@ -21,7 +21,6 @@ class SignUpSessionState
       telephone_otp: :user_telephone_registration,
       existing_email: :sign_up_existing_email_id,
       existing_email_skip_otp: :sign_up_existing_email_skip_otp,
-      pending_actor_id: :pending_sign_up_user_id,
       age_restricted: :sign_app_up_age_restricted,
     }.freeze,
     com: {
@@ -30,7 +29,6 @@ class SignUpSessionState
       telephone_otp: :visitor_telephone_registration,
       existing_email: :sign_com_up_existing_visitor_email_id,
       existing_email_skip_otp: :sign_com_up_existing_visitor_email_skip_otp,
-      pending_actor_id: :sign_com_up_pending_visitor_id,
       age_restricted: :sign_com_up_age_restricted,
     }.freeze,
   }.freeze
@@ -110,18 +108,6 @@ class SignUpSessionState
     end
   end
 
-  def pending_actor_id
-    @session[@keys.fetch(:pending_actor_id)]
-  end
-
-  def pending_actor_id=(value)
-    if value.nil?
-      @session.delete(@keys.fetch(:pending_actor_id))
-    else
-      @session[@keys.fetch(:pending_actor_id)] = value
-    end
-  end
-
   def age_restricted?
     @session[@keys.fetch(:age_restricted)] == true
   end
@@ -137,7 +123,6 @@ class SignUpSessionState
   def clear_email_flow!
     @session.delete(@keys.fetch(:existing_email))
     @session.delete(@keys.fetch(:existing_email_skip_otp))
-    @session.delete(@keys.fetch(:pending_actor_id))
   end
 
   def clear_telephone_flow!

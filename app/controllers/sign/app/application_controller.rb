@@ -120,7 +120,7 @@ module Sign
             session_ref: current_session_public_id,
             auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
             acr: Actor.authn.access_claims&.dig("acr"),
-        )
+          )
         result.resume_url
       ensure
         session.delete(:oidc_authorization_login_challenge)

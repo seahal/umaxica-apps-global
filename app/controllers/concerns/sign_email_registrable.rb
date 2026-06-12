@@ -200,11 +200,10 @@ module SignEmailRegistrable
     )
   end
 
+  # Hook for subclasses to clean up a pending actor before starting a new registration attempt.
+  # The base implementation is a no-op; controllers that track the pending actor through a
+  # sign-up flow ticket should override this to use the ticket's principal_id instead.
   def cleanup_pending_signup!
-    pending_user_id = session[:pending_sign_up_user_id]
-    return if pending_user_id.blank?
-
-    Client.find_by(id: pending_user_id, status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)&.destroy!
   end
 
   def remove_existing_unverified_emails!
@@ -242,8 +241,8 @@ module SignEmailRegistrable
   def create_pending_user!
     @pending_user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
     @user_email.user = @pending_user
-    session[:pending_sign_up_user_id] = @pending_user.id
-    session[:pending_sign_up_email] = @user_email.address.to_s.downcase
+    # Pending actor is tracked through the sign-up flow ticket (principal_id) after
+    # bind_sign_up_flow_to_email! runs; no session key is needed here.
   end
 
   def ensure_signup_reference_defaults!

@@ -18,7 +18,6 @@ module Sign
         SESSION_KEY = :sign_com_up_email_flow_state
         EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_visitor_email_id
         EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_visitor_email_skip_otp
-        PENDING_VISITOR_ID_SESSION_KEY = :sign_com_up_pending_visitor_id
 
         before_action :enforce_email_flow!
 
@@ -174,7 +173,6 @@ module Sign
           session[SESSION_KEY] = "init"
           session.delete(EXISTING_EMAIL_SESSION_KEY)
           session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
-          session.delete(PENDING_VISITOR_ID_SESSION_KEY)
           sign_up_flow_locator.clear!
         end
 
@@ -262,7 +260,6 @@ module Sign
             cleanup_pending_visitor_signup!
             remove_existing_unverified_visitor_emails!
             pending_visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
-            session[PENDING_VISITOR_ID_SESSION_KEY] = pending_visitor.id
             @user_email.visitor = pending_visitor
             otp_number = generate_otp_attributes(@user_email)
             @user_email.otp_last_sent_at = Time.current
@@ -337,10 +334,10 @@ module Sign
         end
 
         def cleanup_pending_visitor_signup!
-          pending_visitor_id = session[PENDING_VISITOR_ID_SESSION_KEY]
-          return if pending_visitor_id.blank?
+          cycle = sign_up_flow_locator.current
+          return unless cycle&.principal_id
 
-          Visitor.find_by(id: pending_visitor_id)&.destroy!
+          Visitor.find_by(id: cycle.principal_id)&.destroy!
         end
 
         def remove_existing_unverified_visitor_emails!
@@ -395,13 +392,10 @@ module Sign
             return VisitorEmail.find_by(id: session_existing_email_id)
           end
 
-          pending_visitor_id = session[PENDING_VISITOR_ID_SESSION_KEY]
-          return if pending_visitor_id.blank?
+          cycle = sign_up_flow_locator.current
+          return unless cycle&.pending_contact_type == "email"
 
-          VisitorEmail.find_by(
-            visitor_id: pending_visitor_id,
-            visitor_email_status_id: VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP,
-          )
+          VisitorEmail.find_by(id: cycle.pending_contact_id)
         end
 
         def issue_sign_up_flow!

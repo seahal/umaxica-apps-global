@@ -298,6 +298,130 @@ module Sign::App::Up
       assert_predicate response.parsed_body["error"], :present?
     end
 
+    test "telephone sign up finalizes and establishes login after otp passkey passcode and birthdate" do
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_flow(telephone)
+
+      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      challenge_id = response.parsed_body["challenge_id"]
+
+      mock_credential = Object.new
+      mock_credential.define_singleton_method(:id) { "finalize_webauthn_id" }
+      mock_credential.define_singleton_method(:public_key) { "finalize_public_key" }
+      mock_credential.define_singleton_method(:sign_count) { 1 }
+      mock_credential.define_singleton_method(:verify) { |_challenge| true }
+
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          challenge_id: challenge_id,
+          checkpoint_version: cycle.checkpoint_version,
+          credential: {
+            id: "finalize_webauthn_id",
+            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+          },
+          description: "Finalize Passkey",
+        }
+      end
+
+      assert_response :created
+      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"),
+                   response.parsed_body["redirect_url"]
+      assert cycle.reload.requirement_cleared?(:passkey)
+
+      get sign_app_sign_up_check_telephone_passcode_url(ri: "jp")
+
+      assert_response :success
+
+      patch sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
+        checkpoint_version: cycle.reload.checkpoint_version,
+      }
+
+      assert_redirected_to sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+      assert cycle.reload.requirement_cleared?(:passcode)
+
+      get sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+
+      assert_response :success
+
+      patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+        requirement: "birthdate",
+        birthdate: "2000-01-01",
+        checkpoint_version: cycle.reload.checkpoint_version,
+      }
+
+      assert_response :redirect
+
+      user = telephone.user.reload
+
+      assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
+      assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
+      assert ClientToken.exists?(user_id: user.id)
+    end
+
+    test "sign-in failure after durable sign-up does not delete completed account data" do
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_flow(telephone)
+
+      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      challenge_id = response.parsed_body["challenge_id"]
+
+      mock_credential = Object.new
+      mock_credential.define_singleton_method(:id) { "failure_webauthn_id" }
+      mock_credential.define_singleton_method(:public_key) { "failure_public_key" }
+      mock_credential.define_singleton_method(:sign_count) { 1 }
+      mock_credential.define_singleton_method(:verify) { |_challenge| true }
+
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          challenge_id: challenge_id,
+          checkpoint_version: cycle.checkpoint_version,
+          credential: {
+            id: "failure_webauthn_id",
+            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+          },
+          description: "Failure Test Passkey",
+        }
+      end
+
+      assert_response :created
+
+      patch sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
+        checkpoint_version: cycle.reload.checkpoint_version,
+      }
+
+      assert cycle.reload.requirement_cleared?(:passcode)
+
+      # Simulate sign-in boundary failure by marking the actor as RESERVED before finalization.
+      # SignAppUpTelephoneRegistrationFinalizer skips the VERIFIED_WITH_SIGN_UP status upgrade
+      # when the actor is not UNVERIFIED_WITH_SIGN_UP, and then login_allowed? returns false
+      # for RESERVED actors, triggering the sign_in_handoff_failed path.
+      user = telephone.user
+      user.update_column(:status_id, ClientStatus::RESERVED)
+
+      get sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+
+      assert_response :success
+
+      patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+        requirement: "birthdate",
+        birthdate: "2000-01-01",
+        checkpoint_version: cycle.reload.checkpoint_version,
+      }
+
+      # Finalization ran but sign-in handoff failed: 422 is the expected response.
+      assert_response :unprocessable_content
+
+      user.reload
+
+      # The actor must not be deleted after finalization, even though sign-in failed.
+      assert_not_nil Client.find_by(id: user.id),
+                     "actor must not be deleted after a sign-in failure post-finalization"
+      # No token should be issued since sign-in failed.
+      assert_not ClientToken.exists?(user_id: user.id)
+      # Ticket is finalized but NOT completed (handoff failed, complete event never ran).
+      assert_not_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
+    end
+
     test "POST create rejects stale checkpoint version before creating passkey" do
       verify_telephone_via_otp!
 
