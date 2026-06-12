@@ -110,6 +110,31 @@ module OidcClientRegistry
 
   def build_clients
     {
+      # Sign credential gateway as RP. These are RP client-auth keys only; Sign remains non-OP.
+      "sign_app" => {
+        redirect_uris: build_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost"),
+        aud: "umaxica-sign-app",
+        resource_type: "client",
+        name: "Sign App",
+        token_endpoint_auth_method: "private_key_jwt",
+        jwt_namespace: "SIGN_APP",
+      },
+      "sign_org" => {
+        redirect_uris: build_redirect_uris("SIGN_STAFF_URL", "id.org.localhost"),
+        aud: "umaxica-sign-org",
+        resource_type: "operator",
+        name: "Sign Org",
+        token_endpoint_auth_method: "private_key_jwt",
+        jwt_namespace: "SIGN_ORG",
+      },
+      "sign_com" => {
+        redirect_uris: build_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
+        aud: "umaxica-sign-com",
+        resource_type: "visitor",
+        name: "Sign Com",
+        token_endpoint_auth_method: "private_key_jwt",
+        jwt_namespace: "SIGN_COM",
+      },
       # Acme
       "acme_app" => {
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost"),

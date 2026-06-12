@@ -133,6 +133,7 @@ scope module: :sign, as: :sign do
 
       # OmniAuth callbacks: Google uses GET; Apple may return GET or POST depending on response_mode.
       namespace :auth, path: "auth" do
+        resource :callback, only: :show
         get "google_app/callback",
             to: "omniauth_callbacks#omniauth",
             as: :google_app_callback,
@@ -251,6 +252,10 @@ scope module: :sign, as: :sign do
           get :blocked
           get :stopped
         end
+      end
+
+      namespace :auth, path: "auth" do
+        resource :callback, only: :show
       end
 
       # Edge API: token lifecycle management (check, DBSC binding, refresh)
@@ -417,6 +422,10 @@ scope module: :sign, as: :sign do
           get :blocked
           get :stopped
         end
+      end
+
+      namespace :auth, path: "auth" do
+        resource :callback, only: :show
       end
 
       # Edge API: token lifecycle management (check, DBSC binding, refresh)

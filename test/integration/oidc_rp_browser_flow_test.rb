@@ -56,6 +56,79 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "acme app browser flow reaches Acme token exchange without stubbing OP" do
+    with_acme_oidc_client_key do
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+      client = OidcClientRegistry.find!("acme_app")
+      host! acme_host
+
+      get "/sso/authorize", headers: browser_headers
+
+      assert_response :redirect
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+      code_verifier = session.fetch(:oidc_code_verifier)
+
+      assert_equal acme_host, authorize_uri.host
+      assert_equal "/oauth/authorize", authorize_uri.path
+
+      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+
+      assert_response :redirect
+      sign_uri = URI.parse(response.location)
+      sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
+
+      assert_equal sign_host, sign_uri.host
+      assert_equal "/sign/in/entrance", sign_uri.path
+      assert_predicate sign_query["login_challenge"], :present?
+
+      host! sign_host
+      get sign_uri.request_uri, headers: browser_headers
+
+      assert_response :success
+
+      result =
+        OidcAuthorizationTransactionService.register_result!(
+          surface: "app",
+          login_challenge: sign_query.fetch("login_challenge"),
+          actor: clients(:one),
+          session_ref: "acme-e2e-session",
+          auth_method: "passkey",
+        )
+
+      host! acme_host
+      get URI.parse(result.resume_url).request_uri, headers: browser_headers
+
+      assert_response :redirect
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal URI.parse(client.redirect_uris.first).host, callback_uri.host
+      assert_equal "/auth/callback", callback_uri.path
+      assert_predicate callback_query["code"], :present?
+      assert_equal authorize_query.fetch("state"), callback_query["state"]
+
+      token_url = acme_app_oauth_token_url(host: acme_host)
+      client_assertion = OidcClientAssertionJwt.issue(client_id: "acme_app", token_url: token_url)
+      post token_url,
+           params: {
+             grant_type: "authorization_code",
+             code: callback_query.fetch("code"),
+             redirect_uri: client.redirect_uris.first,
+             client_id: "acme_app",
+             code_verifier: code_verifier,
+             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+             client_assertion: client_assertion,
+           },
+           headers: browser_headers
+
+      assert_response :ok
+      assert_predicate response.parsed_body["id_token"], :present?
+      assert_predicate response.parsed_body["access_token"], :present?
+    end
+  end
+
   test "app com and org authorization endpoints are exposed at Acme oauth authorize" do
     SURFACES.each do |surface|
       host! surface[:acme_host]
@@ -68,6 +141,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         code_challenge_method: "S256",
         state: "state",
         nonce: "nonce",
+        scope: "openid profile",
       }, headers: browser_headers
 
       assert_response :redirect
@@ -199,5 +273,28 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   def assert_response_has_auth_cookie
     assert_includes response.headers["Set-Cookie"].to_s, "#{COOKIE_NAME}=",
                     "expected callback response to set #{COOKIE_NAME}"
+  end
+
+  def with_acme_oidc_client_key
+    original_issuers = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
+    original_active_kid = ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"]
+    original_private_key = ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"]
+    key = OpenSSL::PKey::EC.generate("secp384r1")
+    ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = "acme-app-oidc-test"
+    ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
+    JitSecurityJwtRegistry.reload!
+    yield
+  ensure
+    if original_active_kid.nil?
+      ENV.delete("OIDC_CLIENT_ACME_APP_ACTIVE_KID")
+    else
+      ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = original_active_kid
+    end
+    if original_private_key.nil?
+      ENV.delete("OIDC_CLIENT_ACME_APP_PRIVATE_KEY")
+    else
+      ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = original_private_key
+    end
+    JitSecurityJwtRegistry.instance_variable_set(:@issuers, original_issuers)
   end
 end

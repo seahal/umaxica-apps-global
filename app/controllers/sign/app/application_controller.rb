@@ -17,6 +17,7 @@ module Sign
       include ::AuthorizationClient
       include ::VerificationClient
       include ActionPolicy::Controller
+      include ::OidcSsoInitiator
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
       include ::RestrictedSessionGuard
@@ -93,6 +94,18 @@ module Sign
         true
       end
 
+      def oidc_client_id
+        "sign_app"
+      end
+
+      def oidc_sign_host
+        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+      end
+
+      def oidc_acme_host
+        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      end
+
       def oidc_authorization_login_challenge
         session[:oidc_authorization_login_challenge]
       end
@@ -107,12 +120,10 @@ module Sign
             session_ref: current_session_public_id,
             auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
             acr: Actor.authn.access_claims&.dig("acr"),
-          )
-        session.delete(:oidc_authorization_login_challenge)
+        )
         result.resume_url
-      rescue StandardError
+      ensure
         session.delete(:oidc_authorization_login_challenge)
-        acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
       end
     end
   end

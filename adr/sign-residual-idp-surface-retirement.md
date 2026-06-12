@@ -42,9 +42,10 @@ as follow-up implementation, not performed by this ADR.
    `audience = JUMP_GATEWAY_URL`; they sign **jump redirect-gateway (RT) tokens** and surface
    redirect/transport tokens, and the sign JWKS endpoint publishes their public keys for
    verification. They are credential-gateway / redirect-signing infrastructure, **not** OIDC
-   id-token signing (OIDC id tokens are signed with `surface:ACME_*` and OIDC client auth uses
-   `oidc_client:ACME_*` / `oidc_client:CORE_*`; there is no `oidc_client:SIGN_*`). Removing them
-   would break jump redirects and token verification from `sign/id`.
+   id-token signing. OIDC id tokens are signed with `surface:ACME_*`. OIDC client-auth keys such as
+   `oidc_client:SIGN_*`, `oidc_client:ACME_*`, and `oidc_client:CORE_*` are RP client assertion
+   keys and do not make `sign/id` an OP. Removing the retained `surface:SIGN_*` keys would break
+   jump redirects and token verification from `sign/id`.
 
 2. (Removed.) An earlier draft of this ADR proposed retiring the `SIGN_APP` / `SIGN_COM` /
    `SIGN_ORG` signing key namespaces. That was based on a wrong premise: those keys are the

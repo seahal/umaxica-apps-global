@@ -149,10 +149,16 @@ module CommonRedirect
 
   def oidc_authorize_host_allowed?(host)
     allowed_hosts =
-      %w(ID_SERVICE_URL ID_CORPORATE_URL ID_STAFF_URL).filter_map do |key|
+      %w(
+        ID_SERVICE_URL ID_CORPORATE_URL ID_STAFF_URL
+        ACME_SERVICE_URL ACME_CORPORATE_URL ACME_STAFF_URL
+      ).filter_map do |key|
         CommonRedirect.normalize_host(ENV[key])
       end
-    allowed_hosts += %w(id.app.localhost id.com.localhost id.org.localhost)
+    allowed_hosts += %w(
+      id.app.localhost id.com.localhost id.org.localhost
+      www.app.localhost www.com.localhost www.org.localhost
+    )
     allowed_hosts.include?(CommonRedirect.normalize_host(host))
   end
 

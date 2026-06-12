@@ -39,7 +39,7 @@ module OidcAuthorizationTransactionable
     def create_transaction!(surface:, intent:, client_id:, redirect_uri:, response_type:, scope:, state:, nonce:,
                             code_challenge:, code_challenge_method:, login_challenge:, login_challenge_expires_at:,
                             expires_at:, now: Time.current)
-      connected_to(role: :writing) do
+      connection_owner.connected_to(role: :writing) do
         create!(
           transaction_id: SecureRandom.uuid,
           surface: surface.to_s,
@@ -59,6 +59,18 @@ module OidcAuthorizationTransactionable
           created_at: now,
           updated_at: now,
         )
+      end
+    end
+
+    def connection_owner
+      if self <= AppTicketRecord
+        AppTicketRecord
+      elsif self <= ComTicketRecord
+        ComTicketRecord
+      elsif self <= OrgTicketRecord
+        OrgTicketRecord
+      else
+        ActiveRecord::Base
       end
     end
   end
@@ -93,10 +105,11 @@ module OidcAuthorizationTransactionable
   end
 
   def register_authentication!(actor_ref:, session_ref:, auth_method:, acr:, now: Time.current)
-    self.class.connected_to(role: :writing) do
+    self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
         raise ArgumentError, "authorization transaction expired" if locked.expired?(now: now)
+        raise ArgumentError, "authorization transaction expired" if locked.login_challenge_expired?(now: now)
         raise ArgumentError, "authorization transaction already consumed" if locked.consumed?
 
         locked.update!(
@@ -113,7 +126,7 @@ module OidcAuthorizationTransactionable
   end
 
   def consume!(now: Time.current)
-    self.class.connected_to(role: :writing) do
+    self.class.connection_owner.connected_to(role: :writing) do
       self.class.transaction do
         locked = self.class.lock.find(id)
         raise ArgumentError, "authorization transaction expired" if locked.expired?(now: now)

@@ -5,7 +5,7 @@
 > Authorization, and business authorization decisions that consume Sign results. Do not use older
 > wording in this plan to restore the Acme aggregation model.
 
-Status: active planning
+Status: implemented — archived 2026-06-12
 
 ## Purpose
 

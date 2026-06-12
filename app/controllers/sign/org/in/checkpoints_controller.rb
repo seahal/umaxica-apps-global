@@ -16,8 +16,16 @@ module Sign
         end
 
         def update
+          return unless require_sign_in_sequence_participant!(
+            participant: :checkpoint,
+            policy_rule: :update_checkpoint?,
+          )
+
           refresh_bulletin_dimension!
-          redirect_to(sign_org_sign_in_check_path(pt: signed_pt_param, ri: params[:ri]))
+          safe_redirect_to(
+            sign_org_sign_in_check_path(pt: signed_pt_param, ri: params[:ri]),
+            fallback: sign_org_sign_in_check_path(ri: params[:ri]),
+          )
         end
 
         def destroy
@@ -27,6 +35,10 @@ module Sign
         end
 
         private
+
+        def sign_in_sequence_required_for_participant?(participant)
+          participant.to_sym == :checkpoint
+        end
 
         def sign_in_sequence_surface
           :org

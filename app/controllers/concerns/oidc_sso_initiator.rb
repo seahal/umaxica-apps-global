@@ -51,7 +51,7 @@ module OidcSsoInitiator
   end
 
   def redirect_to_oidc_authorization_url(url, **)
-    redirect_to_jump_url(url, preserve_query_keys: oidc_authorization_preserve_query_keys(url), **)
+    redirect_to_jump_url(url, preserve_query_keys: ["redirect_uri"], **)
   end
 
   def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)
@@ -74,20 +74,6 @@ module OidcSsoInitiator
     query[:screen_hint] = screen_hint if screen_hint.present?
     uri.query = query.to_query
     uri.to_s
-  end
-
-  def oidc_authorization_preserve_query_keys(url)
-    uri = URI.parse(url.to_s)
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-    return [] unless uri.is_a?(URI::HTTP)
-    return [] unless uri.host == oidc_acme_host
-    return [] unless uri.path == "/oauth/authorize"
-    return [] unless query["client_id"] == oidc_client_id
-    return [] unless query["redirect_uri"] == oidc_callback_url
-
-    ["redirect_uri"]
-  rescue URI::InvalidURIError
-    []
   end
 
   def oidc_callback_url

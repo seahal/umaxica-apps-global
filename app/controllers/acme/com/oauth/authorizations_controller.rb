@@ -5,7 +5,9 @@ module Acme
   module Com
     module Oauth
       class AuthorizationsController < Acme::Com::ApplicationController
-        AUTHENTICATION_MODE = :private
+        AUTHENTICATION_MODE = :open
+        declare_authentication_mode! :open
+        skip_before_action :set_region, raise: false
 
         def show
           if params[:login_challenge].present?
@@ -92,14 +94,16 @@ module Acme
 
           resource = Visitor.find_by!(public_id: transaction.actor_ref)
           login_result =
-            log_in(
-              resource,
-              record_login_audit: false,
-              token_kind_id: "BROWSER_WEB",
-              require_totp_check: false,
-              audit_context: { oidc_client_id: transaction.client_id },
-              bootstrap_actor: true,
-            )
+            ActiveRecord::Base.connected_to(role: :writing) do
+              log_in(
+                resource,
+                record_login_audit: false,
+                token_kind_id: "BROWSER_WEB",
+                require_totp_check: false,
+                audit_context: { oidc_client_id: transaction.client_id },
+                bootstrap_actor: true,
+              )
+            end
           return render(
             json: { error: "invalid_request", error_description: "login_failed" },
             status: :bad_request,

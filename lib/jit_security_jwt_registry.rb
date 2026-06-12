@@ -19,6 +19,7 @@ module JitSecurityJwtRegistry
     CORE_APP CORE_COM CORE_ORG
   ).freeze
   OIDC_CLIENT_NAMESPACES = %w(
+    SIGN_APP SIGN_COM SIGN_ORG
     ACME_APP ACME_COM ACME_ORG
     CORE_APP CORE_COM CORE_ORG
   ).freeze

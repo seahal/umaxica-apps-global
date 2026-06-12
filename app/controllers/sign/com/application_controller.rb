@@ -16,6 +16,7 @@ module Sign
       include ::AuthorizationVisitor
       include ::VerificationVisitor
       include ActionPolicy::Controller
+      include ::OidcSsoInitiator
       include ::RestrictedSessionGuard
       include SignComRouteAliasHelper
       include ::ActorSupport
@@ -162,6 +163,18 @@ module Sign
         true
       end
 
+      def oidc_client_id
+        "sign_com"
+      end
+
+      def oidc_sign_host
+        ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+      end
+
+      def oidc_acme_host
+        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      end
+
       def oidc_authorization_login_challenge
         session[:oidc_authorization_login_challenge]
       end
@@ -176,12 +189,10 @@ module Sign
             session_ref: current_session_public_id,
             auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
             acr: Actor.authn.access_claims&.dig("acr"),
-          )
-        session.delete(:oidc_authorization_login_challenge)
+        )
         result.resume_url
-      rescue StandardError
+      ensure
         session.delete(:oidc_authorization_login_challenge)
-        acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
       end
     end
   end

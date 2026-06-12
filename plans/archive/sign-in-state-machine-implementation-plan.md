@@ -5,7 +5,7 @@
 > Dashboard, RP Authorization, and other business authority. Do not use older wording in this plan
 > to restore the Acme aggregation model.
 
-Status: active planning
+Status: implemented — archived 2026-06-12
 
 ## Purpose
 

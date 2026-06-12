@@ -18,7 +18,13 @@ class Sign::Org::BillingControllerTest < ActionDispatch::IntegrationTest
     get sign_org_billing_index_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_match %r{\Ahttps://id\.umaxica\.org/sign/in/entrance\?ri=jp\z}, jump_rt_url_from_location(response.location)
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_org", query["client_id"]
+    assert_equal OidcClientRegistry.find!("sign_org").redirect_uris.first, query["redirect_uri"]
   end
 
   test "index renders for authenticated operator authorized on own record" do
