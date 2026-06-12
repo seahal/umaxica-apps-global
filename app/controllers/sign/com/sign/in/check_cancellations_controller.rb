@@ -1,9 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Com::Sign::In::CheckCancellationsController < ::Sign::Com::In::CheckpointsController
-  AUTHENTICATION_MODE = :private
-  declare_authentication_mode! :private
+class Sign::Com::Sign::In::CheckCancellationsController < ::Sign::Com::ApplicationController
+  include SignComInCheckControllerSupport
 
   def create = destroy
 end

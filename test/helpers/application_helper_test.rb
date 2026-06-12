@@ -168,4 +168,28 @@ class ApplicationHelperTest < ActionView::TestCase
       assert_equal "edge.com.localhost", edge_host
     end
   end
+
+  test "current_banner_for returns nil when the connection is unavailable" do
+    travel_to Time.zone.parse("2026-03-18 00:00:00 UTC") do
+      AppPrincipalRecord.stub(
+        :connected_to,
+        ->(*) {
+          raise ActiveRecord::ConnectionNotEstablished
+        },
+      ) do
+        assert_nil current_banner_for(tld: :app, region: :jp, domain: :news)
+      end
+    end
+  end
+
+  test "validate_banner_args! rejects invalid banner inputs" do
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :bad, region: :jp, domain: :news) }
+    assert_match(/Invalid tld/, error.message)
+
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :jp, domain: :bad) }
+    assert_match(/Invalid domain/, error.message)
+
+    error = assert_raises(ArgumentError) { send(:validate_banner_args!, tld: :app, region: :us, domain: :sign) }
+    assert_match(/Invalid region/, error.message)
+  end
 end

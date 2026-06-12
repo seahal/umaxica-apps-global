@@ -1,0 +1,117 @@
+# typed: false
+# frozen_string_literal: true
+
+# Social sign-up birthdate requirement clearing for apple and google check controllers.
+# Overrides the base clear_sign_up_birthdate_requirement to handle the social entry
+# method path: creates the actor from the candidate store instead of updating a pending actor.
+# Include after SignUpExplicitStepControllerSupport so that super resolves to
+# SignUpSequenceControllerSupport#clear_sign_up_birthdate_requirement.
+module SignUpSocialBirthdateSupport
+  private
+
+  def clear_sign_up_birthdate_requirement
+    return super unless pending_social_signup_confirmation?
+    return if performed?
+    return continue_after_cleared_sign_up_requirement if sign_up_requirement_cleared?(:birthdate)
+    return unless validate_sign_up_checkpoint_version!
+    return render_missing_social_signup_confirmation unless social_signup_confirmation_cleared?
+
+    birthdate = sign_up_birthdate_param
+    unless AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
+      sign_up_session_state.age_restricted = true
+      result = SignUpTermination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
+      return render_sign_up_result(result) unless result.success? || result.status == :failed
+
+      render_sign_up_age_restricted
+      return
+    end
+
+    create_social_signup_actor!(birthdate)
+    run_sign_up_requirement_event(payload: { requirement: :birthdate })
+  rescue SocialAuth::BaseError, IdentitySocialCeremonyContract::Error
+    render plain: I18n.t("errors.social_auth.provider_error"), status: :unprocessable_content
+  end
+
+  def pending_social_signup_confirmation?
+    @sign_up_ticket&.social_entry_method? &&
+      @sign_up_ticket&.principal_id.blank? &&
+      social_signup_evidence.present?
+  end
+
+  def social_signup_confirmation_cleared?
+    @sign_up_ticket.requirement_cleared?(:confirmation)
+  end
+
+  def render_missing_social_signup_confirmation
+    render plain: "social_signup_confirmation_required", status: :unprocessable_content
+  end
+
+  def create_social_signup_actor!(birthdate)
+    AppTicketRecord.connected_to(role: :writing) do
+      @sign_up_ticket.with_cycle_lock do
+        @sign_up_ticket.reload
+        return if @sign_up_ticket.principal_id.present?
+
+        candidate = consume_social_signup_candidate!
+        result = SocialAuthSignupFinalizer.call(
+          auth_hash: candidate.auth_hash,
+          birthdate: birthdate,
+        )
+        identity = result.fetch(:identity)
+        user = result.fetch(:user)
+
+        @sign_up_ticket.update!(
+          principal_id: user.id,
+          pending_contact_type: "social_identity",
+          pending_contact_id: identity.id,
+          social_provider: SocialIdentifiable.normalize_provider(identity.provider),
+        )
+      end
+    end
+  end
+
+  def consume_social_signup_candidate!
+    evidence = social_signup_evidence
+    candidate = IdentitySocialCeremonyCandidateStore.consume!(evidence.fetch("candidate_ref"))
+    raise IdentitySocialCeremonyContract::Error, "candidate digest mismatch" unless
+      candidate.digest.to_s == evidence.fetch("candidate_digest").to_s
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate surface mismatch" unless candidate.surface.to_s == "app"
+    raise IdentitySocialCeremonyContract::Error, "candidate actor mismatch" unless
+      candidate.actor_ref.to_s == @sign_up_ticket.public_id.to_s
+    raise IdentitySocialCeremonyContract::Error, "candidate session mismatch" unless
+      candidate.session_ref.to_s == @sign_up_ticket.public_id.to_s
+    raise IdentitySocialCeremonyContract::Error, "candidate transaction mismatch" unless
+      candidate.transaction_id.to_s == @sign_up_ticket.public_id.to_s
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate operation mismatch" unless candidate.operation.to_s == "signup"
+
+    provider = SocialIdentifiable.normalize_provider(candidate.provider)
+    uid = SocialAuthUidExtractor.call(auth_hash: candidate.auth_hash)
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate provider mismatch" unless provider == @sign_up_ticket.social_provider
+    raise IdentitySocialCeremonyContract::Error,
+          "candidate provider evidence mismatch" unless provider == evidence.fetch("provider")
+    raise IdentitySocialCeremonyContract::Error, "candidate uid mismatch" unless
+      pending_social_signup_uid_digest(provider: provider, uid: uid) == evidence.fetch("uid_digest")
+
+    SocialAuthVerifiedProviderAssertion.call(
+      auth_hash: candidate.auth_hash,
+      expected_provider: candidate.provider,
+    )
+    candidate
+  end
+
+  def social_signup_evidence
+    value = @sign_up_ticket&.completed_requirements&.fetch("social_signup", nil)
+    value if value.is_a?(Hash)
+  end
+
+  def pending_social_signup_uid_digest(provider:, uid:)
+    OpenSSL::HMAC.hexdigest(
+      "SHA256",
+      Rails.application.secret_key_base,
+      [provider, uid].map(&:to_s).join(":"),
+    )
+  end
+end

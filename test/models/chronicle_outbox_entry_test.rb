@@ -22,6 +22,10 @@
 #  index_chronicle_outbox_entries_on_event_uuid    (event_uuid)
 #  index_chronicle_outbox_entries_on_status        (status)
 #
+# Foreign Keys
+#
+#  fk_rails_...  (chronicle_id => chronicles.id)
+#
 
 require "test_helper"
 

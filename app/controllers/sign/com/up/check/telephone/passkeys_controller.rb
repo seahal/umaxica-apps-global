@@ -6,10 +6,20 @@ module Sign
     module Up
       module Check
         module Telephone
-          class PasskeysController < ::Sign::Com::Up::Checkpoint::PasskeysController
+          class PasskeysController < ::Sign::Com::ApplicationController
+            include CommonRedirect
+            include SignWebauthn
+            include SignPasskeyRegistrationFlow
+            include SignUpSequenceControllerSupport
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
+
+            before_action :hide_sign_up_auth_navigation
+            before_action :load_sign_up_ticket
+            before_action :load_sign_up_actor
+            before_action :validate_sign_up_checkpoint_contact!
+            before_action -> { authorize_sign_up_requirement!(:register_passkey?) }
 
             def show
               return unless load_gate_context!(gate_for_show)
@@ -53,9 +63,46 @@ module Sign
               sign_com_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)
             end
 
+            def load_sign_up_actor
+              @sign_up_actor = sign_up_pending_actor
+              return if @sign_up_actor
+
+              render json: { error: I18n.t("errors.messages.not_found", default: "Not found") },
+                     status: :not_found
+            end
+
+            def passkey_registration_actor = @sign_up_actor
+
+            def passkey_registration_passkeys = @sign_up_actor.visitor_passkeys
+
+            def save_passkey_registration!(passkey)
+              passkey.valid?
+              passkey.save!(validate: false)
+              @sign_up_ticket.update!(pending_passkey_registration_id: passkey.id) if
+                @sign_up_ticket.has_attribute?(:pending_passkey_registration_id)
+            end
+
+            def sign_up_requirement_context
+              SignUpRequirementContext.build(
+                surface: :com,
+                actor_authentication: sign_up_actor_authentication,
+                ticket: @sign_up_ticket,
+                requirement: :passkey,
+                pending_actor: @sign_up_actor,
+              )
+            rescue ArgumentError
+              nil
+            end
+
             def sign_up_family = "telephone"
 
             def sign_up_step = :passkey
+
+            def sign_up_surface = :com
+
+            def sign_up_ticket_class = VisitorSignUpFlow
+
+            def sign_up_sequence_session_key = :sign_com_up_sequence_id
           end
         end
       end

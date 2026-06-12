@@ -6,10 +6,19 @@ module Sign
     module Up
       module Check
         module Telephone
-          class PasscodesController < ::Sign::App::Up::Checkpoint::PasscodesController
+          class PasscodesController < ::Sign::App::ApplicationController
+            include CommonRedirect
+            include SignPasscodeRegistrationFlow
+            include SignUpSequenceControllerSupport
             include SignUpExplicitStepControllerSupport
 
             AUTHENTICATION_MODE = :guest
+
+            before_action :hide_sign_up_auth_navigation
+            before_action :load_sign_up_ticket
+            before_action :load_sign_up_actor
+            before_action :validate_sign_up_checkpoint_contact!
+            before_action -> { authorize_sign_up_requirement!(:confirm_passcode?) }
 
             def show
               return unless load_gate_context!(gate_for_show)
@@ -46,9 +55,59 @@ module Sign
 
             private
 
+            def load_sign_up_actor
+              @sign_up_actor = sign_up_pending_actor
+              return if @sign_up_actor
+
+              render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
+            end
+
+            def passcode_registration_secret_credentials = @sign_up_actor.client_secret_credentials
+
+            def passcode_registration_secret_credential_class = ClientSecretCredential
+
+            def passcode_registration_raw_session_key = :sign_app_up_passcode_raw
+
+            def passcode_registration_param_key = :user_secret_credential
+
+            def passcode_registration_fallback_param_key = :client_secret
+
+            def passcode_registration_create_secret_credential!(raw_secret_credential)
+              secret_credential = @sign_up_actor.client_secret_credentials.new(
+                passcode_registration_secret_credential_params.merge(
+                  password: raw_secret_credential,
+                  raw_secret_credential: raw_secret_credential,
+                  user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
+                  user_secret_kind_id: ClientSecretCredentialKind::LOGIN,
+                ),
+              )
+              # save! with validate: false bypasses validators while preserving
+              # creation callbacks for system-generated sign-up credentials.
+              secret_credential.save!(validate: false)
+              secret_credential
+            end
+
+            def sign_up_requirement_context
+              SignUpRequirementContext.build(
+                surface: :app,
+                actor_authentication: sign_up_actor_authentication,
+                ticket: @sign_up_ticket,
+                requirement: :passcode,
+                pending_actor: @sign_up_actor,
+              )
+            rescue ArgumentError
+              nil
+            end
+
             def sign_up_family = "telephone"
 
             def sign_up_step = :passcode
+
+            def sign_up_surface = :app
+
+            def sign_up_ticket_class = ClientSignUpFlow
+
+            def sign_up_sequence_session_key = :sign_app_up_sequence_id
           end
         end
       end

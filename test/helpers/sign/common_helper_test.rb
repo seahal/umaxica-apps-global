@@ -95,4 +95,32 @@ class Sign::CommonHelperTest < ActionView::TestCase
   test "get_theme returns sy" do
     assert_equal "sy", get_theme
   end
+
+  test "preference language helpers choose localized labels and defaults" do
+    option_class =
+      Class.new do
+        Option = Struct.new(:id, :name)
+
+        def self.order(_column)
+          [
+            Option.new(1, "ja"),
+            Option.new(2, "en"),
+            Option.new(3, "fr"),
+          ]
+        end
+      end
+    option_class.const_set(:EN, 2)
+    option_class.const_set(:JA, 1)
+
+    I18n.with_locale(:en) do
+      assert_equal [["日本語", 1], ["English", 2]], preference_language_options(option_class)
+      assert_equal 7, preference_language_selected(7, option_class)
+      assert_equal 2, preference_language_selected(nil, option_class)
+    end
+
+    I18n.with_locale(:ja) do
+      assert_equal [["日本語", 1], ["English", 2]], preference_language_options(option_class)
+      assert_equal 1, preference_language_selected(nil, option_class)
+    end
+  end
 end

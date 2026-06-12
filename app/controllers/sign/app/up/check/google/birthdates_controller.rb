@@ -6,8 +6,8 @@ module Sign
     module Up
       module Check
         module Google
-          class BirthdatesController < ::Sign::App::Up::Check::Apple::BirthdatesController
-            AUTHENTICATION_MODE = :guest
+          class BirthdatesController < ::Sign::App::ApplicationController
+            include SignUpSocialCheckBirthdateControllerSupport
 
             private
 

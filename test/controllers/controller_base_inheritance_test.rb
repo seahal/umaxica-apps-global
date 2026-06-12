@@ -88,4 +88,37 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
       assert_not namespace.const_defined?(:OpenController, false), namespace.name
     end
   end
+
+  test "check namespace controllers do not inherit checkpoint namespace implementations" do
+    violations =
+      Rails.root.glob("app/controllers/sign/**/*_controller.rb").filter_map do |path|
+        content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
+        next unless content.match?(/class\s+.*::Checks?::?.*Controller\s*<\s*.*::Checkpoints?::?.*Controller/)
+
+        path.relative_path_from(Rails.root).to_s
+      end
+
+    assert_empty violations,
+                 "Check namespace controllers must not inherit stale Checkpoint implementations:\n" \
+                 "#{violations.join("\n")}"
+  end
+
+  test "application routes reference loadable controller classes" do
+    missing =
+      Rails.application.routes.routes.filter_map do |route|
+        controller = route.defaults[:controller]
+        next if controller.blank?
+
+        class_name = "#{controller.camelize}Controller"
+        class_name.constantize
+        nil
+      rescue NameError
+        class_name
+      end.uniq.sort
+
+    framework_prefixes = /\A(?:ActionMailbox|ActiveStorage|MissionControl|RailsDb|Turbo)::/
+    missing.reject! { |class_name| class_name.match?(framework_prefixes) }
+
+    assert_empty missing, "Routes reference missing controller classes:\n#{missing.join("\n")}"
+  end
 end

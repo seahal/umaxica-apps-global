@@ -556,4 +556,185 @@ class ClientTest < ActiveSupport::TestCase
 
     assert_includes @user.remaining_login_methods, :passkey
   end
+
+  test "client? should return true" do
+    assert_predicate @user, :client?
+  end
+
+  test "active_google_identity_exists? returns true when active google identity exists" do
+    ClientGoogleIdentity.create!(
+      user: @user,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
+      token: "test_token",
+      uid: "test_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_predicate @user, :active_google_identity_exists?
+  end
+
+  test "active_google_identity_exists? returns false when no google identity" do
+    assert_not @user.active_google_identity_exists?
+  end
+
+  test "active_apple_identity_exists? returns true when active apple identity exists" do
+    ClientAppleIdentity.create!(
+      user: @user,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
+      token: "test_token",
+      uid: "test_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_predicate @user, :active_apple_identity_exists?
+  end
+
+  test "active_apple_identity_exists? returns false when no apple identity" do
+    assert_not @user.active_apple_identity_exists?
+  end
+
+  test "social_unlink_methods_remaining includes email when verified" do
+    ClientEmail.create!(
+      user: @user,
+      address: "verified@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+      confirm_policy: "1",
+    )
+
+    assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :email
+  end
+
+  test "social_unlink_methods_remaining includes passkey when active" do
+    ClientPasskey.create!(
+      user: @user,
+      status_id: ClientPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :passkey
+  end
+
+  test "social_unlink_methods_remaining includes google when active" do
+    ClientGoogleIdentity.create!(
+      user: @user,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
+      token: "test_token",
+      uid: "test_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_includes @user.remaining_social_unlink_methods(excluding_provider: "apple"), :google
+  end
+
+  test "social_unlink_methods_remaining includes apple when active" do
+    ClientAppleIdentity.create!(
+      user: @user,
+      status_id: ClientAppleIdentityStatus::ACTIVE,
+      token: "test_token",
+      uid: "test_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :apple
+  end
+
+  test "social_unlink_methods_remaining excludes provider when specified" do
+    ClientGoogleIdentity.create!(
+      user: @user,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
+      token: "test_token",
+      uid: "test_uid",
+      token_expires_at: 1.day.from_now,
+    )
+
+    assert_not_includes @user.remaining_social_unlink_methods(excluding_provider: "google"), :google
+  end
+
+  test "social_unlink_methods_remaining returns empty when no methods" do
+    assert_empty @user.remaining_social_unlink_methods(excluding_provider: "google")
+  end
+
+  test "verified_email? returns true with verified_with_sign_up status" do
+    ClientEmail.create!(
+      user: @user,
+      address: "verified@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED_WITH_SIGN_UP,
+      confirm_policy: "1",
+    )
+
+    assert_predicate @user, :verified_email?
+  end
+
+  test "verified_email? with loaded association checks array" do
+    ClientEmail.create!(
+      user: @user,
+      address: "verified@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+      confirm_policy: "1",
+    )
+
+    @user.client_emails.load
+
+    assert_predicate @user, :verified_email?
+  end
+
+  test "verified_telephone? returns true with verified_with_sign_up status" do
+    ClientTelephone.create!(
+      user: @user,
+      number: "+15551234567",
+      user_identity_telephone_status_id: ClientTelephoneStatus::VERIFIED_WITH_SIGN_UP,
+    )
+
+    assert_predicate @user, :verified_telephone?
+  end
+
+  test "passkey_login_available? returns false when no telephone" do
+    ClientPasskey.create!(
+      user: @user,
+      status_id: ClientPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    assert_not @user.passkey_login_available?
+  end
+
+  test "passkey_login_available? returns false when telephone not verified" do
+    ClientTelephone.create!(
+      user: @user,
+      number: "+15551234567",
+      user_identity_telephone_status_id: ClientTelephoneStatus::UNVERIFIED,
+    )
+    ClientPasskey.create!(
+      user: @user,
+      status_id: ClientPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    assert_not @user.passkey_login_available?
+  end
+
+  test "passkey_login_available? with loaded passkeys association" do
+    ClientTelephone.create!(
+      user: @user,
+      number: "+15551234567",
+      user_identity_telephone_status_id: ClientTelephoneStatus::VERIFIED,
+    )
+    ClientPasskey.create!(
+      user: @user,
+      status_id: ClientPasskeyStatus::ACTIVE,
+      public_key: "test_key",
+      webauthn_id: "test_webauthn_id",
+      description: "My Passkey",
+    )
+
+    @user.client_passkeys.load
+
+    assert_predicate @user, :passkey_login_available?
+  end
 end
