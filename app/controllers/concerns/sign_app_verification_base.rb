@@ -6,8 +6,6 @@ module SignAppVerificationBase
 
   STEP_UP_TTL = 15.minutes
   EMAIL_OTP_RESEND_COOLDOWN = StepUpCooldowns::WINDOWS.fetch(:email_otp)
-  STEP_UP_SESSION_KEY = :step_up
-  EMAIL_OTP_SESSION_KEY = :step_up_email_otp
 
   ALLOWED_SCOPES = StepUpScopeCatalog::APP
 

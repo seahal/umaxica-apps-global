@@ -5,8 +5,6 @@ module SignComVerificationBase
   extend ActiveSupport::Concern
 
   STEP_UP_TTL = 15.minutes
-  STEP_UP_SESSION_KEY = :step_up
-  EMAIL_OTP_SESSION_KEY = :step_up_email_otp
   ALLOWED_SCOPES = StepUpScopeCatalog::COM
 
   module Overrides

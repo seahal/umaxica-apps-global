@@ -13,8 +13,6 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     include SignComVerificationBase::Overrides
 
     ALLOWED_SCOPES = SignComVerificationBase::ALLOWED_SCOPES
-    STEP_UP_SESSION_KEY = SignComVerificationBase::STEP_UP_SESSION_KEY
-    EMAIL_OTP_SESSION_KEY = SignComVerificationBase::EMAIL_OTP_SESSION_KEY
     STEP_UP_TTL = SignComVerificationBase::STEP_UP_TTL
 
     attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp

@@ -67,14 +67,6 @@ class SignAppVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_equal 15.minutes, SignAppVerificationBase::STEP_UP_TTL
   end
 
-  test "STEP_UP_SESSION_KEY constant is defined" do
-    assert_equal :step_up, SignAppVerificationBase::STEP_UP_SESSION_KEY
-  end
-
-  test "EMAIL_OTP_SESSION_KEY constant is defined" do
-    assert_equal :step_up_email_otp, SignAppVerificationBase::EMAIL_OTP_SESSION_KEY
-  end
-
   test "ALLOWED_SCOPES constant is defined" do
     assert_kind_of Hash, SignAppVerificationBase::ALLOWED_SCOPES
     assert SignAppVerificationBase::ALLOWED_SCOPES.key?("settings_email")

@@ -1,16 +1,15 @@
 # Sign-Up Sequence
 
-> **Partially superseded by Identity Authority inversion:** The routing and state-machine vocabulary
-> in this document remains useful only where it does not assign authority to `sign/id`. `acme/www`
-> is the Session, Token, Account, Preference, Authorization, and downstream-token Authority.
-> `sign/id` is ceremony-only. Existing sign-side physical tables/models do not imply sign-side
-> authority. Do not use this document to reintroduce sign-side sessions, refresh, preference,
-> dashboard, account lifecycle, token issuance, logout, or step-up freshness.
+> **Authority boundary:** `acme/www` is the Session, Token, Account, Preference, Authorization, and
+> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
+> do not imply sign-side authority. Do not use this document to reintroduce sign-side sessions,
+> refresh, preference, dashboard, account lifecycle, token issuance, logout, or step-up freshness.
 
-This document records the current sign-up routing sequence for the `app` and `com` sign surfaces,
-and the operator acquisition/lifecycle routing sequence for `org`. It is intentionally descriptive:
-it captures the behavior that exists today so a future sign-up state machine can replace the
-scattered session/controller state without changing route intent by accident.
+This document records the sign-up routing sequence for the `app` and `com` sign surfaces, and the
+operator acquisition/lifecycle routing sequence for `org`. The `app` telephone and `com` telephone
+flows are now driven by `ClientSignUpFlow` / `VisitorSignUpFlow` tickets and `SignUpStateMachine`;
+the flow ticket is the source of truth for pending actor identity and contact tracking. Legacy
+per-surface session keys for pending actor ID have been removed.
 
 `org` is excluded from the six app/com user-facing sign-up routes below. It has
 invitation/provisioning entry points and operator lifecycle requests, not a normal end-user sign-up
@@ -459,33 +458,30 @@ Expected state-machine path:
     session issuance, and welcome handling, continue to the safe `rt` return path when present;
     otherwise continue to `/dashboard`.
 
-Current path:
+Current path (state-machine implementation):
 
-1. `GET /sign/up/telephone/new` renders the telephone form and clears the telephone registration
-   session key.
+1. `GET /sign/up/telephone/new` renders the telephone form.
 2. `POST /sign/up/telephone` validates Turnstile and telephone params, creates a pending `Client`
-   and pending `ClientTelephone`, stores telephone registration state in session, and redirects to
-   edit.
+   and pending `ClientTelephone`, issues a `ClientSignUpFlow` ticket with
+   `entry_method: "telephone"` and `principal_id` pointing to the pending client, stores the flow
+   locator in session, and redirects to edit.
 3. `GET /sign/up/telephone/edit` renders the OTP form when the registration session is valid.
-4. `PATCH /sign/up/telephone` validates the OTP.
-5. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
-6. The current implementation checks whether the pending client already has an active passkey.
-7. If a passkey exists, the client can currently be promoted and signed in immediately.
-8. If no passkey exists, the current implementation redirects to
-   `/sign/up/telephone/passkey_registration`.
-
-Target state-machine path:
-
-1. `PATCH /sign/up/telephone` validates the OTP.
-2. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
-3. The flow checks whether the pending client already has an active passkey.
-4. The flow moves through `GET /sign/up/guard` when guardrail content is required.
-5. The flow moves to `GET /sign/up/check`.
-6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
-   are all cleared.
-7. Only after the checkpoint is complete, the client is promoted, the account row is created, audit
-   is written, and the existing sign-in boundary may issue the session after guardrail, checkpoint,
-   and selector pass.
+4. `PATCH /sign/up/telephone` validates the OTP and marks the telephone as `VERIFIED_WITH_SIGN_UP`.
+5. The state machine advances the ticket through `verify_contact` → `enter_checkpoint` →
+   `clear_requirement(:otp)` and redirects to `GET /sign/up/guard/telephone`.
+6. `GET /sign/up/guard/telephone` evaluates guardrail content; if none is required the flow
+   redirects to `GET /sign/up/check/telephone/passkey`.
+7. `GET /sign/up/check/telephone/passkey` renders the passkey registration UI. `POST` begins the
+   WebAuthn ceremony; `PATCH` finalizes it and marks the `passkey` requirement as cleared.
+8. The flow redirects to `GET /sign/up/check/telephone/passcode`, which marks the `passcode`
+   requirement as cleared after the user confirms storage.
+9. The flow redirects to `GET /sign/up/check/telephone/birthdate`, which collects and validates the
+   birthdate and marks the `birthdate` requirement as cleared.
+10. When all requirements are cleared the state machine runs `finalize`: the pending client is
+    promoted to `VERIFIED_WITH_SIGN_UP`, the sign-up audit entry is written, and the sign-in
+    boundary issues the authenticated session.
+11. Sign-in failure after durable finalization is treated as a sign-in domain failure; it does not
+    delete the completed account.
 
 ## App Social
 
@@ -725,34 +721,28 @@ Target state-machine path:
 
 Current path:
 
-1. `GET /sign/up/telephone/new` renders the telephone form and clears the telephone registration
-   session key.
+1. `GET /sign/up/telephone/new` renders the telephone form.
 2. `POST /sign/up/telephone` validates Turnstile and telephone params, creates a pending `Visitor`
-   and pending `VisitorTelephone`, stores telephone registration state in session, and redirects to
-   edit.
+   and pending `VisitorTelephone`, issues a `VisitorSignUpFlow` ticket with
+   `entry_method: "telephone"` and `principal_id` pointing to the pending visitor, stores the flow
+   locator in session, and redirects to edit.
 3. `GET /sign/up/telephone/edit` renders the OTP form when the registration session is valid.
-4. `PATCH /sign/up/telephone` validates the OTP.
-5. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
-6. The visitor account row is created if needed.
-7. A sign-up audit entry is written.
-8. The visitor is logged in.
-9. The controller redirects to `root_path`.
-
-Unlike app email, com email, app telephone completion, and app social completion, com telephone does
-not currently call the shared sign-in post-authentication sequence after login.
-
-Target state-machine path:
-
-1. `PATCH /sign/up/telephone` validates the OTP.
-2. OTP success marks the telephone as `VERIFIED_WITH_SIGN_UP`.
-3. The flow checks whether the pending visitor already has an active passkey.
-4. The flow moves through `GET /sign/up/guard` when guardrail content is required.
-5. The flow moves to `GET /sign/up/check`.
-6. The checkpoint blocks account finalization until birthdate, passkey, and passcode requirements
-   are all cleared.
-7. Only after the checkpoint is complete, the visitor is finalized, the account row is created,
-   audit is written, and the existing sign-in boundary may issue the session after guardrail,
-   checkpoint, and selector pass.
+4. `PATCH /sign/up/telephone` validates the OTP and marks the telephone as `VERIFIED_WITH_SIGN_UP`.
+5. The state machine advances the ticket through `verify_contact` → `enter_checkpoint` →
+   `clear_requirement(:otp)` and redirects to `GET /sign/up/guard/telephone`.
+6. `GET /sign/up/guard/telephone` evaluates guardrail content; if none is required the flow
+   redirects to `GET /sign/up/check/telephone/passkey`.
+7. `GET /sign/up/check/telephone/passkey` renders the passkey registration UI. `POST` begins the
+   WebAuthn ceremony; `PATCH` finalizes it and marks the `passkey` requirement as cleared.
+8. The flow redirects to `GET /sign/up/check/telephone/passcode`, which marks the `passcode`
+   requirement as cleared after the user confirms storage.
+9. The flow redirects to `GET /sign/up/check/telephone/birthdate`, which collects and validates the
+   birthdate and marks the `birthdate` requirement as cleared.
+10. When all requirements are cleared the state machine runs `finalize`: the visitor status is
+    confirmed active, the sign-up audit entry is written, and the sign-in boundary issues the
+    authenticated session through the shared post-finalization handoff.
+11. Sign-in failure after durable finalization is treated as a sign-in domain failure; it does not
+    delete the completed account.
 
 ## Org Operator Acquisition And Lifecycle
 

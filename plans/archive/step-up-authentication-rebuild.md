@@ -4,14 +4,21 @@
 > Acme business mutations must consume verifiable, scoped Sign step-up results. Use this plan for
 > Sign step-up work, but do not use older wording to restore Acme step-up authority.
 
-**Status:** Active (2026-05-11) — This file is a specification document that is a prerequisite for
-implementation by another AI. The implementation is not done in this file.
+**Status:** Archived after implementation on 2026-06-12. This file is retained for traceability and
+historical context only.
 
-**Refresh note (2026-05-19):** This plan still contains older descriptions that have been
-implemented or superseded by later decisions. The current authoritative DB names are `app_ticket`,
-`com_ticket`, and `org_ticket`. `settings_connection` and `operator_lifecycle` are step-up scopes
-added by later features, so do not delete them. WebAuthn challenges should remain in the session
-store; the Solid Cache move is treated as canceled.
+**Refresh note (2026-06-12):** This plan still contains older descriptions that were useful while
+the work was in flight. The current implementation now uses DB-backed step-up sessions, separate
+configured/available method services, and Acme-bound `login_challenge` delegation into the sign
+ceremony surfaces. The authoritative DB names are `app_ticket`, `com_ticket`, and `org_ticket`.
+`settings_connection` and `operator_lifecycle` are step-up scopes added by later features, so do
+not delete them. WebAuthn challenges remain in the session store; the Solid Cache move is treated
+as canceled.
+
+## Implementation Status
+
+The boundary work described below has been implemented in the current codebase. The remaining text
+is historical planning context and should not be read as an active to-do list.
 
 ## background
 
@@ -28,7 +35,7 @@ and update ADR if necessary before proceeding with implementation.
 - `plans/backlog/restoration-a2-refresh-revoke-aal-hardening.md` — Implementation plan for the above
   ADR
 
-## Current list of failures (reference)
+## Historical Failure List
 
 Before proceeding with implementation, please understand the overall picture as these are currently
 broken behaviors that will be resolved upon completion of this plan:

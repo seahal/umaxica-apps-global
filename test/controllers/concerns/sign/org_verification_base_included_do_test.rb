@@ -67,10 +67,6 @@ class SignOrgVerificationBaseIncludedDoTest < ActiveSupport::TestCase
     assert_equal 15.minutes, SignOrgVerificationBase::STEP_UP_TTL
   end
 
-  test "STEP_UP_SESSION_KEY constant is defined" do
-    assert_equal :step_up, SignOrgVerificationBase::STEP_UP_SESSION_KEY
-  end
-
   test "ALLOWED_SCOPES constant is defined" do
     assert_kind_of Hash, SignOrgVerificationBase::ALLOWED_SCOPES
     assert SignOrgVerificationBase::ALLOWED_SCOPES.key?("settings_passkey")

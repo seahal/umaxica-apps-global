@@ -5,7 +5,6 @@ module SignOrgVerificationBase
   extend ActiveSupport::Concern
 
   STEP_UP_TTL = 15.minutes
-  STEP_UP_SESSION_KEY = :step_up
 
   ALLOWED_SCOPES = StepUpScopeCatalog::ORG
 

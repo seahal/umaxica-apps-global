@@ -26,11 +26,11 @@ class SecretCredentialConcernTest < ActiveSupport::TestCase
   end
 
   class MinimalSecret
+    include ActiveModel::Validations
+
     def self.validates(*) = nil
 
     def self.has_secure_password(*) = nil
-
-    def self.respond_to_missing?(_name, _include_private = false) = false
 
     include SecretCredential
   end

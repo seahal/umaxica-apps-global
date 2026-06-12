@@ -17,8 +17,8 @@ end
 # Reference tables with ReferenceRecord concern
 ensure_reference_rows(ClientVisibility, ClientVisibility::DEFAULTS)
 ensure_reference_rows(ClientStatus, ClientStatus::DEFAULTS)
-ensure_reference_rows(ClientMultiFactor, ClientMultiFactor::DEFAULTS)
-ensure_reference_rows(ClientMultiFactorStatus, ClientMultiFactorStatus::DEFAULTS)
+ensure_reference_rows(ClientMfaLevel, ClientMfaLevel::DEFAULTS)
+ensure_reference_rows(ClientMfaStatus, ClientMfaStatus::DEFAULTS)
 ensure_reference_rows(ClientEmailStatus, ClientEmailStatus::DEFAULTS)
 ensure_reference_rows(ClientTelephoneStatus, ClientTelephoneStatus::DEFAULTS)
 ensure_reference_rows(ClientOneTimePasswordStatus, ClientOneTimePasswordStatus::DEFAULTS)
@@ -26,13 +26,13 @@ ensure_reference_rows(ClientSecretStatus, [ClientSecretStatus::ACTIVE, ClientSec
 ensure_reference_rows(ClientSecretKind, [ClientSecretKind::PERMANENT])
 ensure_reference_rows(VisitorStatus, VisitorStatus::DEFAULTS)
 ensure_reference_rows(VisitorVisibility, VisitorVisibility::DEFAULTS)
-ensure_reference_rows(VisitorMultiFactor, VisitorMultiFactor::DEFAULTS)
-ensure_reference_rows(VisitorMultiFactorStatus, VisitorMultiFactorStatus::DEFAULTS)
+ensure_reference_rows(VisitorMfaLevel, VisitorMfaLevel::DEFAULTS)
+ensure_reference_rows(VisitorMfaStatus, VisitorMfaStatus::DEFAULTS)
 
 ensure_reference_rows(OperatorVisibility, [OperatorVisibility::STAFF])
 ensure_reference_rows(OperatorIdentityStatus, [OperatorIdentityStatus::ACTIVE])
-ensure_reference_rows(OperatorMultiFactor, OperatorMultiFactor::DEFAULTS)
-ensure_reference_rows(OperatorMultiFactorStatus, OperatorMultiFactorStatus::DEFAULTS)
+ensure_reference_rows(OperatorMfaLevel, OperatorMfaLevel::DEFAULTS)
+ensure_reference_rows(OperatorMfaStatus, OperatorMfaStatus::DEFAULTS)
 ensure_reference_rows(OperatorEmailStatus, [OperatorEmailStatus::VERIFIED])
 ensure_reference_rows(
   OperatorSecretStatus,
@@ -44,8 +44,8 @@ ensure_reference_rows(OperatorSecretKind, [OperatorSecretKind::PERMANENT])
 # Ensure reference rows using ensure_defaults! method
 ClientVisibility.ensure_defaults!
 ClientStatus.ensure_defaults!
-ClientMultiFactor.ensure_defaults!
-ClientMultiFactorStatus.ensure_defaults!
+ClientMfaLevel.ensure_defaults!
+ClientMfaStatus.ensure_defaults!
 ClientEmailStatus.ensure_defaults!
 ClientTelephoneStatus.ensure_defaults!
 ClientOneTimePasswordStatus.ensure_defaults!
@@ -54,13 +54,13 @@ ClientSecretKind.ensure_defaults!
 
 VisitorStatus.ensure_defaults!
 VisitorVisibility.ensure_defaults!
-VisitorMultiFactor.ensure_defaults!
-VisitorMultiFactorStatus.ensure_defaults!
+VisitorMfaLevel.ensure_defaults!
+VisitorMfaStatus.ensure_defaults!
 
 OperatorVisibility.ensure_defaults!
 OperatorIdentityStatus.ensure_defaults!
-OperatorMultiFactor.ensure_defaults!
-OperatorMultiFactorStatus.ensure_defaults!
+OperatorMfaLevel.ensure_defaults!
+OperatorMfaStatus.ensure_defaults!
 OperatorEmailStatus.ensure_defaults!
 OperatorSecretKind.ensure_defaults!
 
