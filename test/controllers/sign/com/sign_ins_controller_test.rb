@@ -10,8 +10,23 @@ module Sign
         @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
       end
 
-      test "should get new" do
+      test "direct entrance normalizes to acme com authorization" do
         get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+
+        assert_response :redirect
+
+        uri = URI.parse(jump_rt_url_from_location(response.location))
+        query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+        assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
+        assert_equal "/oauth/authorize", uri.path
+        assert_equal "sign_com", query["client_id"]
+        assert_equal "signin", query["screen_hint"]
+        assert_nil session[:oidc_authorization_login_challenge]
+      end
+
+      test "valid login challenge renders local ceremony entrance" do
+        get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
@@ -20,7 +35,8 @@ module Sign
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://id.umaxica.com/settings/sessions?ri=jp", padding: false)
 
-        get sign_com_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_com_sign_in_entrance_url(ri: "jp", pt: pt, login_challenge: login_challenge),
+            headers: { "Host" => @host }
 
         assert_response :success
         assert_select "a[href=?]", new_sign_com_sign_in_email_path(ri: "jp")
@@ -29,7 +45,7 @@ module Sign
       end
 
       test "does not show social login buttons" do
-        get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action='/auth/google_app']", count: 0
@@ -40,7 +56,8 @@ module Sign
 
       test "does not show temporary google signin button when legacy flag is set" do
         with_env("COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "true") do
-          get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+          get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge),
+              headers: { "Host" => @host }
         end
 
         assert_response :success
@@ -66,6 +83,27 @@ module Sign
       end
 
       private
+
+      def login_challenge
+        OidcAuthorizationTransactionService.issue!(
+          surface: "com",
+          intent: "sign_in",
+          params: authorize_params,
+        ).transaction.login_challenge
+      end
+
+      def authorize_params
+        {
+          response_type: "code",
+          client_id: "core_com",
+          redirect_uri: OidcClientRegistry.find!("core_com").redirect_uris.first,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          state: SecureRandom.urlsafe_base64(16),
+          nonce: SecureRandom.urlsafe_base64(16),
+          scope: "openid profile",
+        }
+      end
 
       def with_env(values)
         original = values.keys.index_with { |key| ENV[key] }

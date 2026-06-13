@@ -6,7 +6,10 @@ require "test_helper"
 class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationTest
   fixtures_only :operators, :operator_statuses, :operator_passkey_statuses,
                 :operator_mfa_levels, :operator_secret_credential_kinds,
-                :operator_secret_credential_statuses
+                :operator_secret_credential_statuses, :operator_mfa_statuses,
+                :operator_visibilities, :operator_token_binding_methods,
+                :operator_token_kinds, :operator_token_statuses,
+                :operator_token_dbsc_statuses
 
   setup do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -56,7 +59,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "should get new" do
-    get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
+    get new_sign_org_settings_passkey_url(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant), headers: @headers
 
     assert_response :success
     assert_select "h1", I18n.t("sign.org.settings.passkeys.new.page_title")
@@ -89,7 +92,10 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     Prosopite.pause do
-      get new_sign_org_settings_passkey_url(ri: "jp"), headers: headers
+      get new_sign_org_settings_passkey_url(
+        ri: "jp",
+        passkey_ceremony_grant: passkey_ceremony_grant(actor: operator, token: token),
+      ), headers: headers
     end
 
     assert_response :success
@@ -122,8 +128,12 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     get sign_org_settings_passkeys_url(ri: "jp"), headers: @host_headers
 
     assert_response :redirect
-    assert_equal "https://#{ENV.fetch("ID_STAFF_URL", "id.umaxica.org")}#{sign_org_sign_in_entrance_path(ri: "jp")}",
-                 jump_rt_url_from_location(response.headers["Location"])
+    uri = URI.parse(jump_rt_url_from_location(response.headers["Location"]))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_org", query["client_id"]
   end
 
   test "should get edit" do
@@ -236,7 +246,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects missing challenge id" do
-    post sign_org_settings_passkeys_verification_url(ri: "jp"),
+    post sign_org_settings_passkeys_verification_url(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
          params: { credential: { id: "cred-id" } },
          headers: @headers,
          as: :json
@@ -290,6 +300,10 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   private
+
+  def passkey_ceremony_grant(actor: @staff, token: @token)
+    signed_passkey_ceremony_grant_for(surface: "org", actor: actor, token: token)
+  end
 
   def assert_redirected_to_acme(path)
     assert_response :see_other

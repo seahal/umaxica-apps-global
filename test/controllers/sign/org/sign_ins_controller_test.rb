@@ -10,14 +10,44 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
 
-  test "should get new" do
+  test "direct entrance normalizes to acme org authorization" do
     get sign_org_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :success
+    assert_response :redirect
+
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_org", query["client_id"]
+    assert_equal "signin", query["screen_hint"]
+    assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "renders local authentication links only" do
-    get sign_org_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "valid login challenge renders local ceremony entrance" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_in",
+      params: authorize_params,
+    )
+
+    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
+  end
+
+  test "local ceremony renders authentication links only" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_in",
+      params: authorize_params,
+    )
+
+    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
 
     assert_response :success
 
@@ -30,25 +60,47 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action*=?]", "/auth/apple", count: 0
   end
 
-  test "authentication links carry pt" do
-    pt = Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false)
+  test "local ceremony ignores inbound pt and keeps authentication links on ceremony flow" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_in",
+      params: authorize_params,
+    )
 
-    get sign_org_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+    get sign_org_sign_in_entrance_url(
+      ri: "jp",
+      pt: Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false),
+      login_challenge: issuance.transaction.login_challenge,
+    ), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "a[href=?]", new_sign_org_sign_in_passkey_path(ri: "jp")
     assert_select "a[href=?]", new_sign_org_sign_in_secret_credential_path(ri: "jp")
   end
 
-  test "does not render sign up link on sign in page" do
-    get sign_org_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "local ceremony does not render sign up link on sign in page" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_in",
+      params: authorize_params,
+    )
+
+    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
 
     assert_response :success
     assert_select "a[href=?]", sign_org_sign_up_entrance_path(ri: "jp"), count: 0
   end
 
-  test "renders back to root link" do
-    get sign_org_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "local ceremony renders back to root link" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_in",
+      params: authorize_params,
+    )
+
+    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
 
     assert_response :success
 
@@ -62,5 +114,20 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+  end
+
+  private
+
+  def authorize_params
+    {
+      response_type: "code",
+      client_id: "core_org",
+      redirect_uri: OidcClientRegistry.find!("core_org").redirect_uris.first,
+      code_challenge: "challenge",
+      code_challenge_method: "S256",
+      state: "state",
+      nonce: "nonce",
+      scope: "openid profile",
+    }
   end
 end

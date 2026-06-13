@@ -75,8 +75,12 @@ module Sign::Com::Settings
       uri = URI.parse(response.location)
 
       assert_equal "jump.umaxica.net", uri.host
-      assert_match %r{\Ahttps://id\.umaxica\.com/sign/in/entrance\?ri=jp\z},
-                   jump_rt_url_from_location(response.location)
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+
+      assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), authorize_uri.host
+      assert_equal "/oauth/authorize", authorize_uri.path
+      assert_equal "sign_com", query["client_id"]
     end
 
     test "does not route mutation or edit actions" do

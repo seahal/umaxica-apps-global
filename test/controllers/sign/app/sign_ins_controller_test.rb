@@ -10,8 +10,23 @@ module Sign
         @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
       end
 
-      test "should get new with authentication links" do
+      test "direct entrance normalizes to acme app authorization" do
         get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+
+        assert_response :redirect
+
+        uri = URI.parse(jump_rt_url_from_location(response.location))
+        query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+        assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+        assert_equal "/oauth/authorize", uri.path
+        assert_equal "sign_app", query["client_id"]
+        assert_equal "signin", query["screen_hint"]
+        assert_nil session[:oidc_authorization_login_challenge]
+      end
+
+      test "local ceremony renders authentication links" do
+        get sign_app_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
 
@@ -39,7 +54,7 @@ module Sign
         AppPreferenceCookie.create!(preference: preference)
         cookies[::PreferenceCookieName.refresh(surface: :app)] = token
 
-        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
       end
@@ -47,7 +62,8 @@ module Sign
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://id.umaxica.app/settings/sessions?ri=jp", padding: false)
 
-        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt, login_challenge: login_challenge),
+            headers: { "Host" => @host }
 
         assert_response :success
         assert_select "a[href=?]", new_sign_app_sign_in_email_path(ri: "jp")
@@ -56,7 +72,8 @@ module Sign
       end
 
       test "sign up link includes pt when pt is present" do
-        get sign_app_sign_in_entrance_url(ri: "jp", pt: "abc"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: "abc", login_challenge: login_challenge),
+            headers: { "Host" => @host }
 
         assert_response :success
         assert_includes response.body, "/sign/up/entrance?ri=jp"
@@ -64,7 +81,7 @@ module Sign
       end
 
       test "sign up link includes only ri when pt is absent" do
-        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_includes response.body, "/sign/up/entrance?ri=jp"
@@ -73,7 +90,8 @@ module Sign
 
       test "sign up link preserves encoded-like pt value safely" do
         pt = "aHR0cHM6Ly9leGFtcGxlLmNvbS8_cD0xJmE9Mg%3D%3D"
-        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", pt: pt, login_challenge: login_challenge),
+            headers: { "Host" => @host }
 
         assert_response :success
         assert_includes response.body, "/sign/up/entrance?ri=jp"
@@ -81,7 +99,8 @@ module Sign
       end
 
       test "should render in english when lx=en" do
-        get sign_app_sign_in_entrance_url(lx: "en", ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(lx: "en", ri: "jp", login_challenge: login_challenge),
+            headers: { "Host" => @host }
 
         assert_response :success
         assert_select "html[lang=en]"
@@ -89,7 +108,7 @@ module Sign
       end
 
       test "shows social login buttons" do
-        get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+        get sign_app_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action=?][data-turbo=?]",
@@ -108,6 +127,29 @@ module Sign
         get sign_app_sign_in_entrance_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
         assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      end
+
+      private
+
+      def login_challenge(intent: "sign_in")
+        OidcAuthorizationTransactionService.issue!(
+          surface: "app",
+          intent: intent,
+          params: authorize_params,
+        ).transaction.login_challenge
+      end
+
+      def authorize_params
+        {
+          response_type: "code",
+          client_id: "core_app",
+          redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+          code_challenge: "challenge",
+          code_challenge_method: "S256",
+          state: SecureRandom.urlsafe_base64(16),
+          nonce: SecureRandom.urlsafe_base64(16),
+          scope: "openid profile",
+        }
       end
     end
   end

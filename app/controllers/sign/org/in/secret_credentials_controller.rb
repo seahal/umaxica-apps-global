@@ -60,7 +60,7 @@ module Sign
           end
         end
 
-        SecretVerificationResult = Struct.new(:secret_credential, :reason, keyword_init: true)
+        SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
 
         def new
           @secret_credential_form = SecretLoginForm.new
@@ -128,7 +128,7 @@ module Sign
 
           verification =
             if secret_credential.new_axis_secret_credential?
-              Sign::Secret::Verify.call(
+              ::Sign::Secret::Verify.call(
                 secret_credential: secret_credential,
                 raw_secret_credential: raw_secret_credential.to_s,
               )

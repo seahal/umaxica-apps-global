@@ -10,14 +10,44 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
 
-  test "should get new" do
+  test "direct entrance normalizes to acme org authorization" do
     get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :success
+    assert_response :redirect
+
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_org", query["client_id"]
+    assert_equal "signup", query["screen_hint"]
+    assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "does not show registration method choices" do
-    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "valid login challenge renders local ceremony entrance" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
+    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
+
+    assert_response :success
+    assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
+  end
+
+  test "local ceremony does not show registration method choices" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
+    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 0
@@ -26,9 +56,16 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action*=?]", "/social/auth/apple", count: 0
   end
 
-  test "does not show google signup button even if legacy flag is set" do
+  test "local ceremony does not show google signup button even if legacy flag is set" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
     with_env("ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
+      get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+          headers: { "Host" => @host }
     end
 
     assert_response :success
@@ -36,8 +73,15 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action*=?]", "/auth/google", count: 0
   end
 
-  test "renders recruit contact and home links" do
-    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "local ceremony renders recruit contact and home links" do
+    issuance = OidcAuthorizationTransactionService.issue!(
+      surface: "org",
+      intent: "sign_up",
+      params: authorize_params(screen_hint: "signup"),
+    )
+
+    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+        headers: { "Host" => @host }
 
     assert_response :success
 
@@ -94,6 +138,21 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def authorize_params(screen_hint: nil)
+    params = {
+      response_type: "code",
+      client_id: "core_org",
+      redirect_uri: OidcClientRegistry.find!("core_org").redirect_uris.first,
+      code_challenge: "challenge",
+      code_challenge_method: "S256",
+      state: "state",
+      nonce: "nonce",
+      scope: "openid profile",
+    }
+    params[:screen_hint] = screen_hint if screen_hint.present?
+    params
+  end
 
   def with_env(values)
     original = values.keys.index_with { |key| ENV[key] }

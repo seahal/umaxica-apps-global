@@ -121,9 +121,11 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
+    grant = secret_credential_ceremony_grant(actor: user, token: token)
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(ri: "jp"), headers: headers
+      get new_sign_app_settings_secret_credential_url(ri: "jp", secret_credential_ceremony_grant: grant),
+          headers: headers
     end
 
     assert_response :redirect
@@ -146,9 +148,11 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
+    grant = secret_credential_ceremony_grant(actor: user, token: token)
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(ri: "jp"), headers: headers
+      get new_sign_app_settings_secret_credential_url(ri: "jp", secret_credential_ceremony_grant: grant),
+          headers: headers
     end
 
     assert_response :redirect
@@ -159,7 +163,10 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(ri: "jp"), headers: authenticated_headers
+      get new_sign_app_settings_secret_credential_url(
+        ri: "jp",
+        secret_credential_ceremony_grant: secret_credential_ceremony_grant,
+      ), headers: authenticated_headers
     end
 
     assert_response :success
@@ -200,12 +207,13 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
         },
         1,
       ) do
-        with_prosopite_paused do
-          post sign_app_settings_secret_credentials_url(ri: "jp"),
+          with_prosopite_paused do
+            post sign_app_settings_secret_credentials_url(ri: "jp"),
                params: { user_secret_credential: { name: "New Secret", enabled: true },
+                         secret_credential_ceremony_grant: secret_credential_ceremony_grant,
                          "cf-turnstile-response": "test", },
                headers: authenticated_headers
-        end
+          end
       end
     end
 
@@ -227,11 +235,13 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
+    grant = secret_credential_ceremony_grant(actor: user, token: token)
 
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
         post sign_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
+                       secret_credential_ceremony_grant: grant,
                        "cf-turnstile-response": "test", },
              headers: headers
       end
@@ -257,11 +267,13 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
+    grant = secret_credential_ceremony_grant(actor: user, token: token)
 
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
         post sign_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
+                       secret_credential_ceremony_grant: grant,
                        "cf-turnstile-response": "test", },
              headers: headers
       end
@@ -404,6 +416,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       with_prosopite_paused do
         post sign_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
+                       secret_credential_ceremony_grant: secret_credential_ceremony_grant,
                        "cf-turnstile-response": "bad", },
              headers: authenticated_headers
       end
@@ -450,5 +463,9 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal path, uri.request_uri
+  end
+
+  def secret_credential_ceremony_grant(actor: @user, token: @token)
+    signed_secret_credential_ceremony_grant_for(surface: "app", actor: actor, token: token)
   end
 end

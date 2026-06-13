@@ -1,0 +1,33 @@
+---
+name: no-workflow-drift
+description: Follow the established pipeline order and project conventions; do not reorder or invent.
+---
+
+# No Workflow Drift
+
+Follow the established order of operations and the existing conventions. Do not quietly diverge from
+them because a shortcut is convenient.
+
+## Preserve pipeline order
+
+The request pipeline runs in a fixed order: authentication, then authorization, then verification.
+Never reorder these stages, and never bypass an earlier stage to reach a later one. A controller or
+concern must opt into the pipeline, not route around it.
+
+## Prefer established conventions
+
+Use the conventions the codebase already follows — RESTful routes, path helpers, the existing
+authorization mechanism, the existing service and model boundaries. Reach for a new abstraction only
+when an existing pattern genuinely does not fit, and say why.
+
+## Rebuild-from-source discipline
+
+When a change is in flight that alters generated or derived state (for example, a schema rebuild
+while a rename migration is on a branch), rebuild from source rather than applying incremental
+patches on top of a half-changed state. Incremental patches against an inconsistent base drift
+further from the intended result.
+
+## Keep behavior deterministic
+
+Given the same inputs, the same path must produce the same outcome. Do not introduce order-, time-,
+or environment-dependent branching into the normal flow.

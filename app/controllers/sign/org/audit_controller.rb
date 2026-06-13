@@ -3,15 +3,11 @@
 
 module Sign
   module Org
-    class AuditController < ::Sign::Org::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_operator!
+    class AuditController < ::Sign::RedirectOnlyController
+      AUTHENTICATION_MODE = :open
 
       def index
-        authorize!(current_operator, to: :audit?)
-
-        render plain: "ok"
+        redirect_to_acme_authority!("/audit")
       end
     end
   end

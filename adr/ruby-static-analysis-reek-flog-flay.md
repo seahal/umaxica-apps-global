@@ -65,5 +65,5 @@ get blanket-suppressed to make output go away.
 ## Related
 
 - `docs/reference/ruby-static-analysis.md` — how to run and read the tools.
-- `.harnes/policies/forbidden_patterns.md` — blanket-suppression prohibitions.
+- `.harnes/rules/generic/absolute-rules.mdc` — blanket-suppression prohibitions.
 - `adr/frontend-architecture-toolchain.md` — sibling toolchain decision.

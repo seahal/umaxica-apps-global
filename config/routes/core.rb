@@ -13,11 +13,11 @@ scope module: :core, as: :core do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -54,11 +54,11 @@ scope module: :core, as: :core do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -95,11 +95,11 @@ scope module: :core, as: :core do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"

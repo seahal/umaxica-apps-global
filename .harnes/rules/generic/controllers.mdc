@@ -1,0 +1,39 @@
+---
+name: controllers
+description: Controllers handle HTTP only and delegate domain logic; how to implement one safely.
+---
+
+# Controllers
+
+Controllers are an HTTP boundary, not a place for business logic.
+
+## Responsibilities
+
+Controllers must:
+
+- handle HTTP concerns only — params, response, status, redirects
+- delegate business logic to models or services
+- enforce authentication, authorization, and verification through the pipeline
+
+Controllers must not:
+
+- contain heavy business logic
+- bypass pipeline concerns (see `no-workflow-drift`)
+- reach into unrelated parts of the system directly
+
+## Implementing an action
+
+1. Define the route as a RESTful resource (see `routing`).
+2. Create the controller under the correct boundary.
+3. Include the required pipeline concerns.
+4. Implement the action by delegating to a model or service.
+5. Apply authentication.
+6. Apply authorization through the established mechanism.
+7. Handle errors explicitly — do not rescue and ignore (see `no-silent-fallback`).
+8. Add tests (see `testing`).
+
+## Constraints
+
+- Respect the pipeline order; do not skip authentication or authorization.
+- Do not hardcode URLs; use path helpers.
+- Do not blindly `permit!` parameters (see `absolute-rules`).

@@ -8,8 +8,23 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
   end
 
-  test "shows email and telephone registration methods" do
+  test "direct entrance normalizes to acme com authorization" do
     get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp"), headers: default_headers
+
+    assert_response :redirect
+
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_com", query["client_id"]
+    assert_equal "signup", query["screen_hint"]
+    assert_nil session[:oidc_authorization_login_challenge]
+  end
+
+  test "local ceremony shows email and telephone registration methods" do
+    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 2
@@ -18,7 +33,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "does not show social login buttons when flag is off" do
-    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp"), headers: default_headers
+    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
@@ -29,7 +44,8 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   test "does not show temporary google signup button when legacy flag is on" do
     with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp"), headers: default_headers
+      get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge),
+          headers: default_headers
     end
 
     assert_response :success
@@ -50,12 +66,33 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "sign up entrance renders without an active registration" do
-    get sign_com_sign_up_entrance_url(ri: "jp"), headers: default_headers
+    get sign_com_sign_up_entrance_url(ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
   end
 
   private
+
+  def login_challenge
+    OidcAuthorizationTransactionService.issue!(
+      surface: "com",
+      intent: "sign_up",
+      params: authorize_params,
+    ).transaction.login_challenge
+  end
+
+  def authorize_params
+    {
+      response_type: "code",
+      client_id: "core_com",
+      redirect_uri: OidcClientRegistry.find!("core_com").redirect_uris.first,
+      code_challenge: "challenge",
+      code_challenge_method: "S256",
+      state: SecureRandom.urlsafe_base64(16),
+      nonce: SecureRandom.urlsafe_base64(16),
+      scope: "openid profile",
+    }
+  end
 
   def default_headers
     { "Host" => host, "HTTPS" => "on" }

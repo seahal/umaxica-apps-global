@@ -1,0 +1,32 @@
+---
+name: rails-concerns
+description: Concerns stay small and low-side-effect; including one must not change behavior implicitly.
+---
+
+# Rails Concerns
+
+Concerns define reusable behavior. They must stay small and must not silently change the including
+class.
+
+## Keep concerns low-side-effect
+
+Including a concern must not, on its own:
+
+- install callbacks
+- expose helpers
+- mutate sessions, cookies, or other state
+- change authorization
+- trigger other runtime side effects
+
+unless an existing, reviewed pattern explicitly requires it.
+
+## Make side effects opt-in
+
+The including controller, model, or service should opt into any side effect explicitly. A reader of
+the including class should be able to see what the concern activates, not have it happen by the mere
+act of inclusion.
+
+## Visibility
+
+Keep concern methods private by default. Expose a public method only when the including class or an
+external caller needs a stable public contract, and make that boundary intentional.

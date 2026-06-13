@@ -6,14 +6,31 @@ require "test_helper"
 class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "should get new" do
+  test "direct entrance normalizes to acme app authorization" do
     get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
+
+    assert_response :redirect
+
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_app", query["client_id"]
+    assert_equal "signup", query["screen_hint"]
+    assert_nil session[:oidc_authorization_login_challenge]
+  end
+
+  test "valid login challenge renders local ceremony entrance" do
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
   end
 
   test "sets lang attribute on html element" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     assert_select("html[lang=?]", "ja")
@@ -21,7 +38,8 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows registration methods and social providers" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
 
@@ -29,14 +47,16 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows telephone registration link" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     assert_select "a[href=?]", new_sign_app_sign_up_telephone_path(ri: "jp"), count: 1
   end
 
   test "shows social login buttons" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     assert_select "form[action=?][data-turbo=?]",
@@ -50,7 +70,8 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders registration layout structure" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
 
@@ -69,7 +90,8 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "header contains authentication links" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     assert_select "header", minimum: 1 do
@@ -78,7 +100,8 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "footer contains navigation links" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     assert_select "footer" do
@@ -87,7 +110,8 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
   end
   test "renders specific cta text" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp")
+    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+        headers: { "Host" => host }
 
     assert_response :success
     # Check for Japanese text (since previous test asserted lang=ja)
@@ -115,5 +139,26 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   def brand_name
     (ENV["BRAND_NAME"].presence || ENV["NAME"]).to_s
+  end
+
+  def login_challenge
+    OidcAuthorizationTransactionService.issue!(
+      surface: "app",
+      intent: "sign_up",
+      params: authorize_params,
+    ).transaction.login_challenge
+  end
+
+  def authorize_params
+    {
+      response_type: "code",
+      client_id: "core_app",
+      redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+      code_challenge: "challenge",
+      code_challenge_method: "S256",
+      state: SecureRandom.urlsafe_base64(16),
+      nonce: SecureRandom.urlsafe_base64(16),
+      scope: "openid profile",
+    }
   end
 end

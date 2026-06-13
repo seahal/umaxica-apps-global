@@ -1,0 +1,30 @@
+---
+name: no-compatibility-layer
+description: Replace cleanly; do not add aliases, shims, or transitional layers.
+---
+
+# No Compatibility Layer
+
+When changing or removing something, replace it cleanly. Do not leave a parallel old path alive.
+
+## Do not add
+
+- compatibility aliases for renamed methods, constants, files, or paths
+- transitional layers that let old and new behavior coexist "for now"
+- dead shims or wrappers kept only to avoid updating callers
+- default-value fallbacks introduced to tolerate the absence of the new behavior
+
+## Replace, then update callers
+
+When you rename or restructure, update every reference in the same change and delete the old
+definition. A reference that still points at the old path is a bug to fix, not a reason to keep a
+shim.
+
+## Why
+
+Transitional layers accumulate. Each one adds a second code path that must be understood, tested, and
+eventually removed — and "eventually" rarely comes. Clean replacement keeps exactly one correct path
+and makes the change reviewable.
+
+Removing the old path may surface broken references. That is the intended signal: fix them, do not
+hide them behind an alias.

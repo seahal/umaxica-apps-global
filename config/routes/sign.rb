@@ -11,11 +11,11 @@ scope module: :sign, as: :sign do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -219,11 +219,11 @@ scope module: :sign, as: :sign do
       resource :dashboard, only: :show
 
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -399,11 +399,11 @@ scope module: :sign, as: :sign do
       resources :billing, only: :index
 
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"

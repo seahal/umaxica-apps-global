@@ -1,0 +1,27 @@
+---
+name: fail-fast
+description: Raise loudly on unexpected state so partial or corrupt conditions surface immediately.
+---
+
+# Fail Fast
+
+When the system reaches a state it does not expect, stop and raise rather than continue.
+
+## Raise on unexpected state
+
+If a precondition is not met, an invariant is broken, or input is outside the contract, raise a
+clear error at the point of detection. Do not continue with a guessed value or a partial result.
+
+## Prefer strict variants
+
+When an operation has both a "strict" form that raises and a "lenient" form that skips, choose the
+strict form. Loud failure during development or deployment is far cheaper than silent drift
+discovered days later.
+
+For example, a table rename should use a strict helper that raises when state is inconsistent rather
+than a wrapper that skips when the table is missing.
+
+## Keep failures diagnosable
+
+A raised error should say what was expected and what was found, so the failure points directly at the
+cause. This complements `no-silent-fallback`: never swallow the condition you just detected.

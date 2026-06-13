@@ -7,9 +7,14 @@
 
 ## Status
 
-Regional delivery is no longer part of this repository's stable application architecture. Per
-`adr/split-into-regional-and-global-repos.md`, regional RP delivery and regional content surfaces
-belong to the separate regional repository.
+Regional RP delivery remains outside this repository's stable application architecture. Per
+`adr/split-into-regional-and-global-repos.md`, regional RP delivery belongs to the separate regional
+repository.
+
+Read-only `docs`, `news`, and `help` content delivery is the explicit exception accepted by
+`adr/read-only-content-surfaces-in-rails.md`. That v1 Rails implementation is public and read-only;
+it does not restore the old regional engine, CMS editing, OIDC RP callbacks, preference writes, or
+authenticated actor lifecycle.
 
 ## Boundary Map
 
@@ -29,8 +34,12 @@ global, while `core` belongs to regional.
 
 ## Current Rule
 
-Do not add regional RP, direct message, or regional content delivery implementation to this
-repository unless a current ADR explicitly changes the repository boundary.
+Do not add regional RP or direct message implementation to this repository unless a current ADR
+explicitly changes the repository boundary.
+
+For `docs`, `news`, and `help`, only the v1 read-only Rails content delivery path described in
+`adr/read-only-content-surfaces-in-rails.md` is current. Do not infer CMS editing, regional RP
+behavior, OIDC callbacks, or preference writes from historical regional content material.
 
 When a document says `post`, read the local context carefully:
 

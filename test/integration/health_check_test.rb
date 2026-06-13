@@ -9,41 +9,47 @@ class HealthCheckTest < ActionDispatch::IntegrationTest
   end
 
   test "readiness returns ok when dependencies are healthy" do
-    report = HealthReport.aggregate(
-      profile: HealthProfilesSignApp,
-      probe: :ready,
-      checks: [HealthCheckResult.new(kind: :database, status: :ok)],
+    result = Health::CheckResult.new(
+      check: :readiness,
+      status: :ok,
+      surface: "sign app",
+      dependencies: { "database" => "ok" },
     )
 
-    HealthReadiness.stub(:call, report) do
-      get "/health/ready?ri=jp"
+    Health::ReadinessCheck.stub(:call, result) do
+      get "/health/readiness?ri=jp"
     end
 
     assert_response :success
     assert_equal "ok", response.parsed_body["status"]
+    assert_equal "readiness", response.parsed_body["check"]
+    assert_equal({ "database" => "ok" }, response.parsed_body["dependencies"])
   end
 
   test "readiness returns unavailable when dependencies fail" do
-    report = HealthReport.aggregate(
-      profile: HealthProfilesSignApp,
-      probe: :ready,
-      checks: [HealthCheckResult.new(kind: :database, status: :unready)],
+    result = Health::CheckResult.new(
+      check: :readiness,
+      status: :unready,
+      surface: "sign app",
+      dependencies: { "database" => "failed" },
     )
 
-    HealthReadiness.stub(:call, report) do
-      get "/health/ready?ri=jp"
+    Health::ReadinessCheck.stub(:call, result) do
+      get "/health/readiness?ri=jp"
     end
 
     assert_response :service_unavailable
-    assert_equal "unready", response.parsed_body["status"]
+    assert_equal "unavailable", response.parsed_body["status"]
+    assert_equal({ "database" => "failed" }, response.parsed_body["dependencies"])
   end
 
-  test "startup reports starting when Rails is not initialized" do
+  test "startup reports unavailable when Rails is not initialized" do
     Rails.application.stub(:initialized?, false) do
       get "/health/startup?ri=jp"
     end
 
     assert_response :service_unavailable
-    assert_equal "starting", response.parsed_body["status"]
+    assert_equal "unavailable", response.parsed_body["status"]
+    assert_equal "starting", response.parsed_body.dig("details", "status")
   end
 end

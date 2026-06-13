@@ -9,58 +9,88 @@ class HealthTest < ActiveSupport::TestCase
       def call = result
     end
 
-  test "result serializes public fields without internal topology" do
-    result = HealthCheckResult.new(kind: :database, status: :unready, message: "Dependency unavailable")
+  test "dependency result exposes only non-sensitive public status" do
+    result = Health::DependencyResult.new(kind: :database, status: :unready, message: "Dependency unavailable")
 
-    assert_equal({ kind: "database", status: "unready" }, result.as_public_json)
+    assert_not result.ok?
+    assert_equal "failed", result.public_status
   end
 
-  test "result rejects unknown statuses" do
+  test "dependency result rejects unknown statuses" do
     assert_raises(ArgumentError) do
-      HealthCheckResult.new(kind: :database, status: :broken)
+      Health::DependencyResult.new(kind: :database, status: :broken)
     end
   end
 
-  test "report aggregates ok checks" do
-    profile = fake_profile(checks: [])
-    checks = [HealthCheckResult.new(kind: :database, status: :ok)]
+  test "check result serializes the public contract" do
+    result = Health::CheckResult.new(
+      check: :readiness,
+      status: :ok,
+      surface: "fake",
+      dependencies: { "database" => "ok" },
+    )
 
-    report = HealthReport.aggregate(profile: profile, probe: :ready, checks: checks)
+    json = result.as_public_json
 
-    assert_equal :ok, report.status
-    assert_equal "ready", report.as_public_json[:probe]
+    assert_equal "ok", json[:status]
+    assert_equal "readiness", json[:check]
+    assert_equal({ "database" => "ok" }, json[:dependencies])
+    assert_equal "fake", json.dig(:details, :surface)
+  end
+
+  test "check result collapses non-ok status to unavailable and keeps internal status in details" do
+    result = Health::CheckResult.new(check: :readiness, status: :unready, surface: "fake")
+
+    assert_not result.ok?
+    assert_equal 503, result.http_status
+    assert_equal "unavailable", result.as_public_json[:status]
+    assert_equal "unready", result.as_public_json.dig(:details, :status)
+  end
+
+  test "check result rejects unknown statuses" do
+    assert_raises(ArgumentError) do
+      Health::CheckResult.new(check: :readiness, status: :broken, surface: "fake")
+    end
   end
 
   test "status policy maps acceptable degraded by profile" do
-    degraded = HealthCheckResult.new(kind: :database, status: :degraded_acceptable)
-    strict_policy = HealthStatusPolicy.new
-    accepting_policy = HealthStatusPolicy.new(acceptable_degraded_kinds: [:database])
+    degraded = Health::DependencyResult.new(kind: :database, status: :degraded_acceptable)
+    strict_policy = Health::StatusPolicy.new
+    accepting_policy = Health::StatusPolicy.new(acceptable_degraded_kinds: [:database])
 
     assert_equal :unready, strict_policy.status_for([degraded])
     assert_equal :degraded_acceptable, accepting_policy.status_for([degraded])
   end
 
   test "http status mapping is centralized" do
-    assert_equal 200, HealthStatusPolicy.http_status(:ok, probe: :ready)
-    assert_equal 200, HealthStatusPolicy.http_status(:degraded_acceptable, probe: :ready)
-    assert_equal 503, HealthStatusPolicy.http_status(:unready, probe: :ready)
-    assert_equal 503, HealthStatusPolicy.http_status(:starting, probe: :ready)
-    assert_equal 200, HealthStatusPolicy.http_status(:starting, probe: :live)
+    assert_equal 200, Health::StatusPolicy.http_status(:ok, probe: :readiness)
+    assert_equal 200, Health::StatusPolicy.http_status(:degraded_acceptable, probe: :readiness)
+    assert_equal 503, Health::StatusPolicy.http_status(:unready, probe: :readiness)
+    assert_equal 503, Health::StatusPolicy.http_status(:starting, probe: :readiness)
+    assert_equal 200, Health::StatusPolicy.http_status(:starting, probe: :liveness)
   end
 
   test "profile dependency allowlists are explicit" do
     assert_equal [AppRpRecord, AppSettingRecord, AppSignalRecord, AvatarRecord, OccurrenceRecord],
-                 HealthProfilesApp.record_classes
-    assert_equal [OrgRpRecord, OrgSettingRecord, OrgSignalRecord], HealthProfilesOrg.record_classes
-    assert_equal [AppPrincipalRecord, AppTicketRecord, AppSettingRecord], HealthProfilesSignApp.record_classes
+                 Health::Profiles::App.record_classes
+    assert_equal [OrgRpRecord, OrgSettingRecord, OrgSignalRecord], Health::Profiles::Org.record_classes
+    assert_equal [AppPrincipalRecord, AppTicketRecord, AppSettingRecord], Health::Profiles::SignApp.record_classes
+  end
+
+  test "liveness check never touches dependencies" do
+    result = Health::LivenessCheck.call(profile: Health::Profiles::SignApp)
+
+    assert_predicate result, :ok?
+    assert_equal :liveness, result.check
+    assert_empty result.dependencies
   end
 
   test "readiness checks only the current profile dependencies" do
     called = []
     profile = fake_profile(
       checks: [
-        FakeCheck.new(HealthCheckResult.new(kind: :database, status: :ok)),
-        FakeCheck.new(HealthCheckResult.new(kind: :database, status: :ok)),
+        FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :ok)),
+        FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :ok)),
       ],
     )
     profile.readiness_checks.each_with_index do |check, index|
@@ -70,30 +100,47 @@ class HealthTest < ActiveSupport::TestCase
       end
     end
 
-    report = HealthReadiness.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
 
-    assert_equal :ok, report.status
+    assert_predicate result, :ok?
+    assert_equal({ "database" => "ok" }, result.dependencies)
     assert_equal [0, 1], called
+  end
+
+  test "readiness reports failed dependency without leaking internals" do
+    profile = fake_profile(
+      checks: [FakeCheck.new(
+        Health::DependencyResult.new(
+          kind: :database, status: :unready,
+          message: "Dependency unavailable",
+        ),
+      )],
+    )
+
+    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+
+    assert_not result.ok?
+    assert_equal({ "database" => "failed" }, result.dependencies)
   end
 
   test "readiness cache key isolates profile probe and revision" do
     cache = ActiveSupport::Cache::MemoryStore.new
     first_profile = fake_profile(
       cache_key: "first",
-      checks: [FakeCheck.new(HealthCheckResult.new(kind: :database, status: :ok))],
+      checks: [FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :ok))],
     )
     second_profile = fake_profile(
       cache_key: "second",
-      checks: [FakeCheck.new(HealthCheckResult.new(kind: :database, status: :unready))],
+      checks: [FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :unready))],
     )
 
-    assert_equal :ok, HealthReadiness.new(profile: first_profile, cache: cache).call.status
-    assert_equal :unready, HealthReadiness.new(profile: second_profile, cache: cache).call.status
+    assert_predicate Health::ReadinessCheck.new(profile: first_profile, cache: cache).call, :ok?
+    assert_not Health::ReadinessCheck.new(profile: second_profile, cache: cache).call.ok?
   end
 
   test "readiness cache reuses result within ttl and expires transitions" do
     cache = ActiveSupport::Cache::MemoryStore.new
-    result = HealthCheckResult.new(kind: :database, status: :ok)
+    result = Health::DependencyResult.new(kind: :database, status: :ok)
     calls = 0
     check = Object.new
     check.define_singleton_method(:call) do
@@ -102,36 +149,51 @@ class HealthTest < ActiveSupport::TestCase
     end
     profile = fake_profile(checks: [check])
 
-    assert_equal :ok, HealthReadiness.new(profile: profile, cache: cache).call.status
-    result = HealthCheckResult.new(kind: :database, status: :unready)
+    assert_predicate Health::ReadinessCheck.new(profile: profile, cache: cache).call, :ok?
+    result = Health::DependencyResult.new(kind: :database, status: :unready)
 
-    assert_equal :ok, HealthReadiness.new(profile: profile, cache: cache).call.status
+    assert_predicate Health::ReadinessCheck.new(profile: profile, cache: cache).call, :ok?
     assert_equal 1, calls
 
-    travel HealthReadiness::CACHE_TTL + 1.second
+    travel Health::ReadinessCheck::CACHE_TTL + 1.second
 
-    assert_equal :unready, HealthReadiness.new(profile: profile, cache: cache).call.status
+    assert_not Health::ReadinessCheck.new(profile: profile, cache: cache).call.ok?
     assert_equal 2, calls
   end
 
-  test "readiness timeout returns unready report" do
+  test "readiness timeout returns unavailable result" do
     check = Object.new
     check.define_singleton_method(:call) { raise Health::DeadlineExceeded }
     profile = fake_profile(checks: [check])
 
-    report = HealthReadiness.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
 
-    assert_equal :unready, report.status
+    assert_not result.ok?
   end
 
-  test "startup uses only boot check" do
-    report = HealthStartup.call(
-      profile: fake_profile(
-        checks: [FakeCheck.new(HealthCheckResult.new(kind: :database, status: :unready))],
-      ),
-    )
+  test "startup uses only the boot check" do
+    result = Health::StartupCheck.call(profile: Health::Profiles::SignApp)
 
-    assert_equal [:boot], report.checks.map(&:kind)
+    assert_predicate result, :ok?
+    assert_equal :startup, result.check
+    assert_empty result.dependencies
+  end
+
+  test "startup reports unavailable while booting" do
+    Rails.application.stub(:initialized?, false) do
+      result = Health::StartupCheck.call(profile: Health::Profiles::SignApp)
+
+      assert_not result.ok?
+      assert_equal "starting", result.as_public_json.dig(:details, :status)
+    end
+  end
+
+  test "snapshot aggregates the three probes as nested dependencies" do
+    result = Health::SnapshotCheck.call(profile: Health::Profiles::SignApp)
+    json = result.as_public_json
+
+    assert_equal "health", json[:check]
+    assert_equal %w(liveness readiness startup), json[:dependencies].keys
   end
 
   private
@@ -140,7 +202,7 @@ class HealthTest < ActiveSupport::TestCase
     Struct.new(:cache_key, :surface_label, :status_policy, :readiness_checks).new(
       cache_key,
       "fake",
-      HealthStatusPolicy.new,
+      Health::StatusPolicy.new,
       checks,
     )
   end

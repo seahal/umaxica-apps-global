@@ -12,9 +12,24 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     Acme::Dev::BareController,
     Acme::Net::BareController,
     Acme::Org::BareController,
+    Base::App::BareController,
+    Base::Com::BareController,
+    Base::Org::BareController,
     Core::App::BareController,
     Core::Com::BareController,
     Core::Org::BareController,
+    Docs::App::BareController,
+    Docs::Com::BareController,
+    Docs::Org::BareController,
+    Help::App::BareController,
+    Help::Com::BareController,
+    Help::Org::BareController,
+    News::App::BareController,
+    News::Com::BareController,
+    News::Org::BareController,
+    Palm::App::BareController,
+    Palm::Com::BareController,
+    Palm::Org::BareController,
     Sign::App::BareController,
     Sign::Com::BareController,
     Sign::Org::BareController,
@@ -35,7 +50,9 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     BARE_CONTROLLERS.each do |controller|
       assert_equal ActionController::Base, controller.superclass,
                    "#{controller.name} must bypass ApplicationController and its callbacks"
-      assert_not_operator controller, :<, controller.module_parent::ApplicationController
+      if controller.module_parent.const_defined?(:ApplicationController, false)
+        assert_not_operator controller, :<, controller.module_parent::ApplicationController
+      end
       assert_includes controller.ancestors, RateLimit
     end
   end

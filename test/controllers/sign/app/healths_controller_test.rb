@@ -17,10 +17,10 @@ class Sign::App::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "sign app"
   end
 
-  test "GET /health/ready returns json" do
-    get "/health/ready?ri=jp", headers: { "Accept" => "text/html" }
+  test "GET /health/readiness returns json" do
+    get "/health/readiness?ri=jp", headers: { "Accept" => "text/html" }
 
     assert_equal "application/json", response.media_type
-    assert_equal "ready", response.parsed_body["probe"]
+    assert_equal "readiness", response.parsed_body["check"]
   end
 end

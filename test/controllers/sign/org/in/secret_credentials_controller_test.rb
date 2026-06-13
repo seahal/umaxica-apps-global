@@ -5,7 +5,8 @@ require "test_helper"
 
 class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_secret_credentials, :operator_statuses, :operator_secret_credential_statuses,
-           :operator_secret_credential_kinds
+           :operator_secret_credential_kinds, :operator_token_binding_methods, :operator_token_kinds,
+           :operator_token_statuses, :operator_token_dbsc_statuses, :operator_email_statuses
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -15,7 +16,15 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     @staff = operators(:sample_staff)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
     OperatorToken.where(staff_id: @staff.id).delete_all
-    @raw_secret_credential = "11111111111111111111111111111111"
+    @staff.staff_secret_credentials.destroy_all
+    @secret_credential, @raw_secret_credential = OperatorSecretCredential.issue!(
+      name: "Sample login",
+      staff_id: @staff.id,
+      staff_secret_kind_id: OperatorSecretCredentialKind::LOGIN,
+    )
+    OperatorEmail.find_or_create_by!(staff: @staff, address: "sample_staff_sign_in@example.com") do |email|
+      email.staff_email_status_id = OperatorEmailStatus::VERIFIED
+    end
   end
 
   teardown do
@@ -43,13 +52,13 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: @staff.public_id.downcase,
              secret_credential_value: @raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_response :redirect
     assert_includes response.headers["Location"], sign_org_sign_in_check_path(ri: "jp")
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
-    assert_predicate operator_secret_credentials(:sample_login).reload.last_used_at, :present?
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
+    assert_predicate @secret_credential.reload.last_used_at, :present?
   end
 
   test "create keeps permanent secret_credential reusable and rejects repeated login in same session" do
@@ -59,6 +68,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: @staff.public_id.downcase,
              secret_credential_value: @raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_response :redirect
@@ -69,12 +79,12 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: @staff.public_id.downcase,
              secret_credential_value: @raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
 
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
   test "create rejects blank form" do
@@ -82,8 +92,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
   test "create rejects email identifier" do
@@ -96,8 +105,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
   test "create rejects invalid secret_credential" do
@@ -110,13 +118,12 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
   test "create rejects non login secret_credential for secret_credential login" do
     OperatorSecretCredentialKind.find_or_create_by!(id: OperatorSecretCredentialKind::NOTHING)
-    operator_secret_credentials(:sample_login).update!(staff_secret_kind_id: OperatorSecretCredentialKind::NOTHING)
+    @secret_credential.update!(staff_secret_kind_id: OperatorSecretCredentialKind::NOTHING)
 
     post sign_org_sign_in_secret_credential_url(ri: "jp"),
          params: {
@@ -127,8 +134,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
          }
 
     assert_response :unprocessable_content
-    assert_equal OperatorSecretCredentialStatus::ACTIVE,
-                 operator_secret_credentials(:sample_login).reload.staff_secret_status_id
+    assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
   test "create rejects reserved staff" do
@@ -145,6 +151,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: reserved_staff.public_id,
              secret_credential_value: raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_response :unprocessable_content
@@ -165,6 +172,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: @staff.public_id,
              secret_credential_value: raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_response :unprocessable_content
@@ -198,6 +206,7 @@ class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
              identifier: @staff.public_id,
              secret_credential_value: raw_secret_credential,
            },
+           "cf-turnstile-response": "test_token",
          }
 
     assert_response :redirect

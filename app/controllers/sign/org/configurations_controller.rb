@@ -3,13 +3,11 @@
 
 module Sign
   module Org
-    class ConfigurationsController < ::Sign::Org::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_operator!
+    class ConfigurationsController < ::Sign::RedirectOnlyController
+      AUTHENTICATION_MODE = :open
 
       def show
-        render plain: "ok"
+        redirect_to_acme_authority!("/configuration")
       end
     end
   end

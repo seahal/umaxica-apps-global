@@ -19,11 +19,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -33,7 +33,6 @@ scope module: :acme, as: :acme do
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # TODO: I think following two lines of routing are same meaing.
       get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
       resource :verification, only: :show do
@@ -170,11 +169,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -183,7 +182,6 @@ scope module: :acme, as: :acme do
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
       resource :selector, only: %i(show update)
       resource :dashboard, only: :show
       resource :verification, only: :show do
@@ -289,11 +287,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
-        resource :live, only: :show
-        resource :ready, only: :show
-        resource :startup, only: :show
+        resource :liveness, only: :show, controller: "liveness"
+        resource :readiness, only: :show, controller: "readiness"
+        resource :startup, only: :show, controller: "startup"
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -302,10 +300,14 @@ scope module: :acme, as: :acme do
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       get :welcome, to: "welcomes#show", as: :welcome_entry
-      resources :welcomes, only: :show
       resource :selector, only: %i(show update)
       resource :dashboard, only: :show
       resource :configuration, only: :show
+      resources :iam, only: :index
+      resources :system, only: :index
+      resources :audit, only: :index
+      resources :support, only: :index
+      resources :billing, only: :index
       resource :verification, only: :show do
         post :completion
       end
@@ -405,7 +407,7 @@ scope module: :acme, as: :acme do
     scope module: :net, as: :network do
       root to: "roots#index", as: :root
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -415,7 +417,7 @@ scope module: :acme, as: :acme do
     scope module: :dev, as: :developer do
       root to: "roots#index", as: :root
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # to show the jobs page

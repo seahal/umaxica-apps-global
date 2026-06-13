@@ -42,4 +42,4 @@ the discipline is local and review-time. See the ADR's Consequences section.
 
 - `adr/ruby-static-analysis-reek-flog-flay.md`
 - `.reek.yml` — per-surface smell tuning and exclude paths.
-- `.harnes/policies/forbidden_patterns.md`
+- `.harnes/rules/generic/absolute-rules.mdc`

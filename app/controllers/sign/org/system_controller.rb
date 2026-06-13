@@ -3,13 +3,11 @@
 
 module Sign
   module Org
-    class SystemController < ::Sign::Org::ApplicationController
-      AUTHENTICATION_MODE = :private
-
-      before_action :authenticate_operator!
+    class SystemController < ::Sign::RedirectOnlyController
+      AUTHENTICATION_MODE = :open
 
       def index
-        render plain: "ok"
+        redirect_to_acme_authority!("/system")
       end
     end
   end

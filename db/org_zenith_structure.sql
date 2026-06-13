@@ -328,6 +328,117 @@ ALTER SEQUENCE public.core_org_operator_bridges_id_seq OWNED BY public.core_org_
 
 
 --
+-- Name: docs_content_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.docs_content_entries (
+    id bigint NOT NULL,
+    slug character varying NOT NULL,
+    locale character varying NOT NULL,
+    title character varying NOT NULL,
+    summary text,
+    body text NOT NULL,
+    status character varying DEFAULT 'draft'::character varying NOT NULL,
+    published_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: docs_content_entries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.docs_content_entries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: docs_content_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.docs_content_entries_id_seq OWNED BY public.docs_content_entries.id;
+
+
+--
+-- Name: help_content_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.help_content_entries (
+    id bigint NOT NULL,
+    slug character varying NOT NULL,
+    locale character varying NOT NULL,
+    title character varying NOT NULL,
+    summary text,
+    body text NOT NULL,
+    status character varying DEFAULT 'draft'::character varying NOT NULL,
+    published_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: help_content_entries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.help_content_entries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: help_content_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.help_content_entries_id_seq OWNED BY public.help_content_entries.id;
+
+
+--
+-- Name: news_content_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.news_content_entries (
+    id bigint NOT NULL,
+    slug character varying NOT NULL,
+    locale character varying NOT NULL,
+    title character varying NOT NULL,
+    summary text,
+    body text NOT NULL,
+    status character varying DEFAULT 'draft'::character varying NOT NULL,
+    published_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: news_content_entries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.news_content_entries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: news_content_entries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.news_content_entries_id_seq OWNED BY public.news_content_entries.id;
+
+
+--
 -- Name: operator_accounts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -566,6 +677,27 @@ ALTER TABLE ONLY public.core_org_operator_bridges ALTER COLUMN id SET DEFAULT ne
 
 
 --
+-- Name: docs_content_entries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_content_entries ALTER COLUMN id SET DEFAULT nextval('public.docs_content_entries_id_seq'::regclass);
+
+
+--
+-- Name: help_content_entries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.help_content_entries ALTER COLUMN id SET DEFAULT nextval('public.help_content_entries_id_seq'::regclass);
+
+
+--
+-- Name: news_content_entries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.news_content_entries ALTER COLUMN id SET DEFAULT nextval('public.news_content_entries_id_seq'::regclass);
+
+
+--
 -- Name: operator_accounts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -678,6 +810,30 @@ ALTER TABLE ONLY public.bureaus
 
 ALTER TABLE ONLY public.core_org_operator_bridges
     ADD CONSTRAINT core_org_operator_bridges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: docs_content_entries docs_content_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.docs_content_entries
+    ADD CONSTRAINT docs_content_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: help_content_entries help_content_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.help_content_entries
+    ADD CONSTRAINT help_content_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: news_content_entries news_content_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.news_content_entries
+    ADD CONSTRAINT news_content_entries_pkey PRIMARY KEY (id);
 
 
 --
@@ -911,6 +1067,48 @@ CREATE UNIQUE INDEX index_core_org_operator_bridges_on_public_id ON public.core_
 
 
 --
+-- Name: index_docs_content_entries_on_locale_and_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_docs_content_entries_on_locale_and_slug ON public.docs_content_entries USING btree (locale, slug);
+
+
+--
+-- Name: index_docs_content_entries_on_status_and_published_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_docs_content_entries_on_status_and_published_at ON public.docs_content_entries USING btree (status, published_at);
+
+
+--
+-- Name: index_help_content_entries_on_locale_and_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_help_content_entries_on_locale_and_slug ON public.help_content_entries USING btree (locale, slug);
+
+
+--
+-- Name: index_help_content_entries_on_status_and_published_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_help_content_entries_on_status_and_published_at ON public.help_content_entries USING btree (status, published_at);
+
+
+--
+-- Name: index_news_content_entries_on_locale_and_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_news_content_entries_on_locale_and_slug ON public.news_content_entries USING btree (locale, slug);
+
+
+--
+-- Name: index_news_content_entries_on_status_and_published_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_news_content_entries_on_status_and_published_at ON public.news_content_entries USING btree (status, published_at);
+
+
+--
 -- Name: index_operator_accounts_on_public_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1123,6 +1321,7 @@ ALTER TABLE ONLY public.agent_memberships
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260613000001'),
 ('20260612000001'),
 ('20260526130002'),
 ('20260520143102'),

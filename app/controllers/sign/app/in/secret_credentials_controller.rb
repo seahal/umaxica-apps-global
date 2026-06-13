@@ -289,7 +289,7 @@ module Sign
 
           verification =
             if latest_eligible_secret_credential.new_axis_secret_credential?
-              Sign::Secret::Verify.call(
+              ::Sign::Secret::Verify.call(
                 secret_credential: latest_eligible_secret_credential,
                 raw_secret_credential: raw_secret_credential.to_s,
               )

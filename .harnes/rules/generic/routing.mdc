@@ -1,0 +1,28 @@
+---
+name: routing
+description: RESTful routes, correct verbs, path helpers, CSRF, and no hardcoded URLs.
+---
+
+# Routing
+
+## General rules
+
+- Routes must be RESTful and use resourceful definitions.
+- HTTP methods must reflect intent — never GET for a destructive action.
+- Use path helpers; do not hardcode `http://` or `https://` URLs in application code.
+
+## Naming
+
+- Prefer resourceful routing over custom actions.
+- Add a custom action only when a resource verb genuinely does not fit.
+
+## Forbidden patterns
+
+- `match ... via: :all`
+- exposing internal routes publicly
+- defining JSON endpoints implicitly — declare them explicitly
+
+## Safety
+
+- All state-changing routes must be protected by CSRF.
+- A route that changes state must use a non-GET verb and go through the request pipeline.

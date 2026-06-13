@@ -3,7 +3,7 @@
 ## Context
 
 - Original plan/spec: PR-3 of controller concern lifecycle cleanup.
-- Related docs: `docs/architecture/controller-lifecycle.md`, `.harnes/context/architecture.md`.
+- Related docs: `docs/architecture/controller-lifecycle.md`, `.harnes/rules/project/surfaces.mdc`.
 - Implementation date: 2026-05-30.
 
 ## Decisions Made During Implementation

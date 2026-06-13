@@ -1,4 +1,5 @@
 <% content_for :page_title, "Health Snapshot" %>
+<% snapshot = @health_snapshot.as_public_json %>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -21,14 +22,14 @@
 
       <dl>
         <dt>Status</dt>
-        <dd><%= @health_report.status %></dd>
+        <dd><%= snapshot[:status] %></dd>
         <dt>Surface</dt>
-        <dd><%= @health_report.profile.surface_label %></dd>
+        <dd><%= snapshot.dig(:details, :surface) %></dd>
         <dt>Generated at</dt>
-        <dd><time datetime="<%= @health_report.generated_at.iso8601(3) %>"><%= @health_report.generated_at.iso8601(3) %></time></dd>
-        <% if @health_report.revision.present? %>
+        <dd><time datetime="<%= snapshot.dig(:details, :generated_at) %>"><%= snapshot.dig(:details, :generated_at) %></time></dd>
+        <% if snapshot.dig(:details, :revision).present? %>
           <dt>Revision</dt>
-          <dd><%= @health_report.revision %></dd>
+          <dd><%= snapshot.dig(:details, :revision) %></dd>
         <% end %>
       </dl>
 
@@ -40,10 +41,10 @@
           </tr>
         </thead>
         <tbody>
-          <% @health_report.checks.each do |check| %>
+          <% snapshot[:dependencies].each do |name, result| %>
             <tr>
-              <td><%= check.kind %></td>
-              <td><%= check.status %></td>
+              <td><%= name %></td>
+              <td><%= result[:status] %></td>
             </tr>
           <% end %>
         </tbody>

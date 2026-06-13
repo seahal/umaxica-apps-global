@@ -189,6 +189,36 @@ module MissingHelpers
     ).grant
   end
 
+  def signed_passkey_ceremony_grant_for(surface:, actor:, token:, operation: "registration")
+    IdentityPasskeyCeremonyGrantIssuer.issue!(
+      surface: surface.to_s,
+      actor_ref: actor.public_id,
+      session_ref: token.public_id,
+      operation: operation.to_s,
+      expires_at: 15.minutes.from_now,
+    ).grant
+  end
+
+  def signed_totp_ceremony_grant_for(actor:, token:, operation: "registration")
+    IdentityTotpCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: actor.public_id,
+      session_ref: token.public_id,
+      operation: operation.to_s,
+      expires_at: 15.minutes.from_now,
+    ).grant
+  end
+
+  def signed_secret_credential_ceremony_grant_for(surface:, actor:, token:, operation: "enrollment")
+    IdentitySecretCredentialCeremonyGrantIssuer.issue!(
+      surface: surface.to_s,
+      actor_ref: actor.public_id,
+      session_ref: token.public_id,
+      operation: operation.to_s,
+      expires_at: 15.minutes.from_now,
+    ).grant
+  end
+
   def browser_headers
     {
       "Client-Agent" => "Mozilla/5.0 (Test Browser)",

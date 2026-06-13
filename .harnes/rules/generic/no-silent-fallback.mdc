@@ -1,0 +1,32 @@
+---
+name: no-silent-fallback
+description: Never swallow errors or skip work silently; unexpected state must not be hidden.
+---
+
+# No Silent Fallback
+
+Code must never hide a failure or an unexpected state behind a silent success.
+
+## Exception handling
+
+Do not:
+
+- rescue and ignore errors
+- use `rescue nil`
+- catch a broad exception only to continue as if nothing happened
+
+Reason: swallowed exceptions hide failures and turn a hard error into silent data corruption.
+
+## No "skip if missing" guards
+
+Do not wrap an operation in a guard that silently no-ops when state is unexpected, for example a
+`rename_table` wrapped in `return unless table_exists?(...)`. A silent skip hides a partial or failed
+operation and lets state drift until it surfaces much later as a confusing failure.
+
+When state may be inconsistent, fail loudly instead (see `fail-fast`).
+
+## No masking default-value fallbacks
+
+Do not substitute a default value to paper over a missing or invalid input when its absence means
+something is actually wrong. A fallback is only acceptable when the absent value is a legitimate,
+expected case — never as a way to avoid handling an error.

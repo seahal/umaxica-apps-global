@@ -6,7 +6,7 @@ module SignSecretCredentialCeremonyDelegation
 
   private
 
-  def start_secret_credential_ceremony!(_surface:, _actor:, _session_ref:, _operation: "enrollment")
+  def start_secret_credential_ceremony!(surface:, actor:, session_ref:, operation: "enrollment")
     return secret_credential_ceremony_grant_token if secret_credential_ceremony_grant_token.present?
 
     raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required"

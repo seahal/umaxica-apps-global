@@ -9,7 +9,7 @@ module PreferenceWebThemeEndpoint
   private
 
   def current_color_theme
-    theme_from_preference_payload || "sy"
+    theme_from_preference_payload || theme_from_public_cookie || "sy"
   end
 
   def theme_from_preference_payload
@@ -18,6 +18,10 @@ module PreferenceWebThemeEndpoint
 
     preferences = PreferenceToken.extract_preferences(payload)
     normalize_theme(preferences["ct"])
+  end
+
+  def theme_from_public_cookie
+    normalize_theme(cookies[PreferenceBase::THEME_COOKIE_KEY])
   end
 
   def apply_theme_update_from_request!

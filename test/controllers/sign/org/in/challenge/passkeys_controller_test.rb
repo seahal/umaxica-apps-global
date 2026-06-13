@@ -7,7 +7,9 @@ require "ostruct"
 
 class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_passkey_statuses, :operator_passkeys, :operator_secret_credentials,
-           :operator_secret_credential_kinds, :operator_secret_credential_statuses, :operator_email_statuses
+           :operator_secret_credential_kinds, :operator_secret_credential_statuses, :operator_email_statuses,
+           :operator_token_binding_methods, :operator_token_kinds, :operator_token_statuses,
+           :operator_token_dbsc_statuses
 
   setup do
     host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
@@ -20,6 +22,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
 
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE, mfa_level_enabled: true)
+    @staff.staff_secret_credentials.destroy_all
 
     @passkey = OperatorPasskey.create!(
       staff: @staff,
@@ -34,7 +37,7 @@ class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::Integra
     _secret_credential, @raw_secret_credential = OperatorSecretCredential.issue!(
       name: "MFA Secret",
       staff_id: @staff.id,
-      staff_secret_kind_id: OperatorSecretCredentialKind::PERMANENT,
+      staff_secret_kind_id: OperatorSecretCredentialKind::LOGIN,
       uses: 10,
       status: :active,
     )

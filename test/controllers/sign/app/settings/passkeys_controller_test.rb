@@ -75,13 +75,18 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
          headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
 
     assert_response :redirect
-    assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/entrance\?ri=jp(?:&pt=.*)?\z},
-                 jump_rt_url_from_location(response.location)
+    uri = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal "sign_app", query["client_id"]
   end
 
   # Case D-2: Logged in -> JSON options
   test "options returns challenge and options" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+         headers: @headers
 
     assert_response :ok
     json = response.parsed_body
@@ -107,7 +112,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case D-2b: JSON response format validation (regression test for Base64URL encoding bugs)
   test "options returns valid Base64URL encoded values" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+         headers: @headers
 
     assert_response :ok
     json = response.parsed_body
@@ -155,7 +161,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
     ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
     Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
-      post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+      post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+           headers: @headers
     end
 
     assert_response :ok
@@ -166,7 +173,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "options rejects untrusted origin" do
     # Temporarily remove trusted origins
     Webauthn.stub(:trusted_origins, []) do
-      post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+      post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+           headers: @headers
 
       assert_response :forbidden
     end
@@ -178,7 +186,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       challenge_id: "unknown",
       credential: { id: "cred_id", response: {} },
     }
-    post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
+    post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+         params: params,
+         headers: @headers
 
     assert_response :bad_request
     # Generic error message validation
@@ -187,8 +197,11 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case E-3: Verify success
   test "verification creates passkey on success" do
+    grant = passkey_ceremony_grant
+
     # Get challenge
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+         headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
     # Mock WebAuthn verification
@@ -226,7 +239,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           },
           1,
         ) do
-          post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
+          post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: grant),
+               params: params,
+               headers: @headers
         end
       end
 
@@ -250,8 +265,12 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
       session_public_id: token.public_id,
     )
+    grant = passkey_ceremony_grant(actor: unverified_user, token: token)
 
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: headers
+    post sign_app_settings_passkeys_options_path(
+      ri: "jp",
+      passkey_ceremony_grant: grant,
+    ), headers: headers
     challenge_id = response.parsed_body["challenge_id"]
 
     mock_credential = Object.new
@@ -272,7 +291,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
       assert_difference("ClientPasskey.count", 1) do
         assert_no_difference("ClientSecretCredential.count") do
-          post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: headers
+          post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: grant),
+               params: params,
+               headers: headers
         end
       end
     end
@@ -284,7 +305,10 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects duplicate webauthn_id" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    grant = passkey_ceremony_grant
+
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+         headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
     duplicate_webauthn_id = @passkey_webauthn_id
 
@@ -307,7 +331,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
+        post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: grant),
+             params: params,
+             headers: @headers
       end
     end
 
@@ -317,8 +343,11 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case E-4: Verify failure
   test "verification fails on WebAuthn error" do
+    grant = passkey_ceremony_grant
+
     # Get challenge
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+         headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
     # Mock WebAuthn failure using a plain object
@@ -335,7 +364,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post sign_app_settings_passkeys_verification_path(ri: "jp"), params: params, headers: @headers
+        post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: grant),
+             params: params,
+             headers: @headers
       end
 
       assert_response :unprocessable_content
@@ -361,7 +392,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "should get new" do
     with_prosopite_paused do
-      get new_sign_app_settings_passkey_path(ri: "jp"), headers: @headers
+      get new_sign_app_settings_passkey_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+          headers: @headers
     end
 
     assert_response :ok
@@ -371,7 +403,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "new denies with zero unused usable recovery passcodes" do
     @user.client_secret_credentials.destroy_all
 
-    get new_sign_app_settings_passkey_path(ri: "jp"), headers: @headers
+    get new_sign_app_settings_passkey_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+        headers: @headers
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
@@ -386,7 +419,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @user.client_secret_credentials.destroy_all
     create_client_recovery_passcode!(@user, name: "only recovery")
 
-    post sign_app_settings_passkeys_options_path(ri: "jp"), headers: @headers, as: :json
+    post sign_app_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+         headers: @headers,
+         as: :json
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
@@ -407,7 +442,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     create_client_recovery_passcode!(@other_user, name: "other 2")
 
     assert_no_difference("ClientPasskey.count") do
-      post sign_app_settings_passkeys_verification_path(ri: "jp"),
+      post sign_app_settings_passkeys_verification_path(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
            params: { challenge_id: "unknown", credential: { id: "cred-id" } },
            headers: @headers,
            as: :json
@@ -450,7 +485,10 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     ).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
 
     with_prosopite_paused do
-      get new_sign_app_settings_passkey_path(ri: "jp"), headers: headers
+      get new_sign_app_settings_passkey_path(
+        ri: "jp",
+        passkey_ceremony_grant: passkey_ceremony_grant(actor: unverified_user, token: token),
+      ), headers: headers
     end
 
     assert_response :ok
@@ -550,6 +588,10 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   private
+
+  def passkey_ceremony_grant(actor: @user, token: @token)
+    signed_passkey_ceremony_grant_for(surface: "app", actor: actor, token: token)
+  end
 
   def assert_redirected_to_acme(path)
     assert_response :see_other

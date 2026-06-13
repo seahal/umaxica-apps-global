@@ -1,0 +1,25 @@
+---
+name: controller-inheritance
+description: ApplicationController is the normal parent; BareController is the explicit exception.
+---
+
+# Controller Inheritance Contract
+
+## Normal case
+
+A surface-local `ApplicationController` is the normal parent for authentication-aware endpoints. It
+carries the app-wide authentication, authorization, preference, actor, and other lifecycle
+callbacks.
+
+## The BareController exception
+
+`BareController` is the explicit exception: it must inherit directly from `ActionController::Base`,
+never from `ApplicationController`. Bare endpoints intentionally bypass the app-wide lifecycle
+callbacks and are expected to declare any protections they need directly on `BareController`.
+
+## Do not normalize
+
+Do not "normalize" `BareController` inheritance to `ApplicationController`. Doing so silently
+re-attaches the full lifecycle to endpoints that were deliberately built to be self-defending and
+bare. If a bare endpoint needs a protection, declare it on `BareController`, do not change its
+parent.

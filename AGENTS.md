@@ -2,9 +2,9 @@
 
 This is a Ruby on Rails application, not the Rails framework monorepo.
 
-Agents must treat this file as the always-loaded entry point. The former harness rules live under
-`.harnes/`; they are not loaded automatically unless this file points to them or the task explicitly
-requires them.
+Agents must treat this file as the always-loaded entry point. The harness rules live under
+`.harnes/rules/`, split into reusable `generic/` rules and project-local `project/` rules. They are
+not loaded automatically unless this file points to them or the task explicitly requires them.
 
 ## Application Shape
 
@@ -17,22 +17,27 @@ This app has three user-facing surfaces:
 Treat each surface as an independent boundary. Do not mix controllers, routes, views, policies,
 sessions, or state across surfaces unless the existing code has an explicit shared abstraction.
 
-Read `.harnes/context/architecture.md` when a change touches surface boundaries, controllers,
-models, services, policies, or shared concerns.
+Read `.harnes/rules/project/surfaces.mdc` when a change touches surface boundaries, and the relevant
+`.harnes/rules/generic/` rules when it touches controllers, models, services, policies, or shared
+concerns.
 
 ## Required Harness Context
 
-Use these `.harnes/` files as task-specific instructions:
+Use these `.harnes/rules/` files as task-specific instructions:
 
-- Controller or endpoint work: `.harnes/tasks/implement_controller.md`,
-  `.harnes/context/routing.md`, `docs/architecture/controller-lifecycle.md`
-- Minitest work: `.harnes/tasks/write_minitest.md`, `.harnes/policies/testing_rules.md`
-- Migration work: `.harnes/tasks/add_migration.md`, `.harnes/policies/migration_rules.md`
-- Security-sensitive work or broad refactors: `.harnes/policies/forbidden_patterns.md`
-- Surface, routing, or authentication changes: `.harnes/context/architecture.md`,
-  `.harnes/context/routing.md`, `docs/architecture/controller-lifecycle.md`
+- Controller or endpoint work: `.harnes/rules/generic/controllers.mdc`,
+  `.harnes/rules/generic/routing.mdc`, `.harnes/rules/project/surfaces.mdc`,
+  `.harnes/rules/project/controller-inheritance.mdc`, `docs/architecture/controller-lifecycle.md`
+- Minitest work: `.harnes/rules/generic/testing.mdc`, `.harnes/rules/generic/no-test-only-code.mdc`
+- Migration work: `.harnes/rules/generic/migrations.mdc`
+- Security-sensitive work or broad refactors: `.harnes/rules/generic/absolute-rules.mdc`,
+  `.harnes/rules/generic/no-silent-fallback.mdc`, `.harnes/rules/project/regression-guards.mdc`
+- Surface, routing, or authentication changes: `.harnes/rules/project/surfaces.mdc`,
+  `.harnes/rules/generic/routing.mdc`, `.harnes/rules/generic/no-workflow-drift.mdc`,
+  `docs/architecture/controller-lifecycle.md`
 - Non-trivial implementation decisions, plan deviations, or handoff notes:
-  `.harnes/policies/implementation_notes.md`
+  `.harnes/rules/generic/implementation-notes.mdc`,
+  `.harnes/rules/project/repository-knowledge-tree.mdc`
 
 If a task touches one of these areas, read the relevant harness file before editing.
 

@@ -30,8 +30,12 @@ module Sign::App::Settings
       get sign_app_settings_google_url(ri: "jp")
 
       assert_response :redirect
-      assert_match %r{\Ahttps://id\.umaxica\.app/sign/in/entrance\?ri=jp(?:&pt=.*)?\z},
-                   jump_rt_url_from_location(response.location)
+      uri = URI.parse(jump_rt_url_from_location(response.location))
+      query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+      assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+      assert_equal "/oauth/authorize", uri.path
+      assert_equal "sign_app", query["client_id"]
     end
 
     test "show treats revoked google identity as unlinked" do

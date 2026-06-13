@@ -60,6 +60,9 @@ Current database naming decisions:
 
 - `adr/actor-db-naming-policy.md`
 - `adr/surface-database-connection-naming.md`
+- `adr/read-only-content-surfaces-in-rails.md` — current decision for v1 read-only docs/news/help
+  content delivery in this Rails repository, including temporary placement in the existing surface
+  zenith databases.
 
 Current audit / chronicle decisions:
 
