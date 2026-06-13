@@ -96,4 +96,75 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "refresh token revocation ignores tokens for another client" do
+    token = Token.new("other-client", nil)
+    service = OidcTokenRevocationService.new(
+      token: "refresh.public.verifier",
+      client_id: "client-1",
+      client_secret: "secret",
+      host: "app.example.test",
+    )
+
+    OidcClientRegistry.stub(:authenticate, true) do
+      ClientToken.stub(:parse_refresh_token, ["public", "verifier"]) do
+        service.stub(:client_resource_type, "client") do
+          service.stub(:find_token_by_public_id, token) do
+            result = service.call
+
+            assert_predicate result, :success?
+            assert_not_predicate token, :revoked?
+          end
+        end
+      end
+    end
+  end
+
+  test "access token revocation handles missing sid and jti mismatch" do
+    token = Token.new("client-1", "expected-jti")
+    service = OidcTokenRevocationService.new(
+      token: "access-token",
+      client_id: "client-1",
+      client_secret: "secret",
+      host: "app.example.test",
+    )
+
+    client = Struct.new(:aud).new("aud-1")
+
+    OidcClientRegistry.stub(:authenticate, true) do
+      ClientToken.stub(:parse_refresh_token, nil) do
+        OidcClientRegistry.stub(:find, client) do
+          OidcClientRegistry.stub(:find!, client) do
+            OidcIssuer.stub(:resource_type_for_client, "client") do
+              OidcIssuer.stub(:for_client, "issuer") do
+                OidcIssuer.stub(:jwt_issuer_id_for_client, "issuer-id") do
+                  AuthenticationTokenService.stub(:decode_allow_expired, { "sid" => "sid-1", "jti" => "different-jti" }) do
+                    service.stub(:find_token_by_sid, token) do
+                      result = service.call
+
+                      assert_predicate result, :success?
+                      assert_not_predicate token, :revoked?
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "token lookup branches use the expected resource contexts" do
+    service = OidcTokenRevocationService.new(
+      token: "token",
+      client_id: "client-1",
+      client_secret: "secret",
+      host: "app.example.test",
+    )
+
+    assert_equal [AppTicketRecord, ClientToken], service.send(:token_context_and_class, "client")
+    assert_equal [OrgTicketRecord, OperatorToken], service.send(:token_context_and_class, "operator")
+    assert_equal [ComTicketRecord, VisitorToken], service.send(:token_context_and_class, "visitor")
+  end
 end

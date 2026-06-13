@@ -34,6 +34,26 @@ class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
     assert_equal "scope_denied", result.failure_reason
   end
 
+  test "resolves signed out and home targets with default app surface" do
+    signed_out = resolve(:signed_out, params: { ri: "jp" })
+    home = resolve(:home, params: { ri: "jp" })
+    string_key = RedirectsNavigationTargetResolver.call(
+      "dashboard",
+      routes: Routes.new,
+      params: { ri: "jp", surface: "app" },
+      source: :test,
+    )
+
+    assert_predicate signed_out, :ok?
+    assert_equal "/sign/out?ri=jp", signed_out.value
+
+    assert_predicate home, :ok?
+    assert_equal "/?ri=jp", home.value
+
+    assert_predicate string_key, :ok?
+    assert_equal "/dashboard?ri=jp", string_key.value
+  end
+
   test "does not resolve external urls from registry" do
     routes = Class.new do
       def acme_app_dashboard_path(**) = "https://evil.example"
@@ -51,11 +71,11 @@ class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
 
   private
 
-  def resolve(key, scope: nil)
+  def resolve(key, scope: nil, params: { ri: "jp", surface: "app" })
     RedirectsNavigationTargetResolver.call(
       key,
       routes: Routes.new,
-      params: { ri: "jp", surface: "app" },
+      params: params,
       scope: scope,
       source: :test,
     )

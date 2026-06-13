@@ -85,4 +85,66 @@ class SignUpEmailPendingGuardTest < ActiveSupport::TestCase
       SignUpEmailPendingGuard.with_lock(address_digest: "abc", model_class: nil, connection: nil) { nil }
     end
   end
+
+  test "with_lock yields inside a model_class transaction and issues an advisory lock" do
+    sql = []
+    yielded = false
+
+    connection = Struct.new(:queries) do
+      def exec_query(query)
+        queries << query
+      end
+    end.new(sql)
+    pool = Struct.new(:connection) do
+      def with_connection
+        yield connection
+      end
+    end.new(connection)
+    model_class = Class.new do
+      class << self
+        attr_accessor :pool, :transaction_calls
+
+        def transaction
+          self.transaction_calls = (transaction_calls || 0) + 1
+          yield
+        end
+
+        def connection_pool
+          pool
+        end
+      end
+    end
+    model_class.pool = pool
+
+    SignUpEmailPendingGuard.with_lock(address_digest: "abc", model_class: model_class) do
+      yielded = true
+    end
+
+    assert yielded
+    assert_equal 1, model_class.transaction_calls
+    assert_equal 1, sql.length
+    assert_match(/pg_advisory_xact_lock\(-?\d+\)/, sql.first)
+  end
+
+  test "with_lock can use an explicit connection" do
+    sql = []
+    yielded = false
+    connection = Struct.new(:queries) do
+      def transaction
+        yield
+      end
+
+      def exec_query(query)
+        queries << query
+      end
+    end.new(sql)
+
+    SignUpEmailPendingGuard.with_lock(number_digest: "xyz", connection: connection) do
+      yielded = true
+    end
+
+    assert yielded
+    assert_equal 1, sql.length
+    assert_match(/pg_advisory_xact_lock\(-?\d+\)/, sql.first)
+  end
 end

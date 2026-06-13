@@ -34,7 +34,7 @@ module Sign
           end
 
           @totp = ClientTotpCredential.new
-          start_totp_ceremony!(surface: "app", actor: current_client, session_ref: current_session_public_id)
+          start_totp_ceremony!(_surface: "app", _actor: current_client, _session_ref: current_session_public_id)
           generate_totp_session
         end
 

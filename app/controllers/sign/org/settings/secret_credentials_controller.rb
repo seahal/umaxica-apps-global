@@ -33,8 +33,8 @@ module Sign
           authorize!(OperatorSecretCredential, to: :new?)
           @secret_credential = current_operator.staff_secret_credentials.new
           start_secret_credential_ceremony!(
-            surface: "org", actor: current_operator,
-            session_ref: current_session_public_id,
+            _surface: "org", _actor: current_operator,
+            _session_ref: current_session_public_id,
           )
           @raw_secret_credential = OperatorSecretCredential.generate_raw_secret_credential
           session[:staff_secret_credential_raw] = @raw_secret_credential

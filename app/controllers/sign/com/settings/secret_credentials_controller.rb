@@ -34,8 +34,8 @@ module Sign
           authorize!(VisitorSecretCredential, to: :new?)
           @secret_credential = current_visitor.visitor_secret_credentials.new
           start_secret_credential_ceremony!(
-            surface: "com", actor: current_visitor,
-            session_ref: current_session_public_id,
+            _surface: "com", _actor: current_visitor,
+            _session_ref: current_session_public_id,
           )
           @raw_secret_credential = VisitorSecretCredential.generate_raw_secret_credential
           session[:visitor_secret_credential_raw] = @raw_secret_credential

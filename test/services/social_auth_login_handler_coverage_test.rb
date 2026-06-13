@@ -117,4 +117,137 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
       assert_raises(SocialAuth::ConflictError) { handler.call }
     end
   end
+
+  test "build_login_user wires reference records through the fallback helpers" do
+    handler = SocialAuthLoginHandler.new(
+      auth_hash: @auth_hash,
+      identity_class: ClientGoogleIdentity,
+      provider: "google",
+      uid: "google-build-user",
+    )
+
+    calls = []
+    handler.define_singleton_method(:ensure_user_status) { |user| calls << [:status, user] }
+    handler.define_singleton_method(:ensure_user_visibility) { |user| calls << [:visibility, user] }
+    handler.define_singleton_method(:ensure_user_mfa_level) { |user| calls << [:mfa_level, user] }
+    handler.define_singleton_method(:ensure_user_mfa_status) { |user| calls << [:mfa_status, user] }
+
+    user = handler.send(:build_login_user)
+
+    assert_instance_of Client, user
+    assert_equal %i(status visibility mfa_level mfa_status), calls.map(&:first)
+  end
+
+  test "create_user_for_identity persists and links the new identity" do
+    handler = SocialAuthLoginHandler.new(
+      auth_hash: @auth_hash,
+      identity_class: ClientGoogleIdentity,
+      provider: "google",
+      uid: "google-create-user",
+    )
+    user = Client.new
+    identity = ClientGoogleIdentity.new(uid: "google-create-user", provider: "google")
+    updates = []
+
+    handler.define_singleton_method(:build_login_user) { user }
+    handler.define_singleton_method(:persist_user!) { |_user, context:| updates << [:persist, context] }
+    handler.define_singleton_method(:assign_identity_to_user) do |assigned_user, assigned_identity|
+      updates << [:assign, assigned_user, assigned_identity]
+    end
+    identity.define_singleton_method(:update!) { |attrs| updates << [:update, attrs] }
+
+    result = handler.send(:create_user_for_identity, identity)
+
+    assert_same user, result
+    assert_equal [[:persist, "login_orphaned_identity"], [:assign, user, identity], [:update, { user_id: user.id }]], updates
+  end
+
+  test "reference helpers create missing records and swallow active record failures" do
+    handler = SocialAuthLoginHandler.new(
+      auth_hash: @auth_hash,
+      identity_class: ClientGoogleIdentity,
+      provider: "google",
+      uid: "google-ref-helper",
+    )
+
+    model = Class.new do
+      def self.column_names = ["code"]
+
+      def self.name = "FakeReferenceModel"
+
+      def self.find_or_create_by!(id:)
+        raise ActiveRecord::RecordNotUnique, "duplicate"
+      end
+    end
+
+    result = handler.send(:ensure_reference_record!, model, 123, "ABC")
+
+    assert_nil result
+  end
+
+  test "create_user_social_audit! and social_signup_event_id handle provider branches" do
+    handler = SocialAuthLoginHandler.new(
+      auth_hash: @auth_hash,
+      identity_class: ClientGoogleIdentity,
+      provider: "google",
+      uid: "google-audit",
+    )
+    user = Client.new(id: 123)
+    events = []
+
+    ChronicleRecord.stub(:connected_to, lambda { |**_kwargs, &block| block.call }) do
+      ClientChronicleEvent.stub(:find_or_create_by!, lambda { |**_kwargs| true }) do
+        ClientChronicleLevel.stub(:find_or_create_by!, lambda { |**_kwargs| true }) do
+          ClientChronicle.stub(:create!, lambda { |**kwargs| events << kwargs }) do
+            handler.send(:create_social_signup_audit, user)
+          end
+        end
+      end
+    end
+
+    assert_equal ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE, handler.send(:social_signup_event_id)
+    assert_equal 1, events.size
+    assert_equal user.id, events.first[:actor_id]
+    assert_equal user.id.to_s, events.first[:subject_id]
+  end
+
+  test "build_identity_for_user copies credential payloads and assign_identity_to_user only links supported models" do
+    handler = SocialAuthLoginHandler.new(
+      auth_hash: {
+        "provider" => "google",
+        "uid" => "google-identity",
+        "credentials" => {
+          "token" => "token-1",
+          "refresh_token" => "refresh-1",
+          "expires_at" => 123,
+        },
+      },
+      identity_class: ClientGoogleIdentity,
+      provider: "google",
+      uid: "google-identity",
+    )
+    user = Client.new(id: 77)
+
+    identity = handler.send(:build_identity_for_user, user)
+
+    assert_equal "google-identity", identity.uid
+    assert_equal "token-1", identity.token
+    assert_equal "refresh-1", identity.refresh_token
+    assert_equal 123, identity.expires_at
+    assert_equal user.id, identity.user_id
+
+    other_handler = SocialAuthLoginHandler.new(
+      auth_hash: @auth_hash,
+      identity_class: Class.new do
+        def self.name = "OtherIdentity"
+
+        attr_accessor :user_id
+      end,
+      provider: "google",
+      uid: "google-identity",
+    )
+    other_identity = Struct.new(:user_id).new(nil)
+    other_handler.send(:assign_identity_to_user, user, other_identity)
+    assert_nil other_identity.user_id
+  end
 end

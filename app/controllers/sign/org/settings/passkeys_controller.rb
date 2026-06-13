@@ -55,7 +55,7 @@ module Sign
         # GET /settings/passkeys/new
         def new
           @passkey = current_operator.staff_passkeys.new
-          start_passkey_ceremony!(surface: "org", actor: current_operator, session_ref: current_session_public_id)
+          start_passkey_ceremony!(_surface: "org", _actor: current_operator, _session_ref: current_session_public_id)
         end
 
         # GET /settings/passkeys/:id/edit

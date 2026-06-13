@@ -35,8 +35,8 @@ module Sign
           authorize!(ClientSecretCredential, to: :new?)
           @secret_credential = current_client.client_secret_credentials.new
           start_secret_credential_ceremony!(
-            surface: "app", actor: current_client,
-            session_ref: current_session_public_id,
+            _surface: "app", _actor: current_client,
+            _session_ref: current_session_public_id,
           )
           @raw_secret_credential = ClientSecretCredential.generate_raw_secret_credential
           session[:user_secret_credential_raw] = @raw_secret_credential

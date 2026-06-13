@@ -380,4 +380,60 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert carrier.cleared
     assert_equal "/after", @harness.instance_variable_get(:@welcome_next_path)
   end
+
+  test "start_sign_in_flow_for! stores a cycle with the derived return path" do
+    created = nil
+    cycle_class = Class.new do
+      class << self
+        attr_accessor :created
+      end
+
+      def self.create!(**attrs)
+        self.created = attrs
+        Struct.new(:id).new(77)
+      end
+
+      def self.status_id_for(value)
+        "status:#{value}"
+      end
+
+      def self.digest_nonce(nonce)
+        "digest:#{nonce}"
+      end
+    end
+
+    @harness.define_singleton_method(:sign_in_flow_class_for) { |_resource| cycle_class }
+    @harness.define_singleton_method(:path_from_signed_pt) { |value| value&.sub(/\Apt:/, "") }
+    @harness.define_singleton_method(:signed_pt_token) { |value| value && "pt:#{value}" }
+
+    result = @harness.send(:start_sign_in_flow_for!, Client.new(id: 42), pt: "/return")
+
+    created = cycle_class.created
+
+    assert_equal 42, created[:principal_id]
+    assert_equal "/return", created[:return_to]
+    assert_equal "status:PRIMARY_PENDING", created[:status_id]
+    assert_equal 77, result.id
+  end
+
+  test "bind_current_session_to_sign_in_flow! skips completed tokens and binds missing ones" do
+    cycle = Struct.new(:token_id, :session_issued_at, :updated) do
+      def has_attribute?(name)
+        %i(token_id session_issued_at).include?(name)
+      end
+
+      def reload
+        self
+      end
+
+      def update!(changes)
+        self.updated = changes
+      end
+    end.new(nil, nil, nil)
+
+    @harness.current_session = "session-1"
+    @harness.send(:bind_current_session_to_sign_in_flow!, cycle)
+
+    assert_equal "session-1", cycle.updated[:token]
+  end
 end
