@@ -13,6 +13,7 @@ class Sign::Org::BillingControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     uri = URI.parse(response.location)
+
     assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/billing", uri.path
   end

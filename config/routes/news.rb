@@ -65,5 +65,4 @@ scope module: :news, as: :news do
       end
     end
   end
-
 end

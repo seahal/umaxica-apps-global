@@ -47,5 +47,4 @@ scope module: :base, as: :base do
       resource :robots, only: :show, path: "robots.txt"
     end
   end
-
 end

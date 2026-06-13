@@ -65,5 +65,4 @@ scope module: :help, as: :help do
       end
     end
   end
-
 end

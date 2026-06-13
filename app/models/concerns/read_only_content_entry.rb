@@ -4,7 +4,7 @@
 module ReadOnlyContentEntry
   extend ActiveSupport::Concern
 
-  STATUSES = %w[draft published archived].freeze
+  STATUSES = %w(draft published archived).freeze
   SLUG_FORMAT = /\A[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?\z/
 
   included do

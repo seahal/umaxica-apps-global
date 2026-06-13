@@ -207,13 +207,13 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
         },
         1,
       ) do
-          with_prosopite_paused do
-            post sign_app_settings_secret_credentials_url(ri: "jp"),
+        with_prosopite_paused do
+          post sign_app_settings_secret_credentials_url(ri: "jp"),
                params: { user_secret_credential: { name: "New Secret", enabled: true },
                          secret_credential_ceremony_grant: secret_credential_ceremony_grant,
                          "cf-turnstile-response": "test", },
                headers: authenticated_headers
-          end
+        end
       end
     end
 

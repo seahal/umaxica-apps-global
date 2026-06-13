@@ -47,5 +47,4 @@ scope module: :palm, as: :palm do
       resource :robots, only: :show, path: "robots.txt"
     end
   end
-
 end

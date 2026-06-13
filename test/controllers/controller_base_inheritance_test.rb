@@ -53,6 +53,7 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
       if controller.module_parent.const_defined?(:ApplicationController, false)
         assert_not_operator controller, :<, controller.module_parent::ApplicationController
       end
+
       assert_includes controller.ancestors, RateLimit
     end
   end

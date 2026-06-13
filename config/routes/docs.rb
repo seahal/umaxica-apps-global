@@ -65,5 +65,4 @@ scope module: :docs, as: :docs do
       end
     end
   end
-
 end
