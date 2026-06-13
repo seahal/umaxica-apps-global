@@ -13,7 +13,7 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
   class FakeTelephone < Struct.new(
     :public_id, :user_telephone_status_id, :otp_expired, :number_digest, :locked_value,
     :reregistration_window_active_value, :confirm_policy, :confirm_using_mfa, :changed_value,
-    :user_id, :destroyed, :otp_last_sent_at, :otp_expires_at
+    :user_id, :destroyed, :otp_last_sent_at, :otp_expires_at,
   )
     def errors
       @errors ||= ActiveModel::Errors.new(self)
@@ -96,9 +96,7 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
       key.to_s
     end
 
-    def sign_up_flow_locator_clear!
-      sign_up_flow_locator.clear!
-    end
+    delegate :clear!, to: :sign_up_flow_locator, prefix: true
 
     def cloudflare_turnstile_validation
       { "success" => true }
@@ -148,7 +146,10 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
   end
 
   test "valid_telephone_session? covers existing signup and fresh flow branches" do
-    telephone = FakeTelephone.new("tel-1", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, false, false, "1", "1", false, nil, false, nil, nil)
+    telephone = FakeTelephone.new(
+      "tel-1", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, false, false,
+      "1", "1", false, nil, false, nil, nil,
+    )
     @controller.instance_variable_set(:@user_telephone, telephone)
 
     @controller.session[:user_telephone_registration] = {
@@ -164,13 +165,17 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
   end
 
   test "telephone uniqueness and lookup helpers cover false and true branches" do
-    telephone = FakeTelephone.new("tel-1", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, "digest", false, false, "1", "1", false, nil, false, nil, nil)
+    telephone = FakeTelephone.new(
+      "tel-1", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, "digest", false,
+      false, "1", "1", false, nil, false, nil, nil,
+    )
     telephone.errors.add(:number, :taken)
     @controller.instance_variable_set(:@user_telephone, telephone)
 
     assert @controller.send(:telephone_uniqueness_only_error?, telephone)
 
     telephone.errors.add(:base, "other")
+
     assert_not @controller.send(:telephone_uniqueness_only_error?, telephone)
 
     ClientTelephone.stub(:find_by, telephone) do
@@ -232,7 +237,10 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
   end
 
   test "verify_existing_telephone_code covers success and lockout branches" do
-    telephone = FakeTelephone.new("tel-3", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, true, false, "1", "1", false, nil, false, nil, nil)
+    telephone = FakeTelephone.new(
+      "tel-3", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, true, false,
+      "1", "1", false, nil, false, nil, nil,
+    )
     @controller.instance_variable_set(:@user_telephone, telephone)
     @controller.params_hash = { user_telephone: { pass_code: "123456" } }
     @controller.otp_result = { success: false }
@@ -242,11 +250,15 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
 
     telephone.locked_value = false
     @controller.otp_result = { success: true }
-    assert_equal true, @controller.send(:verify_existing_telephone_code)
+
+    assert @controller.send(:verify_existing_telephone_code)
   end
 
   test "verify_telephone_ownership! persists ownership flags and session state" do
-    telephone = FakeTelephone.new("tel-4", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, false, false, "0", "0", true, 42, false, nil, nil)
+    telephone = FakeTelephone.new(
+      "tel-4", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, false, false,
+      "0", "0", true, 42, false, nil, nil,
+    )
     @controller.instance_variable_set(:@user_telephone, telephone)
     @controller.session[:user_telephone_registration] = {}
 
@@ -254,8 +266,8 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
 
     assert_equal "1", telephone.confirm_policy
     assert_equal "1", telephone.confirm_using_mfa
-    assert_equal true, @controller.instance_variable_get(:@cleared_otp)
-    assert_equal true, @controller.session[:user_telephone_registration]["otp_verified"]
+    assert @controller.instance_variable_get(:@cleared_otp)
+    assert @controller.session[:user_telephone_registration]["otp_verified"]
     assert_equal "tel-4", @controller.session[:user_telephone_registration]["public_id"]
   end
 end

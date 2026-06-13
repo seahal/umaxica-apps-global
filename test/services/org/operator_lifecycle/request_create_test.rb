@@ -41,7 +41,7 @@ class OrgOperatorLifecycleRequestCreateTest < ActiveSupport::TestCase
       name: "Owned Corp",
       domain: "owned-corp-#{SecureRandom.hex(4)}",
       operator_id: operators(:one).id,
-      workspace_status_id: 0,
+      workspace_status_id: organization_statuses(:nothing).id,
     )
 
     result = OrgOperatorLifecycleRequestCreate.call(
@@ -65,7 +65,7 @@ class OrgOperatorLifecycleRequestCreateTest < ActiveSupport::TestCase
       name: "Foreign Corp",
       domain: "foreign-corp-#{SecureRandom.hex(4)}",
       operator_id: operators(:two).id,
-      workspace_status_id: 0,
+      workspace_status_id: organization_statuses(:nothing).id,
     )
 
     result = OrgOperatorLifecycleRequestCreate.call(

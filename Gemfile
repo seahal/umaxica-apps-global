@@ -20,6 +20,7 @@ gem "rack-cors"
 gem "puma"
 # PostgreSQL database adapter.
 gem "pg"
+# gem "activerecord-tenant-level-security"
 # Counter cache maintenance helpers.
 gem "counter_culture"
 # SQL query annotations for request tracing.

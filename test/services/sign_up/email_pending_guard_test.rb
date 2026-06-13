@@ -100,20 +100,21 @@ class SignUpEmailPendingGuardTest < ActiveSupport::TestCase
         yield connection
       end
     end.new(connection)
-    model_class = Class.new do
-      class << self
-        attr_accessor :pool, :transaction_calls
+    model_class =
+      Class.new do
+        class << self
+          attr_accessor :pool, :transaction_calls
 
-        def transaction
-          self.transaction_calls = (transaction_calls || 0) + 1
-          yield
-        end
+          def transaction
+            self.transaction_calls = (transaction_calls || 0) + 1
+            yield
+          end
 
-        def connection_pool
-          pool
+          def connection_pool
+            pool
+          end
         end
       end
-    end
     model_class.pool = pool
 
     SignUpEmailPendingGuard.with_lock(address_digest: "abc", model_class: model_class) do

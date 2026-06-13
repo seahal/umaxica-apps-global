@@ -79,7 +79,7 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
   test "minimum_response_budget_ms and max sleep are stable defaults" do
     harness = Harness.new
 
-    assert_equal 150.0, harness.send(:minimum_response_budget_ms)
-    assert_equal 250.0, harness.send(:minimum_response_budget_max_sleep_ms)
+    assert_in_delta(150.0, harness.send(:minimum_response_budget_ms))
+    assert_in_delta(250.0, harness.send(:minimum_response_budget_max_sleep_ms))
   end
 end

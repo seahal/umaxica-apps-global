@@ -4,11 +4,11 @@ require "test_helper"
 
 class ValueObjectsTest < ActiveSupport::TestCase
   test "logout result success exposes expected defaults and predicate" do
-    result = LogoutResult.success(token: "token-1", revoked_tokens: %w[a b], redirect_to: "/home", message: "done")
+    result = LogoutResult.success(token: "token-1", revoked_tokens: %w(a b), redirect_to: "/home", message: "done")
 
     assert_equal :success, result.status
     assert_equal "token-1", result.token
-    assert_equal %w[a b], result.revoked_tokens
+    assert_equal %w(a b), result.revoked_tokens
     assert_equal "/home", result.redirect_to
     assert_equal :ok, result.response_status
     assert_equal "done", result.message

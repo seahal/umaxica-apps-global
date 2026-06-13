@@ -103,7 +103,32 @@ module Sign
           end
 
           def handle_totp_success(user, totp_record, last_otp_at)
-            totp_record&.update!(last_otp_at: Time.zone.at(last_otp_at))
+            new_otp_at = Time.zone.at(last_otp_at)
+
+            # SELECT FOR UPDATE acquires a row lock and reloads the record atomically.
+            # If a concurrent request already consumed this TOTP window the timestamps
+            # will match and we reject, preventing same-window replay.
+            accepted =
+              totp_record.with_lock do
+                stored = totp_record.last_otp_at
+                # Guard against PostgreSQL ±Infinity sentinel: calling .to_i on
+                # Infinity raises FloatDomainError. Treat non-finite values as
+                # "never used" — the window has not been consumed.
+                stored_finite = stored.present? &&
+                  !(stored.respond_to?(:infinite?) && stored.infinite?)
+                if stored_finite && stored.to_i == new_otp_at.to_i
+                  false
+                else
+                  totp_record.update!(last_otp_at: new_otp_at)
+                  true
+                end
+              end
+
+            unless accepted
+              SignRiskEmitter.emit("auth_failed", user_id: user&.id, ip: request.remote_ip, reason: "totp_replay")
+              @totp_form.errors.add(:token, t("sign.app.in.mfa.verification_failed"))
+              return render :new, status: :unprocessable_content
+            end
 
             result = finalize_mfa_login!(user)
             case result[:status]

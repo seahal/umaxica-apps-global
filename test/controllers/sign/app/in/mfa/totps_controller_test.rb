@@ -151,6 +151,30 @@ module Sign::App::In
       assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
     end
 
+    # Regression guard for FINDING-06: same TOTP window must not be accepted twice.
+    # Simulates a concurrent request that already consumed the current window by
+    # pre-setting last_otp_at to the window timestamp before the request arrives.
+    test "create rejects TOTP code whose window has already been consumed" do
+      with_prosopite_paused do
+        establish_pending_mfa_via_secret_credential!
+      end
+
+      totp_code = ROTP::TOTP.new(@totp.private_key).now
+      otp_window_at = ROTP::TOTP.new(@totp.private_key).verify(totp_code.to_s)
+
+      # Pre-consume the window — simulates a concurrent request that beat this one
+      @totp.update!(last_otp_at: Time.zone.at(otp_window_at))
+
+      with_prosopite_paused do
+        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+          totp_challenge_form: { token: totp_code },
+        }
+      end
+
+      assert_response :unprocessable_content
+      assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
+    end
+
     test "create without pending_mfa redirects to sign in" do
       with_prosopite_paused do
         post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {

@@ -6,14 +6,6 @@
 module SignUpSocialCheckBirthdateControllerSupport
   extend ActiveSupport::Concern
 
-  included do
-    include SignUpExplicitStepControllerSupport
-    include SignUpSocialBirthdateSupport
-
-    self::AUTHENTICATION_MODE = :guest
-    before_action :hide_sign_up_auth_navigation
-  end
-
   def show
     return unless load_gate_context!(gate_for_show)
 

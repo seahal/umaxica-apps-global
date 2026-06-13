@@ -4,9 +4,9 @@
 require "test_helper"
 
 class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
-  fixtures :client_statuses, :client_token_kinds, :client_email_statuses, :client_telephone_statuses,
-           :client_secret_credential_kinds, :client_secret_credential_statuses, :client_totp_credential_statuses,
-           :client_passkey_statuses
+  fixtures :client_statuses, :client_token_kinds, :client_token_statuses, :client_email_statuses,
+           :client_telephone_statuses, :client_secret_credential_kinds, :client_secret_credential_statuses,
+           :client_totp_credential_statuses, :client_passkey_statuses
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -154,12 +154,38 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_email(client, "app-removal-secret_credential-allowed@example.com")
     secret_credential = create_active_secret_credential(client)
 
-    assert_difference("ClientSecretCredential.count", -1) do
-      delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
-             headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
-    end
+    delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+           headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
 
     assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    # ClientSecretCredentialsDestroy soft-deletes via discard_now! — count does not change.
+    # Assert the credential is logically deleted instead.
+    assert_predicate secret_credential.reload, :lapsed?
+  end
+
+  # Regression guard: destroying a credential must revoke ALL existing sessions so that
+  # an attacker holding a stolen token loses access immediately on the next request.
+  test "destroying a secret credential revokes all existing client tokens" do
+    client = Client.create!(status_id: ClientStatus::NOTHING)
+    create_verified_email(client, "revoke-all-sessions-#{SecureRandom.hex(4)}@example.com")
+    secret_credential = create_active_secret_credential(client)
+
+    # Create the session token first so the session limit is not exceeded by the extra token.
+    headers = client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
+
+    # Represents an attacker's stolen session that should be cut off after credential change.
+    stolen_token = ClientToken.new(
+      user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+    )
+    stolen_token.send(:skip_session_limit_check=, true)
+    stolen_token.save!
+
+    delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+           headers: headers
+
+    assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_predicate stolen_token.reload, :revoked?
   end
 
   private

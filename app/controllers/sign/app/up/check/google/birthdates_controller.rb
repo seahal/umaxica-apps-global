@@ -7,7 +7,15 @@ module Sign
       module Check
         module Google
           class BirthdatesController < ::Sign::App::ApplicationController
+            include SignUpExplicitStepControllerSupport
+
+            include SignUpSocialBirthdateSupport
+
             include SignUpSocialCheckBirthdateControllerSupport
+
+            AUTHENTICATION_MODE = :guest
+
+            before_action :hide_sign_up_auth_navigation
 
             private
 

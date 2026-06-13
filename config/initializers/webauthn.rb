@@ -23,6 +23,11 @@
 module Webauthn
   class TrustedOriginsNotConfiguredError < StandardError; end
 
+  # Raised at startup when production is missing RP_ID env vars.
+  # Without an explicit RP_ID, rpId falls back to request.host, which is
+  # attacker-controllable via Host header injection and enables rpId confusion.
+  class MissingRpIdError < StandardError; end
+
   class << self
     def trusted_origins
       TRUSTED_ORIGINS
@@ -34,6 +39,25 @@ module Webauthn
       raise WebAuthn::OriginVerificationError,
             "Origin '#{origin}' is not in TRUSTED_ORIGINS. " \
             "Allowed origins: #{trusted_origins.join(", ")}"
+    end
+
+    # Raises MissingRpIdError in production when no surface has an RP_ID configured.
+    # Each WebAuthn surface (APP/COM/ORG) must have either WEBAUTHN_<SURFACE>_RP_ID
+    # or the shared WEBAUTHN_RP_ID set. Checked at startup before the first request.
+    def validate_rp_id_configuration!
+      return unless Rails.env.production?
+
+      shared_rp_id = ENV["WEBAUTHN_RP_ID"].to_s.strip
+
+      %w(APP COM ORG).each do |surface|
+        next if ENV["WEBAUTHN_#{surface}_RP_ID"].to_s.strip.present?
+        next if shared_rp_id.present?
+
+        raise MissingRpIdError,
+              "WEBAUTHN_#{surface}_RP_ID or WEBAUTHN_RP_ID must be set in production. " \
+              "Without it, webauthn_rp_id falls back to request.host, which is " \
+              "attacker-controllable via Host header injection."
+      end
     end
 
     private
@@ -93,6 +117,9 @@ end
 
 # Fail-fast: Validate TRUSTED_ORIGINS at application startup
 Webauthn.trusted_origins
+
+# Fail-fast: Validate RP_ID configuration at application startup
+Webauthn.validate_rp_id_configuration!
 
 # Configure webauthn gem defaults
 WebAuthn.configure do |config|

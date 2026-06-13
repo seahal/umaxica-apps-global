@@ -75,7 +75,7 @@ module Acme
                 login_challenge: issuance.transaction.login_challenge,
               )
             end
-          redirect_to(sign_url, allow_other_host: true)
+          redirect_to_jump_url(sign_url)
         end
 
         def resume_authorization!(transaction)

@@ -5,25 +5,27 @@ require "test_helper"
 class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
   fixtures_none!
 
-  AnonymizedRecord = Struct.new(:id, :updated_attrs, :discarded_at, :model_class) do
-    def update!(attrs)
-      self.updated_attrs = attrs
+  AnonymizedRecord =
+    Struct.new(:id, :updated_attrs, :discarded_at, :model_class) do
+      def update!(attrs)
+        self.updated_attrs = attrs
+      end
+
+      def class
+        model_class
+      end
+
+      def is_a?(klass)
+        klass == model_class || super
+      end
     end
 
-    def class
-      model_class
+  Scope =
+    Struct.new(:records) do
+      def find_each(&)
+        records.each(&)
+      end
     end
-
-    def is_a?(klass)
-      klass == model_class || super
-    end
-  end
-
-  Scope = Struct.new(:records) do
-    def find_each(&block)
-      records.each(&block)
-    end
-  end
 
   test "anonymizes a client actor and purges cross-database children" do
     client = Client.allocate
@@ -61,7 +63,8 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
 
     assert_equal "+100000000000012", client_telephone.updated_attrs.fetch(:number)
     assert_nil client_telephone.updated_attrs.fetch(:number_digest)
-    assert_equal ClientTelephoneStatus::SUSPENDED, client_telephone.updated_attrs.fetch(:user_identity_telephone_status_id)
+    assert_equal ClientTelephoneStatus::SUSPENDED,
+                 client_telephone.updated_attrs.fetch(:user_identity_telephone_status_id)
 
     assert_equal ClientPasskeyStatus::REVOKED, client_passkey.updated_attrs.fetch(:status_id)
     assert_in_delta Time.current.to_f, client_passkey.updated_attrs.fetch(:discarded_at).to_f, 1
@@ -69,7 +72,8 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     assert_equal ClientSecretCredentialStatus::REVOKED, client_secret.updated_attrs.fetch(:user_secret_status_id)
     assert_in_delta Time.current.to_f, client_secret.updated_attrs.fetch(:discarded_at).to_f, 1
 
-    assert_equal ClientTotpCredentialStatus::REVOKED, client_totp.updated_attrs.fetch(:user_identity_totp_credential_status_id)
+    assert_equal ClientTotpCredentialStatus::REVOKED,
+                 client_totp.updated_attrs.fetch(:user_identity_totp_credential_status_id)
     assert_in_delta Time.current.to_f, client_totp.updated_attrs.fetch(:discarded_at).to_f, 1
 
     assert_equal "withdrawn-client-google-identity-16", google_identity.updated_attrs.fetch(:uid)
@@ -110,7 +114,8 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     assert_equal VisitorPasskeyStatus::REVOKED, visitor_passkey.updated_attrs.fetch(:status_id)
     assert_in_delta Time.current.to_f, visitor_passkey.updated_attrs.fetch(:discarded_at).to_f, 1
 
-    assert_equal VisitorSecretCredentialStatus::REVOKED, visitor_secret.updated_attrs.fetch(:visitor_secret_credential_status_id)
+    assert_equal VisitorSecretCredentialStatus::REVOKED,
+                 visitor_secret.updated_attrs.fetch(:visitor_secret_credential_status_id)
     assert_in_delta Time.current.to_f, visitor_secret.updated_attrs.fetch(:discarded_at).to_f, 1
   end
 

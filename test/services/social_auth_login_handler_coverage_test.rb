@@ -159,7 +159,8 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     result = handler.send(:create_user_for_identity, identity)
 
     assert_same user, result
-    assert_equal [[:persist, "login_orphaned_identity"], [:assign, user, identity], [:update, { user_id: user.id }]], updates
+    assert_equal [[:persist, "login_orphaned_identity"], [:assign, user, identity], [:update, { user_id: user.id }]],
+                 updates
   end
 
   test "reference helpers create missing records and swallow active record failures" do
@@ -170,15 +171,16 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
       uid: "google-ref-helper",
     )
 
-    model = Class.new do
-      def self.column_names = ["code"]
+    model =
+      Class.new do
+        def self.column_names = ["code"]
 
-      def self.name = "FakeReferenceModel"
+        def self.name = "FakeReferenceModel"
 
-      def self.find_or_create_by!(id:)
-        raise ActiveRecord::RecordNotUnique, "duplicate"
+        def self.find_or_create_by!(id:)
+          raise ActiveRecord::RecordNotUnique, "duplicate"
+        end
       end
-    end
 
     result = handler.send(:ensure_reference_record!, model, 123, "ABC")
 
@@ -248,6 +250,7 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
     )
     other_identity = Struct.new(:user_id).new(nil)
     other_handler.send(:assign_identity_to_user, user, other_identity)
+
     assert_nil other_identity.user_id
   end
 end

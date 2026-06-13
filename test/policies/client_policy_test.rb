@@ -231,6 +231,7 @@ class ClientPolicyTest < ActiveSupport::TestCase
     assert_equal [[:where, { id: client.id }]], relation.calls
 
     relation = relation.class.new
+
     assert_equal :none_scope, ClientPolicy.new(MockRecord.new, user: nil).apply_scope(
       relation,
       type: :active_record_relation,

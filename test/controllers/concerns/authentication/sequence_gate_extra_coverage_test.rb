@@ -382,25 +382,26 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "start_sign_in_flow_for! stores a cycle with the derived return path" do
-    created = nil
-    cycle_class = Class.new do
-      class << self
-        attr_accessor :created
-      end
+    nil
+    cycle_class =
+      Class.new do
+        class << self
+          attr_accessor :created
+        end
 
-      def self.create!(**attrs)
-        self.created = attrs
-        Struct.new(:id).new(77)
-      end
+        def self.create!(**attrs)
+          self.created = attrs
+          Struct.new(:id).new(77)
+        end
 
-      def self.status_id_for(value)
-        "status:#{value}"
-      end
+        def self.status_id_for(value)
+          "status:#{value}"
+        end
 
-      def self.digest_nonce(nonce)
-        "digest:#{nonce}"
+        def self.digest_nonce(nonce)
+          "digest:#{nonce}"
+        end
       end
-    end
 
     @harness.define_singleton_method(:sign_in_flow_class_for) { |_resource| cycle_class }
     @harness.define_singleton_method(:path_from_signed_pt) { |value| value&.sub(/\Apt:/, "") }

@@ -166,7 +166,10 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
     harness.sign_up_surface_value = :app
 
     assert_equal :user_telephone_registration, harness.send(:sign_up_telephone_registration_session_key)
-    assert_match(/sign\.app\.registration\.telephone\.update\.passkey_required/, harness.send(:telephone_passkey_required_i18n_key))
+    assert_match(
+      /sign\.app\.registration\.telephone\.update\.passkey_required/,
+      harness.send(:telephone_passkey_required_i18n_key),
+    )
   end
 
   test "sign_up_pending_telephone loads the matching client or visitor telephone by id" do

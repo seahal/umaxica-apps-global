@@ -138,7 +138,10 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
             OidcIssuer.stub(:resource_type_for_client, "client") do
               OidcIssuer.stub(:for_client, "issuer") do
                 OidcIssuer.stub(:jwt_issuer_id_for_client, "issuer-id") do
-                  AuthenticationTokenService.stub(:decode_allow_expired, { "sid" => "sid-1", "jti" => "different-jti" }) do
+                  AuthenticationTokenService.stub(
+                    :decode_allow_expired,
+                    { "sid" => "sid-1", "jti" => "different-jti" },
+                  ) do
                     service.stub(:find_token_by_sid, token) do
                       result = service.call
 

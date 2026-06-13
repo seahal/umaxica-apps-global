@@ -19,6 +19,9 @@ class SocialAuthVerifiedProviderAssertion
     raise SocialAuth::ProviderError.new("errors.social_auth.missing_uid") if uid.blank?
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless credentials_usable?
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless provider_claims_fresh?
+    # Reject when the provider explicitly flags the email as unverified. A nil value (claim absent)
+    # is allowed because uid+provider is the identity key, not email; some providers omit the claim.
+    raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") if email_explicitly_unverified?
 
     auth_hash
   end
@@ -54,6 +57,16 @@ class SocialAuthVerifiedProviderAssertion
     issued_at <= now && issued_at >= now - MAX_TOKEN_AGE_SECONDS
   rescue ArgumentError, TypeError
     false
+  end
+
+  # Returns true only when the provider explicitly sets email_verified=false.
+  # A nil/absent claim is treated as "provider does not assert email status" and is allowed
+  # because the identity key is uid+provider, not email.
+  def email_explicitly_unverified?
+    value = claim_value(:email_verified)
+    return false if value.nil?
+
+    value == false || value.to_s.casecmp("false").zero?
   end
 
   def claim_value(key)
