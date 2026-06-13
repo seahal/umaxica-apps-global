@@ -142,7 +142,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "post", form["method"]
     assert_equal(
       completion_acme_app_social_authentication_url(
-        provider: "google_app",
+        id: "google_app",
         host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       ),
       form["action"],

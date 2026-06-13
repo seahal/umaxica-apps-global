@@ -65,16 +65,16 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     )
 
     host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
-    get docs_app_entry_url(slug: published.slug, locale: published.locale)
+    get docs_app_entry_url(id: published.slug, locale: published.locale)
 
     assert_response :success
     assert_includes response.body, "Visible Entry"
 
-    get docs_app_entry_url(slug: "future-entry", locale: published.locale)
+    get docs_app_entry_url(id: "future-entry", locale: published.locale)
 
     assert_response :not_found
 
-    get docs_app_edge_v0_entry_url(slug: published.slug, locale: published.locale)
+    get docs_app_edge_v0_entry_url(id: published.slug, locale: published.locale)
 
     assert_response :success
     assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")

@@ -1331,4 +1331,59 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     }
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
+
+  test "request guard helpers cover anonymous and logged in branches" do
+    rendered = []
+    redirected = []
+    @controller.define_singleton_method(:render) { |*args, **kwargs| rendered << [args, kwargs] }
+    @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
+
+    @controller.define_singleton_method(:logged_in?) { false }
+    assert_nil @controller.ensure_not_logged_in
+    assert_nil @controller.ensure_not_logged_in_for_registration
+    assert_equal false, @controller.reject_if_logged_in("errors.messages.not_authorized")
+    assert_nil @controller.reject_logged_in_session
+
+    @controller.define_singleton_method(:logged_in?) { true }
+    @controller.request.format = Struct.new(:json?).new(true)
+    @controller.ensure_not_logged_in(message_key: "errors.messages.not_authorized")
+    assert_equal :unauthorized, rendered.last.last[:status]
+
+    @controller.request.format = Struct.new(:json?).new(false)
+    @controller.ensure_not_logged_in_for_registration(redirect_path: "/signup")
+    assert_equal [["/signup"], { alert: I18n.t("errors.messages.not_authorized") }], redirected.last
+
+    @controller.reject_if_logged_in("errors.messages.not_authorized")
+    assert_equal :bad_request, rendered.last.last[:status]
+
+    @controller.reject_logged_in_session
+    assert_equal :unauthorized, rendered.last.last[:status]
+  end
+
+  test "authentication mode DSL and guardrail methods cover class branches" do
+    controller_class = Class.new(AuthenticationBaseTestController)
+    controller_class.define_singleton_method(:name) { "AuthenticationBasePolicyHarness" }
+
+    assert_raises(AuthenticationBase::InvalidPolicyError) do
+      controller_class.access_policy(:bogus)
+    end
+
+    controller_class.access_policy(:public_strict, only: :index, flag: true)
+    controller_class.declare_authentication_mode!(:guest, only: :show)
+
+    assert_equal :guest, controller_class.authentication_mode_for(:show)
+    assert_equal :deny_all, controller_class.authentication_mode_for(:edit)
+    assert_equal({ policy: :public_strict, only: ["index"], except: nil, options: { flag: true } },
+                 controller_class.access_policy_rules.last)
+    assert_equal({ mode: :guest, only: ["show"], except: nil, options: {} },
+                 controller_class.authentication_mode_rules.last)
+
+    assert_raises(AuthenticationBase::SkipNotAllowedError) do
+      controller_class.skip_before_action(:enforce_access_policy!)
+    end
+
+    assert_raises(AuthenticationBase::SkipNotAllowedError) do
+      controller_class.skip_action_callback(:process_action, :before, :enforce_access_policy!)
+    end
+  end
 end

@@ -130,6 +130,29 @@ If Core needs to call Rails/Base APIs as a distinct API audience, use separate a
 ID Tokens are for RPs to verify login results. Access Tokens are for Resource Servers to authorize
 API access. APIs must not use ID Tokens for authorization.
 
+## JWKS Publication Boundary
+
+JWKS publication follows token issuance and verification boundaries.
+
+Acme JWKS is required because Acme is the Identity Provider and Authorization Server. Acme publishes
+the public keys used to verify Acme-issued ID Tokens and Access Tokens.
+
+Sign JWKS is retained as non-IdP public verification metadata. Sign is not an Identity Provider, but
+Sign may issue signed transport, credential ceremony, or JumpRT-style tokens that another component
+must verify. Those keys must remain separate from Acme OIDC token signing.
+
+Base is expected to need its own JWKS endpoint if Base issues signed transport tokens or
+Rails-foundation/control-plane tokens that another component verifies. Future Base key work should
+introduce explicit Base issuer namespaces, such as `BASE_APP`, `BASE_COM`, and `BASE_ORG`, or
+another clearly named Base-specific key boundary. Do not silently repurpose `CORE_*` namespaces as
+Base namespaces.
+
+Core JWKS remains undecided and must not be removed as part of the Base split. Core is the Next.js
+web RP/BFF, and it may still need JWKS if the Core implementation signs tokens that external
+verifiers consume or while Rails Core compatibility endpoints remain in service. A later explicit
+decision may move Core JWKS ownership to the Next.js Core implementation or retire it if Core no
+longer signs externally verified tokens.
+
 ## URL Direction
 
 The URL direction is:

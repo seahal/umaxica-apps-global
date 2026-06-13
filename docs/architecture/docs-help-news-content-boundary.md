@@ -35,7 +35,7 @@ Rails owns:
 - health endpoints;
 - read-only content persistence;
 - import tasks;
-- read-only JSON/read contracts consumed by Next.js.
+- read-only `api/v0/entries` contracts consumed by Next.js.
 
 Rails must not own public article HTML rendering for these surfaces. Rails root endpoints may
 remain, but they must stay thin and must not render article indexes, article detail pages, SEO
@@ -49,12 +49,30 @@ and surface.
 
 Rails should conceptually keep:
 
-- `/`;
-- `/health`;
-- `/health/liveness`;
-- `/health/readiness`;
-- `/health/startup`;
-- the read-only content API/read contract.
+```text
+GET /
+GET /health
+GET /health/liveness
+GET /health/readiness
+GET /health/startup
+GET /api/v0/entries
+GET /api/v0/entries/:slug
+```
+
+The same route shape applies independently under each docs, help, and news app/com/org host.
+
+The API resource noun is `entries`, not `posts`. `posts` implies blog, SNS, or forum-style posting
+and may conflict with other Umaxica post domains. Help entries are help article/content reads; they
+are not Contact or inquiry workflow.
+
+Do not adopt a single API host or surface path segment. These shapes are not the target:
+
+```text
+/api/v0/docs/entries
+/api/v0/news/entries
+/api/v0/help/entries
+/api/v0/content/docs/entries
+```
 
 Rails should not own:
 
@@ -69,8 +87,7 @@ Rails should not own:
 - taxonomy routes;
 - revision or version routes.
 
-API URL naming is intentionally out of scope here. Do not infer a preferred `edge`, `web`, or `api`
-path from this document.
+Do not add placeholder routes, controllers, response contracts, or schemas for excluded future work.
 
 ## Controller Boundary
 
@@ -111,6 +128,20 @@ The minimum content entry shape is:
 
 Do not add category, tag, revision, version, publish workflow, `expires_at`, `redirect_url`,
 `response_mode`, authoring UI, or approval workflow in the current phase.
+
+Versions and revisions are future planned capabilities, but their boundary is not defined. A future
+design may use revision for internal editing history and version for public release history. Do not
+expose routes or schemas before that decision exists.
+
+Taxonomy is abandoned for now. Category or tag support may be reintroduced later only with a fresh
+product and API decision.
+
+Mutation belongs to future base > org authoring or management work. Docs, help, and news remain
+read-only surfaces.
+
+The database is temporarily borrowed or colocated in the current Rails storage direction. Do not
+restore the old full global model stack or relocate ownership as part of the current content-surface
+cleanup.
 
 ## Related
 

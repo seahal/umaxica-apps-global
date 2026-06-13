@@ -11,11 +11,11 @@ scope module: :sign, as: :sign do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -104,6 +104,7 @@ scope module: :sign, as: :sign do
           end
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          # FIXME: I want to rename this much smarter naming.
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)
@@ -120,13 +121,17 @@ scope module: :sign, as: :sign do
       namespace :social do
         namespace :apple do
           resource :connection, only: :show
+          # FIXME: I want to rename this much smarter naming.
           resource :connection_attempt, only: :create
+          # FIXME: I want to rename this much smarter naming.
           resource :disconnection_attempt, only: :create
         end
 
         namespace :google do
           resource :connection, only: :show
+          # FIXME: I want to rename this much smarter naming.
           resource :connection_attempt, only: :create
+          # FIXME: I want to rename this much smarter naming.
           resource :disconnection_attempt, only: :create
         end
       end
@@ -156,6 +161,7 @@ scope module: :sign, as: :sign do
         resource :passkey, only: %i(new create)
         resource :totp, only: %i(new create)
         resources :emails, only: %i(new create edit update) do
+          # FIXME: I want to rename this much smarter naming.
           resource :redelivery, only: :create
         end
       end
@@ -169,6 +175,7 @@ scope module: :sign, as: :sign do
         end
         resources :totps, only: %i(index new create edit update destroy)
         resources :passkeys do
+          # FIXME: I want to rename this much smarter naming.
           resource :removal_attempt, only: :create
         end
         namespace :passkeys do
@@ -181,31 +188,31 @@ scope module: :sign, as: :sign do
           end
         end
         resources :emails, only: %i(index edit update destroy)
-        # FIXME: merge those two namespaces.
-        namespace :telephones do
+        # FIXME: I want to rename this much smarter naming.
+        scope path: "telephones", module: :telephones, as: :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(new create edit)
-        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
+        resources :telephones, only: %i(index new create edit destroy)
         resource :birthdate, only: :show
         resource :apple, only: :show
         resource :google, only: :show
         # FIXME: rename this to "secrets"
         resource :emergency_key, only: :show
         resources :secret_credentials, only: %i(index show new edit create update destroy) do
+          # FIXME: I want to rename this much smarter naming.
           resource :rotation_attempt, only: :create
+          # FIXME: I want to rename this much smarter naming.
           resource :removal_attempt, only: :create
         end
         resources :sessions, only: %i(index show) do
+          # FIXME: I want to rename this much smarter naming.
           resource :revocation_attempt, only: :create
         end
         namespace :session_revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
-        # FIXME: I did delete this entrypoint last month.
-        resources :connections, only: %i(index show destroy), controller: "connections"
-        resources :activities, only: :index, controller: "activities"
+        resources :activities, only: :index
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
@@ -219,11 +226,11 @@ scope module: :sign, as: :sign do
       resource :dashboard, only: :show
 
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -247,6 +254,7 @@ scope module: :sign, as: :sign do
         end
       end
 
+      # FIXME: REMOVE THIS!!!
       namespace :r18 do
         resource :gate, only: %i(show create) do
           get :blocked
@@ -308,12 +316,14 @@ scope module: :sign, as: :sign do
             resource :options, only: :create
             resource :verification, only: :create
           end
-
+          # FIXME: I want to rename this much smarter naming.
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          # FIXME: I want to rename this much smarter naming.
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)
+          # FIXME: I want to rename this much smarter naming.
           resource :check_cancellation, only: :create
           resource :challenge, only: %i(show)
 
@@ -338,6 +348,7 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
+          # FIXME: I want to rename this much smarter naming.
           resource :removal_attempt, only: :create
         end
         namespace :passkeys do
@@ -354,29 +365,32 @@ scope module: :sign, as: :sign do
         end
         resources :emails, only: %i(index edit update destroy)
 
-        namespace :telephones do
+        # FIXME: I want to rename this much smarter naming.
+        scope path: "telephones", module: :telephones, as: :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(new create edit)
-        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
+        resources :telephones, only: %i(index new create edit destroy)
 
         resource :birthdate, only: :show
 
         resources :secret_credentials, only: %i(index show new edit create update destroy) do
+          # FIXME: I want to rename this much smarter naming.
           resource :rotation_attempt, only: :create
+          # FIXME: I want to rename this much smarter naming.
           resource :removal_attempt, only: :create
         end
 
         resources :sessions, only: %i(index show) do
+          # FIXME: I want to rename this much smarter naming.
           resource :revocation_attempt, only: :create
         end
+        # FIXME: I want to rename this much smarter naming.
         namespace :session_revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
 
-        resources :connections, only: %i(index show destroy), controller: "connections"
-        resources :activities, only: :index, controller: "activities"
+        resources :activities, only: :index
         resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
@@ -399,11 +413,11 @@ scope module: :sign, as: :sign do
       resources :billing, only: :index
 
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
@@ -453,12 +467,14 @@ scope module: :sign, as: :sign do
             resource :options, only: :create
             resource :verification, only: :create
           end
-
+          # FIXME: I want to rename this much smarter naming.
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
+          # FIXME: I want to rename this much smarter naming.
           resource :session_cancellation, only: :create
           resource :guard, only: :show
           resource :check, only: %i(show update)
+          # FIXME: I want to rename this much smarter naming.
           resource :check_cancellation, only: :create
           resource :challenge, only: %i(show)
 
@@ -480,6 +496,7 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
+          # FIXME: I want to rename this much smarter naming.
           resource :removal_attempt, only: :create
         end
         namespace :passkeys do
@@ -494,35 +511,35 @@ scope module: :sign, as: :sign do
         resources :secret_credentials
 
         resources :sessions, only: %i(index show) do
+          # FIXME: I want to rename this much smarter naming.
           resource :revocation_attempt, only: :create
         end
         namespace :session_revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
-
-        resources :connections, only: %i(index show destroy), controller: "connections"
-
         namespace :emails do
           resource :registration, only: %i(new create edit update)
         end
         resources :emails, only: %i(index edit update destroy)
 
-        namespace :telephones do
+        # FIXME: I want to rename this much smarter naming.
+        scope path: "telephones", module: :telephones, as: :telephones do
           resource :registration, only: %i(new create edit update)
         end
-        resources :telephones, only: %i(new create edit)
-        resources :telephones, only: %i(index destroy), controller: "telephones/redirects"
+        resources :telephones, only: %i(index new create edit destroy)
 
         resource :birthdate, only: :show
-        resources :activities, only: :index, controller: "activities"
+        resources :activities, only: :index
         resource :withdrawal, only: %i(show)
 
-        # FIXME: what is these lines? i want to remove controller postfix.
+        # Lifecycle request state transitions.
         resources :operator_lifecycle_requests, only: %i(index show new create) do
-          resource :approval, only: %i(create), controller: "operator_lifecycle_requests/approvals"
-          resource :execution, only: %i(create), controller: "operator_lifecycle_requests/executions"
-          resource :rejection, only: %i(create), controller: "operator_lifecycle_requests/rejections"
+          scope module: :operator_lifecycle_requests do
+            resource :approval, only: %i(create)
+            resource :execution, only: %i(create)
+            resource :rejection, only: %i(create)
+          end
         end
       end
     end

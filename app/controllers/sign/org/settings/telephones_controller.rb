@@ -6,21 +6,19 @@ module Sign
     module Settings
       class TelephonesController < ::Sign::Org::ApplicationController
         include SignOperatorTelephoneRegistrable
+        include ::SignSettingsAuthorityRedirect
 
         include ::VerificationOperator
 
         AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :open, only: %i(index destroy)
+        declare_authentication_mode! :private, only: %i(new create edit)
 
-        before_action :authenticate_operator!
-        # Object-level authorization (ActionPolicy): index/new/create gate the actor type; edit/destroy
+        before_action :authenticate_operator!, except: %i(index destroy)
+        # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find is owner-scoped, so a non-owner gets 404 first).
         # Verification guards remain in place.
-        before_action :authorize_telephones!, only: %i(index)
         before_action :authorize_telephone_registration!, only: %i(new create)
-
-        def index
-          @staff_telephones = current_operator.staff_telephones.order(created_at: :asc)
-        end
 
         def new
           @staff_telephone = OperatorTelephone.new
@@ -43,31 +41,7 @@ module Sign
           redirect_to(edit_sign_org_settings_telephones_registration_path(ri: params[:ri]))
         end
 
-        def destroy
-          @staff_telephone = current_operator.staff_telephones.find(params(:id))
-          authorize!(@staff_telephone)
-
-          unless AuthMethodGuard.can_remove_telephone?(current_operator, @staff_telephone)
-            redirect_to(
-              sign_org_settings_telephones_path,
-              alert: t("sign.org.settings.telephone.destroy.last_method"),
-            )
-            return
-          end
-
-          @staff_telephone.destroy!
-          redirect_to(
-            sign_org_settings_telephones_path,
-            notice: t("sign.org.settings.telephone.destroy.success"),
-            status: :see_other,
-          )
-        end
-
         private
-
-        def authorize_telephones!
-          authorize!(OperatorTelephone, to: :index?)
-        end
 
         def authorize_telephone_registration!
           authorize!(OperatorTelephone, to: :create?)

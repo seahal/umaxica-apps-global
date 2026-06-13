@@ -276,7 +276,7 @@ module SocialAuth
       "sign/shared/social_completion",
       locals: {
         completion_url: completion_acme_app_social_authentication_url(
-          provider: auth_hash["provider"] || auth_hash[:provider],
+          id: auth_hash["provider"] || auth_hash[:provider],
           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
         ),
         result_token: result_token,

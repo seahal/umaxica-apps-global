@@ -8,7 +8,7 @@
                         url_for(
                           controller: params[:controller].to_s.sub(/roots\z/, "entries"),
                           action: :show,
-                          slug: entry.slug,
+                          id: entry.slug,
                           locale: entry.locale,
                         ) %>
           <% if entry.summary.present? %>

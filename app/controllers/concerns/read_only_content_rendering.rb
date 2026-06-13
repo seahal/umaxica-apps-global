@@ -16,7 +16,7 @@ module ReadOnlyContentRendering
   end
 
   def render_content_show
-    @content_entry = content_entry_class.published.for_locale(content_locale).find_by!(slug: params.expect(:slug))
+    @content_entry = content_entry_class.published.for_locale(content_locale).find_by!(slug: params.expect(:id))
 
     respond_to do |format|
       format.html { render "shared/content_entries/show" }
@@ -30,7 +30,7 @@ module ReadOnlyContentRendering
   end
 
   def render_content_api_show
-    entry = content_entry_class.published.for_locale(content_locale).find_by!(slug: params.expect(:slug))
+    entry = content_entry_class.published.for_locale(content_locale).find_by!(slug: params.expect(:id))
     render json: { entry: public_content_entry_json(entry) }
   end
 

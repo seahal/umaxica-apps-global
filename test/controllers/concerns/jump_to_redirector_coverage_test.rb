@@ -4,22 +4,37 @@
 require "test_helper"
 
 class JumpToRedirectorCoverageTest < ActiveSupport::TestCase
+  fixtures_none!
+
   class Harness < ApplicationController
     include JumpToRedirector
 
-    attr_accessor :rendered, :redirected, :request_obj
+    attr_accessor :rendered, :redirected, :request_obj, :params_obj
 
     def initialize
       super
       @request_obj = Struct.new(:session_options).new({})
+      @response_obj = Struct.new(:headers) do
+        def set_header(name, value)
+          headers[name] = value
+        end
+      end.new({})
     end
 
     def request
       @request_obj
     end
 
+    def response
+      @response_obj
+    end
+
     def params
-      ActionController::Parameters.new({})
+      @params_obj || ActionController::Parameters.new({})
+    end
+
+    def params=(value)
+      @params_obj = value
     end
 
     def render(**kwargs)
@@ -99,6 +114,54 @@ class JumpToRedirectorCoverageTest < ActiveSupport::TestCase
     @harness.show
 
     assert_equal :not_found, @harness.rendered[:status]
+  end
+
+  test "show redirects when the signed target is valid" do
+    with_env("JUMP_ALLOWED_HOSTS" => "example.test") do
+      @harness.params = ActionController::Parameters.new(
+        jt: @harness.send(:issue_jump_target_token, url: "https://example.test/path", path: "/path"),
+      )
+
+      @harness.show
+
+      assert_equal ["https://example.test/path", ["https://example.test/path"]], @harness.redirected
+    end
+  end
+
+  test "safe_jump_destination rejects invalid destinations and jump_target_surface tracks controller namespace" do
+    with_env("JUMP_ALLOWED_HOSTS" => "example.test") do
+      assert_nil @harness.send(:safe_jump_destination, "mailto:test@example.test")
+      assert_nil @harness.send(:safe_jump_destination, "https://user@example.test/path")
+      assert_nil @harness.send(:safe_jump_destination, "https://example.test/#frag")
+      assert_nil @harness.send(:safe_jump_destination, "https://blocked.test/path")
+      assert_equal(
+        { "url" => "https://example.test/path", "path" => "/path" },
+        @harness.send(:safe_jump_destination, "https://example.test/path"),
+      )
+    end
+
+    app_harness =
+      Class.new(Harness) do
+        module_eval do
+          def self.name = "Sign::App::JumpHarness"
+        end
+      end.new
+    com_harness =
+      Class.new(Harness) do
+        module_eval do
+          def self.name = "Sign::Com::JumpHarness"
+        end
+      end.new
+    org_harness =
+      Class.new(Harness) do
+        module_eval do
+          def self.name = "Sign::Org::JumpHarness"
+        end
+      end.new
+
+    assert_equal "app", app_harness.send(:jump_target_surface)
+    assert_equal "com", com_harness.send(:jump_target_surface)
+    assert_equal "org", org_harness.send(:jump_target_surface)
   end
 
   private

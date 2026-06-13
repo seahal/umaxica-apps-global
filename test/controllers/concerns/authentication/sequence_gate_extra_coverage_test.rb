@@ -339,4 +339,45 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_nil @harness.send(:current_db_sign_in_flow_for_sequence)
   end
+
+  test "continue_checkpoint_sequence_without_content! advances a checkpoint cycle" do
+    @harness.current_resource = Client.new(id: 123)
+    @harness.cycle = FakeCycle.new(states: { checkpoint: true, dashboard: true }, return_to: "/after")
+    @harness.checkpoint_result = Result.new(false)
+
+    issued = []
+    @harness.define_singleton_method(:issue_welcome_gate_and_path) do |pt:, sequence_id:|
+      issued << [pt, sequence_id]
+      "/welcome?pt=#{pt}"
+    end
+
+    @harness.continue_checkpoint_sequence_without_content!
+
+    assert_equal [["/after", "seq-1"]], issued
+    assert_equal "/welcome?pt=/after", @harness.redirected.first
+  end
+
+  test "continue_welcome_sequence_without_content! handles non-cycle and cycle paths" do
+    carrier =
+      Struct.new(:current, :completed, :cleared) do
+        def complete!
+          self.completed = true
+        end
+
+        def clear!
+          self.cleared = true
+        end
+      end.new(Struct.new(:participant).new("dashboard"), false, false)
+    @harness.instance_variable_set(:@sign_in_sequence_carrier, carrier)
+    @harness.define_singleton_method(:welcome_gate_available?) { true }
+    @harness.define_singleton_method(:consume_welcome_gate!) { |**| true }
+    @harness.define_singleton_method(:path_target_value) { "/after" }
+    @harness.define_singleton_method(:clear_welcome_gate!) { @cleared = true }
+
+    @harness.continue_welcome_sequence_without_content!
+
+    assert carrier.completed
+    assert carrier.cleared
+    assert_equal "/after", @harness.instance_variable_get(:@welcome_next_path)
+  end
 end

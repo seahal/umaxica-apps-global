@@ -18,17 +18,27 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "new base palm and content surfaces define robots helpers" do
+  test "base and palm surfaces define public file helpers" do
     assert_public_file_helpers(
       robots: %i(
         base_app_robots_path base_com_robots_path base_org_robots_path
         palm_app_robots_path palm_com_robots_path palm_org_robots_path
-        help_app_robots_path help_com_robots_path help_org_robots_path
-        docs_app_robots_path docs_com_robots_path docs_org_robots_path
-        news_app_robots_path news_com_robots_path news_org_robots_path
       ),
-      sitemap: [],
+      sitemap: %i(
+        base_app_sitemap_path base_com_sitemap_path base_org_sitemap_path
+        palm_app_sitemap_path palm_com_sitemap_path palm_org_sitemap_path
+      ),
     )
+  end
+
+  test "content surfaces delegate robots to Next.js" do
+    %i(
+      help_app_robots_path help_com_robots_path help_org_robots_path
+      docs_app_robots_path docs_com_robots_path docs_org_robots_path
+      news_app_robots_path news_com_robots_path news_org_robots_path
+    ).each do |helper|
+      refute_respond_to self, helper
+    end
   end
 
   test "public file endpoints respond without redirect" do
@@ -39,15 +49,12 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
       [method(:palm_app_robots_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "robots"],
       [method(:palm_com_robots_url), ENV["PALM_CORPORATE_URL"] || "palm.com.localhost", "robots"],
       [method(:palm_org_robots_url), ENV["PALM_STAFF_URL"] || "palm.org.localhost", "robots"],
-      [method(:help_app_robots_url), ENV["HELP_SERVICE_URL"] || "help.app.localhost", "robots"],
-      [method(:help_com_robots_url), ENV["HELP_CORPORATE_URL"] || "help.com.localhost", "robots"],
-      [method(:help_org_robots_url), ENV["HELP_STAFF_URL"] || "help.org.localhost", "robots"],
-      [method(:docs_app_robots_url), ENV["DOCS_SERVICE_URL"] || "docs.app.localhost", "robots"],
-      [method(:docs_com_robots_url), ENV["DOCS_CORPORATE_URL"] || "docs.com.localhost", "robots"],
-      [method(:docs_org_robots_url), ENV["DOCS_STAFF_URL"] || "docs.org.localhost", "robots"],
-      [method(:news_app_robots_url), ENV["NEWS_SERVICE_URL"] || "news.app.localhost", "robots"],
-      [method(:news_com_robots_url), ENV["NEWS_CORPORATE_URL"] || "news.com.localhost", "robots"],
-      [method(:news_org_robots_url), ENV["NEWS_STAFF_URL"] || "news.org.localhost", "robots"],
+      [method(:base_app_sitemap_url), ENV["BASE_SERVICE_URL"] || "base.app.localhost", "sitemap"],
+      [method(:base_com_sitemap_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "sitemap"],
+      [method(:base_org_sitemap_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "sitemap"],
+      [method(:palm_app_sitemap_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "sitemap"],
+      [method(:palm_com_sitemap_url), ENV["PALM_CORPORATE_URL"] || "palm.com.localhost", "sitemap"],
+      [method(:palm_org_sitemap_url), ENV["PALM_STAFF_URL"] || "palm.org.localhost", "sitemap"],
       [method(:acme_com_robots_url), ENV["ACME_CORPORATE_URL"] || "www.com.localhost", "robots"],
       [method(:acme_app_robots_url), ENV["ACME_SERVICE_URL"] || "www.app.localhost", "robots"],
       [method(:acme_org_robots_url), ENV["ACME_STAFF_URL"] || "www.org.localhost", "robots"],

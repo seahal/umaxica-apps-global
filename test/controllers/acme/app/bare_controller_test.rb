@@ -17,10 +17,10 @@ module Acme
 
       REQUIRED_DESCENDANTS = %w(
         Acme::App::CspViolationReportsController
-        Acme::App::Health::LivenessController
-        Acme::App::Health::ReadinessController
-        Acme::App::Health::StartupController
-        Acme::App::HealthController
+        Acme::App::Health::LivenessesController
+        Acme::App::Health::ReadinessesController
+        Acme::App::Health::StartupsController
+        Acme::App::HealthsController
         Acme::App::JwksController
         Acme::App::Oauth::JwksController
         Acme::App::Oauth::RevocationsController

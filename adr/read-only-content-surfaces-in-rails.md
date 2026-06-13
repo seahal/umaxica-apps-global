@@ -40,11 +40,32 @@ Rails owns the read side of the content authority:
 - health endpoints;
 - content persistence;
 - import tasks;
-- read-only JSON/read contracts consumed by the frontend.
+- read-only `api/v0/entries` contracts consumed by the frontend.
 
 Rails must not own public article HTML routes for these surfaces. Rails root endpoints may exist,
 but they must remain thin: they must not render article indexes, article details, SEO metadata,
 canonical URLs, `robots.txt`, or `sitemap.xml`.
+
+For each docs, news, and help host variant, the target Rails routing surface is:
+
+```text
+GET /
+GET /health
+GET /health/liveness
+GET /health/readiness
+GET /health/startup
+GET /api/v0/entries
+GET /api/v0/entries/:slug
+```
+
+The same route shape applies independently under the app, com, and org host variants for docs,
+news, and help. Do not use a single API host, a path-based surface segment, or paths such as
+`/api/v0/docs/entries`, `/api/v0/news/entries`, `/api/v0/help/entries`, or
+`/api/v0/content/docs/entries`.
+
+The read API resource noun is `entries`, not `posts`. `posts` is reserved for blog, SNS, or
+forum-style posting semantics and may conflict with other Umaxica post domains. For help,
+`entries` means help article or help content reads, not Contact or inquiry workflow.
 
 Public delivery and read-contract controllers use the surface-local `BareController` tier and
 declare `AUTHENTICATION_MODE = :bare` by default. They must not use Rails browser sessions,
@@ -81,14 +102,23 @@ dedicated `app_content`, `com_content`, and `org_content` connections if the con
 - This ADR amends `adr/regional-docs-news-content-model.md` for the current Rails v1 implementation.
 - The old regional `Document`/`Timeline`, revision/version, taxonomy, and org CMS editing model is
   not implemented in this pass.
+- Version and revision routes remain future work only. Do not add placeholder routes, controllers,
+  response contracts, or schemas until their boundary is defined.
+- Taxonomy is abandoned for now. Tags, categories, taxonomy builders, and taxonomy master model
+  families are not part of the current routing or persistence boundary.
+- Mutation belongs to future base > org authoring or management work. `docs`, `news`, and `help`
+  expose no create, update, delete, publish, unpublish, archive, restore, revision-create, or
+  revision-promotion endpoints.
+- Help is a read surface for help content. It does not own Contact, inquiry, contact-status,
+  contact-category, topic, email, telephone, or token-verification workflow.
 - Existing OIDC client-registry entries for `docs`, `news`, and `help` are not made authoritative by
   this ADR. They remain a separate integration question.
 - Content import must be an explicit task or seed/import command, not a migration side effect.
 - Rails public article HTML routes, `robots.txt`, and `sitemap.xml` for `docs`, `news`, and `help`
   should be delegated to the frontend. Existing Rails routes with those responsibilities are
   compatibility or cleanup work, not the target boundary.
-- API path naming is intentionally not decided here. Existing read-contract paths can remain until a
-  separate API naming decision changes them.
+- Existing Rails `/entries`, `/entries/:slug`, `/robots.txt`, and non-`api/v0` entries routes are
+  cleanup work, not the target boundary recorded by this ADR.
 
 ## Related
 

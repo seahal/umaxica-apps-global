@@ -2,15 +2,8 @@
 # frozen_string_literal: true
 
 scope module: :acme, as: :acme do
-  # FIXME: what is these lines?
-  acme_app_hosts = [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact
-  acme_app_hosts.uniq!
-  acme_com_hosts = [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact
-  acme_com_hosts.uniq!
-  acme_org_hosts = [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact
-  acme_org_hosts.uniq!
-
-  constraints host: acme_app_hosts do
+  # Primary application surface
+  constraints host: [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -20,11 +13,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -41,17 +34,17 @@ scope module: :acme, as: :acme do
       end
       resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "screens", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "screens", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "screens", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "screens", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "screens", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "screens", defaults: { preference_screen: "time" }
-        resource :motion, only: %i(edit update), controller: "screens", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
-        resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
         resource :reset, only: %i(edit destroy)
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
@@ -82,8 +75,7 @@ scope module: :acme, as: :acme do
       namespace :social do
         resources :authentications,
                   only: [],
-                  path: "auth",
-                  param: :provider do
+                  path: "auth" do
           post :continue, on: :member
           post :completion, on: :member
         end
@@ -160,7 +152,8 @@ scope module: :acme, as: :acme do
     end
   end
 
-  constraints host: acme_com_hosts do
+  # Corporate surface
+  constraints host: [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -170,11 +163,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -190,17 +183,17 @@ scope module: :acme, as: :acme do
       end
       resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "screens", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "screens", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "screens", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "screens", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "screens", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "screens", defaults: { preference_screen: "time" }
-        resource :motion, only: %i(edit update), controller: "screens", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
-        resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
         resource :reset, only: %i(edit destroy)
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
@@ -278,7 +271,8 @@ scope module: :acme, as: :acme do
     end
   end
 
-  constraints host: acme_org_hosts do
+  # Staff surface
+  constraints host: [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -288,11 +282,11 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       # Robots
       resource :robots, only: :show, path: "robots.txt"
@@ -314,17 +308,17 @@ scope module: :acme, as: :acme do
       end
       resource :preference, only: [:show]
       namespace :preference do
-        resource :region, only: %i(edit update), controller: "screens", defaults: { preference_screen: "region" }
-        resource :timezone, only: %i(edit update), controller: "screens", defaults: { preference_screen: "timezone" }
-        resource :language, only: %i(edit update), controller: "screens", defaults: { preference_screen: "language" }
-        resource :currency, only: %i(edit update), controller: "screens", defaults: { preference_screen: "currency" }
-        resource :date, only: %i(edit update), controller: "screens", defaults: { preference_screen: "date" }
-        resource :time, only: %i(edit update), controller: "screens", defaults: { preference_screen: "time" }
-        resource :motion, only: %i(edit update), controller: "screens", defaults: { preference_screen: "motion" }
-        resource :density, only: %i(edit update), controller: "screens", defaults: { preference_screen: "density" }
-        resource :page_size, only: %i(edit update), controller: "screens", defaults: { preference_screen: "page_size" }
-        resource :theme, only: %i(edit update), controller: "screens", defaults: { preference_screen: "theme" }
-        resource :cookie, only: %i(edit update), controller: "screens", defaults: { preference_screen: "cookie" }
+        resource :region, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :date, only: %i(edit update)
+        resource :time, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :page_size, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
         resource :reset, only: %i(edit destroy)
         resources :emails, only: %i(edit destroy)
         post "emails/:id", to: "emails#create"
@@ -406,9 +400,14 @@ scope module: :acme, as: :acme do
 
   constraints host: ENV["ACME_NETWORK_URL"] do
     scope module: :net, as: :network do
-      root to: "roots#index", as: :root
+      root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
+      namespace :health do
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
+      end
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -416,9 +415,14 @@ scope module: :acme, as: :acme do
 
   constraints host: ENV["ACME_DEVELOPER_URL"] do
     scope module: :dev, as: :developer do
-      root to: "roots#index", as: :root
+      root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
+      namespace :health do
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
+      end
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # to show the jobs page

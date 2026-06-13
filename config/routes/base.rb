@@ -2,50 +2,51 @@
 # frozen_string_literal: true
 
 scope module: :base, as: :base do
-  # FIXME: what is these lines?
-  base_app_hosts = [ENV["BASE_SERVICE_URL"], "base.app.localhost"].compact
-  base_app_hosts.uniq!
-  base_com_hosts = [ENV["BASE_CORPORATE_URL"], "base.com.localhost"].compact
-  base_com_hosts.uniq!
-  base_org_hosts = [ENV["BASE_STAFF_URL"], "base.org.localhost"].compact
-  base_org_hosts.uniq!
-
-  constraints ->(request) { base_app_hosts.include?(request.host) } do
+  # Application control-plane surface
+  constraints host: ENV["BASE_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
+      resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 
-  constraints ->(request) { base_com_hosts.include?(request.host) } do
+  # Corporate control-plane surface
+  constraints host: ENV["BASE_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
+      resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 
-  constraints ->(request) { base_org_hosts.include?(request.host) } do
+  # Staff control-plane surface
+  constraints host: ENV["BASE_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
-        resource :liveness, only: :show, controller: "liveness"
-        resource :readiness, only: :show, controller: "readiness"
-        resource :startup, only: :show, controller: "startup"
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
       end
       resource :robots, only: :show, path: "robots.txt"
+      resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 end

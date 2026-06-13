@@ -50,6 +50,18 @@ services:
           - www.jp.umaxica.app
           - www.jp.umaxica.com
           - www.jp.umaxica.org
+          - palm.jp.umaxica.app
+          - palm.jp.umaxica.com
+          - palm.jp.umaxica.org
+          - docs.jp.umaxica.app
+          - docs.jp.umaxica.com
+          - docs.jp.umaxica.org
+          - help.jp.umaxica.app
+          - help.jp.umaxica.com
+          - help.jp.umaxica.org
+          - news.jp.umaxica.app
+          - news.jp.umaxica.com
+          - news.jp.umaxica.org
           - core.app.localhost
           - core.com.localhost
           - core.org.localhost

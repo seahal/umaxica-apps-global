@@ -221,7 +221,7 @@ module Acme
         end
 
         def social_provider_param
-          provider = params[:provider].to_s
+          provider = params[:id].to_s
           return provider if IdentitySocialCeremonyContract::PROVIDERS.include?(provider)
 
           raise ActionController::BadRequest, "invalid social provider"
