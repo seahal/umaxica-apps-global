@@ -131,9 +131,9 @@ gem "mission_control-jobs"
 
 group :development, :test do
   # Test coverage reporting.
-  gem "simplecov", require: false
+  gem "simplecov"
   # LCOV formatter for SimpleCov.
-  gem "simplecov-lcov", require: false
+  gem "simplecov-lcov"
   # Minitest mock extraction.
   gem "minitest-mock"
   # Slow test profiling.

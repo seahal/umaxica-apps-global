@@ -10,10 +10,11 @@ Accepted (2026-06-13)
 repository. `docs/architecture/regional-content.md` said not to add regional content delivery here
 unless a current ADR changed that boundary.
 
-The current implementation direction brings a small v1 content delivery surface back into this Rails
-application. The goal is public, read-only delivery only. It does not restore the previous regional
-engine, CMS editing, OIDC relying-party callbacks, preference writes, or authenticated actor
-lifecycle.
+The current implementation direction brings a small v1 content authority back into this Rails
+application. Public HTML rendering for `docs`, `news`, and `help` belongs to the frontend
+application, not Rails. Rails owns thin roots, health endpoints, content persistence, import, and a
+read-only API/read contract for the frontend. This does not restore the previous regional engine,
+CMS editing, OIDC relying-party callbacks, preference writes, or authenticated actor lifecycle.
 
 The existing `adr/regional-docs-news-content-model.md` accepted a heavier regional model: `Document`
 for docs, `Timeline` for news, revision/version split, taxonomy, and org CMS editing. That model
@@ -21,12 +22,37 @@ remains useful historical context, but it is larger than this v1 delivery need.
 
 ## Decision
 
-Implement `docs`, `news`, and `help` as read-only content surfaces in this Rails application.
+Implement `docs`, `news`, and `help` as read-only content authority surfaces in this Rails
+application.
 
-Each surface has app, com, and org host variants. Public delivery controllers use the surface-local
-`BareController` tier and declare `AUTHENTICATION_MODE = :bare`. They must not use Rails browser
-sessions, authenticated actors, OIDC callbacks, preference writes, or application-controller
-lifecycle callbacks.
+Each surface has app, com, and org host variants. Keep host-constrained routing; do not collapse
+`docs`, `news`, and `help` into one host with a surface path segment.
+
+The public frontend owner for `docs`, `news`, and `help` is Next.js. Next.js owns public HTML,
+article index and show pages, SEO metadata, canonical URLs, `robots.txt`, `sitemap.xml`, UI/UX,
+public 404/410 rendering, and locale fallback rendering when needed. Hono and ReactRouter are not
+owners for the `docs`, `news`, `help`, or `core` public frontend. Hono may remain for bounded
+purposes such as jump behavior, but not for content frontend ownership.
+
+Rails owns the read side of the content authority:
+
+- thin root endpoints;
+- health endpoints;
+- content persistence;
+- import tasks;
+- read-only JSON/read contracts consumed by the frontend.
+
+Rails must not own public article HTML routes for these surfaces. Rails root endpoints may exist,
+but they must remain thin: they must not render article indexes, article details, SEO metadata,
+canonical URLs, `robots.txt`, or `sitemap.xml`.
+
+Public delivery and read-contract controllers use the surface-local `BareController` tier and
+declare `AUTHENTICATION_MODE = :bare` by default. They must not use Rails browser sessions,
+authenticated actors, OIDC callbacks, preference writes, or application-controller lifecycle
+callbacks. `app` and `com` content reads are public by default. `org` content reads may require
+authenticated or org-scoped read access in the future, but any such access must depend on the
+existing authority boundary and must not make `docs`, `news`, or `help` an identity, session, or
+authorization authority.
 
 For v1, use lean content-entry tables instead of the historical `Document`/`Timeline` model
 families:
@@ -58,10 +84,15 @@ dedicated `app_content`, `com_content`, and `org_content` connections if the con
 - Existing OIDC client-registry entries for `docs`, `news`, and `help` are not made authoritative by
   this ADR. They remain a separate integration question.
 - Content import must be an explicit task or seed/import command, not a migration side effect.
+- Rails public article HTML routes, `robots.txt`, and `sitemap.xml` for `docs`, `news`, and `help`
+  should be delegated to the frontend. Existing Rails routes with those responsibilities are
+  compatibility or cleanup work, not the target boundary.
+- API path naming is intentionally not decided here. Existing read-contract paths can remain until a
+  separate API naming decision changes them.
 
 ## Related
 
+- `docs/architecture/docs-help-news-content-boundary.md`
 - `docs/architecture/regional-content.md`
 - `adr/regional-docs-news-content-model.md`
 - `adr/surface-database-connection-naming.md`
-- `plans/active/docs-news-help-content-surface-reimplementation-plan.md`

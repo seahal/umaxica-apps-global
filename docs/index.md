@@ -34,6 +34,7 @@ Current content-model references:
 - `docs/architecture/flat-ruby-source-layout.md`
 - `docs/architecture/controller-boundaries.md`
 - `docs/architecture/controller-lifecycle.md`
+- `docs/architecture/docs-help-news-content-boundary.md`
 - `docs/architecture/i18n.md`
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
