@@ -2899,3 +2899,23 @@ en:
         code_resend_required: Please resend the verification code.
         code_expired: The verification code has expired.
         invalid_code: The verification code is incorrect.
+  base:
+    app:
+      roots:
+        message: "Base services are available. See /settings."
+    com:
+      roots:
+        message: "Base services are available. See /settings."
+    org:
+      roots:
+        message: "Base services are available. See /settings."
+  palm:
+    app:
+      roots:
+        message: "Palm API is available for native and handheld clients. Browser access is not a product UI."
+    com:
+      roots:
+        message: "Palm API is available for native and handheld clients. Browser access is not a product UI."
+    org:
+      roots:
+        message: "Palm API is available for native and handheld clients. Browser access is not a product UI."

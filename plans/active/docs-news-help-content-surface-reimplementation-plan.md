@@ -137,8 +137,8 @@ User decisions captured this session:
 
 - **H1 — Repository-boundary ADR conflict.** Implementing here directly contradicts the accepted
   regional/global split. Mitigation: **Phase 0** writes a superseding ADR before any code.
-- **H2 — Content-model ADR conflict.** Namespace-specific content-entry tables diverge from
-  accepted `Document`/`Timeline`+`PublicationRecord` model. Mitigation: amend/supersede
+- **H2 — Content-model ADR conflict.** Namespace-specific content-entry tables diverge from accepted
+  `Document`/`Timeline`+`PublicationRecord` model. Mitigation: amend/supersede
   `adr/regional-docs-news-content-model.md` and `regional-help-surface-direction.md` in Phase 0.
 - **H3 — No Base/content surface scaffolding exists.** The "simple 200" entrypoint silently requires
   standing up entire host-constrained surfaces (route files + per-surface controller trees + host
@@ -231,12 +231,11 @@ current `BareController` skeleton), which Option 3 already adopts by reference.
 - Add separate per-namespace, per-surface tables on the Phase-0 DB group: `app_docs_entries`,
   `app_news_entries`, `app_help_entries`, with matching `com_*` and `org_*` tables. Candidate
   columns: `slug` (unique per table), `title`, `summary`, `body`, `status`, `locale`,
-  `published_at`, timestamps.
-  **Rationale for each beyond the objective's set:** `locale` — content surfaces are
-  region/locale-specific by definition (regional-content.md); `status` + `published_at` — minimal
-  publish gate without the heavy revision/version split. **Defer** category/tag/taxonomy (not needed
-  for v1 read-only). Migrations: reversible, additive, no app models, follow `.harnes/rules/...`
-  migration rules.
+  `published_at`, timestamps. **Rationale for each beyond the objective's set:** `locale` — content
+  surfaces are region/locale-specific by definition (regional-content.md); `status` + `published_at`
+  — minimal publish gate without the heavy revision/version split. **Defer** category/tag/taxonomy
+  (not needed for v1 read-only). Migrations: reversible, additive, no app models, follow
+  `.harnes/rules/...` migration rules.
 - Add corresponding per-surface model classes (reuse existing surface base-record pattern; confirm
   the connection base class chosen in Phase 0).
 

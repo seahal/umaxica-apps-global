@@ -43,7 +43,11 @@ module ReadOnlyContentRendering
   end
 
   def content_entry_class
-    @content_entry_class ||= "#{content_namespace.to_s.camelize}::#{content_surface.to_s.camelize}::ContentEntry".constantize
+    @content_entry_class ||= [
+      content_namespace.to_s.camelize,
+      content_surface.to_s.camelize,
+      "ContentEntry",
+    ].join("::").constantize
   end
 
   def content_namespace

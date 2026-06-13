@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :help, as: :help do
+  # FIXME: what is these lines?
   help_app_hosts = [ENV["HELP_SERVICE_URL"], "help.app.localhost"].compact
   help_app_hosts.uniq!
   help_com_hosts = [ENV["HELP_CORPORATE_URL"], "help.com.localhost"].compact

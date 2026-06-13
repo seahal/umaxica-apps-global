@@ -117,34 +117,50 @@ The tree migrates **all** surfaces' health controllers to `HealthController` +
 
 ---
 
-## Stream 3 — Contradictions (report-and-decide; deferred auth integration)
+## Stream 3 — Contradictions: resolve by documenting intent (no auth-integration changes)
 
-### 3a. Help/Docs/News OIDC RP client entries — `app/services/oidc_client_registry.rb:188-244`
+Per repo-owner direction, **both items are resolved by recording intent, not by code
+removal/refactor.**
 
-The ADR states these entries are **"not made authoritative … a separate integration question,"** and
-the content plan marks `namespace :auth { resource :callback }` as **safe to remove** for these
-surfaces. Read-only content surfaces have **no** OIDC callback/RP behavior. **Decision required**
-(Phase-0 style):
+### 3a. Surface-boundary intent is transitional — record it in an ADR (then the OIDC entries are not a contradiction)
 
-- **Recommended:** remove `docs_*`, `news_*`, `help_*` client entries (and their
-  `build_redirect_uris`/`*_SERVICE_URL` callback wiring) until a real org-RP need exists; add a
-  registry test asserting they are absent.
-- **Alternative:** keep them but gate behind the documented future "org Help/Docs/News may require
-  RP-based access restrictions" exception, with an explicit comment and a tracking note. Either way:
-  make the decision explicit; do not leave silent contradictory entries.
+The Help/Docs/News (and Core/Base/Palm) OIDC client entries in
+`app/services/oidc_client_registry.rb:163-244` are **transitional artifacts of a deliberately
+multi-surface Rails repo**, not a silent contradiction. Capture the boundary intent explicitly:
 
-### 3b. `SIGN_ISSUERS = "https://id.umaxica.*"` — `app/services/identity_*_ceremony_contract.rb`
+- **Add/extend an ADR** (new `adr/transitional-rails-surface-boundary.md`, or amend
+  `adr/acme-sign-core-base-port-boundary.md`) stating:
+  - **Long-term target:** this Rails repository hosts **only Acme + Sign** (two surfaces).
+  - **Short-term (current):** for development ease the repo co-locates **Acme + Sign + Core + Base +
+    Palm + Help + Docs + News**; these non-Acme/Sign surfaces are expected to split to the regional
+    side later.
+  - Do **not** hard-code final repository/host/deployment boundaries now; treat the current Rails
+    implementation as transitional (consistent with the original pass brief).
+- Under that policy, **keep** the `docs_*`/`news_*`/`help_*` (and `core_*`) client entries, but add
+  a comment marking them transitional and **not the long-term target**, and revisit at the split.
+  - Note: per `adr/read-only-content-surfaces-in-rails.md`, read-only Help/Docs/News do **not**
+    exercise OIDC callbacks today, so their client entries are **dormant** short-term — keep them
+    labelled as such rather than deleting.
+- This supersedes the earlier "recommend remove" framing. The remediation is the ADR statement; no
+  registry deletion this pass.
 
-Sign must not be an IdP/issuer. The `iss => id.umaxica.*` on ceremony tokens is **likely the
-WebAuthn URL-binding case** (RP ID/origin is URL-bound; see memory `step-up-webauthn-url-binding`),
-i.e. ceremony-scoped, not Acme token issuance. **Action:**
+### 3b. `SIGN_ISSUERS = "https://id.umaxica.*"` is correct by design — document, don't refactor
 
-- Confirm with the WebAuthn-binding rationale and add a clarifying comment in each ceremony contract
-  distinguishing ceremony issuers from Acme token issuance.
-- Add/confirm a regression test asserting Sign is **not** used as an Acme-style access/ID-token
-  issuer.
-- Only refactor to Acme issuers if confirmation shows the binding rationale does **not** hold —
-  default is document + guard, not change (auth integration is out of scope this pass).
+Repo-owner confirmed: for WebAuthn/passkey ceremonies the relying party **is** Sign's `id.umaxica.*`
+(RP ID/origin is URL-bound; see memory `step-up-webauthn-url-binding`), so Sign being the
+**ceremony** issuer is intended — this is **not** Sign acting as an Acme IdP/token authority. **This
+is not a contradiction to fix.** Action is documentation + a light guard only:
+
+- Add a clarifying comment in each `app/services/identity_*_ceremony_contract.rb` stating
+  `SIGN_ISSUERS` are **Sign-scoped, ceremony-only** issuers, distinct from Acme access/ID-token
+  issuance, so future audits don't re-flag it.
+- Per-type accuracy (skeptical note): the WebAuthn URL-binding rationale cleanly covers
+  passkey/step-up; for the non-WebAuthn ceremony contracts (email/telephone/social/secret/totp) the
+  correct rationale is "Sign-scoped intermediate ceremony token, not Acme issuance" — phrase each
+  comment to match its ceremony type rather than citing WebAuthn everywhere.
+- Add/confirm a regression guard asserting Sign is **not** used as an Acme-style access/ID-token
+  issuer (the boundary that must stay true), while ceremony `iss = id.umaxica.*` remains allowed.
+- **No refactor** to Acme issuers.
 
 ---
 
@@ -161,8 +177,8 @@ i.e. ceremony-scoped, not Acme token issuance. **Action:**
 - `bin/rails routes | grep -E 'base|palm|help|docs|news'` — new roots/health/robots/entries present.
 - `rg -n "HealthsController|Health::CheckRendering|health/check_rendering|HealthEndpoint" app config test`
   → expect none.
-- `rg -n "docs_app|news_app|help_app" app/services/oidc_client_registry.rb` → matches the 3a
-  decision.
+- 3a: confirm the transitional-boundary ADR exists and the `docs_*`/`news_*`/`help_*`/`core_*`
+  entries carry a "transitional, not long-term" comment (entries are **kept**, not deleted).
 - `bin/rails db:verify_no_schema_drift` — content-entries migrations vs `*_zenith` dumps agree.
 - Tests (when allowed to run): new `test/controllers/{base,palm,help,docs,news}/**`,
   `controller_inheritance_invariant_test.rb`, and the health integration tests.

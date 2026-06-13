@@ -77,7 +77,8 @@ module Sign
             not_before_at: @not_before_at,
           ),
         )
-        secret_credential.raw_secret_credential = raw_secret_credential if secret_credential.respond_to?(:raw_secret_credential=)
+        secret_credential.raw_secret_credential = raw_secret_credential if
+          secret_credential.respond_to?(:raw_secret_credential=)
 
         @secret_credential_class.transaction do
           secret_credential.save!

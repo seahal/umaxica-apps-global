@@ -213,7 +213,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     legacy_method = ClientSecretCredential.instance_method(:verify_for_secret_credential_sign_in!)
 
     ClientSecretCredential.define_method(:verify_for_secret_credential_sign_in!) do |*|
-      raise "legacy verifier must not be used for new-axis rows"
+      raise StandardError, "legacy verifier must not be used for new-axis rows"
     end
 
     begin

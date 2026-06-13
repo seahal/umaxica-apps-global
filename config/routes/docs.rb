@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :docs, as: :docs do
+  # FIXME: what is these lines?
   docs_app_hosts = [ENV["DOCS_SERVICE_URL"], "docs.app.localhost"].compact
   docs_app_hosts.uniq!
   docs_com_hosts = [ENV["DOCS_CORPORATE_URL"], "docs.com.localhost"].compact

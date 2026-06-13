@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :palm, as: :palm do
+  # FIXME: what is these lines?
   palm_app_hosts = [ENV["PALM_SERVICE_URL"], "palm.app.localhost"].compact
   palm_app_hosts.uniq!
   palm_com_hosts = [ENV["PALM_CORPORATE_URL"], "palm.com.localhost"].compact

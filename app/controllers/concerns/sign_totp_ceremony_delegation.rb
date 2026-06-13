@@ -6,7 +6,7 @@ module SignTotpCeremonyDelegation
 
   private
 
-  def start_totp_ceremony!(surface:, actor:, session_ref:, operation: "registration")
+  def start_totp_ceremony!(_surface:, _actor:, _session_ref:, _operation: "registration")
     return totp_ceremony_grant_token if totp_ceremony_grant_token.present?
 
     raise IdentityTotpCeremonyContract::Error, "TOTP ceremony grant is required"

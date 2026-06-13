@@ -271,8 +271,9 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     messages = []
 
     unless new_violations.empty?
-      messages << "New controller-to-controller inheritance violations (fix inheritance or add to KNOWN_VIOLATIONS with a documented reason):\n" \
-                  "#{new_violations.sort.map { |p| "  #{p}" }.join("\n")}"
+      header = "New controller-to-controller inheritance violations " \
+               "(fix inheritance or add to KNOWN_VIOLATIONS with a documented reason):"
+      messages << "#{header}\n#{new_violations.sort.map { |p| "  #{p}" }.join("\n")}"
     end
 
     unless stale_entries.empty?

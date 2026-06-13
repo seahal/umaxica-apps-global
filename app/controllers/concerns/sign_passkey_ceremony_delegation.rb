@@ -6,7 +6,7 @@ module SignPasskeyCeremonyDelegation
 
   private
 
-  def start_passkey_ceremony!(surface:, actor:, session_ref:, operation: "registration")
+  def start_passkey_ceremony!(_surface:, _actor:, _session_ref:, _operation: "registration")
     return passkey_ceremony_grant_token if passkey_ceremony_grant_token.present?
 
     raise IdentityPasskeyCeremonyContract::Error, "passkey ceremony grant is required"

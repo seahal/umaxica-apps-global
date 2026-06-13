@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :acme, as: :acme do
+  # FIXME: what is these lines?
   acme_app_hosts = [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact
   acme_app_hosts.uniq!
   acme_com_hosts = [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact

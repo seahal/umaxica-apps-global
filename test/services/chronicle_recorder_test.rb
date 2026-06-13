@@ -176,7 +176,9 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
   end
 
   test "sanitize_string filters all sensitive patterns" do
-    input = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJkYXRhIjoiMSJ9.xXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXX and password=secret123"
+    jwt_part = "eyJhbGciOiJIUzI1NiJ9.eyJkYXRhIjoiMSJ9." \
+               "xXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXX"
+    input = "Bearer #{jwt_part} and password=secret123"
     result = ChronicleRecorder.send(:sanitize_string, input.dup)
 
     assert_includes result, "[FILTERED]"

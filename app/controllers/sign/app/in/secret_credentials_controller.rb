@@ -250,73 +250,80 @@ module Sign
           session[MFA_USER_SESSION_KEY] = nil
         end
 
-        # Secret sign-in uses the most recently issued eligible secret_credential.
-        # This keeps verification deterministic and logging easier to reason about.
         def verify_secret_credential_for_sign_in(user:, raw_secret_credential:)
           return SecretVerificationResult.new(reason: :identifier_not_found, details: {}) unless user
           return SecretVerificationResult.new(reason: :verified_pii_missing, details: {}) unless user.has_verified_pii?
 
-          latest_secret_credential = user.client_secret_credentials.order(created_at: :desc).first
-          return SecretVerificationResult.new(
-            reason: :secret_credential_not_found,
-            details: {},
-          ) unless latest_secret_credential
+          eligible = find_latest_eligible_secret_credential(user)
+          return eligible unless eligible.secret_credential
 
-          latest_eligible_secret_credential = user.client_secret_credentials
-            .allowed_for_secret_credential_sign_in
-            .order(created_at: :desc)
-            .first
-          unless latest_eligible_secret_credential
-            return SecretVerificationResult.new(
-              reason: :secret_credential_expired,
-              details: {
-                latest_secret_credential_id: latest_secret_credential.id,
-                latest_status_id: latest_secret_credential.user_secret_status_id,
-                latest_kind_id: latest_secret_credential.user_secret_kind_id,
-              },
-            )
-          end
-          unless latest_eligible_secret_credential.usable_for_secret_credential_sign_in?
-            return SecretVerificationResult.new(
-              reason: :secret_credential_expired,
-              details: {
-                secret_credential_id: latest_eligible_secret_credential.id,
-                uses_remaining: latest_eligible_secret_credential.uses_remaining,
-                expires_at: latest_eligible_secret_credential.expires_at,
-              },
-            )
-          end
+          verification = perform_secret_credential_verification(eligible.secret_credential, raw_secret_credential)
+          return wrap_verification_failure(
+            verification,
+            eligible.secret_credential,
+          ) unless verification.secret_credential
 
-          verification =
-            if latest_eligible_secret_credential.new_axis_secret_credential?
-              ::Sign::Secret::Verify.call(
-                secret_credential: latest_eligible_secret_credential,
-                raw_secret_credential: raw_secret_credential.to_s,
-              )
-            else
-              verified = latest_eligible_secret_credential.verify_for_secret_credential_sign_in!(
-                raw_secret_credential.to_s,
-              )
-              SecretVerificationResult.new(
-                secret_credential: verified ? latest_eligible_secret_credential : nil,
-                reason: verified ? :success : :secret_credential_mismatch,
-                details: { secret_credential_id: latest_eligible_secret_credential.id },
-              )
-            end
-
-          unless verification.secret_credential
-            return SecretVerificationResult.new(
-              reason: verification.reason || :secret_credential_mismatch,
-              details: verification.details.presence || { secret_credential_id: latest_eligible_secret_credential.id },
-            )
-          end
-
-          secret_credential = verification.secret_credential || latest_eligible_secret_credential
+          secret_credential = verification.secret_credential || eligible.secret_credential
           audit_recovery_secret_credential_if_recovery!(user, secret_credential)
           SecretVerificationResult.new(
             secret_credential: secret_credential,
             reason: :success,
             details: { secret_credential_id: secret_credential.id },
+          )
+        end
+
+        def find_latest_eligible_secret_credential(user)
+          latest = user.client_secret_credentials.order(created_at: :desc).first
+          return SecretVerificationResult.new(reason: :secret_credential_not_found, details: {}) unless latest
+
+          eligible = user.client_secret_credentials
+            .allowed_for_secret_credential_sign_in
+            .order(created_at: :desc)
+            .first
+          unless eligible
+            return SecretVerificationResult.new(
+              reason: :secret_credential_expired,
+              details: {
+                latest_secret_credential_id: latest.id,
+                latest_status_id: latest.user_secret_status_id,
+                latest_kind_id: latest.user_secret_kind_id,
+              },
+            )
+          end
+          unless eligible.usable_for_secret_credential_sign_in?
+            return SecretVerificationResult.new(
+              reason: :secret_credential_expired,
+              details: {
+                secret_credential_id: eligible.id,
+                uses_remaining: eligible.uses_remaining,
+                expires_at: eligible.expires_at,
+              },
+            )
+          end
+
+          SecretVerificationResult.new(secret_credential: eligible, reason: :success, details: {})
+        end
+
+        def perform_secret_credential_verification(secret_credential, raw_secret_credential)
+          if secret_credential.new_axis_secret_credential?
+            ::Sign::Secret::Verify.call(
+              secret_credential: secret_credential,
+              raw_secret_credential: raw_secret_credential.to_s,
+            )
+          else
+            verified = secret_credential.verify_for_secret_credential_sign_in!(raw_secret_credential.to_s)
+            SecretVerificationResult.new(
+              secret_credential: verified ? secret_credential : nil,
+              reason: verified ? :success : :secret_credential_mismatch,
+              details: { secret_credential_id: secret_credential.id },
+            )
+          end
+        end
+
+        def wrap_verification_failure(verification, secret_credential)
+          SecretVerificationResult.new(
+            reason: verification.reason || :secret_credential_mismatch,
+            details: verification.details.presence || { secret_credential_id: secret_credential.id },
           )
         end
 

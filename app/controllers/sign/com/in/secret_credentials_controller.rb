@@ -140,30 +140,22 @@ module Sign
         end
 
         def verify_secret_credential_for_sign_in(visitor:, raw_secret_credential:)
-          return SecretVerificationResult.new(
-            reason: :identifier_not_found,
-            details: {},
-          ) unless visitor
+          return SecretVerificationResult.new(reason: :identifier_not_found, details: {}) unless visitor
           return SecretVerificationResult.new(
             reason: :verified_pii_missing,
             details: {},
           ) unless visitor.has_verified_pii?
 
-          latest_secret_credential = visitor.visitor_secret_credentials.order(created_at: :desc).first
-          return SecretVerificationResult.new(
-            reason: :secret_credential_not_found,
-            details: {},
-          ) unless latest_secret_credential
+          latest = visitor.visitor_secret_credentials.order(created_at: :desc).first
+          return SecretVerificationResult.new(reason: :secret_credential_not_found, details: {}) unless latest
 
           secret_credential = visitor.visitor_secret_credentials
             .allowed_for_secret_credential_sign_in
             .order(created_at: :desc)
             .first
-          return SecretVerificationResult.new(reason: :secret_credential_expired, details: {}) unless secret_credential
-          return SecretVerificationResult.new(
-            reason: :secret_credential_expired,
-            details: {},
-          ) unless secret_credential.usable_for_secret_credential_sign_in?
+          unless secret_credential&.usable_for_secret_credential_sign_in?
+            return SecretVerificationResult.new(reason: :secret_credential_expired, details: {})
+          end
 
           verification =
             if secret_credential.new_axis_secret_credential?

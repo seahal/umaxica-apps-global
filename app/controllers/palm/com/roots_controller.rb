@@ -7,7 +7,7 @@ module Palm
       AUTHENTICATION_MODE = :bare
 
       def index
-        render plain: "Palm API is available for native and handheld clients. Browser access is not a product UI."
+        render plain: t(".message")
       end
     end
   end

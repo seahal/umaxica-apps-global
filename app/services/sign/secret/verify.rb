@@ -24,7 +24,8 @@ module Sign
           @secret_credential.reload
 
           return failure(:secret_credential_revoked) if revoked?
-          return failure(:secret_credential_revoked) if @secret_credential.respond_to?(:active?) && !@secret_credential.active?
+          return failure(:secret_credential_revoked) if
+            @secret_credential.respond_to?(:active?) && !@secret_credential.active?
           return failure(:secret_credential_expired) if lapsed?
           return failure(:secret_credential_not_before) if not_before?
           return failure(:secret_credential_locked) if locked?
@@ -35,7 +36,8 @@ module Sign
           expected_lookup_digest = LookupDigest.digest(@raw_secret_credential)
           stored_lookup_digest = @secret_credential.lookup_digest.to_s
           return failure(:secret_credential_mismatch) if stored_lookup_digest.blank?
-          return failure(:secret_credential_mismatch) unless expected_lookup_digest.length == stored_lookup_digest.length
+          return failure(:secret_credential_mismatch) unless
+            expected_lookup_digest.length == stored_lookup_digest.length
           return failure(:secret_credential_mismatch) unless secure_compare(
             expected_lookup_digest,
             stored_lookup_digest,
@@ -56,18 +58,18 @@ module Sign
 
       def consume_success!
         @secret_credential.last_used_at = @now if @secret_credential.respond_to?(:last_used_at=)
-        @secret_credential.use_count = @secret_credential.use_count.to_i + 1 if @secret_credential.respond_to?(:use_count=)
-        if single_use?
-          @secret_credential.consumed_at = @now
-          mark_status!(:used)
-        elsif max_uses_exceeded?
-          @secret_credential.consumed_at = @now
-          mark_status!(:used)
-        end
+        @secret_credential.use_count = @secret_credential.use_count.to_i + 1 if
+          @secret_credential.respond_to?(:use_count=)
+        return unless single_use? || max_uses_exceeded?
+
+        @secret_credential.consumed_at = @now
+        mark_status!(:used)
+
       end
 
       def failure(reason, details = {})
-        if @secret_credential.present? && @secret_credential.respond_to?(:failure_count=) && reason == :secret_credential_mismatch
+        if @secret_credential.present? && @secret_credential.respond_to?(:failure_count=) &&
+            reason == :secret_credential_mismatch
           @secret_credential.failure_count = @secret_credential.failure_count.to_i + 1
           @secret_credential.last_failed_at = @now if @secret_credential.respond_to?(:last_failed_at=)
           if max_failures_exceeded?
@@ -113,7 +115,8 @@ module Sign
 
       def lapsed?
         return false if @secret_credential.discarded_at.blank?
-        return false if @secret_credential.discarded_at.respond_to?(:infinite?) && @secret_credential.discarded_at.infinite?
+        return false if @secret_credential.discarded_at.respond_to?(:infinite?) &&
+          @secret_credential.discarded_at.infinite?
 
         @now >= @secret_credential.discarded_at
       end

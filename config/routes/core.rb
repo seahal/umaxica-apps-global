@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :core, as: :core do
+  # FIXME: what is these lines?
   core_app_hosts = [ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact
   core_app_hosts.uniq!
   core_com_hosts = [ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact

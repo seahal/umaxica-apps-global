@@ -518,6 +518,7 @@ scope module: :sign, as: :sign do
         resources :activities, only: :index, controller: "activities"
         resource :withdrawal, only: %i(show)
 
+        # FIXME: what is these lines? i want to remove controller postfix.
         resources :operator_lifecycle_requests, only: %i(index show new create) do
           resource :approval, only: %i(create), controller: "operator_lifecycle_requests/approvals"
           resource :execution, only: %i(create), controller: "operator_lifecycle_requests/executions"

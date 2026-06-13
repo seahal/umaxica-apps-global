@@ -22,8 +22,8 @@ if ENV["COVERAGE"] == "true"
     add_group "Jobs", "app/jobs"
     add_group "Mailers", "app/mailers"
 
-    minimum_coverage line: 80
-    minimum_coverage_by_file line: 60
+    minimum_coverage line: 95
+    minimum_coverage_by_file line: 90
   end
 end
 

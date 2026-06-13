@@ -7,7 +7,7 @@ module Base
       AUTHENTICATION_MODE = :bare
 
       def index
-        render plain: "Base services are available. See /settings."
+        render plain: t(".message")
       end
     end
   end

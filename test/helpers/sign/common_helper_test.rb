@@ -97,15 +97,14 @@ class Sign::CommonHelperTest < ActionView::TestCase
   end
 
   test "preference language helpers choose localized labels and defaults" do
+    option_struct = Struct.new(:id, :name)
     option_class =
       Class.new do
-        Option = Struct.new(:id, :name)
-
-        def self.order(_column)
+        define_singleton_method(:order) do |_column|
           [
-            Option.new(1, "ja"),
-            Option.new(2, "en"),
-            Option.new(3, "fr"),
+            option_struct.new(1, "ja"),
+            option_struct.new(2, "en"),
+            option_struct.new(3, "fr"),
           ]
         end
       end

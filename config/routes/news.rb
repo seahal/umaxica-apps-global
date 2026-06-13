@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 scope module: :news, as: :news do
+  # FIXME: what is these lines?
   news_app_hosts = [ENV["NEWS_SERVICE_URL"], "news.app.localhost"].compact
   news_app_hosts.uniq!
   news_com_hosts = [ENV["NEWS_CORPORATE_URL"], "news.com.localhost"].compact
