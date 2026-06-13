@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# TODO: by the way, what is the purpose of this file?
+
 return if Rails.env.production?
 
 sample_user_secret = "00000000000000000000000000000000"
@@ -21,7 +23,7 @@ ensure_reference_rows(ClientMfaLevel, ClientMfaLevel::DEFAULTS)
 ensure_reference_rows(ClientMfaStatus, ClientMfaStatus::DEFAULTS)
 ensure_reference_rows(ClientEmailStatus, ClientEmailStatus::DEFAULTS)
 ensure_reference_rows(ClientTelephoneStatus, ClientTelephoneStatus::DEFAULTS)
-ensure_reference_rows(ClientOneTimePasswordStatus, ClientOneTimePasswordStatus::DEFAULTS)
+ensure_reference_rows(ClientTotpCredentialStatus, ClientTotpCredentialStatus::DEFAULTS)
 ensure_reference_rows(ClientSecretStatus, [ClientSecretStatus::ACTIVE, ClientSecretStatus::USED])
 ensure_reference_rows(ClientSecretKind, [ClientSecretKind::PERMANENT])
 ensure_reference_rows(VisitorStatus, VisitorStatus::DEFAULTS)
@@ -48,7 +50,7 @@ ClientMfaLevel.ensure_defaults!
 ClientMfaStatus.ensure_defaults!
 ClientEmailStatus.ensure_defaults!
 ClientTelephoneStatus.ensure_defaults!
-ClientOneTimePasswordStatus.ensure_defaults!
+ClientTotpCredentialStatus.ensure_defaults!
 ClientSecretStatus.ensure_defaults!
 ClientSecretKind.ensure_defaults!
 

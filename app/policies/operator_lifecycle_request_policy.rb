@@ -3,19 +3,19 @@
 
 class OperatorLifecycleRequestPolicy < ApplicationPolicy
   def index?
-    operator?
+    lifecycle_actor?
   end
 
   def show?
-    operator?
+    lifecycle_actor?
   end
 
   def create?
-    operator?
+    lifecycle_actor?
   end
 
   def approve?
-    operator? && pending_request? && different_operator?
+    lifecycle_actor? && pending_request? && different_operator?
   end
 
   def reject?
@@ -23,12 +23,15 @@ class OperatorLifecycleRequestPolicy < ApplicationPolicy
   end
 
   def execute?
-    operator? && record.approved? && different_operator?
+    lifecycle_actor? && record.approved? && different_operator?
   end
 
   private
 
-  def operator?
+  # Overrides ApplicationPolicy#operator? which calls has_role? — a method that does not exist
+  # on Operator (no Rolify, no org membership table). Type-check only; org ownership for JOIN
+  # requests is enforced by OrgOperatorLifecycleRequestCreate at the service layer.
+  def lifecycle_actor?
     user.is_a?(Operator)
   end
 

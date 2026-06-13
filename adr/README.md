@@ -96,6 +96,12 @@ Current logging / observability decisions:
 - `adr/application-logging-boundary.md`
 - `adr/traces-and-metrics-routing-via-alloy.md`
 
+Current browser security header decisions:
+
+- `adr/csp-and-permissions-policy.md`
+- `adr/csp-violation-report-route-naming.md` — keep `csp_violation_report` route resource naming for
+  the `POST /csp-violation-report` endpoint instead of shortening it to bare `csp`.
+
 Current localization decisions:
 
 - `adr/i18n-explicit-translation-keys.md`

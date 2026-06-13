@@ -111,6 +111,7 @@
     "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind,readonly",
     "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind,readonly",
     "source=${localEnv:HOME}/.config/opencode,target=/home/global/.config/opencode,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/gh,target=/home/global/.config/gh,type=bind,readonly",
     "type=bind,source=/etc/timezone,target=/etc/timezone,readonly"
   ]
 }

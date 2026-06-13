@@ -11,7 +11,7 @@ class OidcUserInfoResponseCoverageTest < ActiveSupport::TestCase
 
     assert_equal "Ada Lovelace", claims[:name]
     assert_equal "ada@example.test", claims[:email]
-    assert_equal true, claims[:email_verified]
+    assert claims[:email_verified]
     assert_equal OidcSubject.for(resource, resource_type: "client"), claims[:sub]
   end
 

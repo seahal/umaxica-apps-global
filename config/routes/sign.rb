@@ -17,9 +17,8 @@ scope module: :sign, as: :sign do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
-      # FIXME: how about csp? csp_violation_report is so long naming.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # for those who are logged in
       resource :dashboard, only: :show
@@ -232,7 +231,7 @@ scope module: :sign, as: :sign do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
@@ -419,7 +418,7 @@ scope module: :sign, as: :sign do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 

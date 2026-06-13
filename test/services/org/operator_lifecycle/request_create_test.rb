@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OrgOperatorLifecycleRequestCreateTest < ActiveSupport::TestCase
-  fixtures :operators
+  fixtures :operators, :organization_statuses
 
   test "creates withdrawal request for requesting operator when target is omitted" do
     actor = operators(:one)
@@ -36,20 +36,64 @@ class OrgOperatorLifecycleRequestCreateTest < ActiveSupport::TestCase
     assert_predicate result.request.errors[:target_operator], :present?
   end
 
-  test "creates join request with normalized email" do
+  test "creates join request when actor owns the organization" do
+    org = Organization.create!(
+      name: "Owned Corp",
+      domain: "owned-corp-#{SecureRandom.hex(4)}",
+      operator_id: operators(:one).id,
+      workspace_status_id: 0,
+    )
+
     result = OrgOperatorLifecycleRequestCreate.call(
       actor: operators(:one),
       attributes: {
         action: OperatorLifecycleRequest::ACTION_JOIN,
         target_email: " INVITEE@EXAMPLE.COM ",
-        organization_id: 123,
+        organization_id: org.id,
         role_id: 4,
       },
     )
 
     assert_predicate result, :success?
     assert_equal "invitee@example.com", result.request.target_email
-    assert_equal 123, result.request.organization_id
+    assert_equal org.id, result.request.organization_id
     assert_equal 4, result.request.role_id
+  end
+
+  test "join request is rejected when actor does not own the organization" do
+    org = Organization.create!(
+      name: "Foreign Corp",
+      domain: "foreign-corp-#{SecureRandom.hex(4)}",
+      operator_id: operators(:two).id,
+      workspace_status_id: 0,
+    )
+
+    result = OrgOperatorLifecycleRequestCreate.call(
+      actor: operators(:one),
+      attributes: {
+        action: OperatorLifecycleRequest::ACTION_JOIN,
+        target_email: "invitee@example.com",
+        organization_id: org.id,
+        role_id: 4,
+      },
+    )
+
+    assert_not result.success?
+    assert_predicate result.request.errors[:organization_id], :present?
+  end
+
+  test "join request is rejected when the organization does not exist" do
+    result = OrgOperatorLifecycleRequestCreate.call(
+      actor: operators(:one),
+      attributes: {
+        action: OperatorLifecycleRequest::ACTION_JOIN,
+        target_email: "invitee@example.com",
+        organization_id: 999_999_999,
+        role_id: 4,
+      },
+    )
+
+    assert_not result.success?
+    assert_predicate result.request.errors[:organization_id], :present?
   end
 end

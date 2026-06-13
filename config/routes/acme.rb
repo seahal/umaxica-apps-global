@@ -20,7 +20,7 @@ scope module: :acme, as: :acme do
         resource :startup, only: :show
       end
       # Robots
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
@@ -170,7 +170,7 @@ scope module: :acme, as: :acme do
         resource :startup, only: :show
       end
       # Robots
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
@@ -289,7 +289,7 @@ scope module: :acme, as: :acme do
         resource :startup, only: :show
       end
       # Robots
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       # Sitemap
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting

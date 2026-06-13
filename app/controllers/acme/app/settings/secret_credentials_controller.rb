@@ -86,6 +86,8 @@ module Acme
           end
 
           ClientSecretCredentialsDestroy.call(actor: current_client, secret_credential: @secret_credential)
+          AuthenticationLogoutAllSessions.call(resource: current_client, reason: "credential_destroyed")
+          record_audit(AuthenticationBase::AUDIT_EVENTS[:logout_all_sessions], resource: current_client)
           flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
           redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end

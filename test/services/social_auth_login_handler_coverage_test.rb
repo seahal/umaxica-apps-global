@@ -69,7 +69,7 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
   end
 
   test "call returns pending signup when an identity exists without a user" do
-    user = Client.create!(status_id: ClientStatus::ACTIVE)
+    Client.create!(status_id: ClientStatus::ACTIVE)
     identity = ClientGoogleIdentity.new(
       uid: "google-orphan-uid",
       provider: "google",

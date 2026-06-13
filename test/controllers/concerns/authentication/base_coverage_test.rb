@@ -1339,24 +1339,29 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirected << [args, kwargs] }
 
     @controller.define_singleton_method(:logged_in?) { false }
+
     assert_nil @controller.ensure_not_logged_in
     assert_nil @controller.ensure_not_logged_in_for_registration
-    assert_equal false, @controller.reject_if_logged_in("errors.messages.not_authorized")
+    assert_not @controller.reject_if_logged_in("errors.messages.not_authorized")
     assert_nil @controller.reject_logged_in_session
 
     @controller.define_singleton_method(:logged_in?) { true }
     @controller.request.format = Struct.new(:json?).new(true)
     @controller.ensure_not_logged_in(message_key: "errors.messages.not_authorized")
+
     assert_equal :unauthorized, rendered.last.last[:status]
 
     @controller.request.format = Struct.new(:json?).new(false)
     @controller.ensure_not_logged_in_for_registration(redirect_path: "/signup")
+
     assert_equal [["/signup"], { alert: I18n.t("errors.messages.not_authorized") }], redirected.last
 
     @controller.reject_if_logged_in("errors.messages.not_authorized")
+
     assert_equal :bad_request, rendered.last.last[:status]
 
     @controller.reject_logged_in_session
+
     assert_equal :unauthorized, rendered.last.last[:status]
   end
 
@@ -1373,10 +1378,14 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_equal :guest, controller_class.authentication_mode_for(:show)
     assert_equal :deny_all, controller_class.authentication_mode_for(:edit)
-    assert_equal({ policy: :public_strict, only: ["index"], except: nil, options: { flag: true } },
-                 controller_class.access_policy_rules.last)
-    assert_equal({ mode: :guest, only: ["show"], except: nil, options: {} },
-                 controller_class.authentication_mode_rules.last)
+    assert_equal(
+      { policy: :public_strict, only: ["index"], except: nil, options: { flag: true } },
+      controller_class.access_policy_rules.last,
+    )
+    assert_equal(
+      { mode: :guest, only: ["show"], except: nil, options: {} },
+      controller_class.authentication_mode_rules.last,
+    )
 
     assert_raises(AuthenticationBase::SkipNotAllowedError) do
       controller_class.skip_before_action(:enforce_access_policy!)

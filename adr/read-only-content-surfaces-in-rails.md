@@ -58,14 +58,14 @@ GET /api/v0/entries
 GET /api/v0/entries/:slug
 ```
 
-The same route shape applies independently under the app, com, and org host variants for docs,
-news, and help. Do not use a single API host, a path-based surface segment, or paths such as
+The same route shape applies independently under the app, com, and org host variants for docs, news,
+and help. Do not use a single API host, a path-based surface segment, or paths such as
 `/api/v0/docs/entries`, `/api/v0/news/entries`, `/api/v0/help/entries`, or
 `/api/v0/content/docs/entries`.
 
 The read API resource noun is `entries`, not `posts`. `posts` is reserved for blog, SNS, or
-forum-style posting semantics and may conflict with other Umaxica post domains. For help,
-`entries` means help article or help content reads, not Contact or inquiry workflow.
+forum-style posting semantics and may conflict with other Umaxica post domains. For help, `entries`
+means help article or help content reads, not Contact or inquiry workflow.
 
 Public delivery and read-contract controllers use the surface-local `BareController` tier and
 declare `AUTHENTICATION_MODE = :bare` by default. They must not use Rails browser sessions,

@@ -84,11 +84,11 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
               authenticator.stub(:token_scope_allows_userinfo?, true) do
                 authenticator.stub(:token_resource, resource) do
                   authenticator.stub(:token_subject_matches?, true) do
-                  result = authenticator.call
+                    result = authenticator.call
 
-                  assert_predicate result, :success?
-                  assert_equal resource, result.resource
-                  assert_equal token, result.token
+                    assert_predicate result, :success?
+                    assert_equal resource, result.resource
+                    assert_equal token, result.token
                   end
                 end
               end
@@ -115,11 +115,11 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
 
     assert OidcAccessTokenAuthenticator.new(
-             access_token: "token",
-             resource_type: "client",
-             host: "app.example.test",
-             authorization_scheme: "Bearer",
-           ).send(:dpop_valid?, {})
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+      authorization_scheme: "Bearer",
+    ).send(:dpop_valid?, {})
 
     client = Struct.new(:aud).new("aud-1")
     token = TokenRecordFake.new(oidc_client_id: "client-1", oidc_jti: "jti-1")
@@ -135,8 +135,14 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
 
         assert authenticator.send(:token_belongs_to_audience?, token, { "aud" => ["aud-1"] })
         assert_not authenticator.send(:token_belongs_to_audience?, token, { "aud" => ["other"] })
-        assert authenticator.send(:token_jti_matches?, TokenRecordFake.new(oidc_client_id: "client-1", oidc_jti: nil), {})
-        assert authenticator.send(:token_jti_matches?, TokenRecordFake.new(oidc_client_id: "client-1", oidc_jti: "jti-1"), { "jti" => "jti-1" })
+        assert authenticator.send(
+          :token_jti_matches?, TokenRecordFake.new(oidc_client_id: "client-1", oidc_jti: nil),
+          {},
+        )
+        assert authenticator.send(
+          :token_jti_matches?,
+          TokenRecordFake.new(oidc_client_id: "client-1", oidc_jti: "jti-1"), { "jti" => "jti-1" },
+        )
         assert_not authenticator.send(:token_jti_matches?, token, { "jti" => "jti-2" })
       end
     end
@@ -161,6 +167,7 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
       )
 
     token_resource = Struct.new(:staff, :visitor, :user).new(:staff_value, :visitor_value, :user_value)
+
     assert_equal :staff_value, operator_authenticator.send(:token_resource, token_resource)
     assert_equal :visitor_value, visitor_authenticator.send(:token_resource, token_resource)
     assert_equal :user_value, client_authenticator.send(:token_resource, token_resource)
@@ -172,6 +179,7 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     assert_equal AppTicketRecord, client_authenticator.send(:token_context)
 
     failure = client_authenticator.send(:failure, "invalid_token")
+
     assert_not failure.success?
     assert_equal "invalid_token", failure.error
   end
@@ -196,7 +204,7 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
 
     original_new = DpopRequestVerifier.method(:new)
-    DpopRequestVerifier.define_singleton_method(:new) { |*args, **kwargs| verifier }
+    DpopRequestVerifier.define_singleton_method(:new) { |*_args, **_kwargs| verifier }
     begin
       assert authenticator.send(:dpop_valid?, { "cnf" => { "jkt" => "thumbprint" } })
     ensure
@@ -207,11 +215,12 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     context.define_singleton_method(:connected_to) do |role:, &block|
       block.call
     end
-    token_class = Class.new do
-      def self.find_by(oidc_sid:)
-        oidc_sid == "sid-1" ? :token : nil
+    token_class =
+      Class.new do
+        def self.find_by(oidc_sid:)
+          (oidc_sid == "sid-1") ? :token : nil
+        end
       end
-    end
 
     authenticator.stub(:token_context, context) do
       authenticator.stub(:token_class_for_resource_type, token_class) do
@@ -221,9 +230,13 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
 
     resource = Client.create!(status_id: ClientStatus::ACTIVE)
+
     assert_not authenticator.send(:token_scope_allows_userinfo?, { "scp" => [] })
     assert authenticator.send(:token_scope_allows_userinfo?, { "scp" => ["openid"] })
     assert_not authenticator.send(:token_subject_matches?, resource, { "sub" => "wrong" })
-    assert authenticator.send(:token_subject_matches?, resource, { "sub" => OidcSubject.for(resource, resource_type: "client") })
+    assert authenticator.send(
+      :token_subject_matches?, resource,
+      { "sub" => OidcSubject.for(resource, resource_type: "client") },
+    )
   end
 end

@@ -6,19 +6,20 @@ require "test_helper"
 class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
   fixtures_none!
 
-  Token = Struct.new(:oidc_client_id, :oidc_jti) do
-    def has_attribute?(name)
-      %i(oidc_jti oidc_client_id).include?(name.to_sym)
-    end
+  Token =
+    Struct.new(:oidc_client_id, :oidc_jti) do
+      def has_attribute?(name)
+        %i(oidc_jti oidc_client_id).include?(name.to_sym)
+      end
 
-    def revoke!
-      @revoked = true
-    end
+      def revoke!
+        @revoked = true
+      end
 
-    def revoked?
-      @revoked == true
+      def revoked?
+        @revoked == true
+      end
     end
-  end
 
   test "rejects invalid client authentication" do
     service = OidcTokenRevocationService.new(

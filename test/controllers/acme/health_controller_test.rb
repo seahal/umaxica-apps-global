@@ -18,12 +18,15 @@ class AcmeHealthControllerTest < ActionDispatch::IntegrationTest
     host! ENV["ACME_NETWORK_URL"]
 
     get acme_network_health_liveness_url, headers: browser_headers
+
     assert_probe_response("liveness")
 
     get acme_network_health_readiness_url, headers: browser_headers
+
     assert_probe_response("readiness")
 
     get acme_network_health_startup_url, headers: browser_headers
+
     assert_probe_response("startup")
   end
 
@@ -41,12 +44,15 @@ class AcmeHealthControllerTest < ActionDispatch::IntegrationTest
     host! ENV["ACME_DEVELOPER_URL"]
 
     get acme_developer_health_liveness_url, headers: browser_headers
+
     assert_probe_response("liveness")
 
     get acme_developer_health_readiness_url, headers: browser_headers
+
     assert_probe_response("readiness")
 
     get acme_developer_health_startup_url, headers: browser_headers
+
     assert_probe_response("startup")
   end
 

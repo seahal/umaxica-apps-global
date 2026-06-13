@@ -6,10 +6,10 @@
 This plan records the target routing and responsibility boundary only. It does not authorize route,
 controller, model, migration, or test changes by itself.
 
-The current repository has already reintroduced `docs`, `news`, and `help` route files,
-controllers, content-entry models, and zenith migrations. Some current implementation details differ
-from the target recorded here and should be treated as cleanup work for a future implementation
-task, not as the final boundary.
+The current repository has already reintroduced `docs`, `news`, and `help` route files, controllers,
+content-entry models, and zenith migrations. Some current implementation details differ from the
+target recorded here and should be treated as cleanup work for a future implementation task, not as
+the final boundary.
 
 ## Repository Facts
 
@@ -59,8 +59,8 @@ help org host
 
 The read API resource noun is `entries`, not `posts`. `posts` implies blog, SNS, or forum-style
 posting and may conflict with real SNS posts elsewhere in Umaxica. `entries` is neutral and matches
-the lean content-entry direction. For help, `entries` means help article or help content read API; it
-does not mean Contact or inquiry workflow.
+the lean content-entry direction. For help, `entries` means help article or help content read API;
+it does not mean Contact or inquiry workflow.
 
 Do not adopt these shapes:
 
@@ -135,9 +135,8 @@ Do not add placeholder routes, controllers, response contracts, or schemas for e
   unpublish, archive, restore, create-revision, and promote-revision operations belong to future
   base > org authoring or management work.
 - Taxonomy is abandoned for now. Do not restore tags, categories, `TaxonomyBuilder`,
-  `DocumentTagMaster`, `DocumentCategoryMaster`, `TimelineTagMaster`, or
-  `TimelineCategoryMaster`. Category or tag support can be reintroduced later if there is a clear
-  product need.
+  `DocumentTagMaster`, `DocumentCategoryMaster`, `TimelineTagMaster`, or `TimelineCategoryMaster`.
+  Category or tag support can be reintroduced later if there is a clear product need.
 - Help Contact/inquiry is not part of help restoration. Do not restore `Contact`, `ContactStatus`,
   `ContactCategory`, topics, emails, telephones, token verification, or inquiry workflow under help.
   That workflow belongs to future core/base migration and design.

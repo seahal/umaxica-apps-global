@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 41dd4b74b4e6b982724405221a3e6bb724ce97ba
+  revision: b771269b60f63f2c55a4cdaa5a241a6ac18851a9
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -183,7 +183,7 @@ GEM
       addressable
       capybara
       playwright-ruby-client (>= 1.16.0)
-    cbor (0.5.10.2)
+    cbor (0.5.10.3)
     chartkick (5.2.1)
     childprocess (5.1.0)
       logger (~> 1.5)
@@ -1264,7 +1264,7 @@ CHECKSUMS
   bundler-audit (0.9.3) sha256=81c8766c71e47d0d28a0f98c7eed028539f21a6ea3cd8f685eb6f42333c9b4e9
   capybara (3.40.0) sha256=42dba720578ea1ca65fd7a41d163dd368502c191804558f6e0f71b391054aeef
   capybara-playwright-driver (0.5.9) sha256=4c17fed20817b7e1bde2cfc8186e7bf5cd72017ce1aa695e35130f8e600e7282
-  cbor (0.5.10.2) sha256=df5104f7a62c881123e6505441b1e276208be1771540c2cc3b1de8a210a7c52c
+  cbor (0.5.10.3) sha256=c3aa1d0c7e9bbffe8de4bed554f588d7926c62276ffe2dd7fabb65bae801d28a
   chartkick (5.2.1) sha256=2848d7de87189f30f28d077eb0bbdebc8a1f0f6f81de1ded95008fe564369949
   childprocess (5.1.0) sha256=9a8d484be2fd4096a0e90a0cd3e449a05bc3aa33f8ac9e4d6dcef6ac1455b6ec
   chunky_png (1.4.0) sha256=89d5b31b55c0cf4da3cf89a2b4ebc3178d8abe8cbaf116a1dba95668502fdcfe

@@ -51,7 +51,7 @@ Decisions confirmed with the user this session:
 - `config/routes.rb:12` `draw :core`
 
 Per-surface route files (host-constrained scopes; each variant defines `root to: "roots#index"`,
-`resource :health` + nested `health/{live,ready,startup}`, `resource :robots`, `resource :sitemap`):
+`resource :health` + nested `health/{live,ready,startup}`, `resource :robot`, `resource :sitemap`):
 
 - **Acme** — `config/routes/acme.rb`
   - app (`ACME_SERVICE_URL`) `:14`, com (`ACME_CORPORATE_URL`) `:165`, org (`ACME_STAFF_URL`) `:284`
@@ -255,7 +255,7 @@ scope module: :base, as: :base do
         resource :ready, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
     end
   end
   # ... com, org blocks ...
@@ -291,7 +291,7 @@ end
 - `test/controllers/<surface>/<variant>/roots_controller_test.rb` — `get …_root_url` → `200`, body
   match.
 - Health smoke: `…_health_url`, `…_health_live_url`, etc. → `200`.
-- Robots: `…_robots_url` → `200`, `text/plain`, allow-all body (existing common policy).
+- Robots: `…_robot_url` → `200`, `text/plain`, allow-all body (existing common policy).
 - Existing `controller_inheritance_invariant_test.rb` should still pass unchanged (verify).
 
 ## Docs / ADR / Plan Updates Needed

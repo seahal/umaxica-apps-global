@@ -4,26 +4,27 @@
 require "test_helper"
 
 class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
-  Scope = Struct.new(:count_value, :not_calls) do
-    def initialize(...)
-      super
-      self.not_calls ||= []
-    end
+  Scope =
+    Struct.new(:count_value, :not_calls) do
+      def initialize(...)
+        super
+        self.not_calls ||= []
+      end
 
-    def where(*args)
-      self
-    end
+      def where(*_args)
+        self
+      end
 
-    def not(**kwargs)
-      not_calls << kwargs
-      self.count_value = [count_value - 1, 0].max if count_value.to_i > 0
-      self
-    end
+      def not(**kwargs)
+        not_calls << kwargs
+        self.count_value = [count_value - 1, 0].max if count_value.to_i > 0
+        self
+      end
 
-    def count
-      count_value
+      def count
+        count_value
+      end
     end
-  end
 
   class ClientActor
     def initialize(email_scope:, telephone_scope:, passkey_scope:, google:, apple:)
@@ -59,13 +60,14 @@ class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
     def visitor_passkeys = @passkey_scope
   end
 
-  Inventory = Struct.new(:aal1_method_count, :retains_aal1_value, :retains_aal2_value, :retains_contactability_value) do
-    def retains_aal1? = retains_aal1_value
+  Inventory =
+    Struct.new(:aal1_method_count, :retains_aal1_value, :retains_aal2_value, :retains_contactability_value) do
+      def retains_aal1? = retains_aal1_value
 
-    def retains_aal2? = retains_aal2_value
+      def retains_aal2? = retains_aal2_value
 
-    def retains_contactability? = retains_contactability_value
-  end
+      def retains_contactability? = retains_contactability_value
+    end
 
   test "verified counts cover client, visitor, and fallback branches" do
     client_scope = Scope.new(2, [])

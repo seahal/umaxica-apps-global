@@ -5,12 +5,14 @@ require "test_helper"
 
 class Sign::Secret::RotateCoverageTest < ActiveSupport::TestCase
   test "call forwards arguments to issue and revoke and returns the rotated secret" do
-    credential_collection = Class.new do
-      def self.name = "CredentialCollection"
-    end
-    secret_credential_class = Class.new do
-      def self.name = "SecretCredentialClass"
-    end
+    credential_collection =
+      Class.new do
+        def self.name = "CredentialCollection"
+      end
+    secret_credential_class =
+      Class.new do
+        def self.name = "SecretCredentialClass"
+      end
     secret_credential = Object.new
     issued_result = Sign::Secret::Issue::Result.new(
       secret_credential: :rotated_secret,

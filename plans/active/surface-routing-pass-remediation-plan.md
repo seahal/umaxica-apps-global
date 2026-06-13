@@ -66,7 +66,7 @@ empty).
 
 ### 1c. Robots
 
-- Per surface × variant: `get …_robots_url` → `200`, `Content-Type: text/plain`, body equals the
+- Per surface × variant: `get …_robot_url` → `200`, `Content-Type: text/plain`, body equals the
   shared `::Robots` allow-all policy (`"User-agent: *\nDisallow:\n"`).
 
 ### 1d. Entries (Help/Docs/News only) + fixtures

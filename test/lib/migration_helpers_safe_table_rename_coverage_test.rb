@@ -33,7 +33,7 @@ class MigrationHelpersSafeTableRenameCoverageTest < ActiveSupport::TestCase
   end
 
   test "renames when only the old table exists" do
-    harness = Harness.new(%w[old_table])
+    harness = Harness.new(%w(old_table))
 
     harness.rename_table_strict(:old_table, :new_table)
 
@@ -42,7 +42,7 @@ class MigrationHelpersSafeTableRenameCoverageTest < ActiveSupport::TestCase
   end
 
   test "skips when the new table already exists" do
-    harness = Harness.new(%w[new_table])
+    harness = Harness.new(%w(new_table))
 
     harness.rename_table_strict(:old_table, :new_table)
 
@@ -51,7 +51,7 @@ class MigrationHelpersSafeTableRenameCoverageTest < ActiveSupport::TestCase
   end
 
   test "raises on inconsistent table state" do
-    both = Harness.new(%w[old_table new_table])
+    both = Harness.new(%w(old_table new_table))
     missing = Harness.new([])
 
     assert_raises(MigrationHelpersSafeTableRename::InconsistentState) do

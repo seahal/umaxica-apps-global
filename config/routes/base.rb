@@ -12,7 +12,7 @@ scope module: :base, as: :base do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -28,7 +28,7 @@ scope module: :base, as: :base do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -44,7 +44,7 @@ scope module: :base, as: :base do
         resource :readiness, only: :show
         resource :startup, only: :show
       end
-      resource :robots, only: :show, path: "robots.txt"
+      resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
