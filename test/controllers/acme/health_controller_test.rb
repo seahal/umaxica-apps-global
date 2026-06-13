@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class AcmeHealthsControllerTest < ActionDispatch::IntegrationTest
+class AcmeHealthControllerTest < ActionDispatch::IntegrationTest
   test "network host GET /health returns OK response without redirect" do
     host! ENV["ACME_NETWORK_URL"]
 

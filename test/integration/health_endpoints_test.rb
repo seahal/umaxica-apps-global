@@ -229,7 +229,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       ].each do |controller|
         controller_class = "#{controller}_controller".camelize.constantize
 
-        assert_includes controller_class.ancestors, ::Health::CheckRendering
+        assert_includes controller_class.ancestors, ::HealthCheckRendering
       end
     end
   end
@@ -383,11 +383,11 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   test "missing and inherited health profiles fail loudly" do
     missing =
       Class.new(::ApplicationController) do
-        include ::Health::CheckRendering
+        include ::HealthCheckRendering
       end
     inherited_parent =
       Class.new(::ApplicationController) do
-        include ::Health::CheckRendering
+        include ::HealthCheckRendering
       end
     inherited_parent.const_set(:HEALTH_PROFILE, Health::Profiles::App)
     inherited_child = Class.new(inherited_parent)

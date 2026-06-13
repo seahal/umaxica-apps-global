@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::HealthsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::HealthControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
   end

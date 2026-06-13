@@ -4,7 +4,7 @@
 module Acme
   module Com
     class HealthController < BareController
-      include ::Health::CheckRendering
+      include ::HealthCheckRendering
 
       AUTHENTICATION_MODE = :bare
       HEALTH_PROFILE = ::Health::Profiles::Com

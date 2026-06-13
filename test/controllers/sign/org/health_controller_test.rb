@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::HealthControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot" do
     host! ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
 

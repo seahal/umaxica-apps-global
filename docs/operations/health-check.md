@@ -4,8 +4,8 @@ This application does not use Rails' default `/up` endpoint for orchestrator hea
 current public health endpoints are surface-local and host-constrained:
 
 - `GET /health`
-- `GET /health/live`
-- `GET /health/ready`
+- `GET /health/liveness`
+- `GET /health/readiness`
 - `GET /health/startup`
 
 ## Policy
@@ -24,19 +24,24 @@ controllers without an explicit authentication mode default to `deny_all`. Rails
 
 ## Endpoint Roles
 
-| Path              | Role                                                             |
-| ----------------- | ---------------------------------------------------------------- |
-| `/health`         | HTML readiness snapshot for the current surface.                 |
-| `/health/live`    | JSON liveness probe. It should remain dependency-free.           |
-| `/health/ready`   | JSON readiness probe for dependencies relevant to the surface.   |
-| `/health/startup` | JSON startup probe for boot-time checks relevant to the surface. |
+| Path                | Role                                                                    |
+| ------------------- | ----------------------------------------------------------------------- |
+| `/health`           | HTML snapshot for the current surface (JSON snapshot for JSON clients). |
+| `/health/liveness`  | JSON liveness probe. It must remain dependency-free.                    |
+| `/health/readiness` | JSON readiness probe for dependencies relevant to the surface.          |
+| `/health/startup`   | JSON startup probe for boot-time checks relevant to the surface.        |
+
+The former `/health/live` and `/health/ready` paths were removed outright (no compatibility shim);
+`test/integration/edge_health_routes_test.rb` guards against their reintroduction. Infrastructure
+probe configuration must point at the `liveness` / `readiness` paths.
 
 All probe responses must avoid exposing internal topology, exception details, credentials, or full
-dependency names.
+dependency names. See `docs/reference/health-endpoints.md` for the JSON contract.
 
 ## Related
 
-- `app/controllers/concerns/health/controller.rb`
-- `app/services/health/`
+- `app/controllers/concerns/health_check_rendering.rb`
+- `app/services/health.rb`
+- `docs/reference/health-endpoints.md`
 - `test/integration/health_endpoints_test.rb`
 - `test/integration/edge_health_routes_test.rb`

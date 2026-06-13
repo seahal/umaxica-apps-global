@@ -5,7 +5,7 @@ module Core
   module Org
     module Health
       class LivenessController < BareController
-        include ::Health::CheckRendering
+        include ::HealthCheckRendering
 
         AUTHENTICATION_MODE = :bare
         HEALTH_PROFILE = ::Health::Profiles::Org

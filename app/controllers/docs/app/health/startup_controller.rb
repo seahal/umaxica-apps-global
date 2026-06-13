@@ -5,7 +5,7 @@ module Docs
   module App
     module Health
       class StartupController < BareController
-        include ::Health::CheckRendering
+        include ::HealthCheckRendering
 
         AUTHENTICATION_MODE = :bare
         HEALTH_PROFILE = ::Health::Profiles::App

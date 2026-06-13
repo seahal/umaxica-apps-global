@@ -5,7 +5,7 @@ module Help
   module Org
     module Health
       class ReadinessController < BareController
-        include ::Health::CheckRendering
+        include ::HealthCheckRendering
 
         AUTHENTICATION_MODE = :bare
         HEALTH_PROFILE = ::Health::Profiles::Org

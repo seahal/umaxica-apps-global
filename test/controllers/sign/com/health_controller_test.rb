@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::HealthControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot without redirect" do
     host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
 

@@ -31,3 +31,12 @@ further from the intended result.
 
 Given the same inputs, the same path must produce the same outcome. Do not introduce order-, time-,
 or environment-dependent branching into the normal flow.
+
+## No workflow fallbacks
+
+Do not add fallback commands in CI, scripts, package scripts, Rake tasks, or binstubs. Required
+steps must fail clearly when a tool, variable, dependency, or file is missing.
+
+Do not make workflows continue after failed required steps, and do not introduce compatibility
+matrices, duplicate job names, alternate runtimes, or legacy tool versions unless explicitly
+required.

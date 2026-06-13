@@ -18,6 +18,9 @@ User decisions captured this session:
   single path-based `/docs` host.
 - **Persistence shape:** per-surface tables (`app_*` / `com_*` / `org_*`), matching the existing
   per-surface convention — _not_ a single flat `content_entries` with a `surface` column.
+- **Table naming:** separate tables per content namespace and surface, such as `app_docs_entries`,
+  `app_news_entries`, `app_help_entries` and matching `com_*` / `org_*` tables — _not_ shared
+  `*_content_entries` tables reused across docs/news/help.
 
 ---
 
@@ -134,8 +137,8 @@ User decisions captured this session:
 
 - **H1 — Repository-boundary ADR conflict.** Implementing here directly contradicts the accepted
   regional/global split. Mitigation: **Phase 0** writes a superseding ADR before any code.
-- **H2 — Content-model ADR conflict.** Per-surface `content_entries` diverges from accepted
-  `Document`/`Timeline`+`PublicationRecord` model. Mitigation: amend/supersede
+- **H2 — Content-model ADR conflict.** Namespace-specific content-entry tables diverge from
+  accepted `Document`/`Timeline`+`PublicationRecord` model. Mitigation: amend/supersede
   `adr/regional-docs-news-content-model.md` and `regional-help-surface-direction.md` in Phase 0.
 - **H3 — No Base/content surface scaffolding exists.** The "simple 200" entrypoint silently requires
   standing up entire host-constrained surfaces (route files + per-surface controller trees + host
@@ -225,9 +228,10 @@ current `BareController` skeleton), which Option 3 already adopts by reference.
 
 ### Phase 2 — Content model (per-surface, read-only)
 
-- Add per-surface tables on the Phase-0 DB group: `app_content_entries`, `com_content_entries`,
-  `org_content_entries` (repeat per docs/news/help namespace as decided). Candidate columns: `slug`
-  (unique per surface), `title`, `summary`, `body`, `status`, `locale`, `published_at`, timestamps.
+- Add separate per-namespace, per-surface tables on the Phase-0 DB group: `app_docs_entries`,
+  `app_news_entries`, `app_help_entries`, with matching `com_*` and `org_*` tables. Candidate
+  columns: `slug` (unique per table), `title`, `summary`, `body`, `status`, `locale`,
+  `published_at`, timestamps.
   **Rationale for each beyond the objective's set:** `locale` — content surfaces are
   region/locale-specific by definition (regional-content.md); `status` + `published_at` — minimal
   publish gate without the heavy revision/version split. **Defer** category/tag/taxonomy (not needed
@@ -249,18 +253,12 @@ current `BareController` skeleton), which Option 3 already adopts by reference.
   a `entries#show` by `slug`), resolving only `status` published + `published_at` window. No draft
   exposure. Tests: published vs unpublished, locale, 404 for unknown slug, no auth side effects.
 
-### Phase 5 — API boundary (Rails = authority)
+### Phase 5 — Optional Rails JSON API boundary
 
-- Expose a read-only JSON API (re-design of the old `edge/v0` shape) for Hono/ReactRouter
-  presentation: Rails is the content **authority**; Hono is presentation only. Versioned (`/edge/v0`
-  or successor), GET-only, `:bare`, no cookies/sessions, cache-friendly. Contract: list + show by
-  slug + (later) taxonomy. Define schema explicitly before implementing.
-
-### Phase 6 — Frontend integration
-
-- Hono / ReactRouter consume the Phase-5 API as a pure presentation layer. No Rails session/cookie
-  trust across the boundary (per `acme-sign-core-base-port.md` Core/Base cookie boundary). Confirm
-  CORS/trusted-origins and caching contract.
+- If a JSON API is needed, expose it from Rails as the content **authority** and redesign the old
+  `edge/v0` shape as a GET-only, versioned, `:bare`, cache-friendly API. Contract: list + show by
+  slug + (later) taxonomy. Define schema explicitly before implementing. No frontend integration is
+  planned here; handle presentation-layer integration in a separate plan if a concrete need appears.
 
 ---
 
@@ -287,5 +285,3 @@ current `BareController` skeleton), which Option 3 already adopts by reference.
 
 - Exact database group/connection for content tables (M1) — resolve in Phase 0.
 - Whether any old public URL/host is live externally (must-keep) — confirm before removing ENV.
-- Final per-namespace table naming (single `*_content_entries` reused across docs/news/help vs.
-  per-namespace like `*_docs_entries`) — decide in Phase 0/2.

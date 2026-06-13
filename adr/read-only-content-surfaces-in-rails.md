@@ -15,9 +15,9 @@ application. The goal is public, read-only delivery only. It does not restore th
 engine, CMS editing, OIDC relying-party callbacks, preference writes, or authenticated actor
 lifecycle.
 
-The existing `adr/regional-docs-news-content-model.md` accepted a heavier regional model:
-`Document` for docs, `Timeline` for news, revision/version split, taxonomy, and org CMS editing.
-That model remains useful historical context, but it is larger than this v1 delivery need.
+The existing `adr/regional-docs-news-content-model.md` accepted a heavier regional model: `Document`
+for docs, `Timeline` for news, revision/version split, taxonomy, and org CMS editing. That model
+remains useful historical context, but it is larger than this v1 delivery need.
 
 ## Decision
 

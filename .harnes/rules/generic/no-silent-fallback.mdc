@@ -14,6 +14,8 @@ Do not:
 - rescue and ignore errors
 - use `rescue nil`
 - catch a broad exception only to continue as if nothing happened
+- swallow JavaScript or TypeScript failures with empty `catch`, fallback return values, default
+  responses, or best-effort continuation
 
 Reason: swallowed exceptions hide failures and turn a hard error into silent data corruption.
 
@@ -30,3 +32,16 @@ When state may be inconsistent, fail loudly instead (see `fail-fast`).
 Do not substitute a default value to paper over a missing or invalid input when its absence means
 something is actually wrong. A fallback is only acceptable when the absent value is a legitimate,
 expected case — never as a way to avoid handling an error.
+
+Do not hide invalid configuration by supplying defaults for required settings. Required
+configuration must be explicit and must fail clearly when missing.
+
+Forbidden required-configuration patterns include:
+
+- `ENV.fetch("NAME", "default")`, `ENV["NAME"] || "default"`, or equivalent Ruby defaults
+- `Rails.application.credentials.dig(...) || "default"` or equivalent credential defaults
+- `process.env.NAME ?? "default"`, `process.env.NAME || "default"`,
+  `import.meta.env.NAME ?? "default"`, or equivalent JavaScript or TypeScript defaults
+
+Validate required environment variables at startup or module boundaries and raise or throw a clear
+error when they are missing.
