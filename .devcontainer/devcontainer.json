@@ -98,15 +98,13 @@
   },
   // Host bind mounts that hold general config remain readonly so in-container
   // writes cannot re-own them to a subuid on the host under rootless podman.
-  // Codex and Claude Code state must be writable by the devcontainer user, so
-  // bind the narrow tool-specific paths without recursive ownership remapping
-  // options and rely on keep-id from the compose override to preserve host
-  // ownership.
+  // Tool auth/state directories that must be writable are mounted narrowly.
+  // Executable tool binaries come from devcontainer features or the image, not
+  // host .local/bin, so host-only symlinks cannot shadow container installs.
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/global/.codex,type=bind",
     "source=${localEnv:HOME}/.claude,target=/home/global/.claude,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/global/.claude.json,type=bind",
-    "source=${localEnv:HOME}/.local/bin,target=/home/global/.local/bin,type=bind",
     "source=${localEnv:HOME}/.config/git,target=/home/global/.config/git,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/global/.gitconfig,type=bind,readonly",
     "source=${localEnv:HOME}/.ssh,target=/home/global/.ssh,type=bind,readonly",

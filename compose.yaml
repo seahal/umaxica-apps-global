@@ -259,21 +259,6 @@ services:
     networks:
     - observability
     restart: unless-stopped
-  alloy:
-    image: grafana/alloy:latest
-    volumes:
-    - "./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro,z"
-    # Host container socket. Docker uses /var/run/docker.sock; rootless
-    # podman exposes a docker-compatible socket at
-    # ${XDG_RUNTIME_DIR}/podman/podman.sock (rootful: /run/podman/podman.sock).
-    # Override via CONTAINER_SOCKET in the environment.
-    - "${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro"
-    command: run /etc/alloy/config.alloy
-    networks:
-    - observability
-    depends_on:
-    - loki
-    restart: unless-stopped
   pgadmin:
     image: dpage/pgadmin4
     # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600

@@ -26,7 +26,7 @@ class ClientSecretCredentialsIssueRecovery
         ensure_audit_dependencies!
         revoke_existing_recovery_secret_credentials!
 
-        result = Sign::Secret::Issue.call(
+        result = SignSecretIssue.call(
           credential_collection: @user.client_secret_credentials,
           secret_credential_class: ClientSecretCredential,
           name: raw_secret_credential.first(4),

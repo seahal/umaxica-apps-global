@@ -9,7 +9,7 @@ module SignRequiresRecoveryPasscodes
   def require_recovery_passcodes_for_mfa_registration!
     return true if recovery_passcode_requirement_satisfied?
 
-    @minimum_recovery_passcodes = Sign::RecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
+    @minimum_recovery_passcodes = SignRecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
     @usable_unused_recovery_passcode_count = usable_unused_recovery_passcode_count
     @recovery_passcode_setup_url = recovery_passcode_setup_url
     render "shared/recovery_passcodes/required", status: :forbidden, formats: :html
@@ -18,11 +18,11 @@ module SignRequiresRecoveryPasscodes
 
   def recovery_passcode_requirement_satisfied?
     usable_unused_recovery_passcode_count >=
-      Sign::RecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
+      SignRecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
   end
 
   def usable_unused_recovery_passcode_count
-    @usable_unused_recovery_passcode_count ||= Sign::RecoveryPasscodeRequirement.usable_unused_count(
+    @usable_unused_recovery_passcode_count ||= SignRecoveryPasscodeRequirement.usable_unused_count(
       actor: recovery_passcode_requirement_actor,
       credential_class: recovery_passcode_requirement_credential_class,
     )

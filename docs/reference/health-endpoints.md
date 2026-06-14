@@ -11,6 +11,11 @@ object owns serialization (`as_public_json`) and the 200/503 decision (`http_sta
 controllers (`HealthCheckRendering`, `app/controllers/concerns/health_check_rendering.rb`) only
 render it.
 
+These endpoints are internal-only checkpoints for orchestrators and monitoring, not a user-facing
+contract; public traffic to them is blocked at the edge. User-facing availability is served by a
+separate integrated status page (external service). See
+`adr/internal-health-endpoint-edge-isolation.md` and `docs/operations/health-check.md`.
+
 ## JSON contract
 
 All endpoints return the same four fixed top-level keys:

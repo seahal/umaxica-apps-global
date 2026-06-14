@@ -19,24 +19,6 @@ Without it, containers do not come back after logout, reboot, or session restart
 `podman ps` shows the restart policy. Docker users on systemd hosts get this for free via the system
 Docker daemon.
 
-## Container socket for the `alloy` service
-
-`alloy` mounts the engine's container socket to collect container telemetry. The compose file
-expects an env override on Podman:
-
-| Mode             | `CONTAINER_SOCKET` value                     |
-| ---------------- | -------------------------------------------- |
-| Docker (default) | (unset — defaults to `/var/run/docker.sock`) |
-| Rootless Podman  | `${XDG_RUNTIME_DIR}/podman/podman.sock`      |
-| Rootful Podman   | `/run/podman/podman.sock`                    |
-
-Enable the Podman socket once per user session:
-
-```bash
-systemctl --user enable --now podman.socket   # rootless
-sudo systemctl enable --now podman.socket     # rootful
-```
-
 ## Image UID / GID build args
 
 The `core` image bakes the host's UID/GID at build time via the `DOCKER_UID` and `DOCKER_GID` build

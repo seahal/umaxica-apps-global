@@ -197,7 +197,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
       uses: 10,
     )
 
-    Sign::Secret::Verify.stub(:call, ->(*) { flunk("new-axis verifier must not be used for legacy rows") }) do
+    SignSecretVerify.stub(:call, ->(*) { flunk("new-axis verifier must not be used for legacy rows") }) do
       post sign_app_sign_in_secret_credential_url(ri: "jp"),
            params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
            headers: default_headers
@@ -217,7 +217,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     end
 
     begin
-      Sign::Secret::Verify.stub(
+      SignSecretVerify.stub(
         :call,
         lambda do |*args, **kwargs|
           secret_credential = kwargs[:secret_credential] || args.first&.fetch(:secret_credential)
@@ -226,7 +226,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
           assert_predicate secret_credential, :new_axis_secret_credential?
           assert_equal result.raw_secret_credential, raw_secret_credential
 
-          Sign::Secret::Verify::Result.new(
+          SignSecretVerify::Result.new(
             secret_credential: secret_credential,
             reason: :success,
             details: { secret_credential_id: secret_credential.id },

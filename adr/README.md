@@ -96,6 +96,12 @@ Current logging / observability decisions:
 - `adr/application-logging-boundary.md`
 - `adr/traces-and-metrics-routing-via-alloy.md`
 
+Current health / edge access decisions:
+
+- `adr/internal-health-endpoint-edge-isolation.md` — `/health` and every path beneath it are
+  internal-only checkpoints blocked at the Cloudflare edge; user-facing availability is served by a
+  separate integrated status page (external service).
+
 Current browser security header decisions:
 
 - `adr/csp-and-permissions-policy.md`

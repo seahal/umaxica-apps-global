@@ -147,6 +147,10 @@ class OperatorSecretCredential < OrgPrincipalRecord
   end
 
   def expired_for_secret_credential_sign_in?(now)
+    if respond_to?(:expires_at) && expires_at.present?
+      return now > expires_at
+    end
+
     return false if discarded_at.nil?
     return false if discarded_at.respond_to?(:infinite?) && discarded_at.infinite?
 

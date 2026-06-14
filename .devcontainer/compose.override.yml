@@ -28,18 +28,17 @@ services:
   valkey:
     container_name: global-devcontainer-valkey
     ports: []
+  kafka:
+    ports: !reset []
   loki:
     container_name: global-devcontainer-loki
     ports: []
   tempo:
     container_name: global-devcontainer-tempo
-    ports: []
+    ports: !reset []
   grafana:
     container_name: global-devcontainer-grafana
     ports: []
-  alloy:
-    profiles:
-      - observability
   # pgadmin and tinyrdm are admin GUIs that don't need to run for normal
   # devcontainer work. Gate them behind an opt-in profile so they only start
   # when explicitly requested (e.g. `--profile tools`).

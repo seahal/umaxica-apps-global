@@ -306,7 +306,7 @@ module Sign
 
         def perform_secret_credential_verification(secret_credential, raw_secret_credential)
           if secret_credential.new_axis_secret_credential?
-            ::Sign::Secret::Verify.call(
+            ::SignSecretVerify.call(
               secret_credential: secret_credential,
               raw_secret_credential: raw_secret_credential.to_s,
             )

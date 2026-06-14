@@ -27,10 +27,10 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
     assert_equal "recovery", result.secret_credential.secret_kind
     assert_equal "single_use", result.secret_credential.usage_policy
     assert_equal ClientSecretCredentialKind::RECOVERY, result.secret_credential.user_secret_kind_id
-    assert_equal Sign::Secret::LookupDigest.digest(result.raw_secret_credential), result.secret_credential.lookup_digest
+    assert_equal SignSecretLookupDigest.digest(result.raw_secret_credential), result.secret_credential.lookup_digest
     assert_not_includes result.secret_credential.attributes.values, result.raw_secret_credential
 
-    verification = Sign::Secret::Verify.call(
+    verification = SignSecretVerify.call(
       secret_credential: result.secret_credential,
       raw_secret_credential: result.raw_secret_credential,
     )
@@ -39,7 +39,7 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
     assert_predicate result.secret_credential.reload.consumed_at, :present?
     assert_equal 1, result.secret_credential.reload.use_count
 
-    repeat = Sign::Secret::Verify.call(
+    repeat = SignSecretVerify.call(
       secret_credential: result.secret_credential.reload,
       raw_secret_credential: result.raw_secret_credential,
     )
@@ -51,8 +51,8 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
   test "revoked and discarded new-axis recovery secrets cannot be used" do
     result = ClientSecretCredentialsIssueRecovery.call(actor: @actor, user: @actor)
 
-    Sign::Secret::Revoke.call(secret_credential: result.secret_credential)
-    revoked = Sign::Secret::Verify.call(
+    SignSecretRevoke.call(secret_credential: result.secret_credential)
+    revoked = SignSecretVerify.call(
       secret_credential: result.secret_credential.reload,
       raw_secret_credential: result.raw_secret_credential,
     )
@@ -63,7 +63,7 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
     fresh = ClientSecretCredentialsIssueRecovery.call(actor: @actor, user: @actor)
     fresh.secret_credential.update_columns(discarded_at: 1.minute.ago)
 
-    expired = Sign::Secret::Verify.call(
+    expired = SignSecretVerify.call(
       secret_credential: fresh.secret_credential.reload,
       raw_secret_credential: fresh.raw_secret_credential,
     )
@@ -76,7 +76,7 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
     result = ClientSecretCredentialsIssueRecovery.call(actor: @actor, user: @actor)
     result.secret_credential.update_columns(discarded_at: 10.minutes.from_now, purged_at: 1.minute.ago)
 
-    verification = Sign::Secret::Verify.call(
+    verification = SignSecretVerify.call(
       secret_credential: result.secret_credential.reload,
       raw_secret_credential: result.raw_secret_credential,
     )
