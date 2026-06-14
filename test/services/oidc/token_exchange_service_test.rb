@@ -1052,6 +1052,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal OidcIssuer.for_client(@client), access_token.fetch("iss")
     assert_equal OidcSubject.for(@user, resource_type: "client"), access_token.fetch("sub")
     assert_equal [@client.aud], Array(access_token.fetch("aud"))
+    assert_equal "core_app", access_token.fetch("client_id")
     assert_equal %w(openid profile), access_token.fetch("scp")
     assert_predicate access_token.fetch("auth_time"), :present?
 
@@ -1061,6 +1062,43 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
     assert_includes acme_kids, access_header.fetch("kid")
     assert_includes acme_kids, id_header.fetch("kid")
+  end
+
+  test "public palm audience exchange issues access token accepted by palm resource server" do
+    public_client = public_visitor_account(
+      client_id: "app-ios-rp",
+      aud: PalmAccessTokenAuthenticator::AUDIENCE,
+      redirect_uris: ["https://palm.jp.umaxica.app/auth/callback"],
+      domains: ["palm.jp.umaxica.app"],
+    )
+    code_record = issue_code!(
+      client_id: public_client.client_id,
+      redirect_uri: public_client.redirect_uris.first,
+      scope: "openid palm.read",
+    )
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_predicate result, :success?
+
+      palm_result = PalmAccessTokenAuthenticator.call(
+        access_token: result.token_response.fetch(:access_token),
+        host: "palm.jp.umaxica.app",
+        authorization_scheme: "Bearer",
+      )
+
+      assert_predicate palm_result, :success?
+      assert_equal @user, palm_result.resource
+      assert_equal "app-ios-rp", AuthorizationTokenClaims.client_id(palm_result.payload)
+      assert_equal [PalmAccessTokenAuthenticator::AUDIENCE], Array(palm_result.payload.fetch("aud"))
+    end
   end
 
   private

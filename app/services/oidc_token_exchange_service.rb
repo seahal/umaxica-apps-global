@@ -156,6 +156,7 @@ class OidcTokenExchangeService < ApplicationService
         audiences: [client.aud],
         subject: subject,
         auth_time: auth_time,
+        client_id: client.client_id,
       )
       id_token = OidcIdTokenIssuer.call(
         resource: resource,

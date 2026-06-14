@@ -35,6 +35,15 @@ module Palm
         end
       end
 
+      test "palm app exposes bearer profile api under the api namespace" do
+        host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
+
+        assert_equal(
+          "palm/app/api/v0/profiles#show",
+          route_to("https://#{host}/api/v0/profile", method: :get),
+        )
+      end
+
       test "sign does not own native client registration or oauth issuance routes" do
         native_ids = OidcClientRegistry.client_ids.grep(/\Asign.*(?:ios|android|native)|(?:ios|android|native).*sign/i)
 

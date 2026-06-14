@@ -47,11 +47,11 @@ CREATE TABLE public.account_access_events (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL,
-    CONSTRAINT chk_account_access_events_account_type CHECK (((account_type)::text = ANY ((ARRAY['Client'::character varying, 'Visitor'::character varying, 'Operator'::character varying])::text[]))),
-    CONSTRAINT chk_account_access_events_event_type CHECK (((event_type)::text = ANY ((ARRAY['admin_lock'::character varying, 'admin_lock_reaffirmed'::character varying, 'admin_unlock'::character varying])::text[]))),
-    CONSTRAINT chk_account_access_events_next_access_state CHECK (((next_access_state)::text = ANY ((ARRAY['enabled'::character varying, 'admin_locked'::character varying])::text[]))),
-    CONSTRAINT chk_account_access_events_previous_access_state CHECK (((previous_access_state)::text = ANY ((ARRAY['enabled'::character varying, 'admin_locked'::character varying])::text[]))),
-    CONSTRAINT chk_account_access_events_reason_code CHECK (((reason_code)::text = ANY ((ARRAY['abuse'::character varying, 'security_incident'::character varying, 'chargeback'::character varying, 'terms_violation'::character varying, 'support_request'::character varying, 'legal_hold'::character varying, 'operator_error_recovery'::character varying, 'other'::character varying])::text[])))
+    CONSTRAINT chk_account_access_events_account_type CHECK (((account_type)::text = ANY (ARRAY[('Client'::character varying)::text, ('Visitor'::character varying)::text, ('Operator'::character varying)::text]))),
+    CONSTRAINT chk_account_access_events_event_type CHECK (((event_type)::text = ANY (ARRAY[('admin_lock'::character varying)::text, ('admin_lock_reaffirmed'::character varying)::text, ('admin_unlock'::character varying)::text]))),
+    CONSTRAINT chk_account_access_events_next_access_state CHECK (((next_access_state)::text = ANY (ARRAY[('enabled'::character varying)::text, ('admin_locked'::character varying)::text]))),
+    CONSTRAINT chk_account_access_events_previous_access_state CHECK (((previous_access_state)::text = ANY (ARRAY[('enabled'::character varying)::text, ('admin_locked'::character varying)::text]))),
+    CONSTRAINT chk_account_access_events_reason_code CHECK (((reason_code)::text = ANY (ARRAY[('abuse'::character varying)::text, ('security_incident'::character varying)::text, ('chargeback'::character varying)::text, ('terms_violation'::character varying)::text, ('support_request'::character varying)::text, ('legal_hold'::character varying)::text, ('operator_error_recovery'::character varying)::text, ('other'::character varying)::text])))
 );
 
 
@@ -734,7 +734,7 @@ CREATE TABLE public.chronicles (
     changeset jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) with time zone NOT NULL,
     updated_at timestamp(6) with time zone NOT NULL,
-    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY ((ARRAY['intent'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'audit_incomplete'::character varying, 'invalidated'::character varying, 'manual_recovery_required'::character varying])::text[])))
+    CONSTRAINT chk_chronicles_result CHECK (((result)::text = ANY (ARRAY[('intent'::character varying)::text, ('succeeded'::character varying)::text, ('failed'::character varying)::text, ('audit_incomplete'::character varying)::text, ('invalidated'::character varying)::text, ('manual_recovery_required'::character varying)::text])))
 );
 
 
