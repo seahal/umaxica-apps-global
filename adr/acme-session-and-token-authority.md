@@ -6,7 +6,7 @@ Accepted (2026-06-02)
 
 > **Supersession (2026-06-12):** The target component model is now defined by
 > `adr/acme-sign-core-base-port-boundary.md`. Acme is the only IdP / Authorization Server. Core is
-> the Next.js web RP/BFF, Base is the Rails foundation/control-plane subdomain, and Port is the
+> the Next.js web RP/BFF, Base is the Rails foundation/control-plane subdomain, and Palm is the
 > native bearer-token API Resource Server. This ADR's older `acme/www` session/token authority
 > framing is superseded where it conflicts with that model.
 

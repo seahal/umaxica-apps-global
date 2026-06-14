@@ -18,9 +18,10 @@ Current identity authority implementation plan:
 
 - `adr/acme-sign-core-base-port-boundary.md` is the current accepted boundary for Acme as the only
   IdP / Authorization Server, Sign as a special RP, Core as the Next.js web RP/BFF, Base as the
-  Rails foundation/control-plane subdomain, and Port as the native bearer-token API Resource Server.
+  Rails foundation/control-plane subdomain, and Palm as the native bearer-token API Resource Server
+  formerly tracked as Port.
 - `plans/active/acme-sign-core-base-port-implementation.md` tracks current implementation follow-up.
 - `adr/sign-residual-idp-surface-retirement.md`,
   `plans/identity-authority-inversion-implementation.md`, and
   `plans/active/identity-authority-inversion-first-slice.md` are superseded where they conflict with
-  the Acme / Sign / Core / Base / Port boundary.
+  the Acme / Sign / Core / Base / Palm boundary.

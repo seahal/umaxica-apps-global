@@ -71,7 +71,8 @@ not set Core credential cookies.
 Audience and transport are bound:
 
 - `aud=core-browser` is accepted only from cookie transport.
-- `aud=palm-api` or `aud=port-api` is accepted only from Authorization bearer transport.
+- `aud=palm-api` is accepted only from Authorization bearer transport. The older `port-api`
+  vocabulary is superseded by Palm.
 - `aud=side-service` is service-token-only and never user-bound.
 
 Reverse transport must be rejected.

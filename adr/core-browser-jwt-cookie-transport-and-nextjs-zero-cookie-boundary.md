@@ -81,14 +81,13 @@ the public edge.
 Audience is bound to transport:
 
 - `core-browser` is accepted only from cookie transport on Rails Core browser API/auth paths.
-- `palm-api` or the existing accepted `port-api` audience is accepted only from
-  `Authorization: Bearer` on the native/mobile API boundary.
+- `palm-api` is accepted only from `Authorization: Bearer` on the native/mobile API boundary.
 - Side service credentials are service-only, never user-bound, and never accepted from cookies.
 
 Reverse use is rejected:
 
 - `core-browser` via `Authorization` is rejected.
-- `palm-api` / `port-api` via cookie is rejected.
+- `palm-api` via cookie is rejected.
 - Side service credentials via cookie are rejected.
 - Side service credentials with a user subject are rejected.
 

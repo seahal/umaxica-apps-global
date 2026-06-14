@@ -20,17 +20,17 @@ Current identity authority decision:
 - `adr/core-browser-credential-transport.md` — superseded predecessor retained for traceability.
 - `adr/acme-sign-core-base-port-boundary.md` — current source of truth for the target component
   model: Acme is the only IdP / Authorization Server, Sign is a special RP, Core is the Next.js web
-  RP/BFF, Base is the Rails foundation/control-plane subdomain, and Port is the native bearer-token
-  API Resource Server. Its `__Host-core_sid`-only Core browser credential model is superseded by
-  `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`.
+  RP/BFF, Base is the Rails foundation/control-plane subdomain, and Palm is the native bearer-token
+  API Resource Server formerly tracked as Port. Its `__Host-core_sid`-only Core browser credential
+  model is superseded by `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`.
 - `adr/identity-authority-boundary.md` — current source of truth for Session, Token, Account,
   Preference, Authorization, Credential Gateway, ceremony-result, and downstream-token authority
   within the older Rails-only `acme/www` / `sign/id` model; superseded where it conflicts with the
-  Acme / Sign / Core / Base / Port component model.
+  Acme / Sign / Core / Base / Palm component model.
 - `adr/acme-session-and-token-authority.md` — refines the older identity authority boundary for
   `acme/www` owned user sessions, refresh-token families, step-up freshness, logout, session
   listing, compromise state, and downstream token issuance; superseded where it conflicts with the
-  Acme / Sign / Core / Base / Port component model.
+  Acme / Sign / Core / Base / Palm component model.
 - `adr/sign-credential-gateway-surface.md` — refines the identity authority boundary for permitted
   `sign/id` credential inventory, ceremony state, ceremony execution, signed ceremony results, and
   ceremony-only audit records; superseded where it conflicts with Sign as a special RP.
@@ -39,7 +39,7 @@ Current identity authority decision:
   sign-out paths, and step-up freshness writes; superseded where it conflicts with Sign as a special
   RP and Acme as the only IdP / Authorization Server.
 
-Implementation note: the accepted Acme / Sign / Core / Base / Port boundary is ahead of parts of the
+Implementation note: the accepted Acme / Sign / Core / Base / Palm boundary is ahead of parts of the
 current code and older plans. Active implementation work is tracked in
 `plans/active/acme-sign-core-base-port-implementation.md`; existing Rails-only compatibility routes
 or storage do not create a competing ADR-level authority assignment.

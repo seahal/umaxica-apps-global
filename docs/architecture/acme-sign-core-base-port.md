@@ -1,4 +1,4 @@
-# Acme, Sign, Core, Base, And Port Architecture
+# Acme, Sign, Core, Base, And Palm Architecture
 
 ## Current Boundary
 
@@ -10,10 +10,13 @@ The accepted component model is:
 | Sign      | Special relying party                          |
 | Core      | Next.js web relying party and BFF              |
 | Base      | Rails application foundation and control plane |
-| Port      | Native bearer-token API Resource Server        |
+| Palm      | Native bearer-token API Resource Server        |
 
 Acme is the only login authority. Sign, Core, Base views, iOS, and Android authenticate through
 Acme. APIs are Resource Servers, not relying parties.
+
+Palm is the canonical name for the native API formerly tracked as Port. New architecture, code,
+configuration, route, and audience vocabulary should use Palm.
 
 ## Responsibilities
 
@@ -32,8 +35,8 @@ Base owns Rails-suitable foundation behavior: settings, preferences, account, pr
 administration, complex mutations, audit-sensitive operations, and Rails views where Rails remains
 the safer implementation boundary.
 
-Port owns native API access for iOS, Android, and other native clients. It accepts only Acme-issued
-bearer access tokens with the Port audience.
+Palm owns native API access for iOS, Android, and other native clients. It accepts only Acme-issued
+bearer access tokens with the Palm audience.
 
 ## Browser Flow
 
@@ -77,29 +80,29 @@ Core and Base do not share cookies or sessions.
 
 The shared person key across components is Acme `iss + sub`.
 
-## Native And Port Flow
+## Native And Palm Flow
 
 ```text
 iOS / Android
 -> Acme /authorize
 -> Acme /token
--> Port API with Authorization: Bearer
+-> Palm API with Authorization: Bearer
 ```
 
-Native apps are public RPs using Authorization Code + PKCE. Port is a Resource Server. Port does not
+Native apps are public RPs using Authorization Code + PKCE. Palm is a Resource Server. Palm does not
 use Rails sessions, Next.js sessions, or browser cookies.
 
-Port validates:
+Palm validates:
 
 - token signature;
 - `iss` equals the Acme issuer;
-- `aud` equals `port-api`;
+- `aud` equals `palm-api`;
 - `exp`, `nbf`, and `iat`;
 - scope;
 - `client_id`;
 - `sub`.
 
-Port resolves users from Acme `iss + sub`.
+Palm resolves users from Acme `iss + sub`.
 
 ## Token Boundary
 
@@ -111,8 +114,11 @@ APIs must not use ID Tokens for authorization.
 Audience and transport are bound:
 
 - `aud=core-browser` is accepted only from cookie transport.
-- `aud=palm-api` or `aud=port-api` is accepted only from Authorization bearer transport.
+- `aud=palm-api` is accepted only from Authorization bearer transport.
 - `aud=side-service` is service-token-only and never user-bound.
+
+`port-api` is legacy vocabulary for the former Palm name and is not the target audience for new
+native API tokens.
 
 Reverse transport must be rejected. Because Core browser uses cookie transport, Rails CSRF
 verification is mandatory for unsafe methods.
@@ -126,7 +132,7 @@ Initial client and audience names:
 - `base-rails-rp`
 - `app-ios-rp`
 - `app-android-rp`
-- `port-api`
+- `palm-api`
 
 Optional future API audiences for Core-to-Base server-side calls may use names such as `core-api` or
 `base-api`.
@@ -137,9 +143,11 @@ URL direction:
 - Sign: `sign.example.com` or equivalent.
 - Core: `jp.example.com`.
 - Base: `www.jp.example.com` or equivalent Rails foundation/control-plane subdomain.
-- Port: undecided; candidates include `api.jp.example.com/port/v1` or `port.jp.example.com`.
+- Palm: `palm.jp.umaxica.app` in current Rails route configuration; final production URL shape
+  remains open.
 
-Port URL selection remains open. The Port responsibility and bearer-token audience are fixed.
+Palm URL selection remains open. The Palm responsibility and `palm-api` bearer-token audience are
+fixed.
 
 ## Related
 

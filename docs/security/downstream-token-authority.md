@@ -2,9 +2,9 @@
 
 > **Supersession (2026-06-12):** Use `adr/acme-sign-core-base-port-boundary.md` and
 > `docs/architecture/acme-sign-core-base-port.md` for the target component model. Acme is the only
-> IdP / Authorization Server. Port is the native bearer-token API Resource Server. Older references
+> IdP / Authorization Server. Palm is the native bearer-token API Resource Server. Older references
 > to `acme/www`, `core`, and `line` as downstream-token consumers are historical where they conflict
-> with the Acme / Sign / Core / Base / Port boundary.
+> with the Acme / Sign / Core / Base / Palm boundary.
 
 ## Authority
 

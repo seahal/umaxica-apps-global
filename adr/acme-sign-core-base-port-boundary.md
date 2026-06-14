@@ -1,4 +1,4 @@
-# Acme, Sign, Core, Base, And Port Boundary
+# Acme, Sign, Core, Base, And Palm Boundary
 
 > Core browser credential transport update:
 > `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` supersedes this ADR's
@@ -19,9 +19,13 @@ The accepted component names are now:
 - Sign
 - Core
 - Base
-- Port
+- Palm
 
-The withdrawn names `Deck` and `Bare` must not be used for this architecture.
+Palm is the native API name formerly tracked as Port. New code, configuration, routes, audiences,
+and plans must use Palm vocabulary. Existing filenames that contain `port` are retained for link
+stability until a separate rename pass is accepted.
+
+The withdrawn names `Deck`, `Bare`, and `Port` must not be used for new architecture vocabulary.
 
 ## Decision
 
@@ -41,8 +45,8 @@ account, profile, organization, administration, complex mutations, audit-sensiti
 work that should stay in Rails until Core is ready to own it. Base may render Rails views on a host
 such as `www.jp.example.com`.
 
-Port is the native API Resource Server for iOS, Android, and other native clients. Port does not use
-browser cookies or Rails/Next.js sessions. Port authenticates only Acme-issued access tokens
+Palm is the native API Resource Server for iOS, Android, and other native clients. Palm does not use
+browser cookies or Rails/Next.js sessions. Palm authenticates only Acme-issued access tokens
 presented with `Authorization: Bearer`.
 
 ## Component Classification
@@ -53,7 +57,7 @@ presented with `Authorization: Bearer`.
 | Sign          | Special RP                                                                   |
 | Core          | Next.js web RP / BFF                                                         |
 | Base          | Rails foundation/control plane; RP for Rails views, Resource Server for APIs |
-| Port          | Native bearer-token API Resource Server                                      |
+| Palm          | Native bearer-token API Resource Server                                      |
 | iOS / Android | Public RPs                                                                   |
 
 APIs are Resource Servers, not RPs. An RP initiates an authorization request and receives a
@@ -91,28 +95,28 @@ Core and Base do not share cookies or sessions:
 
 The shared identity key is Acme `iss + sub`, not a shared browser cookie.
 
-## Native And Port Boundary
+## Native And Palm Boundary
 
 Native applications are public RPs. The native path is:
 
 ```text
-iOS / Android -> Acme /authorize -> Acme /token -> Port API
+iOS / Android -> Acme /authorize -> Acme /token -> Palm API
 ```
 
-Native applications use Authorization Code + PKCE. They call Port with an Acme-issued access token:
+Native applications use Authorization Code + PKCE. They call Palm with an Acme-issued access token:
 
 ```json
 {
   "iss": "https://acme.example.com",
   "sub": "acct_xxxxx",
-  "aud": "port-api",
+  "aud": "palm-api",
   "client_id": "app-ios-rp",
-  "scope": "port.read port.write",
+  "scope": "palm.read palm.write",
   "exp": 1234567890
 }
 ```
 
-Port validates signature, issuer, `aud = port-api`, time claims, scope, client id, and subject, then
+Palm validates signature, issuer, `aud = palm-api`, time claims, scope, client id, and subject, then
 resolves the current user from Acme `iss + sub`.
 
 ## Client And Audience Names
@@ -124,10 +128,10 @@ The initial client and audience vocabulary is:
 - `base-rails-rp`
 - `app-ios-rp`
 - `app-android-rp`
-- `port-api`
+- `palm-api`
 
 If Core needs to call Rails/Base APIs as a distinct API audience, use separate audiences such as
-`core-api` or `base-api`. Do not mix Web/Core server-side APIs with the native Port API surface.
+`core-api` or `base-api`. Do not mix Web/Core server-side APIs with the native Palm API surface.
 
 ## Token Use
 
@@ -165,10 +169,11 @@ The URL direction is:
 - Sign: `sign.example.com` or equivalent.
 - Core: `jp.example.com`.
 - Base: `www.jp.example.com` or another Rails foundation/control-plane subdomain.
-- Port: undecided; candidates include `api.jp.example.com/port/v1` or `port.jp.example.com`.
+- Palm: `palm.jp.umaxica.app` in the current Rails route configuration; final production URL shape
+  remains open.
 
-Port URL selection is intentionally deferred. The responsibility, token audience, and bearer-token
-boundary are decided first.
+Palm URL selection remains separately adjustable. The responsibility, `palm-api` token audience, and
+bearer-token boundary are decided first.
 
 ## Supersession
 
@@ -178,7 +183,8 @@ treats `sign/id` as a credential-gateway host in the same Rails authority model.
 
 Historical material remains useful for implementation risks, security vocabulary, migration notes,
 and Rails controller lifecycle constraints. It must not override this component naming and
-responsibility model.
+responsibility model. Historical `Port` / `port-api` references are superseded by `Palm` /
+`palm-api` unless a later migration note explicitly marks them as compatibility vocabulary.
 
 ## Guardrails
 
