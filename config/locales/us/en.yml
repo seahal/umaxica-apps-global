@@ -3519,12 +3519,24 @@ en:
         message: "Docs API is available. Browser article pages are served outside Rails."
   help:
     app:
+      contacts:
+        new:
+          submit: Continue
+          cancel: Cancel
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
     com:
+      contacts:
+        new:
+          submit: Continue
+          cancel: Cancel
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
     org:
+      contacts:
+        new:
+          submit: Continue
+          cancel: Cancel
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
   news:

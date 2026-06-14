@@ -245,7 +245,7 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
 
     context = Object.new
-    context.define_singleton_method(:connected_to) do |_role:, &block|
+    context.define_singleton_method(:connected_to) do |role:, **_options, &block|
       block.call
     end
     token_class =

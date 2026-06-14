@@ -55,8 +55,8 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_predicate body.dig("error", "request_id"), :present?
   end
 
-  test "port audience token is rejected from core browser cookie transport" do
-    token = core_browser_access_token(audiences: ["port-api"])
+  test "palm audience token is rejected from core browser cookie transport" do
+    token = core_browser_access_token(audiences: ["palm-api"])
     cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = token
 
     get "/api/v0/session", headers: json_headers

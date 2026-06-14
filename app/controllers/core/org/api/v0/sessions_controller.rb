@@ -6,6 +6,8 @@ module Core
     module Api
       module V0
         class SessionsController < BaseController
+          AUTHENTICATION_MODE = :bare
+
           def show
             authenticated = authenticate_core_browser_cookie!
             return if performed?

@@ -14,6 +14,9 @@ scope module: :palm, as: :palm do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      # Reserved native callback compatibility stubs only. Palm is not an
+      # OAuth/OIDC endpoint owner; Acme owns token issuance and native-device
+      # transport belongs under API namespaces when implemented.
       namespace :oauth do
         resource :callback, only: :show
         get "callback/ios", to: "callbacks#show", as: :ios_callback

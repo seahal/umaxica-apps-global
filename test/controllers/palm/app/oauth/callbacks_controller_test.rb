@@ -10,7 +10,7 @@ module Palm
         STATIC_MESSAGE = "This URL is reserved for completing app authentication.\n" \
                          "Open the mobile app and try signing in again."
 
-        test "callback fallback returns static no-store response without authentication" do
+        test "reserved callback stub returns static no-store response without authentication" do
           host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
 
           get palm_app_oauth_callback_url(host: host)
@@ -22,7 +22,7 @@ module Palm
           assert_nil response.headers["Set-Cookie"]
         end
 
-        test "platform callback fallbacks are inert with code and state params" do
+        test "platform callback stubs are inert with code and state params" do
           host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
 
           assert_no_oauth_mutation do

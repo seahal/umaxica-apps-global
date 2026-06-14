@@ -20,6 +20,33 @@ For OIDC-facing identity claims, the repository will use:
 
 `act` is intentionally not used.
 
+## RAR / Authorization Details Reservation
+
+The repository does not implement Rich Authorization Requests (RAR, RFC 9396) or the
+`authorization_details` parameter/claim in this phase.
+
+To leave room for a future standards-aligned RAR implementation, Umaxica private claims, request
+params, database columns, service names, and internal APIs must not use RAR-reserved or RAR-like
+vocabulary for proprietary semantics. Treat these names as reserved for future standards work:
+
+- `authorization_details`
+- `authorization_detail`
+- `authorization_data`
+- `authz_details`
+- `authz_detail`
+- `details` when used as a generic authorization payload
+- `locations`
+- `actions`
+- `datatypes`
+- `privileges`
+- `resources` when used in an RAR-like structure
+
+Use explicit Umaxica or standard OAuth/OIDC names instead. Standard claims and parameters such as
+`sid`, `jti`, `client_id`, `scope`, `aud`, `sub`, and `iss` may keep their standard names. Umaxica
+private values should prefer names such as `region`, `surface`, `tenant_id`, `roles`,
+`permission_version`, `policy_version`, `membership_id`, and `access_mode`. If a private claim could
+plausibly collide with a current or future OAuth/OIDC extension, prefix it with `umx_`.
+
 ## `id_token` must claims
 
 - `iss`

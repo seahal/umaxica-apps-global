@@ -67,13 +67,13 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
 
-    assert_raises(ActionController::RoutingError) do
-      get "/entries/#{published.slug}", params: { locale: published.locale }
-    end
+    get "/entries/#{published.slug}", params: { locale: published.locale }
 
-    assert_raises(ActionController::RoutingError) do
-      get "/edge/v0/entries/#{published.slug}", params: { locale: published.locale }
-    end
+    assert_response :not_found
+
+    get "/edge/v0/entries/#{published.slug}", params: { locale: published.locale }
+
+    assert_response :not_found
   end
 
   private

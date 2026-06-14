@@ -4,20 +4,6 @@
 module CoreBrowserApiBoundary
   extend ActiveSupport::Concern
 
-  included do
-    include ActionPolicy::Controller
-
-    protect_from_forgery using: :header_or_legacy_token, with: :exception
-    authorize :user, through: :current_policy_user
-    authorize :actor, through: :current_actor
-
-    rescue_from ActionController::InvalidCrossOriginRequest, with: :render_csrf_failure
-    rescue_from ActionPolicy::Unauthorized, with: :render_authorization_denied
-
-    before_action :require_core_browser_api_enabled!
-    before_action :verify_core_browser_api_csrf!
-  end
-
   private
 
   attr_reader :current_resource, :current_token_payload, :current_token_record
@@ -192,7 +178,7 @@ module CoreBrowserApiBoundary
       trace_id: request.request_id,
       span_id: nil,
     )
-    Actor.context = context
+    Actor.install_context!(**context.to_h)
   end
 
   def find_core_token_record(payload)

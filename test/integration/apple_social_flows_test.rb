@@ -75,7 +75,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_response :forbidden
+    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
     assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_cancel")
   end
 

@@ -28,8 +28,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "guest can access login page" do
-    get sign_app_sign_in_entrance_path, headers: { "Host" => @host }
-    follow_redirect! while response.redirect? && response.location.include?("ri=jp")
+    get sign_app_sign_in_entrance_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
 
     assert_response :ok
   end
@@ -187,5 +186,22 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     token_record.reload
 
     assert_predicate token_record, :persisted?, "Token record should still be persisted"
+  end
+
+  def login_challenge_for_sign_in
+    OidcAuthorizationTransactionService.issue!(
+      surface: "app",
+      intent: "sign_in",
+      params: {
+        response_type: "code",
+        client_id: "core_app",
+        redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+        code_challenge: SecureRandom.urlsafe_base64(32),
+        code_challenge_method: "S256",
+        state: SecureRandom.urlsafe_base64(16),
+        nonce: SecureRandom.urlsafe_base64(16),
+        scope: "openid profile",
+      },
+    ).transaction.login_challenge
   end
 end

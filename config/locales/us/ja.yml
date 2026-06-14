@@ -3536,12 +3536,24 @@ ja:
         message: "Docs API is available. Browser article pages are served outside Rails."
   help:
     app:
+      contacts:
+        new:
+          submit: 送信
+          cancel: キャンセル
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
     com:
+      contacts:
+        new:
+          submit: 送信
+          cancel: キャンセル
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
     org:
+      contacts:
+        new:
+          submit: 送信
+          cancel: キャンセル
       roots:
         message: "Help API is available. Browser article pages are served outside Rails."
   news:

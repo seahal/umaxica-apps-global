@@ -106,7 +106,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oauth/authorize", params: authorize_query, headers: browser_headers
 
       assert_response :redirect
-      sign_uri = URI.parse(response.location)
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal sign_host, sign_uri.host

@@ -36,7 +36,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "staff sign-in page does not contain social login buttons" do
     host! @staff_host
 
-    get "/sign/in/entrance?ri=jp"
+    get "/sign/in/entrance", params: { login_challenge: login_challenge_for("org") }
 
     assert_response :success
     assert_not_includes response.body, "/auth/google_app"
@@ -64,6 +64,23 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def login_challenge_for(surface)
+    OidcAuthorizationTransactionService.issue!(
+      surface: surface,
+      intent: "sign_in",
+      params: {
+        response_type: "code",
+        client_id: "core_#{surface}",
+        redirect_uri: OidcClientRegistry.find!("core_#{surface}").redirect_uris.first,
+        code_challenge: SecureRandom.urlsafe_base64(32),
+        code_challenge_method: "S256",
+        state: SecureRandom.urlsafe_base64(16),
+        nonce: SecureRandom.urlsafe_base64(16),
+        scope: "openid profile",
+      },
+    ).transaction.login_challenge
+  end
 
   def with_env(values)
     original = values.keys.index_with { |key| ENV[key] }

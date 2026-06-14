@@ -21,13 +21,13 @@ class SignSecretVerify
     @secret_credential.with_lock do
       @secret_credential.reload
 
+      return failure(:secret_credential_consumed) if consumed? && single_use?
       return failure(:secret_credential_revoked) if revoked?
       return failure(:secret_credential_revoked) if
         @secret_credential.respond_to?(:active?) && !@secret_credential.active?
       return failure(:secret_credential_expired) if lapsed?
       return failure(:secret_credential_not_before) if not_before?
       return failure(:secret_credential_locked) if locked?
-      return failure(:secret_credential_consumed) if consumed? && single_use?
       return failure(:secret_credential_consumed) if max_uses_exceeded?
       return failure(:secret_credential_locked) if @secret_credential.usage_policy.to_s == "limited_session"
 

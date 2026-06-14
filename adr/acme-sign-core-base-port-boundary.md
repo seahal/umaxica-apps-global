@@ -49,6 +49,13 @@ Palm is the native API Resource Server for iOS, Android, and other native client
 browser cookies or Rails/Next.js sessions. Palm authenticates only Acme-issued access tokens
 presented with `Authorization: Bearer`.
 
+The exact Palm native implementation policy is not yet accepted. Do not commit route or API design
+to a platform-specific native flow until native app registration, provider console settings, and
+external documentation are checked. The fixed boundary is the URL and authority separation:
+OAuth/OIDC public entry points belong to the common Acme/RP interface, while Palm-specific device
+credential, token binding, refresh transport, or session transport APIs belong under API
+namespaces, not under OAuth/OIDC endpoint names.
+
 ## Component Classification
 
 | Component     | Classification                                                               |
@@ -97,13 +104,16 @@ The shared identity key is Acme `iss + sub`, not a shared browser cookie.
 
 ## Native And Palm Boundary
 
-Native applications are public RPs. The native path is:
+Native applications may act as public RPs. One expected direction is:
 
 ```text
 iOS / Android -> Acme /authorize -> Acme /token -> Palm API
 ```
 
-Native applications use Authorization Code + PKCE. They call Palm with an Acme-issued access token:
+Native applications are expected to use Acme-issued credentials when they call Palm. Authorization
+Code + PKCE is the expected OAuth/OIDC building block when the native RP flow is implemented, but
+the concrete iOS/Android flow is still open. Palm must not issue OAuth/OIDC Access Tokens, Refresh
+Tokens, or ID Tokens.
 
 ```json
 {
@@ -118,6 +128,33 @@ Native applications use Authorization Code + PKCE. They call Palm with an Acme-i
 
 Palm validates signature, issuer, `aud = palm-api`, time claims, scope, client id, and subject, then
 resolves the current user from Acme `iss + sub`.
+
+If Palm later stores or issues a local device artifact, that artifact is not an OAuth/OIDC access
+token. Name it as a Palm local credential, device binding credential, or transport credential.
+
+Do not encode iOS, Android, or other platform differences in OAuth/OIDC route paths. Express those
+differences through client registration and request metadata such as `client_id`, `redirect_uri`,
+PKCE, client registry metadata, device credential metadata, attestation type, or token binding
+method.
+
+Palm must not add platform-specific OAuth/OIDC callback routes such as:
+
+- `/oauth/callback/ios`
+- `/oauth/callback/android`
+- `/ios/oauth/callback`
+- `/android/oauth/callback`
+
+Existing Palm `/oauth/callback*` routes are reserved native callback compatibility stubs only. They
+must remain inert: no token exchange, no state mutation, no durable account/session writes, no
+secret reflection, and no cookie issuance. Do not delete them until native app registration,
+provider console settings, external documentation, and access logs have been checked. They are
+deletion or consolidation candidates, not the formal Palm OAuth/OIDC entry point.
+
+Future Palm device and token transport APIs should use explicit API namespaces such as:
+
+- `/api/v0/device/*`
+- `/api/v0/token/*`
+- `/api/v0/session/*`
 
 ## Client And Audience Names
 
@@ -199,6 +236,8 @@ Do not:
 - make API controllers depend on Rails browser sessions;
 - make iOS or Android depend on the Core BFF for API access;
 - call an API a relying party when it is validating access tokens as a Resource Server.
+- add Palm-specific OAuth/OIDC endpoint names for iOS or Android platform differences;
+- call a Palm local credential or device binding credential an OAuth/OIDC access token.
 
 ## Related
 

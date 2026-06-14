@@ -38,7 +38,7 @@ class ComPreferenceCookieTest < ActiveSupport::TestCase
     cookie = ComPreferenceCookie.new(targetable: true)
 
     assert_not cookie.valid?
-    assert_includes cookie.errors[:preference], "を入力してください"
+    assert cookie.errors.of_kind?(:preference, :blank)
   end
 
   test "has false as default for all flags" do

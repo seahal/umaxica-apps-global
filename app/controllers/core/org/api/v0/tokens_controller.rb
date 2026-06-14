@@ -6,6 +6,8 @@ module Core
     module Api
       module V0
         class TokensController < BaseController
+          AUTHENTICATION_MODE = :bare
+
           def refresh
             refresh_core_browser_token!
           end

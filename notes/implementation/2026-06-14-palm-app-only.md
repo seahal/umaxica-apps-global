@@ -50,3 +50,27 @@
   "Invalid request") fails independently of this change — the file has no Palm references and is
   unmodified in the working tree. Out of scope for Palm app-only.
 - Documentation promotion needed: none currently.
+
+## Native Callback Boundary Update
+
+- Context: Current Palm app routes include inert `/oauth/callback`, `/oauth/callback/ios`, and
+  `/oauth/callback/android` stubs. Earlier review treated them as static reserved callbacks with no
+  token exchange or state mutation, but warned against deletion before checking native registration
+  and external dependencies.
+- Decision: Palm native implementation policy remains open. Do not decide whether Palm is a backend
+  RP or whether native apps receive `redirect_uri` directly in this cleanup.
+- Decision: Palm-specific OAuth/OIDC route names are not accepted going forward. OAuth/OIDC public
+  entry points should use the common interface such as `/auth/callback`; Palm device credential,
+  token binding, refresh transport, and session transport belong under API namespaces such as
+  `/api/v0/device/*`, `/api/v0/token/*`, or `/api/v0/session/*`.
+- Decision: iOS/Android differences must be expressed through client registration and credential
+  metadata, not through URL paths.
+- Classification:
+  - OAuth/OIDC public entry point to keep: none under Palm today.
+  - Common entry point candidate: consolidate any future Palm RP callback need toward a common
+    `/auth/callback` shape or direct native `redirect_uri`, after the native policy is accepted.
+  - Future API namespace candidates: device credential, token binding, refresh transport, and
+    session transport APIs.
+  - Reserved/deprecated: current `/oauth/callback*` Palm stubs.
+  - Do not delete now: current `/oauth/callback*` Palm stubs until native app registration,
+    provider console settings, external documentation, and access logs have been checked.

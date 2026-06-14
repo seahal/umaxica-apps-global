@@ -20,6 +20,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_predicate token.reload, :revoked?
     location = URI.parse(response.location)
+
     assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
     assert_equal "/signed-out", location.path
   end

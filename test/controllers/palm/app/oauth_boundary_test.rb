@@ -8,7 +8,7 @@ module Palm
     class OauthBoundaryTest < ActiveSupport::TestCase
       fixtures_none!
 
-      test "palm app exposes callback fallback but no authorize or token endpoint" do
+      test "palm app exposes reserved callback stubs but no authorize or token endpoint" do
         host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
 
         assert_equal(
@@ -29,6 +29,9 @@ module Palm
         end
         assert_raises(ActionController::RoutingError) do
           Rails.application.routes.recognize_path("https://#{host}/oauth/token", method: :post)
+        end
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("https://#{host}/api/v0/token/refresh", method: :post)
         end
       end
 

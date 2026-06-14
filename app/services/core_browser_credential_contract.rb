@@ -74,7 +74,7 @@ module CoreBrowserCredentialContract
 
   def native_or_side_audience?(payload)
     Array(AuthorizationTokenClaims.audiences(payload)).any? do |audience|
-      %w(port-api palm-api side-service side:ssr:read).include?(audience.to_s)
+      %w(palm-api side-service side:ssr:read).include?(audience.to_s)
     end
   end
 

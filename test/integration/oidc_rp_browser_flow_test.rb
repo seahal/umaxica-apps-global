@@ -76,7 +76,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oauth/authorize", params: authorize_query, headers: browser_headers
 
       assert_response :redirect
-      sign_uri = URI.parse(response.location)
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal sign_host, sign_uri.host
@@ -131,24 +131,26 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "app com and org authorization endpoints are exposed at Acme oauth authorize" do
     SURFACES.each do |surface|
-      host! surface[:acme_host]
+      open_session do |session|
+        session.host! surface[:acme_host]
 
-      get "/oauth/authorize", params: {
-        response_type: "code",
-        client_id: surface[:client_id],
-        redirect_uri: OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first,
-        code_challenge: "challenge",
-        code_challenge_method: "S256",
-        state: "state",
-        nonce: "nonce",
-        scope: "openid profile",
-      }, headers: browser_headers
+        session.get "/oauth/authorize", params: {
+          response_type: "code",
+          client_id: surface[:client_id],
+          redirect_uri: OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first,
+          code_challenge: SecureRandom.urlsafe_base64(32),
+          code_challenge_method: "S256",
+          state: "state",
+          nonce: "nonce",
+          scope: "openid profile",
+        }, headers: browser_headers
 
-      assert_response :redirect
+        assert_equal 302, session.response.status, surface[:client_id]
 
-      get "/oauth/authorization", headers: browser_headers
+        session.get "/oauth/authorization", headers: browser_headers
 
-      assert_response :not_found
+        assert_equal 404, session.response.status, surface[:client_id]
+      end
     end
   end
 

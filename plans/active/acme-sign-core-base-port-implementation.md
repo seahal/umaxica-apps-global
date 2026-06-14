@@ -35,6 +35,14 @@ Palm is the canonical native API name formerly tracked as Port. Existing filenam
   cookies or Rails browser sessions.
 - Make Palm validate Acme-issued Access Tokens with `aud = palm-api` and never depend on Rails or
   Next.js sessions.
+- Do not decide Palm's concrete native implementation flow until native app registration, provider
+  console settings, and external documentation are checked.
+- Keep Palm-specific device credential, token binding, refresh transport, and session transport APIs
+  out of OAuth/OIDC endpoint namespaces. Use API namespaces such as `/api/v0/device/*`,
+  `/api/v0/token/*`, or `/api/v0/session/*` when those APIs are designed.
+- Do not encode iOS/Android differences in route paths. Express platform differences through
+  `client_id`, `redirect_uri`, PKCE, client registry metadata, device credential metadata,
+  attestation type, or token binding method.
 - Keep Web/Core API audiences separate from Palm. Add `core-api` or `base-api` only when needed for
   server-side Web API calls.
 
@@ -60,10 +68,19 @@ Palm is the canonical native API name formerly tracked as Port. Existing filenam
 - Do not use ID Tokens for API authorization.
 - Do not call APIs RPs when their role is to validate access tokens as Resource Servers.
 - Do not use `Port` or `port-api` for new code, configuration, routes, or plans.
+- Do not add Palm-specific OAuth/OIDC paths such as `/oauth/callback/ios`,
+  `/oauth/callback/android`, `/ios/oauth/callback`, or `/android/oauth/callback`.
+- Do not call Palm local credentials, device binding credentials, or transport credentials
+  OAuth/OIDC access tokens.
 
 ## Open Items
 
 - Final Acme, Sign, Base, and Palm production hostnames.
 - Palm production URL shape.
+- Palm native flow implementation policy.
+- Current Palm `/oauth/callback*` reserved native callback stubs: classify before removal or
+  consolidation. They are inert compatibility stubs, not formal Palm OAuth/OIDC entry points, and
+  must not be deleted before checking native app registration, provider console settings, external
+  documentation, and access logs.
 - Exact Core-to-Base API audience naming if distinct Web server-side API audiences are required.
 - Migration path from existing Rails-only identity authority code to the new component boundary.

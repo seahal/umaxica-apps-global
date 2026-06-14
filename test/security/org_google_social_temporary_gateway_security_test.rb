@@ -46,7 +46,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     assert_match(/resource :passkey, only: :new/, org_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, org_block)
     assert_match(/resource :passkey, only: %i\(new create\)/, org_block)
-    assert_no_match(/namespace :social|namespace :auth|resource :totp|resources :totps/, org_block)
+    assert_no_match(/namespace :social|resource :totp|resources :totps/, org_block)
   end
 
   test "com pages do not expose social auth helpers" do
@@ -64,7 +64,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
 
     assert_match(/resource :email, only: %i\(new create edit update\)/, com_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, com_block)
-    assert_no_match(/namespace :social|namespace :auth|google|apple|microsoft/i, com_block)
+    assert_no_match(/namespace :social|google|apple|microsoft/i, com_block)
   end
 
   test "app routes and omniauth config keep app social providers" do

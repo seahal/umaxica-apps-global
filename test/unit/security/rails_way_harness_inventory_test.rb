@@ -17,6 +17,10 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
   REVIEWED_MODEL_CONCERN_SIDE_EFFECTS = {
     "app/models/concerns/account.rb" => [1, "legacy ActiveRecord validation concern; move deliberately"],
     "app/models/concerns/actor_lifecycle_consistency.rb" => [2, "legacy Actor lifecycle invariant concern"],
+    "app/models/concerns/administrative_access_lockable.rb" => [
+      4,
+      "reviewed shared administrative access lock DSL concern",
+    ],
     "app/models/concerns/banner_model.rb" => [8, "legacy ActiveRecord banner DSL concern"],
     "app/models/concerns/collective.rb" => [1, "legacy ActiveRecord validation concern"],
     "app/models/concerns/collective_membership.rb" => [7, "legacy ActiveRecord membership DSL concern"],

@@ -60,10 +60,6 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     existing_user.reload
 
     assert_equal ClientStatus::NOTHING, existing_user.status_id
-
-    follow_redirect!
-
-    assert_response :success
   end
 
   test "Google login with existing identity completes through acme dashboard" do

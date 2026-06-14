@@ -101,10 +101,14 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
              headers: operator_headers(operator, scope: "settings_passkey", host: @acme_host)
     end
 
-    assert_difference("OperatorSecretCredential.count", -1) do
+    assert_no_difference("OperatorSecretCredential.count") do
       delete acme_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
              headers: operator_headers(operator, scope: "settings_secret_credential", host: @acme_host)
     end
+
+    secret_credential.reload
+    assert_operator secret_credential.discarded_at, :<=, Time.current
+    assert_equal OperatorSecretCredential.status_id_for(:deleted), secret_credential.staff_secret_status_id
   end
 
   private

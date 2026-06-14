@@ -25,11 +25,11 @@ class CoreBrowserCredentialContractTest < ActiveSupport::TestCase
   end
 
   test "native and side audiences are classified as non core browser" do
-    assert CoreBrowserCredentialContract.native_or_side_audience?("aud" => ["port-api"])
     assert CoreBrowserCredentialContract.native_or_side_audience?("aud" => ["palm-api"])
     assert CoreBrowserCredentialContract.native_or_side_audience?("aud" => ["side-service"])
     assert_not CoreBrowserCredentialContract.native_or_side_audience?(
       "aud" => [CoreBrowserCredentialContract::ACCESS_AUDIENCE],
     )
+    assert_not CoreBrowserCredentialContract.native_or_side_audience?("aud" => ["port-api"])
   end
 end

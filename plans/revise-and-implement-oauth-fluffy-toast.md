@@ -306,3 +306,12 @@ fallback-`"none"` return `invalid_client`; explicit-`"none"` client fails in Pat
 5. Do not support `http` redirect_uri for Palm.
 6. Do not reuse `build_redirect_uris` for native clients.
 7. Keep OAuth `client_id` distinct from access-token `aud`.
+8. Do not implement RAR / RFC 9396 `authorization_details` in Patch #1 or Patch #2. Reserve
+   `authorization_details`, `authorization_detail`, `authorization_data`, `authz_details`,
+   `authz_detail`, `details`, `locations`, `actions`, `datatypes`, `privileges`, and RAR-like
+   `resources` for future standards work; do not use them for Umaxica private claims, params,
+   database columns, services, or internal APIs.
+9. Use Umaxica-specific names such as `access_mode`, `permission_version`, `policy_version`,
+   `region`, `surface`, `tenant_id`, `membership_id`, `sid`, and `jti` for proprietary token or
+   authorization context. Prefix private claims with `umx_` when they could plausibly collide with a
+   current or future OAuth/OIDC extension.

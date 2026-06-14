@@ -74,7 +74,7 @@ class ClientSecretCredentialsIssueRecoveryTest < ActiveSupport::TestCase
 
   test "future discarded_at remains usable and purged_at is ignored for eligibility" do
     result = ClientSecretCredentialsIssueRecovery.call(actor: @actor, user: @actor)
-    result.secret_credential.update_columns(discarded_at: 10.minutes.from_now, purged_at: 1.minute.ago)
+    result.secret_credential.update_columns(discarded_at: 10.minutes.from_now, purged_at: 20.minutes.from_now)
 
     verification = SignSecretVerify.call(
       secret_credential: result.secret_credential.reload,

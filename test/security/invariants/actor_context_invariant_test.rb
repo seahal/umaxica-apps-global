@@ -43,6 +43,7 @@ module Security
           "app/controllers/concerns/actor_support.rb",
           "app/controllers/concerns/authentication_base.rb",
           "app/controllers/concerns/authentication_jwt_tokens.rb",
+          "app/controllers/concerns/core_browser_api_boundary.rb",
           "app/controllers/concerns/sign_verification_step_up_lifecycle.rb",
           "app/controllers/concerns/verification_base.rb",
         ]
