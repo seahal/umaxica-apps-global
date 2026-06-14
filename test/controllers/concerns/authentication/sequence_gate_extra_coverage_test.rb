@@ -382,11 +382,16 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "start_sign_in_flow_for! stores a cycle with the derived return path" do
-    nil
     cycle_class =
       Class.new do
         class << self
-          attr_accessor :created
+          def created
+            @created
+          end
+
+          def created=(val)
+            @created = val
+          end
         end
 
         def self.create!(**attrs)

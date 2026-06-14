@@ -31,7 +31,7 @@ module Sign::App::Up
       CloudflareTurnstile.test_mode = false
       CloudflareTurnstile.test_validation_response = nil
 
-      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+      Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     end
 
     test "GET show returns 200 with passkey endpoint data attrs" do

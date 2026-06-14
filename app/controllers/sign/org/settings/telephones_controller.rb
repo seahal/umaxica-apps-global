@@ -20,6 +20,8 @@ module Sign
         # Verification guards remain in place.
         before_action :authorize_telephone_registration!, only: %i(new create)
 
+        def index = redirect_to_acme_settings_authority!
+
         def new
           @staff_telephone = OperatorTelephone.new
         end
@@ -40,6 +42,8 @@ module Sign
 
           redirect_to(edit_sign_org_settings_telephones_registration_path(ri: params[:ri]))
         end
+
+        def destroy = redirect_to_acme_settings_authority!
 
         private
 

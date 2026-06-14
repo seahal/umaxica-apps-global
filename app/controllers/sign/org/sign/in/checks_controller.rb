@@ -18,6 +18,10 @@ module Sign
           def self.local_prefixes
             ["sign/org/in/checkpoints"] + super
           end
+
+          def show = super
+
+          def update = super
         end
       end
     end

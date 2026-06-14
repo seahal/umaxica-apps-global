@@ -22,6 +22,8 @@ module Sign
         # Verification guards remain in place.
         before_action :authorize_telephone_registration!, only: %i(new create)
 
+        def index = redirect_to_acme_settings_authority!
+
         def new
           @user_telephone = ClientTelephone.new
         end
@@ -43,6 +45,8 @@ module Sign
             render :new, status: :unprocessable_content
           end
         end
+
+        def destroy = redirect_to_acme_settings_authority!
 
         private
 

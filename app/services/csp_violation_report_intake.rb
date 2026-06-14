@@ -145,7 +145,8 @@ class CspViolationReportIntake
   end
 
   def report_category(report)
-    urls = report.values_at(:blocked_uri, :source_file, :document_uri).compact
+    urls = report.values_at(:blocked_uri, :source_file, :document_uri)
+    urls.compact!
     return "browser_extension" if urls.any? { |url| extension_url?(url) }
 
     "application"

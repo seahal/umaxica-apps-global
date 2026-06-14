@@ -37,9 +37,9 @@ module Palm
 
           def render_palm_authentication_error(error)
             if error == "insufficient_scope"
-              render_error(:authorization_denied, "Authorization denied.", status: :forbidden)
+              render_error(:authorization_denied, "Authorization denied.", status: :forbidden) # rubocop:disable I18n/RailsI18n/DecorateString
             else
-              render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
+              render_error(:authentication_required, "Authentication is required.", status: :unauthorized) # rubocop:disable I18n/RailsI18n/DecorateString
             end
           end
 

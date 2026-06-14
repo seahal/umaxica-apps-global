@@ -15,5 +15,9 @@ class Sign::Com::Sign::In::CheckCancellationsController < ::Sign::Com::Applicati
     ["sign/com/in/checkpoints"] + super
   end
 
+  def show = super
+
   def create = destroy
+
+  def update = super
 end

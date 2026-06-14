@@ -194,6 +194,64 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "acme app token check authenticates a valid client session" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    token_record = ClientToken.create!(user: user)
+    token_record.rotate_refresh_token!
+    access_token = jwt_access_token_for(
+      user,
+      host: host,
+      session_public_id: token_record.public_id,
+      resource_type: "client",
+    )
+
+    host!(host)
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+
+    get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+
+    assert_response :ok
+    assert response.parsed_body["authenticated"]
+    assert_equal "client", response.parsed_body["type"]
+    assert_equal user.id, response.parsed_body["id"]
+    assert_equal token_record.device_session.public_id, response.parsed_body["sid"]
+  end
+
+  test "acme org token check authenticates a valid operator session" do
+    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    staff = operators(:one)
+    token_record = OperatorToken.create!(staff: staff)
+    token_record.rotate_refresh_token!
+    access_token = jwt_access_token_for(
+      staff,
+      host: host,
+      session_public_id: token_record.public_id,
+      resource_type: "operator",
+    )
+
+    host!(host)
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+
+    get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+
+    assert_response :ok
+    assert response.parsed_body["authenticated"]
+    assert_equal "operator", response.parsed_body["type"]
+    assert_equal staff.id, response.parsed_body["id"]
+    assert_equal token_record.device_session.public_id, response.parsed_body["sid"]
+  end
+
+  test "acme app token check without credentials returns unauthorized" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+    host!(host)
+    get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+
+    assert_response :unauthorized
+    assert_equal({ "authenticated" => false }, response.parsed_body)
+  end
+
   test "acme edge token refresh rejects missing refresh token without rotation" do
     AcmeRefreshTokenService.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
       post acme_app_edge_v0_token_refresh_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),

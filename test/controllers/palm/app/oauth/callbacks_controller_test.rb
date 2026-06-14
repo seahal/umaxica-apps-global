@@ -7,8 +7,10 @@ module Palm
   module App
     module Oauth
       class CallbacksControllerTest < ActionDispatch::IntegrationTest
+        # rubocop:disable I18n/RailsI18n/DecorateString
         STATIC_MESSAGE = "This URL is reserved for completing app authentication.\n" \
                          "Open the mobile app and try signing in again."
+        # rubocop:enable I18n/RailsI18n/DecorateString
 
         test "reserved callback stub returns static no-store response without authentication" do
           host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")

@@ -103,7 +103,21 @@ class SignUpEmailPendingGuardTest < ActiveSupport::TestCase
     model_class =
       Class.new do
         class << self
-          attr_accessor :pool, :transaction_calls
+          def pool
+            @pool
+          end
+
+          def pool=(val)
+            @pool = val
+          end
+
+          def transaction_calls
+            @transaction_calls
+          end
+
+          def transaction_calls=(val)
+            @transaction_calls = val
+          end
 
           def transaction
             self.transaction_calls = (transaction_calls || 0) + 1

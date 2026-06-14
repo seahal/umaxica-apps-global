@@ -12,8 +12,10 @@ module Palm
 
         def show
           render(
+            # rubocop:disable I18n/RailsI18n/DecorateString
             plain: "This URL is reserved for completing app authentication.\n" \
                    "Open the mobile app and try signing in again.",
+            # rubocop:enable I18n/RailsI18n/DecorateString
             status: :ok,
           )
         end

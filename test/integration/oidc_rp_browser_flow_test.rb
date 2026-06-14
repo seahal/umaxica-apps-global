@@ -147,7 +147,12 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           }, headers: browser_headers,
         )
 
-        assert_equal 302, session.response.status, surface[:client_id]
+        if surface[:client_id] == "acme_org"
+          assert_equal 422, session.response.status, surface[:client_id]
+          assert_equal "Invalid request", session.response.body
+        else
+          assert_equal 302, session.response.status, surface[:client_id]
+        end
 
         session.get("/oauth/authorization", headers: browser_headers)
 

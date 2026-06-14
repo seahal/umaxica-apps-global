@@ -177,7 +177,7 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
 
         def self.name = "FakeReferenceModel"
 
-        def self.find_or_create_by!(id:)
+        def self.find_or_create_by!(*)
           raise ActiveRecord::RecordNotUnique, "duplicate"
         end
       end
