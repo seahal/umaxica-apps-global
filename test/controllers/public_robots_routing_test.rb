@@ -22,11 +22,11 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
     assert_public_file_helpers(
       robots: %i(
         base_app_robot_path base_com_robot_path base_org_robot_path
-        palm_app_robot_path palm_com_robot_path palm_org_robot_path
+        palm_app_robot_path
       ),
       sitemap: %i(
         base_app_sitemap_path base_com_sitemap_path base_org_sitemap_path
-        palm_app_sitemap_path palm_com_sitemap_path palm_org_sitemap_path
+        palm_app_sitemap_path
       ),
     )
   end
@@ -47,14 +47,10 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
       [method(:base_com_robot_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "robots"],
       [method(:base_org_robot_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "robots"],
       [method(:palm_app_robot_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "robots"],
-      [method(:palm_com_robot_url), ENV["PALM_CORPORATE_URL"] || "palm.com.localhost", "robots"],
-      [method(:palm_org_robot_url), ENV["PALM_STAFF_URL"] || "palm.org.localhost", "robots"],
       [method(:base_app_sitemap_url), ENV["BASE_SERVICE_URL"] || "base.app.localhost", "sitemap"],
       [method(:base_com_sitemap_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "sitemap"],
       [method(:base_org_sitemap_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "sitemap"],
       [method(:palm_app_sitemap_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "sitemap"],
-      [method(:palm_com_sitemap_url), ENV["PALM_CORPORATE_URL"] || "palm.com.localhost", "sitemap"],
-      [method(:palm_org_sitemap_url), ENV["PALM_STAFF_URL"] || "palm.org.localhost", "sitemap"],
       [method(:acme_com_robot_url), ENV["ACME_CORPORATE_URL"] || "www.com.localhost", "robots"],
       [method(:acme_app_robot_url), ENV["ACME_SERVICE_URL"] || "www.app.localhost", "robots"],
       [method(:acme_org_robot_url), ENV["ACME_STAFF_URL"] || "www.org.localhost", "robots"],

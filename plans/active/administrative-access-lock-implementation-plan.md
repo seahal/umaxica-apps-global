@@ -7,6 +7,24 @@ Implement service-only Administrative Access Lock for `Client`, `Visitor`, and `
 This plan intentionally changes only account access state and enforcement. It does not implement
 normal inactivity dormancy, UI, routes, or controllers.
 
+## Current Status
+
+Implemented in the working tree on 2026-06-14:
+
+- principal-table migrations for `clients`, `visitors`, and `operators`;
+- chronicle-table migration and `AccountAccessEvent` model;
+- shared `AdministrativeAccessLockable` concern for the three principal actors;
+- `AdministrativeAccessLock` service with lock, unlock, session revocation, audit event recording,
+  repeated-lock event classification, and last-enabled-operator protection;
+- current-resource, OIDC access-token, sign-in, and refresh access checks for administratively locked
+  actors and stale access-token `iat` values;
+- focused model, service, resolver, OIDC, and authentication-base coverage.
+
+Verification is still blocked in this checkout because the local test database host `primary`
+intermittently fails DNS resolution and the parallel test database bootstrap collides with existing
+`test_*_db_N` databases. The structure dumps have not been regenerated from a live database in this
+change.
+
 ## Key Changes
 
 - Add non-destructive schema to the `clients`, `visitors`, and `operators` principal tables:

@@ -336,6 +336,7 @@ module AuthenticationBase
 
   def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true,
              audit_context: {}, bootstrap_actor: false)
+    return { status: :access_locked } if administratively_locked_resource?(resource)
     return { status: :login_forbidden } unless resource.login_allowed?
 
     check_login_cooldown!(resource)
@@ -548,6 +549,10 @@ module AuthenticationBase
     # Load resource from token record
     # Use the same code path for all environments.
     resource = token_record.public_send(token_resource_prefix)
+
+    if administratively_locked_resource?(resource)
+      return handle_administrative_access_locked_refresh(resource, refresh_public_id, token_record)
+    end
 
     unless refreshable_resource?(resource, allow_suspended: allow_suspended)
       return handle_inactive_resource(resource, refresh_public_id, token_record)
@@ -953,6 +958,15 @@ module AuthenticationBase
     else
       set_refresh_failure!(:unauthorized, "invalid_refresh_token")
     end
+  end
+
+  def handle_administrative_access_locked_refresh(resource, refresh_public_id, token_record)
+    set_refresh_failure!(:forbidden, "administrative_access_locked")
+    notify_inactive_resource_refresh_failed(resource, refresh_public_id)
+    emit_inactive_resource_refresh_failed(resource, refresh_public_id)
+    revoke_inactive_refresh_token_family!(token_record)
+
+    nil
   end
 
   def notify_inactive_resource_refresh_failed(resource, refresh_public_id)
@@ -1643,6 +1657,10 @@ module AuthenticationBase
     return false unless resource&.respond_to?(:withdrawn?)
 
     resource.withdrawn?
+  end
+
+  def administratively_locked_resource?(resource)
+    resource.respond_to?(:admin_locked?) && resource.admin_locked?
   end
 
   def destroy_refresh_token_from_cookie

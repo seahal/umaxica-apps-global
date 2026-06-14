@@ -134,7 +134,7 @@ or Acme authority to Sign:
 - `plans/active/step-up-authentication-rebuild.md`
 - `plans/active/token-rotation-concurrency-hardening.md`
 - `plans/active/withdrawal-state-machine-implementation-plan.md`
-- `plans/active/preference-actor-hydration-ssot.md`
+- `plans/archive/preference-actor-hydration-ssot.md`
 - `plans/active/preference-jwt-runtime-cache-migration.md`
 - `plans/active/identity-control-plane-configuration-hardening.md`
 

@@ -2,9 +2,33 @@
 
 ## Status
 
-Active — planned, not yet implemented. Captures an implementation-side gap audit of this platform
-against session/access-token theft (AiTM phishing and infostealer malware) and the agreed
-remediation. Implementation deferred for capacity; this file is the handoff.
+Active — mostly implemented; retained for remaining verification and documentation cleanup.
+
+Current code already contains the first implementation pass for DBSC preferred registration,
+idle-timeout enforcement, and IP-network anomaly detection. Keep this file active only for residual
+hardening, verification, and follow-up alignment; do not treat the original "planned, not yet
+implemented" audit text as current state.
+
+Implemented evidence in the current tree:
+
+- Browser-login tokens are issued `LEGACY` + `PENDING` for DBSC-capable registration paths, with
+  explicit fallback to `NOTHING` when registration is not completed within the grace window.
+- Per-request activity tracking and idle-timeout enforcement exist through
+  `AuthenticationCurrentResourceResolver`, `AuthenticationBase#refresh_idle_allowed?`, and
+  `SecurityTokenLifetimes`.
+- `last_network_hmac` exists on client/operator/visitor device sessions, backed by additive ticket
+  migrations and structure dumps.
+- `OccurrenceHmac.network_hmac` / `network_prefix` exist and are covered by tests.
+- Refresh-side network change detection emits `ip_change_detected`, updates the stored network
+  HMAC, and feeds the feature-flagged `SignRiskEngine` rule.
+
+Remaining cleanup:
+
+- Run and record the focused verification commands listed below.
+- Update any stale backlog or docs that still say DBSC pending registration, idle timeout, or
+  IP-network anomaly handling are not implemented.
+- Decide whether additional rollout/monitoring notes are needed for enabling
+  `IP_ANOMALY_REVOKE_ENABLED` outside local/test contexts.
 
 ## Context
 
@@ -36,11 +60,14 @@ repo. Dispositions were decided with the owner.
   `phishing_resistant_methods = aal2 & [:passkey]`,
   `app/services/authentication_credential_inventory.rb:126-152`): **ACCEPTED as-is.** TOTP + email
   OTP are intentionally retained as required alternative factors. Documentation only.
-- **#2 DBSC default unbound** (`default_dbsc_token_attributes` issues LEGACY/NOTHING,
-  `authentication_base.rb:1761-1781`): **FIX — Phase A.**
-- **#3 No idle timeout** (`last_used_at` recorded only on refresh, not enforced): **FIX — Phase B.**
-- **#4 No location/anomaly revocation** (IP only HMAC-logged, `occurrence_hmac.rb:35-42`): **FIX —
-  Phase C (hard-revoke; see ADR conflict).**
+- **#2 DBSC pending registration default**: **IMPLEMENTED — Phase A.** Browser-login tokens now enter a
+  `LEGACY` + `PENDING` registration window and downgrade to an explicit `NOTHING` fallback if the
+  challenge expires without proof.
+- **#3 Idle timeout**: **IMPLEMENTED — Phase B.** Per-request activity writes and refresh/access
+  idle gates use the configured surface windows.
+- **#4 IP-network anomaly revocation**: **IMPLEMENTED FOR SIGNAL + FEATURE-FLAGGED ENFORCEMENT —
+  Phase C.** Network HMAC changes emit `ip_change_detected`; `SignRiskEngine` scores the event as
+  revoke-worthy only when `IP_ANOMALY_REVOKE_ENABLED` or the matching config flag is enabled.
 - **#5 Session cookie `SameSite=Lax`** (`config/initializers/session_store.rb:18`): **NON-ISSUE** —
   Rails framework constraint; auth cookies are already Strict.
 
@@ -65,32 +92,31 @@ Reality: `Sec-Session-Registration` is already offered to unbound tokens
 (`authentication_base.rb:1356-1367`) and capable browsers already upgrade to `DBSC/ACTIVE`. The gap
 is that the "awaiting registration" state is untracked and untimed.
 
-- **A1** `default_dbsc_token_attributes` (`:1761-1781`): for browser-login tokens issue
+- **A1 DONE** `default_dbsc_token_attributes`: for browser-login tokens issue
   `binding_method = LEGACY`, `dbsc_status = PENDING` (registration offered). Keep OIDC
   token-endpoint tokens at `NOTHING`.
-- **A2 (critical, must not lock out non-DBSC browsers)** `legacy_unbound_refresh_allowed?`
-  (`:1244-1258`) currently rejects any non-`NOTHING` status. Add a **grace downgrade**: when
+- **A2 DONE (critical, must not lock out non-DBSC browsers)** `legacy_unbound_refresh_allowed?`
+  includes a **grace downgrade**: when
   `LEGACY` + `PENDING` and the registration challenge has expired (no proof within `DBSC_COOKIE_TTL`
   = 10 min), set `dbsc_status = NOTHING` and allow the refresh as an explicit fallback session.
   Capable browsers that registered are `DBSC/ACTIVE` and flow through `refresh_dbsc_allowed?`
   unchanged.
-- **A3** DPoP-on-refresh is already fail-closed; add regression tests: jkt-bound token refused
-  without/with wrong DPoP proof; jkt-bound access token refused when used as plain Bearer.
+- **A3 PARTIAL** DPoP-on-refresh is already fail-closed; retain/verify regression tests:
+  jkt-bound token refused without/with wrong DPoP proof; jkt-bound access token refused when used as
+  plain Bearer.
 - Tests: PENDING→NOTHING grace downgrade for client/operator/visitor; extend
   `test/controllers/dbsc_controller_test.rb`, `test/services/dpop/*`,
   `test/services/oidc/access_token_authenticator_dpop_test.rb`.
 
 ## Phase B — Idle timeout (idle only; absolute caps unchanged)
 
-- **B1** Throttled per-request activity write: update `last_used_at` / `last_seen_at` in the
+- **B1 DONE** Throttled per-request activity write: update `last_used_at` / `last_seen_at` in the
   per-request resolver (`authentication_current_resource_resolver.rb` / `load_from_token`
   `authentication_base.rb:1396-1433`) via `update_column`, only when stale > ~60s.
-- **B2** Add `IDLE_TTL` to `SecurityTokenLifetimes` (`app/services/security_token_lifetimes.rb`);
-  proposed defaults client/app **8h**, operator/org **30m**, visitor **8h** (tunable). Mirror into
-  `AuthenticationBase`. Deny refresh when `now - last_used_at > IDLE_TTL` (new
-  `refresh_idle_allowed?` ANDed at `:521-531`), emit `refresh_failed` reason `idle_timeout`; also
-  reject stale access tokens in `currently_usable?` (`token_status_management.rb:68-74`) so an idle
-  session can't ride a live 1h access JWT.
+- **B2 DONE** `SecurityTokenLifetimes` defines client/app **8h**, operator/org **30m**, and visitor
+  **8h** idle windows. `AuthenticationBase#refresh_idle_allowed?` denies stale refresh attempts and
+  emits `refresh_failed` reason `idle_timeout`; access-token resolution also returns
+  `:idle_timeout`.
 - Tests near `test/services/security/token_lifetimes_test.rb` + auth refresh suites.
 
 ## Phase C — IP/ASN-change anomaly → hard revoke (feature-flagged)
@@ -99,26 +125,40 @@ Owner decision: **hard-revoke** on anomaly. Data source: **lightweight IP-networ
 external GeoIP). This contradicts `adr/session-token-hardening-baseline.md` §7 — see and land
 `adr/ip-anomaly-session-revocation.md` (supersedes §7).
 
-- **C1** Add nullable, reversible column `last_network_hmac` to device-session tables (no
+- **C1 DONE** Add nullable, reversible column `last_network_hmac` to device-session tables (no
   destructive ops). Store HMAC of the coarse network (**/24 IPv4, /48 IPv6**) via an
   `OccurrenceHmac` network helper; update alongside `last_seen_at`.
-  - DONE: `OccurrenceHmac.network_hmac` / `network_prefix` added
-    (`app/models/concerns/occurrence_hmac.rb`) with tests
-    (`test/models/concerns/occurrence/hmac_test.rb`, green). Remaining: migration for
-    `last_network_hmac`, wiring the per-session update, emit + enforce (C2/C3).
-- **C2** Emit `ip_change_detected` from the refresh path (`sign_risk_emitter.rb`) when the request
+- **C2 DONE** Emit `ip_change_detected` from the refresh path (`sign_risk_emitter.rb`) when the request
   network HMAC differs from the stored one within the risk window. Coarse network tolerates NAT/IP
   churn; only network-level change counts.
-- **C3** `SignRiskEngine` rule + `SignRiskEnforcer`: `ip_change_detected` scores ≥100 → `revoke!`.
+- **C3 DONE / FEATURE-FLAGGED** `SignRiskEngine` rule + `SignRiskEnforcer`: `ip_change_detected`
+  scores ≥100 → `revoke!` only when the feature flag is enabled.
   **Feature-flag** it (`IP_ANOMALY_REVOKE_ENABLED`, default OFF outside prod) and document the
   mobile-network false-positive tradeoff. Roll out with monitoring.
-- **C4** Update `plans/backlog/session-token-hardening-implementation.md` once implemented.
+- **C4 REMAINING** Update `plans/backlog/session-token-hardening-implementation.md` and any stable
+  docs that still describe these gaps as unimplemented.
 - Tests: extend `test/services/sign/risk/{engine,emitter,enforcer}_test.rb` — network change →
   revoke under flag; no revoke for in-network churn or flag off.
 
 ## Sequencing & safety
 
-- Phases A/B/C independent; land in order, each its own commit on a topic branch.
-- Refresh/revocation changes are security-sensitive: write the failure-path test first.
-- C1 migration: additive, nullable, reversible only; `bin/rails db:verify_no_schema_drift` after.
-- Re-read each cited `file:line` before editing (this file is a snapshot; line numbers drift).
+- Phases A/B/C have landed in the current tree; future work should be follow-up cleanup rather than
+  reimplementation.
+- Refresh/revocation changes are security-sensitive: keep failure-path tests before broadening the
+  feature flag rollout.
+- Re-read each cited `file:line` before editing; this file is a snapshot and line numbers drift.
+
+## Verification
+
+Focused checks for the current implementation:
+
+```bash
+bin/rails test test/controllers/concerns/authentication/base_coverage_test.rb \
+               test/controllers/concerns/authentication/current_resource_resolver_test.rb \
+               test/models/concerns/occurrence/hmac_test.rb \
+               test/services/security/token_lifetimes_test.rb \
+               test/services/sign/risk/engine_test.rb
+```
+
+Run broader authentication/security coverage before enabling `IP_ANOMALY_REVOKE_ENABLED` in any
+non-local environment.

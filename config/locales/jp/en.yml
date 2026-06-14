@@ -2913,9 +2913,3 @@ en:
     app:
       roots:
         message: "Palm API is available for native and handheld clients. Browser access is not a product UI."
-    com:
-      roots:
-        message: "Palm API is available for native and handheld clients. Browser access is not a product UI."
-    org:
-      roots:
-        message: "Palm API is available for native and handheld clients. Browser access is not a product UI."

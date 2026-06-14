@@ -9,8 +9,6 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "Base services are available"],
     ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "Base services are available"],
     ["palm_app_root_url", "PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
-    ["palm_com_root_url", "PALM_CORPORATE_URL", "palm.com.localhost", "Palm API is available"],
-    ["palm_org_root_url", "PALM_STAFF_URL", "palm.org.localhost", "Palm API is available"],
   ].freeze
 
   CONTENT_SURFACES = [

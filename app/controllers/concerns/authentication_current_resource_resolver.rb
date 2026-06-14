@@ -232,6 +232,20 @@ class AuthenticationCurrentResourceResolver
                            session_public_id: current_session_public_id(token_record, sid),
                            token_public_id: token_record_public_id(token_record),
     ) if resource.blank?
+    if administratively_locked?(resource)
+      return failure(
+        :administrative_access_locked, payload: payload,
+                                       session_public_id: current_session_public_id(token_record, sid),
+                                       token_public_id: token_record_public_id(token_record),
+      )
+    end
+    if token_stale_for_administrative_lock?(resource, payload)
+      return failure(
+        :administrative_access_token_stale, payload: payload,
+                                            session_public_id: current_session_public_id(token_record, sid),
+                                            token_public_id: token_record_public_id(token_record),
+      )
+    end
 
     touch_session_activity!(token_record)
 
@@ -244,12 +258,22 @@ class AuthenticationCurrentResourceResolver
     )
   end
 
-  def failure(reason, payload: nil, session_public_id: nil)
+  def failure(reason, payload: nil, session_public_id: nil, token_public_id: nil)
     Result.new(
       resource: nil,
       session_public_id: session_public_id,
+      token_public_id: token_public_id,
       payload: payload,
       failure_reason: reason,
     )
+  end
+
+  def administratively_locked?(resource)
+    resource.respond_to?(:admin_locked?) && resource.admin_locked?
+  end
+
+  def token_stale_for_administrative_lock?(resource, payload)
+    resource.respond_to?(:access_token_stale_for_administrative_lock?) &&
+      resource.access_token_stale_for_administrative_lock?(payload)
   end
 end

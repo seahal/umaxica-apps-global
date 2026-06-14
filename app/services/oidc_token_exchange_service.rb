@@ -26,7 +26,7 @@ class OidcTokenExchangeService < ApplicationService
 
   def call
     return failure("invalid_request", "grant_type must be 'authorization_code'") unless valid_grant_type?
-    return failure("invalid_request", "OIDC client authentication failed") unless authenticated_client?
+    return failure("invalid_client", "OIDC client authentication failed") unless authenticated_client?
 
     authorization_code = find_code
     return failure("invalid_grant", "Authorization code not found") unless authorization_code
@@ -54,9 +54,18 @@ class OidcTokenExchangeService < ApplicationService
   end
 
   def authenticated_client?
+    client = OidcClientRegistry.find(client_id)
+    return false unless client
+
+    return false if client_id.blank?
     return authenticated_client_assertion? if client_assertion.present? || client_assertion_type.present?
+    return public_client_authenticated? if client.public_client?
 
     OidcClientRegistry.authenticate(client_id, client_secret)
+  end
+
+  def public_client_authenticated?
+    client_secret.blank?
   end
 
   def authenticated_client_assertion?

@@ -146,7 +146,7 @@ Final report in `TEST_REPAIR_AND_COVERAGE_NOTES.md`:
 | -------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `test/test_helper.rb`                                                      | SimpleCov config, 93% threshold, parallelization toggle |
 | `plans/active/surface-routing-pass-remediation-plan.md`                    | Three remediation streams for new surfaces              |
-| `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md` | Route/controller scaffold decisions                     |
+| `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md` | Route/controller scaffold decisions                    |
 | `config/routes/{base,palm,sign,acme}.rb`                                   | Recent route changes (forbidden to edit)                |
 | `test/controllers/public_robots_routing_test.rb`                           | Modified test, verify correctness                       |
 | `test/controllers/csp_violation_reports_controller_test.rb`                | 27-endpoint CSP test, verify after route changes        |

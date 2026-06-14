@@ -41,6 +41,11 @@ class OidcAccessTokenAuthenticator < ApplicationService
 
     resource = token_resource(token)
     return failure("invalid_token") unless resource&.active?
+    return failure("invalid_token") if resource.respond_to?(:admin_locked?) && resource.admin_locked?
+    if resource.respond_to?(:access_token_stale_for_administrative_lock?) &&
+        resource.access_token_stale_for_administrative_lock?(payload)
+      return failure("invalid_token")
+    end
     return failure("invalid_token") unless token_subject_matches?(resource, payload)
 
     Result.new(success: true, payload: payload, token: token, resource: resource, error: nil)

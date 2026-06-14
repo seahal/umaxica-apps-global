@@ -102,22 +102,6 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("PALM_CORPORATE_URL", "palm.com.localhost"),
-      controller: "palm/com/healths",
-      liveness_controller: "palm/com/health/livenesses",
-      readiness_controller: "palm/com/health/readinesses",
-      startup_controller: "palm/com/health/startups",
-      profile: Health::Profiles::Com,
-    },
-    {
-      host: ENV.fetch("PALM_STAFF_URL", "palm.org.localhost"),
-      controller: "palm/org/healths",
-      liveness_controller: "palm/org/health/livenesses",
-      readiness_controller: "palm/org/health/readinesses",
-      startup_controller: "palm/org/health/startups",
-      profile: Health::Profiles::Org,
-    },
-    {
       host: ENV.fetch("HELP_SERVICE_URL", "help.app.localhost"),
       controller: "help/app/healths",
       liveness_controller: "help/app/health/livenesses",

@@ -6,6 +6,20 @@ require "test_helper"
 class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
   fixtures_none!
 
+  class TokenRecordFake
+    attr_reader :oidc_client_id, :oidc_jti
+
+    def initialize(oidc_client_id:, oidc_jti:, has_attribute: true)
+      @oidc_client_id = oidc_client_id
+      @oidc_jti = oidc_jti
+      @has_attribute = has_attribute
+    end
+
+    def has_attribute?(name)
+      @has_attribute && name == :oidc_jti
+    end
+  end
+
   test "returns invalid token when access token is blank" do
     authenticator = OidcAccessTokenAuthenticator.new(
       access_token: nil,
@@ -99,21 +113,40 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  test "private helpers cover dpop, audience, jti, resource, and context routing" do
-    class TokenRecordFake
-      attr_reader :oidc_client_id, :oidc_jti
+  test "rejects admin locked resource" do
+    resource = Client.create!(
+      status_id: ClientStatus::ACTIVE,
+      access_state: AdministrativeAccessLockable::ACCESS_STATE_ADMIN_LOCKED,
+      admin_locked_at: Time.current,
+      admin_locked_by_operator_id: 1,
+      admin_locked_reason_code: "security_incident",
+    )
+    authenticator = OidcAccessTokenAuthenticator.new(
+      access_token: "token",
+      resource_type: "client",
+      host: "app.example.test",
+    )
+    token = Struct.new(:active?, :user).new(true, resource)
 
-      def initialize(oidc_client_id:, oidc_jti:, has_attribute: true)
-        @oidc_client_id = oidc_client_id
-        @oidc_jti = oidc_jti
-        @has_attribute = has_attribute
-      end
+    AuthenticationTokenService.stub(:decode, { "scp" => ["openid"], "iat" => Time.current.to_i }) do
+      authenticator.stub(:dpop_valid?, true) do
+        authenticator.stub(:find_token, token) do
+          authenticator.stub(:token_belongs_to_audience?, true) do
+            authenticator.stub(:token_jti_matches?, true) do
+              authenticator.stub(:token_scope_allows_userinfo?, true) do
+                result = authenticator.call
 
-      def has_attribute?(name)
-        @has_attribute && name == :oidc_jti
+                assert_not result.success?
+                assert_equal "invalid_token", result.error
+              end
+            end
+          end
+        end
       end
     end
+  end
 
+  test "private helpers cover dpop, audience, jti, resource, and context routing" do
     assert OidcAccessTokenAuthenticator.new(
       access_token: "token",
       resource_type: "client",
@@ -212,7 +245,7 @@ class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
     end
 
     context = Object.new
-    context.define_singleton_method(:connected_to) do |role:, &block|
+    context.define_singleton_method(:connected_to) do |_role:, &block|
       block.call
     end
     token_class =

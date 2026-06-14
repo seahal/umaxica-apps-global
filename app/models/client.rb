@@ -53,8 +53,9 @@
 #   columns the `RetentionPurgeJob` consults for delete eligibility.
 # * `withdrawal_started_at` — Sign-out / withdrawal flow started.
 # * `withdrawn_at` — Withdrawal flow finalized. Retention is independent.
-# * `deactivated_at` — Operator-driven account suspension. Reversible. Not a
-#   deletion signal.
+# * `deactivated_at` — Withdrawal/suspension lifecycle marker. Reversible. Not a
+#   deletion signal. Forced administrative access removal is represented by
+#   `access_state: "admin_locked"` plus the `admin_locked_*` metadata columns.
 # * `terminated_at` — Set by `RetentionPurgeJob#anonymize_accounts` AFTER
 #   `WithdrawalPersonalDataAnonymizer` finishes. Marks "PII has been scrubbed
 #   on this row"; distinct from `discarded_at` (logical hide) and `purged_at`
@@ -69,6 +70,7 @@ class Client < AppPrincipalRecord
   include MfaLevelConfigurable
   include MfaStatusTrackable
   include ActorLifecycleConsistency
+  include AdministrativeAccessLockable
 
   LOGIN_BLOCKED_STATUS_IDS = [ClientStatus::RESERVED].freeze
   # what is this?

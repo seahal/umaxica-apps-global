@@ -12,10 +12,17 @@ This directory stores accepted architecture and design decisions.
 
 Current identity authority decision:
 
+- `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` — current source of
+  truth for Core browser credential transport on `jp.umaxica.app`: Rails Core may consume a
+  short-lived `core-browser` access JWT only from an HttpOnly host-only cookie, refresh remains
+  opaque, reverse audience/transport use is rejected, and no `Cookie` header may reach Next.js or
+  Side origins.
+- `adr/core-browser-credential-transport.md` — superseded predecessor retained for traceability.
 - `adr/acme-sign-core-base-port-boundary.md` — current source of truth for the target component
   model: Acme is the only IdP / Authorization Server, Sign is a special RP, Core is the Next.js web
   RP/BFF, Base is the Rails foundation/control-plane subdomain, and Port is the native bearer-token
-  API Resource Server.
+  API Resource Server. Its `__Host-core_sid`-only Core browser credential model is superseded by
+  `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`.
 - `adr/identity-authority-boundary.md` — current source of truth for Session, Token, Account,
   Preference, Authorization, Credential Gateway, ceremony-result, and downstream-token authority
   within the older Rails-only `acme/www` / `sign/id` model; superseded where it conflicts with the

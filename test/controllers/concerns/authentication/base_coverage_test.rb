@@ -19,7 +19,7 @@ class AuthenticationBaseTestController < ApplicationController
     handle_guest_only_with_status_checks handle_guest_only_html current_session_restricted?
     current_account transparent_refresh_access_token authenticate! bulletin_association_for_resource
     withdrawal_gate_redirect_path handle_missing_refresh_token handle_inactive_resource
-    handle_refresh_error resolve_token_kind_id enforce_authentication_open!
+    handle_administrative_access_locked_refresh handle_refresh_error resolve_token_kind_id enforce_authentication_open!
     enforce_authentication_private! enforce_authentication_guest! resolve_access_policy_for
     refresh_dbsc_allowed? refresh_dbsc_source refresh_binding_source
     token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
@@ -625,6 +625,40 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
 
     assert_nil @controller.handle_refresh_error(StandardError.new("boom"), "refresh-public", active)
     assert_equal "invalid_refresh_token", @controller.refresh_failure_code
+  end
+
+  test "administrative access lock guards login and refresh" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:request_ip_address) { "127.0.0.1" }
+    @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
+    @controller.request.request_id = "request-1"
+
+    locked = Struct.new(:id) do
+      define_method(:admin_locked?) { true }
+    end.new(123)
+    token = Struct.new(:revoked) do
+      def revoke!
+        self.revoked = true
+      end
+
+      def revoked?
+        revoked
+      end
+    end.new(false)
+
+    assert_equal({ status: :access_locked }, @controller.log_in(locked))
+
+    @controller.stub(:notify_inactive_resource_refresh_failed, true) do
+      @controller.stub(:emit_inactive_resource_refresh_failed, true) do
+        @controller.stub(:revoke_inactive_refresh_token_family!, ->(record) { record.revoke! }) do
+          assert_nil @controller.handle_administrative_access_locked_refresh(locked, "refresh-public", token)
+        end
+      end
+    end
+
+    assert_equal :forbidden, @controller.refresh_failure_status
+    assert_equal "administrative_access_locked", @controller.refresh_failure_code
+    assert_predicate token, :revoked?
   end
 
   test "policy and token kind helpers cover fallback branches" do
@@ -1286,8 +1320,6 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal "first-network", device.last_network_hmac
     assert_empty emitted
   end
-
-  private
 
   def fake_device_session(last_network_hmac:)
     Struct.new(:last_network_hmac) do

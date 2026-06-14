@@ -3,7 +3,7 @@
 ## Context
 
 - Original plans:
-  - `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md`
+  - `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md`
   - `plans/active/docs-news-help-content-surface-reimplementation-plan.md`
   - `plans/active/sign-acme-boundary-remediation.md`
 - Related decisions:

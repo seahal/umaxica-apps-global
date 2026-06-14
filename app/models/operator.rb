@@ -58,6 +58,7 @@ class Operator < OrgPrincipalRecord
   include MfaLevelConfigurable
   include MfaStatusTrackable
   include ActorLifecycleConsistency
+  include AdministrativeAccessLockable
 
   LOGIN_BLOCKED_STATUS_IDS = [OperatorStatus::RESERVED].freeze
   PUBLIC_ID_LENGTH = 16

@@ -28,8 +28,6 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     News::Com::BareController,
     News::Org::BareController,
     Palm::App::BareController,
-    Palm::Com::BareController,
-    Palm::Org::BareController,
     Sign::App::BareController,
     Sign::Com::BareController,
     Sign::Org::BareController,

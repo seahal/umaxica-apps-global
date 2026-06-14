@@ -22,8 +22,11 @@ and subject identity.
 
 Sign owns sign-related UI or special flows as a relying party. Sign is not an issuer.
 
-Core owns the browser-facing web experience, receives the Acme callback, issues the Core web session
-cookie, and calls downstream APIs from the server side.
+Core owns the browser-facing web experience, receives the Acme callback, and serves the browser
+credential boundary. `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`
+supersedes the earlier `__Host-core_sid`-only model: Rails Core may consume `aud=core-browser`
+access JWTs only from HttpOnly cookie transport, and the Next.js origin must receive no `Cookie`
+header at all.
 
 Base owns Rails-suitable foundation behavior: settings, preferences, account, profile, organization,
 administration, complex mutations, audit-sensitive operations, and Rails views where Rails remains
@@ -39,25 +42,28 @@ Browser
 -> Core / Next.js / jp.example.com
 -> Acme /authorize
 -> Core callback
--> Core issues __Host-core_sid
--> Core server calls Base API or other non-Port web APIs as needed
+-> Rails Core consumes the auth access cookie on /api/v0/*
 ```
 
-The browser must not directly hold bearer access tokens. The browser holds only Core's host-only
-session cookie.
+The browser may hold a Core browser access JWT only through HttpOnly cookie transport. JavaScript
+must not read access or refresh credentials. Next.js must not receive any `Cookie` header, including
+access, refresh, OIDC transaction, preference, flash, analytics, or unrelated cookies.
 
-Core's cookie contract:
+Core browser credential cookies use the existing Rails auth cookie concern and names, not a
+Core-only fork:
 
-| Attribute | Value             |
-| --------- | ----------------- |
-| Name      | `__Host-core_sid` |
-| Domain    | none              |
-| Path      | `/`               |
-| Secure    | `true`            |
-| HttpOnly  | `true`            |
-| SameSite  | `Lax`             |
+| Cookie | Purpose | Domain | Path | SameSite | Secure | HttpOnly |
+| ------ | ------- | ------ | ---- | -------- | ------ | -------- |
+| existing auth access cookie, `__Host-` prefixed in secure contexts | Access JWT | none | `/` | `Strict` | `true` | `true` |
+| existing auth refresh cookie, `__Host-` prefixed in secure contexts | Opaque refresh | none | `/` | `Strict` | `true` | `true` |
+| existing Rails/OIDC transaction state | OIDC transaction | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls |
 
-Do not use `Domain=.example.com` for Core browser sessions.
+The access JWT uses the `core-browser` audience and a short TTL. The refresh credential is opaque.
+Do not split the auth ceremony into Core-only cookie concerns unless a later ADR accepts that drift.
+
+Do not use `Domain=.example.com` for Core browser credentials. Cloudflare strips the entire `Cookie`
+header before forwarding requests to the Next.js origin or `side.jp.umaxica.app`, and strips
+`Set-Cookie` from Next.js and Side responses before they reach the browser.
 
 ## Session And Cookie Boundary
 
@@ -102,6 +108,15 @@ authorize API access.
 
 APIs must not use ID Tokens for authorization.
 
+Audience and transport are bound:
+
+- `aud=core-browser` is accepted only from cookie transport.
+- `aud=palm-api` or `aud=port-api` is accepted only from Authorization bearer transport.
+- `aud=side-service` is service-token-only and never user-bound.
+
+Reverse transport must be rejected. Because Core browser uses cookie transport, Rails CSRF
+verification is mandatory for unsafe methods.
+
 ## Names And URLs
 
 Initial client and audience names:
@@ -128,6 +143,8 @@ Port URL selection remains open. The Port responsibility and bearer-token audien
 
 ## Related
 
+- `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`
+- `adr/core-browser-credential-transport.md`
 - `adr/acme-sign-core-base-port-boundary.md`
 - `docs/security/cookie-domain-scope.md`
 - `docs/security/downstream-token-authority.md`

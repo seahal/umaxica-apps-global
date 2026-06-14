@@ -167,7 +167,7 @@ files for `*_zenith` databases under `test/fixtures/`.
   `/entries/:slug`; moving from `edge/v0` to `api/v0`; making roots thin.
 - `plans/active/surface-routing-pass-remediation-plan.md`: three open streams — Stream 1 (tests),
   Stream 2 (health refactor, ~127 uncommitted files), Stream 3 (OIDC ADR).
-- `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md`: original pass that
+- `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md`: original pass that
   created current controller/route scaffold.
 
 ---

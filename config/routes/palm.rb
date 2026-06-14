@@ -14,38 +14,11 @@ scope module: :palm, as: :palm do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-    end
-  end
-
-  # Corporate native API surface
-  constraints host: ENV["PALM_CORPORATE_URL"] do
-    scope module: :com, as: :com do
-      root to: "roots#index"
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      namespace :oauth do
+        resource :callback, only: :show
+        get "callback/ios", to: "callbacks#show", as: :ios_callback
+        get "callback/android", to: "callbacks#show", as: :android_callback
       end
-      resource :robot, only: :show, path: "robots.txt"
-      resource :sitemap, only: :show, path: "sitemap.xml"
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-    end
-  end
-
-  # Staff native API surface
-  constraints host: ENV["PALM_STAFF_URL"] do
-    scope module: :org, as: :org do
-      root to: "roots#index"
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
-      end
-      resource :robot, only: :show, path: "robots.txt"
-      resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end

@@ -83,8 +83,27 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       )
 
       assert_not result.success?
-      assert_equal "invalid_request", result.error
+      assert_equal "invalid_client", result.error
     end
+  end
+
+  test "rejects client assertion unless private_key_jwt is explicitly registered" do
+    docs_client = OidcClientRegistry.find!("docs_app")
+    code_record = issue_code!(client_id: "docs_app", redirect_uri: docs_client.redirect_uris.first)
+
+    result = OidcTokenExchangeService.call(
+      grant_type: "authorization_code",
+      code: code_record.code,
+      redirect_uri: docs_client.redirect_uris.first,
+      client_id: "docs_app",
+      client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+      client_assertion: "assertion",
+      code_verifier: @code_verifier,
+      token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_client", result.error
   end
 
   test "marks code as consumed after exchange" do
@@ -128,18 +147,365 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   test "fails for wrong client_secret_credential" do
     code_record = issue_code!
 
-    # Do not stub authenticate; let it fail naturally with no secret_credential configured.
+    result =
+      with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: @client_secret) do
+        OidcTokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: "wrong_secret_credential",
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_client", result.error
+  end
+
+  test "fails invalid_client for missing confidential client secret" do
+    code_record = issue_code!
+
     result = OidcTokenExchangeService.call(
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
       client_id: "core_app",
-      client_secret: "wrong_secret_credential",
       code_verifier: @code_verifier,
     )
 
     assert_not result.success?
-    assert_equal "invalid_request", result.error
+    assert_equal "invalid_client", result.error
+  end
+
+  test "fails invalid_client for blank configured confidential client secret" do
+    code_record = issue_code!
+
+    result =
+      with_oidc_client_secret_credentials(OIDC_CLIENT_SECRETS_CORE_APP: "") do
+        OidcTokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core_app",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_client", result.error
+  end
+
+  test "unregistered docs app does not enable public token exchange" do
+    docs_client = OidcClientRegistry.find!("docs_app")
+    code_record = issue_code!(client_id: "docs_app", redirect_uri: docs_client.redirect_uris.first)
+
+    result = OidcTokenExchangeService.call(
+      grant_type: "authorization_code",
+      code: code_record.code,
+      redirect_uri: docs_client.redirect_uris.first,
+      client_id: "docs_app",
+      code_verifier: @code_verifier,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_client", result.error
+  end
+
+  test "diagnostic metadata none does not enable public token exchange" do
+    client = visitor_account(
+      client_id: "metadata_none_test",
+      client_secret: nil,
+      registered_token_endpoint_auth_method: nil,
+      metadata_token_endpoint_auth_method: "none",
+    )
+    code_record = issue_code!(client_id: "metadata_none_test", redirect_uri: client.redirect_uris.first)
+
+    OidcClientRegistry.stub(:find, ->(client_id) { client_id == "metadata_none_test" ? client : nil }) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: client.redirect_uris.first,
+        client_id: "metadata_none_test",
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_client", result.error
+    end
+  end
+
+  test "explicit registered none public client exchanges valid code with pkce" do
+    public_client = visitor_account(
+      client_id: "public_test",
+      client_secret: nil,
+      registered_token_endpoint_auth_method: "none",
+      metadata_token_endpoint_auth_method: "none",
+    )
+    code_record = issue_code!(client_id: "public_test", redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: "public_test",
+        code_verifier: @code_verifier,
+      )
+
+      assert_predicate result, :success?
+      assert_predicate result.token_response[:access_token], :present?
+      assert_predicate result.token_response[:refresh_token], :present?
+      assert_equal "Bearer", result.token_response[:token_type]
+    end
+  end
+
+  test "explicit public client fails without client_id" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: nil,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_client", result.error
+    end
+  end
+
+  test "explicit public client fails without code" do
+    public_client = public_visitor_account
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: nil,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_grant", result.error
+    end
+  end
+
+  test "explicit public client fails without redirect_uri" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: nil,
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "redirect_uri mismatch", result.error_description
+    end
+  end
+
+  test "explicit public client fails without code_verifier" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: nil,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "code_verifier is required", result.error_description
+    end
+  end
+
+  test "explicit public client fails with wrong code_verifier" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: "wrong-verifier",
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "PKCE verification failed", result.error_description
+    end
+  end
+
+  test "explicit public client rejects plain pkce code" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+    code_record.update_columns(code_challenge: @code_verifier, code_challenge_method: "plain")
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "PKCE verification failed", result.error_description
+    end
+  end
+
+  test "explicit public client fails with redirect_uri mismatch" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: "https://client.example/other/callback",
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "redirect_uri mismatch", result.error_description
+    end
+  end
+
+  test "explicit public client fails with client_id mismatch" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    other_client = public_visitor_account(client_id: "other_public_test")
+    with_public_clients(public_client, other_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: other_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_request", result.error
+      assert_equal "client_id mismatch", result.error_description
+    end
+  end
+
+  test "explicit public client fails with expired code" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    travel ClientAuthorizationCode::CODE_TTL + 1.second do
+      with_public_client(public_client) do
+        result = OidcTokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: public_client.redirect_uris.first,
+          client_id: public_client.client_id,
+          code_verifier: @code_verifier,
+        )
+
+        assert_not result.success?
+        assert_equal "invalid_grant", result.error
+        assert_equal "Authorization code expired", result.error_description
+      end
+    end
+  end
+
+  test "explicit public client fails with reused code" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+    code_record.consume!
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_grant", result.error
+      assert_equal "Authorization code already consumed", result.error_description
+    end
+  end
+
+  test "explicit public client rejects client_secret authentication" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        client_secret: "unexpected-secret",
+        code_verifier: @code_verifier,
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_client", result.error
+    end
+  end
+
+  test "explicit public client rejects client assertion authentication" do
+    public_client = public_visitor_account
+    code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
+
+    with_public_client(public_client) do
+      result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: code_record.code,
+        redirect_uri: public_client.redirect_uris.first,
+        client_id: public_client.client_id,
+        client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: "assertion",
+        code_verifier: @code_verifier,
+        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+      )
+
+      assert_not result.success?
+      assert_equal "invalid_client", result.error
+    end
+  end
+
+  test "confidential client cannot use public path by omitting secret" do
+    code_record = issue_code!
+
+    result = OidcTokenExchangeService.call(
+      grant_type: "authorization_code",
+      code: code_record.code,
+      redirect_uri: @redirect_uri,
+      client_id: "core_app",
+      code_verifier: @code_verifier,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_client", result.error
   end
 
   test "fails for nonexistent code" do
@@ -710,11 +1076,11 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 
-  def issue_code!(scope: nil)
+  def issue_code!(client_id: "core_app", redirect_uri: @redirect_uri, scope: nil)
     ClientAuthorizationCode.issue!(
       user: @user,
-      client_id: "core_app",
-      redirect_uri: @redirect_uri,
+      client_id: client_id,
+      redirect_uri: redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "test_nonce",
@@ -761,6 +1127,55 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
                      },
     ) do
       block.call
+    end
+  end
+
+  def with_oidc_client_secret_credentials(overrides)
+    creds = Rails.app.creds
+    fetch = ->(key, default: nil) { overrides.fetch(key, default) }
+
+    creds.stub(:option, fetch) do
+      yield
+    end
+  end
+
+  def visitor_account(overrides = {})
+    OidcClientRegistry::VisitorAccount.new(
+      client_id: "test_client",
+      client_secret: "secret",
+      redirect_uris: ["https://client.example/auth/callback"],
+      aud: "test-audience",
+      resource_type: "client",
+      name: "Test Client",
+      domains: ["client.example"],
+      registered_token_endpoint_auth_method: "client_secret_post",
+      metadata_token_endpoint_auth_method: "client_secret_post",
+      jwt_namespace: nil,
+      **overrides,
+    )
+  end
+
+  def public_visitor_account(overrides = {})
+    visitor_account(
+      client_id: "public_test",
+      client_secret: nil,
+      registered_token_endpoint_auth_method: "none",
+      metadata_token_endpoint_auth_method: "none",
+      **overrides,
+    )
+  end
+
+  def with_public_client(client, &block)
+    with_public_clients(client, &block)
+  end
+
+  def with_public_clients(*clients)
+    clients_by_id = clients.index_by(&:client_id)
+
+    OidcClientRegistry.stub(:find, ->(client_id) { clients_by_id[client_id] }) do
+      OidcClientRegistry.stub(:find!, ->(client_id) { clients_by_id.fetch(client_id) }) do
+        yield
+      end
     end
   end
 

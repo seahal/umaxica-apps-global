@@ -55,6 +55,7 @@ class Acme::App::Edge::V0::Token::RefreshesController < Acme::App::ApplicationCo
     {
       "invalid_refresh_token" => "sign.token_refresh.errors.invalid_refresh_token",
       "withdrawal_required" => "sign.token_refresh.errors.withdrawal_required",
+      "administrative_access_locked" => "sign.token_refresh.errors.invalid_refresh_token",
       "restricted_session" => "sign.token_refresh.errors.restricted_session",
     }.fetch(code) { "sign.token_refresh.errors.invalid_refresh_token" }
   end

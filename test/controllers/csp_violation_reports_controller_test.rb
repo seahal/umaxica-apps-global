@@ -23,7 +23,9 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal csp_report_cases.size, logged.size
     assert logged.all? { |entry| entry[:event] == "security.csp_violation" }
-    assert logged.all? { |entry| entry[:data] == { foo: "bar" } }
+    assert logged.all? { |entry| entry.dig(:data, :category) == "application" }
+    assert logged.all? { |entry| entry.dig(:data, :blocked_uri) == "https://cdn.example.test/script.js" }
+    assert logged.all? { |entry| entry.dig(:data, :script_sample).nil? }
   end
 
   test "malformed JSON still returns no_content and does not record an event" do
@@ -58,8 +60,6 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
       [ENV["BASE_CORPORATE_URL"] || "base.com.localhost", :base_com_csp_violation_report_path],
       [ENV["BASE_STAFF_URL"] || "base.org.localhost", :base_org_csp_violation_report_path],
       [ENV["PALM_SERVICE_URL"] || "palm.app.localhost", :palm_app_csp_violation_report_path],
-      [ENV["PALM_CORPORATE_URL"] || "palm.com.localhost", :palm_com_csp_violation_report_path],
-      [ENV["PALM_STAFF_URL"] || "palm.org.localhost", :palm_org_csp_violation_report_path],
       [ENV["DOCS_SERVICE_URL"] || "docs.app.localhost", :docs_app_csp_violation_report_path],
       [ENV["DOCS_CORPORATE_URL"] || "docs.com.localhost", :docs_com_csp_violation_report_path],
       [ENV["DOCS_STAFF_URL"] || "docs.org.localhost", :docs_org_csp_violation_report_path],
@@ -75,7 +75,10 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   def csp_report_payload
     {
       "csp-report" => {
-        "foo" => "bar",
+        "document-uri" => "https://app.example.test/settings?token=secret#fragment",
+        "blocked-uri" => "https://cdn.example.test/script.js?session=secret#inline",
+        "effective-directive" => "script-src",
+        "script-sample" => "secret inline sample",
       },
     }
   end

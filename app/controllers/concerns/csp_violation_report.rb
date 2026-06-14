@@ -4,15 +4,18 @@
 module CspViolationReport
   extend ActiveSupport::Concern
 
+  included do
+    rate_limit to: 120, within: 1.minute, only: :create if respond_to?(:rate_limit)
+  end
+
   private
 
   def record_csp_violation!
-    report = JSON.parse(request.body.read)
-    payload = report["csp-report"] || {}
-
-    Rails.logger.info(JitLogEvent.format("security.csp_violation", **payload.symbolize_keys))
-  rescue JSON::ParserError
-    nil
+    CspViolationReportIntake.call(
+      raw_body: request.body.read,
+      host: request.host,
+      user_agent: request.user_agent,
+    )
   end
 
   def ignore_malformed_csp_report

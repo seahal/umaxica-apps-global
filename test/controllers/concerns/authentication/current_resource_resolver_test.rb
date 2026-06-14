@@ -5,7 +5,18 @@ require "test_helper"
 
 module Authentication
   class CurrentResourceResolverTest < ActiveSupport::TestCase
-    FakeResource = Struct.new(:id)
+    FakeResource =
+      Struct.new(:id, :admin_locked, :token_valid_after_at, keyword_init: true) do
+        def admin_locked?
+          admin_locked
+        end
+
+        def access_token_stale_for_administrative_lock?(payload)
+          return false if token_valid_after_at.blank?
+
+          Time.zone.at(payload["iat"].to_i) < token_valid_after_at
+        end
+      end
 
     class FakeTokenScope
       FakeToken =
@@ -74,8 +85,18 @@ module Authentication
     end
 
     class FakeResourceClass
+      class << self
+        def resource
+          @resource
+        end
+
+        def resource=(value)
+          @resource = value
+        end
+      end
+
       def self.find_by(id:)
-        return FakeResource.new(id) if id == 123
+        return resource || FakeResource.new(id: id) if id == 123
 
         nil
       end
@@ -144,6 +165,62 @@ module Authentication
       end
     ensure
       FakeTokenScope.token_oidc_jti = nil
+    end
+
+    test "returns administrative_access_locked when resource is admin locked" do
+      payload = {
+        "sub" => 123,
+        "sid" => "sess_1",
+        "act" => "client",
+        "jti" => "current-jti",
+        "iat" => Time.current.to_i,
+      }
+      FakeTokenScope.token_oidc_jti = "current-jti"
+      FakeResourceClass.resource = FakeResource.new(id: 123, admin_locked: true)
+
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
+          OrgTicketRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            result = resolve_client_resource
+
+            assert_equal :administrative_access_locked, result.failure_reason
+            assert_nil result.resource
+          end
+        end
+      end
+    ensure
+      FakeTokenScope.token_oidc_jti = nil
+      FakeResourceClass.resource = nil
+    end
+
+    test "returns administrative_access_token_stale when token predates access state change" do
+      payload = {
+        "sub" => 123,
+        "sid" => "sess_1",
+        "act" => "client",
+        "jti" => "current-jti",
+        "iat" => 10.minutes.ago.to_i,
+      }
+      FakeTokenScope.token_oidc_jti = "current-jti"
+      FakeResourceClass.resource = FakeResource.new(
+        id: 123,
+        admin_locked: false,
+        token_valid_after_at: 1.minute.ago,
+      )
+
+      AuthenticationToken.stub(:decode, payload) do
+        AuthenticationToken.stub(:validate_actor_claim!, true) do
+          OrgTicketRecord.stub(:connected_to, ->(**, &block) { block.call }) do
+            result = resolve_client_resource
+
+            assert_equal :administrative_access_token_stale, result.failure_reason
+            assert_nil result.resource
+          end
+        end
+      end
+    ensure
+      FakeTokenScope.token_oidc_jti = nil
+      FakeResourceClass.resource = nil
     end
 
     test "uses the token class connection owner" do

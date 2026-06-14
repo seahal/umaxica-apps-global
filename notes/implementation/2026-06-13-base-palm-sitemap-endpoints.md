@@ -4,7 +4,7 @@
 
 - Original plan/spec: add `sitemap.xml` wherever Base and Palm already expose `robots.txt`.
 - Related decisions/docs/plans:
-  `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md`,
+  `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md`,
   `docs/architecture/controller-lifecycle.md`.
 - Implementation date: 2026-06-13.
 
@@ -14,7 +14,7 @@
   - Why: the route files do not currently define a reusable robots/sitemap route concern.
   - Alternatives considered: adding a new route concern, rejected because the requested change only
     needs six endpoints.
-  - Follow-up needed: none.
+  - Follow-up needed: Palm now keeps the sitemap endpoint only on the app audience.
 
 - Decision: Base and Palm sitemap controllers inherit each surface-local `BareController` and
   include `::Sitemap`.
@@ -40,3 +40,9 @@
 - `bin/rails test test/controllers/controller_base_inheritance_test.rb`
 - Tests not run: full suite.
 - Documentation promotion needed: none currently.
+
+## 2026-06-14 Update
+
+Palm `com` and `org` endpoints were removed after the product decision that native clients are only
+planned for the `app` audience. Base remains an app/com/org triple; Palm sitemap behavior is now
+app-only.

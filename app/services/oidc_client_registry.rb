@@ -11,8 +11,21 @@ module OidcClientRegistry
   VisitorAccount =
     Data.define(
       :client_id, :client_secret, :redirect_uris, :aud, :resource_type,
-      :name, :domains, :token_endpoint_auth_method, :jwt_namespace,
-    )
+      :name, :domains, :registered_token_endpoint_auth_method,
+      :metadata_token_endpoint_auth_method, :jwt_namespace,
+    ) do
+      def public_client?
+        registered_token_endpoint_auth_method == "none"
+      end
+
+      def confidential_client?
+        !public_client?
+      end
+
+      def private_key_jwt_client?
+        registered_token_endpoint_auth_method == "private_key_jwt"
+      end
+    end
   CLIENTS_MUTEX = Mutex.new
   CLIENTS_CACHE = Concurrent::AtomicReference.new(nil)
 
@@ -26,6 +39,7 @@ module OidcClientRegistry
   def find(client_id)
     config = clients[client_id.to_s]
     return nil unless config
+    registered_auth_method = config[:token_endpoint_auth_method]
 
     VisitorAccount.new(
       client_id: client_id.to_s,
@@ -35,7 +49,8 @@ module OidcClientRegistry
       resource_type: config[:resource_type],
       name: config[:name],
       domains: domains_from_redirect_uris(config[:redirect_uris]),
-      token_endpoint_auth_method: config[:token_endpoint_auth_method] || default_auth_method(client_id.to_s),
+      registered_token_endpoint_auth_method: registered_auth_method,
+      metadata_token_endpoint_auth_method: registered_auth_method || metadata_auth_method(client_id.to_s),
       jwt_namespace: config[:jwt_namespace],
     )
   end
@@ -70,7 +85,7 @@ module OidcClientRegistry
 
   def authenticate_assertion(client_id, assertion, token_url:)
     client = find(client_id)
-    return false unless client&.token_endpoint_auth_method == "private_key_jwt"
+    return false unless client&.private_key_jwt_client?
 
     OidcClientAssertionJwt.valid?(client_id: client_id, assertion: assertion, token_url: token_url)
   end
@@ -265,8 +280,10 @@ module OidcClientRegistry
     Rails.app.creds.option(credential_key_for(client_id))
   end
 
-  def default_auth_method(client_id)
-    resolve_secret_credential(client_id).present? ? "client_secret_post" : "none"
+  # This method is metadata/diagnostic-only. It must not be used for token endpoint authentication
+  # or authorization decisions.
+  def metadata_auth_method(client_id)
+    "client_secret_post"
   end
 
   def domains_from_redirect_uris(redirect_uris)
@@ -289,5 +306,5 @@ module OidcClientRegistry
 
   private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
                        :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
-                       :normalize_resource_type, :default_auth_method
+                       :normalize_resource_type, :metadata_auth_method
 end

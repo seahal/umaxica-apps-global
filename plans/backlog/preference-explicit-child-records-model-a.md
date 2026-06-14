@@ -1,7 +1,7 @@
-# バックログ: preference 子レコードを「明示時のみ作成」モデル(A案)へ移行
+# Backlog: Move Preference Child Records To The Explicit-Only Model A
 
-Status: Backlog（B案実装後のフォローアップ）親プラン:
-`plans/active/preference-actor-hydration-ssot.md`
+Status: Backlog follow-up after the implemented Model B parent plan:
+`plans/archive/preference-actor-hydration-ssot.md`
 
 ## 背景
 

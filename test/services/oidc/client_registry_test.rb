@@ -53,6 +53,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
   test "all expected clients are registered" do
     expected = %w(
+      sign_app sign_org sign_com
       acme_app acme_org acme_com
       core_app core_org core_com
       docs_app docs_org docs_com
@@ -70,7 +71,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "org clients have operator resource_type" do
-    %w(acme_org core_org docs_org news_org help_org).each do |client_id|
+    %w(sign_org acme_org core_org docs_org news_org help_org).each do |client_id|
       client = OidcClientRegistry.find(client_id)
 
       assert_equal "operator", client.resource_type, "#{client_id} should be operator type"
@@ -78,7 +79,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "app clients have client resource_type" do
-    %w(acme_app core_app docs_app news_app help_app).each do |client_id|
+    %w(sign_app acme_app core_app docs_app news_app help_app).each do |client_id|
       client = OidcClientRegistry.find(client_id)
 
       assert_equal "client", client.resource_type, "#{client_id} should be client type"
@@ -86,7 +87,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   end
 
   test "com clients have visitor resource_type" do
-    %w(acme_com core_com docs_com news_com help_com).each do |client_id|
+    %w(sign_com acme_com core_com docs_com news_com help_com).each do |client_id|
       client = OidcClientRegistry.find(client_id)
 
       assert_equal "visitor", client.resource_type, "#{client_id} should be visitor type"
@@ -122,10 +123,16 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
     assert_includes ids, "core_app"
     assert_includes ids, "acme_org"
-    assert_equal 15, ids.size
+    assert_equal 18, ids.size
   end
 
-  test "acme and core clients use private_key_jwt namespaces" do
+  test "visitor account does not expose ambiguous token endpoint auth method" do
+    client = OidcClientRegistry.find!("core_app")
+
+    assert_not_respond_to client, :token_endpoint_auth_method
+  end
+
+  test "acme and core clients expose registered private_key_jwt namespaces" do
     expectations = {
       "acme_app" => "ACME_APP",
       "acme_com" => "ACME_COM",
@@ -138,9 +145,36 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     expectations.each do |client_id, namespace|
       client = OidcClientRegistry.find!(client_id)
 
-      assert_equal "private_key_jwt", client.token_endpoint_auth_method
+      assert_equal "private_key_jwt", client.registered_token_endpoint_auth_method
+      assert_predicate client, :private_key_jwt_client?
+      assert_predicate client, :confidential_client?
+      assert_not_predicate client, :public_client?
       assert_equal namespace, client.jwt_namespace
     end
+  end
+
+  test "docs app has no registered auth method and remains confidential" do
+    client = OidcClientRegistry.find!("docs_app")
+
+    assert client.client_secret.blank?
+    assert_nil client.registered_token_endpoint_auth_method
+    assert_not_predicate client, :public_client?
+    assert_predicate client, :confidential_client?
+    assert_equal "client_secret_post", client.metadata_token_endpoint_auth_method
+  end
+
+  test "explicit registered none client is public" do
+    client = visitor_account(registered_token_endpoint_auth_method: "none", client_secret: nil)
+
+    assert_predicate client, :public_client?
+    assert_not_predicate client, :confidential_client?
+  end
+
+  test "missing registered auth method with blank secret remains confidential" do
+    client = visitor_account(registered_token_endpoint_auth_method: nil, client_secret: "")
+
+    assert_not_predicate client, :public_client?
+    assert_predicate client, :confidential_client?
   end
 
   test "core clients are registered to regional redirect hosts" do
@@ -203,5 +237,23 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       assert_equal expected[:resource_type], client.resource_type
       assert_equal [expected[:host]], client.domains
     end
+  end
+
+  private
+
+  def visitor_account(overrides = {})
+    OidcClientRegistry::VisitorAccount.new(
+      client_id: "test_client",
+      client_secret: "secret",
+      redirect_uris: ["https://client.example/auth/callback"],
+      aud: "test-audience",
+      resource_type: "client",
+      name: "Test Client",
+      domains: ["client.example"],
+      registered_token_endpoint_auth_method: "client_secret_post",
+      metadata_token_endpoint_auth_method: "client_secret_post",
+      jwt_namespace: nil,
+      **overrides,
+    )
   end
 end

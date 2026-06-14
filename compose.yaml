@@ -51,8 +51,6 @@ services:
           - www.jp.umaxica.com
           - www.jp.umaxica.org
           - palm.jp.umaxica.app
-          - palm.jp.umaxica.com
-          - palm.jp.umaxica.org
           - docs.jp.umaxica.app
           - docs.jp.umaxica.com
           - docs.jp.umaxica.org

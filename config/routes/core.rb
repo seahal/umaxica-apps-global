@@ -3,7 +3,7 @@
 
 scope module: :core, as: :core do
   # Application BFF surface
-  constraints host: [ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
+  constraints host: [ENV["CORE_SERVICE_URL"], "jp.umaxica.app", "core.app.localhost"].compact do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -27,6 +27,13 @@ scope module: :core, as: :core do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
+        end
+      end
+
+      namespace :api do
+        namespace :v0 do
+          resource :session, only: :show
+          post "token/refresh", to: "tokens#refresh"
         end
       end
 
@@ -71,6 +78,13 @@ scope module: :core, as: :core do
         end
       end
 
+      namespace :api do
+        namespace :v0 do
+          resource :session, only: :show
+          post "token/refresh", to: "tokens#refresh"
+        end
+      end
+
       namespace :auth do
         resource :callback, only: :show
       end
@@ -110,6 +124,13 @@ scope module: :core, as: :core do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           resource :dbsc, only: :create
+        end
+      end
+
+      namespace :api do
+        namespace :v0 do
+          resource :session, only: :show
+          post "token/refresh", to: "tokens#refresh"
         end
       end
 

@@ -220,7 +220,7 @@ to the authentication→authorization pipeline ordering.
 - `config/initializers/filter_parameter_logging.rb`
 - `adr/acme-sign-core-base-port-boundary.md`, `docs/architecture/acme-sign-core-base-port.md`,
   `plans/active/acme-sign-core-base-port-implementation.md`,
-  `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md`,
+  `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md`,
   `docs/security/oauth2-1-compliance-gap.md` (reviewed via exploration)
 
 ## Commands Run

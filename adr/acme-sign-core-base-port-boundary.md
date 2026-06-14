@@ -1,5 +1,9 @@
 # Acme, Sign, Core, Base, And Port Boundary
 
+> Core browser credential transport update:
+> `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` supersedes this ADR's
+> `__Host-core_sid`-only Core browser credential model in the Web Boundary and Guardrails sections.
+
 ## Status
 
 Accepted (2026-06-12)
@@ -192,6 +196,8 @@ Do not:
 
 ## Related
 
+- `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`
+- `adr/core-browser-credential-transport.md`
 - `docs/architecture/acme-sign-core-base-port.md`
 - `plans/active/acme-sign-core-base-port-implementation.md`
 - `adr/identity-authority-boundary.md`

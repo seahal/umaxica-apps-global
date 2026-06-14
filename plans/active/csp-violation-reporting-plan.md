@@ -2,7 +2,27 @@
 
 ## Status
 
-Planned / Deferred.
+Implemented in the working tree on 2026-06-14; retained in `plans/active` until the Rails test
+database environment is stable enough to complete verification.
+
+Current implementation:
+
+- delegates controller handling to `CspViolationReportIntake`;
+- accepts legacy `csp-report` and Reporting API `csp-violation` bodies;
+- caps request bodies at 64 KiB;
+- treats malformed and oversized bodies as no-log accepted intake outcomes;
+- strips URL query strings and fragments;
+- drops `script-sample` and does not log raw request payloads;
+- classifies browser-extension noise separately from application violations;
+- emits structured aggregation keys through `JitLogEvent`;
+- applies Rails rate limiting to the public `create` action via the shared CSP concern.
+
+Verification notes:
+
+- Ruby syntax checks passed for the service, controller concern, and focused tests.
+- First focused Rails run reached the tests and had no remaining assertion failures after the
+  extension aggregation fix, but fixture loading hit a DB deadlock/foreign-key cleanup error.
+- A follow-up focused run failed earlier because the test DB host `primary` could not be resolved.
 
 ## Summary
 

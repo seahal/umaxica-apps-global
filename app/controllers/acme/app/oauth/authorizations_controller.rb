@@ -67,12 +67,14 @@ module Acme
               sign_app_sign_up_entrance_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
+                protocol: oidc_sign_protocol,
                 login_challenge: issuance.transaction.login_challenge,
               )
             else
               sign_app_sign_in_entrance_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
+                protocol: oidc_sign_protocol,
                 login_challenge: issuance.transaction.login_challenge,
               )
             end
@@ -116,6 +118,10 @@ module Acme
 
         def authorization_intent
           (params[:screen_hint].to_s == "signup") ? "sign_up" : "sign_in"
+        end
+
+        def oidc_sign_protocol
+          URI.parse(OidcIssuer.absolute_url(oidc_sign_host)).scheme
         end
 
         def authorize_params

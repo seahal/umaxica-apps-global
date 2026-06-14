@@ -2,11 +2,13 @@
 
 ## Context
 
-The routing/controller pass that introduced **Base, Palm, Help, Docs, News** (each app/com/org) is
-implemented and committed. A static audit (no tests run) found the core scaffolding coherent and
-fully resolvable (routes → controllers → concerns → models → views → DB tables), but with gaps. The
-HEAD commit is self-labelled `[CheckPoint] ....... with having some bugs`, and the working tree
-currently holds a large **in-flight, uncommitted health-contract refactor (~127 files)**.
+Status: Active, partially implemented. This plan now tracks remaining remediation after the
+Base/Palm/Help/Docs/News routing pass and subsequent cleanup.
+
+The routing/controller pass that introduced **Base, Help, Docs, News** as app/com/org variants and
+**Palm** as an app-only API surface is implemented. A static audit found the core scaffolding
+coherent and fully resolvable (routes → controllers → concerns → models → views → DB tables), but
+with gaps. The original pass was followed by an in-flight health-contract refactor.
 
 This plan is for a **separate implementing agent**. It does **not** re-do the content-surface
 implementation (owned by `plans/active/docs-news-help-content-surface-reimplementation-plan.md`) and
@@ -15,9 +17,18 @@ does **not** revert the Help/Docs/News content expansion — that expansion is a
 
 Three remediation streams were selected:
 
-1. Add tests for the new surfaces.
-2. Verify the in-flight health refactor is consistent.
-3. Handle the audited contradictions (Help/Docs/News OIDC RP entries; `SIGN_ISSUERS`).
+1. Add tests for the new surfaces. Current code has integration coverage in
+   `test/integration/read_only_surfaces_test.rb` and CSP report coverage in
+   `test/controllers/csp_violation_reports_controller_test.rb`; confirm whether health/robots and
+   per-route content coverage are now sufficient before adding more tests.
+2. Verify the health refactor is consistent. Current code has moved to singular
+   `HealthController` / `HealthCheckRendering`; re-run the static checks below before closing this
+   stream.
+3. Handle the audited contradictions (Help/Docs/News OIDC RP entries; `SIGN_ISSUERS`) by recording
+   intent, not by removing registry entries or refactoring issuers in this pass.
+
+Related completed original-pass plan:
+`plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md`.
 
 ### Current-state snapshot (audit evidence)
 
@@ -42,14 +53,20 @@ Three remediation streams were selected:
 
 ---
 
-## Stream 1 — Tests for the new surfaces (REQUIRED; AGENTS.md)
+## Stream 1 — Tests for the new surfaces
 
-No tests exist for `base/palm/help/docs/news` (`test/controllers/{base,palm,help,docs,news}/` are
-empty).
+Current status: partially complete.
+
+- `test/integration/read_only_surfaces_test.rb` covers Base/Palm plain roots and
+  Help/Docs/News content roots/API rejection behavior.
+- `test/controllers/csp_violation_reports_controller_test.rb` covers CSP report routes across the
+  expanded surface set.
+- Remaining question: whether health/robots and per-route content cases are sufficiently covered by
+  current integration tests or still need dedicated additions.
 
 ### 1a. Roots
 
-- Base/Palm (all 3 variants): integration test mirroring
+- Base (all 3 variants) and Palm app-only: integration test mirroring
   `test/controllers/acme/app/roots_controller_test.rb` but for a **plain** body:
   `host! ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")`, `get base_app_root_url`,
   `assert_response :success`, `assert_equal "<exact plain message>", response.body`, and assert
@@ -59,14 +76,14 @@ empty).
 
 ### 1b. Health (coordinate with Stream 2 — target the NEW contract)
 
-- Per surface × variant: `get …_health_url`, `…_health_liveness_url`, `…_health_readiness_url`,
-  `…_health_startup_url` → `assert_response :success` and assert the JSON/probe shape produced by
-  `HealthCheckRendering#render_probe`/`#render_snapshot`. Use the profile-appropriate expectations
-  (`Health::Profiles::{App,Com,Org}` for base/palm/help/docs/news).
+- Per current surface × variant: `get …_health_url`, `…_health_liveness_url`,
+  `…_health_readiness_url`, `…_health_startup_url` → `assert_response :success` and assert the
+  JSON/probe shape produced by `HealthCheckRendering#render_probe`/`#render_snapshot`. Use the
+  profile-appropriate expectations. Palm is app-only.
 
 ### 1c. Robots
 
-- Per surface × variant: `get …_robot_url` → `200`, `Content-Type: text/plain`, body equals the
+- Per current surface × variant: `get …_robot_url` → `200`, `Content-Type: text/plain`, body equals the
   shared `::Robots` allow-all policy (`"User-agent: *\nDisallow:\n"`).
 
 ### 1d. Entries (Help/Docs/News only) + fixtures
@@ -89,15 +106,17 @@ empty).
 
 ---
 
-## Stream 2 — In-flight health refactor consistency (verify before relying on Stream 1b)
+## Stream 2 — Health refactor consistency
+
+Current status: likely implemented; verify before closing.
 
 The tree migrates **all** surfaces' health controllers to `HealthController` +
 `HealthCheckRendering`
 
 - `Health::Profiles::*` and **deletes** `app/controllers/concerns/health/check_rendering.rb`.
 
-* **Uniformity:** every surface/variant (acme app/com/org/net/dev, sign app/com/org, core, base,
-  palm, help, docs, news) uses `HealthController` (singular) wired via
+* **Uniformity:** every current surface/variant (acme app/com/org/net/dev, sign app/com/org, core,
+  base, palm app-only, help, docs, news) uses `HealthController` (singular) wired via
   `resource :health, controller: "health"` and the namespaced
   `Health::{Liveness,Readiness,Startup}Controller`. Confirm profile mapping is right (sign →
   `SignApp/SignCom/SignOrg`; others → `App/Com/Org`; decide whether `core` should keep `App/Com/Org`
@@ -112,8 +131,8 @@ The tree migrates **all** surfaces' health controllers to `HealthController` +
 * **Docs:** `docs/reference/health-endpoints.md`, `docs/operations/health-check.md`, and
   `notes/implementation/2026-06-13-health-endpoint-contract-redesign.md` must match the final
   contract.
-* Commit the ~127-file refactor coherently (separately from the new-surface scaffolding if
-  practical).
+* The old "commit the ~127-file refactor" instruction is historical. Do not use this plan as a git
+  workflow instruction; use it only to verify the current tree is coherent.
 
 ---
 
@@ -171,6 +190,7 @@ is not a contradiction to fix.** Action is documentation + a light guard only:
 - Do not revert Help/Docs/News to plain placeholders (ADR-accepted content surfaces).
 - Do not implement Acme OIDC/RP integration, Palm native auth, Next.js, Cloudflare Tunnel, or
   redirects in this remediation.
+- Do not restore Palm `com` or `org`; Palm is app-only unless a new decision changes that boundary.
 
 ## Verification (run after implementation; static checks listed first)
 
@@ -187,6 +207,6 @@ is not a contradiction to fix.** Action is documentation + a light guard only:
 
 - `adr/read-only-content-surfaces-in-rails.md`
 - `plans/active/docs-news-help-content-surface-reimplementation-plan.md`
-- `plans/active/surface-routing-controller-pass-base-palm-help-docs-news.md` (the original pass
+- `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md` (the original pass
   plan)
 - `notes/implementation/2026-06-13-health-endpoint-contract-redesign.md`

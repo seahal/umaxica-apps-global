@@ -68,6 +68,7 @@ Current content-model references:
 - `docs/security/sign-withdrawal-and-membership.md`
 - `docs/security/redirect_targets.md`
 - `docs/operations/container-engine-podman-notes.md`
+- `docs/operations/core-nextjs-zero-cookie-edge-contract.md`
 - `docs/operations/jump-rt-key-rotation.md`
 - `docs/operations/jwt-key-rotation.md`
 - `docs/runbooks/chain_seal_key_rotation.md`

@@ -57,6 +57,7 @@ class Visitor < ComPrincipalRecord
   include MfaLevelConfigurable
   include MfaStatusTrackable
   include ActorLifecycleConsistency
+  include AdministrativeAccessLockable
 
   LOGIN_BLOCKED_STATUS_IDS = [VisitorStatus::RESERVED].freeze
   VERIFIED_RECOVERY_EMAIL_STATUS_IDS = [
