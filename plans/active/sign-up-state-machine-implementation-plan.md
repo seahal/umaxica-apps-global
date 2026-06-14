@@ -1,17 +1,24 @@
 # Sign Up State Machine Implementation Plan
 
-> **Updated by the current Identity Authority boundary:** `sign/id` owns identity entry, credential,
-> app social evidence, and session-token issuance paths. `acme/www` owns Account lifecycle and
-> Account/Organization/Avatar business state. Do not use older wording in this plan to restore the
-> Acme aggregation model.
+> **Updated by the current Identity Authority boundary:** `acme/www` is the Session, Token,
+> Account, Preference, Authorization, and downstream-token Authority. `sign/id` owns the credential
+> ceremony and sign-up sequence progression only. Existing sign-side ticket, credential, and
+> callback records do not imply sign-side account, session, token, preference, dashboard, or
+> authorization authority.
 
-Status: active planning
+Status: active implementation
 
-Temporary exception note (2026-06-02): この plan の production target は維持する。つまり `com`
-signup は social-free、`org` は app/com public self-service signup の対象外である。QA 中だけ
-`plans/active/org-com-google-social-temporary-gateway-plan.md` が Google temporary
-gateway 例外を定義する。この例外を、この plan の production
-boundary の恒久変更として扱ってはならない。
+Current implementation baseline: the core app/com ticket, state-machine, policy, checkpoint,
+handoff, and cleanup contracts already exist under `ClientSignUpFlow`, `VisitorSignUpFlow`,
+`SignUpStateMachine`, `SignUp::*Policy`, `SignUpTermination`, and `SignUpArtifactCleanup`. Treat the
+remaining work as alignment, hardening, and compatibility cleanup against these existing contracts,
+not as a greenfield cycle-ticket implementation.
+
+Temporary exception note (2026-06-02): this plan's production target remains unchanged. `com`
+sign-up remains social-free, and `org` remains outside app/com public self-service sign-up. Only
+`plans/active/org-com-google-social-temporary-gateway-plan.md` defines the QA-only Google temporary
+gateway exception. Do not treat that exception as a permanent production boundary change for this
+plan.
 
 ## Purpose
 
@@ -44,8 +51,8 @@ app-only and too narrow for the accepted ADR.
 - `com` supports email and telephone sign-up only. It must not gain social sign-up.
 - `org` is out of scope for this implementation plan. Do not add org public self-service sign-up,
   operator creation, operator mutation, or org session issuance here.
-- Temporary exception: `org` と後続 `com` の QA-only Google gateway 作業は、この state-machine
-  plan ではなく `plans/active/org-com-google-social-temporary-gateway-plan.md` に属する。
+- Temporary exception: QA-only Google gateway work for `org` and later `com` belongs to
+  `plans/active/org-com-google-social-temporary-gateway-plan.md`, not this state-machine plan.
 - Sign-up checkpoint is separate from sign-in checkpoint.
 - Sign-up finalization and sign-in/session issuance are separate failure domains.
 - Durable sign-up completion must not be undone because later sign-in/session issuance failed.
@@ -60,8 +67,8 @@ In scope:
 - App Apple social sign-up.
 - Com email sign-up.
 - Com telephone sign-up.
-- `/sign/up/guardrail`.
-- `/sign/up/checkpoint`.
+- `/sign/up/guard`.
+- `/sign/up/check`.
 - Birthdate checkpoint requirement.
 - Telephone passkey and passcode checkpoint requirements.
 - Social `rt` preservation through server-side auth session.
@@ -162,13 +169,14 @@ Rules:
 
 ## State Carrier
 
-Use per-surface DB-backed sign-up cycle tickets as the target source of truth. Compatibility session
-keys may remain temporarily while each controller is migrated.
+Use per-surface DB-backed sign-up flow tickets as the source of truth. Compatibility session keys may
+remain temporarily only where provider callback integrity, OTP cooldown, WebAuthn challenge, or
+route migration requires them.
 
 Target records:
 
-- app: `ClientSignUpCycle < AppTicketRecord`.
-- com: `VisitorSignUpCycle < ComTicketRecord`.
+- app: `ClientSignUpFlow < AppTicketRecord`.
+- com: `VisitorSignUpFlow < ComTicketRecord`.
 
 These existing cycle records are the sign-up ticket carrier for this plan. They belong in the ticket
 database because they are temporary sign flow state, not durable actor profile state. Pending
@@ -186,7 +194,7 @@ The ticket must record:
 - safe return path;
 - expiry time;
 - terminal state;
-- cleanup ownership marker.
+- cleanup lifecycle state.
 
 ### Ticket Columns
 
@@ -207,7 +215,6 @@ Common columns:
 | `social_provider`           | string     | nullable; app only, `google` or `apple`                                           |
 | `completed_requirements`    | json/jsonb | non-null default empty object                                                     |
 | `return_to`                 | string     | nullable safe internal path only                                                  |
-| `cleanup_token`             | string     | non-null random ownership marker for cleanup                                      |
 | `expires_at`                | datetime   | non-null                                                                          |
 | `completed_at`              | datetime   | nullable                                                                          |
 | `failed_at`                 | datetime   | nullable                                                                          |
@@ -215,9 +222,11 @@ Common columns:
 | `discarded_at`              | datetime   | non-null retainable sentinel                                                      |
 | `created_at` / `updated_at` | datetime   | non-null                                                                          |
 
-Surface-specific aliases may be used if the codebase requires explicit actor names, for example
-`principal_id` instead of `pending_actor_id`. If aliases are used, the model API should still expose
-the shared protocol names `pending_actor`, `pending_contact`, and `entry_method`.
+Surface-specific aliases may be used if the codebase requires explicit actor names. The current
+implementation uses `principal_id` for `pending_actor_id`, `status_id` for lifecycle status, and
+`cleanup_status_id` plus retention timestamps for cleanup lifecycle state. If aliases are used, the
+model API should still expose the shared protocol names `pending_actor`, `pending_contact`, and
+`entry_method`.
 
 ### Status And Step Values
 
@@ -265,8 +274,10 @@ Expected keys:
 }
 ```
 
-Email and social sign-up require only `birthdate`. Telephone sign-up requires `birthdate`,
-`passkey`, and `passcode`.
+The checkpoint-visible requirements are birthdate for email/social sign-up and birthdate, passkey,
+and passcode for telephone sign-up. The implementation also records the earlier verification gates
+as compact cleared requirements: `otp` for email/telephone and `confirmation` for social. These
+recorded gates are not raw secrets and must be clear before finalization.
 
 ### Indexes And Constraints
 
@@ -275,7 +286,6 @@ Add:
 - unique index on `public_id`;
 - index on `status, expires_at`;
 - index on `pending_actor_id`;
-- index on `cleanup_token`;
 - model validation for accepted `entry_method` per surface;
 - model validation for accepted `status` and `step`;
 - model validation that `return_to`, when present, is a safe internal path;
@@ -559,14 +569,14 @@ the sign-in boundary according to provider identity state.
 
 ### Com Email Controllers
 
-Use the same event mapping as app email with `VisitorSignUpCycle`.
+Use the same event mapping as app email with `VisitorSignUpFlow`.
 
 Com email must require birthdate checkpoint before finalization. It must not gain social entry
 methods.
 
 ### Com Telephone Controllers
 
-Use the same event mapping as app telephone with `VisitorSignUpCycle`.
+Use the same event mapping as app telephone with `VisitorSignUpFlow`.
 
 Com telephone must be rebuilt to use guardrail/checkpoint and the common post-finalization handoff.
 It must not redirect directly to `root_path` after telephone OTP.
@@ -575,8 +585,8 @@ It must not redirect directly to `root_path` after telephone OTP.
 
 Add per-surface participant controllers:
 
-- app: `/sign/up/guardrail`, `/sign/up/checkpoint`
-- com: `/sign/up/guardrail`, `/sign/up/checkpoint`
+- app: `/sign/up/guard`, `/sign/up/check`
+- com: `/sign/up/guard`, `/sign/up/check`
 
 Target event mapping:
 
@@ -888,9 +898,9 @@ Social sign-in versus sign-up is decided by provider identity database state, no
 
 ## Implementation Phases
 
-1. Extend sign-up cycle ticket models and migrations.
-   - Extend `ClientSignUpCycle < AppTicketRecord`.
-   - Extend `VisitorSignUpCycle < ComTicketRecord`.
+1. Keep sign-up flow ticket models and migrations aligned with the contract.
+   - Maintain `ClientSignUpFlow < AppTicketRecord`.
+   - Maintain `VisitorSignUpFlow < ComTicketRecord`.
    - Add accepted `entry_method`, `status`, `step`, safe `return_to`, expiry, and requirement
      validations.
    - Add unit tests for model validation, expiry, terminal state, and surface-specific social
@@ -914,8 +924,8 @@ Social sign-in versus sign-up is decided by provider identity database state, no
    - Implement typed side-effect service stubs where needed.
 
 5. Add app/com participant routes and controllers.
-   - Add `/sign/up/guardrail`.
-   - Add `/sign/up/checkpoint`.
+   - Add `/sign/up/guard`.
+   - Add `/sign/up/check`.
    - Implement direct-access rejection before adding full flow wiring.
 
 6. Migrate app telephone first.
@@ -944,7 +954,7 @@ Social sign-in versus sign-up is decided by provider identity database state, no
    - Route existing identities out of sign-up to sign-in handoff classification.
 
 10. Migrate com email and telephone.
-    - Reuse the same protocol with `VisitorSignUpCycle`.
+    - Reuse the same protocol with `VisitorSignUpFlow`.
     - Add birthdate checkpoint for com email.
     - Add birthdate/passkey/passcode checkpoint for com telephone.
     - Remove direct `root_path` completion from com telephone.

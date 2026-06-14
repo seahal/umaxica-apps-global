@@ -11,7 +11,7 @@ scope module: :sign, as: :sign do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -19,6 +19,7 @@ scope module: :sign, as: :sign do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # for those who are logged in
       resource :dashboard, only: :show
@@ -225,7 +226,7 @@ scope module: :sign, as: :sign do
       resource :dashboard, only: :show
 
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -233,6 +234,7 @@ scope module: :sign, as: :sign do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: OTP delivery, cookie consent, theme
@@ -412,7 +414,7 @@ scope module: :sign, as: :sign do
       resources :billing, only: :index
 
       # Basic public endpoints
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -420,6 +422,7 @@ scope module: :sign, as: :sign do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: cookie consent, theme

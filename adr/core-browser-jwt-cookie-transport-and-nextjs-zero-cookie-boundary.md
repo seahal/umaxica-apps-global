@@ -27,10 +27,10 @@ Core is split between a browser-facing Rails Core BFF/API and a Next.js Core UI 
 calls `https://jp.umaxica.app/api/v0/*` directly for personalized data after hydration. Next.js
 serves public UI, SSR, RSC, routing, SEO, and island shells only.
 
-The current repository has Rails Core routes whose defaults still mention `www.jp.umaxica.app`.
-This ADR chooses `jp.umaxica.app` as the canonical public Core host for the new boundary. Base owns
-Rails foundation/control-plane paths such as `/settings`; Core must not accidentally route those
-paths to Next.js.
+The current repository has Rails Core routes whose defaults still mention `www.jp.umaxica.app`. This
+ADR chooses `jp.umaxica.app` as the canonical public Core host for the new boundary. Base owns Rails
+foundation/control-plane paths such as `/settings`; Core must not accidentally route those paths to
+Next.js.
 
 This repository does not contain deployable Cloudflare ruleset or Worker code. Edge enforcement is
 therefore recorded as an operational contract and production rollout blocker until the external
@@ -42,11 +42,11 @@ Core browser credential transport is cookie-carried JWT access plus opaque refre
 same Rails auth cookie concern and cookie names as the existing Acme/Sign relying-party flows; it
 does not fork the ceremony into Core-only cookie names.
 
-| Cookie | Value | Attributes |
-| ------ | ----- | ---------- |
-| existing auth access cookie, `__Host-` prefixed in secure contexts | access JWT, `aud=core-browser` | Secure, HttpOnly, SameSite=Strict, Path=/, no Domain |
-| existing auth refresh cookie, `__Host-` prefixed in secure contexts | opaque refresh handle, never JWT | Secure, HttpOnly, SameSite=Strict, Path=/, no Domain |
-| existing Rails/OIDC transaction state | OIDC state / PKCE / nonce transaction material or reference | existing Rails auth ceremony controls |
+| Cookie                                                              | Value                                                       | Attributes                                           |
+| ------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------- |
+| existing auth access cookie, `__Host-` prefixed in secure contexts  | access JWT, `aud=core-browser`                              | Secure, HttpOnly, SameSite=Strict, Path=/, no Domain |
+| existing auth refresh cookie, `__Host-` prefixed in secure contexts | opaque refresh handle, never JWT                            | Secure, HttpOnly, SameSite=Strict, Path=/, no Domain |
+| existing Rails/OIDC transaction state                               | OIDC state / PKCE / nonce transaction material or reference | existing Rails auth ceremony controls                |
 
 The access token TTL is short; use approximately ten minutes unless a later token-lifetime ADR
 chooses a different Core browser value. The refresh handle remains opaque and uses the existing
@@ -60,8 +60,8 @@ Rails Core is the only consumer of Core browser credential cookies. Rails Core o
 - `/auth/*`
 - `/sso/*`
 
-Next.js Core receives no `Cookie` header. This is stronger than selective auth-cookie stripping:
-all cookies are removed before the request reaches the Next.js origin. Responses from Next.js have
+Next.js Core receives no `Cookie` header. This is stronger than selective auth-cookie stripping: all
+cookies are removed before the request reaches the Next.js origin. Responses from Next.js have
 `Set-Cookie` stripped before reaching the browser. Next.js holds no user credential, performs no
 user-bound SSR/RSC, and does not fetch `/api/v0/session`, `/me`, settings, account, dashboard,
 tenant-private, org-private, or other user-bound resources during SSR/RSC.

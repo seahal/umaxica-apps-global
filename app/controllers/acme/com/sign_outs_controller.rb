@@ -14,10 +14,7 @@ module Acme
       helper_method :sign_out_completed_description
 
       def show
-        @sign_out_notice = consume_sign_out_notice
-        return render "acme/shared/sign_outs/show" if @sign_out_notice.present?
-
-        redirect_to(edit_acme_com_sign_out_path(ri: params[:ri]))
+        redirect_to_signed_out_page!
       end
 
       def edit
@@ -49,12 +46,11 @@ module Acme
 
         return if authorize_current_session_for_sign_out! == false
 
-        prepare_sign_out_completion_notice!
         logout_current_session!(reason: "com_visitor_logout")
         return render_invalid_return_target! if raw_pt.present? && destination.blank?
         return redirect_to_pt_destination!(destination) if destination.present?
 
-        render "acme/shared/sign_outs/show"
+        redirect_to_signed_out_page!
       end
 
       def authorize_current_session_for_sign_out!
@@ -63,6 +59,14 @@ module Acme
 
         head :forbidden
         false
+      end
+
+      def redirect_to_signed_out_page!
+        redirect_to(
+          sign_com_signed_out_url(ri: params[:ri], host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")),
+          allow_other_host: cross_host_redirect_allowed?,
+          status: :see_other,
+        )
       end
     end
   end

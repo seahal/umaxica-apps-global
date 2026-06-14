@@ -142,17 +142,17 @@ Final report in `TEST_REPAIR_AND_COVERAGE_NOTES.md`:
 
 ## Key Files
 
-| File                                                                       | Role                                                    |
-| -------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `test/test_helper.rb`                                                      | SimpleCov config, 93% threshold, parallelization toggle |
-| `plans/active/surface-routing-pass-remediation-plan.md`                    | Three remediation streams for new surfaces              |
-| `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md` | Route/controller scaffold decisions                    |
-| `config/routes/{base,palm,sign,acme}.rb`                                   | Recent route changes (forbidden to edit)                |
-| `test/controllers/public_robots_routing_test.rb`                           | Modified test, verify correctness                       |
-| `test/controllers/csp_violation_reports_controller_test.rb`                | 27-endpoint CSP test, verify after route changes        |
-| `test/controllers/controller_inheritance_invariant_test.rb`                | Inheritance guard, read before any controller change    |
-| `adr/csp-violation-report-route-naming.md`                                 | Route naming decision (read before renaming anything)   |
-| `TEST_REPAIR_AND_COVERAGE_NOTES.md`                                        | Living log, create on first run                         |
+| File                                                                        | Role                                                    |
+| --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `test/test_helper.rb`                                                       | SimpleCov config, 93% threshold, parallelization toggle |
+| `plans/active/surface-routing-pass-remediation-plan.md`                     | Three remediation streams for new surfaces              |
+| `plans/archive/surface-routing-controller-pass-base-palm-help-docs-news.md` | Route/controller scaffold decisions                     |
+| `config/routes/{base,palm,sign,acme}.rb`                                    | Recent route changes (forbidden to edit)                |
+| `test/controllers/public_robots_routing_test.rb`                            | Modified test, verify correctness                       |
+| `test/controllers/csp_violation_reports_controller_test.rb`                 | 27-endpoint CSP test, verify after route changes        |
+| `test/controllers/controller_inheritance_invariant_test.rb`                 | Inheritance guard, read before any controller change    |
+| `adr/csp-violation-report-route-naming.md`                                  | Route naming decision (read before renaming anything)   |
+| `TEST_REPAIR_AND_COVERAGE_NOTES.md`                                         | Living log, create on first run                         |
 
 ---
 

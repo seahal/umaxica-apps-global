@@ -21,22 +21,22 @@ choose a different canonical host before production enablement.
 
 For `jp.umaxica.app`:
 
-| Path | Origin | Cookie forwarding |
-| ---- | ------ | ----------------- |
-| `/api/v0/*` | Rails Core | keep `Cookie` |
-| `/auth/*` | Rails Core | keep `Cookie` |
-| `/sso/*` | Rails Core | keep `Cookie` |
-| `/settings` | Base Rails | explicit Base credential policy |
-| `/settings/*` | Base Rails | explicit Base credential policy |
-| `/health` | blocked publicly | no public origin |
-| `/health/*` | blocked publicly | no public origin |
-| `/_next/*` | Next.js Core | remove entire `Cookie` header |
-| all other paths | Next.js Core | remove entire `Cookie` header |
+| Path            | Origin           | Cookie forwarding               |
+| --------------- | ---------------- | ------------------------------- |
+| `/api/v0/*`     | Rails Core       | keep `Cookie`                   |
+| `/auth/*`       | Rails Core       | keep `Cookie`                   |
+| `/sso/*`        | Rails Core       | keep `Cookie`                   |
+| `/settings`     | Base Rails       | explicit Base credential policy |
+| `/settings/*`   | Base Rails       | explicit Base credential policy |
+| `/health`       | blocked publicly | no public origin                |
+| `/health/*`     | blocked publicly | no public origin                |
+| `/_next/*`      | Next.js Core     | remove entire `Cookie` header   |
+| all other paths | Next.js Core     | remove entire `Cookie` header   |
 
 For `side.jp.umaxica.app`:
 
-| Path | Origin | Cookie forwarding |
-| ---- | ------ | ----------------- |
+| Path        | Origin     | Cookie forwarding             |
+| ----------- | ---------- | ----------------------------- |
 | `/api/v0/*` | Rails Side | remove entire `Cookie` header |
 
 Selective auth-cookie stripping is not sufficient. The Next.js and Side origins must receive no
@@ -44,11 +44,11 @@ Selective auth-cookie stripping is not sufficient. The Next.js and Side origins 
 
 ## Response Header Rules
 
-| Origin | Response rule |
-| ------ | ------------- |
+| Origin          | Response rule                                                     |
+| --------------- | ----------------------------------------------------------------- |
 | Rails Core/Base | allow `Set-Cookie` only on intended auth/session/preference paths |
-| Next.js Core | remove every `Set-Cookie` header |
-| Side | remove every `Set-Cookie` header |
+| Next.js Core    | remove every `Set-Cookie` header                                  |
+| Side            | remove every `Set-Cookie` header                                  |
 
 Next.js toast, flash, and other UI state must use non-cookie state such as client memory, browser
 storage, a URL nonce, hydration-time Rails API result, or non-sensitive public state.
@@ -59,8 +59,8 @@ Before setting `CORE_BROWSER_JWT_COOKIE_ENABLED=1` in production, record evidenc
 
 1. A request to `https://jp.umaxica.app/_next/...` with a synthetic `Cookie` header reaches the
    Next.js origin without a `Cookie` header.
-2. A request to a page route on `https://jp.umaxica.app/...` with a synthetic `Cookie` header reaches
-   the Next.js origin without a `Cookie` header.
+2. A request to a page route on `https://jp.umaxica.app/...` with a synthetic `Cookie` header
+   reaches the Next.js origin without a `Cookie` header.
 3. A response from Next.js that attempts to emit `Set-Cookie` reaches the browser without
    `Set-Cookie`.
 4. A request to `https://jp.umaxica.app/api/v0/...` reaches Rails Core with the credential cookie

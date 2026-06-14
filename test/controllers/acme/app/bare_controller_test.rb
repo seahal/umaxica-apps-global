@@ -20,7 +20,7 @@ module Acme
         Acme::App::Health::LivenessesController
         Acme::App::Health::ReadinessesController
         Acme::App::Health::StartupsController
-        Acme::App::HealthsController
+        Acme::App::HealthController
         Acme::App::JwksController
         Acme::App::Oauth::JwksController
         Acme::App::Oauth::RevocationsController

@@ -2,8 +2,8 @@
 
 ## Status
 
-Superseded by `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md`
-on 2026-06-14.
+Superseded by `adr/core-browser-jwt-cookie-transport-and-nextjs-zero-cookie-boundary.md` on
+2026-06-14.
 
 ## Supersedes
 

@@ -13,7 +13,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -25,7 +25,6 @@ scope module: :acme, as: :acme do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      # TODO: I think following two lines of routing are same meaing.
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -163,7 +162,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -282,7 +281,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -402,7 +401,7 @@ scope module: :acme, as: :acme do
     scope module: :net, as: :network do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -417,7 +416,7 @@ scope module: :acme, as: :acme do
     scope module: :dev, as: :developer do
       root to: "roots#index"
       # Health
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show

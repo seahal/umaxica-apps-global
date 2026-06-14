@@ -2913,3 +2913,33 @@ en:
     app:
       roots:
         message: "Palm API is available for native and handheld clients. Browser access is not a product UI."
+  docs:
+    app:
+      roots:
+        message: "Docs API is available. Browser article pages are served outside Rails."
+    com:
+      roots:
+        message: "Docs API is available. Browser article pages are served outside Rails."
+    org:
+      roots:
+        message: "Docs API is available. Browser article pages are served outside Rails."
+  help:
+    app:
+      roots:
+        message: "Help API is available. Browser article pages are served outside Rails."
+    com:
+      roots:
+        message: "Help API is available. Browser article pages are served outside Rails."
+    org:
+      roots:
+        message: "Help API is available. Browser article pages are served outside Rails."
+  news:
+    app:
+      roots:
+        message: "News API is available. Browser article pages are served outside Rails."
+    com:
+      roots:
+        message: "News API is available. Browser article pages are served outside Rails."
+    org:
+      roots:
+        message: "News API is available. Browser article pages are served outside Rails."

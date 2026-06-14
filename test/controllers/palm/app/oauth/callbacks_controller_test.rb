@@ -54,7 +54,7 @@ module Palm
 
         private
 
-        def assert_no_oauth_mutation(&block)
+        def assert_no_oauth_mutation(&)
           assert_no_difference(
             [
               "ClientAuthorizationCode.count",
@@ -62,7 +62,7 @@ module Palm
               "ClientOidcConnection.count",
               "ClientToken.count",
             ],
-            &block
+            &
           )
         end
       end

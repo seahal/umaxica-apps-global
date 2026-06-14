@@ -4,12 +4,10 @@
 module News
   module Com
     class RootsController < News::Com::BareController
-      include ::ReadOnlyContentRendering
-
       AUTHENTICATION_MODE = :bare
 
       def index
-        render_content_index
+        render plain: t(".message")
       end
     end
   end

@@ -8,32 +8,32 @@ class CspViolationReportIntake
   MAX_STRING_LENGTH = 256
   EVENT_NAME = "security.csp_violation"
 
-  URL_FIELDS = %w[
+  URL_FIELDS = %w(
     blocked-uri
     document-uri
     referrer
     source-file
-  ].freeze
+  ).freeze
 
-  DIRECTIVE_FIELDS = %w[
+  DIRECTIVE_FIELDS = %w(
     disposition
     effective-directive
     violated-directive
-  ].freeze
+  ).freeze
 
-  NUMERIC_FIELDS = %w[
+  NUMERIC_FIELDS = %w(
     column-number
     line-number
     status-code
-  ].freeze
+  ).freeze
 
-  EXTENSION_SCHEMES = %w[
+  EXTENSION_SCHEMES = %w(
     chrome-extension
     edge-extension
     extension
     moz-extension
     safari-extension
-  ].freeze
+  ).freeze
 
   Result = Data.define(:status, :reports_count)
 

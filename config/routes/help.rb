@@ -6,15 +6,14 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      resources :entries, only: %i(index show)
-      namespace :edge do
+      namespace :api do
         namespace :v0 do
           resources :entries, only: %i(index show)
         end
@@ -26,15 +25,14 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      resources :entries, only: %i(index show)
-      namespace :edge do
+      namespace :api do
         namespace :v0 do
           resources :entries, only: %i(index show)
         end
@@ -46,15 +44,14 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
-      resources :entries, only: %i(index show)
-      namespace :edge do
+      namespace :api do
         namespace :v0 do
           resources :entries, only: %i(index show)
         end

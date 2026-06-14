@@ -28,7 +28,7 @@ class RedirectsNavigationTargetResolver
       )
     },
     signed_out: ->(_routes, params) {
-      "/sign/out#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}"
+      "/signed-out#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}"
     },
     home: ->(_routes, params) { "/#{RedirectsNavigationTargetResolver.query(params.slice(:ri))}" },
   }.freeze

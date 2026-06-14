@@ -39,6 +39,7 @@ module OidcClientRegistry
   def find(client_id)
     config = clients[client_id.to_s]
     return nil unless config
+
     registered_auth_method = config[:token_endpoint_auth_method]
 
     VisitorAccount.new(

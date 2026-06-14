@@ -16,14 +16,16 @@ Implemented in the working tree on 2026-06-14:
 - shared `AdministrativeAccessLockable` concern for the three principal actors;
 - `AdministrativeAccessLock` service with lock, unlock, session revocation, audit event recording,
   repeated-lock event classification, and last-enabled-operator protection;
-- current-resource, OIDC access-token, sign-in, and refresh access checks for administratively locked
-  actors and stale access-token `iat` values;
+- current-resource, OIDC access-token, sign-in, and refresh access checks for administratively
+  locked actors and stale access-token `iat` values;
 - focused model, service, resolver, OIDC, and authentication-base coverage.
 
-Verification is still blocked in this checkout because the local test database host `primary`
-intermittently fails DNS resolution and the parallel test database bootstrap collides with existing
-`test_*_db_N` databases. The structure dumps have not been regenerated from a live database in this
-change.
+Verification is still blocked in this checkout. `RAILS_ENV=test bin/rails db:prepare` fails because
+the test database host `primary` is not resolvable from this shell, and overriding
+`POSTGRESQL_TEST_HOST=localhost` cannot connect to a local PostgreSQL listener. Focused admin-lock
+tests that reached Rails used stale parallel test database clones and failed before assertions with
+missing tables such as `app_preference_binding_methods` and `clients`. The structure dumps have not
+been regenerated from a live database in this change.
 
 ## Key Changes
 
@@ -102,10 +104,11 @@ change.
 Run focused tests first:
 
 ```bash
-bin/rails test test/models
-bin/rails test test/services/account_access
+bin/rails test test/models/administrative_access_lockable_test.rb
+bin/rails test test/services/administrative_access_lock_test.rb
 bin/rails test test/controllers/concerns/authentication/current_resource_resolver_test.rb
-bin/rails test test/services/oidc/access_token_authenticator_dpop_test.rb
+bin/rails test test/controllers/concerns/authentication/base_coverage_test.rb
+bin/rails test test/services/oidc_access_token_authenticator_coverage_test.rb
 ```
 
 Run broader authentication/security coverage if shared auth helpers or token validation behavior

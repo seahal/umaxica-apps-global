@@ -99,6 +99,10 @@ Risk: low (4 files)
 
 **`healths` -> `health` (singular)**
 
+Status: Completed for app routes/controllers/tests during the active surface-routing remediation
+work. Keep this section only as historical context for why `resource :health` must specify
+`controller: "health"`.
+
 "Health" is an uncountable noun in English. "Healths" is not a real word.
 
 **Caveat**: Rails `resource :health` auto-maps to `HealthsController` by convention. The current

@@ -101,8 +101,8 @@ Ratified as already implemented: one-time-consume rotation with a generation cou
 
 - Absolute cap: retained. Refresh-token `discarded_at` is set at issuance and preserved across
   rotation, so the family has an absolute lifetime that rotation does not extend.
-- Idle timeout: **add server-side idle expiry** driven by `last_used_at` (currently recorded but not
-  enforced).
+- Idle timeout: implemented. Server-side idle expiry is driven by token activity timestamps and
+  `SecurityTokenLifetimes`.
 - Renewal: define a sliding-renewal-with-absolute-cap policy so rotation can extend an idle window
   only up to the absolute cap. Initial per-surface values are TBC and must align with
   `adr/token-lifetime-policy-by-surface.md` (indicative: `app` idle ~ a few hours, `org` idle ~30–60
@@ -123,17 +123,16 @@ Ratified as already implemented: one-time-consume rotation with a generation cou
 
 ### IP / UA / device as risk signal (point 7)
 
-Ratified as already aligned. IP and User-Agent are used only for audit and risk evaluation
-(`Sign::Risk::Emitter` / `Sign::Risk::Enforcer`), never as a hard session bind. Device binding is
-cryptographic via DBSC and DPoP. IP/UA changes must remain risk signals (which may force re-step-up)
-and must never hard-invalidate a session on their own.
+Partially superseded by `adr/ip-anomaly-session-revocation.md`: User-Agent remains audit/risk
+context only, while coarse IP-network changes may emit `ip_change_detected` and trigger
+feature-flagged revocation under that ADR. Device binding remains cryptographic via DBSC and DPoP.
 
 ## Consequences
 
 - `SameSite=Strict` changes the first-hit experience for external inbound links; OIDC/social
   callbacks must be verified to set cookies on their own responses.
 - Credential-change revocation must be implemented to close the main re-issue gap.
-- Idle timeout and sliding-renewal need concrete per-surface values before implementation.
+- Idle timeout is implemented; future work may tune per-surface values and sliding-renewal behavior.
 - Enabling HSTS `preload` is effectively irreversible for the affected domains; review before
   shipping.
 

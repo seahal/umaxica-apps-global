@@ -6,7 +6,7 @@ scope module: :palm, as: :palm do
   constraints host: ENV["PALM_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :health, only: :show
+      resource :health, only: :show, controller: "health"
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show

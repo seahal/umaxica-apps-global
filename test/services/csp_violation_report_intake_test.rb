@@ -26,6 +26,7 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     assert_equal 1, result.reports_count
 
     data = JSON.parse(logged.fetch(0), symbolize_names: true).fetch(:data)
+
     assert_equal "https://app.example.test/path", data.fetch(:document_uri)
     assert_equal "https://cdn.example.test/app.js", data.fetch(:blocked_uri)
     assert_equal "script-src", data.fetch(:effective_directive)
@@ -57,6 +58,7 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     assert_equal 1, result.reports_count
 
     data = JSON.parse(logged.fetch(0), symbolize_names: true).fetch(:data)
+
     assert_equal "browser_extension", data.fetch(:category)
     assert_equal "browser_extension:script-src:chrome-extension", data.fetch(:aggregation_key)
   end

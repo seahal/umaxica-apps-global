@@ -52,11 +52,11 @@ access, refresh, OIDC transaction, preference, flash, analytics, or unrelated co
 Core browser credential cookies use the existing Rails auth cookie concern and names, not a
 Core-only fork:
 
-| Cookie | Purpose | Domain | Path | SameSite | Secure | HttpOnly |
-| ------ | ------- | ------ | ---- | -------- | ------ | -------- |
-| existing auth access cookie, `__Host-` prefixed in secure contexts | Access JWT | none | `/` | `Strict` | `true` | `true` |
-| existing auth refresh cookie, `__Host-` prefixed in secure contexts | Opaque refresh | none | `/` | `Strict` | `true` | `true` |
-| existing Rails/OIDC transaction state | OIDC transaction | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls |
+| Cookie                                                              | Purpose          | Domain                     | Path                       | SameSite                   | Secure                     | HttpOnly                   |
+| ------------------------------------------------------------------- | ---------------- | -------------------------- | -------------------------- | -------------------------- | -------------------------- | -------------------------- |
+| existing auth access cookie, `__Host-` prefixed in secure contexts  | Access JWT       | none                       | `/`                        | `Strict`                   | `true`                     | `true`                     |
+| existing auth refresh cookie, `__Host-` prefixed in secure contexts | Opaque refresh   | none                       | `/`                        | `Strict`                   | `true`                     | `true`                     |
+| existing Rails/OIDC transaction state                               | OIDC transaction | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls | existing ceremony controls |
 
 The access JWT uses the `core-browser` audience and a short TTL. The refresh credential is opaque.
 Do not split the auth ceremony into Core-only cookie concerns unless a later ADR accepts that drift.

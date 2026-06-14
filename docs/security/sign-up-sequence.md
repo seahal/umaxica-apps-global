@@ -837,20 +837,22 @@ Target decision:
 - Keep invitation acceptance only when it is tied to a pre-approved operator lifecycle request.
 - Do not expose email or social public self-registration routes for org operators.
 
-## Current Gaps To Preserve For Refactor Planning
+## Implemented State-Machine Notes
 
-- The six sign-up routes do not have a dedicated birthdate collection step.
-- Post-sign-up routing is mostly routed through the sign-in post-authentication sequence, but com
-  telephone currently redirects directly to `root_path`.
-- The current implementation stores progress across credential-specific session keys, pending
-  principal/contact rows, and controller-local checks.
-- The six sign-up routes do not have a dedicated sign-up guardrail step.
-- App telephone sign-up has an additional incomplete-registration window between telephone OTP
-  success and required passkey registration completion.
-- Com sign-up should be rebuilt to follow the app email/telephone sequence shape rather than
-  incrementally patching the current weaker email/telephone split.
+- App/com sign-up progression is carried by `ClientSignUpFlow` and `VisitorSignUpFlow` tickets, not
+  by credential-specific session state as the source of truth.
+- `SignUpStateMachine` owns one-way progression through contact/social verification, optional
+  guard, checkpoint, finalization, sign-in handoff, and completion.
+- The checkpoint records compact cleared requirements. Email/telephone OTP and social confirmation
+  are recorded as prior cleared gates; checkpoint-visible setup still owns birthdate, passkey, and
+  passcode requirements before durable finalization.
+- App/com email and telephone sign-up finalize only from the checkpoint after required items are
+  clear. Telephone OTP success never finalizes registration or issues a session by itself.
+- App social sign-up treats unknown provider identities as pending evidence until explicit
+  confirmation and birthdate checkpoint completion. Existing provider identities follow sign-in, not
+  sign-up.
+- Cancellation, expiry, and pre-finalization failure use `SignUpTermination` and
+  `SignUpArtifactCleanup` so cleanup touches only pending artifacts owned by the current flow ticket.
 - Org public sign-up should remain a candidate inquiry handoff, not an operator-creation route.
 - Org operator creation, mutation, and withdrawal should remain lifecycle requests from an existing
   authenticated operator with AAL2 step-up.
-- A future state machine should make one-way transitions explicit and should define where guardrail,
-  birthdate collection, checkpoint, dashboard, and `rt` continuation sit.

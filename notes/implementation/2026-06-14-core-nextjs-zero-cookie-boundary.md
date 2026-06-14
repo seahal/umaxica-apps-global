@@ -33,8 +33,8 @@
 
 - Change: Core `/sso/authorize`, `/auth/callback`, and logout intentionally stay on the existing
   Rails auth/OIDC concerns and cookie names.
-  - Why: Core should not fork the auth ceremony into separate cookie concerns. The safety boundary is
-    host-only cookie behavior plus `core-browser` JWT audience-to-transport binding.
+  - Why: Core should not fork the auth ceremony into separate cookie concerns. The safety boundary
+    is host-only cookie behavior plus `core-browser` JWT audience-to-transport binding.
   - Risk: documentation or tests that expect `__Host-core_access`, `__Secure-core_refresh`, or
     `__Host-core_oidc` as ceremony-specific names are stale.
   - Follow-up: keep Core API transport-binding tests focused on cookie transport and audience, not
@@ -58,5 +58,5 @@
     host `primary`.
   - Next.js/Vitest checks, because no Next.js app exists in this Rails repository.
 - Documentation promotion needed:
-  - Promote edge verification evidence into `docs/operations/core-nextjs-zero-cookie-edge-contract.md`
-    after Cloudflare rules are deployed.
+  - Promote edge verification evidence into
+    `docs/operations/core-nextjs-zero-cookie-edge-contract.md` after Cloudflare rules are deployed.

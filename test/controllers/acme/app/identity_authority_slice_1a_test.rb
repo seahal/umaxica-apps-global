@@ -11,14 +11,17 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     @user = clients(:one)
   end
 
-  test "acme_sign_out_destroy_is_session_mutation" do
+  test "acme_sign_out_destroy_is_session_mutation_and_redirects_to_sign_signed_out" do
     token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
     delete acme_app_sign_out_url(ri: "jp"), headers: session_headers(token)
 
-    assert_response :success
+    assert_response :see_other
     assert_predicate token.reload, :revoked?
+    location = URI.parse(response.location)
+    assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
+    assert_equal "/signed-out", location.path
   end
 
   test "acme_session_destroy_revokes_other_session" do

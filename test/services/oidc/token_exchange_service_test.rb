@@ -222,7 +222,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     )
     code_record = issue_code!(client_id: "metadata_none_test", redirect_uri: client.redirect_uris.first)
 
-    OidcClientRegistry.stub(:find, ->(client_id) { client_id == "metadata_none_test" ? client : nil }) do
+    OidcClientRegistry.stub(:find, ->(client_id) { (client_id == "metadata_none_test") ? client : nil }) do
       result = OidcTokenExchangeService.call(
         grant_type: "authorization_code",
         code: code_record.code,
@@ -1165,8 +1165,8 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     )
   end
 
-  def with_public_client(client, &block)
-    with_public_clients(client, &block)
+  def with_public_client(client, &)
+    with_public_clients(client, &)
   end
 
   def with_public_clients(*clients)

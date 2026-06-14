@@ -3,14 +3,14 @@
 **Status: BACKLOG. Deferred while the codebase is under large-scale editing.**
 
 This plan implements the accepted decision in `adr/session-token-hardening-baseline.md`. Do not
-start implementation until the current large-scale edits settle and this plan is promoted to
-`plans/active/`. This file changes no code by itself.
+start the remaining implementation until the current large-scale edits settle and this plan is
+promoted to `plans/active/`. This file changes no code by itself.
 
 ## Goal
 
 Bring production session/token handling up to the accepted hardening baseline. Several targets are
-already met; the work below covers the gaps and the tightened targets (`SameSite=Strict`, stricter
-HSTS, credential-change revocation, idle/renewal timeouts).
+already met; the remaining work below covers credential-change revocation, the step-up
+refresh-family decision, optional broader no-store behavior, and future tuning of renewal policy.
 
 ## Current State (evidence)
 
@@ -28,8 +28,9 @@ HSTS, credential-change revocation, idle/renewal timeouts).
 - Re-issue: login `reset_session` at `app/controllers/concerns/authentication/base.rb:352`; step-up
   `Sign::VerificationStepUpLifecycle#consume_step_up_session!` (`reset_session` + freshness stamp,
   no refresh-family rotation); risk `Sign::Risk::Enforcer` clears step-up freshness.
-- Timeouts: `RefreshTokenable::REFRESH_TTL = 30.days` absolute (preserved across rotation),
-  `last_used_at` recorded but unused for idle expiry; `TokenStatusManagement#currently_usable?`.
+- Timeouts: `RefreshTokenable::REFRESH_TTL = 30.days` absolute (preserved across rotation). Idle
+  expiry is implemented through the token-theft hardening slice and `SecurityTokenLifetimes`; future
+  work may still tune renewal policy and per-surface values.
 - HSTS: `config/environments/production.rb` `ssl_options.hsts` `expires:365.days`, `subdomains:true`
   (enabled), `preload:false` (deferred).
 - Logout: `Authentication::Logoutable`, `Authentication::SessionRevoker.revoke_all_for`.
@@ -49,11 +50,10 @@ HSTS, credential-change revocation, idle/renewal timeouts).
    `Authentication::SessionRevoker.revoke_all_for` (or `logout_all_sessions_for!` at the controller
    boundary). Keep the current session alive where the change is self-service; revoke the rest. Wire
    this at the credential-write boundary, not in a controller `after_action`.
-3. **Idle timeout + sliding renewal.** Enforce server-side idle expiry using `last_used_at`, and a
-   sliding-renewal-with-absolute-cap so rotation extends the idle window only up to the absolute cap
-   (`discarded_at`). Add per-surface values aligned with `adr/token-lifetime-policy-by-surface.md`
-   (indicative: `app` idle ~ a few hours, `org` idle ~30–60 min, absolute cap = surface refresh
-   TTL). Enforce in `currently_usable?` / the refresh path.
+3. **Idle timeout + sliding renewal.** DONE for idle expiry in the token-theft hardening slice:
+   refresh and access-token resolution enforce idle windows through `SecurityTokenLifetimes`.
+   Remaining future work is renewal tuning, if needed, without extending beyond the absolute cap
+   (`discarded_at`).
 4. **Step-up re-issue decision.** Decide whether step-up elevation rotates the refresh-token family
    in addition to `reset_session`. If yes, call the rotation path inside `consume_step_up_session!`.
 5. **HSTS strict.** DONE for `includeSubDomains`: `subdomains: true` is set in
@@ -69,14 +69,15 @@ HSTS, credential-change revocation, idle/renewal timeouts).
   `Path=/`, no `Domain`, `Partitioned` in production.
 - Credential change revokes other sessions/refresh families and keeps (or drops) the current session
   per the chosen policy.
-- Idle timeout expires an unused session; sliding renewal does not exceed the absolute cap.
+- Idle timeout expires an unused session; future sliding renewal tuning must not exceed the absolute
+  cap.
 - Step-up elevation behaves per step 4 (session id rotated; refresh family rotated if decided).
 - HSTS header carries `includeSubDomains; preload` with the configured max-age.
 - Re-run refresh/revoke/replay suites to confirm rotation + reuse detection still hold.
 
 ## Open Questions
 
-- Per-surface idle timeout and renewal-cap values (step 3).
+- Whether the current per-surface idle timeout values need product tuning.
 - Whether step-up elevation rotates the refresh-token family (step 4).
 - Whether to enable HSTS `preload` given it is effectively irreversible for affected domains (step
   5).

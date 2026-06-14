@@ -45,7 +45,7 @@ class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
     )
 
     assert_predicate signed_out, :ok?
-    assert_equal "/sign/out?ri=jp", signed_out.value
+    assert_equal "/signed-out?ri=jp", signed_out.value
 
     assert_predicate home, :ok?
     assert_equal "/?ri=jp", home.value

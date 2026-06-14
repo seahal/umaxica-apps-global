@@ -12,15 +12,15 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   ].freeze
 
   CONTENT_SURFACES = [
-    ["help_app_root_url", "HELP_SERVICE_URL", "help.app.localhost", Help::App::ContentEntry],
-    ["help_com_root_url", "HELP_CORPORATE_URL", "help.com.localhost", Help::Com::ContentEntry],
-    ["help_org_root_url", "HELP_STAFF_URL", "help.org.localhost", Help::Org::ContentEntry],
-    ["docs_app_root_url", "DOCS_SERVICE_URL", "docs.app.localhost", Docs::App::ContentEntry],
-    ["docs_com_root_url", "DOCS_CORPORATE_URL", "docs.com.localhost", Docs::Com::ContentEntry],
-    ["docs_org_root_url", "DOCS_STAFF_URL", "docs.org.localhost", Docs::Org::ContentEntry],
-    ["news_app_root_url", "NEWS_SERVICE_URL", "news.app.localhost", News::App::ContentEntry],
-    ["news_com_root_url", "NEWS_CORPORATE_URL", "news.com.localhost", News::Com::ContentEntry],
-    ["news_org_root_url", "NEWS_STAFF_URL", "news.org.localhost", News::Org::ContentEntry],
+    ["help_app_root_url", "HELP_SERVICE_URL", "help.app.localhost", "Help API is available"],
+    ["help_com_root_url", "HELP_CORPORATE_URL", "help.com.localhost", "Help API is available"],
+    ["help_org_root_url", "HELP_STAFF_URL", "help.org.localhost", "Help API is available"],
+    ["docs_app_root_url", "DOCS_SERVICE_URL", "docs.app.localhost", "Docs API is available"],
+    ["docs_com_root_url", "DOCS_CORPORATE_URL", "docs.com.localhost", "Docs API is available"],
+    ["docs_org_root_url", "DOCS_STAFF_URL", "docs.org.localhost", "Docs API is available"],
+    ["news_app_root_url", "NEWS_SERVICE_URL", "news.app.localhost", "News API is available"],
+    ["news_com_root_url", "NEWS_CORPORATE_URL", "news.com.localhost", "News API is available"],
+    ["news_org_root_url", "NEWS_STAFF_URL", "news.org.localhost", "News API is available"],
   ].freeze
 
   test "static base and palm roots respond without auth redirects" do
@@ -35,23 +35,18 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "content roots list only published content" do
-    CONTENT_SURFACES.each_with_index do |(helper, env_key, fallback, model), index|
-      locale = "test-root-#{index}"
-      published = create_content_entry(model, slug: "published-entry", title: "Published Entry", locale: locale)
-      create_content_entry(model, slug: "draft-entry", title: "Draft Entry", locale: locale, status: "draft")
-
+  test "content roots respond as thin availability endpoints" do
+    CONTENT_SURFACES.each do |helper, env_key, fallback, expected|
       host! ENV.fetch(env_key, fallback)
-      get public_send(helper, locale: published.locale, host: ENV.fetch(env_key, fallback))
+      get public_send(helper, ri: "jp", host: ENV.fetch(env_key, fallback))
 
       assert_response :success
-      assert_includes response.body, "Published Entry"
-      assert_not_includes response.body, "Draft Entry"
+      assert_includes response.body, expected
       assert_empty response.cookies
     end
   end
 
-  test "content show and api reject unpublished entries" do
+  test "content api show rejects unpublished entries and old rails article routes are unavailable" do
     model = Docs::App::ContentEntry
     published = create_content_entry(model, slug: "visible-entry", title: "Visible Entry", locale: "test-show")
     create_content_entry(
@@ -63,19 +58,22 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     )
 
     host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
-    get docs_app_entry_url(id: published.slug, locale: published.locale)
-
-    assert_response :success
-    assert_includes response.body, "Visible Entry"
-
-    get docs_app_entry_url(id: "future-entry", locale: published.locale)
-
-    assert_response :not_found
-
-    get docs_app_edge_v0_entry_url(id: published.slug, locale: published.locale)
+    get docs_app_api_v0_entry_url(id: published.slug, locale: published.locale)
 
     assert_response :success
     assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")
+
+    get docs_app_api_v0_entry_url(id: "future-entry", locale: published.locale)
+
+    assert_response :not_found
+
+    assert_raises(ActionController::RoutingError) do
+      get "/entries/#{published.slug}", params: { locale: published.locale }
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      get "/edge/v0/entries/#{published.slug}", params: { locale: published.locale }
+    end
   end
 
   private

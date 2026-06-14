@@ -7,7 +7,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
       host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      controller: "acme/app/healths",
+      controller: "acme/app/health",
       liveness_controller: "acme/app/health/livenesses",
       readiness_controller: "acme/app/health/readinesses",
       startup_controller: "acme/app/health/startups",
@@ -15,7 +15,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
-      controller: "acme/com/healths",
+      controller: "acme/com/health",
       liveness_controller: "acme/com/health/livenesses",
       readiness_controller: "acme/com/health/readinesses",
       startup_controller: "acme/com/health/startups",
@@ -23,7 +23,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-      controller: "acme/org/healths",
+      controller: "acme/org/health",
       liveness_controller: "acme/org/health/livenesses",
       readiness_controller: "acme/org/health/readinesses",
       startup_controller: "acme/org/health/startups",
@@ -31,7 +31,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("ACME_NETWORK_URL", "www.umaxica.net"),
-      controller: "acme/net/healths",
+      controller: "acme/net/health",
       liveness_controller: "acme/net/health/livenesses",
       readiness_controller: "acme/net/health/readinesses",
       startup_controller: "acme/net/health/startups",
@@ -39,7 +39,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("ACME_DEVELOPER_URL", "developer.umaxica.net"),
-      controller: "acme/dev/healths",
+      controller: "acme/dev/health",
       liveness_controller: "acme/dev/health/livenesses",
       readiness_controller: "acme/dev/health/readinesses",
       startup_controller: "acme/dev/health/startups",
@@ -47,7 +47,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-      controller: "sign/app/healths",
+      controller: "sign/app/health",
       liveness_controller: "sign/app/health/livenesses",
       readiness_controller: "sign/app/health/readinesses",
       startup_controller: "sign/app/health/startups",
@@ -55,7 +55,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-      controller: "sign/com/healths",
+      controller: "sign/com/health",
       liveness_controller: "sign/com/health/livenesses",
       readiness_controller: "sign/com/health/readinesses",
       startup_controller: "sign/com/health/startups",
@@ -63,7 +63,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
-      controller: "sign/org/healths",
+      controller: "sign/org/health",
       liveness_controller: "sign/org/health/livenesses",
       readiness_controller: "sign/org/health/readinesses",
       startup_controller: "sign/org/health/startups",
@@ -71,7 +71,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
-      controller: "base/app/healths",
+      controller: "base/app/health",
       liveness_controller: "base/app/health/livenesses",
       readiness_controller: "base/app/health/readinesses",
       startup_controller: "base/app/health/startups",
@@ -79,7 +79,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
-      controller: "base/com/healths",
+      controller: "base/com/health",
       liveness_controller: "base/com/health/livenesses",
       readiness_controller: "base/com/health/readinesses",
       startup_controller: "base/com/health/startups",
@@ -87,7 +87,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("BASE_STAFF_URL", "base.org.localhost"),
-      controller: "base/org/healths",
+      controller: "base/org/health",
       liveness_controller: "base/org/health/livenesses",
       readiness_controller: "base/org/health/readinesses",
       startup_controller: "base/org/health/startups",
@@ -95,7 +95,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost"),
-      controller: "palm/app/healths",
+      controller: "palm/app/health",
       liveness_controller: "palm/app/health/livenesses",
       readiness_controller: "palm/app/health/readinesses",
       startup_controller: "palm/app/health/startups",
@@ -103,7 +103,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("HELP_SERVICE_URL", "help.app.localhost"),
-      controller: "help/app/healths",
+      controller: "help/app/health",
       liveness_controller: "help/app/health/livenesses",
       readiness_controller: "help/app/health/readinesses",
       startup_controller: "help/app/health/startups",
@@ -111,7 +111,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("HELP_CORPORATE_URL", "help.com.localhost"),
-      controller: "help/com/healths",
+      controller: "help/com/health",
       liveness_controller: "help/com/health/livenesses",
       readiness_controller: "help/com/health/readinesses",
       startup_controller: "help/com/health/startups",
@@ -119,7 +119,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("HELP_STAFF_URL", "help.org.localhost"),
-      controller: "help/org/healths",
+      controller: "help/org/health",
       liveness_controller: "help/org/health/livenesses",
       readiness_controller: "help/org/health/readinesses",
       startup_controller: "help/org/health/startups",
@@ -127,7 +127,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"),
-      controller: "docs/app/healths",
+      controller: "docs/app/health",
       liveness_controller: "docs/app/health/livenesses",
       readiness_controller: "docs/app/health/readinesses",
       startup_controller: "docs/app/health/startups",
@@ -135,7 +135,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("DOCS_CORPORATE_URL", "docs.com.localhost"),
-      controller: "docs/com/healths",
+      controller: "docs/com/health",
       liveness_controller: "docs/com/health/livenesses",
       readiness_controller: "docs/com/health/readinesses",
       startup_controller: "docs/com/health/startups",
@@ -143,7 +143,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("DOCS_STAFF_URL", "docs.org.localhost"),
-      controller: "docs/org/healths",
+      controller: "docs/org/health",
       liveness_controller: "docs/org/health/livenesses",
       readiness_controller: "docs/org/health/readinesses",
       startup_controller: "docs/org/health/startups",
@@ -151,7 +151,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("NEWS_SERVICE_URL", "news.app.localhost"),
-      controller: "news/app/healths",
+      controller: "news/app/health",
       liveness_controller: "news/app/health/livenesses",
       readiness_controller: "news/app/health/readinesses",
       startup_controller: "news/app/health/startups",
@@ -159,7 +159,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("NEWS_CORPORATE_URL", "news.com.localhost"),
-      controller: "news/com/healths",
+      controller: "news/com/health",
       liveness_controller: "news/com/health/livenesses",
       readiness_controller: "news/com/health/readinesses",
       startup_controller: "news/com/health/startups",
@@ -167,7 +167,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("NEWS_STAFF_URL", "news.org.localhost"),
-      controller: "news/org/healths",
+      controller: "news/org/health",
       liveness_controller: "news/org/health/livenesses",
       readiness_controller: "news/org/health/readinesses",
       startup_controller: "news/org/health/startups",
@@ -175,7 +175,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
-      controller: "core/app/healths",
+      controller: "core/app/health",
       liveness_controller: "core/app/health/livenesses",
       readiness_controller: "core/app/health/readinesses",
       startup_controller: "core/app/health/startups",
@@ -183,7 +183,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
-      controller: "core/com/healths",
+      controller: "core/com/health",
       liveness_controller: "core/com/health/livenesses",
       readiness_controller: "core/com/health/readinesses",
       startup_controller: "core/com/health/startups",
@@ -191,7 +191,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     },
     {
       host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
-      controller: "core/org/healths",
+      controller: "core/org/health",
       liveness_controller: "core/org/health/livenesses",
       readiness_controller: "core/org/health/readinesses",
       startup_controller: "core/org/health/startups",

@@ -156,7 +156,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   test "docs app has no registered auth method and remains confidential" do
     client = OidcClientRegistry.find!("docs_app")
 
-    assert client.client_secret.blank?
+    assert_predicate client.client_secret, :blank?
     assert_nil client.registered_token_endpoint_auth_method
     assert_not_predicate client, :public_client?
     assert_predicate client, :confidential_client?
