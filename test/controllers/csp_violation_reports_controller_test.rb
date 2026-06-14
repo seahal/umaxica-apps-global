@@ -56,6 +56,8 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
       [ENV["CORE_SERVICE_URL"] || "core.app.localhost", :core_app_csp_violation_report_path],
       [ENV["CORE_CORPORATE_URL"] || "core.com.localhost", :core_com_csp_violation_report_path],
       [ENV["CORE_STAFF_URL"] || "core.org.localhost", :core_org_csp_violation_report_path],
+      [ENV["CORE_NETWORK_URL"] || "core.net.localhost", :core_network_csp_violation_report_path],
+      [ENV["CORE_DEVELOPER_URL"] || "core.dev.localhost", :core_developer_csp_violation_report_path],
       [ENV["BASE_SERVICE_URL"] || "base.app.localhost", :base_app_csp_violation_report_path],
       [ENV["BASE_CORPORATE_URL"] || "base.com.localhost", :base_com_csp_violation_report_path],
       [ENV["BASE_STAFF_URL"] || "base.org.localhost", :base_org_csp_violation_report_path],

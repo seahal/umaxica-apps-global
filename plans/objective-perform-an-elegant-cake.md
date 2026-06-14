@@ -222,8 +222,8 @@ inventory is deliberately tiny.
 
 **Notes & opinions:**
 
-- **Palm has no cookies.** Native clients use `Authorization: Bearer` + DPoP; cookies are a browser
-  concept.
+- **Palm has no cookies.** The native default is `Authorization: Bearer`. DPoP remains available
+  only after a fresh implementation and threat-model review. Cookies are a browser concept.
 - **No `__Host-auth_access` / `__Host-auth_refresh` browser cookies in the target.** These exist
   today (`authentication_cookie_name.rb`) under the Rails-native model and **conflict with C3**.
   Retire them on the web path; Base (Rails-rendered) may keep an HttpOnly server-session cookie (not
@@ -455,8 +455,9 @@ distributed transactions, and idempotency makes at-least-once safe.
 1. **Acme is the only issuer; Sign issues nothing.** (Already accepted — keep.) Regional tokens are
    minted by Acme via **RFC 8693 token exchange**, short-lived (60–300 s), per-audience keys.
 2. **The browser holds exactly one opaque session cookie per origin** (`__Host-*_sid`,
-   `SameSite=Lax`, `Secure`, `HttpOnly`). **No JWT ever reaches browser JS or browser cookies.**
-   Native clients use `Bearer` + DPoP. _(Resolves C3 / C-1.)_
+   `SameSite=Lax`, `Secure`, `HttpOnly`). **No JWT ever reaches browser JS or browser cookies.** The
+   native default is `Bearer`; DPoP requires a fresh implementation and threat-model review before
+   adoption. _(Resolves C3 / C-1.)_
 3. **`Actor` survives as an immutable, request-scoped, read-through facade over verified JWT
    claims** — never a mutable source of truth. Helper methods (`actor_id`, `sid`, `region`,
    `tenant_id`, `scopes`) are pure functions over claims; `access_mode` is derived, not stored.

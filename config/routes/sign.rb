@@ -11,7 +11,7 @@ scope module: :sign, as: :sign do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -226,7 +226,7 @@ scope module: :sign, as: :sign do
       resource :dashboard, only: :show
 
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -252,14 +252,6 @@ scope module: :sign, as: :sign do
 
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
-        end
-      end
-
-      # FIXME: REMOVE THIS!!!
-      namespace :r18 do
-        resource :gate, only: %i(show create) do
-          get :blocked
-          get :stopped
         end
       end
 
@@ -414,7 +406,7 @@ scope module: :sign, as: :sign do
       resources :billing, only: :index
 
       # Basic public endpoints
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show

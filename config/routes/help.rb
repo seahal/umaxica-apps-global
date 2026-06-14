@@ -6,7 +6,7 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -25,7 +25,7 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -44,7 +44,7 @@ scope module: :help, as: :help do
   constraints host: ENV["HELP_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show

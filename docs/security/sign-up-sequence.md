@@ -841,8 +841,8 @@ Target decision:
 
 - App/com sign-up progression is carried by `ClientSignUpFlow` and `VisitorSignUpFlow` tickets, not
   by credential-specific session state as the source of truth.
-- `SignUpStateMachine` owns one-way progression through contact/social verification, optional
-  guard, checkpoint, finalization, sign-in handoff, and completion.
+- `SignUpStateMachine` owns one-way progression through contact/social verification, optional guard,
+  checkpoint, finalization, sign-in handoff, and completion.
 - The checkpoint records compact cleared requirements. Email/telephone OTP and social confirmation
   are recorded as prior cleared gates; checkpoint-visible setup still owns birthdate, passkey, and
   passcode requirements before durable finalization.
@@ -852,7 +852,8 @@ Target decision:
   confirmation and birthdate checkpoint completion. Existing provider identities follow sign-in, not
   sign-up.
 - Cancellation, expiry, and pre-finalization failure use `SignUpTermination` and
-  `SignUpArtifactCleanup` so cleanup touches only pending artifacts owned by the current flow ticket.
+  `SignUpArtifactCleanup` so cleanup touches only pending artifacts owned by the current flow
+  ticket.
 - Org public sign-up should remain a candidate inquiry handoff, not an operator-creation route.
 - Org operator creation, mutation, and withdrawal should remain lifecycle requests from an existing
   authenticated operator with AAL2 step-up.

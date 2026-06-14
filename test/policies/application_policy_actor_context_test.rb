@@ -20,7 +20,7 @@ class ApplicationPolicyActorContextTest < ActiveSupport::TestCase
 
   test "application policy receives actor context as primary context" do
     client = clients(:one)
-    context = Actor.context.with(actor: client, actor_type: :client)
+    context = Actor.context.with(subject: client, actor_type: :client)
     policy = ActorFirstPolicy.new(client, actor: context)
 
     assert_same context, policy.actor

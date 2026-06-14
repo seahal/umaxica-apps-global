@@ -1,9 +1,9 @@
 # OAuth 2.0 Demonstrating Proof of Possession (DPoP)
 
-> **Partially superseded by Identity Authority inversion:** The DPoP vocabulary in this document
-> remains useful only where it does not assign token authority to `sign/id`. `acme/www` is the
-> Session, Token, Account, Preference, Authorization, and downstream-token Authority. `sign/id` is
-> ceremony-only. Existing sign-side physical tables/models do not imply sign-side authority.
+> **Partially superseded by the Acme / Sign / Core / Base / Palm boundary:** The DPoP vocabulary in
+> this document remains useful as retained implementation detail. It must not assign token authority
+> outside Acme, and it must not be treated as the default entry point for new Core, Base, or Palm
+> flows.
 
 ## Specification
 
@@ -34,7 +34,10 @@ of the private key by signing a DPoP proof JWT on each request.
   Expired rows are pruned by `DpopProofStatePurgeJob` (see Retention below).
 - **This conforms to RFC 9449** where JTI checking is SHOULD, not MUST.
 - **Supported algorithms:** ES256 and ES384 only (no RSA).
-- **Primary use case:** Next.js frontend to Rails API communication via Authorization header.
+- **Adoption posture:** DPoP remains supported and maintained as optional proof-of-possession
+  infrastructure. New product flows should not adopt it by default; before a flow depends on DPoP,
+  review this implementation, the current OAuth/OIDC boundary, client key storage, nonce handling,
+  and replay behavior.
 
 ## Implementation
 
@@ -88,6 +91,17 @@ JTI replay rows and issued nonces are short-lived. Each row carries `expires_at`
 batches. It is scheduled from `config/recurring.yml` (`dpop_proof_state_purge`). These tables are
 **not** covered by `RetentionPurgeJob`, which is keyed on `purged_at`, not `expires_at`.
 
+## Current Adoption Posture
+
+The current Acme / Sign / Core / Base / Palm boundary keeps DPoP available without making it a
+preferred entry point. Existing server-side interfaces, token claims, persisted `dpop_jkt` fields,
+proof-state tables, nonce/JTI services, cleanup jobs, and regression tests stay in place.
+
+DPoP support being enabled does not by itself make a new flow approved to use it. Any future Core,
+Base, Palm, iOS, Android, or other client implementation that wants to rely on DPoP must first
+review the current implementation and threat model, then update the relevant ADR or plan with that
+decision.
+
 ## Relationship to DBSC
 
 DPoP and DBSC (W3C Device Bound Session Credentials) serve similar purposes but target different
@@ -98,19 +112,19 @@ flows:
 | DBSC      | Browser cookie-based sessions       | Session cookie bound to device key |
 | DPoP      | API access via Authorization header | Access token bound to client key   |
 
-Both are used in this application. DBSC protects Hotwire/Turbo browser sessions. DPoP protects
-Next.js and API client token usage.
+DBSC is the active browser-session binding mechanism. DPoP remains available for
+Authorization-header token binding where an explicitly reviewed flow chooses it.
 
 ## VisitorAccount Token Strategy
 
 Each client type uses a different combination of token transport and proof-of-possession mechanism,
 based on its threat model:
 
-| VisitorAccount | Access Token                        | Refresh Token                | Proof-of-Possession |
-| -------------- | ----------------------------------- | ---------------------------- | ------------------- |
-| Rails HTML     | HttpOnly cookie                     | HttpOnly cookie              | DBSC                |
-| Next.js        | DPoP JWT Bearer (Authorization hdr) | HttpOnly cookie              | DPoP                |
-| iOS / Android  | In-memory bearer                    | Secure storage (Keychain/KS) | DPoP (optional)     |
+| VisitorAccount | Access Token                                   | Refresh Token                | Proof-of-Possession          |
+| -------------- | ---------------------------------------------- | ---------------------------- | ---------------------------- |
+| Rails HTML     | HttpOnly cookie                                | HttpOnly cookie              | DBSC                         |
+| Core browser   | HttpOnly cookie-carried JWT on Rails Core APIs | HttpOnly cookie              | DBSC where available         |
+| iOS / Android  | Acme-issued bearer token                       | Secure storage (Keychain/KS) | None by default; DPoP opt-in |
 
 **Notes:**
 
@@ -142,14 +156,15 @@ infrastructure is designed to accept DPoP proofs from any client:
 - `DPoP::ProofValidator` and `DPoP::RequestVerifier` are client-agnostic.
 - The `cnf.jkt` claim in JWT access tokens works regardless of client type.
 
-The current policy is **optional DPoP** for native clients:
+The current policy is **maintained optional DPoP** for native clients:
 
 - If a native client sends a DPoP proof header, the server validates it and enforces binding.
 - If no DPoP proof is present, the server accepts the token as a standard Bearer token.
 
-When native apps adopt DPoP, the private key should be stored in platform secure hardware (iOS
-Secure Enclave / Android Keystore). This prevents token exfiltration from being exploitable even if
-the access token itself is leaked.
+Before native apps adopt DPoP, review the current DPoP implementation and threat model. If adopted,
+the private key should be stored in platform secure hardware (iOS Secure Enclave / Android
+Keystore). This prevents token exfiltration from being exploitable even if the access token itself
+is leaked.
 
 DPoP enforcement for native clients can be made mandatory in a future phase without server-side
 changes.

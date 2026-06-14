@@ -171,4 +171,97 @@ class ActorTest < ActiveSupport::TestCase
     assert_predicate Actor, :step_up_fresh?
     assert_not_predicate Actor, :requires_step_up?
   end
+
+  test "current returns the empty context before any install" do
+    assert_equal ActorValuesContext.empty, Actor.current
+    assert_equal :unauthenticated, Actor.current.actor_type
+  end
+
+  test "install_context! installs a full ActorValuesContext positionally" do
+    context = ActorValuesContext.empty.with(actor_type: :client, tld: :app, surface: :sign)
+    Actor.install_context!(context)
+
+    assert_same context, Actor.context
+    assert_equal :app, Actor.tld
+    assert_equal :sign, Actor.surface
+  end
+
+  test "install_context! rejects passing both a context and attributes" do
+    assert_raises(ArgumentError) do
+      Actor.install_context!(ActorValuesContext.empty, tld: :app)
+    end
+  end
+
+  test "clear and reset! both empty the current context" do
+    Actor.actor_type = :client
+    Actor.tld = :app
+
+    Actor.reset!
+
+    assert_equal ActorValuesContext.empty, Actor.current
+
+    Actor.actor_type = :operator
+    Actor.clear
+
+    assert_equal ActorValuesContext.empty, Actor.current
+  end
+
+  test "subject and actor are the same compatibility slot" do
+    user = Client.new(id: 7)
+    Actor.actor = user
+
+    assert_equal user, Actor.subject
+    assert_equal user, Actor.actor
+  end
+
+  test "surface is a separate axis from tld" do
+    Actor.install_context!(tld: :app, surface: :sign)
+
+    assert_equal :app, Actor.tld
+    assert_equal :sign, Actor.surface
+    assert_not_equal Actor.tld, Actor.surface
+  end
+
+  test "channel drives browser and native predicates" do
+    Actor.install_context!(channel: :browser)
+
+    assert_predicate Actor, :browser?
+    assert_not_predicate Actor, :native?
+
+    Actor.install_context!(channel: :native)
+
+    assert_predicate Actor, :native?
+    assert_not_predicate Actor, :browser?
+  end
+
+  test "transport drives cookie and bearer predicates" do
+    Actor.install_context!(transport: :cookie)
+
+    assert_predicate Actor, :cookie?
+    assert_not_predicate Actor, :bearer?
+
+    Actor.install_context!(transport: :bearer)
+
+    assert_predicate Actor, :bearer?
+    assert_not_predicate Actor, :cookie?
+  end
+
+  test "browser channel does not imply cookie transport" do
+    Actor.install_context!(channel: :browser, transport: :bearer)
+
+    assert_predicate Actor, :browser?
+    assert_not_predicate Actor, :cookie?
+  end
+
+  test "invalid surface transport or channel fails fast at construction" do
+    assert_raises(ArgumentError) { ActorValuesContext.empty.with(surface: :bogus) }
+    assert_raises(ArgumentError) { ActorValuesContext.empty.with(transport: :bogus) }
+    assert_raises(ArgumentError) { ActorValuesContext.empty.with(channel: :bogus) }
+    assert_raises(ArgumentError) { ActorValuesContext.empty.with(tld: :bogus) }
+  end
+
+  test "Actor::Context is an alias of ActorValuesContext" do
+    assert_same ActorValuesContext, Actor::Context
+    assert_instance_of Actor::Context, Actor.current
+  end
 end

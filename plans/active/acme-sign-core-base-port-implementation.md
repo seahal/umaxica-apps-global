@@ -13,8 +13,8 @@ is the native bearer-token API Resource Server.
 This plan replaces older Rails-only `acme/www` versus `sign/id` authority-inversion planning where
 that planning conflicts with the accepted Acme / Sign / Core / Base / Palm boundary.
 
-Palm is the canonical native API name formerly tracked as Port. Existing filenames containing
-`port` are retained for link stability until a separate rename pass is accepted.
+Palm is the canonical native API name formerly tracked as Port. Existing filenames containing `port`
+are retained for link stability until a separate rename pass is accepted.
 
 ## Implementation Changes
 
@@ -35,6 +35,11 @@ Palm is the canonical native API name formerly tracked as Port. Existing filenam
   cookies or Rails browser sessions.
 - Make Palm validate Acme-issued Access Tokens with `aud = palm-api` and never depend on Rails or
   Next.js sessions.
+- Keep DPoP server-side infrastructure maintained, including verifier services, `dpop_jkt` token
+  bindings, proof-state tables, nonce/JTI cleanup, and regression coverage.
+- Do not make DPoP a default entry point for Core, Base, Palm, or native flows. If a future flow
+  wants DPoP, first review the current DPoP implementation and threat model, then update the
+  relevant ADR or plan before implementation.
 - Do not decide Palm's concrete native implementation flow until native app registration, provider
   console settings, and external documentation are checked.
 - Keep Palm-specific device credential, token binding, refresh transport, and session transport APIs
@@ -54,6 +59,7 @@ Palm is the canonical native API name formerly tracked as Port. Existing filenam
 - Add negative API tests proving Resource Servers reject ID Tokens for authorization.
 - Add Palm token tests for signature, issuer, audience, time claims, scope, client id, and subject.
 - Add negative tests proving browser/session cookies do not authenticate Palm.
+- Keep the existing DPoP service and OIDC DPoP tests green while DPoP remains supported.
 - Add integration tests for native Authorization Code + PKCE to Palm access when implementation
   reaches that layer.
 - Add regression tests for any retained compatibility URLs before removing old route behavior.
@@ -67,6 +73,8 @@ Palm is the canonical native API name formerly tracked as Port. Existing filenam
 - Do not put bearer tokens in browser-visible storage.
 - Do not use ID Tokens for API authorization.
 - Do not call APIs RPs when their role is to validate access tokens as Resource Servers.
+- Do not adopt DPoP for a new flow without first reviewing the current implementation, key-storage
+  assumptions, nonce behavior, replay behavior, and Acme token-boundary fit.
 - Do not use `Port` or `port-api` for new code, configuration, routes, or plans.
 - Do not add Palm-specific OAuth/OIDC paths such as `/oauth/callback/ios`,
   `/oauth/callback/android`, `/ios/oauth/callback`, or `/android/oauth/callback`.

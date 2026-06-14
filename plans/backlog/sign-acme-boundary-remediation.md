@@ -1,7 +1,7 @@
 # Sign / Acme Connection — Corrected Audit & Remediation Plan
 
-Status: inactive backlog as of 2026-06-14. The medium cleanup slice is complete: welcome route
-dedup is already reflected in current routes, Acme preference helper compatibility is intentionally
+Status: inactive backlog as of 2026-06-14. The medium cleanup slice is complete: welcome route dedup
+is already reflected in current routes, Acme preference helper compatibility is intentionally
 preserved, and the stale Sign/Acme premise has been corrected. Remaining work is human-review-gated
 residual Sign route retirement and should be reactivated only with explicit scope.
 
@@ -118,8 +118,8 @@ because cross-surface redirect logic still calls `*_welcome_entry_url`.
 keep named screen helpers because views, mailers, and integration tests still depend on helpers such
 as `edit_acme_app_preference_theme_url` and `acme_org_preference_region_url`. Do not collapse these
 routes unless the implementation also preserves helper compatibility. The active boundary guard is
-`AcmePreferenceScreenDispatch`, which enforces the screen allowlist and keeps preference authority on
-Acme.
+`AcmePreferenceScreenDispatch`, which enforces the screen allowlist and keeps preference authority
+on Acme.
 
 **4c. Cross-surface jump app/com/org (item 2).** The "jump" mechanism is a signed return-token
 protocol (not Hono/edge): `JumpRtIssuer`, `JumpRtReturnVerifier`, `JumpRtReturnPolicy`,

@@ -1,7 +1,11 @@
 # typed: false
 # frozen_string_literal: true
 
-# TODO: by the way, what is the purpose of this file?
+# Reference data (lookup / status tables) is owned by migrations, which insert the fixed rows
+# with `INSERT ... ON CONFLICT DO NOTHING` (see adr/reference-table-discipline.md). This file is
+# only responsible for development/test sample fixtures (sample Client / Operator and their
+# email/secret), and is a no-op in production. The sample fixtures below rely on the reference
+# rows already being present from migrations.
 
 return if Rails.env.production?
 
@@ -10,64 +14,11 @@ sample_staff_public_id = "2222222222222222"
 sample_staff_secret = "22222222222222222222222222222222"
 sample_staff_email_address = "sample-staff@example.test"
 
-def ensure_reference_rows(model_class, ids)
-  ids.each do |id|
-    model_class.find_or_create_by!(id: id)
-  end
-end
-
-# Reference tables with ReferenceRecord concern
-ensure_reference_rows(ClientVisibility, ClientVisibility::DEFAULTS)
-ensure_reference_rows(ClientStatus, ClientStatus::DEFAULTS)
-ensure_reference_rows(ClientMfaLevel, ClientMfaLevel::DEFAULTS)
-ensure_reference_rows(ClientMfaStatus, ClientMfaStatus::DEFAULTS)
-ensure_reference_rows(ClientEmailStatus, ClientEmailStatus::DEFAULTS)
-ensure_reference_rows(ClientTelephoneStatus, ClientTelephoneStatus::DEFAULTS)
-ensure_reference_rows(ClientTotpCredentialStatus, ClientTotpCredentialStatus::DEFAULTS)
-ensure_reference_rows(ClientSecretStatus, [ClientSecretStatus::ACTIVE, ClientSecretStatus::USED])
-ensure_reference_rows(ClientSecretKind, [ClientSecretKind::PERMANENT])
-ensure_reference_rows(VisitorStatus, VisitorStatus::DEFAULTS)
-ensure_reference_rows(VisitorVisibility, VisitorVisibility::DEFAULTS)
-ensure_reference_rows(VisitorMfaLevel, VisitorMfaLevel::DEFAULTS)
-ensure_reference_rows(VisitorMfaStatus, VisitorMfaStatus::DEFAULTS)
-
-ensure_reference_rows(OperatorVisibility, [OperatorVisibility::STAFF])
-ensure_reference_rows(OperatorIdentityStatus, [OperatorIdentityStatus::ACTIVE])
-ensure_reference_rows(OperatorMfaLevel, OperatorMfaLevel::DEFAULTS)
-ensure_reference_rows(OperatorMfaStatus, OperatorMfaStatus::DEFAULTS)
-ensure_reference_rows(OperatorEmailStatus, [OperatorEmailStatus::VERIFIED])
-ensure_reference_rows(
-  OperatorSecretStatus,
-  [OperatorSecretStatus::ACTIVE, OperatorSecretStatus::DELETED, OperatorSecretStatus::EXPIRED,
-   OperatorSecretStatus::REVOKED, OperatorSecretStatus::USED,],
-)
-ensure_reference_rows(OperatorSecretKind, [OperatorSecretKind::PERMANENT])
-
-# Ensure reference rows using ensure_defaults! method
-ClientVisibility.ensure_defaults!
-ClientStatus.ensure_defaults!
-ClientMfaLevel.ensure_defaults!
-ClientMfaStatus.ensure_defaults!
-ClientEmailStatus.ensure_defaults!
-ClientTelephoneStatus.ensure_defaults!
-ClientTotpCredentialStatus.ensure_defaults!
-ClientSecretStatus.ensure_defaults!
-ClientSecretKind.ensure_defaults!
-
-VisitorStatus.ensure_defaults!
-VisitorVisibility.ensure_defaults!
-VisitorMfaLevel.ensure_defaults!
-VisitorMfaStatus.ensure_defaults!
-
-OperatorVisibility.ensure_defaults!
-OperatorIdentityStatus.ensure_defaults!
-OperatorMfaLevel.ensure_defaults!
-OperatorMfaStatus.ensure_defaults!
-OperatorEmailStatus.ensure_defaults!
-OperatorSecretKind.ensure_defaults!
-
 user = Client.find_or_initialize_by(public_id: "sample_user")
 user.status_id = ClientStatus::ACTIVE
+user.visibility_id = ClientVisibility::USER
+user.mfa_level_id = ClientMfaLevel::NOTHING
+user.mfa_status_id = ClientMfaStatus::UNCONFIGURED
 user.save!
 
 user_email = user.client_emails.find_or_initialize_by(address: "sample-user@example.test")

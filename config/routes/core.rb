@@ -7,7 +7,7 @@ scope module: :core, as: :core do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -55,7 +55,7 @@ scope module: :core, as: :core do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -103,7 +103,7 @@ scope module: :core, as: :core do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -139,11 +139,38 @@ scope module: :core, as: :core do
       end
 
       namespace :sso do
+        # FIXME: remove :controller. I thought non- sense.
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
 
       resources :accounts, only: [:index]
+    end
+  end
+
+  constraints host: [ENV["CORE_NETWORK_URL"], "core.net.localhost"].compact do
+    scope module: :net, as: :network do
+      root to: "roots#index"
+      resource :health, only: :show
+      namespace :health do
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
+      end
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
+    end
+  end
+
+  constraints host: [ENV["CORE_DEVELOPER_URL"], "core.dev.localhost"].compact do
+    scope module: :dev, as: :developer do
+      root to: "roots#index"
+      resource :health, only: :show
+      namespace :health do
+        resource :liveness, only: :show
+        resource :readiness, only: :show
+        resource :startup, only: :show
+      end
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 end

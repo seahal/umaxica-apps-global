@@ -151,12 +151,17 @@ module CoreBrowserApiBoundary
 
   def install_authenticated_actor!
     Actor.clear
-    context = Actor::Context.new(
-      actor: current_resource,
+    # The Core Browser API boundary is the Core BFF browser cookie flow, so the
+    # transport/channel axes are known and concrete here.
+    context = ActorValuesContext.new(
+      subject: current_resource,
       actor_type: core_actor_type,
       account: nil,
       tenant: nil,
       tld: core_actor_tld,
+      surface: :core,
+      transport: :cookie,
+      channel: :browser,
       authn: Actor::Authentication.new(
         login_public_id: current_token_record.public_id,
         access_claims: current_token_payload,

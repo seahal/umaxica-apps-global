@@ -1,8 +1,7 @@
 # Logout State Machine Implementation Plan
 
 > **Superseded for authority ownership (2026-06-14):** Follow
-> `adr/acme-sign-core-base-port-boundary.md`,
-> `docs/architecture/acme-sign-core-base-port.md`, and
+> `adr/acme-sign-core-base-port-boundary.md`, `docs/architecture/acme-sign-core-base-port.md`, and
 > `docs/security/session-token-authority.md` for current authority ownership. Acme remains the
 > logout/session-token authority; Sign is a special RP and may host sign-related UI such as the
 > state-free `/signed-out` page. Do not implement this plan's older Sign-owned logout mutation

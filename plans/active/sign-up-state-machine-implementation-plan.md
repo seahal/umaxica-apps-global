@@ -1,10 +1,9 @@
 # Sign Up State Machine Implementation Plan
 
-> **Updated by the current Identity Authority boundary:** `acme/www` is the Session, Token,
-> Account, Preference, Authorization, and downstream-token Authority. `sign/id` owns the credential
-> ceremony and sign-up sequence progression only. Existing sign-side ticket, credential, and
-> callback records do not imply sign-side account, session, token, preference, dashboard, or
-> authorization authority.
+> **Updated by the current Identity Authority boundary:** `acme/www` is the Session, Token, Account,
+> Preference, Authorization, and downstream-token Authority. `sign/id` owns the credential ceremony
+> and sign-up sequence progression only. Existing sign-side ticket, credential, and callback records
+> do not imply sign-side account, session, token, preference, dashboard, or authorization authority.
 
 Status: active implementation
 
@@ -169,8 +168,8 @@ Rules:
 
 ## State Carrier
 
-Use per-surface DB-backed sign-up flow tickets as the source of truth. Compatibility session keys may
-remain temporarily only where provider callback integrity, OTP cooldown, WebAuthn challenge, or
+Use per-surface DB-backed sign-up flow tickets as the source of truth. Compatibility session keys
+may remain temporarily only where provider callback integrity, OTP cooldown, WebAuthn challenge, or
 route migration requires them.
 
 Target records:

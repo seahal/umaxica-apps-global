@@ -107,6 +107,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     end
 
     secret_credential.reload
+
     assert_operator secret_credential.discarded_at, :<=, Time.current
     assert_equal OperatorSecretCredential.status_id_for(:deleted), secret_credential.staff_secret_status_id
   end

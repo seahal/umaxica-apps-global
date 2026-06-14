@@ -53,8 +53,8 @@ The exact Palm native implementation policy is not yet accepted. Do not commit r
 to a platform-specific native flow until native app registration, provider console settings, and
 external documentation are checked. The fixed boundary is the URL and authority separation:
 OAuth/OIDC public entry points belong to the common Acme/RP interface, while Palm-specific device
-credential, token binding, refresh transport, or session transport APIs belong under API
-namespaces, not under OAuth/OIDC endpoint names.
+credential, token binding, refresh transport, or session transport APIs belong under API namespaces,
+not under OAuth/OIDC endpoint names.
 
 ## Component Classification
 
@@ -128,6 +128,12 @@ Tokens, or ID Tokens.
 
 Palm validates signature, issuer, `aud = palm-api`, time claims, scope, client id, and subject, then
 resolves the current user from Acme `iss + sub`.
+
+DPoP remains supported and maintained as optional proof-of-possession infrastructure, but it is not
+the default Palm, Core, or Base entry point. DPoP support being present does not approve a new flow
+to rely on it. Before any concrete client or API flow adopts DPoP, the implementation and threat
+model must be reviewed again, including client private-key storage, nonce handling, replay behavior,
+and compatibility with the current Acme token boundary.
 
 If Palm later stores or issues a local device artifact, that artifact is not an OAuth/OIDC access
 token. Name it as a Palm local credential, device binding credential, or transport credential.
@@ -236,6 +242,8 @@ Do not:
 - make API controllers depend on Rails browser sessions;
 - make iOS or Android depend on the Core BFF for API access;
 - call an API a relying party when it is validating access tokens as a Resource Server.
+- adopt DPoP for a new flow without first reviewing the current DPoP implementation and threat
+  model;
 - add Palm-specific OAuth/OIDC endpoint names for iOS or Android platform differences;
 - call a Palm local credential or device binding credential an OAuth/OIDC access token.
 

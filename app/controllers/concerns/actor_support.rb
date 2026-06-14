@@ -20,8 +20,17 @@ module ActorSupport
 
   def set_current_context
     context = resolved_current_context
+    # Note: HostContextResolver's `surface` is the TLD tier, not the ActorValuesContext
+    # `surface` route/product axis. The latter, plus transport/channel, are left at
+    # their safe baseline here.
+    # TODO: derive surface from routing and refine transport/channel from the
+    # resolved credential source when those axes gain consumers. Until then the
+    # anonymous baseline is transport: :none, channel/surface: :unknown.
     Actor.install_context!(
       tld: context.surface,
+      surface: :unknown,
+      transport: :none,
+      channel: :unknown,
       account: context.account,
       tenant: context.tenant,
       actor: Unauthenticated.instance,

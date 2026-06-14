@@ -72,5 +72,5 @@
   - Future API namespace candidates: device credential, token binding, refresh transport, and
     session transport APIs.
   - Reserved/deprecated: current `/oauth/callback*` Palm stubs.
-  - Do not delete now: current `/oauth/callback*` Palm stubs until native app registration,
-    provider console settings, external documentation, and access logs have been checked.
+  - Do not delete now: current `/oauth/callback*` Palm stubs until native app registration, provider
+    console settings, external documentation, and access logs have been checked.

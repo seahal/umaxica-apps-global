@@ -13,7 +13,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -152,6 +152,8 @@ scope module: :acme, as: :acme do
   end
 
   # Corporate surface
+
+  # FIXME: remove I hate this env variable.
   constraints host: [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact do
     scope module: :com, as: :com do
       root to: "roots#index"
@@ -162,7 +164,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -238,6 +240,7 @@ scope module: :acme, as: :acme do
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
       resource :identity, only: :show
+      # FIXME: remove :controller. I thought non- sense.
       resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
@@ -281,7 +284,7 @@ scope module: :acme, as: :acme do
                controller: "openid_configurations",
                format: false
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -365,6 +368,7 @@ scope module: :acme, as: :acme do
       resource :avatar, only: :show
       resource :identity, only: :show
       resource :organization, only: :show
+      # FIXME: remove :controller. I thought non- sense.
       resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
@@ -401,7 +405,7 @@ scope module: :acme, as: :acme do
     scope module: :net, as: :network do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
@@ -416,7 +420,7 @@ scope module: :acme, as: :acme do
     scope module: :dev, as: :developer do
       root to: "roots#index"
       # Health
-      resource :health, only: :show, controller: "health"
+      resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show

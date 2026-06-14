@@ -187,7 +187,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Client", snapshot["actor_class"]
     assert_equal user.id, snapshot["actor_id"]
-    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["current_actor_class"]
     assert_equal "Client", snapshot["current_actor_actor_class"]
     assert_equal user.id, snapshot["current_actor_actor_id"]
     assert_equal "Actor::StepUp", snapshot["current_actor_step_up_class"]
@@ -254,7 +254,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Operator", snapshot["actor_class"]
     assert_equal staff.id, snapshot["actor_id"]
-    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["current_actor_class"]
     assert_equal "Operator", snapshot["current_actor_actor_class"]
     assert_equal staff.id, snapshot["current_actor_actor_id"]
     assert_equal "Operator", snapshot["current_resource_class"]
@@ -301,7 +301,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 
     assert_equal "Visitor", snapshot["actor_class"]
     assert_equal visitor.id, snapshot["actor_id"]
-    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["current_actor_class"]
     assert_equal "Visitor", snapshot["current_actor_actor_class"]
     assert_equal visitor.id, snapshot["current_actor_actor_id"]
     assert_equal "Visitor", snapshot["current_resource_class"]
@@ -341,7 +341,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_response :success
     snapshot = response.parsed_body
 
-    assert_equal "Actor::Context", snapshot["current_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["current_actor_class"]
     assert_equal Unauthenticated.instance.class.name, snapshot["current_actor_actor_class"]
     assert snapshot["current_actor_authn_null"]
     assert_nil snapshot["current_resource_class"]
@@ -367,7 +367,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     snapshot = response.parsed_body
 
     assert snapshot["allowed"]
-    assert_equal "Actor::Context", snapshot["authorization_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["authorization_actor_class"]
     assert_equal "Client", snapshot["authorization_actor_actor_class"]
     assert_equal "Client", snapshot["authorization_user_class"]
   end
@@ -427,7 +427,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     snapshot = response.parsed_body
 
     assert_not snapshot["allowed"]
-    assert_equal "Actor::Context", snapshot["authorization_actor_class"]
+    assert_equal "ActorValuesContext", snapshot["authorization_actor_class"]
     assert_equal Unauthenticated.instance.class.name, snapshot["authorization_actor_actor_class"]
     assert_nil snapshot["authorization_user_class"]
   end

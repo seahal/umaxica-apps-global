@@ -44,8 +44,8 @@ DBSC and DPoP (RFC 9449) serve similar purposes (proof-of-possession) but target
 | DBSC      | Browser cookie-based sessions       | Session cookie bound to device key |
 | DPoP      | API access via Authorization header | Access token bound to client key   |
 
-Both are used in this application. DBSC protects Hotwire/Turbo browser sessions. DPoP protects
-Next.js and API client token usage.
+DBSC is the active browser-session binding mechanism. DPoP remains available for
+Authorization-header token binding where an explicitly reviewed flow chooses it.
 
 ## VisitorAccount Token Strategy
 

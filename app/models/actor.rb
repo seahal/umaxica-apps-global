@@ -1,69 +1,78 @@
 # typed: false
 # frozen_string_literal: true
 
+# Actor is a request-lifecycle read facade over an already-installed
+# ActorValuesContext snapshot.
+#
+# It is push-based: the controller/authentication pipeline resolves
+# authentication, authorization, preference, selection, and step-up, then calls
+# Actor.install_context!. Actor never rebuilds auth state from the request and
+# never performs token decode, DB lookup, transparent refresh, DPoP/DBSC
+# verification, preference hydration, or policy-user construction. It is a
+# snapshot reader only.
+#
+# Actor.current / Actor.context return ActorValuesContext.empty when no context
+# is installed, so they never raise merely because no request is bound.
 class Actor < ActiveSupport::CurrentAttributes
-  Context =
-    Data.define(
-      :actor,
-      :actor_type,
-      :account,
-      :tenant,
-      :tld,
-      :authn,
-      :authz,
-      :configuration,
-      :preferences,
-      :selection,
-      :step_up,
-      :trace_id,
-      :span_id,
-    ) do
-      def self.empty
-        new(
-          actor: Unauthenticated.instance,
-          actor_type: :unauthenticated,
-          account: nil,
-          tenant: nil,
-          tld: nil,
-          authn: Actor::Authentication::NULL,
-          authz: Actor::Authz::NULL,
-          configuration: Actor::Configuration::NULL,
-          preferences: Actor::Preference::NULL,
-          selection: Actor::SelectedContext::NULL,
-          step_up: Actor::StepUp::NULL,
-          trace_id: nil,
-          span_id: nil,
-        )
-      end
-    end
+  # Compatibility alias: ActionPolicy (ApplicationPolicy#actor_context) and
+  # existing tests reference Actor::Context as the authorization context type.
+  # ActorValuesContext is now the canonical class for that context.
+  Context = ActorValuesContext
 
   attribute :context
 
   resets do
-    self.context = Context.empty
+    self.context = ActorValuesContext.empty
   end
 
   class << self
     def context
-      super || Context.empty
+      super || ActorValuesContext.empty
+    end
+
+    # The currently installed snapshot, or the empty context when nothing is
+    # bound. Safe for bare paths, jobs, mailers, and tests.
+    def current = context
+
+    # Push-based lifecycle installer and the only supported write path.
+    #
+    # Accepts a full ActorValuesContext (positional) or a partial set of
+    # attributes (keywords) merged onto the current snapshot. The keyword form
+    # preserves the existing incremental-install behavior used across the
+    # authentication pipeline. Must stay inside reviewed request lifecycle
+    # boundaries (see actor_context_invariant_test).
+    def install_context!(context = nil, **attributes)
+      if context
+        raise ArgumentError, "provide either a context or attributes, not both" if attributes.any?
+
+        self.context = ActorValuesContext.coerce(context)
+      else
+        update(**attributes)
+      end
     end
 
     def update(**attributes)
       self.context = context.with(**normalize_context_attributes(attributes))
     end
 
-    def install_context!(**attributes)
-      update(**attributes)
-    end
-
     def clear
       reset
     end
 
-    def actor = context.actor || Unauthenticated.instance
+    # Alias for clear, for callers that prefer the reset! spelling.
+    def reset! = clear
+
+    def subject = context.subject || Unauthenticated.instance
+
+    # Historical alias for subject, kept for lifecycle and policy compatibility.
+    alias_method :actor, :subject
+
+    def subject=(value)
+      update(subject: value)
+    end
 
     def actor=(value)
-      update(actor: value)
+      update(subject: value)
     end
 
     def actor_type = context.actor_type || :unauthenticated
@@ -91,6 +100,15 @@ class Actor < ActiveSupport::CurrentAttributes
     def tld=(value)
       update(tld: value)
     end
+
+    # Route/product surface axis, distinct from tld. See ActorValuesContext.
+    delegate :surface, to: :context
+
+    # Credential transport axis (cookie/bearer/none/unknown).
+    delegate :transport, to: :context
+
+    # Caller channel axis (browser/native/server/unknown).
+    delegate :channel, to: :context
 
     def authn = context.authn || Actor::Authentication::NULL
 
@@ -140,27 +158,16 @@ class Actor < ActiveSupport::CurrentAttributes
       update(span_id: value)
     end
 
-    def client?
-      actor_type == :client
-    end
+    # Role predicates delegate to the installed context. They are role
+    # predicates, not authorization gates: protected behavior must still go
+    # through ActionPolicy / policy enforcement.
+    delegate :client?, :operator?, :visitor?, :unauthenticated?, :authenticated?, to: :context
 
-    def operator?
-      actor_type == :operator
-    end
+    # Transport/channel predicates. browser?/native? read channel; cookie?/
+    # bearer? read transport. The two axes are not conflated.
+    delegate :browser?, :native?, :cookie?, :bearer?, to: :context
 
-    def visitor?
-      actor_type == :visitor
-    end
-
-    def unauthenticated?
-      actor_type == :unauthenticated
-    end
-
-    def authenticated?
-      %i(client visitor operator).include?(actor_type)
-    end
-
-    alias signed_in? authenticated?
+    alias_method :signed_in?, :authenticated?
 
     def signed_up?
       return false unless authenticated?
@@ -203,14 +210,17 @@ class Actor < ActiveSupport::CurrentAttributes
 
     private
 
+    # Map legacy attribute keys onto canonical context fields and coerce blank
+    # typed sub-values to their NULL objects. Unknown keys (e.g. the removed
+    # :authentication / :preference keys) intentionally flow through to
+    # Data#with, which raises ArgumentError.
+    CONTEXT_KEY_ALIASES = { actor: :subject }.freeze
+
     def normalize_context_attributes(attributes)
       attributes.each_with_object({}) do |(key, value), normalized|
-        normalized[normalize_context_key(key)] = normalize_context_value(key, value)
+        normalized_key = CONTEXT_KEY_ALIASES.fetch(key, key)
+        normalized[normalized_key] = normalize_context_value(normalized_key, value)
       end
-    end
-
-    def normalize_context_key(key)
-      key
     end
 
     # FIXME: cofniguration has a lot of subdomain stuff that needs to be cleaned up
