@@ -1,0 +1,7 @@
+<% @frontchannel_logout_urls.each do |url| %>
+  <iframe src="<%= url %>" hidden title=""></iframe>
+<% end %>
+
+<p>
+  <%= link_to "Continue", @oidc_logout_completed_path %>
+</p>

@@ -51,6 +51,52 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_not OidcClientRegistry.valid_redirect_uri?("unknown", "http://localhost/callback")
   end
 
+  test "valid_post_logout_redirect_uri? uses exact registered uri match" do
+    client = OidcClientRegistry.find!("sign-rp")
+    uri = client.post_logout_redirect_uris.first
+
+    assert OidcClientRegistry.valid_post_logout_redirect_uri?(client_id: client.client_id, uri: uri)
+    assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(client_id: client.client_id, uri: "#{uri}/extra")
+    assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
+      client_id: client.client_id,
+      uri: uri.sub("/signed-out", "/SIGNED-OUT"),
+    )
+    assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
+      client_id: "unknown",
+      uri: uri,
+    )
+  end
+
+  test "sign and core clients expose registered logout receiver uris" do
+    sign = OidcClientRegistry.find!("sign-rp")
+    core = OidcClientRegistry.find!("core-next-rp")
+
+    assert sign.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
+    assert sign.frontchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/frontchannel_logout" }
+    assert core.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
+    assert core.frontchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/frontchannel_logout" }
+  end
+
+  test "logout receiver uris can be filtered by acme resource type" do
+    app_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "client")
+    com_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "visitor")
+    org_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "operator")
+
+    assert_equal [ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")], app_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")], com_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")], org_uris.map { |uri| URI.parse(uri).host }
+  end
+
+  test "native and content clients do not expose logout receiver uris" do
+    %w(app-ios-rp app-android-rp docs_app docs_org docs_com news_app news_org news_com help_app help_org
+       help_com).each do |client_id|
+      client = OidcClientRegistry.find!(client_id)
+
+      assert_empty client.backchannel_logout_uris, "#{client_id} should not have back-channel logout URIs"
+      assert_empty client.frontchannel_logout_uris, "#{client_id} should not have front-channel logout URIs"
+    end
+  end
+
   test "all expected clients are registered" do
     expected = %w(
       sign-rp base-rails-rp core-next-rp app-ios-rp app-android-rp
@@ -233,6 +279,9 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       client_id: "test_client",
       client_secret: "secret",
       redirect_uris: ["https://client.example/auth/callback"],
+      post_logout_redirect_uris: ["https://client.example/signed-out"],
+      backchannel_logout_uris: [],
+      frontchannel_logout_uris: [],
       aud: "test-audience",
       resource_type: "client",
       name: "Test Client",

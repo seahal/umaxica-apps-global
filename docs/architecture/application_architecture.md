@@ -2,8 +2,9 @@
 
 ## Target Architecture
 
-This project uses **MVC + Service + Form** as its standard architecture. The goal is to avoid Fat
-Controllers and Fat Models by separating responsibilities along Rails conventions.
+This project uses **MVC + Service + Form** plus explicit domain helper objects as its standard
+architecture. The goal is to avoid Fat Controllers, Fat Models, and generic "everything is a Service
+Object" classes by separating responsibilities along Rails conventions.
 
 ## Responsibilities by Directory
 
@@ -73,12 +74,33 @@ end
 
 ---
 
-### 4. `app/services` (Service)
+### 4. Value Objects, Resolvers, Policies, Queries, and Commands
 
 **Role:**
 
-- Execute complex domain logic such as payments, email delivery, and external API integration
-- Act as pure Ruby transaction scripts called from controllers or background jobs
+- Model domain values passed around as data with immutable Value Objects.
+- Assemble or derive those values with Resolvers.
+- Answer authorization or decision questions with Policies.
+- Keep read-only retrieval in Queries.
+- Keep a single write intent in Commands.
+
+**Rules:**
+
+- Prefer a Value Object when a concept is primarily a domain value with behavior.
+- Prefer a Resolver when the object only assembles or derives a Value Object.
+- Do not create a Service Object just to hold, validate, or name a value.
+- Follow `.agents/harnesses/rules/project/value-object-boundaries.mdc` before adding one of these
+  object types or before adding a new Service Object.
+
+---
+
+### 5. `app/services` (Service)
+
+**Role:**
+
+- Coordinate workflows across multiple models, aggregates, transaction boundaries, external systems,
+  or several business steps.
+- Act as pure Ruby transaction scripts called from controllers or background jobs.
 
 **Base class:** `ApplicationService`
 
@@ -86,6 +108,7 @@ end
 
 - Prefer a single responsibility per class.
 - Expose `#call` as the primary public method.
+- Keep services as orchestration. Do not use them as generic containers for domain values.
 
 **Example:**
 

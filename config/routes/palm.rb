@@ -14,6 +14,7 @@ scope module: :palm, as: :palm do
       end
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
       namespace :api do
         namespace :v0 do
           resource :profile, only: :show
@@ -24,10 +25,10 @@ scope module: :palm, as: :palm do
       # transport belongs under API namespaces when implemented.
       namespace :oauth do
         resource :callback, only: :show
+        # ▽FIXME: use namespace and resource instead of get route.
         get "callback/ios", to: "callbacks#show", as: :ios_callback
         get "callback/android", to: "callbacks#show", as: :android_callback
       end
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 end

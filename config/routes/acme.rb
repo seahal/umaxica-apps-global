@@ -25,6 +25,7 @@ scope module: :acme, as: :acme do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+      # FIXME: use resource :welcome, only: :show
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
@@ -79,6 +80,7 @@ scope module: :acme, as: :acme do
           post :completion, on: :member
         end
       end
+      # FIXME: remove I hate this env variable.
       if Rails.env.local?
         # TODO: Remove these temporary R18 smoke-test routes after R18 gate rollout is verified.
         namespace :__dev, module: :dev, path: "__dev" do
@@ -87,7 +89,9 @@ scope module: :acme, as: :acme do
               get :blocked
               get :stopped
             end
+            # FIXME: do not use controller statement here.
             resource :open, only: %i(show create), controller: "open_smokes"
+            # FIXME: do not use controller statement here.
             resource :private, only: %i(show create), controller: "private_smokes"
           end
         end
@@ -97,21 +101,26 @@ scope module: :acme, as: :acme do
         resource :logout, only: :create
       end
       namespace :oidc do
-        resource :logout, only: :show
+        resource :logout, only: %i(show create)
       end
       namespace :oauth do
+        # FIXME: i don't like this. why we use path sentence?
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
+        # FIXME: do not use controller statement here.
         resource :user_info, only: :show, path: "userinfo", controller: "user_info"
+        # FIXME: do not use controller statement here.
         resource :revocation, only: :create, path: "revoke", controller: "revocations"
         resource :jwks, only: :show
       end
       scope path: "sign" do
+        # FIXME: do not use controller statement here.
         resource :sign_out, path: "out", controller: "sign_outs", only: %i(show edit create destroy)
       end
       resource :avatar, only: :show
       resource :identity, only: :show
       resource :organization, only: :show
+      # FIXME: do not use controller statement here.
       resource :account, only: :show, controller: "accounts"
       resource :settings, only: :show
       namespace :settings do
@@ -121,7 +130,9 @@ scope module: :acme, as: :acme do
         resources :totps, only: %i(index edit update destroy) do
           post :enrollment, on: :collection
         end
+        # FIXME: i hate this two word resource.
         resources :secret_credentials, only: %i(index show edit update destroy) do
+          # FIXME: use resource statement here.
           post :enrollment, on: :collection
         end
         resources :emails, only: %i(index edit update destroy)
@@ -133,7 +144,9 @@ scope module: :acme, as: :acme do
           resource :registration, only: :create
         end
         resources :connections, only: %i(index show destroy) do
+          # FIXME: use resource statement here.
           post "social/:provider/link", action: :social_link, on: :collection, as: :social_link
+          # FIXME: use resource statement here.
           delete "social/:provider", action: :social_unlink, on: :collection, as: :social_unlink
         end
         resources :activities, only: :index
@@ -176,6 +189,7 @@ scope module: :acme, as: :acme do
       resource :sitemap, only: :show, path: "sitemap.xml"
       # CSP violation reporting
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+      # FIXME: use resource statement here.
       get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :selector, only: %i(show update)
       resource :dashboard, only: :show
@@ -227,12 +241,14 @@ scope module: :acme, as: :acme do
         resource :logout, only: :create
       end
       namespace :oidc do
-        resource :logout, only: :show
+        resource :logout, only: %i(show create)
       end
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"
         resource :token, only: :create
+        # FIXME: use resource statement here.
         resource :user_info, only: :show, path: "userinfo", controller: "user_info"
+        # FIXME: use resource statement here.
         resource :revocation, only: :create, path: "revoke", controller: "revocations"
         resource :jwks, only: :show
       end
@@ -373,7 +389,7 @@ scope module: :acme, as: :acme do
         resource :logout, only: :create
       end
       namespace :oidc do
-        resource :logout, only: :show
+        resource :logout, only: %i(show create)
       end
       namespace :oauth do
         resource :authorization, only: :show, path: "authorize"

@@ -1,0 +1,13 @@
+<% content_for :page_title, "Sign out" %>
+
+<div>
+  <h1><%= title "Sign out" %></h1>
+  <p>Confirm that you want to end the current session.</p>
+  <% if oidc_logout_confirmation_params.present? %>
+    <%= button_to "Sign out",
+                  acme_org_oidc_logout_path,
+                  method: :post,
+                  params: oidc_logout_confirmation_params,
+                  form: { data: { turbo: false } } %>
+  <% end %>
+</div>

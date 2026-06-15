@@ -285,17 +285,47 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "acme oidc logout consumes signed request and completes on acme sign out" do
     OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    token = ClientToken.create!(
+      user: user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+    )
+    logout_request = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
     get(
       acme_app_oidc_logout_url(host: host),
       params: {
         client_id: "base-rails-rp",
-        logout_request: OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp"),
+        logout_request: logout_request,
         ri: "jp",
+      },
+      headers: {
+        "Host" => host,
+        "X-TEST-CURRENT-USER" => user.id.to_s,
+        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      },
+    )
+
+    assert_response :ok
+    assert_not_predicate token.reload, :revoked?
+
+    post(
+      acme_app_oidc_logout_url(host: host),
+      params: {
+        client_id: "base-rails-rp",
+        logout_request: logout_request,
+        ri: "jp",
+      },
+      headers: {
+        "Host" => host,
+        "X-TEST-CURRENT-USER" => user.id.to_s,
+        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
       },
     )
 
     assert_response :see_other
+    assert_predicate token.reload, :revoked?
     location = URI.parse(response.location)
 
     assert_equal host, location.host

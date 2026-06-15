@@ -31,6 +31,8 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
       assert_recognizes_sign_route(surface, "/sign/up/entrance", :get, "sign/up/entrances", "show")
       assert_recognizes_sign_route(surface, "/sign/in/entrance", :get, "sign/in/entrances", "show")
       assert_recognizes_sign_route(surface, "/signed-out", :get, "signed_outs", "show")
+      assert_recognizes_sign_route(surface, "/oidc/backchannel_logout", :post, "oidc/backchannel_logouts", "create")
+      assert_recognizes_sign_route(surface, "/oidc/frontchannel_logout", :get, "oidc/frontchannel_logouts", "show")
       assert_unrecognized(surface, "/sign/out/confirmation", :get)
       assert_unrecognized(surface, "/sign/out/attempt", :post)
       assert_unrecognized(surface, "/sign/out/completion", :get)
@@ -116,7 +118,6 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
       "delete :" + "revoke_all",
       "resource :openid_" + "configuration",
       "namespace :" + "oauth",
-      "namespace :" + "oidc",
       "resource :" + "refresh",
     ]
 

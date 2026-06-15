@@ -20,6 +20,10 @@ scope module: :sign, as: :sign do
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
+      end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # for those who are logged in
       resource :dashboard, only: :show
@@ -235,6 +239,10 @@ scope module: :sign, as: :sign do
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
+      end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: OTP delivery, cookie consent, theme
@@ -415,6 +423,10 @@ scope module: :sign, as: :sign do
       resource :robot, only: :show, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
+      end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Public web API: cookie consent, theme

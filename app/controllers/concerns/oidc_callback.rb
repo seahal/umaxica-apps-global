@@ -25,6 +25,8 @@ module OidcCallback
       end
     return render_callback_failure("login_failed") unless login_result[:status] == :success
 
+    bind_oidc_rp_logout_session!(id_token_result.payload)
+
     redirect_to(consume_oidc_pt, allow_other_host: false)
   rescue InvalidCallbackState
     clear_oidc_session_state!
@@ -95,10 +97,33 @@ module OidcCallback
     session.delete(:oidc_pt)
   end
 
+  def bind_oidc_rp_logout_session!(payload)
+    sid = payload["sid"].to_s
+    return unless oidc_callback_uuid_identifier?(sid)
+
+    token_record = @current_session
+    return unless token_record&.respond_to?(:update_columns)
+
+    updates = {}
+    updates[:oidc_sid] = sid if token_record.has_attribute?(:oidc_sid)
+    updates[:oidc_client_id] = oidc_client_id if token_record.has_attribute?(:oidc_client_id)
+    return if updates.blank?
+
+    token_record_connection_owner(token_record.class).connected_to(role: :writing) do
+      token_record.update_columns(**updates, updated_at: Time.current)
+    end
+  end
+
   def oidc_resource_type
     return rp_actor_resource_type if respond_to?(:rp_actor_resource_type, true)
 
     OidcIssuer.resource_type_for_client(oidc_client)
+  end
+
+  def oidc_callback_uuid_identifier?(value)
+    /\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i.match?(
+      value.to_s,
+    )
   end
 
   def oidc_client

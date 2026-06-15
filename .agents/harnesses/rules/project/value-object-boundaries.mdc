@@ -5,12 +5,9 @@
 This project intentionally avoids the common "everything is a Service Object" pattern.
 
 Before introducing a new class, determine its architectural role and place it in the correct layer.
-
 Prefer explicit domain concepts over generic service classes.
 
----
-
-# Value Objects
+## Value Objects
 
 A Value Object represents a domain value and its behavior.
 
@@ -22,6 +19,8 @@ A Value Object:
 - Contains domain-specific validation and behavior
 - Does not persist itself
 - Does not orchestrate workflows
+
+Prefer creating a Value Object when a concept is passed around the system as data.
 
 Good examples:
 
@@ -35,8 +34,6 @@ RedirectDestination
 ReturnVerificationResult
 TenantContext
 ```
-
-Prefer creating a Value Object when a concept is passed around the system as data.
 
 Bad:
 
@@ -54,9 +51,7 @@ RedirectDestination
 AuthenticationState
 ```
 
----
-
-# Resolvers
+## Resolvers
 
 A Resolver assembles or derives a Value Object.
 
@@ -67,14 +62,6 @@ A Resolver:
 - Does not mutate persistent state
 - Does not perform business workflows
 
-Examples:
-
-```ruby
-ActorContextResolver
-TenantContextResolver
-AuthenticationStateResolver
-```
-
 Typical signature:
 
 ```ruby
@@ -82,9 +69,7 @@ ActorContextResolver.call(request)
 # => ActorContext
 ```
 
----
-
-# Policies
+## Policies
 
 A Policy answers authorization or decision questions.
 
@@ -95,14 +80,6 @@ A Policy:
 - Does not perform side effects
 - Does not update records
 
-Examples:
-
-```ruby
-ActorPermissionPolicy
-TenantAccessPolicy
-SecretIssuancePolicy
-```
-
 Typical signature:
 
 ```ruby
@@ -110,9 +87,7 @@ ActorPermissionPolicy.allowed?(actor, resource)
 # => true/false
 ```
 
----
-
-# Queries
+## Queries
 
 A Query retrieves information.
 
@@ -123,16 +98,7 @@ A Query:
 - May join multiple models
 - May return Value Objects or DTOs
 
-Examples:
-
-```ruby
-ActiveMembershipQuery
-AvailableCredentialQuery
-```
-
----
-
-# Commands
+## Commands
 
 A Command performs a single write operation.
 
@@ -142,41 +108,19 @@ A Command:
 - Has a clear write intent
 - Does not coordinate large workflows
 
-Examples:
+## Services
 
-```ruby
-CreateSessionCommand
-RevokeCredentialCommand
-IncrementFailureCounterCommand
-```
-
----
-
-# Services
-
-A Service coordinates workflows.
-
-Services are intentionally rare.
+A Service coordinates workflows. Services are intentionally rare.
 
 A Service should exist only when at least one of the following is true:
 
 - Multiple aggregates must be coordinated
-- Multiple repositories/models are involved
+- Multiple repositories or models are involved
 - An external system must be called
 - A transaction boundary must be managed
 - A business workflow spans several steps
 
-Examples:
-
-```ruby
-AcceptInvitationService
-IssueRecoverySecretService
-RotateRefreshTokenService
-```
-
-Services should orchestrate.
-
-Services should not become containers for domain values.
+Services should orchestrate. They should not become containers for domain values.
 
 Bad:
 
@@ -189,9 +133,7 @@ AuthenticationStateService
 
 These should usually be Value Objects or Resolvers.
 
----
-
-# Decision Guide
+## Decision Guide
 
 Before creating a Service Object, ask:
 
@@ -215,26 +157,14 @@ Before creating a Service Object, ask:
 
 If the answer is not #6, a Service Object is probably the wrong abstraction.
 
----
-
-# Default Bias
-
-When uncertain:
-
-Prefer
+When uncertain, prefer this order before introducing a Service:
 
 ```text
 Value Object
-→ Resolver
-→ Policy
-→ Query
-→ Command
-```
-
-before introducing
-
-```text
-Service
+-> Resolver
+-> Policy
+-> Query
+-> Command
 ```
 
 Service Objects are the last resort, not the default abstraction.

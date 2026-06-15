@@ -3,7 +3,7 @@
 
 scope module: :core, as: :core do
   # Application BFF surface
-  constraints host: [ENV["CORE_SERVICE_URL"], "jp.umaxica.app", "core.app.localhost"].compact do
+  constraints host: [ENV["CORE_SERVICE_URL"], "www.jp.umaxica.app", "jp.umaxica.app", "core.app.localhost"].compact do
     scope module: :app, as: :app do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -41,6 +41,11 @@ scope module: :core, as: :core do
         resource :callback, only: :show
       end
 
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
+      end
+
       namespace :sso do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
@@ -51,7 +56,7 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF surface
-  constraints host: [ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
+  constraints host: [ENV["CORE_CORPORATE_URL"], "www.jp.umaxica.com", "core.com.localhost"].compact do
     scope module: :com, as: :com do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -89,6 +94,11 @@ scope module: :core, as: :core do
         resource :callback, only: :show
       end
 
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
+      end
+
       namespace :sso do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
@@ -99,7 +109,7 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF surface
-  constraints host: [ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
+  constraints host: [ENV["CORE_STAFF_URL"], "www.jp.umaxica.org", "core.org.localhost"].compact do
     scope module: :org, as: :org do
       root to: "roots#index"
       resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
@@ -136,6 +146,11 @@ scope module: :core, as: :core do
 
       namespace :auth do
         resource :callback, only: :show
+      end
+
+      namespace :oidc do
+        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
 
       namespace :sso do

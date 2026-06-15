@@ -40,6 +40,8 @@ Use these `.agents/harnesses/rules/` files as task-specific instructions:
   `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/project/surfaces.mdc`,
   `.agents/harnesses/rules/project/controller-inheritance.mdc`, `docs/architecture/controller-lifecycle.md`
 - Minitest work: `.agents/harnesses/rules/generic/testing.mdc`, `.agents/harnesses/rules/generic/no-test-only-code.mdc`
+- Value object, service-layer, resolver, policy, query, or command work:
+  `.agents/harnesses/rules/project/value-object-boundaries.mdc`
 - Migration work: `.agents/harnesses/rules/generic/migrations.mdc`
 - Security-sensitive work or broad refactors: `.agents/harnesses/rules/generic/absolute-rules.mdc`,
   `.agents/harnesses/rules/generic/no-silent-fallback.mdc`, `.agents/harnesses/rules/project/regression-guards.mdc`
@@ -170,6 +172,9 @@ skips hide partial migrations and corrupt schema_dump files over time.
 
 - Keep controllers focused on HTTP concerns.
 - Put domain behavior in models, services, policies, or existing local abstractions.
+- Prefer Value Objects for domain values passed around as data. Use Service Objects for orchestration
+  across multiple models, aggregates, transaction boundaries, external systems, or multi-step
+  workflows; do not create Service Objects as generic containers for values.
 - Use Pundit authorization through the established pipeline.
 - Use RESTful routes and path helpers.
 - Do not hardcode absolute URLs in application code.

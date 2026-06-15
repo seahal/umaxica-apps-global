@@ -6,12 +6,17 @@ module Acme
     module Oidc
       class LogoutsController < Acme::Com::ApplicationController
         include CommonRedirect
+        include ::AuthenticationLogoutable
         include SignOutNotice
         include SignOidcLogout
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
         helper_method :sign_out_completed_description
+
+        def create
+          show
+        end
 
         private
 

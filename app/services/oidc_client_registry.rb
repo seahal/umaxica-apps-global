@@ -10,9 +10,10 @@ module OidcClientRegistry
 
   VisitorAccount =
     Data.define(
-      :client_id, :client_secret, :redirect_uris, :aud, :resource_type,
+      :client_id, :client_secret, :redirect_uris, :post_logout_redirect_uris, :aud, :resource_type,
       :name, :domains, :registered_token_endpoint_auth_method,
-      :metadata_token_endpoint_auth_method, :jwt_namespace,
+      :metadata_token_endpoint_auth_method, :jwt_namespace, :backchannel_logout_uris,
+      :frontchannel_logout_uris,
     ) do
       def public_client?
         registered_token_endpoint_auth_method == "none"
@@ -46,6 +47,9 @@ module OidcClientRegistry
       client_id: client_id.to_s,
       client_secret: resolve_secret_credential(client_id.to_s),
       redirect_uris: config[:redirect_uris],
+      post_logout_redirect_uris: config[:post_logout_redirect_uris] || [],
+      backchannel_logout_uris: config[:backchannel_logout_uris] || [],
+      frontchannel_logout_uris: config[:frontchannel_logout_uris] || [],
       aud: config[:aud],
       resource_type: config[:resource_type],
       name: config[:name],
@@ -71,6 +75,32 @@ module OidcClientRegistry
     return false unless client
 
     client.redirect_uris.include?(uri)
+  end
+
+  def valid_post_logout_redirect_uri?(client_id:, uri:)
+    client = find(client_id)
+    return false unless client
+
+    client.post_logout_redirect_uris.include?(uri)
+  end
+
+  def backchannel_logout_uris_for(client_id:, resource_type: nil)
+    filter_logout_uris(find(client_id)&.backchannel_logout_uris || [], resource_type)
+  end
+
+  def frontchannel_logout_uris_for(client_id:, resource_type: nil)
+    filter_logout_uris(find(client_id)&.frontchannel_logout_uris || [], resource_type)
+  end
+
+  def logout_clients_for_resource_type(resource_type)
+    clients.filter_map do |client_id, config|
+      has_logout_uri =
+        filter_logout_uris(Array(config[:backchannel_logout_uris]), resource_type).present? ||
+        filter_logout_uris(Array(config[:frontchannel_logout_uris]), resource_type).present?
+      next unless has_logout_uri
+
+      find(client_id)
+    end
   end
 
   # @param client_id [String]
@@ -131,6 +161,15 @@ module OidcClientRegistry
         redirect_uris: build_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
           build_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
           build_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
+          build_post_logout_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
+          build_post_logout_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
+        backchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "backchannel_logout") +
+          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "backchannel_logout") +
+          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "backchannel_logout"),
+        frontchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "frontchannel_logout") +
+          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "frontchannel_logout") +
+          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "frontchannel_logout"),
         aud: "sign-rp",
         resource_type: "client",
         name: "Sign RP",
@@ -142,6 +181,9 @@ module OidcClientRegistry
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
           build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
+          build_post_logout_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
+          build_post_logout_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
         aud: "base-rails-rp",
         resource_type: "client",
         name: "Base Rails RP",
@@ -153,6 +195,15 @@ module OidcClientRegistry
         redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "www.jp.umaxica.app") +
           build_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org") +
           build_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("CORE_SERVICE_URL", "www.jp.umaxica.app") +
+          build_post_logout_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org") +
+          build_post_logout_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+        backchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "www.jp.umaxica.app", "backchannel_logout") +
+          build_logout_uris("CORE_STAFF_URL", "www.jp.umaxica.org", "backchannel_logout") +
+          build_logout_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com", "backchannel_logout"),
+        frontchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "www.jp.umaxica.app", "frontchannel_logout") +
+          build_logout_uris("CORE_STAFF_URL", "www.jp.umaxica.org", "frontchannel_logout") +
+          build_logout_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com", "frontchannel_logout"),
         aud: "core-next-rp",
         resource_type: "client",
         name: "Core Next RP",
@@ -240,6 +291,20 @@ module OidcClientRegistry
     ["#{protocol}://#{host}#{port_suffix}/auth/callback"]
   end
 
+  def build_post_logout_redirect_uris(env_key, default_host)
+    host = ENV.fetch(env_key, default_host)
+    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
+    ["#{protocol}://#{host}#{port_suffix}/signed-out"]
+  end
+
+  def build_logout_uris(env_key, default_host, endpoint)
+    host = ENV.fetch(env_key, default_host)
+    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
+    ["#{protocol}://#{host}#{port_suffix}/oidc/#{endpoint}"]
+  end
+
   def public_host?(host)
     normalized_host = URI.parse("//#{host}").host.to_s
 
@@ -265,6 +330,45 @@ module OidcClientRegistry
     []
   end
 
+  def filter_logout_uris(uris, resource_type)
+    return uris if resource_type.blank?
+
+    normalized_resource_type = normalize_resource_type(resource_type)
+    uris.select do |uri|
+      logout_uri_resource_type(uri) == normalized_resource_type
+    end
+  end
+
+  def logout_uri_resource_type(uri)
+    host = URI.parse(uri.to_s).host.to_s
+    return "operator" if logout_hosts_for("operator").include?(host)
+    return "visitor" if logout_hosts_for("visitor").include?(host)
+
+    "client"
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def logout_hosts_for(resource_type)
+    case normalize_resource_type(resource_type)
+    when "operator"
+      [
+        ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
+        ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
+      ]
+    when "visitor"
+      [
+        ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+        ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+      ]
+    else
+      [
+        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+        ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
+      ]
+    end
+  end
+
   def credential_key_for(client_id)
     :"OIDC_CLIENT_SECRETS_#{client_id.to_s.upcase}"
   end
@@ -277,7 +381,9 @@ module OidcClientRegistry
     end
   end
 
-  private_class_method :clients, :build_clients, :build_redirect_uris, :public_host?,
+  private_class_method :clients, :build_clients, :build_redirect_uris, :build_post_logout_redirect_uris,
+                       :build_logout_uris, :public_host?,
                        :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
+                       :filter_logout_uris, :logout_uri_resource_type, :logout_hosts_for,
                        :normalize_resource_type, :metadata_auth_method
 end
