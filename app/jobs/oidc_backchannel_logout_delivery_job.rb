@@ -7,8 +7,14 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
   OPEN_TIMEOUT = 2
   READ_TIMEOUT = 3
 
-  def perform(uri, logout_token, client_id)
+  def perform(uri, client_id, resource_type, subject, sid)
     parsed_uri = URI.parse(uri.to_s)
+    logout_token = OidcLogoutTokenCodec.encode(
+      client_id: client_id,
+      resource_type: resource_type,
+      subject: subject,
+      sid: sid,
+    )
     response = post_logout_token(parsed_uri, logout_token)
     Rails.logger.info(
       JitLogEvent.format(

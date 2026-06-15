@@ -15,42 +15,138 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     { host: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"), client_id: "core-next-rp", resource_type: "operator" },
   ].freeze
 
-  test "back-channel receiver accepts valid logout token idempotently" do
+  setup do
+    @previous_logout_token_replay_store = OidcLogoutTokenCodec.replay_store
+    OidcLogoutTokenCodec.replay_store = ActiveSupport::Cache::MemoryStore.new
+  end
+
+  teardown do
+    OidcLogoutTokenCodec.replay_store = @previous_logout_token_replay_store
+  end
+
+  test "back-channel receiver revokes a matching RP session" do
+    SURFACES.each do |surface|
+      sid = SecureRandom.uuid
+      token_record = create_session_token(surface, sid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: sid))
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :success, surface.inspect
+        assert_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver rejects invalid logout token without mutating session state" do
+    SURFACES.each do |surface|
+      token_record = create_session_token(surface, SecureRandom.uuid)
+
+      post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: "invalid" }
+
+      assert_response :bad_request, surface.inspect
+      assert_not_predicate token_record.reload, :revoked?, surface.inspect
+    end
+  end
+
+  test "back-channel receiver rejects non-UUID sid without mutating session state" do
+    SURFACES.each do |surface|
+      token_record = create_session_token(surface, SecureRandom.uuid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: "not-a-uuid"))
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :bad_request, surface.inspect
+        assert_not_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver rejects sub-only logout token without mutating session state" do
+    SURFACES.each do |surface|
+      token_record = create_session_token(surface, SecureRandom.uuid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        payload = base_logout_payload(surface, sid: SecureRandom.uuid)
+        payload.delete("sid")
+        token = forge_logout_token(surface, payload: payload)
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :bad_request, surface.inspect
+        assert_not_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver rejects wrong issuer without mutating session state" do
+    SURFACES.each do |surface|
+      token_record = create_session_token(surface, SecureRandom.uuid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        payload = base_logout_payload(surface, sid: SecureRandom.uuid)
+        payload["iss"] = wrong_issuer_for(surface.fetch(:resource_type))
+        token = forge_logout_token(surface, payload: payload)
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :bad_request, surface.inspect
+        assert_not_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver rejects wrong audience without mutating session state" do
+    SURFACES.each do |surface|
+      token_record = create_session_token(surface, SecureRandom.uuid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        payload = base_logout_payload(surface, sid: SecureRandom.uuid)
+        payload["aud"] = "unexpected-rp"
+        token = forge_logout_token(surface, payload: payload)
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :bad_request, surface.inspect
+        assert_not_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver rejects replayed logout token" do
+    SURFACES.each do |surface|
+      sid = SecureRandom.uuid
+      token_record = create_session_token(surface, sid)
+
+      with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
+        token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: sid))
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :success, surface.inspect
+        assert_predicate token_record.reload, :revoked?, surface.inspect
+
+        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+
+        assert_response :bad_request, surface.inspect
+        assert_predicate token_record.reload, :revoked?, surface.inspect
+      end
+    end
+  end
+
+  test "back-channel receiver is idempotent for unknown UUID sid" do
     SURFACES.each do |surface|
       with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
-        token = OidcLogoutTokenCodec.encode(
-          client_id: surface.fetch(:client_id),
-          resource_type: surface.fetch(:resource_type),
-          subject: "subject-1",
-          sid: SecureRandom.uuid,
-        )
+        token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: SecureRandom.uuid))
 
         post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
 
         assert_response :success, surface.inspect
       end
-    end
-  end
-
-  test "back-channel receiver rejects invalid logout token" do
-    SURFACES.each do |surface|
-      post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: "invalid" }
-
-      assert_response :bad_request, surface.inspect
-    end
-  end
-
-  test "front-channel receiver validates issuer" do
-    SURFACES.each do |surface|
-      get "https://#{surface.fetch(:host)}/oidc/frontchannel_logout",
-          params: { iss: OidcIssuer.for_resource_type(surface.fetch(:resource_type)), sid: SecureRandom.uuid }
-
-      assert_response :see_other, surface.inspect
-
-      get "https://#{surface.fetch(:host)}/oidc/frontchannel_logout",
-          params: { iss: "https://attacker.example", sid: SecureRandom.uuid }
-
-      assert_response :bad_request, surface.inspect
     end
   end
 
@@ -61,6 +157,57 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     when "operator" then "ACME_ORG"
     when "visitor" then "ACME_COM"
     else "ACME_APP"
+    end
+  end
+
+  def wrong_issuer_for(resource_type)
+    case resource_type
+    when "operator" then OidcIssuer.for_resource_type("client")
+    when "visitor" then OidcIssuer.for_resource_type("client")
+    else OidcIssuer.for_resource_type("visitor")
+    end
+  end
+
+  def create_session_token(surface, sid)
+    case surface.fetch(:resource_type)
+    when "operator"
+      staff = Operator.create!(public_id: Operator.generate_public_id, status_id: OperatorStatus::ACTIVE)
+      token = OperatorToken.create!(
+        staff: staff,
+        staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+        staff_token_status_id: OperatorTokenStatus::ACTIVE,
+        oidc_sid: sid,
+      )
+      token.rotate_refresh_token!
+      token
+    when "visitor"
+      visitor = Visitor.create!(
+        public_id: "v_#{SecureRandom.hex(8)}",
+        status_id: VisitorStatus::ACTIVE,
+        visibility_id: VisitorVisibility::VISITOR,
+      )
+      token = VisitorToken.create!(
+        visitor: visitor,
+        visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+        visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+        oidc_sid: sid,
+      )
+      token.rotate_refresh_token!
+      token
+    else
+      user = Client.create!(
+        public_id: "u_#{SecureRandom.hex(8)}",
+        status_id: ClientStatus::ACTIVE,
+        visibility_id: ClientVisibility::USER,
+      )
+      token = ClientToken.create!(
+        user: user,
+        user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+        user_token_status_id: ClientTokenStatus::ACTIVE,
+        oidc_sid: sid,
+      )
+      token.rotate_refresh_token!
+      token
     end
   end
 
@@ -75,7 +222,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
 
     with_env(env) do
       JitSecurityJwtRegistry.reload!
-      yield
+      yield key, kid
     ensure
       JitSecurityJwtRegistry.instance_variable_set(:@issuers, previous)
     end
@@ -92,5 +239,26 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     previous.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
+  end
+
+  def base_logout_payload(surface, sid:)
+    {
+      "iss" => OidcIssuer.for_resource_type(surface.fetch(:resource_type)),
+      "aud" => surface.fetch(:client_id),
+      "iat" => Time.current.to_i,
+      "exp" => 2.minutes.from_now.to_i,
+      "jti" => SecureRandom.uuid,
+      "typ" => OidcLogoutTokenCodec::TOKEN_TYPE,
+      "events" => { OidcLogoutTokenCodec::EVENT_CLAIM => {} },
+      "sub" => "subject-1",
+      "sid" => sid,
+    }
+  end
+
+  def forge_logout_token(surface, payload:)
+    JitSecurityJwtKeyring.encode(
+      payload,
+      issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(surface.fetch(:resource_type)),
+    )
   end
 end

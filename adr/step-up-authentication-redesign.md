@@ -206,11 +206,12 @@ because they are not step-up methods.
 After a bootstrap registration completes successfully, the registration controller:
 
 1. Validates `params[:rt]` as a return-target token bound to the current session, surface, and flow.
-2. Sets `flash[:notice]` with a key that names the next operation (for example,
-   `t("sign.app.settings.bootstrap.proceed_to_action")` — exact key to be defined by the
-   implementer).
-3. Calls
+2. Calls
    `safe_redirect_to(return_target.path, fallback: <surface>_configuration_path(ri: params[:ri]))`.
+
+The destination page names the next operation inline (the page the user is bounced to already shows
+what to do next). This application does not use `flash`; do not carry a one-time notice across the
+redirect. See `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
 
 At the original sensitive endpoint, `require_step_up!` fires again. This time
 `ConfiguredMethods.empty?` is false, so the user is sent to `/verification` (not setup) and
@@ -292,11 +293,13 @@ operator action or a slow natural process. The safety benefit is small, and the 
 ratchet — users losing all access after operator-led revocation must go through a manual support
 path — is large. The implementer-mistake recovery argument carried decisive weight in the dialogue.
 
-**Why X' (auto-bounce with flash) for setup return.** Z (drop to `/settings`) makes the user
-re-navigate to the action they were already trying to do — a UX regression from the intended "one
-credential and you can proceed" experience. Y (explicit confirmation page) adds a click and a "no"
-branch to design. X (silent auto-bounce) is jarring. X' adds one flash line and inherits the same
-code path as X.
+**Why X' (auto-bounce) for setup return.** Z (drop to `/settings`) makes the user re-navigate to the
+action they were already trying to do — a UX regression from the intended "one credential and you
+can proceed" experience. Y (explicit confirmation page) adds a click and a "no" branch to design. X'
+auto-bounces to the return target, where the destination page names the next operation inline. (An
+earlier draft carried this hint in `flash[:notice]`; flash has since been removed application-wide,
+so the destination page owns the inline messaging — see
+`.agents/harnesses/rules/generic/no-flash-messages.mdc`.)
 
 ## Consequences
 

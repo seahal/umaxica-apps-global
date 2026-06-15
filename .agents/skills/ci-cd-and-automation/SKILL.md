@@ -1,17 +1,26 @@
 ---
 name: ci-cd-and-automation
-description: Automates CI/CD pipeline setup. Use when setting up or modifying build and deployment pipelines. Use when you need to automate quality gates, configure test runners in CI, or establish deployment strategies.
+description:
+  Automates CI/CD pipeline setup. Use when setting up or modifying build and deployment pipelines.
+  Use when you need to automate quality gates, configure test runners in CI, or establish deployment
+  strategies.
 ---
 
 # CI/CD and Automation
 
 ## Overview
 
-Automate quality gates so that no change reaches production without passing tests, lint, type checking, and build. CI/CD is the enforcement mechanism for every other skill — it catches what humans and agents miss, and it does so consistently on every single change.
+Automate quality gates so that no change reaches production without passing tests, lint, type
+checking, and build. CI/CD is the enforcement mechanism for every other skill — it catches what
+humans and agents miss, and it does so consistently on every single change.
 
-**Shift Left:** Catch problems as early in the pipeline as possible. A bug caught in linting costs minutes; the same bug caught in production costs hours. Move checks upstream — static analysis before tests, tests before staging, staging before production.
+**Shift Left:** Catch problems as early in the pipeline as possible. A bug caught in linting costs
+minutes; the same bug caught in production costs hours. Move checks upstream — static analysis
+before tests, tests before staging, staging before production.
 
-**Faster is Safer:** Smaller batches and more frequent releases reduce risk, not increase it. A deployment with 3 changes is easier to debug than one with 30. Frequent releases build confidence in the release process itself.
+**Faster is Safer:** Smaller batches and more frequent releases reduce risk, not increase it. A
+deployment with 3 changes is easier to debug than one with 30. Frequent releases build confidence in
+the release process itself.
 
 ## When to Use
 
@@ -51,7 +60,8 @@ Pull Request Opened
   Ready for review
 ```
 
-**No gate can be skipped.** If lint fails, fix lint — don't disable the rule. If a test fails, fix the code — don't skip the test.
+**No gate can be skipped.** If lint fails, fix lint — don't disable the rule. If a test fails, fix
+the code — don't skip the test.
 
 ## GitHub Actions Configuration
 
@@ -75,8 +85,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -100,65 +110,64 @@ jobs:
 ### With Database Integration Tests
 
 ```yaml
-  integration:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: ci_user
-          POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+integration:
+  runs-on: ubuntu-latest
+  services:
+    postgres:
+      image: postgres:16
+      env:
+        POSTGRES_DB: testdb
+        POSTGRES_USER: ci_user
+        POSTGRES_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      ports:
+        - 5432:5432
+      options: >-
+        --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
-      - name: Run migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgresql://ci_user:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/testdb
-      - name: Integration tests
-        run: npm run test:integration
-        env:
-          DATABASE_URL: postgresql://ci_user:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/testdb
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: "npm"
+    - run: npm ci
+    - name: Run migrations
+      run: npx prisma migrate deploy
+      env:
+        DATABASE_URL: postgresql://ci_user:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/testdb
+    - name: Integration tests
+      run: npm run test:integration
+      env:
+        DATABASE_URL: postgresql://ci_user:${{ secrets.CI_DB_PASSWORD }}@localhost:5432/testdb
 ```
 
-> **Note:** Even for CI-only test databases, use GitHub Secrets for credentials rather than hardcoding values. This builds good habits and prevents accidental reuse of test credentials in other contexts.
+> **Note:** Even for CI-only test databases, use GitHub Secrets for credentials rather than
+> hardcoding values. This builds good habits and prevents accidental reuse of test credentials in
+> other contexts.
 
 ### E2E Tests
 
 ```yaml
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
-      - name: Build
-        run: npm run build
-      - name: Run E2E tests
-        run: npx playwright test
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: playwright-report/
+e2e:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: "npm"
+    - run: npm ci
+    - name: Install Playwright
+      run: npx playwright install --with-deps chromium
+    - name: Build
+      run: npm run build
+    - name: Run E2E tests
+      run: npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report
+        path: playwright-report/
 ```
 
 ## Feeding CI Failures Back to Agents
@@ -209,7 +218,8 @@ deploy-preview:
 
 ### Feature Flags
 
-Feature flags decouple deployment from release. Deploy incomplete or risky features behind flags so you can:
+Feature flags decouple deployment from release. Deploy incomplete or risky features behind flags so
+you can:
 
 - **Ship code without enabling it.** Merge to main early, enable when ready.
 - **Roll back without redeploying.** Disable the flag instead of reverting code.
@@ -218,13 +228,14 @@ Feature flags decouple deployment from release. Deploy incomplete or risky featu
 
 ```typescript
 // Simple feature flag pattern
-if (featureFlags.isEnabled('new-checkout-flow', { userId })) {
+if (featureFlags.isEnabled("new-checkout-flow", { userId })) {
   return renderNewCheckout();
 }
 return renderLegacyCheckout();
 ```
 
-**Flag lifecycle:** Create → Enable for testing → Canary → Full rollout → Remove the flag and dead code. Flags that live forever become technical debt — set a cleanup date when you create them.
+**Flag lifecycle:** Create → Enable for testing → Canary → Full rollout → Remove the flag and dead
+code. Flags that live forever become technical debt — set a cleanup date when you create them.
 
 ### Staged Rollouts
 
@@ -255,7 +266,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to rollback to'
+        description: "Version to rollback to"
         required: true
 
 jobs:
@@ -297,7 +308,9 @@ updates:
 
 ### Build Cop Role
 
-Designate someone responsible for keeping CI green. When the build breaks, the Build Cop's job is to fix or revert — not the person whose change caused the break. This prevents broken builds from accumulating while everyone assumes someone else will fix it.
+Designate someone responsible for keeping CI green. When the build breaks, the Build Cop's job is to
+fix or revert — not the person whose change caused the break. This prevents broken builds from
+accumulating while everyone assumes someone else will fix it.
 
 ### PR Checks
 
@@ -327,6 +340,7 @@ Slow CI pipeline?
 ```
 
 **Example: caching and parallelism**
+
 ```yaml
 jobs:
   lint:
@@ -334,7 +348,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22', cache: 'npm' }
+        with: { node-version: "22", cache: "npm" }
       - run: npm ci
       - run: npm run lint
 
@@ -343,7 +357,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22', cache: 'npm' }
+        with: { node-version: "22", cache: "npm" }
       - run: npm ci
       - run: npx tsc --noEmit
 
@@ -352,20 +366,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '22', cache: 'npm' }
+        with: { node-version: "22", cache: "npm" }
       - run: npm ci
       - run: npm test -- --coverage
 ```
 
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "CI is too slow" | Optimize the pipeline (see CI Optimization below), don't skip it. A 5-minute pipeline prevents hours of debugging. |
-| "This change is trivial, skip CI" | Trivial changes break builds. CI is fast for trivial changes anyway. |
-| "The test is flaky, just re-run" | Flaky tests mask real bugs and waste everyone's time. Fix the flakiness. |
-| "We'll add CI later" | Projects without CI accumulate broken states. Set it up on day one. |
-| "Manual testing is enough" | Manual testing doesn't scale and isn't repeatable. Automate what you can. |
+| Rationalization                   | Reality                                                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| "CI is too slow"                  | Optimize the pipeline (see CI Optimization below), don't skip it. A 5-minute pipeline prevents hours of debugging. |
+| "This change is trivial, skip CI" | Trivial changes break builds. CI is fast for trivial changes anyway.                                               |
+| "The test is flaky, just re-run"  | Flaky tests mask real bugs and waste everyone's time. Fix the flakiness.                                           |
+| "We'll add CI later"              | Projects without CI accumulate broken states. Set it up on day one.                                                |
+| "Manual testing is enough"        | Manual testing doesn't scale and isn't repeatable. Automate what you can.                                          |
 
 ## Red Flags
 

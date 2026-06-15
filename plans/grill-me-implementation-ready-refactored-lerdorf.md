@@ -12,7 +12,7 @@ Why this review exists:
   to `GET` only on each Acme sub-surface (`config/routes/acme.rb:100, 230, 376`).
 - The accepted ADR `adr/logout-completion-boundary.md` and the active plan
   `plans/active/logout-state-machine-implementation-plan.md` (§Non-Negotiable Boundaries) forbid
-  *arbitrary* `post_logout_redirect_uri` but explicitly allow "a signed RP logout request permits a
+  _arbitrary_ `post_logout_redirect_uri` but explicitly allow "a signed RP logout request permits a
   known behavior" — which is exactly what an exact-match allowlist against registered client
   metadata is.
 - The discovery doc therefore claims OIDC RP-Initiated Logout 1.0 conformance that the
@@ -22,15 +22,15 @@ Intended outcome:
 
 - Decide whether to spec-align the advertised `end_session_endpoint`, or unadvertise it and rename
   the private flow.
-- Make that decision *implementable in safe slices*, not in a single large refactor.
-- Hold the Acme/Sign/Core/Palm boundary while doing it — no new Sign session authority, no new
-  Palm OP authority.
+- Make that decision _implementable in safe slices_, not in a single large refactor.
+- Hold the Acme/Sign/Core/Palm boundary while doing it — no new Sign session authority, no new Palm
+  OP authority.
 
 Scope discipline:
 
-- This file is the plan, not the implementation. Per `.agents/harnesses/rules/`, the first slice (A-E) is
-  the only thing the next agent is authorized to ship; everything else is deferred backlog with
-  explicit triggers.
+- This file is the plan, not the implementation. Per `.agents/harnesses/rules/`, the first slice
+  (A-E) is the only thing the next agent is authorized to ship; everything else is deferred backlog
+  with explicit triggers.
 
 ---
 
@@ -39,8 +39,8 @@ Scope discipline:
 **WARN — implementable with a narrow P0 slice (Slice A-E).**
 
 The pipeline is sound on the parts that matter most for security (CSRF, token-only revocation
-endpoint, no Palm OP authority, Sign as non-IdP). The one acute risk is *discovery–implementation
-drift*: Acme advertises a standard OIDC logout endpoint that does not behave like one.
+endpoint, no Palm OP authority, Sign as non-IdP). The one acute risk is _discovery–implementation
+drift_: Acme advertises a standard OIDC logout endpoint that does not behave like one.
 
 Top 5 blockers (must be resolved or explicitly deferred before merging Slice A-E):
 
@@ -55,15 +55,16 @@ Top 5 blockers (must be resolved or explicitly deferred before merging Slice A-E
    `SecurityJwtOidcIdTokenCodec` exist, but the OIDC logout concern does not call them. Slice B
    needs to wire them in without weakening replay protection on the existing `logout_request` path.
 4. **ADR/plan wording is ambiguous about exact-match allowlisted `post_logout_redirect_uri`.**
-   `adr/logout-completion-boundary.md` ¶22-26 and `plans/active/logout-state-machine-implementation-plan.md:44-45`
-   say *no arbitrary* `post_logout_redirect_uri` but allow "a signed RP logout request permits a
-   known behavior." A short ADR note clarifying that exact-match allowlist *is* the "known
-   behavior" boundary closes this gap without a full supersession. Required before Slice C ships.
+   `adr/logout-completion-boundary.md` ¶22-26 and
+   `plans/active/logout-state-machine-implementation-plan.md:44-45` say _no arbitrary_
+   `post_logout_redirect_uri` but allow "a signed RP logout request permits a known behavior." A
+   short ADR note clarifying that exact-match allowlist _is_ the "known behavior" boundary closes
+   this gap without a full supersession. Required before Slice C ships.
 5. **Sign `Sign::*::In::SessionsController#destroy` calls `AuthenticationLogoutCurrentSession.call`
    directly** (verified by recon, also matched by existing test
    `test/controllers/concerns/authentication/logout_current_session_test.rb`). This is a known
-   boundary exception for session-limit cancellation. Out of scope for Slice A-E, but must be
-   pinned by ADR exception (Slice G) before any further normalization in that area.
+   boundary exception for session-limit cancellation. Out of scope for Slice A-E, but must be pinned
+   by ADR exception (Slice G) before any further normalization in that area.
 
 ---
 
@@ -78,71 +79,72 @@ Severity model:
 - **P2** = documentation gap, future feature, optional spec support, or non-critical route debt.
 - **Info** = confirmed acceptable or deliberately out of scope.
 
-| ID | Finding | Severity | Adopt / Reject / Defer | Reason | Implementation slice |
-|----|---------|----------|------------------------|--------|----------------------|
-| F1 | `end_session_endpoint` GET-only | **P0** | Adopt | Spec §3 requires both GET and POST on the OP endpoint. Discovery doc advertises it. | Slice A |
-| F2 | No `id_token_hint` accepted/verified | **P0** | Adopt | Spec §2 RECOMMENDED parameter; absence prevents standard RPs from authenticating the request. | Slice B |
-| F3 | `post_logout_redirect_uri` rejected outright | **P0** | Adopt | Spec §2 allows it with exact-match against registered URIs. Current behavior returns HTTP 400. | Slice B + Slice C |
-| F4 | Private `logout_request` JWT is the sole input | **P0** | Adopt | Spec drift: standard parameters must be primary; private JWT becomes optional compat path only. | Slice B |
-| F5 | `/oauth/revoke` clean separation from logout | **Info** | Confirmed acceptable | Token-only revocation via `BareController`, no browser session mutation, client-authenticated; exists only on Acme app/com/org. | None |
-| F6 | Acme `/sso/logout` exists alongside `/oidc/logout` and `/sign/out` | **P1** | Defer | `Acme::*::Sso::LogoutsController` includes `OidcRpLogout` (RP-flavored). Suspicious on IdP surface but not unsafe. Needs decision (rename, delete, or document). | Slice F |
-| F7 | Acme `/sign/out` exposes GET/POST/PATCH/DELETE (4 verbs) | **P1** | Defer | `Acme::*::SignOutsController` wires `show`, `edit`, `create`, `destroy`. Two destructive verbs (POST + DELETE) without documented semantic distinction; PATCH is suspicious. | Slice F |
-| F8 | Sign `Sign::*::In::SessionsController#destroy` mutates session state | **P1** | Defer | Calls `AuthenticationLogoutCurrentSession.call` for session-limit cancellation. Predates `acme-sign-core-base-port-boundary.md` (2026-06-12). Needs ADR exception. | Slice G |
-| F9 | Sign `/sign/out` is redirect-only with 4 verbs | **P2** | Defer | Recon found `/sign/out` not declared in `config/routes/sign.rb`; only `/signed-out` (GET) is. Acme `/sign/out` is the actual destructive route. If a Sign-side redirect entry remains, collapse to GET-only. | Slice F |
-| F10 | Palm has `/oauth/callback*` only; no logout/revoke | **Info** | Confirmed acceptable | `palm/app/oauth/callbacks_controller.rb` is a stub. Native clients must use Acme `/oauth/revoke` and (post-Slice E) Acme `/oidc/logout`. Needs short doc. | Slice H |
-| F11 | No back-channel logout implementation | **P2** | Defer | Not advertised in discovery (`backchannel_logout_supported` absent), no doc promises real-time logout. `Oidc::BackchannelLogoutNotifier` namespace reserved per `adr/logout-primitive-and-composition.md` but empty. Acceptable. | Documented; no slice |
-| F12 | Multi-surface logout semantics undocumented | **P2** | Defer | Per-surface by design; logout from `app` does not affect `com`/`org`. No global-logout promise in stable docs. Needs explicit doc. | Slice I (note only) |
-| F13 | `edge/v0` routes still present | **P2** | Defer | Confirmed at `config/routes/acme.rb:59-69, 210-220, 356-366`, `config/routes/core.rb:26-31, 74-78, 123-127`, `config/routes/sign.rb:43-50, 263-270, 440-447`. Out of scope for logout. | Slice I (backlog) |
+| ID  | Finding                                                              | Severity | Adopt / Reject / Defer | Reason                                                                                                                                                                                                                           | Implementation slice |
+| --- | -------------------------------------------------------------------- | -------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| F1  | `end_session_endpoint` GET-only                                      | **P0**   | Adopt                  | Spec §3 requires both GET and POST on the OP endpoint. Discovery doc advertises it.                                                                                                                                              | Slice A              |
+| F2  | No `id_token_hint` accepted/verified                                 | **P0**   | Adopt                  | Spec §2 RECOMMENDED parameter; absence prevents standard RPs from authenticating the request.                                                                                                                                    | Slice B              |
+| F3  | `post_logout_redirect_uri` rejected outright                         | **P0**   | Adopt                  | Spec §2 allows it with exact-match against registered URIs. Current behavior returns HTTP 400.                                                                                                                                   | Slice B + Slice C    |
+| F4  | Private `logout_request` JWT is the sole input                       | **P0**   | Adopt                  | Spec drift: standard parameters must be primary; private JWT becomes optional compat path only.                                                                                                                                  | Slice B              |
+| F5  | `/oauth/revoke` clean separation from logout                         | **Info** | Confirmed acceptable   | Token-only revocation via `BareController`, no browser session mutation, client-authenticated; exists only on Acme app/com/org.                                                                                                  | None                 |
+| F6  | Acme `/sso/logout` exists alongside `/oidc/logout` and `/sign/out`   | **P1**   | Defer                  | `Acme::*::Sso::LogoutsController` includes `OidcRpLogout` (RP-flavored). Suspicious on IdP surface but not unsafe. Needs decision (rename, delete, or document).                                                                 | Slice F              |
+| F7  | Acme `/sign/out` exposes GET/POST/PATCH/DELETE (4 verbs)             | **P1**   | Defer                  | `Acme::*::SignOutsController` wires `show`, `edit`, `create`, `destroy`. Two destructive verbs (POST + DELETE) without documented semantic distinction; PATCH is suspicious.                                                     | Slice F              |
+| F8  | Sign `Sign::*::In::SessionsController#destroy` mutates session state | **P1**   | Defer                  | Calls `AuthenticationLogoutCurrentSession.call` for session-limit cancellation. Predates `acme-sign-core-base-port-boundary.md` (2026-06-12). Needs ADR exception.                                                               | Slice G              |
+| F9  | Sign `/sign/out` is redirect-only with 4 verbs                       | **P2**   | Defer                  | Recon found `/sign/out` not declared in `config/routes/sign.rb`; only `/signed-out` (GET) is. Acme `/sign/out` is the actual destructive route. If a Sign-side redirect entry remains, collapse to GET-only.                     | Slice F              |
+| F10 | Palm has `/oauth/callback*` only; no logout/revoke                   | **Info** | Confirmed acceptable   | `palm/app/oauth/callbacks_controller.rb` is a stub. Native clients must use Acme `/oauth/revoke` and (post-Slice E) Acme `/oidc/logout`. Needs short doc.                                                                        | Slice H              |
+| F11 | No back-channel logout implementation                                | **P2**   | Defer                  | Not advertised in discovery (`backchannel_logout_supported` absent), no doc promises real-time logout. `Oidc::BackchannelLogoutNotifier` namespace reserved per `adr/logout-primitive-and-composition.md` but empty. Acceptable. | Documented; no slice |
+| F12 | Multi-surface logout semantics undocumented                          | **P2**   | Defer                  | Per-surface by design; logout from `app` does not affect `com`/`org`. No global-logout promise in stable docs. Needs explicit doc.                                                                                               | Slice I (note only)  |
+| F13 | `edge/v0` routes still present                                       | **P2**   | Defer                  | Confirmed at `config/routes/acme.rb:59-69, 210-220, 356-366`, `config/routes/core.rb:26-31, 74-78, 123-127`, `config/routes/sign.rb:43-50, 263-270, 440-447`. Out of scope for logout.                                           | Slice I (backlog)    |
 
 ---
 
 ## 2. Canonical Route Contract
 
-Desired shape after cleanup. Each line is annotated **keep / rename / delegate / deprecate / remove**.
+Desired shape after cleanup. Each line is annotated **keep / rename / delegate / deprecate /
+remove**.
 
 ### Acme (OP / Authorization Server)
 
-| Path | Verbs | Action | Status |
-|------|-------|--------|--------|
-| `/.well-known/openid-configuration` | GET | discovery | **keep** |
-| `/.well-known/jwks.json` | GET | jwks | **keep** |
-| `/oauth/authorize` | GET | authorization | **keep** |
-| `/oauth/token` | POST | token | **keep** |
-| `/oauth/userinfo` | GET | userinfo | **keep** |
-| `/oauth/revoke` | POST | token revocation (client-authenticated, `BareController`) | **keep** |
-| `/oidc/logout` | **GET + POST** | OIDC RP-Initiated Logout 1.0 (after Slice A) | **keep + extend** |
-| `/sign/out` | GET, DELETE | Acme-internal human logout UI: GET = confirmation, DELETE = mutation | **rename or trim** (Slice F) |
-| `/sign/out` (POST) | — | duplicate destructive verb | **remove** (Slice F) |
-| `/sign/out` (PATCH) | — | unused verb | **remove** (Slice F) |
-| `/sso/logout` | POST | currently RP-flavored on IdP surface | **decide** (Slice F): remove, delegate to `/oidc/logout`, or rename to clarify intent |
+| Path                                | Verbs          | Action                                                               | Status                                                                                |
+| ----------------------------------- | -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `/.well-known/openid-configuration` | GET            | discovery                                                            | **keep**                                                                              |
+| `/.well-known/jwks.json`            | GET            | jwks                                                                 | **keep**                                                                              |
+| `/oauth/authorize`                  | GET            | authorization                                                        | **keep**                                                                              |
+| `/oauth/token`                      | POST           | token                                                                | **keep**                                                                              |
+| `/oauth/userinfo`                   | GET            | userinfo                                                             | **keep**                                                                              |
+| `/oauth/revoke`                     | POST           | token revocation (client-authenticated, `BareController`)            | **keep**                                                                              |
+| `/oidc/logout`                      | **GET + POST** | OIDC RP-Initiated Logout 1.0 (after Slice A)                         | **keep + extend**                                                                     |
+| `/sign/out`                         | GET, DELETE    | Acme-internal human logout UI: GET = confirmation, DELETE = mutation | **rename or trim** (Slice F)                                                          |
+| `/sign/out` (POST)                  | —              | duplicate destructive verb                                           | **remove** (Slice F)                                                                  |
+| `/sign/out` (PATCH)                 | —              | unused verb                                                          | **remove** (Slice F)                                                                  |
+| `/sso/logout`                       | POST           | currently RP-flavored on IdP surface                                 | **decide** (Slice F): remove, delegate to `/oidc/logout`, or rename to clarify intent |
 
 ### Sign (credential-gateway only)
 
-| Path | Verbs | Action | Status |
-|------|-------|--------|--------|
-| `/.well-known/jwks.json` | GET | RP jwks | **keep** |
-| `/signed-out` | GET | static guest page (per `adr/logout-completion-boundary.md` ¶42-53) | **keep** |
-| `/auth/callback` | GET | OIDC RP callback | **keep** |
-| `/sign/out` | — | **not currently routed in `config/routes/sign.rb`** — confirm and either remove or, if present elsewhere, collapse to GET-only redirect | **deprecate** (Slice F) |
+| Path                     | Verbs | Action                                                                                                                                  | Status                  |
+| ------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `/.well-known/jwks.json` | GET   | RP jwks                                                                                                                                 | **keep**                |
+| `/signed-out`            | GET   | static guest page (per `adr/logout-completion-boundary.md` ¶42-53)                                                                      | **keep**                |
+| `/auth/callback`         | GET   | OIDC RP callback                                                                                                                        | **keep**                |
+| `/sign/out`              | —     | **not currently routed in `config/routes/sign.rb`** — confirm and either remove or, if present elsewhere, collapse to GET-only redirect | **deprecate** (Slice F) |
 
 ### Core (RP BFF, local logout only)
 
-| Path | Verbs | Action | Status |
-|------|-------|--------|--------|
-| `/sso/authorize` | GET | RP-side SSO start | **keep** |
-| `/sso/logout` | POST | RP-local logout (clears local session/cookies; does not call Acme revoke) | **keep** |
-| `/auth/callback` | GET | OIDC RP callback | **keep** |
-| `/api/v0/...` | various | RP BFF | **keep** |
-| `/edge/v0/...` | various | legacy cookie/dbsc shims | **deprecate** (Slice I) |
+| Path             | Verbs   | Action                                                                    | Status                  |
+| ---------------- | ------- | ------------------------------------------------------------------------- | ----------------------- |
+| `/sso/authorize` | GET     | RP-side SSO start                                                         | **keep**                |
+| `/sso/logout`    | POST    | RP-local logout (clears local session/cookies; does not call Acme revoke) | **keep**                |
+| `/auth/callback` | GET     | OIDC RP callback                                                          | **keep**                |
+| `/api/v0/...`    | various | RP BFF                                                                    | **keep**                |
+| `/edge/v0/...`   | various | legacy cookie/dbsc shims                                                  | **deprecate** (Slice I) |
 
 ### Palm (native bearer-token API)
 
-| Path | Verbs | Action | Status |
-|------|-------|--------|--------|
-| `/oauth/callback`, `/oauth/callback/ios`, `/oauth/callback/android` | GET | native deep-link bridge stub | **keep, but document as native bridge only** (Slice H) |
-| `/oauth/revoke` | — | NOT to be added; native clients call Acme | **explicitly absent** |
-| `/oidc/logout` | — | NOT to be added; native clients call Acme | **explicitly absent** |
-| `/api/v0/...` | various | resource server | **keep** |
+| Path                                                                | Verbs   | Action                                    | Status                                                 |
+| ------------------------------------------------------------------- | ------- | ----------------------------------------- | ------------------------------------------------------ |
+| `/oauth/callback`, `/oauth/callback/ios`, `/oauth/callback/android` | GET     | native deep-link bridge stub              | **keep, but document as native bridge only** (Slice H) |
+| `/oauth/revoke`                                                     | —       | NOT to be added; native clients call Acme | **explicitly absent**                                  |
+| `/oidc/logout`                                                      | —       | NOT to be added; native clients call Acme | **explicitly absent**                                  |
+| `/api/v0/...`                                                       | various | resource server                           | **keep**                                               |
 
 ### Help / Docs / News / Base
 
@@ -155,15 +157,25 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
 ### Slice A: OIDC end_session route contract
 
 - **Priority:** P0
-- **Files to inspect:** `config/routes/acme.rb:96-110` (app), `:226-240` (com), `:372-386` (org); `app/controllers/acme/app/oidc/logouts_controller.rb` and com/org siblings.
-- **Files to edit:** `config/routes/acme.rb` for all three Acme sub-surfaces; the three `acme/{app,com,org}/oidc/logouts_controller.rb` files.
+- **Files to inspect:** `config/routes/acme.rb:96-110` (app), `:226-240` (com), `:372-386` (org);
+  `app/controllers/acme/app/oidc/logouts_controller.rb` and com/org siblings.
+- **Files to edit:** `config/routes/acme.rb` for all three Acme sub-surfaces; the three
+  `acme/{app,com,org}/oidc/logouts_controller.rb` files.
 - **Changes:**
-  - Replace `resource :logout, only: :show, ...` (currently GET-only) with `resource :logout, only: [:show, :create], ...` so both `GET /oidc/logout` and `POST /oidc/logout` route to the same controller.
-  - In each controller, alias `def create; show; end` (delegate) for the parsing path — the verb decision is made in the concern (Slice B), not the controller.
-  - Preserve `protect_from_forgery with: :exception` posture inherited from `ApplicationController`. The OIDC logout endpoint accepts cross-origin POST from RPs that supply a verified `id_token_hint` — explicit POST handling needs `skip_forgery_protection if: ->{ valid_id_token_hint? }` or equivalent narrow exception scoped to OIDC logout only. Decision goes in Slice B; Slice A only opens the route.
+  - Replace `resource :logout, only: :show, ...` (currently GET-only) with
+    `resource :logout, only: [:show, :create], ...` so both `GET /oidc/logout` and
+    `POST /oidc/logout` route to the same controller.
+  - In each controller, alias `def create; show; end` (delegate) for the parsing path — the verb
+    decision is made in the concern (Slice B), not the controller.
+  - Preserve `protect_from_forgery with: :exception` posture inherited from `ApplicationController`.
+    The OIDC logout endpoint accepts cross-origin POST from RPs that supply a verified
+    `id_token_hint` — explicit POST handling needs
+    `skip_forgery_protection if: ->{ valid_id_token_hint? }` or equivalent narrow exception scoped
+    to OIDC logout only. Decision goes in Slice B; Slice A only opens the route.
 - **Tests:** None added in Slice A — route shape is verified by Slice E's controller tests.
 - **Acceptance criteria:**
-  - `bin/rails routes` (run via `podman compose exec <rails-service>`) shows both GET and POST for `/oidc/logout` on app, com, and org.
+  - `bin/rails routes` (run via `podman compose exec <rails-service>`) shows both GET and POST for
+    `/oidc/logout` on app, com, and org.
   - Route helpers `acme_{app,com,org}_oidc_logout_path` continue to resolve.
   - No existing tests break.
 - **Non-goals:** Parameter handling, redirect URI validation, ID token verification.
@@ -173,53 +185,91 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
 ### Slice B: OIDC logout request parser/validator
 
 - **Priority:** P0
-- **Files to inspect:** `app/controllers/concerns/sign_oidc_logout.rb` (entire file), `app/services/oidc_id_token_verifier.rb`, `app/services/security_jwt_oidc_id_token_codec.rb`, `app/services/oidc_logout_request.rb`, `app/services/oidc_client_registry.rb`.
-- **Files to edit:** `app/controllers/concerns/sign_oidc_logout.rb`. Possibly a new service `app/services/oidc_end_session_request.rb` that encapsulates parameter parsing and decides which path to take.
+- **Files to inspect:** `app/controllers/concerns/sign_oidc_logout.rb` (entire file),
+  `app/services/oidc_id_token_verifier.rb`, `app/services/security_jwt_oidc_id_token_codec.rb`,
+  `app/services/oidc_logout_request.rb`, `app/services/oidc_client_registry.rb`.
+- **Files to edit:** `app/controllers/concerns/sign_oidc_logout.rb`. Possibly a new service
+  `app/services/oidc_end_session_request.rb` that encapsulates parameter parsing and decides which
+  path to take.
 - **Changes:**
-  - Add a new service that, given the params hash, returns a `Result` with: `client_id`, `subject`, `sid`, `post_logout_redirect_uri` (validated or nil), `state`, `ui_locales`, `requires_confirmation` (bool).
-  - **Acceptance precedence:** if `id_token_hint` is present, verify it via `OidcIdTokenVerifier`/`SecurityJwtOidcIdTokenCodec` (sig + iss + aud + exp; `sub`/`sid` extracted). Use `client_id` either from the param or from the verified `aud` claim. If verification fails → confirmation page, **not** silent logout.
-  - **Compat path:** if `id_token_hint` is absent and `logout_request` is present, fall back to `OidcLogoutRequest.verify` (existing JWT). Treated as compat-only — log a deprecation event at `info` level (not the token value).
-  - **Missing both `id_token_hint` and `logout_request`:** render confirmation page (a new view) that explains the request and requires explicit POST confirmation. Never silent-logout on a bare GET with no hint.
-  - **CSRF posture:** when a verified `id_token_hint` is present on a POST, skip CSRF — protocol-authenticated. When neither hint is present and the confirmation page submits, normal CSRF applies. The narrow `skip_forgery_protection if: ...` predicate must check verification success, not just parameter presence.
-  - Move the rendering helpers (`invalid_post_logout_redirect_uri`, `invalid_logout_request`) into the same concern, replacing them with standard OIDC error responses (`invalid_request`, `unauthorized_client`).
+  - Add a new service that, given the params hash, returns a `Result` with: `client_id`, `subject`,
+    `sid`, `post_logout_redirect_uri` (validated or nil), `state`, `ui_locales`,
+    `requires_confirmation` (bool).
+  - **Acceptance precedence:** if `id_token_hint` is present, verify it via
+    `OidcIdTokenVerifier`/`SecurityJwtOidcIdTokenCodec` (sig + iss + aud + exp; `sub`/`sid`
+    extracted). Use `client_id` either from the param or from the verified `aud` claim. If
+    verification fails → confirmation page, **not** silent logout.
+  - **Compat path:** if `id_token_hint` is absent and `logout_request` is present, fall back to
+    `OidcLogoutRequest.verify` (existing JWT). Treated as compat-only — log a deprecation event at
+    `info` level (not the token value).
+  - **Missing both `id_token_hint` and `logout_request`:** render confirmation page (a new view)
+    that explains the request and requires explicit POST confirmation. Never silent-logout on a bare
+    GET with no hint.
+  - **CSRF posture:** when a verified `id_token_hint` is present on a POST, skip CSRF —
+    protocol-authenticated. When neither hint is present and the confirmation page submits, normal
+    CSRF applies. The narrow `skip_forgery_protection if: ...` predicate must check verification
+    success, not just parameter presence.
+  - Move the rendering helpers (`invalid_post_logout_redirect_uri`, `invalid_logout_request`) into
+    the same concern, replacing them with standard OIDC error responses (`invalid_request`,
+    `unauthorized_client`).
 - **Tests:** Covered by Slice E.
 - **Acceptance criteria:**
-  - `id_token_hint` path: valid → proceed to logout; invalid sig → confirmation; missing → confirmation.
-  - `logout_request` path: continues to work for existing internal RP callers; emits compat-deprecation telemetry.
+  - `id_token_hint` path: valid → proceed to logout; invalid sig → confirmation; missing →
+    confirmation.
+  - `logout_request` path: continues to work for existing internal RP callers; emits
+    compat-deprecation telemetry.
   - Parameter parsing is centralized in one new service object; no controller business logic.
-- **Non-goals:** Storing `post_logout_redirect_uri` allowlist (Slice C); route changes (Slice A); discovery doc updates (Slice D).
+- **Non-goals:** Storing `post_logout_redirect_uri` allowlist (Slice C); route changes (Slice A);
+  discovery doc updates (Slice D).
 - **Migration required:** No.
-- **Risk:** Medium. Touches the security-critical hot path. Must preserve fail-closed behavior of the existing `OidcLogoutRequest.verify` replay-cache logic.
+- **Risk:** Medium. Touches the security-critical hot path. Must preserve fail-closed behavior of
+  the existing `OidcLogoutRequest.verify` replay-cache logic.
 
 ### Slice C: post_logout_redirect_uri allowlist
 
 - **Priority:** P0
-- **Files to inspect:** `app/services/oidc_client_registry.rb:127-234`, `app/services/oidc_client_registry.rb:236-...` (helpers).
-- **Files to edit:** `app/services/oidc_client_registry.rb`. Add an optional `post_logout_redirect_uris:` field per client entry, populated from env vars analogous to `build_redirect_uris`. Add a public helper `valid_post_logout_redirect_uri?(client_id:, uri:)` modeled on the existing `valid_redirect_uri?`.
+- **Files to inspect:** `app/services/oidc_client_registry.rb:127-234`,
+  `app/services/oidc_client_registry.rb:236-...` (helpers).
+- **Files to edit:** `app/services/oidc_client_registry.rb`. Add an optional
+  `post_logout_redirect_uris:` field per client entry, populated from env vars analogous to
+  `build_redirect_uris`. Add a public helper `valid_post_logout_redirect_uri?(client_id:, uri:)`
+  modeled on the existing `valid_redirect_uri?`.
 - **Changes:**
-  - Per-client config gets `post_logout_redirect_uris:` (Array<String>). For dev defaults: `build_post_logout_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost")` resolving to `{scheme}://{host}{:port}/signed-out` per surface, mirroring the existing `redirect_uris` builder shape.
+  - Per-client config gets `post_logout_redirect_uris:` (Array<String>). For dev defaults:
+    `build_post_logout_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost")` resolving to
+    `{scheme}://{host}{:port}/signed-out` per surface, mirroring the existing `redirect_uris`
+    builder shape.
   - `valid_post_logout_redirect_uri?` does exact string match, no normalization (per spec).
-  - In the new `OidcEndSessionRequest` service (Slice B), if `post_logout_redirect_uri` param is present, require an exact match against the resolved client's allowlist. Mismatch → render an error page on Acme, **never** redirect to the supplied URI.
+  - In the new `OidcEndSessionRequest` service (Slice B), if `post_logout_redirect_uri` param is
+    present, require an exact match against the resolved client's allowlist. Mismatch → render an
+    error page on Acme, **never** redirect to the supplied URI.
   - If `state` is present, it round-trips only if the redirect URI validates.
 - **Tests:** Covered by Slice E.
 - **Acceptance criteria:**
   - Registered URI: redirect with `state` echoed.
   - Unregistered URI: error page on Acme, no redirect, no `state` leak.
-  - Missing `post_logout_redirect_uri`: fall back to existing internal completion path (`oidc_logout_completed_path`).
-- **Non-goals:** DB-backed RP registration (out of scope; the registry is config-backed by design — see "Stop Conditions" if this ever becomes load-bearing).
+  - Missing `post_logout_redirect_uri`: fall back to existing internal completion path
+    (`oidc_logout_completed_path`).
+- **Non-goals:** DB-backed RP registration (out of scope; the registry is config-backed by design —
+  see "Stop Conditions" if this ever becomes load-bearing).
 - **Migration required:** No.
 - **Risk:** Low. New code path, additive.
 
 ### Slice D: discovery metadata consistency
 
 - **Priority:** P0
-- **Files to inspect:** `app/services/oidc_discovery_document.rb:10-26`, `app/services/oidc_issuer.rb:22-53`.
+- **Files to inspect:** `app/services/oidc_discovery_document.rb:10-26`,
+  `app/services/oidc_issuer.rb:22-53`.
 - **Files to edit:** `app/services/oidc_discovery_document.rb`.
 - **Changes:**
-  - After Slices A-C, the existing advertised `end_session_endpoint` becomes accurate. No discovery URL change.
-  - Do **not** add `backchannel_logout_supported` or `frontchannel_logout_supported`. Leave both absent (interpreted as `false`).
-  - Optional: add `end_session_endpoint_auth_methods_supported` if the spec extension is in use; not required.
-- **Tests:** A request-spec test that fetches `/.well-known/openid-configuration` on each Acme sub-surface and asserts:
+  - After Slices A-C, the existing advertised `end_session_endpoint` becomes accurate. No discovery
+    URL change.
+  - Do **not** add `backchannel_logout_supported` or `frontchannel_logout_supported`. Leave both
+    absent (interpreted as `false`).
+  - Optional: add `end_session_endpoint_auth_methods_supported` if the spec extension is in use; not
+    required.
+- **Tests:** A request-spec test that fetches `/.well-known/openid-configuration` on each Acme
+  sub-surface and asserts:
   - `end_session_endpoint` present and matches the routed path.
   - `backchannel_logout_supported` and `frontchannel_logout_supported` absent.
 - **Acceptance criteria:**
@@ -236,10 +286,13 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
   - `test/controllers/acme/app/oidc/logouts_controller_test.rb`
   - `test/controllers/acme/com/oidc/logouts_controller_test.rb`
   - `test/controllers/acme/org/oidc/logouts_controller_test.rb`
-- **Changes:** Cover the Test Matrix below (Section 5) symmetrically across the three sub-surfaces. Reuse fixtures from existing OIDC tests; no new fixtures unless `post_logout_redirect_uris` config requires environment seeding.
+- **Changes:** Cover the Test Matrix below (Section 5) symmetrically across the three sub-surfaces.
+  Reuse fixtures from existing OIDC tests; no new fixtures unless `post_logout_redirect_uris` config
+  requires environment seeding.
 - **Acceptance criteria:**
   - All matrix cases pass on all three sub-surfaces.
-  - GET path does not mutate when no hint is present (confirmation rendered, session/token row unchanged).
+  - GET path does not mutate when no hint is present (confirmation rendered, session/token row
+    unchanged).
   - Invalid `id_token_hint`: no mutation, confirmation rendered.
   - Invalid `post_logout_redirect_uri`: error rendered, no redirect.
   - Valid `state` returned only on successful redirect.
@@ -252,18 +305,30 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
 
 - **Priority:** P1
 - **Decision required, no code in this slice.** Either:
-  - Remove `Acme::*::Sso::LogoutsController` (it currently includes `OidcRpLogout`, which is an RP concern). The IdP surface should not need an RP-flavored local logout.
-  - Or rename/repurpose to clarify intent (e.g., `Acme::*::Sso::LocalLogoutsController` with explicit doc that it is for non-OIDC fallback).
-- **Also decide:** Acme `/sign/out` exposes GET/POST/PATCH/DELETE (`acme/{app,com,org}/sign_outs_controller.rb`). Reduce to GET (confirmation) + DELETE (mutation). Remove POST and PATCH unless a documented caller exists.
+  - Remove `Acme::*::Sso::LogoutsController` (it currently includes `OidcRpLogout`, which is an RP
+    concern). The IdP surface should not need an RP-flavored local logout.
+  - Or rename/repurpose to clarify intent (e.g., `Acme::*::Sso::LocalLogoutsController` with
+    explicit doc that it is for non-OIDC fallback).
+- **Also decide:** Acme `/sign/out` exposes GET/POST/PATCH/DELETE
+  (`acme/{app,com,org}/sign_outs_controller.rb`). Reduce to GET (confirmation) + DELETE (mutation).
+  Remove POST and PATCH unless a documented caller exists.
 - **Trigger to revisit:** After Slice A-E is in production for one release cycle.
 
 ### Slice G: Sign mutation exception (deferred)
 
 - **Priority:** P1
-- **Recommended:** **Option B — keep as explicit ADR exception.** Move-to-Acme (Option A) requires inventing a thin Acme endpoint for session-limit cancellation that does not exist today and would couple Sign sign-in UX to an Acme round-trip. Delegate-via-POST (Option C) is even worse — a Sign-side controller posting to Acme with a forged session cookie is exactly the cross-surface state mixing the boundary rules forbid.
-- **Why Option B:** `Sign::*::In::SessionsController#destroy` mutates only the *restricted* token belonging to the current Sign-in cycle; it is not general logout. It is a session-limit *cancellation*, semantically owned by the sign-in ceremony. The mutation is bounded.
-- **Action:** Add an ADR `adr/sign-session-limit-cancellation-exception.md` that names this specific method and forbids its pattern from spreading.
-- **Trigger to revisit:** If session-limit cancellation needs to revoke more than the in-flight restricted token.
+- **Recommended:** **Option B — keep as explicit ADR exception.** Move-to-Acme (Option A) requires
+  inventing a thin Acme endpoint for session-limit cancellation that does not exist today and would
+  couple Sign sign-in UX to an Acme round-trip. Delegate-via-POST (Option C) is even worse — a
+  Sign-side controller posting to Acme with a forged session cookie is exactly the cross-surface
+  state mixing the boundary rules forbid.
+- **Why Option B:** `Sign::*::In::SessionsController#destroy` mutates only the _restricted_ token
+  belonging to the current Sign-in cycle; it is not general logout. It is a session-limit
+  _cancellation_, semantically owned by the sign-in ceremony. The mutation is bounded.
+- **Action:** Add an ADR `adr/sign-session-limit-cancellation-exception.md` that names this specific
+  method and forbids its pattern from spreading.
+- **Trigger to revisit:** If session-limit cancellation needs to revoke more than the in-flight
+  restricted token.
 
 ### Slice H: Palm / native policy docs (deferred)
 
@@ -271,7 +336,8 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
 - **Files to edit:** new `docs/security/native-client-logout.md`.
 - **Content:**
   - Palm exposes no OAuth/OIDC authority endpoints.
-  - Native clients (iOS, Android) use Acme `/oauth/revoke` for token revocation and Acme `/oidc/logout` for end-session.
+  - Native clients (iOS, Android) use Acme `/oauth/revoke` for token revocation and Acme
+    `/oidc/logout` for end-session.
   - Palm `/oauth/callback*` routes are deep-link bridges only.
 - **Trigger to revisit:** When native client behavior changes.
 
@@ -280,7 +346,8 @@ No logout, revocation, or OIDC endpoints. Confirmed clean. Out of scope.
 - **Priority:** P2
 - **Items:**
   - `edge/v0` routes: enumerate, decide rename/remove. Tracked separately from logout work.
-  - Multi-surface logout semantics: add a paragraph to `docs/security/logout-sequence.md` stating per-surface scoping is intentional, not a bug.
+  - Multi-surface logout semantics: add a paragraph to `docs/security/logout-sequence.md` stating
+    per-surface scoping is intentional, not a bug.
 - **Trigger:** Independent project, not blocking Slice A-E.
 
 ---
@@ -415,22 +482,22 @@ not touched. Do not commit; let the human review the diff first.
 
 ## 5. Test Matrix
 
-| # | Case | Request | Expected |
-|---|------|---------|----------|
-| T1 | GET, no params | `GET /oidc/logout` | 200, confirmation page rendered, no session mutation, no cookie cleared |
-| T2 | POST, no params | `POST /oidc/logout` | 200 confirmation page (or 400 if confirmation page UX deems POST without any hint invalid); no silent logout |
-| T3 | Valid `id_token_hint`, no redirect | `GET /oidc/logout?id_token_hint=<valid>` | 200 confirmation page if confirmation is required by policy; or 303 to internal completion if policy is "auto on valid hint" — pick one and pin it. Test both branches if the policy is configurable. |
-| T4 | Valid `id_token_hint` via POST | `POST /oidc/logout` body `id_token_hint=<valid>` | 303 to internal completion; session/token row mutated; cookies cleared |
-| T5 | Invalid `id_token_hint` signature | `POST /oidc/logout` body `id_token_hint=<tampered>` | Confirmation page or 400; no mutation |
-| T6 | `id_token_hint` with mismatched `sid`/`sub` | `POST /oidc/logout` body `id_token_hint=<valid but other user>` | Confirmation page or 400; no mutation |
-| T7 | Valid `post_logout_redirect_uri` (registered) | `POST /oidc/logout` body `id_token_hint=<v>&post_logout_redirect_uri=<registered>&state=xyz` | 303 to the registered URI with `state=xyz` appended |
-| T8 | Invalid `post_logout_redirect_uri` (unregistered) | `POST /oidc/logout` body `id_token_hint=<v>&post_logout_redirect_uri=https://attacker.example/` | 400, error rendered on Acme, no redirect, no `state` echoed |
-| T9 | `state` with valid redirect | covered in T7 | `state` appears in `Location` |
-| T10 | `state` with invalid redirect | covered in T8 | `state` does not appear in any response header |
-| T11 | Legacy `logout_request` JWT | `GET /oidc/logout?logout_request=<existing-signed-token>` | 303 to existing internal completion path; compat-deprecation telemetry emitted at info level |
-| T12 | `/oauth/revoke` unchanged | `POST /oauth/revoke` with `token`, `client_id`, `client_secret` | 200 (success) or 401 (auth failure) — pre-existing behavior pinned |
-| T13 | Core `/sso/logout` unchanged | `POST /sso/logout` on Core | Local RP logout only; no Acme call |
-| T14 | Palm `/oauth/callback` unchanged | `GET /oauth/callback` on Palm | Stub message, not OP authority |
+| #   | Case                                              | Request                                                                                         | Expected                                                                                                                                                                                              |
+| --- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | GET, no params                                    | `GET /oidc/logout`                                                                              | 200, confirmation page rendered, no session mutation, no cookie cleared                                                                                                                               |
+| T2  | POST, no params                                   | `POST /oidc/logout`                                                                             | 200 confirmation page (or 400 if confirmation page UX deems POST without any hint invalid); no silent logout                                                                                          |
+| T3  | Valid `id_token_hint`, no redirect                | `GET /oidc/logout?id_token_hint=<valid>`                                                        | 200 confirmation page if confirmation is required by policy; or 303 to internal completion if policy is "auto on valid hint" — pick one and pin it. Test both branches if the policy is configurable. |
+| T4  | Valid `id_token_hint` via POST                    | `POST /oidc/logout` body `id_token_hint=<valid>`                                                | 303 to internal completion; session/token row mutated; cookies cleared                                                                                                                                |
+| T5  | Invalid `id_token_hint` signature                 | `POST /oidc/logout` body `id_token_hint=<tampered>`                                             | Confirmation page or 400; no mutation                                                                                                                                                                 |
+| T6  | `id_token_hint` with mismatched `sid`/`sub`       | `POST /oidc/logout` body `id_token_hint=<valid but other user>`                                 | Confirmation page or 400; no mutation                                                                                                                                                                 |
+| T7  | Valid `post_logout_redirect_uri` (registered)     | `POST /oidc/logout` body `id_token_hint=<v>&post_logout_redirect_uri=<registered>&state=xyz`    | 303 to the registered URI with `state=xyz` appended                                                                                                                                                   |
+| T8  | Invalid `post_logout_redirect_uri` (unregistered) | `POST /oidc/logout` body `id_token_hint=<v>&post_logout_redirect_uri=https://attacker.example/` | 400, error rendered on Acme, no redirect, no `state` echoed                                                                                                                                           |
+| T9  | `state` with valid redirect                       | covered in T7                                                                                   | `state` appears in `Location`                                                                                                                                                                         |
+| T10 | `state` with invalid redirect                     | covered in T8                                                                                   | `state` does not appear in any response header                                                                                                                                                        |
+| T11 | Legacy `logout_request` JWT                       | `GET /oidc/logout?logout_request=<existing-signed-token>`                                       | 303 to existing internal completion path; compat-deprecation telemetry emitted at info level                                                                                                          |
+| T12 | `/oauth/revoke` unchanged                         | `POST /oauth/revoke` with `token`, `client_id`, `client_secret`                                 | 200 (success) or 401 (auth failure) — pre-existing behavior pinned                                                                                                                                    |
+| T13 | Core `/sso/logout` unchanged                      | `POST /sso/logout` on Core                                                                      | Local RP logout only; no Acme call                                                                                                                                                                    |
+| T14 | Palm `/oauth/callback` unchanged                  | `GET /oauth/callback` on Palm                                                                   | Stub message, not OP authority                                                                                                                                                                        |
 
 Likely test files (per Slice E):
 
@@ -444,7 +511,8 @@ Existing files to leave alone:
 - `test/services/oidc/logout_request_test.rb` (must continue to pass unchanged)
 - `test/services/oidc_token_revocation_service_coverage_test.rb`
 - `test/controllers/concerns/authentication/logout_*_test.rb`
-- `test/controllers/sign/oidc_logouts_controller_test.rb` (asserts Sign-side OIDC logout is retired — keep)
+- `test/controllers/sign/oidc_logouts_controller_test.rb` (asserts Sign-side OIDC logout is retired
+  — keep)
 
 ---
 
@@ -456,15 +524,15 @@ The implementer must stop and report (do not guess) if:
    `OidcClientRegistry` (config-based); Slice C extends it. If a future refactor moves it to a DB
    model first, the implementer must update this plan rather than improvising.
 2. **ID token verification service does not exist.** Status: `OidcIdTokenVerifier` and
-   `SecurityJwtOidcIdTokenCodec` exist. Creating new verification logic for logout would be a
-   broad cross-cutting change and is forbidden.
+   `SecurityJwtOidcIdTokenCodec` exist. Creating new verification logic for logout would be a broad
+   cross-cutting change and is forbidden.
 3. **Discovery endpoint is generated from env fallback that may produce `localhost` in production.**
    Status: `OidcIssuer.host_for_resource_type` resolves hosts from `ACME_*_URL` env vars
    (`app/services/oidc_issuer.rb:45-53`). If production deployment is found to leak a localhost
    fallback, stop and escalate before shipping discovery doc changes.
 4. **Current tests prove `/oidc/logout` is intentionally private protocol.** Status: no such test
    found. The Sign-side `test/controllers/sign/oidc_logouts_controller_test.rb` asserts the
-   Sign-side route is *retired*, not that the Acme-side is private. If new tests assert the
+   Sign-side route is _retired_, not that the Acme-side is private. If new tests assert the
    Acme-side is intentionally private, stop and confirm with the human.
 5. **Changing route helpers would break existing callbacks.** Status: route helper names are
    preserved by adding `:create` to an existing `resource :logout, only: :show`. If the new shape
@@ -489,10 +557,8 @@ The implementer must stop and report (do not guess) if:
 
 - Back-channel logout (F11). Not advertised, not promised — P2 only.
 - Front-channel logout. Not advertised, not promised — P2 only.
-- Palm revocation/logout (F10). Native clients use Acme endpoints; Palm policy doc (Slice H) is
-  P2.
-- Cross-surface global logout (F12). Per-surface semantics are intentional; doc note only (Slice
-  I).
+- Palm revocation/logout (F10). Native clients use Acme endpoints; Palm policy doc (Slice H) is P2.
+- Cross-surface global logout (F12). Per-surface semantics are intentional; doc note only (Slice I).
 - `edge/v0` migration (F13). Independent route debt; Slice I.
 - Sign durable-settings migration. Out of scope for this audit.
 - Acme `/sso/logout` removal / `/sign/out` verb pruning (F6, F7). Deferred to Slice F after Slice
@@ -502,10 +568,9 @@ The implementer must stop and report (do not guess) if:
 **Reason:**
 
 The advertised OIDC `end_session_endpoint` is the current interoperability/spec risk. Everything
-else is either correct (revocation separation, Palm boundary, no false advertisement of
-back-channel logout) or a documentation/decision gap that is safe to defer. Slice A-E is the
-minimum coherent change that closes the spec drift without touching boundaries that are already
-correctly held.
+else is either correct (revocation separation, Palm boundary, no false advertisement of back-channel
+logout) or a documentation/decision gap that is safe to defer. Slice A-E is the minimum coherent
+change that closes the spec drift without touching boundaries that are already correctly held.
 
 ---
 

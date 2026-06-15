@@ -2,8 +2,6 @@
 # frozen_string_literal: true
 
 class OidcRpSessionLogout < ApplicationService
-  UUID_PATTERN = /\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i
-
   def initialize(resource_type:, sid:, reason:)
     super()
     @resource_type = resource_type
@@ -12,7 +10,7 @@ class OidcRpSessionLogout < ApplicationService
   end
 
   def call
-    return false unless UUID_PATTERN.match?(sid.to_s)
+    return false unless OidcLogoutTokenCodec::UUID_PATTERN.match?(sid.to_s)
     return false unless token_class.column_names.include?("oidc_sid")
 
     token = token_class.currently_usable_at.find_by(oidc_sid: sid)
@@ -42,9 +40,9 @@ class OidcRpSessionLogout < ApplicationService
 
   def token_resource(token)
     case token
-    when OperatorToken then token.operator
+    when OperatorToken then token.staff
     when VisitorToken then token.visitor
-    else token.client
+    else token.user
     end
   end
 end

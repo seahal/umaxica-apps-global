@@ -13,7 +13,7 @@ module OidcClientRegistry
       :client_id, :client_secret, :redirect_uris, :post_logout_redirect_uris, :aud, :resource_type,
       :name, :domains, :registered_token_endpoint_auth_method,
       :metadata_token_endpoint_auth_method, :jwt_namespace, :backchannel_logout_uris,
-      :frontchannel_logout_uris,
+      :backchannel_logout_session_required,
     ) do
       def public_client?
         registered_token_endpoint_auth_method == "none"
@@ -49,7 +49,7 @@ module OidcClientRegistry
       redirect_uris: config[:redirect_uris],
       post_logout_redirect_uris: config[:post_logout_redirect_uris] || [],
       backchannel_logout_uris: config[:backchannel_logout_uris] || [],
-      frontchannel_logout_uris: config[:frontchannel_logout_uris] || [],
+      backchannel_logout_session_required: config.fetch(:backchannel_logout_session_required, false),
       aud: config[:aud],
       resource_type: config[:resource_type],
       name: config[:name],
@@ -88,16 +88,9 @@ module OidcClientRegistry
     filter_logout_uris(find(client_id)&.backchannel_logout_uris || [], resource_type)
   end
 
-  def frontchannel_logout_uris_for(client_id:, resource_type: nil)
-    filter_logout_uris(find(client_id)&.frontchannel_logout_uris || [], resource_type)
-  end
-
   def logout_clients_for_resource_type(resource_type)
     clients.filter_map do |client_id, config|
-      has_logout_uri =
-        filter_logout_uris(Array(config[:backchannel_logout_uris]), resource_type).present? ||
-        filter_logout_uris(Array(config[:frontchannel_logout_uris]), resource_type).present?
-      next unless has_logout_uri
+      next if filter_logout_uris(Array(config[:backchannel_logout_uris]), resource_type).blank?
 
       find(client_id)
     end
@@ -167,9 +160,7 @@ module OidcClientRegistry
         backchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "backchannel_logout") +
           build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "backchannel_logout") +
           build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "backchannel_logout"),
-        frontchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "frontchannel_logout") +
-          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "frontchannel_logout") +
-          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "frontchannel_logout"),
+        backchannel_logout_session_required: true,
         aud: "sign-rp",
         resource_type: "client",
         name: "Sign RP",
@@ -201,9 +192,7 @@ module OidcClientRegistry
         backchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "www.jp.umaxica.app", "backchannel_logout") +
           build_logout_uris("CORE_STAFF_URL", "www.jp.umaxica.org", "backchannel_logout") +
           build_logout_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com", "backchannel_logout"),
-        frontchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "www.jp.umaxica.app", "frontchannel_logout") +
-          build_logout_uris("CORE_STAFF_URL", "www.jp.umaxica.org", "frontchannel_logout") +
-          build_logout_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com", "frontchannel_logout"),
+        backchannel_logout_session_required: true,
         aud: "core-next-rp",
         resource_type: "client",
         name: "Core Next RP",

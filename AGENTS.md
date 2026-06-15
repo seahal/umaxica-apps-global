@@ -3,8 +3,9 @@
 This is a Ruby on Rails application, not the Rails framework monorepo.
 
 Agents must treat this file as the always-loaded entry point. The harness rules live under
-`.agents/harnesses/rules/`, split into reusable `generic/` rules and project-local `project/` rules. They are
-not loaded automatically unless this file points to them or the task explicitly requires them.
+`.agents/harnesses/rules/`, split into reusable `generic/` rules and project-local `project/` rules.
+They are not loaded automatically unless this file points to them or the task explicitly requires
+them.
 
 ## Application Shape
 
@@ -17,9 +18,9 @@ This app has three user-facing surfaces:
 Treat each surface as an independent boundary. Do not mix controllers, routes, views, policies,
 sessions, or state across surfaces unless the existing code has an explicit shared abstraction.
 
-Read `.agents/harnesses/rules/project/surfaces.mdc` when a change touches surface boundaries, and the relevant
-`.agents/harnesses/rules/generic/` rules when it touches controllers, models, services, policies, or shared
-concerns.
+Read `.agents/harnesses/rules/project/surfaces.mdc` when a change touches surface boundaries, and
+the relevant `.agents/harnesses/rules/generic/` rules when it touches controllers, models, services,
+policies, or shared concerns.
 
 ## Agent Assets
 
@@ -38,16 +39,22 @@ Use these `.agents/harnesses/rules/` files as task-specific instructions:
 
 - Controller or endpoint work: `.agents/harnesses/rules/generic/controllers.mdc`,
   `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/project/surfaces.mdc`,
-  `.agents/harnesses/rules/project/controller-inheritance.mdc`, `docs/architecture/controller-lifecycle.md`
-- Minitest work: `.agents/harnesses/rules/generic/testing.mdc`, `.agents/harnesses/rules/generic/no-test-only-code.mdc`
+  `.agents/harnesses/rules/project/controller-inheritance.mdc`,
+  `docs/architecture/controller-lifecycle.md`
+- Minitest work: `.agents/harnesses/rules/generic/testing.mdc`,
+  `.agents/harnesses/rules/generic/no-test-only-code.mdc`
 - Value object, service-layer, resolver, policy, query, or command work:
   `.agents/harnesses/rules/project/value-object-boundaries.mdc`
 - Migration work: `.agents/harnesses/rules/generic/migrations.mdc`
 - Security-sensitive work or broad refactors: `.agents/harnesses/rules/generic/absolute-rules.mdc`,
-  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`, `.agents/harnesses/rules/project/regression-guards.mdc`
+  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`,
+  `.agents/harnesses/rules/project/regression-guards.mdc`
 - Surface, routing, or authentication changes: `.agents/harnesses/rules/project/surfaces.mdc`,
-  `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/generic/no-workflow-drift.mdc`,
+  `.agents/harnesses/rules/generic/routing.mdc`,
+  `.agents/harnesses/rules/generic/no-workflow-drift.mdc`,
   `docs/architecture/controller-lifecycle.md`
+- User-facing feedback, notices, alerts, or notification UI:
+  `.agents/harnesses/rules/generic/no-flash-messages.mdc`
 - Non-trivial implementation decisions, plan deviations, or handoff notes:
   `.agents/harnesses/rules/generic/implementation-notes.mdc`,
   `.agents/harnesses/rules/project/repository-knowledge-tree.mdc`
@@ -157,6 +164,8 @@ Do not:
 - Put business logic in controllers.
 - Use `permit!`, `skip_before_action`, `skip_authorization`, `skip_forgery_protection`, `html_safe`,
   `raw(...)`, `VERIFY_NONE`, `rescue nil`, or ignored rescues.
+- Use Rails `flash` (`flash[...]`, `flash.now[...]`, or `redirect_to(..., notice:/alert:)`); render
+  feedback inline in the page instead. See `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
 - Log tokens, cookies, authorization headers, or full request params.
 - Store request state in class variables, globals, or `Thread.current`.
 
@@ -172,9 +181,9 @@ skips hide partial migrations and corrupt schema_dump files over time.
 
 - Keep controllers focused on HTTP concerns.
 - Put domain behavior in models, services, policies, or existing local abstractions.
-- Prefer Value Objects for domain values passed around as data. Use Service Objects for orchestration
-  across multiple models, aggregates, transaction boundaries, external systems, or multi-step
-  workflows; do not create Service Objects as generic containers for values.
+- Prefer Value Objects for domain values passed around as data. Use Service Objects for
+  orchestration across multiple models, aggregates, transaction boundaries, external systems, or
+  multi-step workflows; do not create Service Objects as generic containers for values.
 - Use Pundit authorization through the established pipeline.
 - Use RESTful routes and path helpers.
 - Do not hardcode absolute URLs in application code.

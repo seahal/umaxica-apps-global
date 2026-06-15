@@ -104,7 +104,7 @@ module Jit
     config.active_record.belongs_to_required_validates_foreign_key = true
 
     # Log SQL warnings from PostgreSQL
-    config.active_record.db_warnings_action = :log
+    config.active_record.db_warnings_action = :raise
 
     # Allow per-model/per-attribute i18n error message format customization
     config.active_model.i18n_customize_full_message = true

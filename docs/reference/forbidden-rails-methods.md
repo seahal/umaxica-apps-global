@@ -58,7 +58,8 @@ Enforced boundary (the only sanctioned exceptions):
   `:set_preferences_cookie`, `:set_color_theme`) is allowed where an endpoint legitimately does not
   participate in that context, and is not a security relaxation.
 
-See `.agents/harnesses/rules/project/regression-guards.mdc` for the same enforced-regression-guard summary.
+See `.agents/harnesses/rules/project/regression-guards.mdc` for the same enforced-regression-guard
+summary.
 
 ### `skip_authorization`
 
@@ -259,6 +260,26 @@ Reason:
 - It can expose outbound requests to interception.
 
 Use verified TLS and configure trusted certificates explicitly when required.
+
+## User-Facing Feedback
+
+### `flash` and `redirect_to(..., notice:/alert:)`
+
+Do not use Rails `flash` in any form: `flash[...]`, `flash.now[...]`, `flash.keep`, `flash.discard`,
+`flash.notice`, `flash.alert`, or the `redirect_to(..., notice:)` / `redirect_to(..., alert:)`
+shortcuts that write to it.
+
+Reason:
+
+- Toast-style transient banners are easy to miss, cannot be re-read, and tie user-visible feedback
+  to session state.
+- Flash messages have been removed from this application.
+
+Render feedback inline in the page instead: pass error messages through an instance variable (for
+example `@form_error`) and show them in the re-rendered view, and let destination pages express
+success directly. See `.agents/harnesses/rules/generic/no-flash-messages.mdc`. Any future
+session-backed notice state requires an explicit ADR, consistent with
+`adr/logout-completion-boundary.md`.
 
 ## Review Rule
 

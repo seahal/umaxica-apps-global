@@ -3,7 +3,8 @@
 ## Context
 
 - Original plan/spec: PR-3 of controller concern lifecycle cleanup.
-- Related docs: `docs/architecture/controller-lifecycle.md`, `.agents/harnesses/rules/project/surfaces.mdc`.
+- Related docs: `docs/architecture/controller-lifecycle.md`,
+  `.agents/harnesses/rules/project/surfaces.mdc`.
 - Implementation date: 2026-05-30.
 
 ## Decisions Made During Implementation

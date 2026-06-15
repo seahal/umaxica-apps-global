@@ -1269,8 +1269,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@zenuml/core@3.49.2':
-    resolution: {integrity: sha512-qeQMapuE0XETML2mRw2MIIrMCjcZBhRDSwW10//q8XQ+VyExzkAn39VCBwxIbbPdTBt6gJnaBBixF9A4hsIxcA==}
+  '@zenuml/core@3.49.4':
+    resolution: {integrity: sha512-YGtB5JJhatxEzPUDH3HkXZaoDy5dp2XxyEHb92O5tEK0qEzoajhXZ/V3ljpT7iSj2cdBLVB6wnQ1hHt7zi096A==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -2600,8 +2600,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  semver@7.8.2:
-    resolution: {integrity: sha512-c8jsqUZm3omBOI66G90z1Dyw5z622G8oLG+omfsHBJf3CWQTlOcwOjvOG6wtiNfW6anKm/eA39LMwMtMez2TiQ==}
+  semver@7.8.3:
+    resolution: {integrity: sha512-wnilbGyMxzbY7dNOl7jpKbLSjcfeweJWU5j4+u5qW+6/wuGD9KzIGOyZnQVSBM9E7DtWaaH3CyHkppYrKYoxwg==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -3240,7 +3240,7 @@ snapshots:
 
   '@mermaid-js/mermaid-zenuml@0.2.3(@types/react@19.2.17)(mermaid@11.15.0)':
     dependencies:
-      '@zenuml/core': 3.49.2(@types/react@19.2.17)
+      '@zenuml/core': 3.49.4(@types/react@19.2.17)
       mermaid: 11.15.0
     transitivePeerDependencies:
       - '@babel/core'
@@ -3467,7 +3467,7 @@ snapshots:
       extract-zip: 2.0.1
       progress: 2.0.3
       proxy-agent: 6.5.0
-      semver: 7.8.2
+      semver: 7.8.3
       tar-fs: 3.1.2
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -3939,7 +3939,7 @@ snapshots:
   '@voidzero-dev/vite-plus-win32-x64-msvc@0.1.24':
     optional: true
 
-  '@zenuml/core@3.49.2(@types/react@19.2.17)':
+  '@zenuml/core@3.49.4(@types/react@19.2.17)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@headlessui/react': 2.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -4800,7 +4800,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.8.2
+      semver: 7.8.3
 
   marked@16.4.2: {}
 
@@ -5269,7 +5269,7 @@ snapshots:
 
   semver@7.8.1: {}
 
-  semver@7.8.2: {}
+  semver@7.8.3: {}
 
   siginfo@2.0.0: {}
 

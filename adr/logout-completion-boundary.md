@@ -72,7 +72,8 @@ URL.
 
 Do not introduce sign-side PRG, flash-backed completion state, session-backed completion notices, or
 one-time completion tokens for ordinary logout unless a future ADR explicitly assigns that state to
-a different non-session transport that does not make `sign/id` a logout participant.
+a different non-session transport that does not make `sign/id` a logout participant. Flash is in any
+case removed application-wide; see `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
 
 ## Related
 

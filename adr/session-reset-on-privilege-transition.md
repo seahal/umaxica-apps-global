@@ -46,9 +46,11 @@ aggregated into a single choke point that must pass.
    via this method. Actual `reset_session` remains the same as `log_in` This aggregation
    structurally guarantees non-circumvention. `log_in` / `finalize_mfa_login!` The internal body of
    is unchanged to avoid risks.
-2. **step-up completed**: `Sign::VerificationStepUpLifecycle#consume_step_up_session!`
-   `ActiveRecord::Base.connected_to` After block ends/`flash[:notice]` Before assignment
-   `reset_session` Added.
+2. **step-up completed**: `Sign::VerificationStepUpLifecycle#consume_step_up_session!` adds
+   `reset_session` after the `ActiveRecord::Base.connected_to` block ends and before the controller
+   renders or redirects the step-up result. (This application does not use `flash`; the earlier
+   ordering constraint relative to a `flash[:notice]` assignment no longer applies, but
+   `reset_session` must still run before any post-transition response.)
 3. **logout**: `logout_current_session!` (existing). No changes.
 
 step-up Flow-based symmetrization refactor (`Sign::{App,Com,Org}VerificationBase` →
@@ -61,8 +63,9 @@ safety net.
 - `reset_session` safety in step-up: WebAuthn challenge is done before calling
   `consume_step_up_session!` Consumed by `verify_passkey!`
   (`verification_passkey_actions.rb:21-22`). `return_to`/`scope` is `connected_to` Make local
-  variable before block. The step-up session is DB persistent (`rs.destroy!`). `flash` Because
-  session is stored, `reset_session` is required before flash assignment.
+  variable before block. The step-up session is DB persistent (`rs.destroy!`), so `reset_session`
+  does not discard pending step-up state held in the browser session. `reset_session` must run
+  before the controller renders or redirects the post-transition response.
 - Equivalence of signup 4 routes: `establish_signed_in_session!` is `mfa_bypassed_for_auth_method?`
   or `!mfa_required_for?` with `log_in(require_totp_check: false)` Branched into. For newly created
   accounts, `mfa_required_for?` is fake, so the old account is `log_in(require_totp_check: true)` →

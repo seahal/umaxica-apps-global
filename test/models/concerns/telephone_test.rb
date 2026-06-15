@@ -231,4 +231,78 @@ class TelephoneTest < ActiveSupport::TestCase
 
     assert_not @telephone.reregistration_window_active?
   end
+
+  # Address/number handling pins (current behavior fixed before any future split).
+  # These cover the concern integration the OTP-heavy tests above leave unfixed:
+  # E.164 normalization, blind-index digest assignment, and digest-based lookups.
+
+  test "normalize_number_from_raw converts a formatted raw number to E.164 before validation" do
+    telephone = OperatorTelephone.new(
+      staff: operators(:none_staff),
+      raw_number: "090-1234-5678",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+    )
+
+    assert_predicate telephone, :valid?
+    assert_equal "+819012345678", telephone.number
+  end
+
+  test "normalize_number_from_raw is a no-op when raw_number is blank" do
+    telephone = OperatorTelephone.new(staff: operators(:none_staff))
+    telephone.raw_number = ""
+    telephone.number = "+819012345678"
+    telephone.valid?
+
+    assert_equal "+819012345678", telephone.number
+  end
+
+  test "set_number_digests stores the blind-index digest on save" do
+    telephone = OperatorTelephone.create!(
+      staff: operators(:none_staff),
+      raw_number: "090-1234-5678",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+    )
+
+    assert_equal IdentifierBlindIndex.bidx_for_telephone("090-1234-5678"),
+                 telephone.number_digest
+  end
+
+  test "find_by_number locates a record through the blind-index digest" do
+    telephone = OperatorTelephone.create!(
+      staff: operators(:none_staff),
+      raw_number: "090-1234-5678",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+    )
+
+    # Distinct surface formatting normalizes to the same E.164 digest.
+    assert_equal telephone, OperatorTelephone.public_send(:find_by_number, "+81 90-1234-5678")
+    assert_nil OperatorTelephone.public_send(:find_by_number, "080-0000-0000")
+  end
+
+  test "with_number scope filters by the blind-index digest" do
+    telephone = OperatorTelephone.create!(
+      staff: operators(:none_staff),
+      raw_number: "090-1234-5678",
+      confirm_policy: true,
+      confirm_using_mfa: true,
+    )
+
+    assert_includes OperatorTelephone.with_number("090-1234-5678"), telephone
+    assert_empty OperatorTelephone.with_number("080-0000-0000")
+  end
+
+  test "confirm_using_mfa acceptance is required when a raw number is present" do
+    telephone = OperatorTelephone.new(
+      staff: operators(:none_staff),
+      raw_number: "090-1234-5678",
+      confirm_policy: true,
+      confirm_using_mfa: false,
+    )
+
+    assert_not telephone.valid?
+    assert_predicate telephone.errors[:confirm_using_mfa], :any?
+  end
 end

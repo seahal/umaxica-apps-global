@@ -308,7 +308,7 @@ class OidcTokenExchangeService < ApplicationService
       redirect_uris: client.redirect_uris,
       post_logout_redirect_uris: client.post_logout_redirect_uris,
       backchannel_logout_uris: client.backchannel_logout_uris,
-      frontchannel_logout_uris: client.frontchannel_logout_uris,
+      backchannel_logout_session_required: client.backchannel_logout_session_required,
       aud: client.aud,
       resource_type: resource_type,
       name: client.name,

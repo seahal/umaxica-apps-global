@@ -72,9 +72,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     core = OidcClientRegistry.find!("core-next-rp")
 
     assert sign.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
-    assert sign.frontchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/frontchannel_logout" }
     assert core.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
-    assert core.frontchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/frontchannel_logout" }
   end
 
   test "logout receiver uris can be filtered by acme resource type" do
@@ -93,8 +91,13 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       client = OidcClientRegistry.find!(client_id)
 
       assert_empty client.backchannel_logout_uris, "#{client_id} should not have back-channel logout URIs"
-      assert_empty client.frontchannel_logout_uris, "#{client_id} should not have front-channel logout URIs"
     end
+  end
+
+  test "sign and core clients require back-channel session logout while docs app defaults false" do
+    assert OidcClientRegistry.find!("sign-rp").backchannel_logout_session_required
+    assert OidcClientRegistry.find!("core-next-rp").backchannel_logout_session_required
+    assert_not OidcClientRegistry.find!("docs_app").backchannel_logout_session_required
   end
 
   test "all expected clients are registered" do
@@ -281,7 +284,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       redirect_uris: ["https://client.example/auth/callback"],
       post_logout_redirect_uris: ["https://client.example/signed-out"],
       backchannel_logout_uris: [],
-      frontchannel_logout_uris: [],
+      backchannel_logout_session_required: false,
       aud: "test-audience",
       resource_type: "client",
       name: "Test Client",

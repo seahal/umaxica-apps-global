@@ -22,7 +22,6 @@ scope module: :sign, as: :sign do
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       # for those who are logged in
@@ -241,7 +240,6 @@ scope module: :sign, as: :sign do
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
@@ -425,7 +423,6 @@ scope module: :sign, as: :sign do
       resource :signed_out, only: :show, path: "signed-out", controller: "signed_outs"
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 

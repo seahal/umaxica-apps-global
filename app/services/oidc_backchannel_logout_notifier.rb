@@ -12,19 +12,20 @@ class OidcBackchannelLogoutNotifier < ApplicationService
 
   def call
     return 0 if sid.blank? && subject.blank?
+    raise ArgumentError, "logout token requires sid" if sid.blank?
 
     clients.sum do |client|
-      logout_token = OidcLogoutTokenCodec.encode(
-        client_id: client.client_id,
-        resource_type: resource_type,
-        subject: subject,
-        sid: sid,
-      )
       OidcClientRegistry.backchannel_logout_uris_for(
         client_id: client.client_id,
         resource_type: resource_type,
       ).each do |uri|
-        OidcBackchannelLogoutDeliveryJob.perform_later(uri, logout_token, client.client_id)
+        OidcBackchannelLogoutDeliveryJob.perform_later(
+          uri,
+          client.client_id,
+          resource_type,
+          subject,
+          sid,
+        )
       end.size
     end
   end

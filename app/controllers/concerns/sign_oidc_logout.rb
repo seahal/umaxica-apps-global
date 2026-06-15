@@ -35,9 +35,6 @@ module SignOidcLogout
 
     if result.post_logout_redirect_uri.present?
       redirect_to(post_logout_redirect_uri_with_state(result), allow_other_host: true, status: :see_other)
-    elsif (@frontchannel_logout_urls = frontchannel_logout_urls(result)).present?
-      @oidc_logout_completed_path = oidc_logout_completed_path(ri: result.legacy_ri || params[:ri])
-      render :frontchannel, status: :ok
     else
       redirect_to(oidc_logout_completed_path(ri: result.legacy_ri || params[:ri]), status: :see_other)
     end
@@ -131,13 +128,6 @@ module SignOidcLogout
       subject: result.subject,
       sid: result.sid,
       initiating_client_id: result.client_id,
-    )
-  end
-
-  def frontchannel_logout_urls(result)
-    OidcFrontchannelLogoutUrls.call(
-      resource_type: oidc_logout_resource_type,
-      sid: result.sid,
     )
   end
 

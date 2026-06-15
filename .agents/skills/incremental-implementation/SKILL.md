@@ -1,13 +1,18 @@
 ---
 name: incremental-implementation
-description: Delivers changes incrementally. Use when implementing any feature or change that touches more than one file. Use when you're about to write a large amount of code at once, or when a task feels too big to land in one step.
+description:
+  Delivers changes incrementally. Use when implementing any feature or change that touches more than
+  one file. Use when you're about to write a large amount of code at once, or when a task feels too
+  big to land in one step.
 ---
 
 # Incremental Implementation
 
 ## Overview
 
-Build in thin vertical slices — implement one piece, test it, verify it, then expand. Avoid implementing an entire feature in one pass. Each increment should leave the system in a working, testable state. This is the execution discipline that makes large features manageable.
+Build in thin vertical slices — implement one piece, test it, verify it, then expand. Avoid
+implementing an entire feature in one pass. Each increment should leave the system in a working,
+testable state. This is the execution discipline that makes large features manageable.
 
 ## When to Use
 
@@ -38,7 +43,8 @@ For each slice:
 1. **Implement** the smallest complete piece of functionality
 2. **Test** — run the test suite (or write a test if none exists)
 3. **Verify** — confirm the slice works as expected (tests pass, build succeeds, manual check)
-4. **Commit** -- save your progress with a descriptive message (see `git-workflow-and-versioning` for atomic commit guidance)
+4. **Commit** -- save your progress with a descriptive message (see `git-workflow-and-versioning`
+   for atomic commit guidance)
 5. **Move to the next slice** — carry forward, don't restart
 
 ## Slicing Strategies
@@ -93,6 +99,7 @@ If Slice 1 fails, you discover it before investing in Slices 2 and 3.
 Before writing any code, ask: "What is the simplest thing that could work?"
 
 After writing code, review it against these checks:
+
 - Can this be done in fewer lines?
 - Are these abstractions earning their complexity?
 - Would a staff engineer look at this and say "why didn't you just..."?
@@ -110,13 +117,15 @@ SIMPLICITY CHECK:
 ✓ Three form components
 ```
 
-Three similar lines of code is better than a premature abstraction. Implement the naive, obviously-correct version first. Optimize only after correctness is proven with tests.
+Three similar lines of code is better than a premature abstraction. Implement the naive,
+obviously-correct version first. Optimize only after correctness is proven with tests.
 
 ### Rule 0.5: Scope Discipline
 
 Touch only what the task requires.
 
 Do NOT:
+
 - "Clean up" code adjacent to your change
 - Refactor imports in files you're not modifying
 - Remove comments you don't fully understand
@@ -136,13 +145,15 @@ NOTICED BUT NOT TOUCHING:
 
 Each increment changes one logical thing. Don't mix concerns:
 
-**Bad:** One commit that adds a new component, refactors an existing one, and updates the build config.
+**Bad:** One commit that adds a new component, refactors an existing one, and updates the build
+config.
 
 **Good:** Three separate commits — one for each change.
 
 ### Rule 2: Keep It Compilable
 
-After each increment, the project must build and existing tests must pass. Don't leave the codebase in a broken state between slices.
+After each increment, the project must build and existing tests must pass. Don't leave the codebase
+in a broken state between slices.
 
 ### Rule 3: Feature Flags for Incomplete Features
 
@@ -150,7 +161,7 @@ If a feature isn't ready for users but you need to merge increments:
 
 ```typescript
 // Feature flag for work-in-progress
-const ENABLE_TASK_SHARING = process.env.FEATURE_TASK_SHARING === 'true';
+const ENABLE_TASK_SHARING = process.env.FEATURE_TASK_SHARING === "true";
 
 if (ENABLE_TASK_SHARING) {
   // New sharing UI
@@ -208,17 +219,19 @@ After each increment, verify:
 - [ ] The new functionality works as expected
 - [ ] The change is committed with a descriptive message
 
-**Note:** Run each verification command after a change that could affect it. After a successful run, don't repeat the same command unless the code has changed since — re-running on unchanged code adds no information.
+**Note:** Run each verification command after a change that could affect it. After a successful run,
+don't repeat the same command unless the code has changed since — re-running on unchanged code adds
+no information.
 
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "I'll test it all at the end" | Bugs compound. A bug in Slice 1 makes Slices 2-5 wrong. Test each slice. |
-| "It's faster to do it all at once" | It *feels* faster until something breaks and you can't find which of 500 changed lines caused it. |
-| "These changes are too small to commit separately" | Small commits are free. Large commits hide bugs and make rollbacks painful. |
-| "I'll add the feature flag later" | If the feature isn't complete, it shouldn't be user-visible. Add the flag now. |
-| "This refactor is small enough to include" | Refactors mixed with features make both harder to review and debug. Separate them. |
+| Rationalization                                      | Reality                                                                                                                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll test it all at the end"                        | Bugs compound. A bug in Slice 1 makes Slices 2-5 wrong. Test each slice.                                                                                    |
+| "It's faster to do it all at once"                   | It _feels_ faster until something breaks and you can't find which of 500 changed lines caused it.                                                           |
+| "These changes are too small to commit separately"   | Small commits are free. Large commits hide bugs and make rollbacks painful.                                                                                 |
+| "I'll add the feature flag later"                    | If the feature isn't complete, it shouldn't be user-visible. Add the flag now.                                                                              |
+| "This refactor is small enough to include"           | Refactors mixed with features make both harder to review and debug. Separate them.                                                                          |
 | "Let me run the build command again just to be sure" | After a successful run, repeating the same command adds nothing unless the code has changed since. Run it again after subsequent edits, not as reassurance. |
 
 ## Red Flags

@@ -74,17 +74,16 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_nil response.location
   end
 
-  test "valid id_token_hint on csrf-protected post logs out and renders front-channel completion" do
+  test "valid id_token_hint on post logs out and redirects to the completion path" do
     assert_enqueued_jobs 2, only: OidcBackchannelLogoutDeliveryJob do
       post acme_app_oidc_logout_url(host: @host),
            params: { id_token_hint: id_token, ri: "jp" },
            headers: session_headers
     end
 
-    assert_response :ok
+    assert_response :see_other
     assert_predicate @token.reload, :revoked?
-    assert_includes response.body, "/oidc/frontchannel_logout"
-    assert_nil response.location
+    assert_redirected_to acme_app_sign_out_url(host: @host, ri: "jp")
   end
 
   test "invalid id_token_hint signature does not mutate or redirect externally" do
@@ -128,7 +127,6 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal URI.parse(redirect_uri).host, location.host
     assert_equal "/signed-out", location.path
     assert_equal "xyz", query["state"]
-    assert_not_includes response.body, "/oidc/frontchannel_logout"
   end
 
   test "unregistered post_logout_redirect_uri never redirects or leaks state" do

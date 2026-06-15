@@ -18,8 +18,8 @@ class OidcDiscoveryDocumentTest < ActiveSupport::TestCase
     assert_equal ["S256"], document.fetch(:code_challenge_methods_supported)
     assert document.fetch(:backchannel_logout_supported)
     assert document.fetch(:backchannel_logout_session_supported)
-    assert document.fetch(:frontchannel_logout_supported)
-    assert document.fetch(:frontchannel_logout_session_supported)
+    assert_not document.key?(:frontchannel_logout_supported)
+    assert_not document.key?(:frontchannel_logout_session_supported)
     assert_not document.key?(:redirect_uris_supported)
     assert_not document.key?(:loopback_redirect_uris_supported)
   end

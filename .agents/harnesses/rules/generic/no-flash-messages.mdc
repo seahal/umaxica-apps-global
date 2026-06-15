@@ -1,0 +1,38 @@
+---
+name: no-flash-messages
+description: Rails flash / toast-style transient notifications are removed and forbidden; render feedback in the page instead.
+---
+
+# No Flash Messages
+
+Transient, toast-style notifications (Rails `flash`) have been removed from this application. They
+are a UX anti-pattern here: a banner that appears once, after a redirect, and then disappears is
+easy to miss, cannot be re-read, and couples user-visible feedback to session state. Do not
+reintroduce them.
+
+## Forbidden constructs
+
+Do not use:
+
+- `flash[...]` / `flash.now[...]` — never store user-facing messages in the flash hash.
+- `flash.keep`, `flash.discard`, `flash.alert`, `flash.notice`, or any other `flash` accessor.
+- the `redirect_to(..., notice:)` / `redirect_to(..., alert:)` shortcuts — they write to `flash`.
+- new layout regions, partials, or shared props that read `flash` (for example a `_flash_messages`
+  partial or an Inertia `flashDataType`).
+
+## What to do instead
+
+- Error feedback (form validation, Turnstile failures, rejected input): render it inline on the page
+  that is re-rendered, passing the message through an instance variable (for example `@form_error`)
+  and showing it in the view next to the relevant control.
+- Success feedback: let the destination page express success directly. Do not bounce a one-time
+  banner across a redirect.
+- State that must survive a redirect and be authoritative (audit, completion, security events) does
+  not belong in `flash` at all — see `adr/application-logging-boundary.md` and the relevant ADR for
+  the correct durable transport.
+
+## Exceptions
+
+There are none by default. Any future use of session-backed completion or notice state must be
+introduced by an explicit ADR that names the transport and the boundary, consistent with
+`adr/logout-completion-boundary.md`, which already forbids flash-backed logout completion state.

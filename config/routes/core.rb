@@ -43,7 +43,6 @@ scope module: :core, as: :core do
 
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
 
       namespace :sso do
@@ -96,7 +95,6 @@ scope module: :core, as: :core do
 
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
 
       namespace :sso do
@@ -150,7 +148,6 @@ scope module: :core, as: :core do
 
       namespace :oidc do
         resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
-        resource :frontchannel_logout, only: :show, path: "frontchannel_logout", controller: "frontchannel_logouts"
       end
 
       namespace :sso do
