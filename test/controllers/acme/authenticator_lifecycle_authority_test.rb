@@ -267,7 +267,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_response :temporary_redirect
     assert_equal @sign_host, URI.parse(response.location).host
-    assert_equal "/social/google/disconnection_attempt", URI.parse(response.location).path
+    assert_equal "/social/google/disconnection", URI.parse(response.location).path
     assert ClientGoogleIdentity.exists?(google_identity.id)
     assert ClientAppleIdentity.exists?(apple_identity.id)
   end

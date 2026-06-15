@@ -148,7 +148,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     post(
-      social_disconnection_attempt_url_for(PROVIDERS.fetch(:google_app), ri: "jp", host: @host),
+      social_disconnection_url_for(PROVIDERS.fetch(:google_app), ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
@@ -164,7 +164,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
     post(
-      social_connection_attempt_url_for(PROVIDERS.fetch(:google_app), intent: "link", ri: "jp"),
+      social_connection_url_for(PROVIDERS.fetch(:google_app), intent: "link", ri: "jp"),
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
     )
 
@@ -417,18 +417,18 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
     post(
-      social_disconnection_attempt_url_for(config, ri: "jp", host: @host),
+      social_disconnection_url_for(config, ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
   end
 
-  def social_connection_attempt_url_for(config, **params)
-    public_send(:"sign_app_social_#{config.fetch(:normalized)}_connection_attempt_path", **params)
+  def social_connection_url_for(config, **params)
+    public_send(:"sign_app_social_#{config.fetch(:normalized)}_connection_path", **params)
   end
 
-  def social_disconnection_attempt_url_for(config, **params)
-    public_send(:"sign_app_social_#{config.fetch(:normalized)}_disconnection_attempt_path", **params)
+  def social_disconnection_url_for(config, **params)
+    public_send(:"sign_app_social_#{config.fetch(:normalized)}_disconnection_path", **params)
   end
 
   def sign_user_headers(user, token)

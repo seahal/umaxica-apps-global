@@ -4,13 +4,13 @@
 <% if has_other_sessions %>
   <div>
     <%= button_to t('sign.org.settings.sessions.revoke.others_button'),
-                  sign_org_settings_session_revocations_others_path,
+                  sign_org_settings_revocations_others_path,
                   method: :delete,
                   data: {
                     confirm: t('sign.org.settings.sessions.revoke.others_confirm')
                   } %>
     <%= button_to t('sign.org.settings.sessions.revoke.all_button'),
-                  sign_org_settings_session_revocations_all_path,
+                  sign_org_settings_revocations_all_path,
                   method: :delete,
                   data: {
                     confirm: t('sign.org.settings.sessions.revoke.all_confirm')

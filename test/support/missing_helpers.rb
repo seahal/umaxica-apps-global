@@ -330,7 +330,7 @@ module MissingHelpers
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path = public_send(
-      :"sign_app_social_#{normalized_provider}_connection_attempt_path",
+      :"sign_app_social_#{normalized_provider}_connection_path",
       intent: intent,
       ri: ri,
       entry: entry,
@@ -386,7 +386,7 @@ module MissingHelpers
 
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path = public_send(
-      :"sign_app_social_#{normalized_provider}_connection_attempt_path",
+      :"sign_app_social_#{normalized_provider}_connection_path",
       intent: "link",
       ri: ri,
       social_ceremony_grant: issuance.grant,

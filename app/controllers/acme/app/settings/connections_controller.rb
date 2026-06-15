@@ -50,7 +50,7 @@ module Acme
         def social_unlink
           provider = social_provider_param
           redirect_to(
-            social_disconnection_attempt_url_for(
+            social_disconnection_url_for(
               provider,
               ri: params[:ri],
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
@@ -124,9 +124,9 @@ module Acme
           public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
         end
 
-        def social_disconnection_attempt_url_for(provider, **params)
+        def social_disconnection_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          public_send(:"sign_app_social_#{normalized_provider}_disconnection_attempt_url", **params)
+          public_send(:"sign_app_social_#{normalized_provider}_disconnection_url", **params)
         end
       end
     end

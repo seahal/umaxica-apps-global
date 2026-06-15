@@ -24,7 +24,7 @@ class Sign::Com::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "destroy_redirect_is_not_session_mutation" do
     other_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    post sign_com_settings_session_revocation_attempt_url(other_token.public_id, ri: "jp"), headers: session_headers
+    post sign_com_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
 
     assert_redirect_to_acme_sessions
     assert_predicate other_token.reload, :currently_usable?
@@ -33,7 +33,7 @@ class Sign::Com::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "others_redirect_is_not_session_inventory_mutation" do
     other_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    post sign_com_settings_session_revocations_others_url(ri: "jp"), headers: session_headers
+    post sign_com_settings_revocations_others_url(ri: "jp"), headers: session_headers
 
     assert_redirect_to_acme_sessions
     assert_predicate other_token.reload, :currently_usable?
@@ -42,7 +42,7 @@ class Sign::Com::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "revoke_all_redirect_is_not_session_mutation" do
     other_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    post sign_com_settings_session_revocations_all_url(ri: "jp"), headers: session_headers
+    post sign_com_settings_revocations_all_url(ri: "jp"), headers: session_headers
 
     assert_redirect_to_acme_sessions
     assert_predicate @current_token.reload, :currently_usable?

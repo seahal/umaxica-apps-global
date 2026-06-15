@@ -1125,7 +1125,7 @@ ja:
             user_secret_credential_created: シークレット作成
             recovery_codes_generated: 復旧コード生成
             unknown: 不明なイベント (%{event_id})
-        emergency_key:
+        secrets:
           missing: 緊急キーの表示期限が切れました。
           show:
             title: 緊急キー

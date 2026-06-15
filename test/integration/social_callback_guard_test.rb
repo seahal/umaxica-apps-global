@@ -203,13 +203,13 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     token = ClientToken.find_by(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
 
-    connection_attempt_path =
+    connection_path =
       case provider
-      when "apple" then sign_app_social_apple_connection_attempt_url(intent: "link", ri: "jp")
-      else sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp")
+      when "apple" then sign_app_social_apple_connection_url(intent: "link", ri: "jp")
+      else sign_app_social_google_connection_url(intent: "link", ri: "jp")
       end
 
-    post(connection_attempt_path, headers: callback_headers.merge(headers))
+    post(connection_path, headers: callback_headers.merge(headers))
 
     assert_response :redirect
     uri = URI.parse(response.location)

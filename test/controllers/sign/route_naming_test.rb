@@ -55,15 +55,11 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
 
   test "app social routes are provider explicit and com org social routes are absent" do
     assert_recognizes_sign_route(:app, "/social/apple/connection", :get, "social/apple/connections", "show")
-    assert_recognizes_sign_route(
-      :app, "/social/apple/connection_attempt", :post,
-      "social/apple/connection_attempts", "create",
-    )
-    assert_recognizes_sign_route(
-      :app, "/social/google/disconnection_attempt", :post,
-      "social/google/disconnection_attempts", "create",
-    )
+    assert_recognizes_sign_route(:app, "/social/apple/connection", :post, "social/apple/connections", "create")
+    assert_recognizes_sign_route(:app, "/social/google/disconnection", :post, "social/google/disconnections", "create")
 
+    assert_unrecognized(:app, "/social/apple/connection_attempt", :post)
+    assert_unrecognized(:app, "/social/google/disconnection_attempt", :post)
     assert_unrecognized(:app, "/social/auth/apple", :delete)
     assert_unrecognized(:app, "/social/auth/apple/continue", :post)
     assert_unrecognized(:com, "/social/apple/connection", :get)
@@ -79,20 +75,22 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_recognizes_sign_route(:app, "/settings/mfa/reset", :post, "settings/mfa/resets", "create")
   end
 
-  test "session revocation uses post attempt routes instead of collection deletes" do
+  test "session revocation uses post routes instead of collection deletes" do
     assert_recognizes_sign_route(
-      :app, "/settings/sessions/abc/revocation_attempt", :post,
-      "settings/revocation_attempts", "create",
+      :app, "/settings/sessions/abc/revocation", :post,
+      "settings/revocations", "create",
     )
     assert_recognizes_sign_route(
-      :app, "/settings/session_revocations/others", :post,
-      "settings/session_revocations/others", "create",
+      :app, "/settings/revocations/others", :post,
+      "settings/revocations/others", "create",
     )
     assert_recognizes_sign_route(
-      :app, "/settings/session_revocations/all", :post,
-      "settings/session_revocations/alls", "create",
+      :app, "/settings/revocations/all", :post,
+      "settings/revocations/alls", "create",
     )
 
+    assert_unrecognized(:app, "/settings/sessions/abc/revocation_attempt", :post)
+    assert_unrecognized(:app, "/settings/session_revocations/others", :post)
     assert_unrecognized(:app, "/settings/sessions/others", :delete)
     assert_unrecognized(:app, "/settings/sessions/revoke_all", :delete)
   end

@@ -37,9 +37,11 @@ scope module: :acme, as: :acme do
         resource :language, only: %i(edit update)
         resource :currency, only: %i(edit update)
         resource :date, only: %i(edit update)
+        # FIXME: rename the following line. time... ???
         resource :time, only: %i(edit update)
         resource :motion, only: %i(edit update)
         resource :density, only: %i(edit update)
+        # FIXME: rename the following line.
         resource :page_size, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :cookie, only: %i(edit update)

@@ -60,7 +60,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # Client two tries to link the same Google account
     # Start link flow as user_two
-    post sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_two)
 
     assert_response :redirect
@@ -98,7 +98,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: existing_uid)
 
     # Client two starts link flow
-    post sign_app_social_apple_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_two)
 
     assert_response :redirect
@@ -136,7 +136,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link Apple fails when intent TTL exceeded" do
     setup_apple_mock_auth(uid: "apple_state_expired_#{SecureRandom.hex(4)}")
 
-    post sign_app_social_apple_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
     assert_response :redirect
@@ -158,7 +158,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     new_uid = "grantless_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    post sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
     assert_difference("ClientGoogleIdentity.count", 1) do
@@ -176,7 +176,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     new_uid = "grantless_apple_#{SecureRandom.hex(4)}"
     setup_apple_mock_auth(uid: new_uid)
 
-    post sign_app_social_apple_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
     assert_difference("ClientAppleIdentity.count", 1) do
@@ -242,7 +242,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: "unauthenticated_test")
 
     # Start without authentication headers
-    post sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
          headers: { "Host" => @host }
 
     # Should redirect to login or return error
@@ -255,7 +255,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link intent rejects resource-level step up without token-bound step up" do
     @user_one.update!(last_step_up_at: Time.current)
 
-    post sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
          headers: as_user_headers(@user_one, host: @host)
 
     assert_response :found
@@ -268,7 +268,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
-    post sign_app_social_google_connection_attempt_url(intent: "link", ri: "jp"),
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
          headers: headers
 
     assert_response :found

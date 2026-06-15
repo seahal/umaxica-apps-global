@@ -591,7 +591,7 @@ en:
           destroy:
             success: Phone number deleted.
             last_method: You must keep at least one login or recovery method.
-        emergency_key:
+        secrets:
           missing: The emergency key is no longer available.
           show:
             title: Emergency Key

@@ -1,0 +1,208 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class DocsRouteContractTest < ActionDispatch::IntegrationTest
+  DOCS_APP_HOST = ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+  DOCS_COM_HOST = ENV.fetch("DOCS_CORPORATE_URL", "docs.com.localhost")
+  DOCS_ORG_HOST = ENV.fetch("DOCS_STAFF_URL", "docs.org.localhost")
+
+  test "docs app route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "docs/app/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "docs/app/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "docs/app/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "docs/app/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "docs/app/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "docs/app/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/api/v0/entries",
+      method: :get,
+    )
+
+    assert_equal "docs/app/api/v0/entries", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_APP_HOST}/api/v0/entries/example",
+      method: :get,
+    )
+
+    assert_equal "docs/app/api/v0/entries", recognized[:controller]
+    assert_equal "show", recognized[:action]
+  end
+
+  test "docs com route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "docs/com/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "docs/com/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "docs/com/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "docs/com/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "docs/com/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "docs/com/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/api/v0/entries",
+      method: :get,
+    )
+
+    assert_equal "docs/com/api/v0/entries", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_COM_HOST}/api/v0/entries/example",
+      method: :get,
+    )
+
+    assert_equal "docs/com/api/v0/entries", recognized[:controller]
+    assert_equal "show", recognized[:action]
+  end
+
+  test "docs org route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "docs/org/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "docs/org/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "docs/org/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "docs/org/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "docs/org/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "docs/org/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/api/v0/entries",
+      method: :get,
+    )
+
+    assert_equal "docs/org/api/v0/entries", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{DOCS_ORG_HOST}/api/v0/entries/example",
+      method: :get,
+    )
+
+    assert_equal "docs/org/api/v0/entries", recognized[:controller]
+    assert_equal "show", recognized[:action]
+  end
+end

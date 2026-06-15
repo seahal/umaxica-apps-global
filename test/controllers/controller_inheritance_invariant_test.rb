@@ -31,23 +31,23 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/settings/emails/redeliveries_controller.rb",
     "app/controllers/sign/app/settings/passkeys/options_controller.rb",
     "app/controllers/sign/app/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/app/settings/revocation_attempts_controller.rb",
-    "app/controllers/sign/app/settings/session_revocations/alls_controller.rb",
-    "app/controllers/sign/app/settings/session_revocations/others_controller.rb",
+    "app/controllers/sign/app/settings/revocations_controller.rb",
+    "app/controllers/sign/app/settings/revocations/alls_controller.rb",
+    "app/controllers/sign/app/settings/revocations/others_controller.rb",
 
     # Sign::Com::Settings inheritance chains (parallel to app).
     "app/controllers/sign/com/settings/passkeys/options_controller.rb",
     "app/controllers/sign/com/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/com/settings/revocation_attempts_controller.rb",
-    "app/controllers/sign/com/settings/session_revocations/alls_controller.rb",
-    "app/controllers/sign/com/settings/session_revocations/others_controller.rb",
+    "app/controllers/sign/com/settings/revocations_controller.rb",
+    "app/controllers/sign/com/settings/revocations/alls_controller.rb",
+    "app/controllers/sign/com/settings/revocations/others_controller.rb",
 
     # Sign::Org::Settings inheritance chains (parallel to app).
     "app/controllers/sign/org/settings/passkeys/options_controller.rb",
     "app/controllers/sign/org/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/org/settings/revocation_attempts_controller.rb",
-    "app/controllers/sign/org/settings/session_revocations/alls_controller.rb",
-    "app/controllers/sign/org/settings/session_revocations/others_controller.rb",
+    "app/controllers/sign/org/settings/revocations_controller.rb",
+    "app/controllers/sign/org/settings/revocations/alls_controller.rb",
+    "app/controllers/sign/org/settings/revocations/others_controller.rb",
 
     # Sign::App::Sign::In::* inheriting from Sign::App::In::* base controllers.
     # The sign/sign/in/ layer is a routing namespace; in/ holds the behavior base.
@@ -62,7 +62,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/app/sign/in/passkeys_controller.rb",
     "app/controllers/sign/app/sign/in/secret_credentials_controller.rb",
-    "app/controllers/sign/app/sign/in/session_cancellations_controller.rb",
+    "app/controllers/sign/app/sign/in/session/cancellations_controller.rb",
     "app/controllers/sign/app/sign/in/sessions_controller.rb",
 
     # Sign::App::Sign::Up::* inheriting from Sign::App::Up::* base controllers.
@@ -89,10 +89,10 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/sign/up/telephones_controller.rb",
 
     # Sign::App::Social::* inheriting from AuthenticationsController base.
-    "app/controllers/sign/app/social/apple/connection_attempts_controller.rb",
-    "app/controllers/sign/app/social/apple/disconnection_attempts_controller.rb",
-    "app/controllers/sign/app/social/google/connection_attempts_controller.rb",
-    "app/controllers/sign/app/social/google/disconnection_attempts_controller.rb",
+    "app/controllers/sign/app/social/apple/connections_controller.rb",
+    "app/controllers/sign/app/social/apple/disconnections_controller.rb",
+    "app/controllers/sign/app/social/google/connections_controller.rb",
+    "app/controllers/sign/app/social/google/disconnections_controller.rb",
 
     # Sign::App::Up::Check cross-family inheritance (google/confirmations inheriting apple base).
     # Note: otps and telephone/birthdates are also PERMITTED_LOCAL_BASES for the sign/sign/up
@@ -112,7 +112,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/com/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/com/sign/in/passkeys_controller.rb",
     "app/controllers/sign/com/sign/in/secret_credentials_controller.rb",
-    "app/controllers/sign/com/sign/in/session_cancellations_controller.rb",
+    "app/controllers/sign/com/sign/in/session/cancellations_controller.rb",
     "app/controllers/sign/com/sign/in/sessions_controller.rb",
 
     # Sign::Com::Sign::Up::* inheriting from Sign::Com::Up::* base controllers.
@@ -146,7 +146,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/org/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/org/sign/in/passkeys_controller.rb",
     "app/controllers/sign/org/sign/in/secret_credentials_controller.rb",
-    "app/controllers/sign/org/sign/in/session_cancellations_controller.rb",
+    "app/controllers/sign/org/sign/in/session/cancellations_controller.rb",
     "app/controllers/sign/org/sign/in/sessions_controller.rb",
 
     # Sign::Org::Sign::Up::* inheriting from Sign::Org::Up::* base controllers.

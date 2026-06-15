@@ -112,11 +112,11 @@ module Sign
 
         assert_response :success
         assert_select "form[action=?][data-turbo=?]",
-                      sign_app_social_google_connection_attempt_path(ri: "jp"),
+                      sign_app_social_google_connection_path(ri: "jp"),
                       "false",
                       count: 1
         assert_select "form[action=?][data-turbo=?]",
-                      sign_app_social_apple_connection_attempt_path(ri: "jp"),
+                      sign_app_social_apple_connection_path(ri: "jp"),
                       "false",
                       count: 1
       end

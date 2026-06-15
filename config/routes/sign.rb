@@ -109,11 +109,14 @@ scope module: :sign, as: :sign do
           end
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          # FIXME: I want to rename this much smarter naming.
-          resource :session_cancellation, only: :create
+          namespace :session do
+            resource :cancellation, only: :create
+          end
           resource :guard, only: :show
           resource :check, only: %i(show update)
-          resource :check_cancellation, only: :create
+          namespace :check do
+            resource :cancellation, only: :create
+          end
           resource :challenge, only: %i(show)
           namespace :challenge do
             resource :totp, only: %i(new create)
@@ -125,19 +128,13 @@ scope module: :sign, as: :sign do
       # Social auth: settings-side social connection lifecycle.
       namespace :social do
         namespace :apple do
-          resource :connection, only: :show
-          # FIXME: I want to rename this much smarter naming.
-          resource :connection_attempt, only: :create
-          # FIXME: I want to rename this much smarter naming.
-          resource :disconnection_attempt, only: :create
+          resource :connection, only: %i(show create)
+          resource :disconnection, only: :create
         end
 
         namespace :google do
-          resource :connection, only: :show
-          # FIXME: I want to rename this much smarter naming.
-          resource :connection_attempt, only: :create
-          # FIXME: I want to rename this much smarter naming.
-          resource :disconnection_attempt, only: :create
+          resource :connection, only: %i(show create)
+          resource :disconnection, only: :create
         end
       end
 
@@ -178,8 +175,7 @@ scope module: :sign, as: :sign do
         end
         resources :totps, only: %i(index new create edit update destroy)
         resources :passkeys do
-          # FIXME: I want to rename this much smarter naming.
-          resource :removal_attempt, only: :create
+          resource :removal, only: :create
         end
         namespace :passkeys do
           resource :options, only: :create
@@ -198,19 +194,15 @@ scope module: :sign, as: :sign do
         resource :birthdate, only: :show
         resource :apple, only: :show
         resource :google, only: :show
-        # FIXME: rename this to "secrets"
-        resource :emergency_key, only: :show
+        resource :secrets, only: :show
         resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          # FIXME: I want to rename this much smarter naming.
-          resource :rotation_attempt, only: :create
-          # FIXME: I want to rename this much smarter naming.
-          resource :removal_attempt, only: :create
+          resource :rotation, only: :create
+          resource :removal, only: :create
         end
         resources :sessions, only: %i(index show) do
-          # FIXME: I want to rename this much smarter naming.
-          resource :revocation_attempt, only: :create
+          resource :revocation, only: :create
         end
-        namespace :session_revocations do
+        namespace :revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
@@ -316,15 +308,16 @@ scope module: :sign, as: :sign do
             resource :options, only: :create
             resource :verification, only: :create
           end
-          # FIXME: I want to rename this much smarter naming.
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          # FIXME: I want to rename this much smarter naming.
-          resource :session_cancellation, only: :create
+          namespace :session do
+            resource :cancellation, only: :create
+          end
           resource :guard, only: :show
           resource :check, only: %i(show update)
-          # FIXME: I want to rename this much smarter naming.
-          resource :check_cancellation, only: :create
+          namespace :check do
+            resource :cancellation, only: :create
+          end
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -348,8 +341,7 @@ scope module: :sign, as: :sign do
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
-          # FIXME: I want to rename this much smarter naming.
-          resource :removal_attempt, only: :create
+          resource :removal, only: :create
         end
         namespace :passkeys do
           resource :options, only: :create
@@ -373,18 +365,14 @@ scope module: :sign, as: :sign do
         resource :birthdate, only: :show
 
         resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          # FIXME: I want to rename this much smarter naming.
-          resource :rotation_attempt, only: :create
-          # FIXME: I want to rename this much smarter naming.
-          resource :removal_attempt, only: :create
+          resource :rotation, only: :create
+          resource :removal, only: :create
         end
 
         resources :sessions, only: %i(index show) do
-          # FIXME: I want to rename this much smarter naming.
-          resource :revocation_attempt, only: :create
+          resource :revocation, only: :create
         end
-        # FIXME: I want to rename this much smarter naming.
-        namespace :session_revocations do
+        namespace :revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
@@ -436,13 +424,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      namespace :r18 do
-        resource :gate, only: %i(show create) do
-          get :blocked
-          get :stopped
-        end
-      end
-
       namespace :auth, path: "auth" do
         resource :callback, only: :show
       end
@@ -472,15 +453,16 @@ scope module: :sign, as: :sign do
             resource :options, only: :create
             resource :verification, only: :create
           end
-          # FIXME: I want to rename this much smarter naming.
           resource :secret_credential, only: %i(new create)
           resource :session, only: %i(show update destroy)
-          # FIXME: I want to rename this much smarter naming.
-          resource :session_cancellation, only: :create
+          namespace :session do
+            resource :cancellation, only: :create
+          end
           resource :guard, only: :show
           resource :check, only: %i(show update)
-          # FIXME: I want to rename this much smarter naming.
-          resource :check_cancellation, only: :create
+          namespace :check do
+            resource :cancellation, only: :create
+          end
           resource :challenge, only: %i(show)
 
           namespace :challenge do
@@ -496,13 +478,11 @@ scope module: :sign, as: :sign do
         resource :passkey, only: %i(new create)
       end
 
-      # TODO: move settings to acme's identity entrypoints.
       # Account settings and identity management
       resource :settings, only: :show
       namespace :settings do
         resources :passkeys do
-          # FIXME: I want to rename this much smarter naming.
-          resource :removal_attempt, only: :create
+          resource :removal, only: :create
         end
         namespace :passkeys do
           resource :options, only: :create
@@ -516,10 +496,9 @@ scope module: :sign, as: :sign do
         resources :secret_credentials
 
         resources :sessions, only: %i(index show) do
-          # FIXME: I want to rename this much smarter naming.
-          resource :revocation_attempt, only: :create
+          resource :revocation, only: :create
         end
-        namespace :session_revocations do
+        namespace :revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
@@ -528,8 +507,7 @@ scope module: :sign, as: :sign do
         end
         resources :emails, only: %i(index edit update destroy)
 
-        # FIXME: I want to rename this much smarter naming.
-        scope path: "telephones", module: :telephones, as: :telephones do
+        namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new create edit destroy)

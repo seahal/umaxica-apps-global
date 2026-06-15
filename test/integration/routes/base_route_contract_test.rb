@@ -1,0 +1,208 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class BaseRouteContractTest < ActionDispatch::IntegrationTest
+  BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
+  BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
+  BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
+
+  test "base app route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "base/app/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "base/app/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "base/app/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "base/app/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "base/app/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/robots.txt",
+      method: :get,
+    )
+
+    assert_equal "base/app/robots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/sitemap.xml",
+      method: :get,
+    )
+
+    assert_equal "base/app/sitemaps", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "base/app/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+  end
+
+  test "base com route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "base/com/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "base/com/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "base/com/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "base/com/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "base/com/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/robots.txt",
+      method: :get,
+    )
+
+    assert_equal "base/com/robots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/sitemap.xml",
+      method: :get,
+    )
+
+    assert_equal "base/com/sitemaps", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "base/com/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+  end
+
+  test "base org route contract" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/",
+      method: :get,
+    )
+
+    assert_equal "base/org/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/health",
+      method: :get,
+    )
+
+    assert_equal "base/org/healths", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/health/liveness",
+      method: :get,
+    )
+
+    assert_equal "base/org/health/livenesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/health/readiness",
+      method: :get,
+    )
+
+    assert_equal "base/org/health/readinesses", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/health/startup",
+      method: :get,
+    )
+
+    assert_equal "base/org/health/startups", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/robots.txt",
+      method: :get,
+    )
+
+    assert_equal "base/org/robots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/sitemap.xml",
+      method: :get,
+    )
+
+    assert_equal "base/org/sitemaps", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/csp-violation-report",
+      method: :post,
+    )
+
+    assert_equal "base/org/csp_violation_reports", recognized[:controller]
+    assert_equal "create", recognized[:action]
+  end
+end

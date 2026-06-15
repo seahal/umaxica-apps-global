@@ -14,7 +14,7 @@
 </ul>
 
 <div data-test-id="registration-method">
-  <%= button_to sign_app_social_google_connection_attempt_path(ri: params[:ri], entry: "sign_up"),
+  <%= button_to sign_app_social_google_connection_path(ri: params[:ri], entry: "sign_up"),
                 method: :post,
                 form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.google") %>
@@ -22,7 +22,7 @@
 </div>
 
 <div data-test-id="registration-method">
-  <%= button_to sign_app_social_apple_connection_attempt_path(ri: params[:ri], entry: "sign_up"),
+  <%= button_to sign_app_social_apple_connection_path(ri: params[:ri], entry: "sign_up"),
                 method: :post,
                 form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.apple") %>

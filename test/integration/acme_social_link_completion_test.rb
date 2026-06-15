@@ -86,7 +86,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "sign com and org surfaces expose no social routes" do
     # The app surface owns the social link route helper...
-    assert_respond_to self, :sign_app_social_google_connection_attempt_path
+    assert_respond_to self, :sign_app_social_google_connection_path
 
     # ...while com/org sign surfaces expose no social authentication route at all.
     %w(com org).each do |surface|
