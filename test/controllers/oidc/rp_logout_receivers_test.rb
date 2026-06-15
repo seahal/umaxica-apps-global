@@ -32,7 +32,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
       with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
         token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: sid))
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :success, surface.inspect
         assert_predicate token_record.reload, :revoked?, surface.inspect
@@ -44,7 +44,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       token_record = create_session_token(surface, SecureRandom.uuid)
 
-      post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: "invalid" }
+      post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: "invalid" }
 
       assert_response :bad_request, surface.inspect
       assert_not_predicate token_record.reload, :revoked?, surface.inspect
@@ -58,7 +58,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
       with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
         token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: "not-a-uuid"))
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :bad_request, surface.inspect
         assert_not_predicate token_record.reload, :revoked?, surface.inspect
@@ -75,7 +75,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
         payload.delete("sid")
         token = forge_logout_token(surface, payload: payload)
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :bad_request, surface.inspect
         assert_not_predicate token_record.reload, :revoked?, surface.inspect
@@ -92,7 +92,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
         payload["iss"] = wrong_issuer_for(surface.fetch(:resource_type))
         token = forge_logout_token(surface, payload: payload)
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :bad_request, surface.inspect
         assert_not_predicate token_record.reload, :revoked?, surface.inspect
@@ -109,7 +109,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
         payload["aud"] = "unexpected-rp"
         token = forge_logout_token(surface, payload: payload)
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :bad_request, surface.inspect
         assert_not_predicate token_record.reload, :revoked?, surface.inspect
@@ -125,12 +125,12 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
       with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
         token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: sid))
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :success, surface.inspect
         assert_predicate token_record.reload, :revoked?, surface.inspect
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :bad_request, surface.inspect
         assert_predicate token_record.reload, :revoked?, surface.inspect
@@ -143,7 +143,7 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
       with_oidc_key(namespace_for(surface.fetch(:resource_type))) do
         token = forge_logout_token(surface, payload: base_logout_payload(surface, sid: SecureRandom.uuid))
 
-        post "https://#{surface.fetch(:host)}/oidc/backchannel_logout", params: { logout_token: token }
+        post "https://#{surface.fetch(:host)}#{backchannel_logout_path(surface)}", params: { logout_token: token }
 
         assert_response :success, surface.inspect
       end
@@ -166,6 +166,10 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     when "visitor" then OidcIssuer.for_resource_type("client")
     else OidcIssuer.for_resource_type("visitor")
     end
+  end
+
+  def backchannel_logout_path(surface)
+    (surface.fetch(:client_id) == "core-next-rp") ? "/oidc/backchannel/logout" : "/oidc/backchannel_logout"
   end
 
   def create_session_token(surface, sid)

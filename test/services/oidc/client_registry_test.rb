@@ -72,7 +72,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     core = OidcClientRegistry.find!("core-next-rp")
 
     assert sign.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
-    assert core.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
+    assert core.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel/logout" }
   end
 
   test "logout receiver uris can be filtered by acme resource type" do

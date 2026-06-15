@@ -6,13 +6,16 @@ scope module: :core, as: :core do
   constraints host: [ENV["CORE_SERVICE_URL"], "www.jp.umaxica.app", "jp.umaxica.app", "core.app.localhost"].compact do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
+      resources :robots, only: :index, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
@@ -33,7 +36,9 @@ scope module: :core, as: :core do
       namespace :api do
         namespace :v0 do
           resource :session, only: :show
-          post "token/refresh", to: "tokens#refresh"
+          namespace :token do
+            resource :refresh, only: :create
+          end
         end
       end
 
@@ -42,15 +47,15 @@ scope module: :core, as: :core do
       end
 
       namespace :oidc do
-        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        namespace :backchannel do
+          resource :logout, only: :create
+        end
       end
 
       namespace :sso do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
-
-      resources :accounts, only: [:index]
     end
   end
 
@@ -58,13 +63,16 @@ scope module: :core, as: :core do
   constraints host: [ENV["CORE_CORPORATE_URL"], "www.jp.umaxica.com", "core.com.localhost"].compact do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
+      resources :robots, only: :index, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
@@ -85,7 +93,9 @@ scope module: :core, as: :core do
       namespace :api do
         namespace :v0 do
           resource :session, only: :show
-          post "token/refresh", to: "tokens#refresh"
+          namespace :token do
+            resource :refresh, only: :create
+          end
         end
       end
 
@@ -94,15 +104,15 @@ scope module: :core, as: :core do
       end
 
       namespace :oidc do
-        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        namespace :backchannel do
+          resource :logout, only: :create
+        end
       end
 
       namespace :sso do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
-
-      resources :accounts, only: [:index]
     end
   end
 
@@ -110,13 +120,16 @@ scope module: :core, as: :core do
   constraints host: [ENV["CORE_STAFF_URL"], "www.jp.umaxica.org", "core.org.localhost"].compact do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       resource :health, only: :show
       namespace :health do
         resource :liveness, only: :show
         resource :readiness, only: :show
         resource :startup, only: :show
       end
+      resources :robots, only: :index, path: "robots.txt"
       resource :sitemap, only: :show, path: "sitemap.xml"
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
       resource :configuration, only: :show
@@ -138,7 +151,9 @@ scope module: :core, as: :core do
       namespace :api do
         namespace :v0 do
           resource :session, only: :show
-          post "token/refresh", to: "tokens#refresh"
+          namespace :token do
+            resource :refresh, only: :create
+          end
         end
       end
 
@@ -147,7 +162,9 @@ scope module: :core, as: :core do
       end
 
       namespace :oidc do
-        resource :backchannel_logout, only: :create, path: "backchannel_logout", controller: "backchannel_logouts"
+        namespace :backchannel do
+          resource :logout, only: :create
+        end
       end
 
       namespace :sso do
@@ -155,8 +172,6 @@ scope module: :core, as: :core do
         resource :authorization, only: :show, path: "authorize"
         resource :logout, only: :create
       end
-
-      resources :accounts, only: [:index]
     end
   end
 

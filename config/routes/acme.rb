@@ -6,12 +6,10 @@ scope module: :acme, as: :acme do
   constraints host: [ENV["ACME_SERVICE_URL"], "app.localhost", "www.app.localhost"].compact do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
-               format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+        resource :discovery, only: :show, path: "openid-configuration", format: false
+      end
       # Health
       resource :health, only: :show
       namespace :health do
@@ -151,7 +149,6 @@ scope module: :acme, as: :acme do
         end
         resources :activities, only: :index
         resources :sessions, only: %i(index destroy) do
-          # FIXME: Check these entrypoints are still needed.
           collection do
             delete :others
             delete :revoke_all
@@ -170,12 +167,10 @@ scope module: :acme, as: :acme do
   constraints host: [ENV["ACME_CORPORATE_URL"], "com.localhost", "www.com.localhost"].compact do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
-               format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+        resource :discovery, only: :show, path: "openid-configuration", format: false
+      end
       # Health
       resource :health, only: :show
       namespace :health do
@@ -293,12 +288,10 @@ scope module: :acme, as: :acme do
   constraints host: [ENV["ACME_STAFF_URL"], "org.localhost", "www.org.localhost"].compact do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
-      resource :openid_configuration,
-               only: :show,
-               path: ".well-known/openid-configuration",
-               controller: "openid_configurations",
-               format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+        resource :discovery, only: :show, path: "openid-configuration", format: false
+      end
       # Health
       resource :health, only: :show
       namespace :health do

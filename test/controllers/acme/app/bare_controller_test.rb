@@ -21,12 +21,12 @@ module Acme
         Acme::App::Health::ReadinessesController
         Acme::App::Health::StartupsController
         Acme::App::HealthsController
-        Acme::App::JwksController
         Acme::App::Oauth::JwksController
         Acme::App::Oauth::RevocationsController
         Acme::App::Oauth::TokensController
         Acme::App::Oauth::UserInfoController
-        Acme::App::OpenidConfigurationsController
+        Acme::App::WellKnown::DiscoveriesController
+        Acme::App::WellKnown::JwksController
         Acme::App::Preference::EmailsController
         Acme::App::RobotsController
         Acme::App::SitemapsController

@@ -11,7 +11,7 @@ module Acme
       test "GET jwks endpoint returns JSON with keys" do
         host! ENV.fetch("ACME_CORPORATE_URL", "com.localhost")
 
-        get acme_com_jwks_url
+        get acme_com_well_known_jwks_url
 
         assert_response :success
         assert_equal "application/json", response.media_type

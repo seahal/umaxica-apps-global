@@ -11,7 +11,7 @@ module Core
       test "GET jwks endpoint returns JSON with keys" do
         host! ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org")
 
-        get core_org_jwks_url
+        get core_org_well_known_jwks_url
 
         assert_response :success
         assert_equal "application/json", response.media_type

@@ -4,7 +4,7 @@
 module Acme
   module Com
     module Oauth
-      class JwksController < Acme::Com::JwksController
+      class JwksController < Acme::Com::WellKnown::JwksController
         AUTHENTICATION_MODE = :bare
       end
     end

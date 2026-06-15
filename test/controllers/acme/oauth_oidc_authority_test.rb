@@ -22,9 +22,9 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       def success? = success
     end
 
-  test "acme app discovery advertises acme issuer and protocol endpoints" do
+  test "acme app well-known discovery advertises acme issuer and protocol endpoints" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    get acme_app_openid_configuration_url(host: host)
+    get acme_app_well_known_discovery_url(host: host)
 
     assert_response :ok
     body = response.parsed_body
@@ -39,13 +39,13 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "#{issuer}/.well-known/jwks.json", body["jwks_uri"]
   end
 
-  test "acme com and org discovery advertise surface-specific acme issuers" do
-    get acme_com_openid_configuration_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+  test "acme com and org well-known discovery advertise surface-specific acme issuers" do
+    get acme_com_well_known_discovery_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("visitor"), response.parsed_body["issuer"]
 
-    get acme_org_openid_configuration_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    get acme_org_well_known_discovery_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("operator"), response.parsed_body["issuer"]
@@ -61,7 +61,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "sign jwks remains public compatibility metadata only" do
-    get sign_app_jwks_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    get sign_app_well_known_jwks_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_response :ok
     response.parsed_body.fetch("keys").each do |key|
@@ -115,6 +115,30 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         method: :post,
       )
     end
+  end
+
+  test "acme well-known discovery uses the external openid configuration path" do
+    assert_recognizes_acme_route(
+      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      "/.well-known/openid-configuration",
+      :get,
+      "acme/app/well_known/discoveries",
+      "show",
+    )
+    assert_recognizes_acme_route(
+      ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      "/.well-known/openid-configuration",
+      :get,
+      "acme/com/well_known/discoveries",
+      "show",
+    )
+    assert_recognizes_acme_route(
+      ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      "/.well-known/openid-configuration",
+      :get,
+      "acme/org/well_known/discoveries",
+      "show",
+    )
   end
 
   test "acme token endpoint rejects get" do
@@ -450,5 +474,12 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     }
     params[:screen_hint] = screen_hint if screen_hint.present?
     params
+  end
+
+  def assert_recognizes_acme_route(host, path, method, controller_name, action)
+    route = Rails.application.routes.recognize_path("https://#{host}#{path}", method: method)
+
+    assert_equal controller_name, route.fetch(:controller)
+    assert_equal action, route.fetch(:action)
   end
 end

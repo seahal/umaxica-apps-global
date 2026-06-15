@@ -9,7 +9,9 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_SERVICE_URL"] do
     scope module: :app, as: :app do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       # Basic public endpoints
       resource :health, only: :show
       namespace :health do
@@ -159,12 +161,10 @@ scope module: :sign, as: :sign do
       # Step-up verification
       resource :verification, only: %i(show)
       namespace :verification do
-        # TODO: what is the following line? check it out!
         resource :setup, only: %i(new)
         resource :passkey, only: %i(new create)
         resource :totp, only: %i(new create)
         resources :emails, only: %i(new create edit update) do
-          # FIXME: I want to rename this much smarter naming.
           resource :redelivery, only: :create
         end
       end
@@ -191,8 +191,7 @@ scope module: :sign, as: :sign do
           end
         end
         resources :emails, only: %i(index edit update destroy)
-        # FIXME: I want to rename this much smarter naming.
-        scope path: "telephones", module: :telephones, as: :telephones do
+        namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new create edit destroy)
@@ -225,7 +224,9 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_CORPORATE_URL"] do
     scope module: :com, as: :com do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       resource :dashboard, only: :show
 
       # Basic public endpoints
@@ -399,7 +400,9 @@ scope module: :sign, as: :sign do
   constraints host: ENV["SIGN_STAFF_URL"] do
     scope module: :org, as: :org do
       root to: "roots#index"
-      resource :jwks, only: :show, path: ".well-known/jwks.json", format: false
+      namespace :well_known, path: ".well-known" do
+        resource :jwks, only: :show, path: "jwks.json", format: false
+      end
       resource :dashboard, only: :show
 
       # Staff management top-level areas

@@ -160,24 +160,6 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "regional core accounts require matching core OIDC clients" do
-    SURFACES.each do |surface|
-      host! surface[:host]
-      https!
-
-      get "/accounts?ri=jp", headers: browser_headers
-
-      assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
-      query = Rack::Utils.parse_nested_query(uri.query)
-
-      assert_equal surface[:acme_host], uri.host
-      assert_equal "/oauth/authorize", uri.path
-      assert_equal surface[:client_id], query["client_id"]
-      assert_equal redirect_uri_for(surface), query["redirect_uri"]
-    end
-  end
-
   test "regional core callback establishes RP session after successful authorization" do
     SURFACES.each do |surface|
       host! surface[:host]
@@ -204,13 +186,6 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_equal "https://#{surface[:host]}/", response.location
       assert_core_bridge_exists_for(surface[:client_id], resource) if resource.is_a?(Client)
-
-      next unless resource.is_a?(Client)
-
-      get "/accounts?ri=jp", headers: browser_headers
-
-      assert_response :success
-      assert_includes response.body, "account"
     end
   end
 

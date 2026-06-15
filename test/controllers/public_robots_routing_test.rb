@@ -31,6 +31,13 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
     )
   end
 
+  test "core surfaces define public file helpers" do
+    assert_public_file_helpers(
+      robots: %i(core_app_robots_path core_com_robots_path core_org_robots_path),
+      sitemap: %i(core_app_sitemap_path core_com_sitemap_path core_org_sitemap_path),
+    )
+  end
+
   test "content surfaces delegate robots to Next.js" do
     %i(
       help_app_robot_path help_com_robot_path help_org_robot_path
@@ -51,6 +58,12 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
       [method(:base_com_sitemap_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "sitemap"],
       [method(:base_org_sitemap_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "sitemap"],
       [method(:palm_app_sitemap_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "sitemap"],
+      [method(:core_app_robots_url), ENV["CORE_SERVICE_URL"] || "core.app.localhost", "robots"],
+      [method(:core_com_robots_url), ENV["CORE_CORPORATE_URL"] || "core.com.localhost", "robots"],
+      [method(:core_org_robots_url), ENV["CORE_STAFF_URL"] || "core.org.localhost", "robots"],
+      [method(:core_app_sitemap_url), ENV["CORE_SERVICE_URL"] || "core.app.localhost", "sitemap"],
+      [method(:core_com_sitemap_url), ENV["CORE_CORPORATE_URL"] || "core.com.localhost", "sitemap"],
+      [method(:core_org_sitemap_url), ENV["CORE_STAFF_URL"] || "core.org.localhost", "sitemap"],
       [method(:acme_com_robot_url), ENV["ACME_CORPORATE_URL"] || "www.com.localhost", "robots"],
       [method(:acme_app_robot_url), ENV["ACME_SERVICE_URL"] || "www.app.localhost", "robots"],
       [method(:acme_org_robot_url), ENV["ACME_STAFF_URL"] || "www.org.localhost", "robots"],
