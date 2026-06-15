@@ -76,6 +76,57 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "content api index and show serialize published content with the expected namespace" do
+    model = DocsAppContentEntry
+    create_content_entry(model, slug: "older-entry", title: "Older Entry", locale: "test-api", published_at: 2.hours.ago)
+    newer = create_content_entry(model, slug: "newer-entry", title: "Newer Entry", locale: "test-api")
+    create_content_entry(model, slug: "other-locale", title: "Other Locale", locale: "jp")
+
+    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+
+    get "/api/v0/entries",
+        params: { locale: "test-api" },
+        headers: { "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"), "Accept" => "application/json" },
+        as: :json
+
+    assert_response :success
+    entries = response.parsed_body.fetch("entries")
+
+    assert_equal ["newer-entry", "older-entry"], entries.map { |entry| entry.fetch("slug") }
+    assert_equal "docs", entries.first.fetch("namespace")
+    assert_equal "app", entries.first.fetch("surface")
+    assert_equal "Newer Entry", entries.first.fetch("title")
+
+    get "/api/v0/entries/#{newer.slug}",
+        params: { locale: "test-api" },
+        headers: { "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"), "Accept" => "application/json" },
+        as: :json
+
+    assert_response :success
+    entry = response.parsed_body.fetch("entry")
+
+    assert_equal newer.slug, entry.fetch("slug")
+    assert_equal "docs", entry.fetch("namespace")
+    assert_equal "app", entry.fetch("surface")
+    assert_equal "Newer Entry", entry.fetch("title")
+
+    I18n.with_locale(:en) do
+      create_content_entry(model, slug: "default-locale-entry", title: "Default Locale Entry", locale: "en")
+
+      get "/api/v0/entries",
+          headers: {
+            "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"),
+            "Accept" => "application/json",
+          },
+          as: :json
+
+      assert_response :success
+      default_entries = response.parsed_body.fetch("entries")
+
+      assert_includes default_entries.map { |item| item.fetch("slug") }, "default-locale-entry"
+    end
+  end
+
   private
 
   def create_content_entry(model, slug:, title:, locale: "jp", status: "published", published_at: 1.hour.ago)

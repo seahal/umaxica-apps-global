@@ -5,11 +5,14 @@ require "test_helper"
 
 module Authentication
   class AuditWriterTest < ActiveSupport::TestCase
-    fixtures :clients, :client_statuses, :client_chronicle_events, :client_chronicle_levels
+    fixtures_none!
 
     setup do
-      @user = clients(:one)
-      @user.update!(status_id: ClientStatus::ACTIVE, withdrawn_at: nil) if defined?(ClientStatus)
+      @user = Client.create!(
+        public_id: "audit_#{SecureRandom.hex(6)}",
+        status_id: ClientStatus::ACTIVE,
+        visibility_id: ClientVisibility::USER,
+      )
 
       # Ensure audit master data exists
       ClientChronicleEvent.ensure_defaults! if ClientChronicleEvent.respond_to?(:ensure_defaults!)

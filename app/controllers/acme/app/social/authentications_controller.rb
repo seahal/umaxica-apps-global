@@ -141,15 +141,17 @@ module Acme
         def complete_social_signup!(commit, provider)
           cycle = create_social_sign_up_flow!(commit)
           bind_social_sign_up_flow!(cycle, commit)
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
           redirect_to(
-            sign_app_sign_up_guard_url(
+            public_send(
+              :"sign_app_sign_up_guard_#{normalized_provider}_url",
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
             ),
             notice: I18n.t(
               "sign.app.social.sessions.create.success",
-              provider: SocialIdentifiable.normalize_provider(provider).humanize,
+              provider: normalized_provider.humanize,
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

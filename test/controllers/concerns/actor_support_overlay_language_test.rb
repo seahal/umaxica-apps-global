@@ -12,6 +12,8 @@ require "test_helper"
 # child records always exist, so explicitness is what distinguishes "set" from
 # "default-seeded".
 class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
+  fixtures_none!
+
   # Minimal includer exposing the private resolver. locale_from_region is not
   # defined here, so locale_from_request_region falls back to its inline map.
   class Harness

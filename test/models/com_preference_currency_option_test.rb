@@ -11,6 +11,8 @@
 require "test_helper"
 
 class ComPreferenceCurrencyOptionTest < ActiveSupport::TestCase
+  fixtures_none!
+
   test "name returns usd for USD id" do
     option = ComPreferenceCurrencyOption.new(id: ComPreferenceCurrencyOption::USD)
 

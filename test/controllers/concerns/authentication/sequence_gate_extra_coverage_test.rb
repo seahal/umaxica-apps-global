@@ -442,4 +442,90 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_equal "session-1", cycle.updated[:token]
   end
+
+  test "sign_in_selector_allowed_request? accepts allowed routes and rejects invalid paths" do
+    @harness.request.path = "/app/selector"
+
+    assert @harness.send(:sign_in_selector_allowed_request?)
+
+    @harness.request.path = "/unrelated"
+    @harness.define_singleton_method(:sign_app_selector_path) { |**| "http://[" }
+
+    assert_not @harness.send(:sign_in_selector_allowed_request?)
+  end
+
+  test "sign_in_sequence_surface_for_actor and sign_in_flow_class_for resolve actor types" do
+    assert_equal :app, @harness.send(:sign_in_sequence_surface_for_actor, Client.new)
+    assert_equal :com, @harness.send(:sign_in_sequence_surface_for_actor, Visitor.new)
+    assert_equal :org, @harness.send(:sign_in_sequence_surface_for_actor, Operator.new)
+    assert_equal :app, @harness.send(:sign_in_sequence_surface_for_actor, Object.new)
+
+    assert_equal ClientSignInFlow, @harness.send(:sign_in_flow_class_for, Client.new)
+    assert_equal VisitorSignInFlow, @harness.send(:sign_in_flow_class_for, Visitor.new)
+    assert_equal OperatorSignInFlow, @harness.send(:sign_in_flow_class_for, Operator.new)
+
+    assert_raises(ArgumentError) do
+      @harness.send(:sign_in_flow_class_for, Object.new)
+    end
+  end
+
+  test "issue_active_session_for_selector! issues a session and persists the cycle" do
+    cycle_class =
+      Class.new do
+        class << self
+          def transaction
+            yield
+          end
+        end
+
+        attr_reader :updates, :locks, :completed
+
+        def initialize
+          @updates = []
+          @locks = 0
+          @completed = false
+        end
+
+        def lock!
+          @locks += 1
+        end
+
+        def sign_in_completed?
+          false
+        end
+
+        def sign_in_session_issuance_pending?
+          true
+        end
+
+        def has_attribute?(name)
+          name == :session_issued_at
+        end
+
+        def token_id
+          nil
+        end
+
+        def update!(changes)
+          @updates << changes
+        end
+
+        def complete_sign_in!
+          @completed = true
+        end
+      end
+
+    cycle = cycle_class.new
+    actor = Client.new(id: 101)
+
+    @harness.define_singleton_method(:sign_in_flow_actor) { |_cycle| actor }
+
+    result = AuthenticationSequenceGate.instance_method(:issue_active_session_for_selector!).bind(@harness).call(cycle)
+
+    assert_equal({ status: :success }, result)
+    assert_equal 1, cycle.updates.length
+    assert_predicate cycle, :completed
+    assert_equal({ token: nil }, cycle.updates.first.slice(:token))
+    assert_predicate cycle.updates.first[:session_issued_at], :present?
+  end
 end

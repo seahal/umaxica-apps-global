@@ -6,24 +6,6 @@ module ReadOnlyContentRendering
 
   private
 
-  def render_content_index
-    @content_entries = content_entry_class.published.for_locale(content_locale).recent_first
-
-    respond_to do |format|
-      format.html { render "shared/content_entries/index" }
-      format.json { render json: public_content_entries_json }
-    end
-  end
-
-  def render_content_show
-    @content_entry = content_entry_class.published.for_locale(content_locale).find_by!(slug: params.expect(:id))
-
-    respond_to do |format|
-      format.html { render "shared/content_entries/show" }
-      format.json { render json: public_content_entry_json(@content_entry) }
-    end
-  end
-
   def render_content_api_index
     @content_entries = content_entry_class.published.for_locale(content_locale).recent_first
     render json: { entries: public_content_entries_json }

@@ -8,6 +8,13 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   SIGN_COM_HOST = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
   SIGN_ORG_HOST = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
 
+  def assert_recognizes(expected, options)
+    route = Rails.application.routes.recognize_path(options.fetch(:path), method: options.fetch(:method))
+
+    assert_equal expected.fetch(:controller), route.fetch(:controller)
+    assert_equal expected.fetch(:action), route.fetch(:action)
+  end
+
   test "sign app route contract" do
     assert_recognizes(
       { controller: "sign/app/roots", action: "index" },

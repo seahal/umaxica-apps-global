@@ -7,10 +7,15 @@ require_relative "../../../../support/auth_helpers"
 class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
+  fixtures_none!
+
   setup do
     @host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @client = OidcClientRegistry.find!("sign-rp")
-    @operator = operators(:one)
+    @operator = Operator.create!(
+      status_id: OperatorStatus::ACTIVE,
+      visibility_id: OperatorVisibility::STAFF,
+    )
     @token = OperatorToken.create!(
       staff: @operator,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
@@ -93,7 +98,10 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "mismatched subject does not mutate or redirect externally" do
-    other = operators(:two)
+    other = Operator.create!(
+      status_id: OperatorStatus::ACTIVE,
+      visibility_id: OperatorVisibility::STAFF,
+    )
     bad_hint = id_token(resource: other, subject: OidcSubject.for(other, resource_type: "operator"))
 
     post acme_org_oidc_logout_url(host: @host),
@@ -106,10 +114,7 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "registered post_logout_redirect_uri receives state after logout" do
-    redirect_uri =
-      @client.post_logout_redirect_uris.find { |uri|
-        URI.parse(uri).host == ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
-      }
+    redirect_uri = @client.post_logout_redirect_uris.first
 
     assert_enqueued_jobs 2, only: OidcBackchannelLogoutDeliveryJob do
       post acme_org_oidc_logout_url(host: @host),
