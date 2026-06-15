@@ -46,11 +46,20 @@ class OtpLockableTest < ActiveSupport::TestCase
   end
 
   test "increment_attempts! does not run model validations" do
-    # This telephone's acceptance validations would fail on a normal save!.
-    telephone = OperatorTelephone.new(number: "+819012345678", staff: operators(:none_staff))
+    # confirm_policy: false makes the record fail acceptance validation, so a
+    # plain save! would raise. increment_attempts! must still succeed.
+    telephone = OperatorTelephone.new(
+      number: "+819012345678",
+      staff: operators(:none_staff),
+      confirm_policy: false,
+    )
     telephone.save!(validate: false)
 
     assert_not telephone.valid?, "fixture should be invalid so the validate: false path is meaningful"
+
+    # valid? dirties in-memory attributes (e.g. number_digest); discard them so
+    # the row lock in increment_attempts! sees a clean persisted record.
+    telephone.reload
 
     assert_nothing_raised { telephone.increment_attempts! }
     assert_equal 1, telephone.reload.otp_attempts_count

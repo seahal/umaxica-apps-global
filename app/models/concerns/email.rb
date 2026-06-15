@@ -28,6 +28,12 @@ module Email
   # OTP attempt/lock/expiry mechanics live in OtpLockable. Cooldown
   # (otp_cooldown_active?/otp_cooldown_remaining) is email-specific because it
   # depends on otp_last_sent_at, which telephone tables do not carry.
+
+  # Re-published from OtpLockable so existing Email::CONST references keep working.
+  MAX_OTP_ATTEMPTS = OtpLockable::MAX_OTP_ATTEMPTS
+  OTP_ATTEMPT_WINDOW = OtpLockable::OTP_ATTEMPT_WINDOW
+  OTP_LOCKOUT_DURATION = OtpLockable::OTP_LOCKOUT_DURATION
+
   OTP_COOLDOWN_PERIOD = CommonOtpPolicy::SEND_COOLDOWN
 
   attr_accessor :confirm_policy, :pass_code

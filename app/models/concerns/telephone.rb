@@ -29,6 +29,12 @@ module Telephone
   # OTP attempt/lock/expiry mechanics live in OtpLockable. Telephone tables do
   # not carry otp_last_sent_at, so OtpLockable anchors its time windows on
   # created_at for these records, and cooldown is intentionally not provided.
+
+  # Re-published from OtpLockable so existing Telephone::CONST references keep working.
+  MAX_OTP_ATTEMPTS = OtpLockable::MAX_OTP_ATTEMPTS
+  OTP_ATTEMPT_WINDOW = OtpLockable::OTP_ATTEMPT_WINDOW
+  OTP_LOCKOUT_DURATION = OtpLockable::OTP_LOCKOUT_DURATION
+
   attr_accessor :confirm_policy, :confirm_using_mfa, :pass_code
   attr_writer :raw_number
 

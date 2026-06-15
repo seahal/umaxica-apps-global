@@ -60,22 +60,52 @@ idiomatic であり、controller concern の hidden `before_action` / `skip_befo
 検証: `telephone_test.rb` 24 runs / 0 failures、`email_test.rb`+`operator_telephone_test.rb` 62 runs
 / 0 failures、rubocop 2 files no offenses。
 
-## OtpLockable 抽出を見送った理由（重要）
+## OtpLockable 抽出（実施済み・2026-06-15 追記）
 
-`email.rb` と `telephone.rb` は OTP
-lock/cooldown/attempt のロジック約 80 行がほぼ重複しており DRY 候補だが、以下の差異があるため「安全な小改善」にはならない。共通 concern 化は独立タスク・要レビューで行うこと（前提を先に統一可否判断する）。
+未デプロイ環境という前提のもと、`email.rb` / `telephone.rb` の OTP
+lock/attempt/expiry 重複（約 80 行）を共有 concern `app/models/concerns/otp_lockable.rb`
+に抽出し、3 つの非対称を正規化した。
 
-- unlocked sentinel が **非対称**: Email = `"infinity"`、Telephone = `"-infinity"`。
-- `increment_attempts!` の保存が **Email=`save!` / Telephone=`save!(validate: false)`** で異なる。
-- `otp_last_sent_at` カラムの有無: Email は前提、Telephone は `respond_to?` で `created_at`
-  にフォールバック。
-- OTP は auth 隣接のため、挙動を 1 ビットでも動かすと verification flow に波及する。
+### 設計（2 層）
+
+- `OtpLockable`（共有）: store_otp / get_otp / clear_otp / otp_expired? / otp_active? / locked? /
+  lockout_active? / lockout_expires_at / increment_attempts! /
+  reregistration_window_active? と after_initialize の OTP defaults、共有定数。
+- Email / Telephone はチャネル固有部分（address/number の正規化・digest・encrypts・lookup
+  scope・各 accessor）を保持し `include OtpLockable` する。
+- **cooldown（`otp_cooldown_active?` / `otp_cooldown_remaining`）は Email 専用のまま残した。**
+  `otp_last_sent_at` カラムに依存し telephone には無い。さらに `sign_otp_ceremony#cooldown_active?`
+  が `respond_to?(:otp_cooldown_active?)`
+  で分岐しており、telephone に生やすと再送セレモニーが静かに変わる。共有層に入れてはならない（回帰テストで invariant を固定済み）。
+
+### 正規化した非対称
+
+1. unlocked sentinel を `"-infinity"` に統一（Email の `"infinity"`
+   を廃止）。`OTP_UNLOCKED_SENTINEL`。 `lockout_expires_at`
+   は ±infinity を防御的に許容したまま（既存 dev/test 行対策）。
+2. `increment_attempts!` を `save!(validate: false)`
+   に統一。内部カウンタ更新で検証を走らせない。Email が acceptance の `on: :create`
+   に暗黙依存していた地雷を除去。
+3. `otp_last_sent_at` の有無を `otp_window_anchor`（email=列値 / telephone=created_at）に集約。
+
+### 公開定数の互換性
+
+`Email::MAX_OTP_ATTEMPTS`
+等は本番コード（`sign/app/in/emails_controller.rb`）とテスト多数が参照。ancestor 経由の
+`Email::CONST` 解決は Zeitwerk 文脈で効かなかったため、Email/Telephone 側で
+`MAX_OTP_ATTEMPTS = OtpLockable::MAX_OTP_ATTEMPTS` と **値を複製せず再公開**して API を維持した。
+
+### 検証
+
+追加:
+`test/models/concerns/otp_lockable_test.rb`（sentinel 統一・validate:false・cooldown が telephone 非搭載、を固定）。実行:
+concern/model 計 113+103 runs、OTP オーケストレーション/フロー計 238 runs、すべて 0
+failures。rubocop 0 offenses。
 
 ## 次回やるべきこと
 
-1. `OtpLockable` 抽出の設計検討（上記差異の統一可否を先に判断）。
-2. `test/models/concerns/email_test.rb`
-   の chain-of-thought コメント残骸（おおよそ L381-412）整理。AGENTS.md のコメント方針・no
-   chain-of-thought 違反。テスト挙動は変えない。
-3. 重い分類B（`sign_flow.rb` / `refresh_tokenable.rb`）への `Requires/Registers`
+1. 重い分類B（`sign_flow.rb` / `refresh_tokenable.rb`）への `Requires/Registers`
    ヘッダ付与（ドキュメントのみ、auth 隣接なので慎重に）。
+2. （任意）telephone テーブルへ `otp_last_sent_at` を追加すれば `otp_window_anchor` の `respond_to?`
+   分岐と telephone 専用の created_at フォールバックを解消できる。ただし migration + backfill +
+   ceremony の cooldown 分岐見直しを伴うため独立タスク・要 ADR。
