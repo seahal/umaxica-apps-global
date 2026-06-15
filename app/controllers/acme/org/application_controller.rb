@@ -11,7 +11,7 @@ module Acme
 
       include ::PreferenceGlobal
 
-      include ::PreferenceAdoption # FIXME: I hate this line.
+      include ::PreferenceAdoption
 
       include ::AuthenticationOperator
       include ::SignErrorResponses
@@ -22,10 +22,10 @@ module Acme
 
       include ::VerificationOperator
 
-      include ActionPolicy::Controller # FIXME: I hate this line.
+      include ActionPolicy::Controller
       include ::RestrictedSessionGuard
 
-      include ::OidcSsoInitiator # FIXME: I hate this line.
+      include ::OidcSsoInitiator
 
       include ::ActorSupport
 

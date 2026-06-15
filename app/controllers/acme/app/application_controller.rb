@@ -11,7 +11,7 @@ module Acme
 
       include ::PreferenceGlobal
 
-      include ::PreferenceAdoption # FIXME: I hate this line.
+      include ::PreferenceAdoption
 
       include ::AuthenticationClient
       include ::SignErrorResponses
@@ -22,10 +22,10 @@ module Acme
 
       include ::VerificationClient
 
-      include ActionPolicy::Controller # FIXME: I hate this line.
+      include ActionPolicy::Controller
       include ::RestrictedSessionGuard
 
-      include ::OidcSsoInitiator # FIXME: I hate this line.
+      include ::OidcSsoInitiator
 
       include ::ActorSupport
 
@@ -64,17 +64,20 @@ module Acme
       )
       before_action :set_current_context
       before_action :reset_flash
-      before_action :set_preferences_cookie # FIXME: I hate this line.
-      before_action :resolve_param_context # FIXME: I hate this line.
-      before_action :set_region # FIXME: I hate this line.
+      # Preference transport and request-local context must run before Actor hydration.
+      before_action :set_preferences_cookie
+      before_action :resolve_param_context
+      before_action :set_region
 
-      before_action :transparent_refresh_access_token, unless: -> { request.format.json? } # FIXME: I hate this line.
+      # HTML requests may rotate refresh tokens before the Actor snapshot is finalized.
+      before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences
-      before_action :set_locale # FIXME: I hate this line.
-      before_action :set_timezone # FIXME: I hate this line.
-      before_action :set_color_theme # FIXME: I hate this line.
-      before_action :enforce_withdrawal_gate! # FIXME: I hate this line.
+      # These side effects reflect Actor.preferences for the current request only.
+      before_action :set_locale
+      before_action :set_timezone
+      before_action :set_color_theme
+      before_action :enforce_withdrawal_gate!
       before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!

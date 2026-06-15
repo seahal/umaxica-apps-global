@@ -206,14 +206,16 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       user,
       host: host,
       session_public_id: token_record.device_session.public_id,
+      oidc_jti: token_record.oidc_jti,
       resource_type: "client",
       jwt_issuer_id: "surface:ACME_APP",
     )
 
     host!(host)
-    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
-    get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+    get "/edge/v0/token/check",
+        headers: { "Host" => host, "Accept" => "application/json", "Authorization" => "Bearer #{access_token}" },
+        as: :json
 
     assert_response :ok
     assert response.parsed_body["authenticated"]
@@ -231,14 +233,16 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       staff,
       host: host,
       session_public_id: token_record.device_session.public_id,
+      oidc_jti: token_record.oidc_jti,
       resource_type: "operator",
       jwt_issuer_id: "surface:ACME_ORG",
     )
 
     host!(host)
-    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
-    get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+    get "/edge/v0/token/check",
+        headers: { "Host" => host, "Accept" => "application/json", "Authorization" => "Bearer #{access_token}" },
+        as: :json
 
     assert_response :ok
     assert response.parsed_body["authenticated"]
