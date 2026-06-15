@@ -399,7 +399,8 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     now = Time.current
     token = Struct.new(:discarded_at, :refresh_expires_at).new(now + 30.minutes, now + 2.hours)
 
-    assert_equal (now + 30.minutes).to_i, @controller.access_token_expires_at_for(token, now: now).to_i
+    assert_equal (now + AuthenticationBase::ACCESS_TOKEN_TTL).to_i,
+                 @controller.access_token_expires_at_for(token, now: now).to_i
     assert_equal (now + 30.minutes).to_i, @controller.refresh_cookie_expires_at_for(token).to_i
     assert_equal 60, @controller.expires_in_for(now + 60.seconds, now: now)
     assert_equal 0, @controller.expires_in_for(now - 1.second, now: now)

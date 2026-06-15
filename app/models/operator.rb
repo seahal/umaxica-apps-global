@@ -6,25 +6,34 @@
 # Table name: operators
 # Database name: org_principal
 #
-#  id                    :bigint           not null, primary key
-#  birthdate             :text
-#  deactivated_at        :datetime
-#  discarded_at          :datetime         default(Infinity), not null
-#  lock_version          :integer          default(0), not null
-#  mfa_level_enabled     :boolean          default(FALSE), not null
-#  purged_at             :datetime         default(Infinity), not null
-#  withdrawal_started_at :datetime
-#  withdrawn_at          :datetime
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  mfa_level_id          :bigint           default(0), not null
-#  mfa_status_id         :bigint           default(5), not null
-#  public_id             :string(16)       not null
-#  status_id             :bigint           default(2), not null
-#  visibility_id         :bigint           default(2), not null
+#  id                          :bigint           not null, primary key
+#  access_state                :string           default("enabled"), not null
+#  admin_locked_at             :datetime
+#  admin_locked_reason_code    :string
+#  admin_locked_reason_note    :text
+#  birthdate                   :text
+#  deactivated_at              :datetime
+#  discarded_at                :datetime         default(Infinity), not null
+#  lock_version                :integer          default(0), not null
+#  mfa_level_enabled           :boolean          default(FALSE), not null
+#  purged_at                   :datetime         default(Infinity), not null
+#  reactivated_at              :datetime
+#  token_valid_after_at        :datetime
+#  withdrawal_started_at       :datetime
+#  withdrawn_at                :datetime
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  admin_locked_by_operator_id :bigint
+#  mfa_level_id                :bigint           default(0), not null
+#  mfa_status_id               :bigint           default(5), not null
+#  public_id                   :string(16)       not null
+#  status_id                   :bigint           default(2), not null
+#  visibility_id               :bigint           default(2), not null
 #
 # Indexes
 #
+#  index_operators_on_access_state           (access_state)
+#  index_operators_on_admin_locked_at        (admin_locked_at) WHERE (admin_locked_at IS NOT NULL)
 #  index_operators_on_deactivated_at         (deactivated_at) WHERE (deactivated_at IS NOT NULL)
 #  index_operators_on_discarded_at           (discarded_at)
 #  index_operators_on_mfa_level_id           (mfa_level_id)
@@ -32,6 +41,7 @@
 #  index_operators_on_public_id              (public_id) UNIQUE
 #  index_operators_on_purged_at              (purged_at)
 #  index_operators_on_status_id              (status_id)
+#  index_operators_on_token_valid_after_at   (token_valid_after_at) WHERE (token_valid_after_at IS NOT NULL)
 #  index_operators_on_visibility_id          (visibility_id)
 #  index_operators_on_withdrawal_started_at  (withdrawal_started_at) WHERE (withdrawal_started_at IS NOT NULL)
 #  index_operators_on_withdrawn_at           (withdrawn_at) WHERE (withdrawn_at IS NOT NULL)

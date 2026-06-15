@@ -98,6 +98,31 @@ class RedirectsExternalTargetResolverTest < ActiveSupport::TestCase
     end
   end
 
+  test "url helper rejects userinfo fragment and control characters" do
+    rejected_userinfo = RedirectsExternalTargetResolver.url(
+      "https://user:pass@safe.example/after",
+      allowed_urls: ["https://safe.example"],
+      source: :user_input,
+    )
+    rejected_fragment = RedirectsExternalTargetResolver.url(
+      "https://safe.example/after#frag",
+      allowed_urls: ["https://safe.example"],
+      source: :user_input,
+    )
+    rejected_control = RedirectsExternalTargetResolver.url(
+      "https://safe.example/after\n",
+      allowed_urls: ["https://safe.example"],
+      source: :user_input,
+    )
+
+    assert_not rejected_userinfo.ok?
+    assert_equal "userinfo", rejected_userinfo.failure_reason
+    assert_not rejected_fragment.ok?
+    assert_equal "fragment", rejected_fragment.failure_reason
+    assert_not rejected_control.ok?
+    assert_equal "invalid_uri", rejected_control.failure_reason
+  end
+
   private
 
   def with_env(values)

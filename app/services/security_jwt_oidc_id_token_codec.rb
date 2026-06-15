@@ -36,7 +36,7 @@ class SecurityJwtOidcIdTokenCodec
 
     def build_payload(resource:, client:, nonce:, issued_at:, expires_at:, acr:, amr:, issuer:, subject:, sid:,
                       auth_time:, step_up_until:)
-      token_resource_type = resource_type_for_client(client)
+      token_resource_type = resource_type_for_resource(resource)
       {
         "iss" => issuer.presence || OidcIssuer.for_client(client),
         "sub" => subject.presence || OidcSubject.for(resource, resource_type: token_resource_type),
@@ -61,6 +61,14 @@ class SecurityJwtOidcIdTokenCodec
       return "visitor" if %w(visitor customer).include?(client.resource_type)
 
       "client"
+    end
+
+    def resource_type_for_resource(resource)
+      case resource
+      when ::Operator then "operator"
+      when ::Visitor then "visitor"
+      else "client"
+      end
     end
 
     def decode_options(client_id:, resource_type:, issuer:)

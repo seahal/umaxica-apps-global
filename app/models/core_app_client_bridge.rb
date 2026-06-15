@@ -32,7 +32,7 @@ class CoreAppClientBridge < AppRpRecord
   core_rp_bridge(
     actor_association_name: :client,
     actor_foreign_key: :client_id,
-    client_id: "core_app",
+    client_id: "core-next-rp",
     audience: "umaxica-core-app",
     host: "www.jp.umaxica.app",
   )

@@ -93,7 +93,7 @@ class OperatorToken < OrgTicketRecord
   DBSC_BINDING_METHOD_CLASS = OperatorTokenBindingMethod
   DBSC_STATUS_CLASS = OperatorTokenDbscStatus
 
-  LOGIN_SESSION_TTL = 12.hours
+  LOGIN_SESSION_TTL = SecurityTokenLifetimes::OPERATOR_REFRESH_TOKEN_TTL
   DELETION_GRACE_PERIOD = 1.day
   MAX_SESSIONS_PER_STAFF = 1
   MAX_TOTAL_SESSIONS_PER_STAFF = 2

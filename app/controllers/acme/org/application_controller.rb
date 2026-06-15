@@ -88,7 +88,7 @@ module Acme
       public
 
       def oidc_client_id
-        "acme_org"
+        "base-rails-rp"
       end
 
       def oidc_sign_host

@@ -31,7 +31,7 @@ class CoreComVisitorBridge < ComRpRecord
   core_rp_bridge(
     actor_association_name: :visitor,
     actor_foreign_key: :visitor_id,
-    client_id: "core_com",
+    client_id: "core-next-rp",
     audience: "umaxica-core-com",
     host: "www.jp.umaxica.com",
   )

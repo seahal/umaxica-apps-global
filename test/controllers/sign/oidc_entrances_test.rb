@@ -46,7 +46,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign_app", query["client_id"]
+    assert_equal "sign-rp", query["client_id"]
     assert_equal "signin", query["screen_hint"]
     assert_nil session[:oidc_authorization_login_challenge]
   end
@@ -60,7 +60,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign_app", query["client_id"]
+    assert_equal "sign-rp", query["client_id"]
     assert_equal "signup", query["screen_hint"]
     assert_nil session[:oidc_authorization_login_challenge]
   end
@@ -68,7 +68,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
   test "sign started flow reaches Acme token exchange without stubbing OP" do
     with_sign_oidc_client_key do
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-      client = OidcClientRegistry.find!("sign_app")
+      client = OidcClientRegistry.find!("sign-rp")
 
       get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @sign_host }
 
@@ -79,7 +79,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
 
       assert_equal acme_host, authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
-      assert_equal "sign_app", authorize_query["client_id"]
+      assert_equal "sign-rp", authorize_query["client_id"]
 
       host! acme_host
       get "/oauth/authorize", params: authorize_query, headers: browser_headers
@@ -120,13 +120,13 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
       token_url = acme_app_oauth_token_url(host: acme_host)
-      client_assertion = OidcClientAssertionJwt.issue(client_id: "sign_app", token_url: token_url)
+      client_assertion = OidcClientAssertionJwt.issue(client_id: "sign-rp", token_url: token_url)
       post token_url,
            params: {
              grant_type: "authorization_code",
              code: callback_query.fetch("code"),
              redirect_uri: client.redirect_uris.first,
-             client_id: "sign_app",
+             client_id: "sign-rp",
              code_verifier: code_verifier,
              client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
              client_assertion: client_assertion,
@@ -167,8 +167,8 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
   def authorize_params(screen_hint: nil)
     params = {
       response_type: "code",
-      client_id: "core_app",
-      redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+      client_id: "core-next-rp",
+      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
       code_challenge: "challenge",
       code_challenge_method: "S256",
       state: "state",

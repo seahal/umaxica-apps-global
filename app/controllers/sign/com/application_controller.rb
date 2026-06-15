@@ -164,7 +164,7 @@ module Sign
       end
 
       def oidc_client_id
-        "sign_com"
+        "sign-rp"
       end
 
       def oidc_sign_host

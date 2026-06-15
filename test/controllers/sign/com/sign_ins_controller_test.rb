@@ -20,7 +20,7 @@ module Sign
 
         assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
         assert_equal "/oauth/authorize", uri.path
-        assert_equal "sign_com", query["client_id"]
+        assert_equal "sign-rp", query["client_id"]
         assert_equal "signin", query["screen_hint"]
         assert_nil session[:oidc_authorization_login_challenge]
       end
@@ -95,8 +95,8 @@ module Sign
       def authorize_params
         {
           response_type: "code",
-          client_id: "core_com",
-          redirect_uri: OidcClientRegistry.find!("core_com").redirect_uris.first,
+          client_id: "core-next-rp",
+          redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
           code_challenge: "challenge",
           code_challenge_method: "S256",
           state: SecureRandom.urlsafe_base64(16),

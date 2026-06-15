@@ -68,7 +68,11 @@ module Sign
             load_session_data
             render :show
           else
-            current_session.revoke! if current_session&.restricted?
+            AuthenticationLogoutCurrentSession.call(
+              resource: @current_visitor,
+              token: current_session,
+              reason: "session_limit_cancelled",
+            ) if current_session&.restricted?
             current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
             consume_session_limit_gate!
             session.delete(:pending_login_visitor_id)
@@ -164,9 +168,13 @@ module Sign
             return
           end
 
-          ComTicketRecord.connected_to(role: :writing) do
-            token.revoke!
-          end
+          AuthenticationSelectedSessionRevoker.call(
+            owner: visitor,
+            token: token,
+            current_token: current_session,
+            current_session_public_id: current_session_public_id,
+            reason: "session_limit_selected_revoke",
+          )
 
           flash.now[:notice] = I18n.t("sign.app.in.session.session_revoked")
         end
@@ -178,7 +186,13 @@ module Sign
                 next unless token && allowed_to?(:destroy?, token, context: { user: visitor })
                 next if token.public_id == current_session_public_id
 
-                token.revoke!
+                AuthenticationSelectedSessionRevoker.call(
+                  owner: visitor,
+                  token: token,
+                  current_token: current_session,
+                  current_session_public_id: current_session_public_id,
+                  reason: "session_limit_selected_revoke",
+                )
               end
             end
           end

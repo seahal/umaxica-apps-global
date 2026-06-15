@@ -19,7 +19,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
       ) do
         result = OidcRpTokenClient.call(
           token_url: "https://id.umaxica.app/oauth/token",
-          client_id: "acme_app",
+          client_id: "base-rails-rp",
           client_secret: nil,
           code: "code",
           redirect_uri: "https://www.umaxica.app/auth/callback",

@@ -2,8 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "../../support/auth_helpers"
 
 class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
+  include AuthHelpers
+
   TokenResult =
     Struct.new(:success, :token_response, :error, :error_description, keyword_init: true) do
       def success? = success
@@ -89,7 +92,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
              grant_type: "authorization_code",
              code: "code",
              redirect_uri: "https://client.example/callback",
-             client_id: "core_app",
+             client_id: "core-next-rp",
              client_secret: "secret",
              code_verifier: "verifier",
            },
@@ -156,7 +159,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       post acme_app_oauth_revocation_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              token: "refresh",
-             client_id: "core_app",
+             client_id: "core-next-rp",
              client_secret: "secret",
              token_type_hint: "refresh_token",
            }
@@ -164,7 +167,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "refresh", captured[:token]
-    assert_equal "core_app", captured[:client_id]
+    assert_equal "core-next-rp", captured[:client_id]
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), captured[:host]
   end
 
@@ -199,11 +202,12 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token_record = ClientToken.create!(user: user)
     token_record.rotate_refresh_token!
-    access_token = jwt_access_token_for(
+    access_token = AuthenticationToken.encode(
       user,
       host: host,
-      session_public_id: token_record.public_id,
+      session_public_id: token_record.device_session.public_id,
       resource_type: "client",
+      jwt_issuer_id: "surface:ACME_APP",
     )
 
     host!(host)
@@ -223,11 +227,12 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     staff = operators(:one)
     token_record = OperatorToken.create!(staff: staff)
     token_record.rotate_refresh_token!
-    access_token = jwt_access_token_for(
+    access_token = AuthenticationToken.encode(
       staff,
       host: host,
-      session_public_id: token_record.public_id,
+      session_public_id: token_record.device_session.public_id,
       resource_type: "operator",
+      jwt_issuer_id: "surface:ACME_ORG",
     )
 
     host!(host)
@@ -280,8 +285,8 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     get(
       acme_app_oidc_logout_url(host: host),
       params: {
-        client_id: "acme_app",
-        logout_request: OidcLogoutRequest.issue(client_id: "acme_app", ri: "jp"),
+        client_id: "base-rails-rp",
+        logout_request: OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp"),
         ri: "jp",
       },
     )
@@ -401,8 +406,8 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   def oidc_authorize_params(screen_hint: nil, scope: "openid profile")
     params = {
       response_type: "code",
-      client_id: "core_app",
-      redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+      client_id: "core-next-rp",
+      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
       code_challenge: "challenge",
       code_challenge_method: "S256",
       state: "state",

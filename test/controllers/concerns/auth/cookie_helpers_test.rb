@@ -100,8 +100,8 @@ class AuthCookieHelpersTest < ActiveSupport::TestCase
     assert_equal "auth_dbsc", AuthenticationBase::DBSC_COOKIE_KEY
   end
 
-  test "ACCESS_TOKEN_TTL defaults to 1 hour" do
-    assert_equal 1.hour.to_i, AuthenticationBase::ACCESS_TOKEN_TTL.to_i
+  test "ACCESS_TOKEN_TTL defaults to 5 minutes" do
+    assert_equal 5.minutes.to_i, AuthenticationBase::ACCESS_TOKEN_TTL.to_i
   end
 
   test "REFRESH_TOKEN_TTL is 30 days" do

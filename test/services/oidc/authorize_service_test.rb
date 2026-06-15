@@ -11,7 +11,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
       Digest::SHA256.digest(@code_verifier),
       padding: false,
     )
-    @client = OidcClientRegistry.find("core_app")
+    @client = OidcClientRegistry.find("core-next-rp")
     @redirect_uri = @client.redirect_uris.first
   end
 
@@ -159,7 +159,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     code = ClientAuthorizationCode.last
 
     assert_equal @user.id, code.user_id
-    assert_equal "core_app", code.client_id
+    assert_equal "core-next-rp", code.client_id
     assert_equal @redirect_uri, code.redirect_uri
     assert_equal @code_challenge, code.code_challenge
     assert_equal "S256", code.code_challenge_method
@@ -169,13 +169,13 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
 
   test "issues authorization code for operator with org client" do
     staff = operators(:one)
-    org_client = OidcClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
 
     result = OidcAuthorizeService.call(
       params: {
         response_type: "code",
-        client_id: "core_org",
+        client_id: "core-next-rp",
         redirect_uri: org_redirect_uri,
         code_challenge: @code_challenge,
         code_challenge_method: "S256",
@@ -197,14 +197,14 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
 
   test "operator authorization code is stored with staff_id backing column" do
     staff = operators(:one)
-    org_client = OidcClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
 
     assert_difference "OperatorAuthorizationCode.count", 1 do
       OidcAuthorizeService.call(
         params: {
           response_type: "code",
-          client_id: "core_org",
+          client_id: "core-next-rp",
           redirect_uri: org_redirect_uri,
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
@@ -219,18 +219,18 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     code = OperatorAuthorizationCode.last
 
     assert_equal staff.id, code.staff_id
-    assert_equal "core_org", code.client_id
+    assert_equal "core-next-rp", code.client_id
   end
 
   test "issues authorization code for visitor with com client" do
     visitor = create_visitor!
-    com_client = OidcClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
 
     result = OidcAuthorizeService.call(
       params: {
         response_type: "code",
-        client_id: "core_com",
+        client_id: "core-next-rp",
         redirect_uri: com_redirect_uri,
         code_challenge: @code_challenge,
         code_challenge_method: "S256",
@@ -251,14 +251,14 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
 
   test "visitor authorization code is stored with visitor_id" do
     visitor = create_visitor!
-    com_client = OidcClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
 
     assert_difference "VisitorAuthorizationCode.count", 1 do
       OidcAuthorizeService.call(
         params: {
           response_type: "code",
-          client_id: "core_com",
+          client_id: "core-next-rp",
           redirect_uri: com_redirect_uri,
           code_challenge: @code_challenge,
           code_challenge_method: "S256",
@@ -273,7 +273,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     code = VisitorAuthorizationCode.last
 
     assert_equal visitor.id, code.visitor_id
-    assert_equal "core_com", code.client_id
+    assert_equal "core-next-rp", code.client_id
   end
 
   private
@@ -281,7 +281,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   def valid_params
     {
       response_type: "code",
-      client_id: "core_app",
+      client_id: "core-next-rp",
       redirect_uri: @redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",

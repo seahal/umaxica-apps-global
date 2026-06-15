@@ -50,4 +50,14 @@ class StepUpScopeCatalogTest < ActiveSupport::TestCase
       assert_no_match pattern, "/settings/birthdate/extra"
     end
   end
+
+  test "org session revoke scope includes support session actions" do
+    pattern = StepUpScopeCatalog::ORG.fetch("session_revoke_all")
+
+    assert_match pattern, "/support/clients/123/sessions/purge"
+    assert_match pattern, "/support/visitors/123/sessions/emergency_revoke"
+    assert_match pattern, "/support/operators/123/sessions/purge"
+    assert_no_match pattern, "/support/clients/abc/sessions/purge"
+    assert_no_match StepUpScopeCatalog::APP.fetch("session_revoke_all"), "/support/clients/123/sessions/purge"
+  end
 end

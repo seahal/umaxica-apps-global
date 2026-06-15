@@ -9,7 +9,7 @@ module RefreshTokenable
   extend ActiveSupport::Concern
   include RefreshTokenShared
 
-  REFRESH_TTL = 30.days
+  REFRESH_TTL = SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
 
   included do
     before_validation :ensure_lapses_at, on: :create

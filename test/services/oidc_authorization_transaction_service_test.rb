@@ -10,8 +10,8 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
     @client = clients(:one)
     @params = {
       response_type: "code",
-      client_id: "core_app",
-      redirect_uri: OidcClientRegistry.find!("core_app").redirect_uris.first,
+      client_id: "core-next-rp",
+      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
       code_challenge: "challenge",
       code_challenge_method: "S256",
       state: "state",

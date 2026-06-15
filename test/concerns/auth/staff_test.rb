@@ -110,10 +110,10 @@ class AuthStaffTest < ActiveSupport::TestCase
     access_opts = @obj.cookies.options_for(::AuthenticationOperator::ACCESS_COOKIE_KEY)
     refresh_opts = @obj.cookies.options_for(::AuthenticationOperator::REFRESH_COOKIE_KEY)
 
-    assert_operator access_opts[:expires], :>, 10.minutes.from_now
-    assert_operator access_opts[:expires], :<, 2.hours.from_now
-    assert_operator refresh_opts[:expires], :>, 11.hours.from_now
-    assert_operator refresh_opts[:expires], :<, 13.hours.from_now
+    assert_operator access_opts[:expires], :>, 4.minutes.from_now
+    assert_operator access_opts[:expires], :<, 6.minutes.from_now
+    assert_operator refresh_opts[:expires], :>, 7.hours.from_now
+    assert_operator refresh_opts[:expires], :<, 9.hours.from_now
   end
 
   test "log_out clears session and current_operator" do
@@ -169,8 +169,8 @@ class AuthStaffTest < ActiveSupport::TestCase
       @obj.send(:log_in, @staff)
       token = OperatorToken.where(staff_id: @staff.id).order(created_at: :desc).first
 
-      assert_in_delta 12.hours.from_now.to_i, token.discarded_at.to_i, 1
-      assert_in_delta 36.hours.from_now.to_i, token.purged_at.to_i, 1
+      assert_in_delta 8.hours.from_now.to_i, token.discarded_at.to_i, 1
+      assert_in_delta 32.hours.from_now.to_i, token.purged_at.to_i, 1
     end
   end
 

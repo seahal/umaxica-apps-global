@@ -5,14 +5,15 @@ require "test_helper"
 module Security
   class TokenLifetimesTest < ActiveSupport::TestCase
     test "defines application token family lifetimes outside low-level jwt primitives" do
-      assert_equal 1.hour, SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
+      assert_equal 5.minutes, SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
       assert_equal 7.days, SecurityTokenLifetimes::PREFERENCE_JWT_TTL
       assert_equal 5.minutes, SecurityTokenLifetimes::OIDC_ID_TOKEN_TTL
       assert_equal 5.minutes, SecurityTokenLifetimes::JUMP_RT_TTL
     end
 
     test "defines old kid verification windows as token ttl plus jwks and cdn leeway" do
-      assert_equal 3.hours, SecurityTokenLifetimes.old_kid_verification_window(SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL)
+      assert_equal 2.hours + 5.minutes,
+                   SecurityTokenLifetimes.old_kid_verification_window(SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL)
       assert_equal 7.days + 2.hours,
                    SecurityTokenLifetimes.old_kid_verification_window(SecurityTokenLifetimes::PREFERENCE_JWT_TTL)
       assert_equal 2.hours + 5.minutes,
@@ -26,6 +27,12 @@ module Security
       assert_equal 30.minutes, SecurityTokenLifetimes::OPERATOR_IDLE_TTL
       assert_equal 8.hours, SecurityTokenLifetimes::VISITOR_IDLE_TTL
       assert_equal 60.seconds, SecurityTokenLifetimes::ACTIVITY_TOUCH_THROTTLE
+    end
+
+    test "defines per-surface refresh token windows" do
+      assert_equal 30.days, SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
+      assert_equal 8.hours, SecurityTokenLifetimes::OPERATOR_REFRESH_TOKEN_TTL
+      assert_equal 30.days, SecurityTokenLifetimes::VISITOR_REFRESH_TOKEN_TTL
     end
 
     test "idle_ttl_for maps each surface and falls back to the client window" do

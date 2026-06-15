@@ -10,7 +10,7 @@ class OidcConnectionRecordTest < ActiveSupport::TestCase
   end
 
   test "status helpers classify active and revoked connections" do
-    active = ClientOidcConnection.create!(user: @user, client_id: "core_app")
+    active = ClientOidcConnection.create!(user: @user, client_id: "core-next-rp")
     revoked = ClientOidcConnection.create!(user: @user, client_id: "docs_app", revoked_at: Time.current)
 
     assert_predicate active, :active?
@@ -29,10 +29,10 @@ class OidcConnectionRecordTest < ActiveSupport::TestCase
   end
 
   test "rp metadata uses registered client and falls back for unknown client" do
-    registered = ClientOidcConnection.new(client_id: "core_app")
+    registered = ClientOidcConnection.new(client_id: "core-next-rp")
     unknown = ClientOidcConnection.new(client_id: "unknown-client")
 
-    assert_equal "Core App", registered.rp_name
+    assert_equal "Core Next RP", registered.rp_name
     assert_predicate registered.rp_domains, :any?
     assert_equal registered.rp_domains.join(", "), registered.rp_domain_text
 
@@ -50,7 +50,7 @@ class OidcConnectionRecordTest < ActiveSupport::TestCase
   end
 
   test "active scope excludes revoked connections" do
-    active = ClientOidcConnection.create!(user: @user, client_id: "core_app")
+    active = ClientOidcConnection.create!(user: @user, client_id: "core-next-rp")
     revoked = ClientOidcConnection.create!(user: @user, client_id: "docs_app", revoked_at: Time.current)
 
     active_connections = ClientOidcConnection.active.to_a

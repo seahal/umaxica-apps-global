@@ -20,7 +20,7 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 
   def oidc_client_id
-    "acme_app"
+    "base-rails-rp"
   end
 
   def oidc_sign_host
@@ -61,7 +61,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_match %r{\Ahttp://www\.app\.localhost/oauth/authorize\?}, location
     authorize_params = Rack::Utils.parse_nested_query(URI.parse(location).query)
 
-    assert_equal "acme_app", authorize_params.fetch("client_id")
+    assert_equal "base-rails-rp", authorize_params.fetch("client_id")
     assert_equal "http://www.example.com/auth/callback", authorize_params.fetch("redirect_uri")
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?

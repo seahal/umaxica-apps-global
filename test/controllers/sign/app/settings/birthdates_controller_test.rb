@@ -77,7 +77,7 @@ module Sign::App::Settings
 
       assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
-      assert_equal "sign_app", query["client_id"]
+      assert_equal "sign-rp", query["client_id"]
     end
 
     test "does not route mutation or edit actions" do

@@ -19,11 +19,11 @@ class OidcCallbackTestController < ApplicationController
   end
 
   def oidc_client_id
-    "acme_app"
+    "base-rails-rp"
   end
 
   def oidc_client_secret
-    OidcClientRegistry.find!("acme_app").client_secret
+    OidcClientRegistry.find!("base-rails-rp").client_secret
   end
 
   def oidc_token_url
@@ -31,7 +31,7 @@ class OidcCallbackTestController < ApplicationController
   end
 
   def oidc_callback_url
-    OidcClientRegistry.find!("acme_app").redirect_uris.first
+    OidcClientRegistry.find!("base-rails-rp").redirect_uris.first
   end
 
   def oidc_resource_type

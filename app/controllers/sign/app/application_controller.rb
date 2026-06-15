@@ -95,7 +95,7 @@ module Sign
       end
 
       def oidc_client_id
-        "sign_app"
+        "sign-rp"
       end
 
       def oidc_sign_host

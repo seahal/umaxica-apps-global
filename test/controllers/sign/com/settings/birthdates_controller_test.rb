@@ -80,7 +80,7 @@ module Sign::Com::Settings
 
       assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
-      assert_equal "sign_com", query["client_id"]
+      assert_equal "sign-rp", query["client_id"]
     end
 
     test "does not route mutation or edit actions" do

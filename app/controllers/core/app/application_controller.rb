@@ -72,7 +72,7 @@ module Core
       prepend_around_action :with_actor_lifecycle
 
       def oidc_client_id
-        "core_app"
+        "core-next-rp"
       end
 
       def oidc_sign_host

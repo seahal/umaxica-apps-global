@@ -3,7 +3,7 @@
 This is a Ruby on Rails application, not the Rails framework monorepo.
 
 Agents must treat this file as the always-loaded entry point. The harness rules live under
-`.harnes/rules/`, split into reusable `generic/` rules and project-local `project/` rules. They are
+`.agents/harnesses/rules/`, split into reusable `generic/` rules and project-local `project/` rules. They are
 not loaded automatically unless this file points to them or the task explicitly requires them.
 
 ## Application Shape
@@ -17,27 +17,38 @@ This app has three user-facing surfaces:
 Treat each surface as an independent boundary. Do not mix controllers, routes, views, policies,
 sessions, or state across surfaces unless the existing code has an explicit shared abstraction.
 
-Read `.harnes/rules/project/surfaces.mdc` when a change touches surface boundaries, and the relevant
-`.harnes/rules/generic/` rules when it touches controllers, models, services, policies, or shared
+Read `.agents/harnesses/rules/project/surfaces.mdc` when a change touches surface boundaries, and the relevant
+`.agents/harnesses/rules/generic/` rules when it touches controllers, models, services, policies, or shared
 concerns.
+
+## Agent Assets
+
+Agent assets live under `.agents/`.
+
+- `.agents/skills/` is reserved for Codex skills. Each skill must use `SKILL.md` as its canonical
+  entry point.
+- `.agents/harnesses/` contains review, evaluation, audit, and grill-me harnesses.
+- Do not place arbitrary files directly under `.agents/skills/`.
+- Do not add repository goal files under `.agents/goals/`; use the current conversation or Codex
+  goal surface to define task scope.
 
 ## Required Harness Context
 
-Use these `.harnes/rules/` files as task-specific instructions:
+Use these `.agents/harnesses/rules/` files as task-specific instructions:
 
-- Controller or endpoint work: `.harnes/rules/generic/controllers.mdc`,
-  `.harnes/rules/generic/routing.mdc`, `.harnes/rules/project/surfaces.mdc`,
-  `.harnes/rules/project/controller-inheritance.mdc`, `docs/architecture/controller-lifecycle.md`
-- Minitest work: `.harnes/rules/generic/testing.mdc`, `.harnes/rules/generic/no-test-only-code.mdc`
-- Migration work: `.harnes/rules/generic/migrations.mdc`
-- Security-sensitive work or broad refactors: `.harnes/rules/generic/absolute-rules.mdc`,
-  `.harnes/rules/generic/no-silent-fallback.mdc`, `.harnes/rules/project/regression-guards.mdc`
-- Surface, routing, or authentication changes: `.harnes/rules/project/surfaces.mdc`,
-  `.harnes/rules/generic/routing.mdc`, `.harnes/rules/generic/no-workflow-drift.mdc`,
+- Controller or endpoint work: `.agents/harnesses/rules/generic/controllers.mdc`,
+  `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/project/surfaces.mdc`,
+  `.agents/harnesses/rules/project/controller-inheritance.mdc`, `docs/architecture/controller-lifecycle.md`
+- Minitest work: `.agents/harnesses/rules/generic/testing.mdc`, `.agents/harnesses/rules/generic/no-test-only-code.mdc`
+- Migration work: `.agents/harnesses/rules/generic/migrations.mdc`
+- Security-sensitive work or broad refactors: `.agents/harnesses/rules/generic/absolute-rules.mdc`,
+  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`, `.agents/harnesses/rules/project/regression-guards.mdc`
+- Surface, routing, or authentication changes: `.agents/harnesses/rules/project/surfaces.mdc`,
+  `.agents/harnesses/rules/generic/routing.mdc`, `.agents/harnesses/rules/generic/no-workflow-drift.mdc`,
   `docs/architecture/controller-lifecycle.md`
 - Non-trivial implementation decisions, plan deviations, or handoff notes:
-  `.harnes/rules/generic/implementation-notes.mdc`,
-  `.harnes/rules/project/repository-knowledge-tree.mdc`
+  `.agents/harnesses/rules/generic/implementation-notes.mdc`,
+  `.agents/harnesses/rules/project/repository-knowledge-tree.mdc`
 
 If a task touches one of these areas, read the relevant harness file before editing.
 
@@ -92,7 +103,7 @@ whose original language matters.
 
 This applies to:
 
-- `AGENTS.md`, `.harnes/`, `adr/`, `docs/`, `plans/`, `notes/`, and `memos/`
+- `AGENTS.md`, `.agents/harnesses/`, `adr/`, `docs/`, `plans/`, `notes/`, and `memos/`
 - code comments, test names, commit-facing summaries, and implementation notes
 - newly added or substantially edited documentation, plans, ADRs, notes, and memos
 

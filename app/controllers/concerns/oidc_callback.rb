@@ -62,8 +62,8 @@ module OidcCallback
       client_id: oidc_client_id,
       resource_type: oidc_resource_type,
       expected_nonce: session.delete(:oidc_nonce),
-      issuer: OidcIssuer.for_client(oidc_client),
-      jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_client(oidc_client),
+      issuer: OidcIssuer.for_resource_type(oidc_resource_type),
+      jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(oidc_resource_type),
     )
   end
 
@@ -96,6 +96,8 @@ module OidcCallback
   end
 
   def oidc_resource_type
+    return rp_actor_resource_type if respond_to?(:rp_actor_resource_type, true)
+
     OidcIssuer.resource_type_for_client(oidc_client)
   end
 

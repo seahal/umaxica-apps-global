@@ -60,9 +60,7 @@ module Security
 
       client_ids = OidcClientRegistry.client_ids
 
-      assert_includes client_ids, "acme_app"
-      assert_includes client_ids, "acme_com"
-      assert_includes client_ids, "acme_org"
+      assert_includes client_ids, "base-rails-rp"
       assert_not_includes client_ids, "apex_app"
       assert_not_includes client_ids, "apex_com"
       assert_not_includes client_ids, "apex_org"

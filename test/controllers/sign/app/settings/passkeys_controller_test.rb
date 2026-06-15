@@ -80,7 +80,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign_app", query["client_id"]
+    assert_equal "sign-rp", query["client_id"]
   end
 
   # Case D-2: Logged in -> JSON options

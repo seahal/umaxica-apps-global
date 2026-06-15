@@ -126,80 +126,52 @@ module OidcClientRegistry
 
   def build_clients
     {
-      # Sign credential gateway as RP. These are RP client-auth keys only; Sign remains non-OP.
-      "sign_app" => {
-        redirect_uris: build_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost"),
-        aud: "umaxica-sign-app",
+      # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
+      "sign-rp" => {
+        redirect_uris: build_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
+          build_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
+          build_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
+        aud: "sign-rp",
         resource_type: "client",
-        name: "Sign App",
+        name: "Sign RP",
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "SIGN_APP",
       },
-      "sign_org" => {
-        redirect_uris: build_redirect_uris("SIGN_STAFF_URL", "id.org.localhost"),
-        aud: "umaxica-sign-org",
-        resource_type: "operator",
-        name: "Sign Org",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "SIGN_ORG",
-      },
-      "sign_com" => {
-        redirect_uris: build_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
-        aud: "umaxica-sign-com",
-        resource_type: "visitor",
-        name: "Sign Com",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "SIGN_COM",
-      },
-      # Acme
-      "acme_app" => {
-        redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost"),
-        aud: "umaxica-acme-app",
+      # Acme/Base Rails browser RP.
+      "base-rails-rp" => {
+        redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
+          build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
+          build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
+        aud: "base-rails-rp",
         resource_type: "client",
-        name: "Acme App",
+        name: "Base Rails RP",
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "ACME_APP",
       },
-      "acme_org" => {
-        redirect_uris: build_redirect_uris("ACME_STAFF_URL", "www.org.localhost"),
-        aud: "umaxica-acme-org",
-        resource_type: "operator",
-        name: "Acme Org",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "ACME_ORG",
-      },
-      "acme_com" => {
-        redirect_uris: build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
-        aud: "umaxica-acme-com",
-        resource_type: "visitor",
-        name: "Acme Com",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "ACME_COM",
-      },
-      # Core
-      "core_app" => {
-        redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "www.jp.umaxica.app"),
-        aud: "umaxica-core-app",
+      # Core browser RP.
+      "core-next-rp" => {
+        redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "www.jp.umaxica.app") +
+          build_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org") +
+          build_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+        aud: "core-next-rp",
         resource_type: "client",
-        name: "Core App",
+        name: "Core Next RP",
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "CORE_APP",
       },
-      "core_org" => {
-        redirect_uris: build_redirect_uris("CORE_STAFF_URL", "www.jp.umaxica.org"),
-        aud: "umaxica-core-org",
-        resource_type: "operator",
-        name: "Core Org",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "CORE_ORG",
+      "app-ios-rp" => {
+        redirect_uris: ["umaxica://oauth/callback"],
+        aud: "palm-api",
+        resource_type: "client",
+        name: "App iOS RP",
+        token_endpoint_auth_method: "none",
       },
-      "core_com" => {
-        redirect_uris: build_redirect_uris("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
-        aud: "umaxica-core-com",
-        resource_type: "visitor",
-        name: "Core Com",
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "CORE_COM",
+      "app-android-rp" => {
+        redirect_uris: ["com.umaxica.app:/oauth/callback"],
+        aud: "palm-api",
+        resource_type: "client",
+        name: "App Android RP",
+        token_endpoint_auth_method: "none",
       },
       # Docs
       "docs_app" => {

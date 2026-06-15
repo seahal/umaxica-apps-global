@@ -49,8 +49,12 @@ module CoreRpBridge
   private
 
   def assign_core_rp_defaults
-    self.rp_client_id = self.class.core_default_client_id if rp_client_id.blank?
+    self.rp_client_id = self.class.core_default_client_id if rp_client_id.blank? || legacy_core_client_id?
     self.audience = self.class.core_default_audience if audience.blank?
     self.host = self.class.core_default_host if host.blank?
+  end
+
+  def legacy_core_client_id?
+    rp_client_id.in?(%w(core_app core_com core_org))
   end
 end

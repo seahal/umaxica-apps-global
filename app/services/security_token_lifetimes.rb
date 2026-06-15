@@ -7,7 +7,7 @@
 # JWT/JWS/JWK/JWKS layer does not know about Auth, Preference, OIDC, or
 # JumpRT token families.
 module SecurityTokenLifetimes
-  AUTH_ACCESS_JWT_TTL = 1.hour
+  AUTH_ACCESS_JWT_TTL = 5.minutes
   PREFERENCE_JWT_TTL = 7.days
   OIDC_ID_TOKEN_TTL = 5.minutes
   JUMP_RT_TTL = 5.minutes
@@ -23,6 +23,10 @@ module SecurityTokenLifetimes
   CLIENT_IDLE_TTL = 8.hours
   OPERATOR_IDLE_TTL = 30.minutes
   VISITOR_IDLE_TTL = 8.hours
+
+  CLIENT_REFRESH_TOKEN_TTL = 30.days
+  OPERATOR_REFRESH_TOKEN_TTL = 8.hours
+  VISITOR_REFRESH_TOKEN_TTL = 30.days
 
   # Minimum gap between per-request last_used_at writes. Activity tracking is
   # throttled so an authenticated request does not write to the session row on

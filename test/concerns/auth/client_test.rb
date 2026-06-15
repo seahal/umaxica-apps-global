@@ -114,8 +114,8 @@ class AuthClientTest < ActiveSupport::TestCase
     access_opts = @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY)
     refresh_opts = @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY)
 
-    assert_operator access_opts[:expires], :>, 10.minutes.from_now
-    assert_operator access_opts[:expires], :<, 2.hours.from_now
+    assert_operator access_opts[:expires], :>, 4.minutes.from_now
+    assert_operator access_opts[:expires], :<, 6.minutes.from_now
     assert_operator refresh_opts[:expires], :>, 29.days.from_now
     assert_operator refresh_opts[:expires], :<, 31.days.from_now
   end
@@ -224,10 +224,12 @@ class AuthClientTest < ActiveSupport::TestCase
       access_opts = @obj.cookies.options_for(::AuthenticationClient::ACCESS_COOKIE_KEY)
       refresh_opts = @obj.cookies.options_for(::AuthenticationClient::REFRESH_COOKIE_KEY)
 
-      assert_in_delta token.discarded_at.to_i, payload["exp"], 1
-      assert_in_delta token.discarded_at.to_i, access_opts[:expires].to_i, 1
+      expected_access_expiry = ::AuthenticationBase::ACCESS_TOKEN_TTL.from_now
+
+      assert_in_delta expected_access_expiry.to_i, payload["exp"], 1
+      assert_in_delta expected_access_expiry.to_i, access_opts[:expires].to_i, 1
       assert_in_delta token.discarded_at.to_i, refresh_opts[:expires].to_i, 1
-      assert_equal 20.minutes.to_i, result[:expires_in]
+      assert_equal ::AuthenticationBase::ACCESS_TOKEN_TTL.to_i, result[:expires_in]
     end
   end
 

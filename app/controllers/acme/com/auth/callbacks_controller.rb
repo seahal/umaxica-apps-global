@@ -20,7 +20,7 @@ module Acme
         private
 
         def oidc_client_id
-          "acme_com"
+          "base-rails-rp"
         end
       end
     end

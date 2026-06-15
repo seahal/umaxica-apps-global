@@ -11,7 +11,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       Digest::SHA256.digest(@code_verifier),
       padding: false,
     )
-    @client = OidcClientRegistry.find("core_app")
+    @client = OidcClientRegistry.find("core-next-rp")
     @redirect_uri = @client.redirect_uris.first
     @client_secret = "test_secret_credential_for_core_app"
   end
@@ -25,7 +25,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -44,13 +44,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     token_url = "https://id.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
-      assertion = OidcClientAssertionJwt.issue(client_id: "core_app", token_url: token_url)
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
 
       result = OidcTokenExchangeService.call(
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
-        client_id: "core_app",
+        client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: assertion,
         code_verifier: @code_verifier,
@@ -67,7 +67,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(
-        client_id: "core_app",
+        client_id: "core-next-rp",
         token_url: "https://id.umaxica.app/oauth/token",
       )
 
@@ -75,7 +75,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
-        client_id: "core_app",
+        client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: assertion,
         code_verifier: @code_verifier,
@@ -114,7 +114,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
-        client_id: "core_app",
+        client_id: "core-next-rp",
         client_secret: @client_secret,
         code_verifier: @code_verifier,
       )
@@ -134,7 +134,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "implicit",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -153,7 +153,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: "wrong_secret_credential",
           code_verifier: @code_verifier,
         )
@@ -170,7 +170,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
-      client_id: "core_app",
+      client_id: "core-next-rp",
       code_verifier: @code_verifier,
     )
 
@@ -187,7 +187,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -500,7 +500,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       grant_type: "authorization_code",
       code: code_record.code,
       redirect_uri: @redirect_uri,
-      client_id: "core_app",
+      client_id: "core-next-rp",
       code_verifier: @code_verifier,
     )
 
@@ -515,7 +515,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: "nonexistent_code",
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -535,7 +535,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
             grant_type: "authorization_code",
             code: code_record.code,
             redirect_uri: @redirect_uri,
-            client_id: "core_app",
+            client_id: "core-next-rp",
             client_secret: @client_secret,
             code_verifier: @code_verifier,
           )
@@ -556,7 +556,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -575,7 +575,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: "http://wrong.host/callback",
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -593,7 +593,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: "wrong_verifier_value",
         )
@@ -612,7 +612,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: "",
         )
@@ -631,7 +631,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -647,26 +647,26 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
-        client_id: "core_app",
+        client_id: "core-next-rp",
         client_secret: @client_secret,
         code_verifier: @code_verifier,
       )
     end
 
-    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core_app")
+    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core-next-rp")
     token = ClientToken.order(:created_at).last
 
     assert_equal "openid profile email", connection.scope
     assert_nil connection.revoked_at
     assert_equal connection.id, token.oidc_connection_id
-    assert_equal "core_app", token.oidc_client_id
+    assert_equal "core-next-rp", token.oidc_client_id
     assert_equal "openid profile email", token.oidc_scope
   end
 
   test "reactivates existing user RP connection on token exchange" do
     connection = ClientOidcConnection.create!(
       user: @user,
-      client_id: "core_app",
+      client_id: "core-next-rp",
       scope: "openid",
       last_used_at: 1.day.ago,
       revoked_at: 1.hour.ago,
@@ -678,7 +678,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: @redirect_uri,
-        client_id: "core_app",
+        client_id: "core-next-rp",
         client_secret: @client_secret,
         code_verifier: @code_verifier,
       )
@@ -700,13 +700,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
       end
 
-    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core_app")
+    connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core-next-rp")
     previous_last_used_at = connection.last_used_at
     rotated = nil
     travel 1.minute do
@@ -715,7 +715,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     replacement = rotated[:token]
 
     assert_equal connection.id, replacement.oidc_connection_id
-    assert_equal "core_app", replacement.oidc_client_id
+    assert_equal "core-next-rp", replacement.oidc_client_id
     assert_equal "openid profile", replacement.oidc_scope
     assert_operator connection.reload.last_used_at, :>, previous_last_used_at
   end
@@ -724,13 +724,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "exchanges valid operator code for tokens with OperatorToken" do
     staff = operators(:one)
-    org_client = OidcClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
-      client_id: "core_org",
+      client_id: "core-next-rp",
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -743,7 +743,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: org_redirect_uri,
-          client_id: "core_org",
+          client_id: "core-next-rp",
           client_secret: staff_secret_credential,
           code_verifier: @code_verifier,
         )
@@ -757,13 +757,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "creates staff token record for org client" do
     staff = operators(:one)
-    org_client = OidcClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
-      client_id: "core_org",
+      client_id: "core-next-rp",
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -776,7 +776,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: org_redirect_uri,
-          client_id: "core_org",
+          client_id: "core-next-rp",
           client_secret: staff_secret_credential,
           code_verifier: @code_verifier,
         )
@@ -786,11 +786,11 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "records staff RP connection" do
     staff = operators(:one)
-    org_client = OidcClientRegistry.find("core_org")
+    org_client = OidcClientRegistry.find("core-next-rp")
     staff_secret_credential = "test_secret_credential_for_core_org"
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
-      client_id: "core_org",
+      client_id: "core-next-rp",
       redirect_uri: org_client.redirect_uris.first,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -803,13 +803,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: org_client.redirect_uris.first,
-        client_id: "core_org",
+        client_id: "core-next-rp",
         client_secret: staff_secret_credential,
         code_verifier: @code_verifier,
       )
     end
 
-    connection = OperatorOidcConnection.find_by!(staff_id: staff.id, client_id: "core_org")
+    connection = OperatorOidcConnection.find_by!(staff_id: staff.id, client_id: "core-next-rp")
     token = OperatorToken.order(:created_at).last
 
     assert_equal "openid staff", connection.scope
@@ -818,13 +818,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "exchanges valid visitor code for tokens with VisitorToken" do
     visitor = create_visitor!
-    com_client = OidcClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
-      client_id: "core_com",
+      client_id: "core-next-rp",
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -837,7 +837,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: com_redirect_uri,
-          client_id: "core_com",
+          client_id: "core-next-rp",
           client_secret: visitor_secret_credential,
           code_verifier: @code_verifier,
         )
@@ -851,13 +851,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "creates visitor token record for com client" do
     visitor = create_visitor!
-    com_client = OidcClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
-      client_id: "core_com",
+      client_id: "core-next-rp",
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -870,7 +870,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: com_redirect_uri,
-          client_id: "core_com",
+          client_id: "core-next-rp",
           client_secret: visitor_secret_credential,
           code_verifier: @code_verifier,
         )
@@ -880,11 +880,11 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "records visitor RP connection" do
     visitor = create_visitor!
-    com_client = OidcClientRegistry.find("core_com")
+    com_client = OidcClientRegistry.find("core-next-rp")
     visitor_secret_credential = "test_secret_credential_for_core_com"
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
-      client_id: "core_com",
+      client_id: "core-next-rp",
       redirect_uri: com_client.redirect_uris.first,
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
@@ -897,13 +897,13 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
         grant_type: "authorization_code",
         code: code_record.code,
         redirect_uri: com_client.redirect_uris.first,
-        client_id: "core_com",
+        client_id: "core-next-rp",
         client_secret: visitor_secret_credential,
         code_verifier: @code_verifier,
       )
     end
 
-    connection = VisitorOidcConnection.find_by!(visitor_id: visitor.id, client_id: "core_com")
+    connection = VisitorOidcConnection.find_by!(visitor_id: visitor.id, client_id: "core-next-rp")
     token = VisitorToken.order(:created_at).last
 
     assert_equal "openid visitor", connection.scope
@@ -924,7 +924,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
           dpop_proof: proof,
@@ -951,7 +951,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -974,7 +974,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
           dpop_proof: proof,
@@ -998,7 +998,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
           dpop_proof: proof,
@@ -1020,7 +1020,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
           grant_type: "authorization_code",
           code: code_record.code,
           redirect_uri: @redirect_uri,
-          client_id: "core_app",
+          client_id: "core-next-rp",
           client_secret: @client_secret,
           code_verifier: @code_verifier,
         )
@@ -1030,7 +1030,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
     id_token = OidcIdTokenVerifier.call(
       id_token: result.token_response.fetch(:id_token),
-      client_id: "core_app",
+      client_id: "core-next-rp",
       resource_type: "client",
       expected_nonce: "test_nonce",
       issuer: OidcIssuer.for_client(@client),
@@ -1048,11 +1048,11 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     assert_predicate id_token, :success?
     assert_equal OidcIssuer.for_client(@client), id_token.payload.fetch("iss")
     assert_equal OidcSubject.for(@user, resource_type: "client"), id_token.payload.fetch("sub")
-    assert_equal "core_app", id_token.payload.fetch("aud")
+    assert_equal "core-next-rp", id_token.payload.fetch("aud")
     assert_equal OidcIssuer.for_client(@client), access_token.fetch("iss")
     assert_equal OidcSubject.for(@user, resource_type: "client"), access_token.fetch("sub")
     assert_equal [@client.aud], Array(access_token.fetch("aud"))
-    assert_equal "core_app", access_token.fetch("client_id")
+    assert_equal "core-next-rp", access_token.fetch("client_id")
     assert_equal %w(openid profile), access_token.fetch("scp")
     assert_predicate access_token.fetch("auth_time"), :present?
 
@@ -1114,7 +1114,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 
-  def issue_code!(client_id: "core_app", redirect_uri: @redirect_uri, scope: nil)
+  def issue_code!(client_id: "core-next-rp", redirect_uri: @redirect_uri, scope: nil)
     ClientAuthorizationCode.issue!(
       user: @user,
       client_id: client_id,
@@ -1141,7 +1141,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_client(&block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core_app" && sec == @client_secret
+                       cid == "core-next-rp" && sec == @client_secret
                      },
     ) do
       block.call
@@ -1151,7 +1151,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_org_client(secret_credential, &block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core_org" && sec == secret_credential
+                       cid == "core-next-rp" && sec == secret_credential
                      },
     ) do
       block.call
@@ -1161,7 +1161,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_com_client(secret_credential, &block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core_com" && sec == secret_credential
+                       cid == "core-next-rp" && sec == secret_credential
                      },
     ) do
       block.call

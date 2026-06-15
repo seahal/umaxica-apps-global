@@ -19,7 +19,7 @@ module Sign
         private
 
         def oidc_client_id
-          "sign_app"
+          "sign-rp"
         end
       end
     end

@@ -62,7 +62,15 @@ class OidcAuthorizationCodeIssuer < ApplicationService
   end
 
   def code_target
-    CLIENT_CODE_TARGETS.fetch(client.resource_type, DEFAULT_CODE_TARGET)
+    CLIENT_CODE_TARGETS.fetch(resource_type, DEFAULT_CODE_TARGET)
+  end
+
+  def resource_type
+    case resource
+    when ::Operator then "operator"
+    when ::Visitor then "visitor"
+    else "client"
+    end
   end
 
   def code_attributes

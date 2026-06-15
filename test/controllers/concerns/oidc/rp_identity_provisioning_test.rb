@@ -18,9 +18,9 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core_app")),
+        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core-next-rp")),
         "sub" => OidcSubject.for(client, resource_type: "client"),
-        "aud" => "core_app",
+        "aud" => "core-next-rp",
       },
     )
 
@@ -28,11 +28,11 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     bridge = CoreAppClientBridge.find_by!(client_id: client.id)
 
     assert_equal client, actor
-    assert_equal OidcIssuer.for_client(OidcClientRegistry.find!("core_app")), identity.issuer
+    assert_equal OidcIssuer.for_client(OidcClientRegistry.find!("core-next-rp")), identity.issuer
     assert_equal OidcSubject.for(client, resource_type: "client"), identity.subject
-    assert_equal "core_app", identity.audience
+    assert_equal "core-next-rp", identity.audience
     assert_equal ClientIdentityState::ACTIVE, identity.status_id
-    assert_equal "core_app", bridge.rp_client_id
+    assert_equal "core-next-rp", bridge.rp_client_id
     assert_equal client.public_id, bridge.subject
   end
 
@@ -43,7 +43,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     ClientIdentity.create!(
       issuer: "umaxica-auth:client",
       subject: "opaque-idp-subject",
-      audience: "core_app",
+      audience: "core-next-rp",
       source_record_id: client.id,
       status_id: ClientIdentityState::ACTIVE,
     )
@@ -53,7 +53,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
       :provision_rp_account_from_id_token!, {
         "iss" => "umaxica-auth:client",
         "sub" => "opaque-idp-subject",
-        "aud" => "core_app",
+        "aud" => "core-next-rp",
       },
     )
 
@@ -69,16 +69,16 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("acme_com")),
+        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
         "sub" => OidcSubject.for(visitor, resource_type: "visitor"),
-        "aud" => "acme_com",
+        "aud" => "base-rails-rp",
       },
     )
 
     identity = VisitorIdentity.find_by!(source_record_id: visitor.id)
 
     assert_equal visitor, actor
-    assert_equal "acme_com", identity.audience
+    assert_equal "base-rails-rp", identity.audience
     assert_equal VisitorIdentityState::ACTIVE, identity.status_id
     assert_nil CoreComVisitorBridge.find_by(visitor_id: visitor.id)
   end

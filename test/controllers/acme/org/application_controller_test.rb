@@ -65,7 +65,7 @@ module Acme
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_client_id
-        assert_equal "acme_org", controller.send(:oidc_client_id)
+        assert_equal "base-rails-rp", controller.send(:oidc_client_id)
       end
 
       test "has oidc_sign_host method" do

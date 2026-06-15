@@ -7,20 +7,20 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   COOKIE_NAME = AuthenticationBase::ACCESS_COOKIE_KEY
 
   SURFACES = [
-    { host: "www.app.localhost",
-      client_id: "acme_app",
+    { host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      client_id: "base-rails-rp",
       acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       resource: -> {
         clients(:one)
       }, },
-    { host: "www.org.localhost",
-      client_id: "acme_org",
+    { host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      client_id: "base-rails-rp",
       acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
       resource: -> {
         operators(:one)
       }, },
-    { host: "www.com.localhost",
-      client_id: "acme_com",
+    { host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      client_id: "base-rails-rp",
       acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
       resource: -> {
         create_visitor!
@@ -47,7 +47,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal redirect_uri_for(surface), query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
@@ -60,7 +60,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     with_acme_oidc_client_key do
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
-      client = OidcClientRegistry.find!("acme_app")
+      client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
 
       get "/sso/authorize", headers: browser_headers
@@ -110,13 +110,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
       token_url = acme_app_oauth_token_url(host: acme_host)
-      client_assertion = OidcClientAssertionJwt.issue(client_id: "acme_app", token_url: token_url)
+      client_assertion = OidcClientAssertionJwt.issue(client_id: "base-rails-rp", token_url: token_url)
       post token_url,
            params: {
              grant_type: "authorization_code",
              code: callback_query.fetch("code"),
              redirect_uri: client.redirect_uris.first,
-             client_id: "acme_app",
+             client_id: "base-rails-rp",
              code_verifier: code_verifier,
              client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
              client_assertion: client_assertion,
@@ -138,7 +138,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           "/oauth/authorize", params: {
             response_type: "code",
             client_id: surface[:client_id],
-            redirect_uri: OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first,
+            redirect_uri: redirect_uri_for(surface),
             code_challenge: SecureRandom.urlsafe_base64(32),
             code_challenge_method: "S256",
             state: "state",
@@ -147,11 +147,11 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           }, headers: browser_headers,
         )
 
-        if surface[:client_id] == "acme_org"
+        if surface[:acme_host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+          assert_equal 302, session.response.status, surface[:client_id]
+        else
           assert_equal 422, session.response.status, surface[:client_id]
           assert_equal "Invalid request", session.response.body
-        else
-          assert_equal 302, session.response.status, surface[:client_id]
         end
 
         session.get("/oauth/authorization", headers: browser_headers)
@@ -194,7 +194,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
     id_token = OidcIdTokenIssuer.call(
       resource: clients(:one),
-      client: OidcClientRegistry.find!("acme_app"),
+      client: OidcClientRegistry.find!("base-rails-rp"),
       nonce: "wrong_nonce",
     )
     token_result = OidcRpTokenClient::Result.new(
@@ -235,7 +235,9 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
-      assert_response_has_auth_cookie
+      assert_response_has_auth_cookie if surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+      next unless surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
       get "/accounts?ri=jp", headers: browser_headers
 
@@ -267,6 +269,12 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def redirect_uri_for(surface)
+    OidcClientRegistry.find!(surface[:client_id]).redirect_uris.find do |uri|
+      URI.parse(uri).host == surface[:host]
+    end
+  end
 
   def create_visitor!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)

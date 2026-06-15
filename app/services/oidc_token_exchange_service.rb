@@ -133,15 +133,16 @@ class OidcTokenExchangeService < ApplicationService
       refresh_plain = token_record.rotate_refresh_token!
       access_expires_at = now + AuthenticationBase::ACCESS_TOKEN_TTL
 
-      resource_type = token_resource_type(client)
-      issuer = OidcIssuer.for_client(client)
+      resource_type = resource_type_for(authorization_code)
+      client = client_for_resource_type(client, resource_type)
+      issuer = OidcIssuer.for_resource_type(resource_type)
       subject = OidcSubject.for(resource, resource_type: resource_type)
       oidc_sid = token_record_oidc_sid(token_record)
       auth_time = authorization_code.created_at || now
 
       access_token = AuthenticationTokenService.encode(
         resource,
-        host: OidcIssuer.host_for_client(client),
+        host: OidcIssuer.host_for_resource_type(resource_type),
         session_public_id: token_record.public_id,
         oidc_sid: oidc_sid,
         oidc_jti: token_record_oidc_jti(token_record),
@@ -151,7 +152,7 @@ class OidcTokenExchangeService < ApplicationService
         acr: authorization_code.acr,
         amr: Array(authorization_code.auth_method),
         dpop_jkt: dpop_jkt,
-        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_client(client),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
         issuer: issuer,
         audiences: [client.aud],
         subject: subject,
@@ -165,7 +166,7 @@ class OidcTokenExchangeService < ApplicationService
         issued_at: now,
         acr: authorization_code.acr,
         amr: Array(authorization_code.auth_method),
-        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_client(client),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
         issuer: issuer,
         subject: subject,
         sid: oidc_sid,
@@ -198,20 +199,22 @@ class OidcTokenExchangeService < ApplicationService
       oidc_jti: SecureRandom.uuid,
     }
 
-    if operator_client?(client)
+    resource_type = resource_type_for_authorized_resource(resource)
+
+    if resource_type == "operator"
       OperatorToken.create!(
         staff: resource,
         public_id: SecureRandom.alphanumeric(21),
-        discarded_at: AuthenticationBase::REFRESH_TOKEN_TTL.from_now,
+        discarded_at: SecurityTokenLifetimes::OPERATOR_REFRESH_TOKEN_TTL.from_now,
         staff_token_status_id: OperatorTokenStatus::ACTIVE,
         dpop_jkt: dpop_jkt,
         **oidc_attrs,
       )
-    elsif visitor_client?(client)
+    elsif resource_type == "visitor"
       VisitorToken.create!(
         visitor: resource,
         public_id: SecureRandom.alphanumeric(21),
-        discarded_at: AuthenticationBase::REFRESH_TOKEN_TTL.from_now,
+        discarded_at: SecurityTokenLifetimes::VISITOR_REFRESH_TOKEN_TTL.from_now,
         visitor_token_status_id: VisitorTokenStatus::ACTIVE,
         dpop_jkt: dpop_jkt,
         **oidc_attrs,
@@ -220,7 +223,7 @@ class OidcTokenExchangeService < ApplicationService
       ClientToken.create!(
         user: resource,
         public_id: SecureRandom.alphanumeric(21),
-        discarded_at: AuthenticationBase::REFRESH_TOKEN_TTL.from_now,
+        discarded_at: SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL.from_now,
         user_token_status_id: ClientTokenStatus::ACTIVE,
         dpop_jkt: dpop_jkt,
         **oidc_attrs,
@@ -288,6 +291,29 @@ class OidcTokenExchangeService < ApplicationService
     when VisitorAuthorizationCode then "visitor"
     else "client"
     end
+  end
+
+  def resource_type_for_authorized_resource(resource)
+    case resource
+    when ::Operator then "operator"
+    when ::Visitor then "visitor"
+    else "client"
+    end
+  end
+
+  def client_for_resource_type(client, resource_type)
+    OidcClientRegistry::VisitorAccount.new(
+      client_id: client.client_id,
+      client_secret: client.client_secret,
+      redirect_uris: client.redirect_uris,
+      aud: client.aud,
+      resource_type: resource_type,
+      name: client.name,
+      domains: client.domains,
+      registered_token_endpoint_auth_method: client.registered_token_endpoint_auth_method,
+      metadata_token_endpoint_auth_method: client.metadata_token_endpoint_auth_method,
+      jwt_namespace: client.jwt_namespace,
+    )
   end
 
   def failure(error, description)

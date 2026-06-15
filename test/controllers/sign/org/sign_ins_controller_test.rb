@@ -20,7 +20,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign_org", query["client_id"]
+    assert_equal "sign-rp", query["client_id"]
     assert_equal "signin", query["screen_hint"]
     assert_nil session[:oidc_authorization_login_challenge]
   end
@@ -121,8 +121,8 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   def authorize_params
     {
       response_type: "code",
-      client_id: "core_org",
-      redirect_uri: OidcClientRegistry.find!("core_org").redirect_uris.first,
+      client_id: "core-next-rp",
+      redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
       code_challenge: "challenge",
       code_challenge_method: "S256",
       state: "state",

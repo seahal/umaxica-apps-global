@@ -8,5 +8,5 @@ File names should follow:
 YYYY-MM-DD-<task-slug>.md
 ```
 
-See `.harnes/rules/generic/implementation-notes.mdc` for the required contents, and
-`.harnes/rules/project/repository-knowledge-tree.mdc` for note locations and promotion rules.
+See `.agents/harnesses/rules/generic/implementation-notes.mdc` for the required contents, and
+`.agents/harnesses/rules/project/repository-knowledge-tree.mdc` for note locations and promotion rules.

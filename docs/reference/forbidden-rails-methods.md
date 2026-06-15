@@ -58,7 +58,7 @@ Enforced boundary (the only sanctioned exceptions):
   `:set_preferences_cookie`, `:set_color_theme`) is allowed where an endpoint legitimately does not
   participate in that context, and is not a security relaxation.
 
-See `.harnes/rules/project/regression-guards.mdc` for the same enforced-regression-guard summary.
+See `.agents/harnesses/rules/project/regression-guards.mdc` for the same enforced-regression-guard summary.
 
 ### `skip_authorization`
 

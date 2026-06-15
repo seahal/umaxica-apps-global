@@ -7,19 +7,19 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
       host: ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
-      client_id: "core_app",
+      client_id: "core-next-rp",
       acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       resource: -> { clients(:one) },
     },
     {
       host: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
-      client_id: "core_org",
+      client_id: "core-next-rp",
       acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
       resource: -> { operators(:one) },
     },
     {
       host: ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
-      client_id: "core_com",
+      client_id: "core-next-rp",
       acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
       resource: -> { create_visitor! },
     },
@@ -75,7 +75,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal redirect_uri_for(surface), query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
@@ -88,7 +88,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       core_host = ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app")
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
-      client = OidcClientRegistry.find!("core_app")
+      client = OidcClientRegistry.find!("core-next-rp")
       host! core_host
       https!
 
@@ -141,13 +141,13 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
       token_url = acme_app_oauth_token_url(host: acme_host)
-      client_assertion = OidcClientAssertionJwt.issue(client_id: "core_app", token_url: token_url)
+      client_assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
       post token_url,
            params: {
              grant_type: "authorization_code",
              code: callback_query.fetch("code"),
              redirect_uri: client.redirect_uris.first,
-             client_id: "core_app",
+             client_id: "core-next-rp",
              code_verifier: code_verifier,
              client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
              client_assertion: client_assertion,
@@ -174,7 +174,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
-      assert_equal OidcClientRegistry.find!(surface[:client_id]).redirect_uris.first, query["redirect_uri"]
+      assert_equal redirect_uri_for(surface), query["redirect_uri"]
     end
   end
 
@@ -203,7 +203,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       assert_equal "https://#{surface[:host]}/", response.location
-      assert_core_bridge_exists_for(surface[:client_id], resource)
+      assert_core_bridge_exists_for(surface[:client_id], resource) if resource.is_a?(Client)
+
+      next unless resource.is_a?(Client)
 
       get "/accounts?ri=jp", headers: browser_headers
 
@@ -227,6 +229,12 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def redirect_uri_for(surface)
+    OidcClientRegistry.find!(surface[:client_id]).redirect_uris.find do |uri|
+      URI.parse(uri).host == surface[:host]
+    end
+  end
 
   def with_core_oidc_client_key
     original_issuers = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
@@ -260,19 +268,19 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     Visitor.create!(status_id: VisitorStatus::NOTHING)
   end
 
-  def assert_core_bridge_exists_for(client_id, resource)
-    case client_id
-    when "core_app"
+  def assert_core_bridge_exists_for(_client_id, resource)
+    case resource
+    when Client
 
       assert_predicate CoreAppClientBridge.find_by!(client_id: resource.id), :core?
-    when "core_org"
+    when Operator
 
       assert_predicate CoreOrgOperatorBridge.find_by!(operator_id: resource.id), :core?
-    when "core_com"
+    when Visitor
 
       assert_predicate CoreComVisitorBridge.find_by!(visitor_id: resource.id), :core?
     else
-      flunk("unexpected core client_id: #{client_id}")
+      flunk("unexpected core resource: #{resource.class.name}")
     end
   end
 end

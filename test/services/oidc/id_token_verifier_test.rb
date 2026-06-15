@@ -4,7 +4,7 @@ require "test_helper"
 
 class OidcIdTokenVerifierTest < ActiveSupport::TestCase
   setup do
-    @client = OidcClientRegistry.find!("core_app")
+    @client = OidcClientRegistry.find!("core-next-rp")
     @user = clients(:one)
     @nonce = "nonce-#{SecureRandom.hex(4)}"
     @issuer = OidcIssuer.for_client(@client)
@@ -24,7 +24,7 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
   test "rejects wrong issuer audience nonce and actor type" do
     assert_invalid id_token(issuer: "https://evil.example")
 
-    assert_invalid token_with_claims("aud" => "core_org")
+    assert_invalid token_with_claims("aud" => "base-rails-rp")
 
     nonce_mismatch = verify(id_token, expected_nonce: "wrong-nonce")
 

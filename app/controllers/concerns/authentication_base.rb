@@ -82,7 +82,7 @@ module AuthenticationBase
 
   # AuthenticationToken TTLs
   ACCESS_TOKEN_TTL = SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
-  REFRESH_TOKEN_TTL = 30.days
+  REFRESH_TOKEN_TTL = SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
   DBSC_COOKIE_TTL = 10.minutes
   RESTRICTED_SESSION_TTL = 15.minutes
   LOGIN_COOLDOWN = 30.seconds

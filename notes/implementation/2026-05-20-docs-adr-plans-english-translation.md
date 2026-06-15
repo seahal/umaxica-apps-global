@@ -4,7 +4,7 @@
 
 - Original request: translate Japanese content under `docs/`, `adr/`, and `plans/` into English.
 - Related docs: `AGENTS.md`, `docs/index.md`, `notes/README.md`,
-  `.harnes/rules/generic/implementation-notes.mdc`.
+  `.agents/harnesses/rules/generic/implementation-notes.mdc`.
 - Implementation date: 2026-05-20.
 
 ## Decisions Made During Implementation

@@ -93,9 +93,11 @@ class Sign::Org::In::SessionsController < ::Sign::Org::ApplicationController
       render :show
     else
       # Cancel: revoke current restricted session and logout
-      if current_session&.restricted?
-        current_session.revoke!
-      end
+      AuthenticationLogoutCurrentSession.call(
+        resource: @current_operator,
+        token: current_session,
+        reason: "session_limit_cancelled",
+      ) if current_session&.restricted?
       current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
@@ -199,9 +201,13 @@ class Sign::Org::In::SessionsController < ::Sign::Org::ApplicationController
       return
     end
 
-    OrgTicketRecord.connected_to(role: :writing) do
-      token.revoke!
-    end
+    AuthenticationSelectedSessionRevoker.call(
+      owner: staff,
+      token: token,
+      current_token: current_session,
+      current_session_public_id: current_session_public_id,
+      reason: "session_limit_selected_revoke",
+    )
 
     flash[:notice] = I18n.t("session_limit.session_revoked")
   end
@@ -215,7 +221,13 @@ class Sign::Org::In::SessionsController < ::Sign::Org::ApplicationController
           next unless token && allowed_to?(:destroy?, token, context: { user: staff })
           next if token.id == current_session&.id || token.public_id == current_session_public_id # Skip current session
 
-          token.revoke!
+          AuthenticationSelectedSessionRevoker.call(
+            owner: staff,
+            token: token,
+            current_token: current_session,
+            current_session_public_id: current_session_public_id,
+            reason: "session_limit_selected_revoke",
+          )
           revoked_count += 1
         end
       end

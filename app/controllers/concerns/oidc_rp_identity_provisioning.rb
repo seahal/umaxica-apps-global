@@ -74,7 +74,13 @@ module OidcRpIdentityProvisioning
     return unless bridge_class
 
     record_context_for(bridge_class).connected_to(role: :writing) do
-      bridge_class.find_or_create_by!(bridge_class.core_actor_foreign_key => actor.id)
+      bridge = bridge_class.find_or_create_by!(bridge_class.core_actor_foreign_key => actor.id)
+      bridge.update!(
+        rp_client_id: bridge_class.core_default_client_id,
+        audience: bridge_class.core_default_audience,
+        host: bridge_class.core_default_host,
+      ) unless bridge.core?
+      bridge
     end
   end
 

@@ -11,7 +11,7 @@ class Acme::Com::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
   test "returns client_id as acme_com" do
     controller = Acme::Com::Auth::CallbacksController.new
 
-    assert_equal "acme_com", controller.send(:oidc_client_id)
+    assert_equal "base-rails-rp", controller.send(:oidc_client_id)
   end
 
   test "callback route exists" do

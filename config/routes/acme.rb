@@ -304,6 +304,26 @@ scope module: :acme, as: :acme do
       resources :system, only: :index
       resources :audit, only: :index
       resources :support, only: :index
+      namespace :support do
+        resources :clients, only: [] do
+          resource :sessions, only: [], controller: "client_sessions" do
+            delete :purge
+            delete :emergency_revoke
+          end
+        end
+        resources :visitors, only: [] do
+          resource :sessions, only: [], controller: "visitor_sessions" do
+            delete :purge
+            delete :emergency_revoke
+          end
+        end
+        resources :operators, only: [] do
+          resource :sessions, only: [], controller: "operator_sessions" do
+            delete :purge
+            delete :emergency_revoke
+          end
+        end
+      end
       resources :billing, only: :index
       resource :verification, only: :show do
         post :completion

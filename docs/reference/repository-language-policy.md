@@ -10,7 +10,7 @@ implementation handoff notes, and exploratory memos readable by all future agent
 The English-only rule applies to:
 
 - `AGENTS.md`
-- `.harnes/`
+- `.agents/harnesses/`
 - `adr/`
 - `docs/`
 - `plans/`
@@ -47,7 +47,7 @@ When writing or updating repository prose:
 Useful review command for Japanese text:
 
 ```bash
-rg -n "[ぁ-んァ-ン一-龯]" AGENTS.md .harnes adr docs plans notes memos
+rg -n "[ぁ-んァ-ン一-龯]" AGENTS.md .agents/harnesses adr docs plans notes memos
 ```
 
 Any hit must either be translated to English or clearly belong to an exception.

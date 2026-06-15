@@ -5,7 +5,7 @@
 - Original plan/spec: Japanese maintenance request to inventory model concern `included do`, avoid
   banning Rails-idiomatic model concerns, and make at most one small safe improvement.
 - Related ADR/docs/plans: `docs/index.md`, `adr/README.md`, `plans/README.md`,
-  `.harnes/rules/generic/rails-concerns.mdc`.
+  `.agents/harnesses/rules/generic/rails-concerns.mdc`.
 - Implementation date: 2026-05-31.
 
 ## Decisions Made During Implementation

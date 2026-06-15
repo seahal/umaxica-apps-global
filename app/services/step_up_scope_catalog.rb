@@ -25,7 +25,7 @@ module StepUpScopeCatalog
     # "social_link" scope or operator Google linking can never satisfy step-up.
     "social_link" => %r{\A/settings/google(?:\z|[?#])},
     "social_unlink" => %r{\A/?(?:social/|settings/google(?:\z|[?#]))},
-    "session_revoke_all" => %r{\A/settings/sessions},
+    "session_revoke_all" => %r{\A(?:/settings/sessions|/support/(?:clients|visitors|operators)/\d+/sessions/)},
     "withdrawal" => %r{\A/settings/withdrawal},
     "settings_email" => %r{\A/settings/emails},
     "settings_telephone" => %r{\A/settings/telephones},

@@ -32,7 +32,7 @@ class CoreOrgOperatorBridge < OrgRpRecord
   core_rp_bridge(
     actor_association_name: :operator,
     actor_foreign_key: :operator_id,
-    client_id: "core_org",
+    client_id: "core-next-rp",
     audience: "umaxica-core-org",
     host: "www.jp.umaxica.org",
   )

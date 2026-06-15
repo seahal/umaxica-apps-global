@@ -90,7 +90,7 @@ class VisitorToken < ComTicketRecord
   DBSC_BINDING_METHOD_CLASS = VisitorTokenBindingMethod
   DBSC_STATUS_CLASS = VisitorTokenDbscStatus
 
-  LOGIN_SESSION_TTL = 12.hours
+  LOGIN_SESSION_TTL = SecurityTokenLifetimes::VISITOR_REFRESH_TOKEN_TTL
   DELETION_GRACE_PERIOD = 1.day
   MAX_SESSIONS_PER_VISITOR = 1
   MAX_TOTAL_SESSIONS_PER_VISITOR = 2
