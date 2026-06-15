@@ -365,8 +365,7 @@ scope module: :sign, as: :sign do
         end
         resources :emails, only: %i(index edit update destroy)
 
-        # FIXME: I want to rename this much smarter naming.
-        scope path: "telephones", module: :telephones, as: :telephones do
+        namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
         resources :telephones, only: %i(index new create edit destroy)
