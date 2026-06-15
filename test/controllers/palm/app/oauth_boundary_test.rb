@@ -16,13 +16,18 @@ module Palm
           route_to("https://#{host}/oauth/callback", method: :get),
         )
         assert_equal(
-          "palm/app/oauth/callbacks#show",
+          "palm/app/oauth/callback/ios#index",
           route_to("https://#{host}/oauth/callback/ios", method: :get),
         )
         assert_equal(
-          "palm/app/oauth/callbacks#show",
+          "palm/app/oauth/callback/android#index",
           route_to("https://#{host}/oauth/callback/android", method: :get),
         )
+
+        source = Rails.root.join("config/routes/palm.rb").read
+
+        assert_not_includes source, 'controller: "ios"'
+        assert_not_includes source, 'controller: "android"'
 
         assert_raises(ActionController::RoutingError) do
           Rails.application.routes.recognize_path("https://#{host}/oauth/authorize", method: :get)

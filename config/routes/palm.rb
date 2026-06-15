@@ -1,33 +1,61 @@
 # typed: false
 # frozen_string_literal: true
 
+# Palm owns the native API surface.
 scope module: :palm, as: :palm do
-  # Application native API surface
+  # App native API host.
   constraints host: ENV["PALM_SERVICE_URL"] do
+    # App surface controllers.
     scope module: :app, as: :app do
+      # Thin landing endpoint.
       root to: "roots#index"
+
+      # Basic health summary.
       resource :health, only: :show
+
+      # Machine-readable health probes.
       namespace :health do
+        # Process liveness probe.
         resource :liveness, only: :show
+
+        # Dependency readiness probe.
         resource :readiness, only: :show
+
+        # Boot/startup probe.
         resource :startup, only: :show
       end
-      resource :robot, only: :show, path: "robots.txt"
+
+      # Crawler policy endpoint.
+      resources :robots, only: :index, path: "robots.txt"
+
+      # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
+
+      # Browser CSP report sink.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
+      # Native bearer-token API.
       namespace :api do
+        # Versioned native API.
         namespace :v0 do
+          # Current native profile.
           resource :profile, only: :show
         end
       end
-      # Reserved native callback compatibility stubs only. Palm is not an
-      # OAuth/OIDC endpoint owner; Acme owns token issuance and native-device
-      # transport belongs under API namespaces when implemented.
+
+      # Compatibility callbacks only; Acme owns OAuth/OIDC.
       namespace :oauth do
+        # Generic native callback stub.
         resource :callback, only: :show
-        # ▽FIXME: use namespace and resource instead of get route.
-        get "callback/ios", to: "callbacks#show", as: :ios_callback
-        get "callback/android", to: "callbacks#show", as: :android_callback
+
+        # Platform-specific native callback stubs.
+        namespace :callback, path: "callback" do
+          # iOS native callback stub.
+          resources :ios, only: :index, path: "ios"
+
+          # Android native callback stub.
+          resources :android, only: :index, path: "android"
+        end
       end
     end
   end

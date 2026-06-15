@@ -29,7 +29,7 @@ module Palm
 
           assert_no_oauth_mutation do
             OidcTokenExchangeService.stub(:call, ->(**) { flunk("Palm callback must not call token exchange") }) do
-              get palm_app_oauth_ios_callback_url(
+              get palm_app_oauth_callback_ios_url(
                 host: host,
                 code: "secret-code",
                 state: "secret-state",
@@ -45,7 +45,7 @@ module Palm
           assert_not_includes response.body, "secret-access-token"
           assert_nil response.headers["Set-Cookie"]
 
-          get palm_app_oauth_android_callback_url(host: host, code: "other-code", state: "other-state")
+          get palm_app_oauth_callback_android_index_url(host: host, code: "other-code", state: "other-state")
 
           assert_response :ok
           assert_equal STATIC_MESSAGE, response.body

@@ -8,7 +8,7 @@ module Base
 
       AUTHENTICATION_MODE = :bare
 
-      def show
+      def index
         show_plain_text
       end
     end

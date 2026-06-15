@@ -21,8 +21,8 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
   test "base and palm surfaces define public file helpers" do
     assert_public_file_helpers(
       robots: %i(
-        base_app_robot_path base_com_robot_path base_org_robot_path
-        palm_app_robot_path
+        base_app_robots_path base_com_robots_path base_org_robots_path
+        palm_app_robots_path
       ),
       sitemap: %i(
         base_app_sitemap_path base_com_sitemap_path base_org_sitemap_path
@@ -50,10 +50,10 @@ class PublicRobotsRoutingTest < ActionDispatch::IntegrationTest
 
   test "public file endpoints respond without redirect" do
     endpoints = [
-      [method(:base_app_robot_url), ENV["BASE_SERVICE_URL"] || "base.app.localhost", "robots"],
-      [method(:base_com_robot_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "robots"],
-      [method(:base_org_robot_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "robots"],
-      [method(:palm_app_robot_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "robots"],
+      [method(:base_app_robots_url), ENV["BASE_SERVICE_URL"] || "base.app.localhost", "robots"],
+      [method(:base_com_robots_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "robots"],
+      [method(:base_org_robots_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "robots"],
+      [method(:palm_app_robots_url), ENV["PALM_SERVICE_URL"] || "palm.app.localhost", "robots"],
       [method(:base_app_sitemap_url), ENV["BASE_SERVICE_URL"] || "base.app.localhost", "sitemap"],
       [method(:base_com_sitemap_url), ENV["BASE_CORPORATE_URL"] || "base.com.localhost", "sitemap"],
       [method(:base_org_sitemap_url), ENV["BASE_STAFF_URL"] || "base.org.localhost", "sitemap"],

@@ -11,6 +11,16 @@ module Palm
         after_action :set_callback_cache_headers
 
         def show
+          render_callback_stub
+        end
+
+        private
+
+        def skip_callback_session!
+          request.session_options[:skip] = true
+        end
+
+        def render_callback_stub
           render(
             # rubocop:disable I18n/RailsI18n/DecorateString
             plain: "This URL is reserved for completing app authentication.\n" \
@@ -18,12 +28,6 @@ module Palm
             # rubocop:enable I18n/RailsI18n/DecorateString
             status: :ok,
           )
-        end
-
-        private
-
-        def skip_callback_session!
-          request.session_options[:skip] = true
         end
 
         def set_callback_cache_headers

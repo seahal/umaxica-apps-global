@@ -1,51 +1,103 @@
 # typed: false
 # frozen_string_literal: true
 
+# Base owns the Rails control-plane surface.
 scope module: :base, as: :base do
-  # Application control-plane surface
+  # App control-plane host.
   constraints host: ENV["BASE_SERVICE_URL"] do
+    # App surface controllers.
     scope module: :app, as: :app do
+      # Thin landing endpoint.
       root to: "roots#index"
+
+      # Basic health summary.
       resource :health, only: :show
+
+      # Machine-readable health probes.
       namespace :health do
+        # Process liveness probe.
         resource :liveness, only: :show
+
+        # Dependency readiness probe.
         resource :readiness, only: :show
+
+        # Boot/startup probe.
         resource :startup, only: :show
       end
-      resource :robot, only: :show, path: "robots.txt"
+
+      # Crawler policy endpoint; keep fixed public path.
+      resources :robots, only: :index, path: "robots.txt"
+
+      # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
+
+      # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 
-  # Corporate control-plane surface
+  # Corporate control-plane host.
   constraints host: ENV["BASE_CORPORATE_URL"] do
+    # Corporate surface controllers.
     scope module: :com, as: :com do
+      # Thin landing endpoint.
       root to: "roots#index"
+
+      # Basic health summary.
       resource :health, only: :show
+
+      # Machine-readable health probes.
       namespace :health do
+        # Process liveness probe.
         resource :liveness, only: :show
+
+        # Dependency readiness probe.
         resource :readiness, only: :show
+
+        # Boot/startup probe.
         resource :startup, only: :show
       end
-      resource :robot, only: :show, path: "robots.txt"
+
+      # Crawler policy endpoint; keep fixed public path.
+      resources :robots, only: :index, path: "robots.txt"
+
+      # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
+
+      # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
 
-  # Staff control-plane surface
+  # Staff control-plane host.
   constraints host: ENV["BASE_STAFF_URL"] do
+    # Staff surface controllers.
     scope module: :org, as: :org do
+      # Thin landing endpoint.
       root to: "roots#index"
+
+      # Basic health summary.
       resource :health, only: :show
+
+      # Machine-readable health probes.
       namespace :health do
+        # Process liveness probe.
         resource :liveness, only: :show
+
+        # Dependency readiness probe.
         resource :readiness, only: :show
+
+        # Boot/startup probe.
         resource :startup, only: :show
       end
-      resource :robot, only: :show, path: "robots.txt"
+
+      # Crawler policy endpoint; keep fixed public path.
+      resources :robots, only: :index, path: "robots.txt"
+
+      # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
+
+      # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
   end
