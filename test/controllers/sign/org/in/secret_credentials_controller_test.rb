@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Org::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_secret_credentials, :operator_statuses, :operator_secret_credential_statuses,
            :operator_secret_credential_kinds, :operator_token_binding_methods, :operator_token_kinds,
            :operator_token_statuses, :operator_token_dbsc_statuses, :operator_email_statuses

@@ -32,6 +32,10 @@ module Security
                           subscribers/jwt_anomaly_subscriber|
                           jit/security)}x
 
+      OIDC_LOGOUT_REDIRECT_RE = Regexp.new(
+        'redirect_to\(post_logout_redirect_uri_with_state\(result\), allow_other_host: true, status: :see_other\)',
+      )
+
       # Allowlist entries document existing reviewed exceptions. They are not
       # blanket permission for new uses: the line snippet must still match.
       # Responsibility: owners of the named component must migrate to
@@ -53,7 +57,7 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/concerns/sign_oidc_logout.rb",
-          line: /redirect_to\(post_logout_redirect_uri_with_state\(result\), allow_other_host: true, status: :see_other\)/,
+          line: OIDC_LOGOUT_REDIRECT_RE,
           reason: "OIDC logout must redirect to the RP post-logout URI after state validation.",
         },
         {

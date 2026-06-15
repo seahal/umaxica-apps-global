@@ -67,15 +67,15 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       count: 1,
       classification: "WebAuthn verification error response boundary",
     },
-    "app/controllers/sign/app/in/secret_credentials_controller.rb" => {
+    "app/controllers/sign/app/sign/in/secret_credentials_controller.rb" => {
       count: 2,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },
-    "app/controllers/sign/com/in/secret_credentials_controller.rb" => {
+    "app/controllers/sign/com/sign/in/secret_credentials_controller.rb" => {
       count: 1,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },
-    "app/controllers/sign/org/in/secret_credentials_controller.rb" => {
+    "app/controllers/sign/org/sign/in/secret_credentials_controller.rb" => {
       count: 1,
       classification: "secret_credential sign-in error response boundary; follow-up required",
     },

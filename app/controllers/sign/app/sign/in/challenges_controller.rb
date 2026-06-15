@@ -3,29 +3,31 @@
 
 module Sign
   module App
-    module In
-      class ChallengesController < ::Sign::App::ApplicationController
-        AUTHENTICATION_MODE = :guest
+    module Sign
+      module In
+        class ChallengesController < ::Sign::App::ApplicationController
+          AUTHENTICATION_MODE = :guest
 
-        before_action :ensure_pending_mfa!
+          before_action :ensure_pending_mfa!
 
-        def show
-          @mfa_user = pending_mfa_user
-          @can_use_totp = @mfa_user&.totp_enabled?
-          @can_use_passkey = @mfa_user&.client_passkeys&.exists?(status_id: ClientPasskeyStatus::ACTIVE)
-        end
+          def show
+            @mfa_user = pending_mfa_user
+            @can_use_totp = @mfa_user&.totp_enabled?
+            @can_use_passkey = @mfa_user&.client_passkeys&.exists?(status_id: ClientPasskeyStatus::ACTIVE)
+          end
 
-        private
+          private
 
-        def ensure_pending_mfa!
-          return unless !pending_mfa_valid? || pending_mfa_user.nil?
+          def ensure_pending_mfa!
+            return unless !pending_mfa_valid? || pending_mfa_user.nil?
 
-          clear_pending_mfa!
-          redirect_to(
-            sign_app_sign_in_entrance_path,
-            alert: I18n.t("sign.app.in.mfa.session_expired"),
-            status: :see_other,
-          )
+            clear_pending_mfa!
+            redirect_to(
+              sign_app_sign_in_entrance_path,
+              alert: I18n.t("sign.app.in.mfa.session_expired"),
+              status: :see_other,
+            )
+          end
         end
       end
     end

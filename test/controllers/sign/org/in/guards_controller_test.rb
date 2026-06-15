@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Org::In::GuardsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators
 
   setup do
@@ -115,7 +115,7 @@ class Sign::Org::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def build_controller(cycle:, path_target: nil, signed_pt: nil, signed_token: "signed-pt")
-    controller = Sign::Org::In::GuardsController.new
+    controller = Sign::Org::Sign::In::GuardsController.new
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:path_target_value) { path_target }
     controller.define_singleton_method(:signed_pt_param) { signed_pt }

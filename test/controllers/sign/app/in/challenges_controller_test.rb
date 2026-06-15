@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_passkey_statuses,
            :client_secret_credential_kinds, :client_secret_credential_statuses,
            :client_email_statuses, :client_totp_credential_statuses

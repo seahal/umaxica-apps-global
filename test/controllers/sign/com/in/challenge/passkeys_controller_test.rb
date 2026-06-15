@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 require "ostruct"
 
-class Sign::Com::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     host! @host

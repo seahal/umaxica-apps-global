@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::In::GuardsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "guard-#{SecureRandom.hex(4)}@example.com")
@@ -113,7 +113,7 @@ class Sign::Com::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def build_controller(cycle:, path_target: nil, signed_pt: nil, signed_token: "signed-pt")
-    controller = Sign::Com::In::GuardsController.new
+    controller = Sign::Com::Sign::In::GuardsController.new
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:path_target_value) { path_target }
     controller.define_singleton_method(:signed_pt_param) { signed_pt }

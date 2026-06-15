@@ -1,157 +1,118 @@
-# sign ceremony: ビュー/コントローラを `namespace :sign` ルートへ一致させる
+# Align Rails Routes, Controllers, And View Namespaces
 
 ## Context
 
-ユーザーが「`app/views` と `config/routes/*.rb`
-が不一致でへん」と指摘した。調査の結果、原因と経緯が確定した。
+The route/controller/view layout has two separate concerns:
 
-`config/routes/sign.rb` は sign-in / sign-up を **`namespace :sign do namespace :up / :in`**
-で宣言している（`sign.rb:79`, `:123`、com/org も同形）。`namespace` はパス・モジュール・ヘルパー名の
-**3つすべて** にプレフィックスを付けるため、ルートが解決するコントローラは:
+- Bare or API-only surfaces such as `base`, `core`, `docs`, `help`, `news`, `palm`, and bare `acme`
+  namespaces may legitimately render `plain`, `json`, `head`, XML builders, or shared templates
+  instead of conventional ERB templates.
+- Sign ceremony routes currently use canonical `/sign/...` route modules and helpers, but some
+  controller logic and views still live under legacy `sign/<surface>/{up,in}` namespaces and are
+  bridged by inheritance and `local_prefixes` shims.
 
-- モジュール: `Sign::App::Sign::Up::*` /
-  `Sign::App::Sign::In::*`（`app/controllers/sign/app/sign/{up,in}/`）
-- ヘルパー: `sign_app_sign_up_*` / `sign_app_sign_in_*`（`emails_controller.rb:206` 等で実使用）
-- URL: `/sign/up/...`, `/sign/in/...`
+The first concern is repository visibility. The second concern is behavioral and must be handled as
+a staged controller/view migration.
 
-一方 **ビューは旧来の `app/views/sign/app/{up,in}/...` にしか無い**（canonical な
-`sign/app/sign/...` には birthdate 2 枚だけ）。動作している理由は次の間接参照:
+## Decision
 
-- route 直結の `Sign::App::Sign::Up::*` は、ロジック本体を持つ `Sign::App::Up::*`（基底）を継承した
-  **薄いサブクラス**（計 31 個）。
-- 各サブクラスが `self.local_prefixes = ["sign/app/up/emails"] + super` のように
-  **ビュー探索を旧ディレクトリへ付け替え**（`local_prefixes` 上書き 30 個）。
+Keep the current route shape and helper names. Do not change `config/routes/sign.rb` as part of this
+work.
 
-経緯: ADR `adr/sign-prefix-routing.md`（Accepted 2026-05-05）は「`/sign/` プレフィックスは
-**`scope path: "sign"` でパスのみ**
-付け、モジュール・ヘルパー名・ビュー配置は変えない」と決めていた。実装はこれを `namespace :sign`
-でやってしまい ADR から逸脱。その差を既存ビューに橋渡しするため薄いサブクラス＋`local_prefixes`
-シムが追加され、ルートとビューがズレた。
+For bare/API-only surfaces, keep visible `app/views/<namespace>/<surface>/` directories with empty
+`.keep` files. These directories do not imply Rails owns conventional HTML templates for those
+endpoints; they only make the surface namespace visible in the repository.
 
-**決定（ユーザー、2026-06-15）:**
-現行 URL とヘルパー名（`sign_app_sign_*`）を維持したいので、**ビュー/コントローラをルート側へ寄せる**。すなわち薄いサブクラスの間接参照を解消し、単一のコントローラツリーを canonical な
-`sign/app/sign/{up,in}`
-に置く。ADR は実装に合わせて改訂する。期待結果: ルート・コントローラ・ビューの 3 つが同じ
-`sign/app/sign/{up,in}` 構造で一致し、`local_prefixes` シムが消える。
+For Sign ceremony routes, align controllers and views to the canonical route-resolved namespaces:
 
-対象は app / com / org の 3 サーフェス全部（同一構造）。`config/routes/sign.rb` 自体は
-**変更しない**。
+- `Sign::<Surface>::Sign::Up::*`
+- `Sign::<Surface>::Sign::In::*`
+- `app/views/sign/<surface>/sign/up/**`
+- `app/views/sign/<surface>/sign/in/**`
 
-## 変換パターン（コア）
+After the migration, route modules, controller classes, and view paths should agree, and
+`local_prefixes` shims should no longer be needed.
 
-route 直結の薄いサブクラスと基底クラスを、canonical パスの **単一クラス** に畳み込む。1 ペアあたり:
+## Completed Repository-Visibility Work
 
-1. **基底クラス本体を canonical モジュール/パスへ移設** 例:
-   `app/controllers/sign/app/up/emails_controller.rb`（`Sign::App::Up::EmailsController`）の本体ロジックを
-   `app/controllers/sign/app/sign/up/emails_controller.rb`（`Sign::App::Sign::Up::EmailsController`）へ移し、モジュールを
-   `Sign::App::Sign::Up` に書き換える。
-2. **薄いサブクラスの上書き宣言を畳み込む**
-   サブクラスは単なる場所替えではなく、`AUTHENTICATION_MODE` / `declare_authentication_mode!`
-   を上書きしているものがある（例: `sign/up/emails` は `no_redirect: true`、`sign/in/sessions` は
-   `:deny_all`/`:open`）。これらの宣言は **サブクラス側を採用** して移設後クラスに反映する。
-3. **`local_prefixes` 上書きを削除**（移設でビューが規約解決されるため不要）。
-4. 旧基底ファイル（`sign/app/up/...`, `sign/app/in/...`）を削除。
+The bare surface view namespaces should be represented with `.keep` files where no templates exist:
 
-`local_prefixes`
-を持つサブクラス（ビュー差し替えのみ）と、宣言を持つサブクラスの両方を、上記 1 手順で吸収する。
+- `app/views/acme/dev/.keep`
+- `app/views/acme/net/.keep`
+- `app/views/core/app/.keep`
+- `app/views/core/com/.keep`
+- `app/views/core/dev/.keep`
+- `app/views/core/net/.keep`
+- `app/views/core/org/.keep`
+- `app/views/docs/app/.keep`
+- `app/views/docs/com/.keep`
+- `app/views/docs/org/.keep`
+- `app/views/help/app/.keep`
+- `app/views/help/com/.keep`
+- `app/views/help/org/.keep`
+- `app/views/news/app/.keep`
+- `app/views/news/com/.keep`
+- `app/views/news/org/.keep`
 
-代表パス（app の例。com/org も同形で実施）:
+Do not add per-action placeholder directories such as `api/v0/entries/` or `health/livenesses/`.
+Those would imply conventional templates are expected for endpoints that deliberately render
+non-template responses.
 
-- `sign/app/sign/up/emails_controller.rb` ← `sign/app/up/emails_controller.rb` ＋ サブクラス宣言
-- `sign/app/sign/in/sessions_controller.rb` ← `sign/app/in/sessions_controller.rb` ＋ サブクラス宣言
-- `sign/app/sign/in/check/cancellations_controller.rb`, `.../in/checks_controller.rb`,
-  `.../in/challenges_controller.rb` ほか（`local_prefixes` 一覧は
-  `grep -rl local_prefixes app/controllers/sign` の 30 件）
+## Sign Migration Plan
 
-## ビュー移動
+Implement Sign one surface at a time in this order: `app`, `com`, then `org`.
 
-- `app/views/sign/app/up/**` → `app/views/sign/app/sign/up/**`
-- `app/views/sign/app/in/**` → `app/views/sign/app/sign/in/**`
-- com / org も同様（`sign/com/up`→`sign/com/sign/up` 等）。
-- 既に canonical 側にある 2 枚（`sign/app/sign/up/check/{apple,google}/birthdates/show.html.erb`）は移動先と重複するので、旧
-  `up/` 側の同名と内容を突き合わせて 1 本化する（差分があれば旧 `up/`
-  側を正とする。理由: 旧側が実際に描画されてきた実体）。
+For each surface:
 
-`git mv` でディレクトリごと移し、履歴を保つ。
+1. Move legacy controller logic from `app/controllers/sign/<surface>/{up,in}/**` into the matching
+   canonical `app/controllers/sign/<surface>/sign/{up,in}/**` path.
+2. Preserve behavior-specific declarations from the current route-resolved canonical subclasses,
+   including `AUTHENTICATION_MODE` and `declare_authentication_mode!` overrides.
+3. Remove `local_prefixes` overrides once the matching views live under the canonical namespace.
+4. Move legacy views from `app/views/sign/<surface>/{up,in}/**` into
+   `app/views/sign/<surface>/sign/{up,in}/**`.
+5. Update explicit render paths and template references from legacy paths such as `sign/app/up/...`
+   to canonical paths such as `sign/app/sign/up/...`.
+6. Update tests and inventory files that directly reference legacy controller constants, controller
+   file paths, or view paths.
 
-## 横断スイープ（移動・改名に伴う参照修正）
+Special cases:
 
-1. **明示 render の view パス更新**: 基底コントローラ内の `render "sign/app/up/check/..."`
-   等（`sign/app/up/check/{apple/confirmations,email/birthdates,email/otps,telephone/otps,telephone/passcodes,telephone/passkeys}`
-   と com 対応、`concerns/sign_up_social_check_birthdate_controller_support.rb`）を新パス
-   `sign/app/sign/up/...` へ。ビュー内 partial 参照（`sign/app/up/check/email/otps/edit.html.erb`
-   等）も同様。
-2. **基底モジュール参照の更新**: `Sign::*::Up::` / `Sign::*::In::` を外部から参照している箇所:
-   - `app/controllers/concerns/sign_{app,com,org}_in_check_controller_support.rb`
-   - `app/views/sign/org/in/sessions/update.html.erb`
-   - `test/controllers/controller_inheritance_invariant_test.rb`,
-     `test/controllers/sign/app/application_controller_test.rb` を新モジュール名
-     `Sign::*::Sign::Up/In::` に追従。
-3. **テスト**: 旧 view ディレクトリ／クラス名を直接参照するテスト（`grep -rl 'sign/app/up/\|sign/app/in/\|Sign::App::Up\|Sign::App::In' test`、現状 5 ファイル）を更新。ヘルパー名（`sign_app_sign_*`）は不変なのでパスアサーションの大半は無傷のはず。
+- Keep `app/views/sign/<surface>/sign_ins`, `sign_ups`, and `sign_outs` out of scope; those are
+  existing shared entrance views, not the legacy `sign/<surface>/{up,in}` ceremony trees.
+- Treat `Sign::Org::Sign::Up::InvitationsController` as part of the canonical org migration because
+  the route-resolved namespace is `sign/org/sign/up`.
+- Before deleting any orphaned legacy controller, verify whether it is still used through explicit
+  render calls, inheritance, includes, or tests. Move live code; propose deletion separately for
+  confirmed dead code.
 
-## 孤立（orphan）コントローラの triAGE
+## ADR Update
 
-route 直結サブクラスを持たない基底コントローラがある（現行ルートに対応 resource 無し）:
+After the Sign migration is complete, amend `adr/sign-prefix-routing.md` in English:
 
-- app/com: `up/checkpoint/{birthdates,passcodes,passkeys}`, `up/checkpoints`, `up/guards`,
-  `up/guard/base`
-- org: `up/base`
-
-これらは現行 `config/routes/sign.rb` の `namespace :up` に対応ルートが無い。実行前に各々について
-**(a) 他コントローラ/concern からの明示 render・include で生きているか、(b) 完全な dead code か**
-を確認する（`grep -rn "Checkpoint\|guards#\|checkpoints#" app config test`）。
-
-- 生きている（明示 render 等）→ canonical `sign/app/sign/up/...` へ一緒に移設。
-- dead → 別スライスで削除提案（本タスクでは移設対象から外し、移動だけ行い削除はユーザー確認後）。
-
-`up/guard/base_controller.rb` は `guard/{apples,emails,googles,telephones}`
-の親なので移設必須（dead ではない）。
-
-## ADR 改訂
-
-`adr/sign-prefix-routing.md` を改訂し、実装が `scope path: "sign"`（パスのみ）ではなく
-**`namespace :sign`（パス＋モジュール＋ヘルパー）** を採用した事実と理由（URL/ヘルパー
-`sign_app_sign_*` を canonical とし、コントローラ/ビューを `sign/app/sign/{up,in}`
-に統一、`local_prefixes` シムを廃止）を記述する。「helper names unchanged
-(`sign_app_in_*`)」の旧記述は現状（`sign_app_sign_in_*`）に合わせて訂正。Status は Accepted のまま「Amended
-2026-06-15」を追記。
-
-## 実施順序（サーフェス単位で段階化）
-
-差分をレビュー可能に保つため **app → com → org**
-の順で 1 サーフェスずつ完結させる（各サーフェスでコントローラ移設＋ビュー移動＋当該サーフェスのスイープ＋テストまで）。各段で
-`bin/rails test` の該当範囲を緑にしてから次へ。最後に ADR 改訂と全体テスト。
+- Record that the implementation uses `namespace :sign`, not only `scope path: "sign"`.
+- Record that URL paths, helper names, controller namespaces, and view namespaces now intentionally
+  align around `sign_<surface>_sign_*` helpers and `sign/<surface>/sign/{up,in}` controller/view
+  paths.
+- Remove or correct stale wording that says helper names remain `sign_<surface>_in_*`.
+- Keep the ADR status accepted and add an amendment date.
 
 ## Verification
 
-各サーフェス完了ごと、および最終に:
+Run focused checks after each surface migration:
 
-1. **ルート解決とテンプレート探索**
-   - `RAILS_ENV=test bin/rails runner 'pp Rails.application.routes.named_routes.names.grep(/sign_app_sign_(up|in)/)'`
-     でヘルパー名が不変であることを確認。
-   - 主要 GET 画面（`sign/up/email#new`, `sign/up/check/email/otp#show`, `sign/in/email#new`,
-     `sign/in/session#show`, `sign/in/challenge/passkey#new` 等）をリクエストして
-     **テンプレート欠落（MissingTemplate）が出ないこと**
-     を確認。これが本タスクの核心リグレッション。
-2. **`local_prefixes` 残存ゼロ**: `grep -rl local_prefixes app/controllers/sign` が空。
-3. **旧ツリー消滅**: `app/controllers/sign/*/{up,in}` と `app/views/sign/*/{up,in}`
-   が存在しない（org の `up/invitations` は
-   `namespace :up`（staff）配下なので別扱い—org ルートを確認し、必要なら canonical 側へ）。
-4. **テスト**
-   - 狭域:
-     `bin/rails test test/controllers/sign`、`test/controllers/controller_inheritance_invariant_test.rb`、`test/controllers/sign/app/application_controller_test.rb`。
-   - 広域: 共有挙動に触れるため最後に `bin/rails test`。
-   - JS 変更は無し。
-5. **手動**: `bin/rails server` 起動相当で `id.app.localhost/sign/up`, `/sign/in`
-   の画面が描画されること（`docs/operations/db-workflow.md` のローカル手順）。
+- `rg -n "local_prefixes" app/controllers/sign`
+- `rg -n "sign/(app|com|org)/(up|in)/|Sign::(App|Com|Org)::(Up|In)::" app/controllers app/views test`
+- `bin/rails test test/controllers/sign`
+- `bin/rails test test/controllers/controller_inheritance_invariant_test.rb`
+- `bin/rails test test/integration/layouts_stylesheet_test.rb`
 
-## 注意 / 非対象
+After all surfaces are migrated, run the broader Rails test suite if the working tree and database
+state permit it.
 
-- `config/routes/sign.rb` は変更しない（URL・ヘルパーを維持するため）。
-- `app/views/sign/app/sign_ups`, `sign_ins`, `sign_outs`（共有エントリ画面、`EntrancesController` が
-  `render "sign/app/sign_ups/new"`）は本タスク対象外。
-- org の
-  `sign/org/up/invitations`（staff 招待）は別ルート（`namespace :sign do namespace :up do resources :invitations`、`sign.rb:540`）。canonical は
-  `Sign::Org::Sign::Up::InvitationsController` なので、同じ変換パターンで扱う。
-- 破壊的 DB 操作・flash 追加は無し。AGENTS.md の禁止事項（`skip_*`, `html_safe`
-  等）を新規追加しない。
+## Non-Goals
+
+- Do not change `config/routes/sign.rb`.
+- Do not change public URLs or route helper names.
+- Do not add Rails flash, skipped authentication, skipped authorization, or new workflow bypasses.
+- Do not change database schema or migration files for this work.

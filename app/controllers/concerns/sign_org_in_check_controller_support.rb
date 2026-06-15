@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Shared behavior for sign-in check and check-cancellation controllers on the org surface.
-# Include this instead of inheriting from Sign::Org::In::ChecksController.
+# Include this instead of inheriting from Sign::Org::Sign::In::ChecksController.
 module SignOrgInCheckControllerSupport
   extend ActiveSupport::Concern
 

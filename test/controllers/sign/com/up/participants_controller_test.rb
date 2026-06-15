@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     cookies["csrf_token"] = csrf_token_value
@@ -115,7 +115,7 @@ class Sign::Com::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   def build_guard_controller(ticket)
-    controller = Sign::Com::Up::Guard::EmailsController.new
+    controller = Sign::Com::Sign::Up::Guard::EmailsController.new
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:session) do
       {

@@ -11,10 +11,6 @@ class Sign::Com::Sign::In::Check::CancellationsController < ::Sign::Com::Applica
   before_action :continue_checkpoint_sequence_without_content!
   before_action :guard_timeout, only: %i(show update)
 
-  def self.local_prefixes
-    ["sign/com/in/checkpoints"] + super
-  end
-
   def show = super
 
   def create = destroy

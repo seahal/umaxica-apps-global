@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -551,7 +551,7 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "direct controller private branches for flow and existing verification" do
-    controller = Sign::Com::Up::EmailsController.new
+    controller = Sign::Com::Sign::Up::EmailsController.new
     session_hash = {}
     params_hash = ActionController::Parameters.new(ri: "jp", pt: "/settings")
     redirects = []
@@ -574,17 +574,17 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
     controller.define_singleton_method(:safe_internal_path) { |path| path.to_s.start_with?("/") ? path : nil }
 
     assert_equal "init", controller.send(:email_flow_state)
-    session_hash[Sign::Com::Up::EmailsController::SESSION_KEY] = "email_created"
+    session_hash[Sign::Com::Sign::Up::EmailsController::SESSION_KEY] = "email_created"
     controller.send(:reset_email_flow!)
 
-    assert_equal "init", session_hash[Sign::Com::Up::EmailsController::SESSION_KEY]
+    assert_equal "init", session_hash[Sign::Com::Sign::Up::EmailsController::SESSION_KEY]
 
     controller.send(:progress_email_flow!, :create)
 
-    assert_equal "email_created", session_hash[Sign::Com::Up::EmailsController::SESSION_KEY]
+    assert_equal "email_created", session_hash[Sign::Com::Sign::Up::EmailsController::SESSION_KEY]
     controller.send(:progress_email_flow!, :update)
 
-    assert_equal "email_verified", session_hash[Sign::Com::Up::EmailsController::SESSION_KEY]
+    assert_equal "email_verified", session_hash[Sign::Com::Sign::Up::EmailsController::SESSION_KEY]
 
     email = VisitorEmail.create!(
       visitor: Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR),
@@ -593,8 +593,8 @@ class Sign::Com::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
       visitor_email_status_id: VisitorEmailStatus::VERIFIED,
     )
     controller.instance_variable_set(:@user_email, email)
-    session_hash[Sign::Com::Up::EmailsController::EXISTING_EMAIL_SESSION_KEY] = email.id
-    session_hash[Sign::Com::Up::EmailsController::EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = false
+    session_hash[Sign::Com::Sign::Up::EmailsController::EXISTING_EMAIL_SESSION_KEY] = email.id
+    session_hash[Sign::Com::Sign::Up::EmailsController::EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = false
 
     controller.define_singleton_method(:verify_otp_code) { |*, **| { success: false } }
     controller.define_singleton_method(:increment_otp_attempts!) { |record| record.otp_attempts_count = 1 }

@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 require "ostruct"
 
-class Sign::Org::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_passkey_statuses, :operator_passkeys, :operator_secret_credentials,
            :operator_secret_credential_kinds, :operator_secret_credential_statuses, :operator_email_statuses,
            :operator_token_binding_methods, :operator_token_kinds, :operator_token_statuses,

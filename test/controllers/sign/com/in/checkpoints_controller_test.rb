@@ -4,7 +4,7 @@
 require "test_helper"
 require "base64"
 
-class Sign::Com::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     ApplicationRecord.clear_fixed_id_seed_cache!

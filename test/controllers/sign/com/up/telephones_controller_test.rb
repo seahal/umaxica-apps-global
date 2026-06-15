@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
   include ActiveSupport::Testing::TimeHelpers
 

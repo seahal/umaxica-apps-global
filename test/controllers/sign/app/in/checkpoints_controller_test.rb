@@ -4,7 +4,7 @@
 require "test_helper"
 require "base64"
 
-class Sign::App::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_tokens
 
   setup do

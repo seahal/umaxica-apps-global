@@ -56,20 +56,20 @@ module Sign::App
 
     test "app surface does not define guest controller boundaries" do
       assert_not ::Sign::App.const_defined?(:GuestController, false)
-      assert_not ::Sign::App::In.const_defined?(:GuestController, false)
-      assert_not ::Sign::App::Up.const_defined?(:GuestController, false)
+      assert_not ::Sign::App::Sign::In.const_defined?(:GuestController, false)
+      assert_not ::Sign::App::Sign::Up.const_defined?(:GuestController, false)
     end
 
     test "sign-in controllers declare guest-only policy on concrete controller" do
-      assert_equal :guest, In::EmailsController.authentication_mode_for(:new)
+      assert_equal :guest, Sign::In::EmailsController.authentication_mode_for(:new)
     end
 
     test "sign-up controllers declare guest-only policy on concrete controller" do
-      assert_equal :guest, Up::EmailsController.authentication_mode_for(:new)
+      assert_equal :guest, Sign::Up::EmailsController.authentication_mode_for(:new)
     end
 
     test "email sign-in controller overrides guest-only response" do
-      rules = In::EmailsController.local_authentication_mode_rules
+      rules = Sign::In::EmailsController.local_authentication_mode_rules
 
       assert_equal :guest, rules.last[:mode]
       assert_equal :bad_request, rules.last[:options][:status]

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Shared behavior for sign-in check and check-cancellation controllers on the com surface.
-# Include this instead of inheriting from Sign::Com::In::ChecksController.
+# Include this instead of inheriting from Sign::Com::Sign::In::ChecksController.
 module SignComInCheckControllerSupport
   extend ActiveSupport::Concern
 

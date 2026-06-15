@@ -49,44 +49,21 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/org/settings/revocations/alls_controller.rb",
     "app/controllers/sign/org/settings/revocations/others_controller.rb",
 
-    # Sign::App::Sign::In::* inheriting from Sign::App::In::* base controllers.
+    # Sign::App::Sign::In::* inheriting from Sign::App::Sign::In::* base controllers.
     # The sign/sign/in/ layer is a routing namespace; in/ holds the behavior base.
     # These are the highest-priority follow-up to move to concerns.
-    "app/controllers/sign/app/sign/in/challenge/passkeys_controller.rb",
-    "app/controllers/sign/app/sign/in/challenge/totps_controller.rb",
-    "app/controllers/sign/app/sign/in/challenges_controller.rb",
-    "app/controllers/sign/app/sign/in/emails_controller.rb",
     "app/controllers/sign/app/sign/in/entrances_controller.rb",
-    "app/controllers/sign/app/sign/in/guards_controller.rb",
     "app/controllers/sign/app/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/app/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/app/sign/in/passkeys_controller.rb",
-    "app/controllers/sign/app/sign/in/secret_credentials_controller.rb",
     "app/controllers/sign/app/sign/in/session/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/in/sessions_controller.rb",
 
-    # Sign::App::Sign::Up::* inheriting from Sign::App::Up::* base controllers.
-    "app/controllers/sign/app/sign/up/check/apple/birthdates_controller.rb",
+    # Sign::App::Sign::Up::* inheriting from Sign::App::Sign::Up::* base controllers.
     "app/controllers/sign/app/sign/up/check/apple/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/apple/confirmations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/email/birthdates_controller.rb",
     "app/controllers/sign/app/sign/up/check/email/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/email/otps_controller.rb",
-    "app/controllers/sign/app/sign/up/check/google/birthdates_controller.rb",
     "app/controllers/sign/app/sign/up/check/google/cancellations_controller.rb",
     "app/controllers/sign/app/sign/up/check/google/confirmations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/telephone/birthdates_controller.rb",
     "app/controllers/sign/app/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/telephone/otps_controller.rb",
-    "app/controllers/sign/app/sign/up/check/telephone/passcodes_controller.rb",
-    "app/controllers/sign/app/sign/up/check/telephone/passkeys_controller.rb",
-    "app/controllers/sign/app/sign/up/emails_controller.rb",
     "app/controllers/sign/app/sign/up/entrances_controller.rb",
-    "app/controllers/sign/app/sign/up/guard/apples_controller.rb",
-    "app/controllers/sign/app/sign/up/guard/emails_controller.rb",
-    "app/controllers/sign/app/sign/up/guard/googles_controller.rb",
-    "app/controllers/sign/app/sign/up/guard/telephones_controller.rb",
-    "app/controllers/sign/app/sign/up/telephones_controller.rb",
 
     # Sign::App::Social::* inheriting from AuthenticationsController base.
     "app/controllers/sign/app/social/apple/connections_controller.rb",
@@ -94,64 +71,40 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/social/google/connections_controller.rb",
     "app/controllers/sign/app/social/google/disconnections_controller.rb",
 
-    # Sign::App::Up::Check cross-family inheritance (google/confirmations inheriting apple base).
+    # Sign::App::Sign::Up::Check cross-family inheritance (google/confirmations inheriting apple base).
     # Note: otps and telephone/birthdates are also PERMITTED_LOCAL_BASES for the sign/sign/up
     # layer, so the detector skips them -- they are not listed here to avoid false stale entries.
-    "app/controllers/sign/app/up/check/google/confirmations_controller.rb",
+    "app/controllers/sign/app/sign/up/check/google/confirmations_controller.rb",
 
     # Sign::App::Verification::RedeliveriesController < EmailsController.
     "app/controllers/sign/app/verification/redeliveries_controller.rb",
 
-    # Sign::Com::Sign::In::* inheriting from Sign::Com::In::* base controllers.
-    "app/controllers/sign/com/sign/in/challenge/passkeys_controller.rb",
-    "app/controllers/sign/com/sign/in/challenges_controller.rb",
-    "app/controllers/sign/com/sign/in/emails_controller.rb",
+    # Sign::Com::Sign::In::* inheriting from Sign::Com::Sign::In::* base controllers.
     "app/controllers/sign/com/sign/in/entrances_controller.rb",
-    "app/controllers/sign/com/sign/in/guards_controller.rb",
     "app/controllers/sign/com/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/com/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/com/sign/in/passkeys_controller.rb",
-    "app/controllers/sign/com/sign/in/secret_credentials_controller.rb",
     "app/controllers/sign/com/sign/in/session/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/in/sessions_controller.rb",
 
-    # Sign::Com::Sign::Up::* inheriting from Sign::Com::Up::* base controllers.
-    "app/controllers/sign/com/sign/up/check/email/birthdates_controller.rb",
+    # Sign::Com::Sign::Up::* inheriting from Sign::Com::Sign::Up::* base controllers.
     "app/controllers/sign/com/sign/up/check/email/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/up/check/email/otps_controller.rb",
-    "app/controllers/sign/com/sign/up/check/telephone/birthdates_controller.rb",
     "app/controllers/sign/com/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/up/check/telephone/otps_controller.rb",
-    "app/controllers/sign/com/sign/up/check/telephone/passcodes_controller.rb",
-    "app/controllers/sign/com/sign/up/check/telephone/passkeys_controller.rb",
-    "app/controllers/sign/com/sign/up/emails_controller.rb",
     "app/controllers/sign/com/sign/up/entrances_controller.rb",
-    "app/controllers/sign/com/sign/up/guard/emails_controller.rb",
-    "app/controllers/sign/com/sign/up/guard/telephones_controller.rb",
-    "app/controllers/sign/com/sign/up/telephones_controller.rb",
 
-    # Sign::Com::Up::Check cross-family inheritance.
+    # Sign::Com::Sign::Up::Check cross-family inheritance.
     # Note: com/up/check/email/otps and com/up/check/telephone/birthdates and otps are
     # also PERMITTED_LOCAL_BASES for the sign/sign/up layer, so not listed here.
 
     # Sign::Com::Verification::RedeliveriesController < EmailsController.
     "app/controllers/sign/com/verification/redeliveries_controller.rb",
 
-    # Sign::Org::Sign::In::* inheriting from Sign::Org::In::* base controllers.
-    "app/controllers/sign/org/sign/in/challenge/passkeys_controller.rb",
-    "app/controllers/sign/org/sign/in/challenges_controller.rb",
+    # Sign::Org::Sign::In::* inheriting from Sign::Org::Sign::In::* base controllers.
     "app/controllers/sign/org/sign/in/entrances_controller.rb",
-    "app/controllers/sign/org/sign/in/guards_controller.rb",
     "app/controllers/sign/org/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/org/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/org/sign/in/passkeys_controller.rb",
-    "app/controllers/sign/org/sign/in/secret_credentials_controller.rb",
     "app/controllers/sign/org/sign/in/session/cancellations_controller.rb",
-    "app/controllers/sign/org/sign/in/sessions_controller.rb",
 
-    # Sign::Org::Sign::Up::* inheriting from Sign::Org::Up::* base controllers.
+    # Sign::Org::Sign::Up::* inheriting from Sign::Org::Sign::Up::* base controllers.
     "app/controllers/sign/org/sign/up/entrances_controller.rb",
-    "app/controllers/sign/org/sign/up/invitations_controller.rb",
 
     # Palm::App::Oauth::Callback controllers inherit a shared OAuth callback base.
     "app/controllers/palm/app/oauth/callback/android_controller.rb",
@@ -162,73 +115,73 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
   # (i.e., other controllers may inherit from these within KNOWN_VIOLATIONS above).
   # These must themselves inherit from ApplicationController or ActionController::Base.
   PERMITTED_LOCAL_BASES = %w(
-    app/controllers/sign/app/in/challenges_controller.rb
-    app/controllers/sign/app/in/emails_controller.rb
-    app/controllers/sign/app/in/guards_controller.rb
-    app/controllers/sign/app/in/passkeys_controller.rb
-    app/controllers/sign/app/in/secret_credentials_controller.rb
-    app/controllers/sign/app/in/sessions_controller.rb
+    app/controllers/sign/app/sign/in/challenges_controller.rb
+    app/controllers/sign/app/sign/in/emails_controller.rb
+    app/controllers/sign/app/sign/in/guards_controller.rb
+    app/controllers/sign/app/sign/in/passkeys_controller.rb
+    app/controllers/sign/app/sign/in/secret_credentials_controller.rb
+    app/controllers/sign/app/sign/in/sessions_controller.rb
     app/controllers/sign/app/settings/passkeys_controller.rb
     app/controllers/sign/app/settings/sessions_controller.rb
     app/controllers/sign/app/social/authentications_controller.rb
     app/controllers/sign/app/sign_ins_controller.rb
     app/controllers/sign/app/sign_ups_controller.rb
-    app/controllers/sign/app/up/check/apple/birthdates_controller.rb
-    app/controllers/sign/app/up/check/apple/confirmations_controller.rb
-    app/controllers/sign/app/up/check/email/birthdates_controller.rb
-    app/controllers/sign/app/up/check/email/otps_controller.rb
-    app/controllers/sign/app/up/check/google/birthdates_controller.rb
-    app/controllers/sign/app/up/check/telephone/birthdates_controller.rb
-    app/controllers/sign/app/up/check/telephone/otps_controller.rb
-    app/controllers/sign/app/up/check/telephone/passcodes_controller.rb
-    app/controllers/sign/app/up/check/telephone/passkeys_controller.rb
-    app/controllers/sign/app/up/emails_controller.rb
-    app/controllers/sign/app/up/guard/apples_controller.rb
-    app/controllers/sign/app/up/guard/emails_controller.rb
-    app/controllers/sign/app/up/guard/googles_controller.rb
-    app/controllers/sign/app/up/guard/telephones_controller.rb
-    app/controllers/sign/app/up/telephones_controller.rb
+    app/controllers/sign/app/sign/up/check/apple/birthdates_controller.rb
+    app/controllers/sign/app/sign/up/check/apple/confirmations_controller.rb
+    app/controllers/sign/app/sign/up/check/email/birthdates_controller.rb
+    app/controllers/sign/app/sign/up/check/email/otps_controller.rb
+    app/controllers/sign/app/sign/up/check/google/birthdates_controller.rb
+    app/controllers/sign/app/sign/up/check/telephone/birthdates_controller.rb
+    app/controllers/sign/app/sign/up/check/telephone/otps_controller.rb
+    app/controllers/sign/app/sign/up/check/telephone/passcodes_controller.rb
+    app/controllers/sign/app/sign/up/check/telephone/passkeys_controller.rb
+    app/controllers/sign/app/sign/up/emails_controller.rb
+    app/controllers/sign/app/sign/up/guard/apples_controller.rb
+    app/controllers/sign/app/sign/up/guard/emails_controller.rb
+    app/controllers/sign/app/sign/up/guard/googles_controller.rb
+    app/controllers/sign/app/sign/up/guard/telephones_controller.rb
+    app/controllers/sign/app/sign/up/telephones_controller.rb
     app/controllers/sign/app/verification/emails_controller.rb
-    app/controllers/sign/com/in/challenges_controller.rb
-    app/controllers/sign/com/in/emails_controller.rb
-    app/controllers/sign/com/in/guards_controller.rb
-    app/controllers/sign/com/in/passkeys_controller.rb
-    app/controllers/sign/com/in/secret_credentials_controller.rb
-    app/controllers/sign/com/in/sessions_controller.rb
+    app/controllers/sign/com/sign/in/challenges_controller.rb
+    app/controllers/sign/com/sign/in/emails_controller.rb
+    app/controllers/sign/com/sign/in/guards_controller.rb
+    app/controllers/sign/com/sign/in/passkeys_controller.rb
+    app/controllers/sign/com/sign/in/secret_credentials_controller.rb
+    app/controllers/sign/com/sign/in/sessions_controller.rb
     app/controllers/sign/com/settings/passkeys_controller.rb
     app/controllers/sign/com/settings/sessions_controller.rb
     app/controllers/sign/com/sign_ins_controller.rb
     app/controllers/sign/com/sign_ups_controller.rb
-    app/controllers/sign/com/up/check/email/birthdates_controller.rb
-    app/controllers/sign/com/up/check/email/otps_controller.rb
-    app/controllers/sign/com/up/check/telephone/birthdates_controller.rb
-    app/controllers/sign/com/up/check/telephone/otps_controller.rb
-    app/controllers/sign/com/up/check/telephone/passcodes_controller.rb
-    app/controllers/sign/com/up/check/telephone/passkeys_controller.rb
-    app/controllers/sign/com/up/emails_controller.rb
-    app/controllers/sign/com/up/guard/emails_controller.rb
-    app/controllers/sign/com/up/guard/telephones_controller.rb
-    app/controllers/sign/com/up/telephones_controller.rb
+    app/controllers/sign/com/sign/up/check/email/birthdates_controller.rb
+    app/controllers/sign/com/sign/up/check/email/otps_controller.rb
+    app/controllers/sign/com/sign/up/check/telephone/birthdates_controller.rb
+    app/controllers/sign/com/sign/up/check/telephone/otps_controller.rb
+    app/controllers/sign/com/sign/up/check/telephone/passcodes_controller.rb
+    app/controllers/sign/com/sign/up/check/telephone/passkeys_controller.rb
+    app/controllers/sign/com/sign/up/emails_controller.rb
+    app/controllers/sign/com/sign/up/guard/emails_controller.rb
+    app/controllers/sign/com/sign/up/guard/telephones_controller.rb
+    app/controllers/sign/com/sign/up/telephones_controller.rb
     app/controllers/sign/com/verification/emails_controller.rb
-    app/controllers/sign/org/in/challenges_controller.rb
-    app/controllers/sign/org/in/guards_controller.rb
-    app/controllers/sign/org/in/passkeys_controller.rb
-    app/controllers/sign/org/in/secret_credentials_controller.rb
-    app/controllers/sign/org/in/sessions_controller.rb
+    app/controllers/sign/org/sign/in/challenges_controller.rb
+    app/controllers/sign/org/sign/in/guards_controller.rb
+    app/controllers/sign/org/sign/in/passkeys_controller.rb
+    app/controllers/sign/org/sign/in/secret_credentials_controller.rb
+    app/controllers/sign/org/sign/in/sessions_controller.rb
     app/controllers/sign/org/settings/passkeys_controller.rb
     app/controllers/sign/org/settings/sessions_controller.rb
     app/controllers/sign/org/sign_ins_controller.rb
     app/controllers/sign/org/sign_ups_controller.rb
-    app/controllers/sign/org/up/invitations_controller.rb
+    app/controllers/sign/org/sign/up/invitations_controller.rb
     app/controllers/acme/app/jwks_controller.rb
     app/controllers/acme/com/jwks_controller.rb
     app/controllers/acme/com/edge/v0/token/refreshes_controller_base.rb
     app/controllers/acme/org/jwks_controller.rb
     app/controllers/sign/app/settings/emails/registrations_controller.rb
-    app/controllers/sign/app/in/challenge/passkeys_controller.rb
-    app/controllers/sign/app/in/challenge/totps_controller.rb
-    app/controllers/sign/com/in/challenge/passkeys_controller.rb
-    app/controllers/sign/org/in/challenge/passkeys_controller.rb
+    app/controllers/sign/app/sign/in/challenge/passkeys_controller.rb
+    app/controllers/sign/app/sign/in/challenge/totps_controller.rb
+    app/controllers/sign/com/sign/in/challenge/passkeys_controller.rb
+    app/controllers/sign/org/sign/in/challenge/passkeys_controller.rb
   ).to_set.freeze
 
   # Patterns that are always forbidden regardless of allowlist status.

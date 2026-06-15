@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
+class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
   class FakeFlow < Struct.new(:current, :cleared)
     def clear!
       self.cleared = true
@@ -48,7 +48,7 @@ class Sign::App::Up::TelephonesControllerCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  class Harness < Sign::App::Up::TelephonesController
+  class Harness < Sign::App::Sign::Up::TelephonesController
     attr_accessor :params_hash, :session_hash, :rendered, :redirected, :flash_hash, :current_telephone,
                   :current_flow, :verification_result, :existing_telephone, :otp_result
 

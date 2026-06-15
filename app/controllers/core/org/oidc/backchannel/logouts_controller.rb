@@ -6,9 +6,9 @@ module Core
     module Oidc
       module Backchannel
         class LogoutsController < ::Core::Org::BareController
-          AUTHENTICATION_MODE = :bare
-
           include ::OidcRpLogoutReceiver
+
+          AUTHENTICATION_MODE = :bare
 
           protect_from_forgery with: :null_session
 

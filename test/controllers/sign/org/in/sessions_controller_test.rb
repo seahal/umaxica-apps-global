@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Org::In::SessionsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do

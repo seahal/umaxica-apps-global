@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
@@ -113,7 +113,7 @@ class Sign::Com::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "direct controller session management branches" do
-    controller = Sign::Com::In::SessionsController.new
+    controller = Sign::Com::Sign::In::SessionsController.new
     controller.request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
       "HTTP_HOST" => ENV.fetch("COM_SERVICE_URL", "com.app.localhost"),

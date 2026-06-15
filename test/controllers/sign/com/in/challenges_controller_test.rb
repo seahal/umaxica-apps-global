@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::In::ChallengesControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     CloudflareTurnstile.test_mode = true

@@ -92,8 +92,8 @@ class StylesheetTagsTest < ActiveSupport::TestCase
       "app/views/sign/app/verification/passkeys/new.html.erb",
       "app/views/sign/com/verification/passkeys/new.html.erb",
       "app/views/sign/org/verification/passkeys/new.html.erb",
-      "app/views/sign/app/in/challenge/passkeys/new.html.erb",
-      "app/views/sign/org/in/challenge/passkeys/new.html.erb",
+      "app/views/sign/app/sign/in/challenge/passkeys/new.html.erb",
+      "app/views/sign/org/sign/in/challenge/passkeys/new.html.erb",
     ]
 
     paths.each do |path|

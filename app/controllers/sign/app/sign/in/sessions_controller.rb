@@ -17,7 +17,7 @@
 #
 # The restricted session approach avoids blocking login while ensuring users
 # can manage their sessions. Invariant: max 1 restricted session per user.
-class Sign::App::In::SessionsController < ::Sign::App::ApplicationController
+class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationController
   include SessionLimitGate
 
   AUTHENTICATION_MODE = :deny_all

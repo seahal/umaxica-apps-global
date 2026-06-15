@@ -1,6 +1,22 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Sign::Up::Check::Telephone::BirthdatesController < ::Sign::App::Up::Check::Telephone::BirthdatesController
-  AUTHENTICATION_MODE = :guest
+module Sign
+  module App
+    module Sign
+      module Up
+        module Check
+          module Telephone
+            class BirthdatesController < ::Sign::App::Sign::Up::Check::Email::BirthdatesController
+              AUTHENTICATION_MODE = :guest
+
+              private
+
+              def sign_up_family = "telephone"
+            end
+          end
+        end
+      end
+    end
+  end
 end

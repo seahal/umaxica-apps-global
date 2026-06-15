@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::In::SessionsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients
 
   setup do

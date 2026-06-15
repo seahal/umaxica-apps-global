@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::In::EmailsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :client_statuses, :operator_statuses, :client_email_statuses
 
   include ActiveSupport::Testing::TimeHelpers

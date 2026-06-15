@@ -1,7 +1,20 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Com::Sign::Up::Guard::EmailsController < ::Sign::Com::Up::Guard::EmailsController
-  AUTHENTICATION_MODE = :open
-  declare_authentication_mode! :open
+module Sign
+  module Com
+    module Sign
+      module Up
+        module Guard
+          class EmailsController < BaseController
+            AUTHENTICATION_MODE = :open
+
+            private
+
+            def sign_up_family = "email"
+          end
+        end
+      end
+    end
+  end
 end

@@ -5,7 +5,7 @@ require "test_helper"
 require "minitest/mock"
 require "base64"
 
-class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
@@ -136,8 +136,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     challenge_id = response.parsed_body["challenge_id"]
     mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
-    original_method = Sign::Org::In::PasskeysController.instance_method(:with_challenge)
-    Sign::Org::In::PasskeysController.define_method(:with_challenge) do |*_args|
+    original_method = Sign::Org::Sign::In::PasskeysController.instance_method(:with_challenge)
+    Sign::Org::Sign::In::PasskeysController.define_method(:with_challenge) do |*_args|
       raise mismatch_error
     end
 
@@ -152,7 +152,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
         },
       )
     ensure
-      Sign::Org::In::PasskeysController.define_method(:with_challenge, original_method)
+      Sign::Org::Sign::In::PasskeysController.define_method(:with_challenge, original_method)
     end
 
     assert_response :bad_request
@@ -268,8 +268,8 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    original_method = Sign::Org::In::PasskeysController.instance_method(:perform_passkey_sign_in)
-    Sign::Org::In::PasskeysController.define_method(:perform_passkey_sign_in) do |*_args|
+    original_method = Sign::Org::Sign::In::PasskeysController.instance_method(:perform_passkey_sign_in)
+    Sign::Org::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in) do |*_args|
       { status: :unknown_status }
     end
 
@@ -289,7 +289,7 @@ class Sign::Org::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
         )
       end
     ensure
-      Sign::Org::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
+      Sign::Org::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
     end
 
     assert_response :unprocessable_content

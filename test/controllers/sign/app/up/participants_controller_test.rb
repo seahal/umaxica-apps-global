@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   setup do
@@ -122,7 +122,7 @@ class Sign::App::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTes
   end
 
   def build_guard_controller(ticket)
-    controller = Sign::App::Up::Guard::EmailsController.new
+    controller = Sign::App::Sign::Up::Guard::EmailsController.new
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:session) do
       {

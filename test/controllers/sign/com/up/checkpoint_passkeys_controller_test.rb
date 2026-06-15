@@ -4,7 +4,7 @@
 require "test_helper"
 require "base64"
 
-class Sign::Com::Up::CheckpointPasskeysControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::Up::CheckpointPasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     cookies["csrf_token"] = csrf_token_value

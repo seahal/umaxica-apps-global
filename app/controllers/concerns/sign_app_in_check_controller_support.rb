@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Shared behavior for sign-in check and check-cancellation controllers on the app surface.
-# Include this instead of inheriting from Sign::App::In::ChecksController.
+# Include this instead of inheriting from Sign::App::Sign::In::ChecksController.
 module SignAppInCheckControllerSupport
   extend ActiveSupport::Concern
 

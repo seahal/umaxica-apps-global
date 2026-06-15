@@ -4,7 +4,7 @@
 require "test_helper"
 require "minitest/mock"
 
-module Sign::App::In::Passkey
+module Sign::App::Sign::In::Passkey
   class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     fixtures :clients, :client_statuses, :client_email_statuses, :client_passkey_statuses,
              :client_totp_credential_statuses

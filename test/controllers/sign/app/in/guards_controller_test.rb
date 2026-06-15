@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_tokens, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
@@ -143,7 +143,7 @@ class Sign::App::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def build_controller(cycle:, actor:, path_target: nil, signed_pt: nil, signed_token: "signed-pt")
-    controller = Sign::App::In::GuardsController.new
+    controller = Sign::App::Sign::In::GuardsController.new
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:path_target_value) { path_target }
     controller.define_singleton_method(:signed_pt_param) { signed_pt }

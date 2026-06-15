@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Sign::Up::Check::Email::CancellationsController < ::Sign::App::Up::Check::Email::BirthdatesController
+class Sign::App::Sign::Up::Check::Email::CancellationsController < ::Sign::App::Sign::Up::Check::Email::BirthdatesController
   AUTHENTICATION_MODE = :guest
 
   def create

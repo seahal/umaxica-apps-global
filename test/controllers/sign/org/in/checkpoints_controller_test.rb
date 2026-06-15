@@ -4,7 +4,7 @@
 require "test_helper"
 require "base64"
 
-class Sign::Org::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators
 
   setup do

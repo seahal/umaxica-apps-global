@@ -6,7 +6,7 @@ module Sign
     module Sign
       module In
         module Passkey
-          class VerificationsController < ::Sign::App::In::PasskeysController
+          class VerificationsController < ::Sign::App::Sign::In::PasskeysController
             AUTHENTICATION_MODE = :guest
             declare_authentication_mode! :guest
 

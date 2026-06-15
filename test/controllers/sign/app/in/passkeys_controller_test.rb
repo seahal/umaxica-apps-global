@@ -348,8 +348,8 @@ module Sign::App::In
       mock_credential.define_singleton_method(:sign_count) { 1 }
       mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-      original_method = Sign::App::In::PasskeysController.instance_method(:perform_passkey_sign_in)
-      Sign::App::In::PasskeysController.define_method(:perform_passkey_sign_in) { |_passkey| { status: :unknown } }
+      original_method = Sign::App::Sign::In::PasskeysController.instance_method(:perform_passkey_sign_in)
+      Sign::App::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in) { |_passkey| { status: :unknown } }
       begin
         WebAuthn::Credential.stub(:from_get, mock_credential) do
           post(
@@ -366,7 +366,7 @@ module Sign::App::In
           )
         end
       ensure
-        Sign::App::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
+        Sign::App::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
       end
 
       assert_response :unprocessable_content
@@ -379,8 +379,8 @@ module Sign::App::In
       challenge_id = response.parsed_body["challenge_id"]
       mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
-      original_method = Sign::App::In::PasskeysController.instance_method(:with_challenge)
-      Sign::App::In::PasskeysController.define_method(:with_challenge) do |*_args, &_block|
+      original_method = Sign::App::Sign::In::PasskeysController.instance_method(:with_challenge)
+      Sign::App::Sign::In::PasskeysController.define_method(:with_challenge) do |*_args, &_block|
         raise mismatch_error
       end
       begin
@@ -397,7 +397,7 @@ module Sign::App::In
           },
         )
       ensure
-        Sign::App::In::PasskeysController.define_method(:with_challenge, original_method)
+        Sign::App::Sign::In::PasskeysController.define_method(:with_challenge, original_method)
       end
 
       assert_response :bad_request

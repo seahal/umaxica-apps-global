@@ -1,0 +1,52 @@
+# typed: false
+# frozen_string_literal: true
+
+module Sign
+  module Org
+    module Sign
+      module Up
+        class BaseController < ::Sign::Org::ApplicationController
+          include ::RateLimit
+
+          include ActionPolicy::Controller
+
+          # Note: AuthenticationOperator is NOT included here for unauthenticated sign-up
+          include ::PreferenceGlobal
+
+          include ::PreferenceAdoption
+
+          include ::ActorSupport
+
+          include ::Finisher
+
+          AUTHENTICATION_MODE = :guest
+
+          allow_browser versions: :modern
+
+          before_action :set_current_context
+          before_action :set_preferences_cookie
+          before_action :resolve_param_context
+          before_action :set_region
+          before_action :set_current
+          before_action :apply_localization_preferences
+          before_action :set_locale
+          before_action :set_timezone
+          before_action :set_color_theme
+          append_after_action :finish_request
+
+          protect_from_forgery using: :header_or_legacy_token,
+                               trusted_origins: JitHostOriginEnv.trusted_origins(
+                                 ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+                               ),
+                               with: :exception
+
+          private
+
+          def after_login_path
+            sign_org_settings_path
+          end
+        end
+      end
+    end
+  end
+end

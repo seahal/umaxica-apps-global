@@ -6,7 +6,7 @@ module Sign
     module Sign
       module In
         module Passkey
-          class OptionsController < ::Sign::Org::In::PasskeysController
+          class OptionsController < ::Sign::Org::Sign::In::PasskeysController
             AUTHENTICATION_MODE = :guest
             declare_authentication_mode! :guest
 

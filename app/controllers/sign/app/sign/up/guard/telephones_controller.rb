@@ -1,7 +1,20 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Sign::Up::Guard::TelephonesController < ::Sign::App::Up::Guard::TelephonesController
-  AUTHENTICATION_MODE = :open
-  declare_authentication_mode! :open
+module Sign
+  module App
+    module Sign
+      module Up
+        module Guard
+          class TelephonesController < BaseController
+            AUTHENTICATION_MODE = :open
+
+            private
+
+            def sign_up_family = "telephone"
+          end
+        end
+      end
+    end
+  end
 end

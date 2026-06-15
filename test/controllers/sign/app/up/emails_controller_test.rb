@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do

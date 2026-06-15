@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::Up::EmailsControllerCoverageTest < ActiveSupport::TestCase
+class Sign::App::Sign::Up::EmailsControllerCoverageTest < ActiveSupport::TestCase
   class FakeFlow < Struct.new(:current, :cleared)
     def clear!
       self.cleared = true
@@ -30,7 +30,7 @@ class Sign::App::Up::EmailsControllerCoverageTest < ActiveSupport::TestCase
     end
   end
 
-  class Harness < Sign::App::Up::EmailsController
+  class Harness < Sign::App::Sign::Up::EmailsController
     attr_accessor :params_hash, :session_hash, :rendered, :redirected, :flash_hash, :current_flow
 
     def params

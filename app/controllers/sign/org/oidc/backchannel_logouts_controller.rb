@@ -5,9 +5,9 @@ module Sign
   module Org
     module Oidc
       class BackchannelLogoutsController < ::Sign::Org::BareController
-        AUTHENTICATION_MODE = :bare
-
         include ::OidcRpLogoutReceiver
+
+        AUTHENTICATION_MODE = :bare
 
         protect_from_forgery with: :null_session
 

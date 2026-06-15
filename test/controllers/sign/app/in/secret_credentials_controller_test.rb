@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_secret_credential_kinds,
            :client_secret_credential_statuses, :client_email_statuses,
            :client_telephone_statuses
@@ -494,7 +494,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
   end
 
   test "direct controller branches for mfa and standard secret_credential flows" do
-    controller = Sign::App::In::SecretCredentialsController.new
+    controller = Sign::App::Sign::In::SecretCredentialsController.new
     session_hash = {}
     params_hash = ActionController::Parameters.new(
       "ri" => "jp",
@@ -528,15 +528,15 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
 
     controller.new
 
-    assert_instance_of Sign::App::In::SecretCredentialsController::SecretLoginForm,
+    assert_instance_of Sign::App::Sign::In::SecretCredentialsController::SecretLoginForm,
                        controller.instance_variable_get(:@secret_credential_form)
 
-    session_hash[Sign::App::In::SecretCredentialsController::MFA_USER_SESSION_KEY] = @user.id
+    session_hash[Sign::App::Sign::In::SecretCredentialsController::MFA_USER_SESSION_KEY] = @user.id
     controller.remove_instance_variable(:@mfa_user)
     controller.define_singleton_method(:active_secret_credential_hints_for) { |_| ["hint"] }
     controller.new
 
-    assert_instance_of Sign::App::In::SecretCredentialsController::MfaSecretForm,
+    assert_instance_of Sign::App::Sign::In::SecretCredentialsController::MfaSecretForm,
                        controller.instance_variable_get(:@secret_credential_form)
     assert_equal ["hint"], controller.instance_variable_get(:@secret_credential_hints)
 
@@ -555,7 +555,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
     secret_credential = Struct.new(:id).new(99)
     controller.define_singleton_method(:cloudflare_turnstile_validation) { { "success" => true } }
     controller.define_singleton_method(:verify_secret_credential_for_sign_in) do |user:, raw_secret_credential:|
-      Sign::App::In::SecretCredentialsController::SecretVerificationResult.new(
+      Sign::App::Sign::In::SecretCredentialsController::SecretVerificationResult.new(
         secret_credential: secret_credential, reason: :success,
         details: { user_id: user.id, raw: raw_secret_credential },
       )
@@ -567,7 +567,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
 
     assert_equal [@user.id, { secret_credential_id: 99 }], redirects.last
 
-    session_hash.delete(Sign::App::In::SecretCredentialsController::MFA_USER_SESSION_KEY)
+    session_hash.delete(Sign::App::Sign::In::SecretCredentialsController::MFA_USER_SESSION_KEY)
     params_hash.delete(:mfa_secret_credential_form)
     params_hash[:secret_credential_login_form] =
       ActionController::Parameters.new(identifier: "", secret_credential_value: "")
@@ -593,7 +593,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
 
     controller.define_singleton_method(:session_limit_hard_reject_for?) { |_| false }
     controller.define_singleton_method(:verify_secret_credential_for_sign_in) do |user:, raw_secret_credential:|
-      Sign::App::In::SecretCredentialsController::SecretVerificationResult.new(
+      Sign::App::Sign::In::SecretCredentialsController::SecretVerificationResult.new(
         secret_credential: nil, reason: :secret_credential_mismatch,
         details: { user_id: user.id, raw: raw_secret_credential },
       )
@@ -604,7 +604,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
   end
 
   test "direct controller success handlers cover mfa and standard redirects" do
-    controller = Sign::App::In::SecretCredentialsController.new
+    controller = Sign::App::Sign::In::SecretCredentialsController.new
     session_hash = {}
     params_hash = ActionController::Parameters.new(
       "ri" => "jp",
@@ -632,7 +632,7 @@ class Sign::App::In::SecretCredentialsControllerTest < ActionDispatch::Integrati
       "/sign/in/check?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
-    controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::In::SecretCredentialsController::MFA_USER_SESSION_KEY] = nil }
+    controller.define_singleton_method(:clear_mfa_session!) { session_hash[Sign::App::Sign::In::SecretCredentialsController::MFA_USER_SESSION_KEY] = nil }
 
     secret_credential = Struct.new(:id).new(9)
 
