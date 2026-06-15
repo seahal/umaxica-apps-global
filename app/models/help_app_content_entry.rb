@@ -3,7 +3,7 @@
 
 # == Schema Information
 #
-# Table name: docs_content_entries
+# Table name: help_content_entries
 # Database name: app_zenith
 #
 #  id           :bigint           not null, primary key
@@ -19,15 +19,11 @@
 #
 # Indexes
 #
-#  index_docs_content_entries_on_locale_and_slug          (locale,slug) UNIQUE
-#  index_docs_content_entries_on_status_and_published_at  (status,published_at)
+#  index_help_content_entries_on_locale_and_slug          (locale,slug) UNIQUE
+#  index_help_content_entries_on_status_and_published_at  (status,published_at)
 #
-module Docs
-  module App
-    class ContentEntry < AppRpRecord
-      include ReadOnlyContentEntry
+class HelpAppContentEntry < AppRpRecord
+  include ReadOnlyContentEntry
 
-      self.table_name = "docs_content_entries"
-    end
-  end
+  self.table_name = "help_content_entries"
 end

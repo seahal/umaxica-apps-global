@@ -5,7 +5,7 @@ require "test_helper"
 
 class ReadOnlyContentEntryTest < ActiveSupport::TestCase
   test "validates status and slug shape" do
-    entry = Docs::App::ContentEntry.new(
+    entry = DocsAppContentEntry.new(
       slug: "Invalid Slug",
       locale: "jp",
       title: "Title",
@@ -24,13 +24,13 @@ class ReadOnlyContentEntryTest < ActiveSupport::TestCase
     create_entry("draft", locale: "test-published", status: "draft", published_at: 1.minute.ago)
     create_entry("future", locale: "test-published", status: "published", published_at: 1.day.from_now)
 
-    assert_equal [visible], Docs::App::ContentEntry.published.for_locale("test-published").to_a
+    assert_equal [visible], DocsAppContentEntry.published.for_locale("test-published").to_a
   end
 
   private
 
   def create_entry(slug, locale:, status:, published_at:)
-    Docs::App::ContentEntry.create!(
+    DocsAppContentEntry.create!(
       slug: slug,
       locale: locale,
       title: slug.titleize,

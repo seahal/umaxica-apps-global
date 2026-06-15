@@ -42,8 +42,7 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    parallel_workers = ENV.fetch("PARALLEL_WORKERS", "1").to_i
-    parallelize(workers: parallel_workers)
+    parallelize(workers: (ENV["COVERAGE"] == "true") ? 1 : :number_of_processors)
 
     fixtures :all
   end

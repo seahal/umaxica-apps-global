@@ -22,12 +22,8 @@
 #  index_docs_content_entries_on_locale_and_slug          (locale,slug) UNIQUE
 #  index_docs_content_entries_on_status_and_published_at  (status,published_at)
 #
-module Docs
-  module Org
-    class ContentEntry < OrgRpRecord
-      include ReadOnlyContentEntry
+class DocsOrgContentEntry < OrgRpRecord
+  include ReadOnlyContentEntry
 
-      self.table_name = "docs_content_entries"
-    end
-  end
+  self.table_name = "docs_content_entries"
 end

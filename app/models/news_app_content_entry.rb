@@ -3,8 +3,8 @@
 
 # == Schema Information
 #
-# Table name: docs_content_entries
-# Database name: com_zenith
+# Table name: news_content_entries
+# Database name: app_zenith
 #
 #  id           :bigint           not null, primary key
 #  body         :text             not null
@@ -19,15 +19,11 @@
 #
 # Indexes
 #
-#  index_docs_content_entries_on_locale_and_slug          (locale,slug) UNIQUE
-#  index_docs_content_entries_on_status_and_published_at  (status,published_at)
+#  index_news_content_entries_on_locale_and_slug          (locale,slug) UNIQUE
+#  index_news_content_entries_on_status_and_published_at  (status,published_at)
 #
-module Docs
-  module Com
-    class ContentEntry < ComRpRecord
-      include ReadOnlyContentEntry
+class NewsAppContentEntry < AppRpRecord
+  include ReadOnlyContentEntry
 
-      self.table_name = "docs_content_entries"
-    end
-  end
+  self.table_name = "news_content_entries"
 end

@@ -18,7 +18,7 @@ namespace :content do
       raise ArgumentError, "surface must be one of app, com, or org"
     end
 
-    model = "#{namespace.camelize}::#{surface.camelize}::ContentEntry".constantize
+    model = "#{namespace}_#{surface}_content_entry".camelize.constantize
     imported = 0
 
     File.foreach(path) do |line|

@@ -47,7 +47,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api show rejects unpublished entries and old rails article routes are unavailable" do
-    model = Docs::App::ContentEntry
+    model = DocsAppContentEntry
     published = create_content_entry(model, slug: "visible-entry", title: "Visible Entry", locale: "test-show")
     create_content_entry(
       model,
