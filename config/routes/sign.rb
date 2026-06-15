@@ -35,7 +35,7 @@ scope module: :sign, as: :sign do
       end
 
       # OIDC back-channel receiver.
-      namespace :oidc do
+      scope module: :oidc, path: "oidc" do
         namespace :backchannel do
           resource :logout, only: :create
         end
@@ -292,7 +292,7 @@ scope module: :sign, as: :sign do
       end
 
       # OIDC back-channel receiver.
-      namespace :oidc do
+      scope module: :oidc, path: "oidc" do
         namespace :backchannel do
           resource :logout, only: :create
         end
@@ -502,7 +502,7 @@ scope module: :sign, as: :sign do
       end
 
       # OIDC back-channel receiver.
-      namespace :oidc do
+      scope module: :oidc, path: "oidc" do
         namespace :backchannel do
           resource :logout, only: :create
         end

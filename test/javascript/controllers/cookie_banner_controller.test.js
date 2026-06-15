@@ -50,7 +50,11 @@ describe("CookieBannerController", () => {
       }),
     });
     vi.stubGlobal("window", {
-      location: { assign: vi.fn(), origin: "http://localhost:3000", search: "?ct=dr&lx=en&ri=us&ri=jp&rt=ignored&tz=asia/tokyo" },
+      location: {
+        assign: vi.fn(),
+        origin: "http://localhost:3000",
+        search: "?ct=dr&lx=en&ri=us&ri=jp&rt=ignored&tz=asia/tokyo",
+      },
       history: { pushState: vi.fn() },
     });
     vi.stubGlobal("fetch", vi.fn());
@@ -309,19 +313,28 @@ describe("CookieBannerController", () => {
       expect(controller.csrfToken()).toBe("");
     });
 
+    test("accept 失敗時に dispatchConsentError が呼ばれる", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+      const dispatchSpy = vi.spyOn(controller, "dispatch");
+
+      controller.accept(event);
+
+      await vi.waitFor(() => {
+        expect(dispatchSpy).toHaveBeenCalledWith("error", {
+          detail: { message: "Cookie consent update failed", error: expect.any(Error) },
+        });
+      });
+    });
+
     test("syncCookieFormConsent: checkbox がない場合はスキップする", () => {
       const fields = cookieFormFields({ checked: false });
       cookieForm = cookieFormFor(fields);
+      const selectors = {
+        'meta[name="csrf-token"]': { content: "csrf-token" },
+        "[data-controller~='cookie-toggle'] form": cookieForm,
+      };
       vi.stubGlobal("document", {
-        querySelector: vi.fn((selector) => {
-          if (selector === 'meta[name="csrf-token"]') {
-            return { content: "csrf-token" };
-          }
-          if (selector === "[data-controller~='cookie-toggle'] form") {
-            return cookieForm;
-          }
-          return null;
-        }),
+        querySelector: vi.fn((selector) => selectors[selector]),
       });
 
       // Override to return null for the specific checkbox query

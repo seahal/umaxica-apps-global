@@ -95,11 +95,14 @@ describe("CookieToggleController", () => {
     controller.element.querySelector.mockReturnValue(form);
     controller.setupFormListener();
 
-    const handler = form.addEventListener.mock.calls.find(
+    const [, handler] = form.addEventListener.mock.calls.find(
       ([event]) => event === "turbo:submit-end",
-    )[1];
+    );
 
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
+    );
     const spy = vi.spyOn(controller, "onFormSubmitEnd");
 
     await handler({ detail: { success: true } });

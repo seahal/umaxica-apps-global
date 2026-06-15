@@ -51,6 +51,12 @@ module Security
           reason: "Only the Jump gateway facade may enable cross-host redirects after token URL validation.",
         },
         {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/concerns/sign_oidc_logout.rb",
+          line: /redirect_to\(post_logout_redirect_uri_with_state\(result\), allow_other_host: true, status: :see_other\)/,
+          reason: "OIDC logout must redirect to the RP post-logout URI after state validation.",
+        },
+        {
           pattern: "csrf null_session",
           path: "app/controllers/sign/app/tokens_controller.rb",
           line: /protect_from_forgery with: :null_session, only: :create/,
@@ -85,6 +91,60 @@ module Security
           path: "app/controllers/sign/org/oauth/base_controller.rb",
           line: /protect_from_forgery with: :null_session/,
           reason: "OAuth protocol endpoints use client auth or bearer tokens and skip Rails browser session state.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/core/app/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/core/com/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/core/org/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/app/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/app/oidc/backchannel_logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/com/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/com/oidc/backchannel_logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/org/oidc/backchannel/logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/sign/org/oidc/backchannel_logouts_controller.rb",
+          line: /protect_from_forgery with: :null_session/,
+          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
         },
       ].freeze
 

@@ -1,9 +1,182 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Sign::In::Challenge::PasskeysController < ::Sign::App::In::Challenge::PasskeysController
-  AUTHENTICATION_MODE = :guest
-  declare_authentication_mode! :guest
+require "base64"
 
-  def self.local_prefixes = ["sign/app/in/challenge/passkeys"] + super
+module Sign
+  module App
+    module In
+      module Challenge
+        class PasskeysController < ::Sign::App::ApplicationController
+          include SignWebauthn
+
+          include SessionLimitGate
+
+          include ::CloudflareTurnstile
+
+          AUTHENTICATION_MODE = :guest
+
+          rate_limit(
+            to: 5,
+            within: 1.minute,
+            by: -> { request.remote_ip },
+            scope: "sign_app_sign_in",
+            name: "mfa_passkey_create_ip_burst",
+            store: rate_limit_store,
+            only: :create,
+            with: -> {
+              render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
+            },
+          )
+          rate_limit(
+            to: 20,
+            within: 15.minutes,
+            by: -> { request.remote_ip },
+            scope: "sign_app_sign_in",
+            name: "mfa_passkey_create_ip_sustained",
+            store: rate_limit_store,
+            only: :create,
+            with: -> {
+              render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
+            },
+          )
+
+          before_action :ensure_pending_mfa!
+
+          def new
+            @mfa_user = pending_mfa_user
+            passkeys = active_passkeys_for(@mfa_user)
+
+            if passkeys.empty?
+              redirect_to(
+                sign_app_sign_in_challenge_path,
+                alert: I18n.t("errors.webauthn.no_passkeys_available"),
+                status: :see_other,
+              )
+              return
+            end
+
+            @passkey_challenge_id, @passkey_request_options =
+              create_authentication_challenge(
+                allow_credentials: passkeys.map { |pk|
+                  { id: pk.webauthn_id }
+                }, user_verification: "discouraged",
+              )
+          rescue SignWebauthn::OriginValidationError => e
+            Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", error: e.message))
+            redirect_to(
+              sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.origin_invalid"),
+                                               status: :see_other,
+            )
+          end
+
+          def create
+            unless cloudflare_turnstile_stealth_validation["success"]
+              redirect_to(
+                new_sign_app_sign_in_challenge_passkey_path,
+                alert: I18n.t("session_limit.turnstile_failed"),
+                status: :see_other,
+              )
+              return
+            end
+
+            with_challenge(passkey_params[:challenge_id], purpose: :authentication) do |challenge|
+              verify_passkey!(challenge)
+            end
+          rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
+                 SignWebauthn::ChallengePurposeMismatchError
+            redirect_to(
+              sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.challenge_invalid"),
+                                               status: :see_other,
+            )
+          rescue WebAuthn::SignCountVerificationError
+            redirect_to(
+              sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.sign_count_mismatch"),
+                                               status: :see_other,
+            )
+          rescue WebAuthn::Error
+            redirect_to(
+              sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
+                                               status: :see_other,
+            )
+          end
+
+          private
+
+          def ensure_pending_mfa!
+            return unless !pending_mfa_valid? || pending_mfa_user.nil?
+
+            clear_pending_mfa!
+            redirect_to(
+              sign_app_sign_in_entrance_path,
+              alert: I18n.t("sign.app.in.mfa.session_expired"),
+              status: :see_other,
+            )
+          end
+
+          def active_passkeys_for(user)
+            user.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
+          end
+
+          def passkey_params
+            params.fetch(:mfa_passkey_form, {}).permit(:challenge_id, :credential_json)
+          end
+
+          def verify_passkey!(challenge)
+            credential_payload = JSON.parse(passkey_params[:credential_json].to_s)
+            credential = WebAuthn::Credential.from_get(
+              credential_payload,
+              relying_party: webauthn_relying_party,
+            )
+            passkey = ClientPasskey.find_by(webauthn_id: credential.id)
+
+            user = pending_mfa_user
+            unless passkey && user && passkey.user_id == user.id
+              SignRiskEmitter.emit(
+                "auth_failed", user_id: user&.id, ip: request.remote_ip,
+                               reason: "mfa_passkey_mismatch",
+              )
+              redirect_to(
+                sign_app_sign_in_challenge_path,
+                alert: I18n.t("errors.webauthn.credential_not_found"),
+                status: :see_other,
+              )
+              return
+            end
+
+            credential.verify(challenge, public_key: passkey.public_key, sign_count: passkey.sign_count)
+            passkey.update!(sign_count: credential.sign_count, last_used_at: Time.current)
+
+            complete_mfa_login!(user)
+          rescue JSON::ParserError
+            redirect_to(
+              sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
+                                               status: :see_other,
+            )
+          end
+
+          def complete_mfa_login!(user)
+            result = finalize_mfa_login!(user)
+            case result[:status]
+            when :session_limit_hard_reject
+              render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
+            when :restricted
+              redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
+            when :success
+              redirect_to_sign_in_sequence!(
+                pt: result[:redirect_path],
+                notice: I18n.t("sign.app.in.mfa.passkey.success"),
+              )
+            else
+              redirect_to(
+                sign_app_sign_in_entrance_path,
+                alert: I18n.t("sign.app.in.mfa.verification_failed"),
+                status: :see_other,
+              )
+            end
+          end
+        end
+      end
+    end
+  end
 end

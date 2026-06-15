@@ -4702,7 +4702,7 @@ ALTER TABLE ONLY public.client_preference_date_formats
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_flow_statuses(id);
+    ADD CONSTRAINT fk_rails_3721c60304 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -4726,7 +4726,7 @@ ALTER TABLE ONLY public.client_preference_currencies
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flows
-    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_flow_statuses(id);
+    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -4990,7 +4990,7 @@ ALTER TABLE ONLY public.user_client_suspensions
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_flow_statuses(id);
+    ADD CONSTRAINT fk_rails_a2aace221d FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
 
 
 --
@@ -4998,7 +4998,7 @@ ALTER TABLE ONLY public.client_withdrawal_flow_events
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_a58c9bf0a2 FOREIGN KEY (client_id) REFERENCES public.clients(id);
+    ADD CONSTRAINT fk_rails_a58c9bf0a2 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
 
 
 --
@@ -5030,7 +5030,7 @@ ALTER TABLE ONLY public.user_client_impersonations
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_flow_id) REFERENCES public.client_withdrawal_flows(id);
+    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_flow_id) REFERENCES public.client_withdrawal_flows(id) NOT VALID;
 
 
 --
@@ -5102,7 +5102,7 @@ ALTER TABLE ONLY public.user_clients
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flows
-    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id);
+    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
 
 
 --

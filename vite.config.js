@@ -39,7 +39,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: "v8",
-      reportsDirectory: "coverage/vite",
+      reportsDirectory: "coverage",
       reporter: ["text", "html", "lcov", "json-summary"],
       include: ["app/javascript/**/*.{js,ts,jsx,tsx}"],
       exclude: [

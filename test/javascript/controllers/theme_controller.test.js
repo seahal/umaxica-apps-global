@@ -149,6 +149,21 @@ describe("select", () => {
     expect(syncSpy).toHaveBeenCalledWith("dr");
   });
 
+  test("persistTheme は不明な theme で data.theme がないとき sy にフォールバックする", async () => {
+    documentMock.querySelector.mockReturnValue({ content: "csrf-token" });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
+    );
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+
+    await controller.persistTheme("unknown");
+
+    expect(syncSpy).toHaveBeenCalledWith("sy");
+  });
+
   test("persistTheme は HTTP エラー時にフォールバックする", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     documentMock.querySelector.mockReturnValue({ content: "csrf-token" });

@@ -6,6 +6,8 @@ module Sign
     module Oidc
       module Backchannel
         class LogoutsController < ::Sign::App::BareController
+          AUTHENTICATION_MODE = :bare
+
           include ::OidcRpLogoutReceiver
 
           protect_from_forgery with: :null_session

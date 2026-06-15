@@ -4,10 +4,6 @@
 module SignOidcLogout
   extend ActiveSupport::Concern
 
-  included do
-    helper_method :oidc_logout_confirmation_params
-  end
-
   def show
     handle_oidc_end_session_request
   end

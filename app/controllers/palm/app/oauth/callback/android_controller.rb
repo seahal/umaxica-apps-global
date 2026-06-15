@@ -6,6 +6,8 @@ module Palm
     module Oauth
       module Callback
         class AndroidController < Palm::App::Oauth::CallbacksController
+          AUTHENTICATION_MODE = :bare
+
           def index
             render_callback_stub
           end

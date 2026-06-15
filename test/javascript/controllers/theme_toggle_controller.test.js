@@ -151,7 +151,7 @@ describe("ThemeToggleController", () => {
   test("updateTheme: body.preference がない場合 appliedTheme を使う", async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ }),
+      json: async () => ({}),
     });
 
     await controller.updateTheme("dr");

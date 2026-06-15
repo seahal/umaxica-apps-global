@@ -10,6 +10,7 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
 
   ALLOW_OTHER_HOST_ALLOWLIST = %w(
     app/controllers/concerns/common_redirect.rb
+    app/controllers/concerns/sign_oidc_logout.rb
   ).freeze
 
   RAW_PT_ALLOWLIST_PATTERNS = [

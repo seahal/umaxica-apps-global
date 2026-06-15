@@ -5,12 +5,6 @@ function describeInput(input) {
   if (input === undefined) {
     return "undefined";
   }
-  if (input instanceof ArrayBuffer) {
-    return "ArrayBuffer";
-  }
-  if (Array.isArray(input)) {
-    return "Array";
-  }
   if (input && input.constructor && input.constructor.name) {
     return `${typeof input}(${input.constructor.name})`;
   }

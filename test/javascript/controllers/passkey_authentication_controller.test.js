@@ -167,11 +167,17 @@ describe("PasskeyAuthenticationController", () => {
   });
 
   test("csrfToken: meta タグがない場合は空文字列", () => {
-    vi.stubGlobal("document", {
-      querySelector: vi.fn(() => null),
-    });
+    const origDocument = globalThis.document;
+    const querySelector = vi.fn(() => null);
+    globalThis.document = {
+      querySelector,
+      createElement: vi.fn(),
+      head: { appendChild: vi.fn() },
+    };
     const result = controller.csrfToken;
     expect(result).toBe("");
+    expect(querySelector).toHaveBeenCalledWith('meta[name="csrf-token"]');
+    globalThis.document = origDocument;
   });
 
   test("identifierValue: target があればその値を返す", () => {
@@ -854,5 +860,14 @@ describe("PasskeyAuthenticationController", () => {
     controller.clearMessages();
     expect(controller.errorTarget.textContent).toBe("");
     expect(controller.errorTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("csrfToken: meta タグがない場合は空文字列を返す", () => {
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => null),
+      createElement: vi.fn(),
+      head: { appendChild: vi.fn() },
+    });
+    expect(controller.csrfToken).toBe("");
   });
 });
