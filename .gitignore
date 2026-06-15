@@ -141,3 +141,6 @@ nvim.log
 /plans/private/
 /plans/tmp/
 /plans/drafts/local/
+
+# you could remove this line when you set vitest settings.
+app/javascript/coverage

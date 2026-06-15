@@ -1,7 +1,11 @@
 allowBuilds:
   puppeteer: false
-minimumReleaseAge: 10080
+minimumReleaseAge: 4320
+minimumReleaseAgeIgnoreMissingTime: false
+registries:
+  default: https://registry.npmjs.org/
 strictDepBuilds: true
+trustPolicy: no-downgrade
 unicode: false
 overrides:
   vitest: npm:@voidzero-dev/vite-plus-test@latest

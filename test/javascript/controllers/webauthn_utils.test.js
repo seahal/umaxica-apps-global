@@ -45,6 +45,11 @@ describe("webauthn_utils", () => {
       expect(() => toArrayBuffer(123)).toThrow(TypeError);
       expect(() => toArrayBuffer(123)).toThrow("number");
     });
+
+    test("constructor のないオブジェクトで typeof fallback を確認する", () => {
+      const obj = Object.create(null);
+      expect(() => toArrayBuffer(obj)).toThrow("object");
+    });
   });
 
   describe("normalizePublicKeyOptions", () => {

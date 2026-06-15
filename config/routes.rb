@@ -2,20 +2,27 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  # Global application entrypoints
-  # BFF
+  # Acme owns the OP/Authorization Server and durable identity/session authority.
   draw :acme
-  # sign in / up
+
+  # Sign owns the credential gateway for sign-in/sign-up ceremonies.
   draw :sign
-  # Regional application entrypoints
-  # main page
+
+  # Core owns the regional BFF surface.
   draw :core
-  # Rails foundation/control-plane entrypoints
+
+  # Base owns the Rails foundation/control-plane surface.
   draw :base
-  # Native bearer-token API entrypoints
+
+  # Palm owns the native bearer-token API surface.
   draw :palm
-  # Public read-only content entrypoints
+
+  # Help owns the public help content surface.
   draw :help
+
+  # Docs owns the public documentation content surface.
   draw :docs
+
+  # News owns the public news content surface.
   draw :news
 end

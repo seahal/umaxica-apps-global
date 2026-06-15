@@ -133,6 +133,50 @@ describe("select", () => {
     expect(documentMock.documentElement.dataset.theme).toBe("system");
   });
 
+  test("persistTheme は data.theme が空のときフォールバックする", async () => {
+    const csrfMeta = { content: "csrf-token" };
+    documentMock.querySelector.mockReturnValue(csrfMeta);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
+    );
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+
+    await controller.persistTheme("dark");
+
+    expect(syncSpy).toHaveBeenCalledWith("dr");
+  });
+
+  test("persistTheme は HTTP エラー時にフォールバックする", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    documentMock.querySelector.mockReturnValue({ content: "csrf-token" });
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+    const applySpy = vi.spyOn(controller, "applyThemeFromCode");
+
+    await controller.persistTheme("dark");
+
+    expect(syncSpy).toHaveBeenCalledWith("dr");
+    expect(applySpy).toHaveBeenCalledWith("dr");
+  });
+
+  test("persistTheme は HTTP エラー時に不明な theme で sy にフォールバックする", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    documentMock.querySelector.mockReturnValue({ content: "csrf-token" });
+
+    const controller = makeController();
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+    const applySpy = vi.spyOn(controller, "applyThemeFromCode");
+
+    await controller.persistTheme("unknown");
+
+    expect(syncSpy).toHaveBeenCalledWith("sy");
+    expect(applySpy).toHaveBeenCalledWith("sy");
+  });
+
   test("selected theme is persisted through the theme endpoint", async () => {
     const csrfMeta = { content: "csrf-token" };
     documentMock.querySelector.mockReturnValue(csrfMeta);
@@ -387,7 +431,7 @@ describe("fetchAndSyncTheme", () => {
     await controller.fetchAndSyncTheme();
 
     expect(fetch).toHaveBeenCalledWith(
-      "http://localhost:3000/web/v0/theme?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+      "http://localhost:3000/web/v0/theme?ct=dr&lx=en&ri=us&tz=asia/tokyo",
     );
     expect(syncSpy).toHaveBeenCalledWith("dr");
     expect(applySpy).toHaveBeenCalledWith("dr");
@@ -431,6 +475,44 @@ describe("fetchAndSyncTheme", () => {
     await controller.fetchAndSyncTheme();
 
     expect(syncSpy).toHaveBeenCalledWith("sy");
+  });
+
+  test("fetchAndSyncTheme: selectedThemeCode が既にあるときはスキップ", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ theme: "dr" }) }),
+    );
+
+    const controller = makeController();
+    controller.selectedThemeCode = "dr";
+    const syncSpy = vi.spyOn(controller, "syncRadioFromThemeCode");
+
+    await controller.fetchAndSyncTheme();
+
+    expect(syncSpy).not.toHaveBeenCalled();
+  });
+
+  test("fetchAndSyncTheme API エラー時に不明な ct 値でフォールバックする", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+    cookieReadValue = "ct=unknown";
+    const controller = makeController();
+    await controller.fetchAndSyncTheme();
+
+    expect(documentMock.documentElement.dataset.theme).toBe("unknown");
+  });
+
+  test("fetchAndSyncTheme API エラー時に js-theme-cookie-value を設定する", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+    cookieReadValue = "ct=dr";
+    const valueEl = { textContent: "" };
+    documentMock.querySelector.mockReturnValue(valueEl);
+
+    const controller = makeController();
+    await controller.fetchAndSyncTheme();
+
+    expect(valueEl.textContent).toBe("dark");
   });
 });
 

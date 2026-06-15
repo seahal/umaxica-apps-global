@@ -50,15 +50,9 @@ describe("CookieBannerController", () => {
       }),
     });
     vi.stubGlobal("window", {
-      location: { assign: vi.fn() },
+      location: { assign: vi.fn(), origin: "http://localhost:3000", search: "?ct=dr&lx=en&ri=us&ri=jp&rt=ignored&tz=asia/tokyo" },
       history: { pushState: vi.fn() },
     });
-
-    window.history.pushState(
-      {},
-      "",
-      "/preference/cookie/edit?ct=dr&lx=en&ri=us&ri=jp&rt=ignored&tz=asia/tokyo",
-    );
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -242,6 +236,22 @@ describe("CookieBannerController", () => {
       expect(fields.targetable.checked).toBe(true);
     });
 
+    test("syncCookieFormConsent does nothing when no cookie-toggle form exists", () => {
+      controller.syncCookieFormConsent({ consented: true });
+      expect(element.remove).not.toHaveBeenCalled();
+    });
+
+    test("syncCookieFormConsent skips fields missing from consentState", () => {
+      const fields = cookieFormFields({ checked: false });
+      cookieForm = cookieFormFor(fields);
+
+      controller.syncCookieFormConsent({ consented: true });
+
+      expect(fields.functional.checked).toBe(false);
+      expect(fields.performant.checked).toBe(false);
+      expect(fields.targetable.checked).toBe(false);
+    });
+
     test("syncCookieFormConsent applies reject-all response with only consent true", () => {
       const fields = cookieFormFields({ checked: false });
       cookieForm = cookieFormFor(fields);
@@ -290,6 +300,40 @@ describe("CookieBannerController", () => {
       expect(controller.cookieEndpointUrl()).toBe(
         "http://localhost:3000/web/v0/cookie?ri=us&lx=en&ct=dr&tz=asia%2Ftokyo",
       );
+    });
+
+    test("csrfToken: meta タグがない場合は空文字列を返す", () => {
+      vi.stubGlobal("document", {
+        querySelector: vi.fn(() => null),
+      });
+      expect(controller.csrfToken()).toBe("");
+    });
+
+    test("syncCookieFormConsent: checkbox がない場合はスキップする", () => {
+      const fields = cookieFormFields({ checked: false });
+      cookieForm = cookieFormFor(fields);
+      vi.stubGlobal("document", {
+        querySelector: vi.fn((selector) => {
+          if (selector === 'meta[name="csrf-token"]') {
+            return { content: "csrf-token" };
+          }
+          if (selector === "[data-controller~='cookie-toggle'] form") {
+            return cookieForm;
+          }
+          return null;
+        }),
+      });
+
+      // Override to return null for the specific checkbox query
+      cookieForm.querySelector = vi.fn(() => null);
+
+      // Should not throw when checkbox is not found
+      controller.syncCookieFormConsent({
+        consented: true,
+        functional: true,
+        performant: true,
+        targetable: true,
+      });
     });
   });
 });

@@ -169,9 +169,41 @@ describe("StepUpPasskeyController", () => {
     expect(controller.errorTarget.textContent).toBe("");
   });
 
+  test("showError: statusTarget がないときは何もしない", () => {
+    controller.hasStatusTarget = false;
+    controller.showError("test error");
+    expect(controller.errorTarget.textContent).toBe("test error");
+    expect(controller.statusTarget.textContent).toBe("");
+  });
+
   test("showStatus: statusTarget がないときは何もしない", () => {
     controller.hasStatusTarget = false;
     controller.showStatus("test status");
     expect(controller.statusTarget.textContent).toBe("");
+  });
+
+  test("clearMessages: errorTarget がないとき", () => {
+    controller.hasErrorTarget = false;
+    controller.clearMessages();
+    expect(controller.statusTarget.textContent).toBe("");
+    expect(controller.statusTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("clearMessages: statusTarget がないとき", () => {
+    controller.hasStatusTarget = false;
+    controller.clearMessages();
+    expect(controller.errorTarget.textContent).toBe("");
+    expect(controller.errorTarget.classList.add).toHaveBeenCalledWith("hidden");
+  });
+
+  test("authenticate: error.message が空のときデフォルトメッセージを表示する", async () => {
+    const error = new Error();
+    error.name = "GenericError";
+    navigator.credentials.get.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証中にエラーが発生しました");
   });
 });

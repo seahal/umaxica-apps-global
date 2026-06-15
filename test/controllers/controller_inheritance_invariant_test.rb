@@ -299,7 +299,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
         end
 
       assert_empty violations,
-                   "#{rule.fetch(:description)} — forbidden inheritance found:\n#{violations.join("\n")}"
+                   "#{rule.fetch(:description)} -- forbidden inheritance found:\n#{violations.join("\n")}"
     end
   end
 

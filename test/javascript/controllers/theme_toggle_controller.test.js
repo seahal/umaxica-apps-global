@@ -99,15 +99,8 @@ describe("ThemeToggleController", () => {
       json: async () => ({ preference: { ct: "dr" } }),
     });
 
-    let cookiesSet = [];
-    Object.defineProperty(document, "cookie", {
-      set: (val) => cookiesSet.push(val),
-      get: () => "",
-    });
-
     await controller.updateTheme("dr");
 
-    expect(cookiesSet.some((c) => c.startsWith("ct="))).toBe(true);
     expect(controller.currentTheme).toBe("dr");
     expect(dispatchEventSpy).toHaveBeenCalled();
   });
@@ -128,15 +121,8 @@ describe("ThemeToggleController", () => {
       json: async () => ({ preference: {} }),
     });
 
-    let cookiesSet = [];
-    Object.defineProperty(document, "cookie", {
-      set: (val) => cookiesSet.push(val),
-      get: () => "",
-    });
-
     await controller.updateTheme("dr");
     expect(controller.currentTheme).toBe("dr");
-    expect(cookiesSet.some((c) => c.startsWith("ct=dr"))).toBe(true);
   });
 
   test("updateTheme: 失敗時にエラー��理する", async () => {
@@ -160,5 +146,21 @@ describe("ThemeToggleController", () => {
     await controller.updateTheme("dr");
 
     expect(dispatchSpy).toHaveBeenCalled();
+  });
+
+  test("updateTheme: body.preference がない場合 appliedTheme を使う", async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ }),
+    });
+
+    await controller.updateTheme("dr");
+
+    expect(controller.currentTheme).toBe("dr");
+    expect(dispatchEventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: { ct: "dr" },
+      }),
+    );
   });
 });

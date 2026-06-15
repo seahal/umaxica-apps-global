@@ -260,6 +260,25 @@ describe("PasskeyAuthenticationController", () => {
     expect(controller.statusTarget.textContent).toBe("二段階認証が必要です...");
   });
 
+  test("authenticate: optionsResponse JSON で data.error が空", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: false,
+      status: 400,
+      headers: { get: vi.fn(() => "application/json") },
+      json: () => Promise.resolve({ error: "" }),
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("オプションの取得に失敗しました");
+  });
+
   test("authenticate: optionsResponse が失敗し JSON エラーを返す", async () => {
     controller.identifierTarget.value = "test@example.com";
     controller.turnstileResponseTarget.value = "turnstile-token";
@@ -301,6 +320,42 @@ describe("PasskeyAuthenticationController", () => {
     await controller.authenticate(event);
 
     expect(reloadMock).toHaveBeenCalled();
+  });
+
+  test("authenticate: optionsResponse が non-JSON non-401/302 でエラー (content-type null)", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: false,
+      status: 500,
+      headers: { get: vi.fn(() => null) },
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("オプションの取得に失敗しました");
+  });
+
+  test("authenticate: optionsResponse が非 JSON 非 401/302 でエラー", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: false,
+      status: 500,
+      headers: { get: vi.fn(() => "text/html") },
+    };
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("オプションの取得に失敗しました");
   });
 
   test("authenticate: verificationResponse が 401 のときページをリロードする", async () => {
@@ -346,6 +401,124 @@ describe("PasskeyAuthenticationController", () => {
     await controller.authenticate(event);
 
     expect(reloadMock).toHaveBeenCalled();
+  });
+
+  test("authenticate: verificationResponse が JSON で data.error が空", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: false,
+      status: 400,
+      headers: { get: vi.fn(() => "application/json") },
+      json: () => Promise.resolve({ error: "" }),
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証に失敗しました");
+  });
+
+  test("authenticate: verificationResponse が non-JSON non-401/302 でエラー (content-type null)", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: false,
+      status: 500,
+      headers: { get: vi.fn(() => null) },
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証に失敗しました");
+  });
+
+  test("authenticate: verificationResponse が非 JSON 非 401/302 でエラー", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: false,
+      status: 500,
+      headers: { get: vi.fn(() => "text/html") },
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(optionsResponse).mockResolvedValueOnce(verificationResponse),
+    );
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4]).buffer,
+        authenticatorData: new Uint8Array([7]).buffer,
+        signature: new Uint8Array([10]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証に失敗しました");
   });
 
   test("authenticate: verificationResponse が失敗し JSON エラーを返す", async () => {
@@ -426,6 +599,26 @@ describe("PasskeyAuthenticationController", () => {
     await controller.authenticate(event);
 
     expect(controller.errorTarget.textContent).toBe("セキュリティエラーが発生しました");
+  });
+
+  test("authenticate: error.message が空のときデフォルトメッセージを表示する", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(optionsResponse));
+
+    const error = new Error();
+    error.name = "GenericError";
+    navigator.credentials.get.mockRejectedValue(error);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    expect(controller.errorTarget.textContent).toBe("認証中にエラーが発生しました");
   });
 
   test("authenticate: 予期しない応答のときにエラーを表示する", async () => {
@@ -523,6 +716,23 @@ describe("PasskeyAuthenticationController", () => {
     await expect(promise).resolves.toBeUndefined();
   });
 
+  test("ensureTurnstileScriptLoaded: 既存スクリプトの error で拒否する", async () => {
+    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
+    const existingScript = { addEventListener: vi.fn() };
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => existingScript),
+      createElement: vi.fn(),
+      head: { appendChild: vi.fn() },
+    });
+
+    const promise = controller.ensureTurnstileScriptLoaded();
+    const [, errorCallback] = existingScript.addEventListener.mock.calls.find(
+      ([event]) => event === "error",
+    );
+    errorCallback();
+    await expect(promise).rejects.toThrow();
+  });
+
   test("ensureTurnstileScriptLoaded: 新規スクリプトの load イベントで解決する", async () => {
     vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
     const script = {
@@ -576,6 +786,21 @@ describe("PasskeyAuthenticationController", () => {
     };
 
     await expect(controller.requestTurnstileToken()).rejects.toThrow();
+  });
+
+  test("requestTurnstileToken: callback で turnstileResponseTarget がないときも解決する", async () => {
+    controller.hasTurnstileResponseTarget = false;
+    vi.stubGlobal("document", {
+      createElement: vi.fn(() => ({ style: {}, appendChild: vi.fn() })),
+    });
+    window.turnstile = {
+      render: vi.fn((_container, options) => {
+        options.callback("token");
+      }),
+    };
+
+    const result = await controller.requestTurnstileToken();
+    expect(result).toBe("token");
   });
 
   test("requestTurnstileToken: expired-callback で拒否する", async () => {

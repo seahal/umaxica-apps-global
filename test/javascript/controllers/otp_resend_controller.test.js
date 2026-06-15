@@ -149,4 +149,30 @@ describe("OtpResendController", () => {
     expect(controller.buttonTarget.disabled).toBe(false);
     expect(controller.buttonTarget.textContent).toBe("Resend OTP");
   });
+
+  test("resend: 429 で retry_after がない場合 0 でカウントダウンする", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ status: 429, json: () => Promise.resolve({}) }),
+    );
+
+    const event = { preventDefault: vi.fn() };
+    await controller.resend(event);
+
+    expect(controller.statusTarget.textContent).toBe("Too soon");
+    expect(controller.buttonTarget.disabled).toBe(false);
+  });
+
+  test("csrfToken: meta タグがない場合は空文字列を返す", () => {
+    vi.stubGlobal("document", {
+      querySelector: vi.fn(() => null),
+    });
+    expect(controller.csrfToken()).toBe("");
+  });
+
+  test("clearOtpInput: inputTarget がないときは何もしない", () => {
+    controller.hasInputTarget = false;
+    controller.inputTarget = null;
+    expect(() => controller.clearOtpInput()).not.toThrow();
+  });
 });

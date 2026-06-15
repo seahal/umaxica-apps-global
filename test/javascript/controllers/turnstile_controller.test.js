@@ -22,7 +22,9 @@ const { default: TurnstileController } =
   await import("../../../app/javascript/controllers/turnstile_controller.js");
 
 function restoreReadyState(descriptor) {
-  Object.defineProperty(document, "readyState", descriptor);
+  if (descriptor) {
+    Object.defineProperty(document, "readyState", descriptor);
+  }
 }
 
 describe("TurnstileController", () => {
@@ -122,6 +124,7 @@ describe("TurnstileController", () => {
   test("disconnect removes all listeners", () => {
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    const scriptRemoveEventListenerSpy = vi.spyOn(script, "removeEventListener");
     document.head.appendChild(script);
 
     const c = createController();
@@ -129,6 +132,8 @@ describe("TurnstileController", () => {
 
     c.disconnect();
 
+    expect(scriptRemoveEventListenerSpy).toHaveBeenCalledWith("load", c.scheduleChallenge);
+    expect(scriptRemoveEventListenerSpy).toHaveBeenCalledWith("error", c.reportScriptError);
     expect(removeEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge);
     expect(removeEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge);
 

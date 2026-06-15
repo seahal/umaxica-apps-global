@@ -93,6 +93,31 @@ describe("UnsavedChangesController", () => {
     expect(event.returnValue).toBe("Unsaved changes!");
   });
 
+  test("handleBeforeVisit: デフォルトメッセージを使う", () => {
+    const controller2 = new UnsavedChangesController();
+    controller2.element = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    controller2.messageValue = "";
+    controller2.dirty = true;
+
+    vi.stubGlobal("window", { confirm: vi.fn().mockReturnValue(false) });
+    const event = { preventDefault: vi.fn() };
+    controller2.handleBeforeVisit(event);
+    expect(window.confirm).toHaveBeenCalledWith("変更は保存されていません。移動しますか？");
+    expect(event.preventDefault).toHaveBeenCalled();
+  });
+
+  test("handleBeforeUnload: デフォルトメッセージを使う", () => {
+    const controller2 = new UnsavedChangesController();
+    controller2.element = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    controller2.messageValue = "";
+    controller2.dirty = true;
+
+    const event = { preventDefault: vi.fn(), returnValue: "" };
+    controller2.handleBeforeUnload(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.returnValue).toBe("変更は保存されていません。移動しますか？");
+  });
+
   test("handleBeforeUnload: dirty でないとき、なにもしない", () => {
     controller.connect();
     controller.dirty = false;

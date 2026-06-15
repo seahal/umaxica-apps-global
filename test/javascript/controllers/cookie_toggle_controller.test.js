@@ -90,6 +90,22 @@ describe("CookieToggleController", () => {
     expect(form.addEventListener).toHaveBeenCalledWith("turbo:submit-end", expect.any(Function));
   });
 
+  test("setupFormListener: turbo:submit-end で onFormSubmitEnd を呼ぶ", async () => {
+    const form = { addEventListener: vi.fn() };
+    controller.element.querySelector.mockReturnValue(form);
+    controller.setupFormListener();
+
+    const handler = form.addEventListener.mock.calls.find(
+      ([event]) => event === "turbo:submit-end",
+    )[1];
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }));
+    const spy = vi.spyOn(controller, "onFormSubmitEnd");
+
+    await handler({ detail: { success: true } });
+    expect(spy).toHaveBeenCalled();
+  });
+
   test("setupFormListener: form のリスナー内で onFormSubmitEnd を呼ぶ", async () => {
     vi.stubGlobal(
       "fetch",
@@ -141,6 +157,21 @@ describe("CookieToggleController", () => {
     expect(updateSpy).toHaveBeenCalled();
   });
 
+  test("onFormSubmitEnd: consentState が falsy のとき何もしない", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(null) }),
+    );
+    const syncSpy = vi.spyOn(controller, "syncCheckboxesFromAPI");
+    const updateSpy = vi.spyOn(controller, "updateStatus");
+
+    const event = { detail: { success: true } };
+    await controller.onFormSubmitEnd(event);
+
+    expect(syncSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   test("fetchCookieConsent: レスポンスが OK でないときエラーを投げる", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     await expect(controller.fetchCookieConsent()).rejects.toThrow("HTTP error! status: 500");
@@ -155,7 +186,7 @@ describe("CookieToggleController", () => {
     await controller.fetchCookieConsent();
 
     expect(fetch).toHaveBeenCalledWith(
-      "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia%2Ftokyo",
+      "http://localhost:3000/web/v0/cookie?ct=dr&lx=en&ri=us&tz=asia/tokyo",
     );
   });
 });

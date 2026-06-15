@@ -159,7 +159,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
       end
 
     assert_empty missing,
-                 "Models include Retainable but are absent from RetentionPurgeJob::RETAINABLE_MODELS — " \
+                 "Models include Retainable but are absent from RetentionPurgeJob::RETAINABLE_MODELS -- " \
                  "rows in these tables will never be physically purged: #{missing.map(&:name).sort.join(", ")}"
   end
 end
