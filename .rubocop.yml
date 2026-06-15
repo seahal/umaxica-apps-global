@@ -298,7 +298,7 @@ Layout/LeadingCommentSpace:
 
 # ---------- 文字列 ----------
 Style/AsciiComments:
-  Enabled: false
+  Enabled: true
 
 Style/StringLiterals:
   Enabled: true

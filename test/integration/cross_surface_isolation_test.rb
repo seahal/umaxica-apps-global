@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-# Characterization test (pre-enforcement baseline) — cross-surface actor isolation.
+# Characterization test (pre-enforcement baseline) -- cross-surface actor isolation.
 #
 # The three surfaces (app/client, com/visitor, org/operator) are independent authentication
 # boundaries. Credentials minted for one surface must not authenticate an actor on another
@@ -13,7 +13,7 @@ require "test_helper"
 # denial matrix.
 #
 # This invariant is enforced at authentication time (the foreign actor never resolves), which is
-# distinct from — and must survive — the upcoming object-level Action Policy enforcement rollout
+# distinct from -- and must survive -- the upcoming object-level Action Policy enforcement rollout
 # (ADR pundit-to-action-policy-migration.md, Phase 3). If a future change accidentally let one
 # surface's session authorize another surface, these assertions fail.
 class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest

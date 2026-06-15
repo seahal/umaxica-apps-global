@@ -155,7 +155,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     result = AuthResult.new(success: false, error: "invalid_token")
 
     OidcAccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      get acme_app_oauth_user_info_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+      get acme_app_oauth_userinfo_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
           headers: { "Authorization" => "Bearer access", "DPoP" => "proof" }
     end
 

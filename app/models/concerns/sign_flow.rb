@@ -98,7 +98,7 @@ module SignFlow
   end
 
   # Row-locked transition. Reading `status_id` and writing the new one must be
-  # atomic — otherwise two concurrent callers can both observe A and race-write
+  # atomic -- otherwise two concurrent callers can both observe A and race-write
   # the same outbound edge, producing inconsistent state and lost updates on
   # sibling columns. `with_cycle_lock` (FlowBase) wraps in a transaction so
   # the SELECT FOR UPDATE actually holds.

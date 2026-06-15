@@ -21,6 +21,10 @@ vi.mock("@hotwired/stimulus", () => ({
 const { default: TurnstileController } =
   await import("../../../app/javascript/controllers/turnstile_controller.js");
 
+function restoreReadyState(descriptor) {
+  Object.defineProperty(document, "readyState", descriptor);
+}
+
 describe("TurnstileController", () => {
   let controller;
   let render;
@@ -63,12 +67,7 @@ describe("TurnstileController", () => {
 
     const c = createController();
     const originalQuerySelector = document.querySelector;
-    document.querySelector = (sel) => {
-      if (sel.includes("challenges.cloudflare.com")) {
-        return script;
-      }
-      return originalQuerySelector.call(document, sel);
-    };
+    document.querySelector = () => script;
 
     c.connect();
 
@@ -95,9 +94,7 @@ describe("TurnstileController", () => {
       once: true,
     });
 
-    if (originalReadyState) {
-      Object.defineProperty(document, "readyState", originalReadyState);
-    }
+    restoreReadyState(originalReadyState);
   });
 
   test("connect calls scheduleChallenge directly when document is already loaded", () => {
@@ -119,9 +116,7 @@ describe("TurnstileController", () => {
 
     expect(called).toBe(1);
     c.scheduleChallenge = originalSchedule;
-    if (originalReadyState) {
-      Object.defineProperty(document, "readyState", originalReadyState);
-    }
+    restoreReadyState(originalReadyState);
   });
 
   test("disconnect removes all listeners", () => {

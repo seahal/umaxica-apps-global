@@ -370,7 +370,7 @@ module Sign::App::Up
       # Cycle abandoned here: OTP passed but passkey never completed.
 
       # Past the re-registration overwrite window the same number must be
-      # registrable again — the abandoned pending row/user is cleaned up.
+      # registrable again -- the abandoned pending row/user is cleaned up.
       travel(CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second) do
         post sign_app_sign_up_telephone_url, params: {
           user_telephone: {

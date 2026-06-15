@@ -104,7 +104,7 @@ class Operator < OrgPrincipalRecord
   has_many :operator_passkeys, class_name: "OperatorPasskey", foreign_key: :staff_id,
                                inverse_of: :staff
   # Cross-database (chronicle DB): append-only audit history. No dependent:
-  # cascade — audit records intentionally outlive actor purge and are not
+  # cascade -- audit records intentionally outlive actor purge and are not
   # mutated/deleted across the DB boundary. See
   # adr/chronicle-audit-db-consolidation.md.
   has_many :staff_chronicles,

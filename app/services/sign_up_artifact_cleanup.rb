@@ -8,7 +8,7 @@
 # Concurrency model:
 # - Per-cycle work runs entirely inside one `cycle.with_cycle_lock` so that
 #   concurrent callers (controller path + worker) cannot interleave the
-#   pending → completed flip with dependent writes.
+#   pending -> completed flip with dependent writes.
 # - Dependent updates are issued against the dependent's own DB connection
 #   (cross-DB, can't be atomic with the cycle lock); failures flip the cycle
 #   to `cleanup_status_id = FAILED` so the worker retries.

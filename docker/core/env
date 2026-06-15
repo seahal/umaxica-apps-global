@@ -146,3 +146,4 @@ WEBAUTHN_COM_ORIGIN=https://id.umaxica.com
 # HMAC Secret is resolved from encrypted credentials via Rails.app.creds.
 # VITE Configuration
 VITE_RUBY_PACKAGE_MANAGER=pnpm
+VITE_GIT_HOOKS=0

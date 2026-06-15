@@ -6,9 +6,9 @@ pre-commit:
         #!/bin/sh
         set -eu
         if [ -f /.dockerenv ]; then
-          vp check --fix
+          vp check
         else
-          docker compose run core vp check --fix
+          docker compose run core vp check
         fi
     ruby_rubocop:
       run: |
@@ -24,9 +24,9 @@ pre-commit:
         #!/bin/sh
         set -eu
         if [ -f /.dockerenv ]; then
-          bundle exec erb_lint -a .
+          bundle exec erb_lint --lint-all
         else
-          docker compose run core bundle exec erb_lint -a .
+          docker compose run core bundle exec erb_lint --lint-all
         fi
     pnpm_audit:
       run: |

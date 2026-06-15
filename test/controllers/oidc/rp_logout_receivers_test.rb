@@ -162,14 +162,13 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
 
   def wrong_issuer_for(resource_type)
     case resource_type
-    when "operator" then OidcIssuer.for_resource_type("client")
-    when "visitor" then OidcIssuer.for_resource_type("client")
+    when "operator", "visitor" then OidcIssuer.for_resource_type("client")
     else OidcIssuer.for_resource_type("visitor")
     end
   end
 
-  def backchannel_logout_path(surface)
-    (surface.fetch(:client_id) == "core-next-rp") ? "/oidc/backchannel/logout" : "/oidc/backchannel_logout"
+  def backchannel_logout_path(_surface)
+    "/oidc/backchannel/logout"
   end
 
   def create_session_token(surface, sid)

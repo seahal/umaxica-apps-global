@@ -8,7 +8,7 @@
 # `adr/retainable-concern-and-retention-purge.md` and the "ADR-sanctioned
 # data-retention exceptions" section of
 # `docs/reference/forbidden-rails-methods.md`. Do not rewrite it as row-by-row
-# `destroy` — the batch DELETE (FK cascades, no AR callbacks) is the intended
+# `destroy` -- the batch DELETE (FK cascades, no AR callbacks) is the intended
 # behavior.
 class RetentionPurgeJob < ApplicationJob
   queue_as :retention
@@ -16,9 +16,9 @@ class RetentionPurgeJob < ApplicationJob
   # Order matters: rows are deleted with `delete_all`, which fires DB-level FK
   # cascades but not AR callbacks. Tables that hold FK references with
   # ON DELETE CASCADE to other RETAINABLE rows MUST be listed *before* the
-  # referenced parent — otherwise the cascade will silently delete rows whose
+  # referenced parent -- otherwise the cascade will silently delete rows whose
   # `purged_at` is still Infinity. Concretely: `client_sign_up_flows.token_id`
-  # → `client_tokens.id` ON DELETE CASCADE, so ClientSignUpFlow/VisitorSignUpFlow
+  # -> `client_tokens.id` ON DELETE CASCADE, so ClientSignUpFlow/VisitorSignUpFlow
   # must precede ClientToken/VisitorToken. Verified by
   # `test/jobs/retention_purge_job_test.rb`.
   RETAINABLE_MODELS = %w(
@@ -77,7 +77,7 @@ class RetentionPurgeJob < ApplicationJob
   # Set `terminated_at` only AFTER PersonalDataAnonymizer succeeds. Otherwise a
   # mid-anonymization failure (cross-DB, can't be atomic) leaves the marker set
   # and subsequent runs skip the row via `where(terminated_at: nil)`, freezing
-  # partial anonymization permanently — a GDPR / 個人情報保護法 failure mode.
+  # partial anonymization permanently -- a GDPR / PII compliance failure mode.
   def anonymize_accounts(klass, now:, batch_size:)
     klass.where(purged_at: ..now).where(terminated_at: nil).in_batches(of: batch_size) do |batch|
       batch.find_each do |actor|

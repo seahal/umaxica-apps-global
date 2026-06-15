@@ -308,7 +308,7 @@ module Sign
 
         # Derives a per-address rate-limit bucket. Uses the same SHA-256
         # digest the model stores so concurrent normalisations resolve to
-        # the same bucket. Returns nil for blank input — the rate_limit
+        # the same bucket. Returns nil for blank input -- the rate_limit
         # lambda decides how to handle that case.
         def sign_up_email_digest_for_rate_limit
           raw = params.dig(:user_email, :raw_address) ||

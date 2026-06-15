@@ -110,7 +110,7 @@ module OidcCallback
     return if updates.blank?
 
     token_record_connection_owner(token_record.class).connected_to(role: :writing) do
-      token_record.update_columns(**updates, updated_at: Time.current)
+      token_record.update!(**updates)
     end
   end
 

@@ -6,7 +6,7 @@ require "test_helper"
 # Object-level authorization for the com (visitor) secret-credential management.
 # Listing/registration allow any visitor actor; per-record actions require visitor ownership
 # (record.visitor_id == user.id). ApplicationPolicy#owner? does not resolve visitor_id, so the
-# policy overrides it — these tests pin that behavior.
+# policy overrides it -- these tests pin that behavior.
 class VisitorSecretCredentialPolicyTest < ActiveSupport::TestCase
   def setup
     @user = nil

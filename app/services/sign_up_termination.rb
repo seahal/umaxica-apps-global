@@ -4,12 +4,12 @@
 # Unified terminal-event service for sign-up cycles. Handles the orchestration
 # that the raw `SignUpStateMachine` does not own:
 #
-# 1. Acquire row lock on the cycle (in a transaction — see FlowBase).
+# 1. Acquire row lock on the cycle (in a transaction -- see FlowBase).
 # 2. Drive the state machine to the terminal status (CANCELLED/EXPIRED/FAILED).
 # 3. Schedule retention (discard now, purge after PHYSICAL_PURGE_DELAY) on the
 #    cycle row via Retainable#discard_now!.
-# 4. Mark `cleanup_status_id = PENDING` so the worker — or the synchronous
-#    cleanup below — can advance it.
+# 4. Mark `cleanup_status_id = PENDING` so the worker -- or the synchronous
+#    cleanup below -- can advance it.
 # 5. Outside the transaction, run SignUpArtifactCleanup synchronously to log out the
 #    pending dependent records (contact, passkey, actor) before returning.
 #    The worker remains the fallback for failures and out-of-band terminations.
@@ -19,7 +19,7 @@
 #
 # Direct `SignUpStateMachine.call(event: :cancel | :expire | :fail, ...)`
 # WITHOUT going through this service will skip retention scheduling and
-# cleanup — pending dependent rows will not be tidied and the cycle will
+# cleanup -- pending dependent rows will not be tidied and the cycle will
 # never be physically purged. Production callers must use SignUpTermination (or one
 # of its event-specific shims like SignUpCancellation).
 class SignUpTermination

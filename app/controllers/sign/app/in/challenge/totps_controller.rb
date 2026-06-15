@@ -111,9 +111,9 @@ module Sign
             accepted =
               totp_record.with_lock do
                 stored = totp_record.last_otp_at
-                # Guard against PostgreSQL ±Infinity sentinel: calling .to_i on
+                # Guard against PostgreSQL +/-Infinity sentinel: calling .to_i on
                 # Infinity raises FloatDomainError. Treat non-finite values as
-                # "never used" — the window has not been consumed.
+                # "never used" -- the window has not been consumed.
                 stored_finite = stored.present? &&
                   !(stored.respond_to?(:infinite?) && stored.infinite?)
                 if stored_finite && stored.to_i == new_otp_at.to_i

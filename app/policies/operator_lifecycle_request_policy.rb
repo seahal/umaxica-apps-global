@@ -28,7 +28,7 @@ class OperatorLifecycleRequestPolicy < ApplicationPolicy
 
   private
 
-  # Overrides ApplicationPolicy#operator? which calls has_role? — a method that does not exist
+  # Overrides ApplicationPolicy#operator? which calls has_role? -- a method that does not exist
   # on Operator (no Rolify, no org membership table). Type-check only; org ownership for JOIN
   # requests is enforced by OrgOperatorLifecycleRequestCreate at the service layer.
   def lifecycle_actor?

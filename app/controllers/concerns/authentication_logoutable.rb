@@ -43,7 +43,7 @@ module AuthenticationLogoutable
   end
 
   # Explicit "sign out from all devices". Callers must be dedicated
-  # endpoints (settings UI, admin tools, lifecycle hooks) — never the
+  # endpoints (settings UI, admin tools, lifecycle hooks) -- never the
   # ordinary "Sign out" button.
   def logout_all_sessions_for!(resource:, reason:)
     begin

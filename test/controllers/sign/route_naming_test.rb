@@ -30,8 +30,8 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     SURFACES.each_key do |surface|
       assert_recognizes_sign_route(surface, "/sign/up/entrance", :get, "sign/up/entrances", "show")
       assert_recognizes_sign_route(surface, "/sign/in/entrance", :get, "sign/in/entrances", "show")
-      assert_recognizes_sign_route(surface, "/signed-out", :get, "signed_outs", "show")
-      assert_recognizes_sign_route(surface, "/oidc/backchannel_logout", :post, "oidc/backchannel_logouts", "create")
+      assert_recognizes_sign_route(surface, "/signed-out", :get, "signed/outs", "show")
+      assert_recognizes_sign_route(surface, "/oidc/backchannel/logout", :post, "oidc/backchannel/logouts", "create")
       assert_unrecognized(surface, "/oidc/frontchannel_logout", :get)
       assert_unrecognized(surface, "/sign/out/confirmation", :get)
       assert_unrecognized(surface, "/sign/out/attempt", :post)

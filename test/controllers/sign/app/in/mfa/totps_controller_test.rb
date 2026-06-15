@@ -162,7 +162,7 @@ module Sign::App::In
       totp_code = ROTP::TOTP.new(@totp.private_key).now
       otp_window_at = ROTP::TOTP.new(@totp.private_key).verify(totp_code.to_s)
 
-      # Pre-consume the window — simulates a concurrent request that beat this one
+      # Pre-consume the window -- simulates a concurrent request that beat this one
       @totp.update!(last_otp_at: Time.zone.at(otp_window_at))
 
       with_prosopite_paused do

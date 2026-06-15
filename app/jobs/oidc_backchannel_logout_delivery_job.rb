@@ -24,8 +24,7 @@ class OidcBackchannelLogoutDeliveryJob < ApplicationJob
         status: response.code.to_i,
       ),
     )
-  rescue URI::InvalidURIError, SocketError, SystemCallError, IOError, Timeout::Error, OpenSSL::SSL::SSLError,
-         Net::OpenTimeout, Net::ReadTimeout => e
+  rescue URI::InvalidURIError, SocketError, SystemCallError, IOError, Timeout::Error, OpenSSL::SSL::SSLError => e
     Rails.logger.info(
       JitLogEvent.format(
         "oidc.backchannel_logout.delivery_failed",

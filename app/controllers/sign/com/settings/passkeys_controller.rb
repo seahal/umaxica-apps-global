@@ -18,7 +18,7 @@ module Sign
 
         before_action :authenticate_visitor!
         # Object-level authorization (ActionPolicy): index/create gate the actor type; show/edit/
-        # update/destroy authorize the owned record (set_passkey is owner-scoped → 404 first).
+        # update/destroy authorize the owned record (set_passkey is owner-scoped -> 404 first).
         # Step-up / Turnstile / WebAuthn-challenge guards remain in place for the registration ceremony.
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)

@@ -317,7 +317,7 @@ jobs:
           bundler-cache: true
           cache-version: 1
       - name: Setup test databases
-        run: bin/rails db:create db:schema:load
+        run: bin/rails db:prepare
       - name: Run Rails tests
         run: COVERAGE=true bundle exec rails test
       - name: Upload test coverage
@@ -411,7 +411,7 @@ jobs:
           bundler-cache: true
           cache-version: 1
       - name: Setup test databases
-        run: bin/rails db:create db:schema:load
+        run: bin/rails db:prepare
       - name: Run database consistency checks
         run: bundle exec database_consistency
   lint-js:
@@ -427,8 +427,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: true
       - run: vp install
-      - run: vp check
-      - run: vp test --coverage
+      - run: vp run ci:js
       - name: Upload JavaScript coverage
         if: always()
         uses: actions/upload-artifact@v6.0.0

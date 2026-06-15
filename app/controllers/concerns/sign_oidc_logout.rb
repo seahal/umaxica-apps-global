@@ -78,7 +78,8 @@ module SignOidcLogout
   def oidc_current_session_token_by_device_session(session_public_id)
     return unless token_class.column_names.include?("device_session_id")
 
-    device_session = token_class.reflect_on_association(:device_session)&.klass&.active&.find_by(public_id: session_public_id)
+    device_session = token_class.reflect_on_association(:device_session)
+      &.klass&.active&.find_by(public_id: session_public_id)
     return if device_session.blank?
 
     token_class.currently_usable_at.where(device_session_id: device_session.id).order(created_at: :desc).first

@@ -478,9 +478,10 @@ describe("PasskeyAuthenticationController", () => {
       onload: null,
       onerror: null,
     };
+    const container = { style: {} };
     vi.stubGlobal("document", {
       querySelector: vi.fn(() => null),
-      createElement: vi.fn((tag) => (tag === "script" ? script : { style: {} })),
+      createElement: vi.fn().mockReturnValueOnce(script).mockReturnValueOnce(container),
       head: { appendChild: vi.fn() },
     });
 

@@ -14,10 +14,14 @@ export default defineConfig({
     },
   },
   staged: {
-    "*": "vp test && vp check",
+    "*": "vp check && vp test run --coverage",
   },
   test: {
+    allowOnly: false,
+    dangerouslyIgnoreUnhandledErrors: false,
     environment: "jsdom",
+    passWithNoTests: false,
+    retry: 0,
     // vite-plugin-ruby sets the Vite root to app/javascript (config/vite.json
     // sourceCodeDir), so test globs would otherwise resolve under app/javascript.
     // Anchor the include glob to the repo root so JS tests under test/ are found.
@@ -50,6 +54,13 @@ export default defineConfig({
         "**/build/**",
         "**/coverage/**",
       ],
+      thresholds: {
+        branches: 80,
+        functions: 80,
+        lines: 80,
+        perFile: false,
+        statements: 80,
+      },
     },
   },
   fmt: {
@@ -177,13 +188,13 @@ export default defineConfig({
       restriction: "off",
     },
     rules: {
-      "no-console": "warn",
+      "no-console": "error",
       "no-debugger": "error",
-      "no-alert": "warn",
+      "no-alert": "error",
       "no-duplicate-imports": "error",
       "import/no-duplicates": "error",
-      curly: "warn",
-      "prefer-destructuring": "warn",
+      curly: "error",
+      "prefer-destructuring": "error",
       "class-methods-use-this": "off",
       "capitalized-comments": "off",
       "func-style": "off",
@@ -222,10 +233,13 @@ export default defineConfig({
     overrides: [
       {
         files: ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js", "**/test/**/*"],
+        plugins: ["import", "promise", "unicorn", "typescript", "node", "oxc", "vitest"],
         rules: {
           "no-console": "off",
           "no-alert": "off",
           "typescript/unbound-method": "off",
+          "vitest/no-conditional-in-test": "error",
+          "vitest/require-to-throw-message": "off",
         },
       },
     ],

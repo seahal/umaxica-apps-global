@@ -13,12 +13,12 @@ class DpopProofValidator
     end
 
   # record_jti:
-  #   true  — persist the jti for replay detection (login, refresh, token
+  #   true  -- persist the jti for replay detection (login, refresh, token
   #           exchange, step-up; low-frequency, security-critical paths).
-  #   false — stateless validation with no DB write. Used for per-request API
+  #   false -- stateless validation with no DB write. Used for per-request API
   #           access where binding is already enforced by cnf.jkt + ath, and a
   #           write per request would be a hot-path cost. The jti claim is still
-  #           required (RFC 9449 §4.2) but its uniqueness is not tracked.
+  #           required (RFC 9449, section 4.2) but its uniqueness is not tracked.
   def initialize(proof_jwt:, request_method:, request_uri:, access_token: nil, resource_type: "client",
                  record_jti: true)
     @proof_jwt = proof_jwt.to_s

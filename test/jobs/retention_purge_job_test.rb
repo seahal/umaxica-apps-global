@@ -24,7 +24,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
   # conflated by the purge worker. Clients are anonymized *in place*
   # (`terminated_at` set, row retained for referential history), while Operators
   # are *physically removed* via the set-based `purge_operators` path (no
-  # `terminated_at` marker — Staff has no withdrawal lifecycle). A regression
+  # `terminated_at` marker -- Staff has no withdrawal lifecycle). A regression
   # that routed Operators through `anonymize_accounts` (or Clients through
   # `purge_operators`) would silently corrupt one actor type's lifecycle.
   test "purge physically removes due operators but anonymizes due users in place" do
@@ -145,7 +145,7 @@ class RetentionPurgeJobTest < ActiveJob::TestCase
   end
 
   # Every Retainable model must be registered with RetentionPurgeJob so the
-  # worker actually purges its rows. Forgetting to add a new model is silent —
+  # worker actually purges its rows. Forgetting to add a new model is silent --
   # `purged_at` ticks past forever with no one cleaning up. Compare against
   # the Retainable.registry that models populate on `included`.
   test "all Retainable-including models are registered in RETAINABLE_MODELS" do

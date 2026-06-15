@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
 // ──────────────────────────────────────────────
-// DOM グローバルのモック
+// DOM global mocks
 // ──────────────────────────────────────────────
 
 let cookieReadValue = "";
@@ -108,19 +108,17 @@ describe("applyThemeFromCookie", () => {
     expect(documentMock.documentElement.dataset.theme).toBe("unknown");
   });
 
-  test("システムテーマの change イベントで dark クラスが切り替わる", () => {
+  test("system theme change events toggle the dark class", () => {
     let changeCallback = null;
+    const callbacks = new Map();
     const matchMediaResult = {
       matches: false,
-      addEventListener: vi.fn((event, cb) => {
-        if (event === "change") {
-          changeCallback = cb;
-        }
-      }),
+      addEventListener: vi.fn((event, cb) => callbacks.set(event, cb)),
     };
     windowMock.matchMedia = vi.fn(() => matchMediaResult);
     cookieReadValue = "ct=sy";
     applyThemeFromCookie();
+    changeCallback = callbacks.get("change");
     expect(changeCallback).not.toBeNull();
 
     matchMediaResult.matches = true;

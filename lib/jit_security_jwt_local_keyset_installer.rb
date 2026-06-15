@@ -89,8 +89,8 @@ module JitSecurityJwtLocalKeysetInstaller
 
   # Freshly minted local signing keys mean any token issued before this
   # boot (still sitting in a browser cookie) will fail verification. In
-  # dev/test that surfaces as "access token rejected after restart →
-  # cookie discarded → new token issued". The store normally prevents it
+  # dev/test that surfaces as "access token rejected after restart ->
+  # cookie discarded -> new token issued". The store normally prevents it
   # by persisting keys across boots, so a regeneration almost always means
   # the store under tmp/ was cleared (rails tmp:clear, fresh clone, CI,
   # container rebuild). Warn loudly so the cause is obvious in the log.

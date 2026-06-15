@@ -71,7 +71,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     sign = OidcClientRegistry.find!("sign-rp")
     core = OidcClientRegistry.find!("core-next-rp")
 
-    assert sign.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel_logout" }
+    assert sign.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel/logout" }
     assert core.backchannel_logout_uris.all? { |uri| URI.parse(uri).path == "/oidc/backchannel/logout" }
   end
 

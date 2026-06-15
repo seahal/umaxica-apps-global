@@ -14,6 +14,8 @@ module Security
     PROTOCOL_ENDPOINTS = [
       %r{\A/oauth/token(?:\(\.:format\))?\z},
       %r{\A/oauth/revoke(?:\(\.:format\))?\z},
+      # OIDC back-channel logout: machine-to-machine from IdP, no browser CSRF token.
+      %r{\A/oidc/backchannel/logout(?:\(\.:format\))?\z},
     ].freeze
 
     test "state-changing application routes do not use null-session csrf handling" do

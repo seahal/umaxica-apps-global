@@ -25,6 +25,7 @@ module Acme
         Acme::App::Oauth::RevocationsController
         Acme::App::Oauth::TokensController
         Acme::App::Oauth::UserInfoController
+        Acme::App::Oauth::UserinfosController
         Acme::App::WellKnown::DiscoveriesController
         Acme::App::WellKnown::JwksController
         Acme::App::Preference::EmailsController

@@ -362,7 +362,7 @@ module AuthenticationBase
       # session-saturated actor) made `session_limit_state_for` return
       # :issue_restricted or :hard_reject for a freshly minted actor,
       # the user would land on /sign/in/session immediately after
-      # finishing registration — a UX break with no upside. Skip the
+      # finishing registration -- a UX break with no upside. Skip the
       # gate entirely when the caller asserts this is a bootstrap login.
       session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
       next session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
@@ -1341,7 +1341,7 @@ module AuthenticationBase
   # not DBSC-bound. This intentionally keeps today's legitimately-unbound
   # populations (LEGACY browser sessions, NOTHING OIDC tokens) working while a
   # full DBSC/DPoP rollout is in progress. It is temporary legacy behavior, not
-  # a guarantee — see the binding rollout in adr/ before relying on it.
+  # a guarantee -- see the binding rollout in adr/ before relying on it.
   #
   # Fails closed on contradictory state: a token whose binding method is not
   # DBSC must not also advertise a DBSC lifecycle status. Such a token would
@@ -2668,7 +2668,7 @@ module AuthenticationBase
   #   - passkey: phishing-resistant authenticator possession
   # Social providers remain AAL1 here. Do not treat an external IdP assertion
   # as local MFA unless an explicit trust policy is introduced.
-  # Email and telephone OTPs are *not* in this set — OTP-only logins
+  # Email and telephone OTPs are *not* in this set -- OTP-only logins
   # still escalate to TOTP if the actor has enrolled an authenticator.
   # The "sign_up" fallback auth_method is intentionally absent too; in
   # practice it only fires for a freshly minted actor that has no MFA

@@ -63,7 +63,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :patch,
     )
 
-    assert_equal "acme/app/sign_outs", sign_out.fetch(:controller)
+    assert_equal "acme/app/sign/outs", sign_out.fetch(:controller)
     assert_equal "destroy", sign_out.fetch(:action)
     assert_equal "acme/app/settings/sessions", sessions.fetch(:controller)
     assert_equal "revoke_all", sessions.fetch(:action)

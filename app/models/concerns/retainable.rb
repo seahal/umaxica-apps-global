@@ -8,7 +8,7 @@ module Retainable
 
   # Models that include Retainable register themselves here. Used by the
   # `RetentionPurgeJob` allowlist test to assert that any new retainable
-  # model is actually picked up by the worker — forgetting to add a new
+  # model is actually picked up by the worker -- forgetting to add a new
   # model leaves rows purgeable in principle but never purged in practice.
   REGISTRY = Concurrent::Array.new
   private_constant :REGISTRY
@@ -31,8 +31,8 @@ module Retainable
     Retainable.registry << self unless Retainable.registry.include?(self)
   end
 
-  # NOTE: ActiveRecord scope はあえて定義しない（既存 `.active` / `.deletable` 等の
-  #   暗黙挙動と混乱するため）。クエリは raw `where('discarded_at > ?', Time.current)` で書く。
+  # NOTE: ActiveRecord scope intentionally omitted (conflicts with pre-existing
+  #   `.active` / `.deletable` semantics). Use raw `where('discarded_at > ?', Time.current)` for queries.
 
   def accessible?
     future_time?(discarded_at)
@@ -63,7 +63,7 @@ module Retainable
   #
   # `discarded_at` clamps to `created_at` to satisfy the
   # `retention_times_not_before_created_at` invariant when the row was created
-  # in the same request (Time.current may be less than created_at by µs).
+  # in the same request (Time.current may be less than created_at by us).
   def discard_now!(purge_after:, now: Time.current)
     raise ArgumentError, "purge_after must be a Duration" unless purge_after.respond_to?(:from_now)
 

@@ -13,9 +13,9 @@ require "concurrent"
 # 5) Cookie/header/session helpers (I/O boundary)
 # 6) Child-record lazy helpers
 #
-# JWT key resolution → PreferenceJwtConfiguration (jwt_configuration.rb)
-# PreferenceToken encode/decode → PreferenceToken (token.rb)
-# Audit-event name → ID → PreferenceClassRegistry.audit_event_id_for
+# JWT key resolution -> PreferenceJwtConfiguration (jwt_configuration.rb)
+# PreferenceToken encode/decode -> PreferenceToken (token.rb)
+# Audit-event name -> ID -> PreferenceClassRegistry.audit_event_id_for
 # ==========================================================================
 
 module PreferenceBase

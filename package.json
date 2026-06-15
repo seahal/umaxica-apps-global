@@ -5,7 +5,8 @@
   "module": "index.ts",
   "scripts": {
     "prepare": "vp config",
-    "check": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
+    "check": "vp check",
+    "ci:js": "vp check && vp test run --coverage",
     "fix": "vp check --fix",
     "test": "vp test run",
     "test:coverage": "vp test run --coverage"
@@ -36,11 +37,5 @@
     "vite-plugin-ruby": "^5.2.2",
     "vite-plus": "latest"
   },
-  "packageManager": "pnpm@11.1.3",
-  "pnpm": {
-    "strictDepBuilds": true,
-    "overrides": {
-      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
-    }
-  }
+  "packageManager": "pnpm@11.1.3"
 }

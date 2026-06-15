@@ -979,7 +979,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
                  "clear_previous_login_cookies! must run exactly once at the privilege transition"
   end
 
-  # Regression: ordering invariant — when log_in is called with MFA
+  # Regression: ordering invariant -- when log_in is called with MFA
   # *not* required (or `require_totp_check: false`), reset_session must
   # happen BEFORE create_login_token_record, so the new token is issued
   # against the rotated session. Currently we observe this indirectly by

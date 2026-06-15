@@ -79,11 +79,7 @@ module CoreBrowserCredentialContract
   end
 
   def core_jwt_issuer_id(resource_type)
-    client_id =
-      case resource_type.to_s
-      when "operator", "visitor" then "core-next-rp"
-      else "core-next-rp"
-      end
+    client_id = "core-next-rp"
 
     namespace = OidcClientRegistry.jwt_namespace_for(client_id)
     namespace.present? ? "surface:#{namespace}" : nil

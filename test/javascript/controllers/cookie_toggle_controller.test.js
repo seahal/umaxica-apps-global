@@ -61,14 +61,9 @@ describe("CookieToggleController", () => {
     expect(spy).toHaveBeenCalled();
   });
 
-  test("syncCheckboxesFromAPI: API の結果からチェックボックスを同期する", () => {
+  test("syncCheckboxesFromAPI syncs checkboxes from the API result", () => {
     const functionalCb = { checked: false };
-    controller.element.querySelector.mockImplementation((selector) => {
-      if (selector === 'input[name="preference_cookie[functional]"]') {
-        return functionalCb;
-      }
-      return null;
-    });
+    controller.element.querySelector.mockReturnValue(functionalCb);
 
     controller.syncCheckboxesFromAPI({ functional: true });
     expect(functionalCb.checked).toBe(true);
@@ -80,14 +75,9 @@ describe("CookieToggleController", () => {
     expect(() => controller.syncCheckboxesFromAPI({ functional: true })).not.toThrow();
   });
 
-  test("syncCheckboxesFromAPI: API にキーがない場合はスキップする", () => {
+  test("syncCheckboxesFromAPI skips entries missing from the API result", () => {
     const functionalCb = { checked: true };
-    controller.element.querySelector.mockImplementation((selector) => {
-      if (selector === 'input[name="preference_cookie[functional]"]') {
-        return functionalCb;
-      }
-      return null;
-    });
+    controller.element.querySelector.mockReturnValue(functionalCb);
 
     controller.syncCheckboxesFromAPI({});
     expect(functionalCb.checked).toBe(true);

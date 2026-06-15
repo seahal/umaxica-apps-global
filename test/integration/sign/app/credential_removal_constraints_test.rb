@@ -158,7 +158,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
            headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
 
     assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
-    # ClientSecretCredentialsDestroy soft-deletes via discard_now! — count does not change.
+    # ClientSecretCredentialsDestroy soft-deletes via discard_now! -- count does not change.
     # Assert the credential is logically deleted instead.
     assert_predicate secret_credential.reload, :lapsed?
   end

@@ -104,12 +104,7 @@ describe("CookieConsentController", () => {
 
   test("submitConsent hides the banner without writing a JS consent cookie", async () => {
     vi.stubGlobal("document", {
-      querySelector: vi.fn((selector) => {
-        if (selector.includes("csrf-token")) {
-          return { content: "csrf-token-value" };
-        }
-        return null;
-      }),
+      querySelector: vi.fn(() => ({ content: "csrf-token-value" })),
     });
 
     fetch.mockResolvedValueOnce({

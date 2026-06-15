@@ -6,14 +6,17 @@
 CI.run do
   step "Setup", "bin/setup --skip-server"
 
+  step "Style: JavaScript", "vp check"
   step "Style: Ruby", "bin/rubocop"
+  step "Style: ERB", "bundle exec erb_lint --lint-all"
 
   step "Security: Gem audit", "bin/bundler-audit"
   step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
 
   step "Database consistency", "bundle exec database_consistency"
 
-  step "Tests: Rails", "bin/rails test"
+  step "Tests: JavaScript", "vp test run --coverage"
+  step "Tests: Rails", "env COVERAGE=true bin/rails test"
   step "Tests: System", "bin/rails test:system"
   step "Tests: Seeds", "env RAILS_ENV=test bin/rails db:seed:replant"
 

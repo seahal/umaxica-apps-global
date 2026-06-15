@@ -122,7 +122,7 @@ class AuthenticationAuditWriter
 
   # Tier 2: persist a recovery record so the missed audit can be
   # replayed by a background job or by ops. Sanitises context before
-  # writing — the outbox row lives in the chronicle database and must
+  # writing -- the outbox row lives in the chronicle database and must
   # not embed secret_credentials.
   def self.enqueue_outbox_fallback!(event_uuid:, audit_class:, event_id:, resource:, actor:, ip_address:, context:,
                                     error:)

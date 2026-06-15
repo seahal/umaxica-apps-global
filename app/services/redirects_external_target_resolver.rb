@@ -121,7 +121,7 @@ class RedirectsExternalTargetResolver
   def merged_query(path_value, raw_query)
     path_query = URI.parse(path_value).query
     # decode_www_form returns an Array of [key, value] pairs, not a Hash, so
-    # filter_map is needed here — `.except` would raise NoMethodError.
+    # filter_map is needed here -- `.except` would raise NoMethodError.
     pairs =
       URI.decode_www_form(path_query.to_s).filter_map do |key, value|
         [key, value] unless DANGEROUS_QUERY_KEYS.include?(key)

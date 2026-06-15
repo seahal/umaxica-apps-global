@@ -157,9 +157,9 @@ module OidcClientRegistry
         post_logout_redirect_uris: build_post_logout_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
           build_post_logout_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
           build_post_logout_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "backchannel_logout") +
-          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "backchannel_logout") +
-          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "backchannel_logout"),
+        backchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "backchannel/logout") +
+          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "backchannel/logout") +
+          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "sign-rp",
         resource_type: "client",

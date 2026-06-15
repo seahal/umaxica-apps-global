@@ -7,7 +7,7 @@
 # These associations have no DB-level foreign key to the principal (the
 # boundary is a separate Postgres database) and previously leaned on an
 # implicit `dependent: :destroy/:nullify` AR cascade. That cascade is a
-# non-atomic, pseudo cross-DB referential-integrity mechanism — and for the
+# non-atomic, pseudo cross-DB referential-integrity mechanism -- and for the
 # purge path it never even ran (Client/Visitor are anonymized, Operator is
 # removed via set-based `delete_all`, both of which skip `dependent:`),
 # leaving cross-DB orphans.

@@ -96,7 +96,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
 
     # Sign::App::Up::Check cross-family inheritance (google/confirmations inheriting apple base).
     # Note: otps and telephone/birthdates are also PERMITTED_LOCAL_BASES for the sign/sign/up
-    # layer, so the detector skips them — they are not listed here to avoid false stale entries.
+    # layer, so the detector skips them -- they are not listed here to avoid false stale entries.
     "app/controllers/sign/app/up/check/google/confirmations_controller.rb",
 
     # Sign::App::Verification::RedeliveriesController < EmailsController.
@@ -152,6 +152,10 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     # Sign::Org::Sign::Up::* inheriting from Sign::Org::Up::* base controllers.
     "app/controllers/sign/org/sign/up/entrances_controller.rb",
     "app/controllers/sign/org/sign/up/invitations_controller.rb",
+
+    # Palm::App::Oauth::Callback controllers inherit a shared OAuth callback base.
+    "app/controllers/palm/app/oauth/callback/android_controller.rb",
+    "app/controllers/palm/app/oauth/callback/ios_controller.rb",
   ].to_set.freeze
 
   # Controllers that are themselves allowed to be base classes

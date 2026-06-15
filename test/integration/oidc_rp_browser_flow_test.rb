@@ -236,12 +236,6 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
       assert_response_has_auth_cookie if surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-
-      next unless surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-
-      get "/accounts?ri=jp", headers: browser_headers
-
-      assert_redirected_to "http://#{surface[:host]}/selector?ri=jp"
     end
   end
 

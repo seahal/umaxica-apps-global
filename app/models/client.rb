@@ -59,14 +59,14 @@
 
 # Lifecycle column reference (see adr/retention-lifecycle-column-boundary.md):
 #
-# * `discarded_at` / `purged_at` — Retainable retention contract. The only
+# * `discarded_at` / `purged_at` -- Retainable retention contract. The only
 #   columns the `RetentionPurgeJob` consults for delete eligibility.
-# * `withdrawal_started_at` — Sign-out / withdrawal flow started.
-# * `withdrawn_at` — Withdrawal flow finalized. Retention is independent.
-# * `deactivated_at` — Withdrawal/suspension lifecycle marker. Reversible. Not a
+# * `withdrawal_started_at` -- Sign-out / withdrawal flow started.
+# * `withdrawn_at` -- Withdrawal flow finalized. Retention is independent.
+# * `deactivated_at` -- Withdrawal/suspension lifecycle marker. Reversible. Not a
 #   deletion signal. Forced administrative access removal is represented by
 #   `access_state: "admin_locked"` plus the `admin_locked_*` metadata columns.
-# * `terminated_at` — Set by `RetentionPurgeJob#anonymize_accounts` AFTER
+# * `terminated_at` -- Set by `RetentionPurgeJob#anonymize_accounts` AFTER
 #   `WithdrawalPersonalDataAnonymizer` finishes. Marks "PII has been scrubbed
 #   on this row"; distinct from `discarded_at` (logical hide) and `purged_at`
 #   (physical delete). Anonymized rows are retained for audit linkage with
@@ -148,7 +148,7 @@ class Client < AppPrincipalRecord
            inverse_of: :user
 
   # Cross-database (chronicle DB): append-only audit history. No dependent:
-  # cascade — audit records intentionally outlive actor purge and are not
+  # cascade -- audit records intentionally outlive actor purge and are not
   # deleted across the DB boundary. See adr/chronicle-audit-db-consolidation.md.
   has_many :client_chronicles, # rubocop:disable Rails/HasManyOrHasOneDependent
            foreign_key: :subject_id,
@@ -171,7 +171,7 @@ class Client < AppPrincipalRecord
            dependent: :destroy,
            inverse_of: :user
   # Cross-database (chronicle DB), polymorphic audit history. No dependent:
-  # cascade — see client_chronicles above.
+  # cascade -- see client_chronicles above.
   has_many :staff_chronicles, class_name: "OperatorChronicle", as: :actor # rubocop:disable Rails/HasManyOrHasOneDependent
   # Cross-database (app_signal DB). Lifecycle is NOT an implicit AR cascade
   # across the DB boundary; purged explicitly via

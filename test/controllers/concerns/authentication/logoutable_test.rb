@@ -144,7 +144,7 @@ module Authentication
       # promised OIDC SLO-protocol semantics while doing something else,
       # and (b) its only correct use case is already covered by
       # AuthenticationLogoutAllSessions. If this guard fails it means
-      # someone re-added the class — keep the deletion and use
+      # someone re-added the class -- keep the deletion and use
       # LogoutAllSessions from a dedicated endpoint instead.
       assert_not defined?(Oidc::SingleLogoutService),
                  "Oidc::SingleLogoutService must remain deleted. See " \

@@ -135,12 +135,7 @@ describe("select", () => {
 
   test("selected theme is persisted through the theme endpoint", async () => {
     const csrfMeta = { content: "csrf-token" };
-    documentMock.querySelector.mockImplementation((selector) => {
-      if (selector === 'meta[name="csrf-token"]') {
-        return csrfMeta;
-      }
-      return null;
-    });
+    documentMock.querySelector.mockReturnValue(csrfMeta);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ theme: "dr" }) }),
@@ -337,20 +332,18 @@ describe("applyThemeFromCookie (統合テスト)", () => {
     expect(matchMediaMock).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
   });
 
-  test("システムテーマの change イベントで dark クラスが切り替わる", () => {
+  test("system theme change events toggle the dark class", () => {
     let changeCallback = null;
+    const callbacks = new Map();
     const matchMediaResult = {
       matches: false,
-      addEventListener: vi.fn((event, cb) => {
-        if (event === "change") {
-          changeCallback = cb;
-        }
-      }),
+      addEventListener: vi.fn((event, cb) => callbacks.set(event, cb)),
     };
     windowMock.matchMedia = vi.fn(() => matchMediaResult);
     cookieReadValue = "ct=sy";
     const controller = makeController();
     controller.select({ target: { value: "system" } });
+    changeCallback = callbacks.get("change");
     expect(changeCallback).not.toBeNull();
 
     matchMediaResult.matches = true;
