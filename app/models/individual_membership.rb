@@ -39,16 +39,16 @@
 #
 # Foreign Keys
 #
-#  fk_individual_memberships_unit_same_company  ([company_unit_id, company_id] => company_units[id, company_id])
-#  fk_rails_...                                 (approved_by_individual_id => individuals.id)
+#  fk_individual_memberships_unit_same_company  ([company_unit_id, company_id] => company_units[id, company_id]) ON DELETE => restrict
+#  fk_rails_...                                 (approved_by_individual_id => individuals.id) ON DELETE => nullify
 #  fk_rails_...                                 (company_id => companies.id)
 #  fk_rails_...                                 (company_unit_id => company_units.id)
-#  fk_rails_...                                 (granted_by_individual_id => individuals.id)
+#  fk_rails_...                                 (granted_by_individual_id => individuals.id) ON DELETE => nullify
 #  fk_rails_...                                 (individual_id => individuals.id)
 #  fk_rails_...                                 (membership_kind_id => individual_membership_kinds.id)
 #  fk_rails_...                                 (membership_state_id => individual_membership_states.id)
 #  fk_rails_...                                 (revoke_reason_id => individual_membership_revoke_reasons.id)
-#  fk_rails_...                                 (revoked_by_individual_id => individuals.id)
+#  fk_rails_...                                 (revoked_by_individual_id => individuals.id) ON DELETE => nullify
 #
 class IndividualMembership < ComRpRecord
   include ::CollectiveMembership

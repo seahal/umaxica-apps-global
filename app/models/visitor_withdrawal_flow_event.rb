@@ -28,9 +28,9 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (from_status_id => visitor_withdrawal_flow_statuses.id)
-#  fk_rails_...  (to_status_id => visitor_withdrawal_flow_statuses.id)
-#  fk_rails_...  (visitor_id => visitors.id)
+#  fk_rails_...  (from_status_id => visitor_withdrawal_flow_statuses.id) ON DELETE => restrict
+#  fk_rails_...  (to_status_id => visitor_withdrawal_flow_statuses.id) ON DELETE => restrict
+#  fk_rails_...  (visitor_id => visitors.id) ON DELETE => cascade
 #  fk_rails_...  (visitor_withdrawal_flow_id => visitor_withdrawal_flows.id)
 #
 class VisitorWithdrawalFlowEvent < ComPrincipalRecord

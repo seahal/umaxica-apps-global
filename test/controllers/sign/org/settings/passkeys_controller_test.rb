@@ -231,18 +231,21 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "create redirects for html requests" do
-    I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
-    post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+    assert_no_difference("OperatorPasskey.count") do
+      post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+    end
 
     assert_redirected_to new_sign_org_settings_passkey_path(ri: "jp")
   end
 
-  test "create returns json error for api clients" do
-    I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
-    post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers, as: :json
+  test "create returns registration ceremony handoff for api clients" do
+    assert_no_difference("OperatorPasskey.count") do
+      post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers, as: :json
+    end
 
-    assert_response :unprocessable_content
-    assert_equal "Not implemented", response.parsed_body["error"]
+    assert_response :accepted
+    assert_equal "registration_ceremony_required", response.parsed_body["status"]
+    assert_equal new_sign_org_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
   end
 
   test "verification rejects missing challenge id" do

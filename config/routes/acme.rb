@@ -176,6 +176,7 @@ scope module: :acme, as: :acme do
           resource :registration, only: :create
         end
 
+        # FIXME: use resource(s)!
         resources :connections, only: %i(index show destroy) do
           post "social/:provider/link", action: :social_link, on: :collection, as: :social_link
           delete "social/:provider", action: :social_unlink, on: :collection, as: :social_unlink

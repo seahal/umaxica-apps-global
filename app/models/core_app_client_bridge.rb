@@ -19,7 +19,6 @@
 # Indexes
 #
 #  idx_core_app_client_bridges_unique_client_rp  (client_id,rp_client_id) UNIQUE
-#  index_core_app_client_bridges_on_client_id    (client_id)
 #  index_core_app_client_bridges_on_public_id    (public_id) UNIQUE
 #
 class CoreAppClientBridge < AppRpRecord

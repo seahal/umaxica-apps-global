@@ -118,6 +118,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/app/sign/in/checks", action: "update" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :patch },
+    )
+
+    assert_recognizes(
       { controller: "sign/app/sign/in/check/cancellations", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/check/cancellation", method: :post },
     )
@@ -330,6 +335,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/com/sign/in/checks", action: "update" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :patch },
+    )
+
+    assert_recognizes(
       { controller: "sign/com/sign/in/check/cancellations", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/check/cancellation", method: :post },
     )
@@ -473,12 +483,10 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/sign/up/invitations", method: :post },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/up/entrance", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/in/entrance", method: :get)
+    ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}#{bad_path}", method: :get)
+      end
     end
 
     assert_recognizes(
@@ -489,6 +497,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/org/sign/in/checks", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/sign/in/checks", action: "update" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :patch },
     )
 
     assert_recognizes(

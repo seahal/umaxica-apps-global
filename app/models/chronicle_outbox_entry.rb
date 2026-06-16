@@ -24,7 +24,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (chronicle_id => chronicles.id)
+#  fk_rails_...  (chronicle_id => chronicles.id) ON DELETE => nullify
 #
 class ChronicleOutboxEntry < ChronicleRecord
   belongs_to :chronicle, optional: true

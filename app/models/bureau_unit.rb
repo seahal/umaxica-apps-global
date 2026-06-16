@@ -24,7 +24,7 @@
 #
 # Foreign Keys
 #
-#  fk_bureau_units_parent_same_bureau  ([parent_id, bureau_id] => bureau_units[id, bureau_id])
+#  fk_bureau_units_parent_same_bureau  ([parent_id, bureau_id] => bureau_units[id, bureau_id]) ON DELETE => restrict
 #  fk_rails_...                        (bureau_id => bureaus.id)
 #  fk_rails_...                        (parent_id => bureau_units.id)
 #

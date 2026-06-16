@@ -19,7 +19,6 @@
 # Indexes
 #
 #  index_visitor_oidc_connections_on_public_id                 (public_id) UNIQUE
-#  index_visitor_oidc_connections_on_visitor_id                (visitor_id)
 #  index_visitor_oidc_connections_on_visitor_id_and_client_id  (visitor_id,client_id) UNIQUE
 #
 class VisitorOidcConnection < ComTicketRecord

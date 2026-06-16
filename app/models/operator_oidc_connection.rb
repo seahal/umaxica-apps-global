@@ -19,7 +19,6 @@
 # Indexes
 #
 #  index_operator_oidc_connections_on_public_id               (public_id) UNIQUE
-#  index_operator_oidc_connections_on_staff_id                (staff_id)
 #  index_operator_oidc_connections_on_staff_id_and_client_id  (staff_id,client_id) UNIQUE
 #
 class OperatorOidcConnection < OrgTicketRecord

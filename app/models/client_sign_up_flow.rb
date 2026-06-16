@@ -47,15 +47,14 @@
 #  index_client_sign_up_flows_on_principal_id                     (principal_id)
 #  index_client_sign_up_flows_on_public_id                        (public_id) UNIQUE
 #  index_client_sign_up_flows_on_state                            (state)
-#  index_client_sign_up_flows_on_status_id                        (status_id)
 #  index_client_sign_up_flows_on_status_id_and_expires_at         (status_id,expires_at)
 #  index_client_sign_up_flows_on_token_id                         (token_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (cleanup_status_id => client_sign_up_flow_cleanup_statuses.id)
-#  fk_rails_...  (status_id => client_sign_up_flow_statuses.id)
-#  fk_rails_...  (token_id => client_tokens.id)
+#  fk_rails_...  (status_id => client_sign_up_flow_statuses.id) ON DELETE => restrict
+#  fk_rails_...  (token_id => client_tokens.id) ON DELETE => cascade
 #
 class ClientSignUpFlow < AppTicketRecord
   include SignFlow

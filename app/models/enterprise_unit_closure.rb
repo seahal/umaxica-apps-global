@@ -16,7 +16,6 @@
 # Indexes
 #
 #  idx_enterprise_unit_closures_unique_path         (ancestor_id,descendant_id) UNIQUE
-#  index_enterprise_unit_closures_on_ancestor_id    (ancestor_id)
 #  index_enterprise_unit_closures_on_descendant_id  (descendant_id)
 #
 # Foreign Keys

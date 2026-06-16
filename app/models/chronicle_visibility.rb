@@ -16,7 +16,6 @@
 #
 #  idx_chronicle_visibilities_unique_context          (chronicle_id,chronicle_visibility_context_id) UNIQUE
 #  idx_on_chronicle_visibility_context_id_2c36ec5eab  (chronicle_visibility_context_id)
-#  index_chronicle_visibilities_on_chronicle_id       (chronicle_id)
 #
 # Foreign Keys
 #

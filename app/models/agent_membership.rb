@@ -39,16 +39,16 @@
 #
 # Foreign Keys
 #
-#  fk_agent_memberships_unit_same_bureau  ([bureau_unit_id, bureau_id] => bureau_units[id, bureau_id])
+#  fk_agent_memberships_unit_same_bureau  ([bureau_unit_id, bureau_id] => bureau_units[id, bureau_id]) ON DELETE => restrict
 #  fk_rails_...                           (agent_id => agents.id)
-#  fk_rails_...                           (approved_by_agent_id => agents.id)
+#  fk_rails_...                           (approved_by_agent_id => agents.id) ON DELETE => nullify
 #  fk_rails_...                           (bureau_id => bureaus.id)
 #  fk_rails_...                           (bureau_unit_id => bureau_units.id)
-#  fk_rails_...                           (granted_by_agent_id => agents.id)
+#  fk_rails_...                           (granted_by_agent_id => agents.id) ON DELETE => nullify
 #  fk_rails_...                           (membership_kind_id => agent_membership_kinds.id)
 #  fk_rails_...                           (membership_state_id => agent_membership_states.id)
 #  fk_rails_...                           (revoke_reason_id => agent_membership_revoke_reasons.id)
-#  fk_rails_...                           (revoked_by_agent_id => agents.id)
+#  fk_rails_...                           (revoked_by_agent_id => agents.id) ON DELETE => nullify
 #
 class AgentMembership < OrgRpRecord
   include ::CollectiveMembership

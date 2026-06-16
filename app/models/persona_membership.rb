@@ -39,16 +39,16 @@
 #
 # Foreign Keys
 #
-#  fk_persona_memberships_unit_same_enterprise  ([enterprise_unit_id, enterprise_id] => enterprise_units[id, enterprise_id])
-#  fk_rails_...                                 (approved_by_persona_id => personas.id)
+#  fk_persona_memberships_unit_same_enterprise  ([enterprise_unit_id, enterprise_id] => enterprise_units[id, enterprise_id]) ON DELETE => restrict
+#  fk_rails_...                                 (approved_by_persona_id => personas.id) ON DELETE => nullify
 #  fk_rails_...                                 (enterprise_id => enterprises.id)
 #  fk_rails_...                                 (enterprise_unit_id => enterprise_units.id)
-#  fk_rails_...                                 (granted_by_persona_id => personas.id)
+#  fk_rails_...                                 (granted_by_persona_id => personas.id) ON DELETE => nullify
 #  fk_rails_...                                 (membership_kind_id => persona_membership_kinds.id)
 #  fk_rails_...                                 (membership_state_id => persona_membership_states.id)
 #  fk_rails_...                                 (persona_id => personas.id)
 #  fk_rails_...                                 (revoke_reason_id => persona_membership_revoke_reasons.id)
-#  fk_rails_...                                 (revoked_by_persona_id => personas.id)
+#  fk_rails_...                                 (revoked_by_persona_id => personas.id) ON DELETE => nullify
 #
 class PersonaMembership < AppRpRecord
   include ::CollectiveMembership

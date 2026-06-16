@@ -49,12 +49,15 @@ module Sign
           respond_to do |format|
             format.html do
               redirect_to(
-                new_sign_com_settings_passkey_path,
-                alert: t("messages.not_implemented"),
+                new_sign_com_settings_passkey_path(ri: params[:ri]),
+                status: :see_other,
               )
             end
             format.json do
-              render json: { error: t("messages.not_implemented") }, status: :unprocessable_content
+              render json: {
+                status: "registration_ceremony_required",
+                redirect_path: new_sign_com_settings_passkey_path(ri: params[:ri]),
+              }, status: :accepted
             end
           end
         end

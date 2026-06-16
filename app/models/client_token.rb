@@ -72,10 +72,10 @@
 #
 # Foreign Keys
 #
+#  fk_rails_...                                    (user_token_kind_id => client_token_kinds.id) ON DELETE => restrict
+#  fk_rails_...                                    (user_token_status_id => client_token_statuses.id) ON DELETE => restrict
 #  fk_user_tokens_on_user_token_binding_method_id  (user_token_binding_method_id => client_token_binding_methods.id)
 #  fk_user_tokens_on_user_token_dbsc_status_id     (user_token_dbsc_status_id => client_token_dbsc_statuses.id)
-#  fk_user_tokens_on_user_token_kind_id            (user_token_kind_id => client_token_kinds.id)
-#  fk_user_tokens_on_user_token_status_id          (user_token_status_id => client_token_statuses.id)
 #
 
 # Refresh tokens are persisted as digests only.

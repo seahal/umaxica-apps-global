@@ -70,10 +70,10 @@
 #
 # Foreign Keys
 #
+#  fk_rails_...                                      (staff_token_kind_id => operator_token_kinds.id) ON DELETE => restrict
+#  fk_rails_...                                      (staff_token_status_id => operator_token_statuses.id) ON DELETE => restrict
 #  fk_staff_tokens_on_staff_token_binding_method_id  (staff_token_binding_method_id => operator_token_binding_methods.id)
 #  fk_staff_tokens_on_staff_token_dbsc_status_id     (staff_token_dbsc_status_id => operator_token_dbsc_statuses.id)
-#  fk_staff_tokens_on_staff_token_kind_id            (staff_token_kind_id => operator_token_kinds.id)
-#  fk_staff_tokens_on_staff_token_status_id          (staff_token_status_id => operator_token_statuses.id)
 #
 require "test_helper"
 

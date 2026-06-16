@@ -707,9 +707,10 @@ module DbConsistencyCheckers
         foreign_keys_for(model).filter_map do |fk|
           next if fk.on_delete.present?
 
-          assoc = model.reflect_on_all_associations(:belongs_to).find do |belongs_to|
-            !belongs_to.options[:polymorphic] && belongs_to.foreign_key.to_s == fk.column.to_s
-          end
+          assoc =
+            model.reflect_on_all_associations(:belongs_to).find do |belongs_to|
+              !belongs_to.options[:polymorphic] && belongs_to.foreign_key.to_s == fk.column.to_s
+            end
 
           begin
             target = assoc&.klass
@@ -732,7 +733,7 @@ module DbConsistencyCheckers
 
     def inverse_has_dependent?(target, child, foreign_key)
       target.reflect_on_all_associations.any? do |assoc|
-        next false unless %i[has_one has_many].include?(assoc.macro)
+        next false unless %i(has_one has_many).include?(assoc.macro)
         next false unless assoc.klass == child
         next false unless assoc.foreign_key.to_s == foreign_key
 
@@ -785,7 +786,7 @@ module DbConsistencyCheckers
 
     def target_has_any_dependent_has_many?(model, child)
       model.reflect_on_all_associations(:has_many).any? do |assoc|
-        next false unless assoc.options[:dependent].present?
+        next false if assoc.options[:dependent].blank?
 
         begin
           assoc.klass == child
@@ -854,6 +855,7 @@ module DbConsistencyCheckers
       pool.filter_map do |idx|
         others = pool.reject { |o| o.name == idx.name }
         next unless others.any? { |other| strict_prefix?(index_columns(idx), index_columns(other)) }
+        next if idx.unique && uniqueness_validator_covers_index?(model, idx)
 
         result(
           :warn, model: model, column: idx.name, checker: self.class::CHECKER,
@@ -869,6 +871,17 @@ module DbConsistencyCheckers
       prefix = longer.first(shorter.size)
       prefix.map!(&:to_s)
       prefix == shorter.map(&:to_s)
+    end
+
+    def uniqueness_validator_covers_index?(model, index)
+      target_columns = index_columns(index).map(&:to_s)
+      model.validators.any? do |validator|
+        next false unless validator.is_a?(ActiveRecord::Validations::UniquenessValidator)
+
+        validator.attributes.map(&:to_s) == target_columns
+      end
+    rescue
+      false
     end
   end
 

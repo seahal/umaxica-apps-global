@@ -119,12 +119,14 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal "ok", response.parsed_body["status"]
   end
 
-  test "create json returns not implemented" do
-    I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
-    post sign_com_settings_passkeys_path(ri: "jp", format: :json), headers: @headers
+  test "create json returns registration ceremony handoff" do
+    assert_no_difference("VisitorPasskey.count") do
+      post sign_com_settings_passkeys_path(ri: "jp", format: :json), headers: @headers
+    end
 
-    assert_response :unprocessable_content
-    assert_equal I18n.t("messages.not_implemented"), response.parsed_body["error"]
+    assert_response :accepted
+    assert_equal "registration_ceremony_required", response.parsed_body["status"]
+    assert_equal new_sign_com_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
   end
 
   test "update accepts visitor passkey form params" do

@@ -28,10 +28,10 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (client_id => clients.id)
+#  fk_rails_...  (client_id => clients.id) ON DELETE => cascade
 #  fk_rails_...  (client_withdrawal_flow_id => client_withdrawal_flows.id)
-#  fk_rails_...  (from_status_id => client_withdrawal_flow_statuses.id)
-#  fk_rails_...  (to_status_id => client_withdrawal_flow_statuses.id)
+#  fk_rails_...  (from_status_id => client_withdrawal_flow_statuses.id) ON DELETE => restrict
+#  fk_rails_...  (to_status_id => client_withdrawal_flow_statuses.id) ON DELETE => restrict
 #
 class ClientWithdrawalFlowEvent < AppPrincipalRecord
   belongs_to :client_withdrawal_flow,

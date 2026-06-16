@@ -63,6 +63,7 @@ class DatabaseConsistencyCheckTest < ActiveSupport::TestCase
     warnings = checker.check([Agent, ClientPreference, Individual, OperatorLifecycleRequest, Persona])
 
     columns = warnings.pluck(:column)
+
     assert_not_includes columns, "operator_identity_id"
     assert_not_includes columns, "user_id"
     assert_not_includes columns, "visitor_identity_id"
@@ -73,14 +74,64 @@ class DatabaseConsistencyCheckTest < ActiveSupport::TestCase
   test "foreign key cascade checker accepts explicit delete rules and inverse dependent associations" do
     checker = DbConsistencyCheckers::ForeignKeyCascadeChecker.new
 
-    warnings = checker.check([Agent, ClientPreference, Individual, OperatorLifecycleRequest, Persona])
+    warnings = checker.check(
+      [
+        Agent,
+        AgentMembership,
+        AvatarBlock,
+        AvatarMute,
+        BureauUnit,
+        ChronicleOutboxEntry,
+        ClientPreference,
+        ClientSignUpFlow,
+        ClientToken,
+        ClientWithdrawalFlowEvent,
+        CompanyUnit,
+        Individual,
+        IndividualMembership,
+        OperatorLifecycleRequest,
+        OperatorToken,
+        Persona,
+        PersonaMembership,
+        VisitorPreference,
+        VisitorSignUpFlow,
+        VisitorWithdrawalFlowEvent,
+      ],
+    )
 
     columns = warnings.pluck(:column)
+
     assert_not_includes columns, "operator_identity_id"
     assert_not_includes columns, "user_id"
     assert_not_includes columns, "visitor_identity_id"
     assert_not_includes columns, "requested_by_operator_id"
     assert_not_includes columns, "client_identity_id"
+    assert_not_includes columns, "blocked_avatar_id"
+    assert_not_includes columns, "blocker_avatar_id"
+    assert_not_includes columns, "muted_avatar_id"
+    assert_not_includes columns, "muter_avatar_id"
+    assert_not_includes columns, "[\"parent_id\", \"bureau_id\"]"
+    assert_not_includes columns, "[\"parent_id\", \"company_id\"]"
+    assert_not_includes columns, "[\"parent_id\", \"enterprise_id\"]"
+    assert_not_includes columns, "[\"bureau_unit_id\", \"bureau_id\"]"
+    assert_not_includes columns, "[\"company_unit_id\", \"company_id\"]"
+    assert_not_includes columns, "[\"enterprise_unit_id\", \"enterprise_id\"]"
+    %w(
+      approved_by_agent_id granted_by_agent_id revoked_by_agent_id
+      approved_by_individual_id granted_by_individual_id revoked_by_individual_id
+      approved_by_persona_id granted_by_persona_id revoked_by_persona_id
+    ).each { |col| assert_not_includes columns, col }
+    assert_not_includes columns, "token_id"
+    assert_not_includes columns, "status_id"
+    assert_not_includes columns, "user_token_kind_id"
+    assert_not_includes columns, "user_token_status_id"
+    assert_not_includes columns, "client_id"
+    assert_not_includes columns, "from_status_id"
+    assert_not_includes columns, "to_status_id"
+    assert_not_includes columns, "staff_token_kind_id"
+    assert_not_includes columns, "staff_token_status_id"
+    assert_not_includes columns, "chronicle_id"
+    assert_not_includes columns, "visitor_id"
   end
 
   test "missing dependent destroy checker accepts alternate dependent associations on operator" do
@@ -89,6 +140,7 @@ class DatabaseConsistencyCheckTest < ActiveSupport::TestCase
     warnings = checker.check([Operator])
 
     columns = warnings.pluck(:column)
+
     assert_not_includes columns, "operator_emails/staff_id"
     assert_not_includes columns, "operator_passkeys/staff_id"
     assert_not_includes columns, "operator_secret_credentials/staff_id"
@@ -214,5 +266,36 @@ class DatabaseConsistencyCheckTest < ActiveSupport::TestCase
         VisitorToken,
       ],
     )
+  end
+
+  test "redundant index checkers accept the remaining prefix indexes after cleanup" do
+    checker = DbConsistencyCheckers::RedundantIndexChecker.new
+    unique_checker = DbConsistencyCheckers::RedundantUniqueIndexChecker.new
+
+    models = [
+      AvatarAssignment,
+      AvatarMoniker,
+      AvatarRolePermission,
+      BureauUnitClosure,
+      ChronicleVisibility,
+      ClientOidcConnection,
+      ClientSignUpFlow,
+      CompanyUnitClosure,
+      CoreAppClientBridge,
+      CoreComVisitorBridge,
+      CoreOrgOperatorBridge,
+      EmailOccurrence,
+      EnterpriseUnitClosure,
+      HandleAssignment,
+      IpOccurrence,
+      JwtOccurrence,
+      OperatorOidcConnection,
+      TelephoneOccurrence,
+      VisitorOidcConnection,
+      VisitorSignUpFlow,
+    ]
+
+    assert_empty checker.check(models)
+    assert_empty unique_checker.check(models)
   end
 end

@@ -19,7 +19,6 @@
 # Indexes
 #
 #  idx_core_org_operator_bridges_unique_operator_rp  (operator_id,rp_client_id) UNIQUE
-#  index_core_org_operator_bridges_on_operator_id    (operator_id)
 #  index_core_org_operator_bridges_on_public_id      (public_id) UNIQUE
 #
 class CoreOrgOperatorBridge < OrgRpRecord

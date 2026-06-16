@@ -24,7 +24,7 @@
 #
 # Foreign Keys
 #
-#  fk_enterprise_units_parent_same_enterprise  ([parent_id, enterprise_id] => enterprise_units[id, enterprise_id])
+#  fk_enterprise_units_parent_same_enterprise  ([parent_id, enterprise_id] => enterprise_units[id, enterprise_id]) ON DELETE => restrict
 #  fk_rails_...                                (enterprise_id => enterprises.id)
 #  fk_rails_...                                (parent_id => enterprise_units.id)
 #

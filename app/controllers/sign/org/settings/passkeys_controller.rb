@@ -64,17 +64,21 @@ module Sign
         end
 
         # POST /settings/passkeys
-        # Reserved for future non-WebAuthn registration flow.
+        # WebAuthn registration is driven by new/options/verification; REST create
+        # hands clients to that ceremony without mutating local Sign state.
         def create
           respond_to do |format|
             format.html do
               redirect_to(
-                new_sign_org_settings_passkey_path,
-                alert: t("messages.not_implemented"),
+                new_sign_org_settings_passkey_path(ri: params[:ri]),
+                status: :see_other,
               )
             end
             format.json do
-              render json: { error: t("messages.not_implemented") }, status: :unprocessable_content
+              render json: {
+                status: "registration_ceremony_required",
+                redirect_path: new_sign_org_settings_passkey_path(ri: params[:ri]),
+              }, status: :accepted
             end
           end
         end

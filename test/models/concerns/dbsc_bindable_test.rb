@@ -3,14 +3,21 @@
 
 require "test_helper"
 
+class UniquenessValidator < ActiveModel::EachValidator
+  def validate_each(*)
+  end
+end
+
 class DbscBindableTest < ActiveSupport::TestCase
   class MissingDbscModel
+    include ActiveModel::Validations
     include DbscBindable
 
     def self.attribute_names = []
   end
 
   class TestDbscModel
+    include ActiveModel::Validations
     include DbscBindable
 
     def self.attribute_names = %w(binding_method_id dbsc_status_id)
@@ -59,6 +66,7 @@ class DbscBindableTest < ActiveSupport::TestCase
 
     model_class =
       Class.new do
+        include ActiveModel::Validations
         include DbscBindable
 
         define_singleton_method(:attribute_names) do
@@ -119,6 +127,7 @@ class DbscBindableTest < ActiveSupport::TestCase
 
   def attribute_model(attribute_names)
     Class.new do
+      include ActiveModel::Validations
       include DbscBindable
 
       define_singleton_method(:attribute_names) { attribute_names }

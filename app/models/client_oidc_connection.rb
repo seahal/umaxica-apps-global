@@ -19,7 +19,6 @@
 # Indexes
 #
 #  index_client_oidc_connections_on_public_id              (public_id) UNIQUE
-#  index_client_oidc_connections_on_user_id                (user_id)
 #  index_client_oidc_connections_on_user_id_and_client_id  (user_id,client_id) UNIQUE
 #
 class ClientOidcConnection < AppTicketRecord

@@ -18,8 +18,8 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (muted_avatar_id => avatars.id)
-#  fk_rails_...  (muter_avatar_id => avatars.id)
+#  fk_rails_...  (muted_avatar_id => avatars.id) ON DELETE => cascade
+#  fk_rails_...  (muter_avatar_id => avatars.id) ON DELETE => cascade
 #
 
 # frozen_string_literal: true

@@ -20,7 +20,6 @@
 #
 #  idx_core_com_visitor_bridges_unique_visitor_rp  (visitor_id,rp_client_id) UNIQUE
 #  index_core_com_visitor_bridges_on_public_id     (public_id) UNIQUE
-#  index_core_com_visitor_bridges_on_visitor_id    (visitor_id)
 #
 class CoreComVisitorBridge < ComRpRecord
   include CoreRpBridge
