@@ -36,7 +36,8 @@ administration, complex mutations, audit-sensitive operations, and Rails views w
 the safer implementation boundary.
 
 Palm owns native API access for iOS, Android, and other native clients. It accepts only Acme-issued
-bearer access tokens with the Palm audience.
+bearer access tokens with the Palm audience. Palm is bearer-only; `cnf.jkt`-bound tokens must not be
+accepted as plain Bearer tokens unless a separate boundary change adds full DPoP verification.
 
 ## Browser Flow
 

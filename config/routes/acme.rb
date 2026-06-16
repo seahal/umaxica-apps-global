@@ -35,40 +35,55 @@ scope module: :acme, as: :acme do
       # CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
+      # End-user preference settings index.
+      resource :preference, only: [:show]
+      # End-user preference setting edit/update routes.
+      namespace :preference do
+        # Regional presentation preference, such as country or locale region.
+        resource :region, only: %i(edit update)
+        # IANA time zone preference used for localizing instants.
+        resource :timezone, only: %i(edit update)
+        # Interface language preference.
+        resource :language, only: %i(edit update)
+        # Currency display preference.
+        resource :currency, only: %i(edit update)
+        # Date presentation preference, such as calendar/date format.
+        resource :calendar, only: %i(edit update)
+        # Time-of-day presentation preference, such as 12h/24h clock format.
+        resource :clock, only: %i(edit update)
+        # Reduced-motion or animation preference.
+        resource :motion, only: %i(edit update)
+        # UI density preference for compact or spacious layouts.
+        resource :density, only: %i(edit update)
+        # Pagination preference for default item count per paginated view.
+        resource :pagination, only: %i(edit update)
+        # Visual theme preference.
+        resource :theme, only: %i(edit update)
+        # Cookie consent and cookie behavior preference.
+        resource :cookie, only: %i(edit update)
+        # Preference reset endpoint.
+        resource :reset, only: %i(edit destroy)
+        # Email preference removal/editing endpoints.
+        resources :emails, only: %i(edit destroy)
+        # Email preference registration/update endpoint using an existing email identifier.
+        post "emails/:id", to: "emails#create"
+      end
+
+      # Context selector for the authenticated client: resolves which
+      # account/organization context the principal acts in. This is identity/session
+      # context resolution (Acme authority), not a credential ceremony (Sign), and it
+      # runs on the :private tier — identity-authenticated but context not yet selected.
+      resource :selector, only: %i(show update)
+
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
       resource :welcome, only: :show, as: :welcome_entry
 
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
-      # Current actor/context selector.
-      resource :selector, only: %i(show update)
-
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion
-      end
-
-      # Preference settings entrypoint.
-      resource :preference, only: [:show]
-      namespace :preference do
-        resource :region, only: %i(edit update)
-        resource :timezone, only: %i(edit update)
-        resource :language, only: %i(edit update)
-        resource :currency, only: %i(edit update)
-        # FIXME: I think the following is a nasty naming.
-        resource :date, only: %i(edit update)
-        # FIXME: I think the following is a nasty naming.
-        resource :time, only: %i(edit update)
-        resource :motion, only: %i(edit update)
-        resource :density, only: %i(edit update)
-        # FIXME: I think the following is a nasty naming.
-        resource :page_size, only: %i(edit update)
-        resource :theme, only: %i(edit update)
-        resource :cookie, only: %i(edit update)
-        resource :reset, only: %i(edit destroy)
-        resources :emails, only: %i(edit destroy)
-        post "emails/:id", to: "emails#create"
       end
 
       # Public web API: cookie consent, theme.
@@ -142,17 +157,24 @@ scope module: :acme, as: :acme do
         resource :out, only: %i(show edit create destroy)
       end
 
-      # Current avatar entrypoint.
-      resource :avatar, only: :show
+      namespace :current do
+        # Current organization entrypoint.
+        resource :organization, only: %i(show edit update)
+
+        # Current avatar entrypoint.
+        resource :avatar, only: %i(show edit update destroy)
+      end
 
       # Current identity entrypoint.
       resource :identity, only: :show
 
-      # Current organization entrypoint.
-      resource :organization, only: :show
-
       # Current account entrypoint.
-      resource :account, only: :show
+      resource :account, only: %i(show edit update)
+
+      # Organizations owned or visible to the current actor.
+      resources :organizations, only: %i(index show new create edit update) do
+        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
+      end
 
       # Account and credential settings.
       resource :settings, only: :show
@@ -234,7 +256,9 @@ scope module: :acme, as: :acme do
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
       resource :welcome, only: :show, as: :welcome_entry
 
-      # Current actor/context selector.
+      # Context selector for the authenticated visitor: resolves which
+      # account/organization context the principal acts in. Identity/session context
+      # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
       resource :selector, only: %i(show update)
 
       # Signed-in dashboard.
@@ -245,22 +269,37 @@ scope module: :acme, as: :acme do
         post :completion
       end
 
-      # Preference settings entrypoint.
+      # End-user preference settings index.
       resource :preference, only: [:show]
+      # End-user preference setting edit/update routes.
       namespace :preference do
+        # Regional presentation preference, such as country or locale region.
         resource :region, only: %i(edit update)
+        # IANA time zone preference used for localizing instants.
         resource :timezone, only: %i(edit update)
+        # Interface language preference.
         resource :language, only: %i(edit update)
+        # Currency display preference.
         resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
+        # Date presentation preference, such as calendar/date format.
+        resource :calendar, only: %i(edit update)
+        # Time-of-day presentation preference, such as 12h/24h clock format.
+        resource :clock, only: %i(edit update)
+        # Reduced-motion or animation preference.
         resource :motion, only: %i(edit update)
+        # UI density preference for compact or spacious layouts.
         resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
+        # Pagination preference for default item count per paginated view.
+        resource :pagination, only: %i(edit update)
+        # Visual theme preference.
         resource :theme, only: %i(edit update)
+        # Cookie consent and cookie behavior preference.
         resource :cookie, only: %i(edit update)
+        # Preference reset endpoint.
         resource :reset, only: %i(edit destroy)
+        # Email preference removal/editing endpoints.
         resources :emails, only: %i(edit destroy)
+        # Email preference registration/update endpoint using an existing email identifier.
         post "emails/:id", to: "emails#create"
       end
 
@@ -328,8 +367,18 @@ scope module: :acme, as: :acme do
       # Current identity entrypoint.
       resource :identity, only: :show
 
+      namespace :current do
+        # Current organization entrypoint.
+        resource :organization, only: %i(show edit update)
+      end
+
       # Current account entrypoint.
-      resource :account, only: :show
+      resource :account, only: %i(show edit update)
+
+      # Organizations owned or visible to the current actor.
+      resources :organizations, only: %i(index show new create edit update) do
+        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
+      end
 
       # Account and credential settings.
       resource :settings, only: :show
@@ -402,7 +451,9 @@ scope module: :acme, as: :acme do
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
       resource :welcome, only: :show, as: :welcome_entry
 
-      # Current actor/context selector.
+      # Context selector for the authenticated operator: resolves which
+      # account/organization context the principal acts in. Identity/session context
+      # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
       resource :selector, only: %i(show update)
 
       # Signed-in dashboard.
@@ -447,22 +498,37 @@ scope module: :acme, as: :acme do
         post :completion
       end
 
-      # Preference settings entrypoint.
+      # End-user preference settings index.
       resource :preference, only: [:show]
+      # End-user preference setting edit/update routes.
       namespace :preference do
+        # Regional presentation preference, such as country or locale region.
         resource :region, only: %i(edit update)
+        # IANA time zone preference used for localizing instants.
         resource :timezone, only: %i(edit update)
+        # Interface language preference.
         resource :language, only: %i(edit update)
+        # Currency display preference.
         resource :currency, only: %i(edit update)
-        resource :date, only: %i(edit update)
-        resource :time, only: %i(edit update)
+        # Date presentation preference, such as calendar/date format.
+        resource :calendar, only: %i(edit update)
+        # Time-of-day presentation preference, such as 12h/24h clock format.
+        resource :clock, only: %i(edit update)
+        # Reduced-motion or animation preference.
         resource :motion, only: %i(edit update)
+        # UI density preference for compact or spacious layouts.
         resource :density, only: %i(edit update)
-        resource :page_size, only: %i(edit update)
+        # Pagination preference for default item count per paginated view.
+        resource :pagination, only: %i(edit update)
+        # Visual theme preference.
         resource :theme, only: %i(edit update)
+        # Cookie consent and cookie behavior preference.
         resource :cookie, only: %i(edit update)
+        # Preference reset endpoint.
         resource :reset, only: %i(edit destroy)
+        # Email preference removal/editing endpoints.
         resources :emails, only: %i(edit destroy)
+        # Email preference registration/update endpoint using an existing email identifier.
         post "emails/:id", to: "emails#create"
       end
 
@@ -527,17 +593,24 @@ scope module: :acme, as: :acme do
         resource :out, only: %i(show edit create destroy)
       end
 
-      # Current avatar entrypoint.
-      resource :avatar, only: :show
+      namespace :current do
+        # Current organization entrypoint.
+        resource :organization, only: %i(show edit update)
+
+        # Current avatar entrypoint.
+        resource :avatar, only: %i(show edit update destroy)
+      end
 
       # Current identity entrypoint.
       resource :identity, only: :show
 
-      # Current organization entrypoint.
-      resource :organization, only: :show
-
       # Current account entrypoint.
-      resource :account, only: :show
+      resource :account, only: %i(show edit update)
+
+      # Organizations owned or visible to the current actor.
+      resources :organizations, only: %i(index show new create edit update) do
+        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
+      end
 
       # Account and credential settings.
       resource :settings, only: :show

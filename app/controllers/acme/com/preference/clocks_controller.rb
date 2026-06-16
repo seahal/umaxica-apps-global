@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 module Acme
-  module App
+  module Com
     module Preference
-      class DatesController < Acme::App::PreferencesBaseController
+      class ClocksController < Acme::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

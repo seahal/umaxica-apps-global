@@ -32,8 +32,15 @@ class PalmAccessTokenAuthenticator < ApplicationService
       jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(RESOURCE_TYPE),
     )
     return failure("invalid_token") unless payload
+    # DPoP-bound Palm tokens require end-to-end proof validation; do not accept them as Bearer.
+    return failure("invalid_token") if payload.dig("cnf", "jkt").present?
     return failure("insufficient_scope") unless scope_allowed?(payload)
     return failure("invalid_token") unless allowed_client_id?(payload)
+
+    token = find_token(payload)
+    return failure("invalid_token") unless token&.active?
+    return failure("invalid_token") unless token_belongs_to_audience?(token, payload)
+    return failure("invalid_token") unless token_jti_matches?(token, payload)
 
     resource = find_resource(payload)
     return failure("invalid_token") unless resource&.active?
@@ -65,6 +72,36 @@ class PalmAccessTokenAuthenticator < ApplicationService
     AppPrincipalRecord.connected_to(role: :reading) do
       Client.find_by(public_id: public_id)
     end
+  end
+
+  def find_token(payload)
+    sid = payload["sid"].to_s
+    return if sid.blank?
+
+    AppTicketRecord.connected_to(role: :reading) do
+      ClientToken.find_by(oidc_sid: sid)
+    end
+  end
+
+  def token_belongs_to_audience?(token, payload)
+    return false unless token.respond_to?(:oidc_client_id)
+
+    client = OidcClientRegistry.find(token.oidc_client_id)
+    return false unless client
+    return false unless OidcIssuer.resource_type_for_client(client) == RESOURCE_TYPE
+
+    Array(payload["aud"]).include?(client.aud) && client.aud == AUDIENCE
+  end
+
+  def token_jti_matches?(token, payload)
+    return true unless token.has_attribute?(:oidc_jti)
+    return true if token.oidc_jti.blank?
+
+    expected = token.oidc_jti.to_s
+    actual = payload["jti"].to_s
+    return false unless expected.bytesize == actual.bytesize
+
+    ActiveSupport::SecurityUtils.secure_compare(expected, actual)
   end
 
   def failure(error)

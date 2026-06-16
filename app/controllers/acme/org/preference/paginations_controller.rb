@@ -4,7 +4,7 @@
 module Acme
   module Org
     module Preference
-      class PageSizesController < Acme::Org::PreferencesBaseController
+      class PaginationsController < Acme::Org::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

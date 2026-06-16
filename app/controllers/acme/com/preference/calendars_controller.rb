@@ -4,7 +4,7 @@
 module Acme
   module Com
     module Preference
-      class PageSizesController < Acme::Com::PreferencesBaseController
+      class CalendarsController < Acme::Com::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open

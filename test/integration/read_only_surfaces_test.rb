@@ -23,6 +23,18 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     ["news_org_root_url", "NEWS_STAFF_URL", "news.org.localhost", "News API is available"],
   ].freeze
 
+  CONTENT_API_SURFACES = [
+    ["help_app_api_v0_entry_url", "HELP_SERVICE_URL", "help.app.localhost", HelpAppContentEntry, "help", "app"],
+    ["help_com_api_v0_entry_url", "HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help", "com"],
+    ["help_org_api_v0_entry_url", "HELP_STAFF_URL", "help.org.localhost", HelpOrgContentEntry, "help", "org"],
+    ["docs_app_api_v0_entry_url", "DOCS_SERVICE_URL", "docs.app.localhost", DocsAppContentEntry, "docs", "app"],
+    ["docs_com_api_v0_entry_url", "DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs", "com"],
+    ["docs_org_api_v0_entry_url", "DOCS_STAFF_URL", "docs.org.localhost", DocsOrgContentEntry, "docs", "org"],
+    ["news_app_api_v0_entry_url", "NEWS_SERVICE_URL", "news.app.localhost", NewsAppContentEntry, "news", "app"],
+    ["news_com_api_v0_entry_url", "NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news", "com"],
+    ["news_org_api_v0_entry_url", "NEWS_STAFF_URL", "news.org.localhost", NewsOrgContentEntry, "news", "org"],
+  ].freeze
+
   test "static base and palm roots respond without auth redirects" do
     STATIC_SURFACES.each do |helper, env_key, fallback, expected|
       host = ENV.fetch(env_key, fallback)
@@ -77,41 +89,50 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   end
 
   test "content api index and show serialize published content with the expected namespace" do
-    model = DocsAppContentEntry
-    create_content_entry(
-      model, slug: "older-entry", title: "Older Entry", locale: "test-api",
-             published_at: 2.hours.ago,
-    )
-    newer = create_content_entry(model, slug: "newer-entry", title: "Newer Entry", locale: "test-api")
-    create_content_entry(model, slug: "other-locale", title: "Other Locale", locale: "jp")
+    CONTENT_API_SURFACES.each do |helper, env_key, fallback, model, namespace, surface|
+      create_content_entry(
+        model, slug: "#{surface}-older-entry", title: "Older Entry", locale: "test-api",
+               published_at: 2.hours.ago,
+      )
+      newer = create_content_entry(
+        model, slug: "#{surface}-newer-entry", title: "Newer Entry", locale: "test-api",
+      )
+      create_content_entry(model, slug: "#{surface}-other-locale", title: "Other Locale", locale: "jp")
 
-    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+      host = ENV.fetch(env_key, fallback)
+      host! host
 
-    get "/api/v0/entries",
-        params: { locale: "test-api" },
-        headers: { "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"), "Accept" => "application/json" },
-        as: :json
+      get public_send(helper, id: newer.slug, locale: "test-api", host: host),
+          headers: { "Host" => host, "Accept" => "application/json" },
+          as: :json
 
-    assert_response :success
-    entries = response.parsed_body.fetch("entries")
+      assert_response :success
+      entry = response.parsed_body.fetch("entry")
 
-    assert_equal ["newer-entry", "older-entry"], entries.map { |entry| entry.fetch("slug") }
-    assert_equal "docs", entries.first.fetch("namespace")
-    assert_equal "app", entries.first.fetch("surface")
-    assert_equal "Newer Entry", entries.first.fetch("title")
+      assert_equal newer.slug, entry.fetch("slug")
+      assert_equal namespace, entry.fetch("namespace")
+      assert_equal surface, entry.fetch("surface")
+      assert_equal "Newer Entry", entry.fetch("title")
 
-    get "/api/v0/entries/#{newer.slug}",
-        params: { locale: "test-api" },
-        headers: { "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"), "Accept" => "application/json" },
-        as: :json
+      get public_send(helper, id: "#{surface}-future-entry", locale: "test-api", host: host),
+          headers: { "Host" => host, "Accept" => "application/json" },
+          as: :json
 
-    assert_response :success
-    entry = response.parsed_body.fetch("entry")
+      assert_response :not_found
 
-    assert_equal newer.slug, entry.fetch("slug")
-    assert_equal "docs", entry.fetch("namespace")
-    assert_equal "app", entry.fetch("surface")
-    assert_equal "Newer Entry", entry.fetch("title")
+      get "/api/v0/entries",
+          params: { locale: "test-api" },
+          headers: { "Host" => host, "Accept" => "application/json" },
+          as: :json
+
+      assert_response :success
+      entries = response.parsed_body.fetch("entries")
+
+      assert_equal [newer.slug, "#{surface}-older-entry"], entries.map { |e| e.fetch("slug") }
+      assert_equal namespace, entries.first.fetch("namespace")
+      assert_equal surface, entries.first.fetch("surface")
+      assert_equal "Newer Entry", entries.first.fetch("title")
+    end
   end
 
   private

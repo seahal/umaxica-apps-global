@@ -1693,7 +1693,7 @@ en:
         theme_settings: Theme Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        page_size_settings: Page Size
+        pagination_settings: Page Size
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -1804,7 +1804,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        page_size_settings: Page Size
+        pagination_settings: Page Size
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         email_settings: Email Settings
@@ -1883,7 +1883,7 @@ en:
         theme_settings: Theme Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        page_size_settings: Page Size
+        pagination_settings: Page Size
         reset_settings: Reset Settings
         email_settings: Email Settings
         email_settings_description: Manage notification email sender and content.
@@ -2136,7 +2136,7 @@ en:
         language_settings: Language Settings
         motion_settings: Motion Settings
         density_settings: Density Settings
-        page_size_settings: Page Size
+        pagination_settings: Page Size
         update_success: Preferences updated successfully
         update_settings: Update Settings
         submitting: Submitting...

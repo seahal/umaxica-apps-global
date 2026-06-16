@@ -2413,7 +2413,7 @@ ja:
         theme_settings: テーマ設定
         motion_settings: モーション設定
         density_settings: 表示密度設定
-        page_size_settings: 1ページあたりの表示件数
+        pagination_settings: 1ページあたりの表示件数
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。
@@ -2489,7 +2489,7 @@ ja:
         theme_settings: テーマ設定
         motion_settings: モーション設定
         density_settings: 表示密度設定
-        page_size_settings: 1ページあたりの表示件数
+        pagination_settings: 1ページあたりの表示件数
         reset_settings: 設定のリセット
         email_settings: メール設定
         email_settings_description: 通知メールの送信元や内容を管理します。

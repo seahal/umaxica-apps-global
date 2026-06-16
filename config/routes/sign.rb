@@ -29,6 +29,9 @@ scope module: :sign, as: :sign do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # CSP report sink; keep configured report-uri path.
+      resource :csp_violation_report, only: :create, path: "csp-violation-report"
+
       # Canonical ceremony entrypoints.
       resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
       resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
@@ -44,9 +47,6 @@ scope module: :sign, as: :sign do
           resource :logout, only: :create
         end
       end
-
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Dashboard.
       resource :dashboard, only: :show

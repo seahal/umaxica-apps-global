@@ -33,7 +33,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
-          resources :entries, only: %i(index show)
+          resources :entries, only: %i(index show), param: :slug do
+            resources :revisions, only: %i(index show), module: :entries
+          end
         end
       end
     end
@@ -69,7 +71,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
-          resources :entries, only: %i(index show)
+          resources :entries, only: %i(index show), param: :slug do
+            resources :revisions, only: %i(index show), module: :entries
+          end
         end
       end
     end
@@ -105,7 +109,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
-          resources :entries, only: %i(index show)
+          resources :entries, only: %i(index show), param: :slug do
+            resources :revisions, only: %i(index show), module: :entries
+          end
         end
       end
     end

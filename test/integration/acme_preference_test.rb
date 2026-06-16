@@ -563,11 +563,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       Prosopite.pause do
         [
           [:currency, :preference_currency, :currency, "usd", 1],
-          [:date, :preference_date_format, :date_format, "uk", 2],
-          [:time, :preference_time_format, :time_format, "hour_12", 2],
+          [:calendar, :preference_date_format, :date_format, "uk", 2],
+          [:clock, :preference_time_format, :time_format, "hour_12", 2],
           [:motion, :preference_motion, :motion, "reduced", 2],
           [:density, :preference_density, :density, "compact", 2],
-          [:page_size, :preference_page_size, :page_size, "50", 3],
+          [:pagination, :preference_page_size, :page_size, "50", 3],
         ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
           get public_send("edit_acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
@@ -595,8 +595,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     [
       edit_acme_org_preference_currency_url(state),
-      edit_acme_org_preference_date_url(state),
-      edit_acme_org_preference_time_url(state),
+      edit_acme_org_preference_calendar_url(state),
+      edit_acme_org_preference_clock_url(state),
     ].each do |url|
       get url
 
@@ -619,7 +619,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     [
       edit_acme_app_preference_motion_url(ri: "jp"),
       edit_acme_app_preference_density_url(ri: "jp"),
-      edit_acme_app_preference_page_size_url(ri: "jp"),
+      edit_acme_app_preference_pagination_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -649,8 +649,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     Prosopite.pause do
       [
         [:app_preference_currency, edit_acme_app_preference_currency_url(ri: "jp")],
-        [:app_preference_date_format, edit_acme_app_preference_date_url(ri: "jp")],
-        [:app_preference_time_format, edit_acme_app_preference_time_url(ri: "jp")],
+        [:app_preference_date_format, edit_acme_app_preference_calendar_url(ri: "jp")],
+        [:app_preference_time_format, edit_acme_app_preference_clock_url(ri: "jp")],
       ].each do |association, url|
         pref.public_send(association).destroy!
         pref.reload

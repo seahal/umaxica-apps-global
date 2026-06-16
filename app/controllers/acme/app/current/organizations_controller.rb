@@ -1,0 +1,30 @@
+# typed: false
+# frozen_string_literal: true
+
+module Acme
+  module App
+    module Current
+      class OrganizationsController < Acme::App::ApplicationController
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
+        before_action :authenticate_client!
+
+        def show
+          authorize!(current_client, to: :show?)
+          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
+        end
+
+        def edit
+          authorize!(current_client, to: :update?)
+          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
+        end
+
+        def update
+          authorize!(current_client, to: :update?)
+          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
+        end
+      end
+    end
+  end
+end

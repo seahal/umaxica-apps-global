@@ -201,6 +201,38 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "regional core logout remains local after a successful callback" do
+    SURFACES.each do |surface|
+      host! surface[:host]
+      https!
+      get "/auth", headers: browser_headers
+
+      state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
+      resource = instance_exec(&surface[:resource])
+      id_token = OidcIdTokenIssuer.call(
+        resource: resource,
+        client: OidcClientRegistry.find!(surface[:client_id]),
+        nonce: session.fetch(:oidc_nonce),
+      )
+      token_result = OidcRpTokenClient::Result.new(
+        success: true,
+        token_response: { id_token: id_token },
+        error: nil,
+      )
+
+      OidcRpTokenClient.stub(:call, token_result) do
+        get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
+      end
+
+      assert_response :redirect
+
+      post "/auth/logout", headers: browser_headers
+
+      assert_response :redirect
+      assert_equal "https://#{surface[:host]}/", response.location
+    end
+  end
+
   private
 
   def redirect_uri_for(surface)

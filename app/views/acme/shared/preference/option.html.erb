@@ -61,10 +61,10 @@
 
   <% if screen == "region" %>
     <div>
-      <% %i(timezone language currency date time).each do |linked_screen| %>
+      <% %i(timezone language currency calendar clock).each do |linked_screen| %>
         <%= link_to public_send("edit_acme_#{surface}_preference_#{linked_screen}_path", lx: params[:lx], ri: params[:ri]) do %>
           <div>
-            <span><%= t("acme.#{surface}.preferences.region.#{linked_screen == :date ? :date_format : linked_screen == :time ? :time_format : linked_screen}.link",
+            <span><%= t("acme.#{surface}.preferences.region.#{linked_screen == :calendar ? :date_format : linked_screen == :clock ? :time_format : linked_screen}.link",
                         default: linked_screen.to_s.tr("_", " ").titleize) %></span>
           </div>
         <% end %>

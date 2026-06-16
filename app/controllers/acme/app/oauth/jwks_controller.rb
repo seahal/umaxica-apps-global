@@ -4,8 +4,13 @@
 module Acme
   module App
     module Oauth
-      class JwksController < Acme::App::WellKnown::JwksController
+      class JwksController < BareController
+        include AuthenticationJwksRendering
+
         AUTHENTICATION_MODE = :bare
+        JWT_KEY_NAMESPACE = "ACME_APP"
+
+        before_action :skip_jwks_session!
       end
     end
   end

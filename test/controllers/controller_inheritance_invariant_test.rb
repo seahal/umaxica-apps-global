@@ -17,15 +17,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
   # been refactored. Each entry is the controller source path relative to Rails.root.
   # Do not add new entries without a documented reason.
   KNOWN_VIOLATIONS = [
-    # Acme OAuth: JwksControllers delegate to a surface-local base that wraps JWKS
-    # key serialization. Candidate for concern extraction.
-    "app/controllers/acme/app/oauth/jwks_controller.rb",
-    "app/controllers/acme/com/oauth/jwks_controller.rb",
-    "app/controllers/acme/org/oauth/jwks_controller.rb",
-
-    # Acme token refresh: RefreshesControllerBase provides shared token-refresh logic.
-    "app/controllers/acme/com/edge/v0/token/refreshes_controller.rb",
-
     # Sign::Com::Sign::Up::* inheriting from Sign::Com::Sign::Up::* base controllers.
 
     # Sign::Com::Sign::Up::Check cross-family inheritance.
@@ -34,9 +25,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
 
     # Sign::Org::Sign::Up::* inheriting from Sign::Org::Sign::Up::* base controllers.
 
-    # Palm::App::Oauth::Callback controllers inherit a shared OAuth callback base.
-    "app/controllers/palm/app/oauth/callback/android_controller.rb",
-    "app/controllers/palm/app/oauth/callback/ios_controller.rb",
   ].to_set.freeze
 
   # Controllers that are themselves allowed to be base classes

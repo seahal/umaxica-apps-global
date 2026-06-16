@@ -11,6 +11,7 @@ module Core
           include ::PreferenceDbscRegistrationEndpoint
 
           AUTHENTICATION_MODE = :deny_all
+          declare_authentication_mode! :open
 
           skip_before_action :resolve_param_context, raise: false
           skip_before_action :set_region, raise: false

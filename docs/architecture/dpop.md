@@ -113,18 +113,20 @@ flows:
 | DPoP      | API access via Authorization header | Access token bound to client key   |
 
 DBSC is the active browser-session binding mechanism. DPoP remains available for
-Authorization-header token binding where an explicitly reviewed flow chooses it.
+Authorization-header token binding where an explicitly reviewed flow chooses it. Palm does not use
+DPoP today; it is bearer-only, and Palm access tokens carrying `cnf.jkt` must not be accepted as
+plain Bearer tokens.
 
 ## VisitorAccount Token Strategy
 
 Each client type uses a different combination of token transport and proof-of-possession mechanism,
 based on its threat model:
 
-| VisitorAccount | Access Token                                   | Refresh Token                | Proof-of-Possession          |
-| -------------- | ---------------------------------------------- | ---------------------------- | ---------------------------- |
-| Rails HTML     | HttpOnly cookie                                | HttpOnly cookie              | DBSC                         |
-| Core browser   | HttpOnly cookie-carried JWT on Rails Core APIs | HttpOnly cookie              | DBSC where available         |
-| iOS / Android  | Acme-issued bearer token                       | Secure storage (Keychain/KS) | None by default; DPoP opt-in |
+| VisitorAccount | Access Token                                   | Refresh Token                | Proof-of-Possession                       |
+| -------------- | ---------------------------------------------- | ---------------------------- | ----------------------------------------- |
+| Rails HTML     | HttpOnly cookie                                | HttpOnly cookie              | DBSC                                      |
+| Core browser   | HttpOnly cookie-carried JWT on Rails Core APIs | HttpOnly cookie              | DBSC where available                      |
+| iOS / Android  | Acme-issued bearer token                       | Secure storage (Keychain/KS) | None by default; DPoP opt-in outside Palm |
 
 **Notes:**
 
@@ -150,16 +152,19 @@ are not substitutes for rotation.
 ### Native App DPoP Readiness
 
 Native apps (iOS / Android) do not require DPoP at this time. However, the server-side
-infrastructure is designed to accept DPoP proofs from any client:
+infrastructure is designed to accept DPoP proofs from any client outside the Palm bearer-only
+boundary:
 
 - Token tables (`user_tokens`, `staff_tokens`, `customer_tokens`) already store `dpop_jkt`.
 - `DPoP::ProofValidator` and `DPoP::RequestVerifier` are client-agnostic.
 - The `cnf.jkt` claim in JWT access tokens works regardless of client type.
 
-The current policy is **maintained optional DPoP** for native clients:
+The current policy is **maintained optional DPoP** for native clients outside Palm:
 
 - If a native client sends a DPoP proof header, the server validates it and enforces binding.
 - If no DPoP proof is present, the server accepts the token as a standard Bearer token.
+- Palm is excluded from this optional policy. Palm remains bearer-only until a separate ADR or plan
+  changes that boundary.
 
 Before native apps adopt DPoP, review the current DPoP implementation and threat model. If adopted,
 the private key should be stored in platform secure hardware (iOS Secure Enclave / Android

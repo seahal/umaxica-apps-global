@@ -31,6 +31,9 @@ scope module: :base, as: :base do
       # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # Control-plane settings index.
+      resource :settings, only: :show
+
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -64,6 +67,9 @@ scope module: :base, as: :base do
       # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # Control-plane settings index.
+      resource :settings, only: :show
+
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -96,6 +102,9 @@ scope module: :base, as: :base do
 
       # Sitemap endpoint; keep fixed public path.
       resource :sitemap, only: :show, path: "sitemap.xml"
+
+      # Control-plane settings index.
+      resource :settings, only: :show
 
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"

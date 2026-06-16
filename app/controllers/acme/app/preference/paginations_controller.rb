@@ -4,7 +4,7 @@
 module Acme
   module App
     module Preference
-      class TimesController < Acme::App::PreferencesBaseController
+      class PaginationsController < Acme::App::PreferencesBaseController
         include ::AcmePreferenceScreenDispatch
 
         AUTHENTICATION_MODE = :open
