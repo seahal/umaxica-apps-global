@@ -92,21 +92,19 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/up/entrances", action: "show" },
+      { controller: "sign/app/sign/up", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/entrances", action: "show" },
+      { controller: "sign/app/sign/in", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/up/entrance", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/in/entrance", method: :get)
+    ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{bad_path}", method: :get)
+      end
     end
 
     assert_recognizes(
@@ -154,25 +152,17 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/in/secret_credential", method: :post },
     )
 
-    assert_recognizes(
-      { controller: "sign/app/settings", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/settings", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/settings/passkeys", action: "index" },
-      { path: "http://#{SIGN_APP_HOST}/settings/passkeys", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/settings/sessions", action: "index" },
-      { path: "http://#{SIGN_APP_HOST}/settings/sessions", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/settings/activities", action: "index" },
-      { path: "http://#{SIGN_APP_HOST}/settings/activities", method: :get },
-    )
+    [
+      { controller: "sign/app/settings", action: "show", path: "/settings" },
+      { controller: "sign/app/settings/passkeys", action: "index", path: "/settings/passkeys" },
+      { controller: "sign/app/settings/sessions", action: "index", path: "/settings/sessions" },
+      { controller: "sign/app/settings/activities", action: "index", path: "/settings/activities" },
+    ].each do |route|
+      assert_recognizes(
+        { controller: route[:controller], action: route[:action] },
+        { path: "http://#{SIGN_APP_HOST}#{route[:path]}", method: :get },
+      )
+    end
   end
 
   test "sign app-only route contract" do
@@ -314,21 +304,19 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/up/entrances", action: "show" },
+      { controller: "sign/com/sign/up", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/entrances", action: "show" },
+      { controller: "sign/com/sign/in", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/up/entrance", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/in/entrance", method: :get)
+    ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}#{bad_path}", method: :get)
+      end
     end
 
     assert_recognizes(
@@ -376,25 +364,17 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_COM_HOST}/sign/in/secret_credential", method: :post },
     )
 
-    assert_recognizes(
-      { controller: "sign/com/settings", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/settings", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/com/settings/passkeys", action: "index" },
-      { path: "http://#{SIGN_COM_HOST}/settings/passkeys", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/com/settings/sessions", action: "index" },
-      { path: "http://#{SIGN_COM_HOST}/settings/sessions", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/com/settings/activities", action: "index" },
-      { path: "http://#{SIGN_COM_HOST}/settings/activities", method: :get },
-    )
+    [
+      { controller: "sign/com/settings", action: "show", path: "/settings" },
+      { controller: "sign/com/settings/passkeys", action: "index", path: "/settings/passkeys" },
+      { controller: "sign/com/settings/sessions", action: "index", path: "/settings/sessions" },
+      { controller: "sign/com/settings/activities", action: "index", path: "/settings/activities" },
+    ].each do |route|
+      assert_recognizes(
+        { controller: route[:controller], action: route[:action] },
+        { path: "http://#{SIGN_COM_HOST}#{route[:path]}", method: :get },
+      )
+    end
   end
 
   test "sign org route contract" do
@@ -474,12 +454,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/up/entrances", action: "show" },
+      { controller: "sign/org/sign/up", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/entrances", action: "show" },
+      { controller: "sign/org/sign/in", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in", method: :get },
     )
 

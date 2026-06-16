@@ -33,6 +33,10 @@
 #  index_client_preferences_on_public_id  (public_id) UNIQUE
 #  index_client_preferences_on_user_id    (user_id) UNIQUE
 #
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => clients.id) ON DELETE => cascade
+#
 require "test_helper"
 
 class ClientPreferenceTest < ActiveSupport::TestCase

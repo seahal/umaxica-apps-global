@@ -43,9 +43,9 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "sign/app/sign/in/entrances", sign_in.fetch(:controller)
+    assert_equal "sign/app/sign/in", sign_in.fetch(:controller)
     assert_equal "show", sign_in.fetch(:action)
-    assert_equal "sign/app/sign/up/entrances", sign_up.fetch(:controller)
+    assert_equal "sign/app/sign/up", sign_up.fetch(:controller)
     assert_equal "show", sign_up.fetch(:action)
   end
 

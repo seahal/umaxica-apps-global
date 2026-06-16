@@ -40,6 +40,10 @@
 #  index_operator_lifecycle_requests_on_target_email              (target_email)
 #  index_operator_lifecycle_requests_on_target_operator_id        (target_operator_id)
 #
+# Foreign Keys
+#
+#  fk_rails_...  (requested_by_operator_id => operators.id) ON DELETE => restrict
+#
 class OperatorLifecycleRequest < OrgPrincipalRecord
   self.belongs_to_required_by_default = false
 

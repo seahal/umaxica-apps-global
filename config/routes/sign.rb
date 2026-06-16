@@ -30,8 +30,8 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
 
       # Signed-out landing page.
       namespace :signed, path: "" do
@@ -295,8 +295,8 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
 
       # Auth callback and RP login/logout endpoints.
       namespace :auth, path: "auth" do
@@ -513,8 +513,8 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
 
       # Auth callback and RP login/logout endpoints.
       namespace :auth, path: "auth" do

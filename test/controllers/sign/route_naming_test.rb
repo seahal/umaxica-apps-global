@@ -28,8 +28,8 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
 
   test "top-level sign entry routes resolve conventionally on every sign surface" do
     SURFACES.each_key do |surface|
-      assert_recognizes_sign_route(surface, "/sign/up", :get, "sign/up/entrances", "show")
-      assert_recognizes_sign_route(surface, "/sign/in", :get, "sign/in/entrances", "show")
+      assert_recognizes_sign_route(surface, "/sign/up", :get, "sign/up", "show")
+      assert_recognizes_sign_route(surface, "/sign/in", :get, "sign/in", "show")
       assert_unrecognized(surface, "/sign/up/entrance", :get)
       assert_unrecognized(surface, "/sign/in/entrance", :get)
       assert_recognizes_sign_route(surface, "/signed-out", :get, "signed/outs", "show")

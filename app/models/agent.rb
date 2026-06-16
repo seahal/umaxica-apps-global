@@ -20,6 +20,10 @@
 #  index_agents_on_operator_identity_id  (operator_identity_id)
 #  index_agents_on_public_id             (public_id) UNIQUE
 #
+# Foreign Keys
+#
+#  fk_rails_...  (operator_identity_id => operator_identities.id) ON DELETE => restrict
+#
 class Agent < OrgRpRecord
   include ::Account
 

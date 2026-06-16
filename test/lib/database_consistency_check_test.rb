@@ -51,7 +51,48 @@ class DatabaseConsistencyCheckTest < ActiveSupport::TestCase
   test "missing index checker accepts supported foreign key indexes" do
     checker = DbConsistencyCheckers::MissingIndexChecker.new
 
-    assert_empty checker.check([ComPreferenceChronicle, HandleAssignment, OrgPreferenceChronicle, OperatorLifecycleRequest])
+    assert_empty checker.check(
+      [ComPreferenceChronicle, HandleAssignment, OrgPreferenceChronicle,
+       OperatorLifecycleRequest,],
+    )
+  end
+
+  test "foreign key checker accepts the repaired same-database foreign keys" do
+    checker = DbConsistencyCheckers::ForeignKeyChecker.new
+
+    warnings = checker.check([Agent, ClientPreference, Individual, OperatorLifecycleRequest, Persona])
+
+    columns = warnings.pluck(:column)
+    assert_not_includes columns, "operator_identity_id"
+    assert_not_includes columns, "user_id"
+    assert_not_includes columns, "visitor_identity_id"
+    assert_not_includes columns, "requested_by_operator_id"
+    assert_not_includes columns, "client_identity_id"
+  end
+
+  test "foreign key cascade checker accepts explicit delete rules and inverse dependent associations" do
+    checker = DbConsistencyCheckers::ForeignKeyCascadeChecker.new
+
+    warnings = checker.check([Agent, ClientPreference, Individual, OperatorLifecycleRequest, Persona])
+
+    columns = warnings.pluck(:column)
+    assert_not_includes columns, "operator_identity_id"
+    assert_not_includes columns, "user_id"
+    assert_not_includes columns, "visitor_identity_id"
+    assert_not_includes columns, "requested_by_operator_id"
+    assert_not_includes columns, "client_identity_id"
+  end
+
+  test "missing dependent destroy checker accepts alternate dependent associations on operator" do
+    checker = DbConsistencyCheckers::MissingDependentDestroyChecker.new
+
+    warnings = checker.check([Operator])
+
+    columns = warnings.pluck(:column)
+    assert_not_includes columns, "operator_emails/staff_id"
+    assert_not_includes columns, "operator_passkeys/staff_id"
+    assert_not_includes columns, "operator_secret_credentials/staff_id"
+    assert_not_includes columns, "operator_telephones/staff_id"
   end
 
   test "missing unique index checker ignores primary key uniqueness validations" do

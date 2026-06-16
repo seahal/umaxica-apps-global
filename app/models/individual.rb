@@ -20,6 +20,10 @@
 #  index_individuals_on_public_id            (public_id) UNIQUE
 #  index_individuals_on_visitor_identity_id  (visitor_identity_id)
 #
+# Foreign Keys
+#
+#  fk_rails_...  (visitor_identity_id => visitor_identities.id) ON DELETE => restrict
+#
 class Individual < ComRpRecord
   include ::Account
 

@@ -52,7 +52,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     # Sign::App::Sign::In::* inheriting from Sign::App::Sign::In::* base controllers.
     # The sign/sign/in/ layer is a routing namespace; in/ holds the behavior base.
     # These are the highest-priority follow-up to move to concerns.
-    "app/controllers/sign/app/sign/in/entrances_controller.rb",
+    "app/controllers/sign/app/sign/in_controller.rb",
     "app/controllers/sign/app/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/app/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/app/sign/in/session/cancellations_controller.rb",
@@ -63,7 +63,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/sign/up/check/google/cancellations_controller.rb",
     "app/controllers/sign/app/sign/up/check/google/confirmations_controller.rb",
     "app/controllers/sign/app/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/entrances_controller.rb",
+    "app/controllers/sign/app/sign/up_controller.rb",
 
     # Sign::App::Social::* inheriting from AuthenticationsController base.
     "app/controllers/sign/app/social/apple/connections_controller.rb",
@@ -80,7 +80,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/app/verification/redeliveries_controller.rb",
 
     # Sign::Com::Sign::In::* inheriting from Sign::Com::Sign::In::* base controllers.
-    "app/controllers/sign/com/sign/in/entrances_controller.rb",
+    "app/controllers/sign/com/sign/in_controller.rb",
     "app/controllers/sign/com/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/com/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/com/sign/in/session/cancellations_controller.rb",
@@ -88,7 +88,7 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     # Sign::Com::Sign::Up::* inheriting from Sign::Com::Sign::Up::* base controllers.
     "app/controllers/sign/com/sign/up/check/email/cancellations_controller.rb",
     "app/controllers/sign/com/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/up/entrances_controller.rb",
+    "app/controllers/sign/com/sign/up_controller.rb",
 
     # Sign::Com::Sign::Up::Check cross-family inheritance.
     # Note: com/up/check/email/otps and com/up/check/telephone/birthdates and otps are
@@ -98,13 +98,13 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/sign/com/verification/redeliveries_controller.rb",
 
     # Sign::Org::Sign::In::* inheriting from Sign::Org::Sign::In::* base controllers.
-    "app/controllers/sign/org/sign/in/entrances_controller.rb",
+    "app/controllers/sign/org/sign/in_controller.rb",
     "app/controllers/sign/org/sign/in/passkey/options_controller.rb",
     "app/controllers/sign/org/sign/in/passkey/verifications_controller.rb",
     "app/controllers/sign/org/sign/in/session/cancellations_controller.rb",
 
     # Sign::Org::Sign::Up::* inheriting from Sign::Org::Sign::Up::* base controllers.
-    "app/controllers/sign/org/sign/up/entrances_controller.rb",
+    "app/controllers/sign/org/sign/up_controller.rb",
 
     # Palm::App::Oauth::Callback controllers inherit a shared OAuth callback base.
     "app/controllers/palm/app/oauth/callback/android_controller.rb",

@@ -33,6 +33,10 @@
 #  index_client_preferences_on_public_id  (public_id) UNIQUE
 #  index_client_preferences_on_user_id    (user_id) UNIQUE
 #
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => clients.id) ON DELETE => cascade
+#
 class ClientPreference < AppPrincipalRecord
   belongs_to :user, class_name: "Client", inverse_of: :user_preference
 

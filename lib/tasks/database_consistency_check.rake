@@ -189,6 +189,18 @@ module DbConsistencyCheckers
       Array(index.columns).map(&:to_s)
     end
 
+    def connection_db_name(model)
+      model.connection_db_config&.name
+    rescue StandardError
+      nil
+    end
+
+    def same_connection_db?(left, right)
+      left_name = connection_db_name(left)
+      right_name = connection_db_name(right)
+      left_name.present? && left_name == right_name
+    end
+
     private
 
     def conditional_presence_validator?(validator)
@@ -316,7 +328,9 @@ module DbConsistencyCheckers
         next false unless validator.is_a?(ActiveModel::Validations::InclusionValidator)
         next false unless validator.attributes.map(&:to_s).include?(col_name)
 
-        expected = Array(validator.options[:in]).map(&:to_s).sort
+        expected = Array(validator.options[:in])
+        expected.map!(&:to_s)
+        expected.sort!
         expected == %w(false true) && columns_for(model).any? { |col| col.name == col_name && col.type == :boolean }
       end
     end
@@ -345,7 +359,6 @@ module DbConsistencyCheckers
         end
       end
     end
-
   end
 
   # -------------------------------------------------------------------------
@@ -600,6 +613,15 @@ module DbConsistencyCheckers
           fk = assoc.foreign_key.to_s
           col = col_map[fk]
           next unless col && !col.null
+
+          begin
+            target = assoc.klass
+          rescue NameError
+            next
+          end
+
+          next unless same_connection_db?(model, target)
+
           next if fk_constraint_cols.include?(fk)
 
           result(
@@ -685,12 +707,39 @@ module DbConsistencyCheckers
         foreign_keys_for(model).filter_map do |fk|
           next if fk.on_delete.present?
 
+          assoc = model.reflect_on_all_associations(:belongs_to).find do |belongs_to|
+            !belongs_to.options[:polymorphic] && belongs_to.foreign_key.to_s == fk.column.to_s
+          end
+
+          begin
+            target = assoc&.klass
+          rescue NameError
+            target = nil
+          end
+
+          next if target && !same_connection_db?(model, target)
+          next if target && inverse_has_dependent?(target, model, fk.column.to_s)
+
           result(
             :warn, model: model, column: fk.column.to_s, checker: CHECKER,
                    message: "FK constraint on #{fk.column} → #{fk.to_table} has no on_delete action",
           )
         end
       end
+    end
+
+    private
+
+    def inverse_has_dependent?(target, child, foreign_key)
+      target.reflect_on_all_associations.any? do |assoc|
+        next false unless %i[has_one has_many].include?(assoc.macro)
+        next false unless assoc.klass == child
+        next false unless assoc.foreign_key.to_s == foreign_key
+
+        assoc.options[:dependent].present?
+      end
+    rescue NameError
+      false
     end
   end
 
@@ -714,6 +763,9 @@ module DbConsistencyCheckers
             next
           end
 
+          next if target_has_any_dependent_has_many?(model, child)
+          next unless same_connection_db?(model, child)
+
           next unless with_model_connection(child) { |conn| conn&.data_source_exists?(child.table_name) }
 
           fk = assoc.foreign_key.to_s
@@ -725,6 +777,20 @@ module DbConsistencyCheckers
                    message: "has_many :#{assoc.name} -- child " \
                             "#{child.table_name}.#{fk} is NOT NULL but no dependent: option set",
           )
+        end
+      end
+    end
+
+    private
+
+    def target_has_any_dependent_has_many?(model, child)
+      model.reflect_on_all_associations(:has_many).any? do |assoc|
+        next false unless assoc.options[:dependent].present?
+
+        begin
+          assoc.klass == child
+        rescue NameError
+          false
         end
       end
     end
