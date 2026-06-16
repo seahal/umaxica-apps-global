@@ -4,6 +4,10 @@
 module DbscBindable
   extend ActiveSupport::Concern
 
+  included do
+    validates :dbsc_session_id, uniqueness: true, allow_blank: true
+  end
+
   class_methods do
     def dbsc_binding_method_attribute_name
       return :binding_method_id if attribute_names.include?("binding_method_id")

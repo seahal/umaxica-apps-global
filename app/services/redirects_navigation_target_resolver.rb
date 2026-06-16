@@ -11,7 +11,7 @@ class RedirectsNavigationTargetResolver
     },
     selector: ->(routes, params) {
       routes.public_send(
-        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_entrance_path",
+        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_path",
         ri: params[:ri],
       )
     },

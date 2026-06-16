@@ -8,7 +8,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   ACME_COM_HOST = ENV.fetch("ACME_CORPORATE_URL", "com.localhost")
   ACME_ORG_HOST = ENV.fetch("ACME_STAFF_URL", "org.localhost")
 
-  test "acme app route contract" do
+  test "acme app static and health routes" do
     assert_recognizes(
       { controller: "acme/app/roots", action: "index" },
       { path: "http://#{ACME_APP_HOST}/", method: :get },
@@ -53,7 +53,9 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/app/sitemaps", action: "show" },
       { path: "http://#{ACME_APP_HOST}/sitemap.xml", method: :get },
     )
+  end
 
+  test "acme app auth routes" do
     assert_recognizes(
       { controller: "acme/app/csp_violation_reports", action: "create" },
       { path: "http://#{ACME_APP_HOST}/csp-violation-report", method: :post },
@@ -85,14 +87,22 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/sso/authorizations", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/sso/authorize", method: :get },
+      { controller: "acme/app/auth/authorizations", action: "show" },
+      { path: "http://#{ACME_APP_HOST}/auth", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/app/sso/logouts", action: "create" },
-      { path: "http://#{ACME_APP_HOST}/sso/logout", method: :post },
+      { controller: "acme/app/auth/logouts", action: "create" },
+      { path: "http://#{ACME_APP_HOST}/auth/logout", method: :post },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/sso/authorize", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/sso/logout", method: :post)
+    end
 
     assert_recognizes(
       { controller: "acme/app/oidc/logouts", action: "show" },
@@ -103,7 +113,9 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/app/oidc/logouts", action: "create" },
       { path: "http://#{ACME_APP_HOST}/oidc/logout", method: :post },
     )
+  end
 
+  test "acme app oauth and account routes" do
     assert_recognizes(
       { controller: "acme/app/oauth/authorizations", action: "show" },
       { path: "http://#{ACME_APP_HOST}/oauth/authorize", method: :get },
@@ -232,14 +244,22 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/sso/authorizations", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/sso/authorize", method: :get },
+      { controller: "acme/com/auth/authorizations", action: "show" },
+      { path: "http://#{ACME_COM_HOST}/auth", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/com/sso/logouts", action: "create" },
-      { path: "http://#{ACME_COM_HOST}/sso/logout", method: :post },
+      { controller: "acme/com/auth/logouts", action: "create" },
+      { path: "http://#{ACME_COM_HOST}/auth/logout", method: :post },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/sso/authorize", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/sso/logout", method: :post)
+    end
 
     assert_recognizes(
       { controller: "acme/com/oidc/logouts", action: "show" },
@@ -362,18 +382,26 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/org/auth/callbacks", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/auth/callback", method: :get },
     )
+
+    assert_recognizes(
+      { controller: "acme/org/auth/authorizations", action: "show" },
+      { path: "http://#{ACME_ORG_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/auth/logouts", action: "create" },
+      { path: "http://#{ACME_ORG_HOST}/auth/logout", method: :post },
+    )
   end
 
   test "acme org route contract (continued)" do
-    assert_recognizes(
-      { controller: "acme/org/sso/authorizations", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/sso/authorize", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/sso/authorize", method: :get)
+    end
 
-    assert_recognizes(
-      { controller: "acme/org/sso/logouts", action: "create" },
-      { path: "http://#{ACME_ORG_HOST}/sso/logout", method: :post },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/sso/logout", method: :post)
+    end
 
     assert_recognizes(
       { controller: "acme/org/oidc/logouts", action: "show" },
@@ -493,6 +521,20 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{ACME_ORG_HOST}/accounts",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{ACME_APP_HOST}/auth/acme",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{ACME_APP_HOST}/auth/acme/callback",
         method: :get,
       )
     end

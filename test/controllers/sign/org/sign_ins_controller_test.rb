@@ -10,8 +10,8 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
 
-  test "direct entrance normalizes to acme org authorization" do
-    get sign_org_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "direct entry normalizes to acme org authorization" do
+    get sign_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
 
@@ -25,14 +25,14 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "valid login challenge renders local ceremony entrance" do
+  test "valid login challenge renders local ceremony" do
     issuance = OidcAuthorizationTransactionService.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,
     )
 
-    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -46,7 +46,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -67,7 +67,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_org_sign_in_entrance_url(
+    get sign_org_sign_in_url(
       ri: "jp",
       pt: Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false),
       login_challenge: issuance.transaction.login_challenge,
@@ -85,11 +85,11 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
-    assert_select "a[href=?]", sign_org_sign_up_entrance_path(ri: "jp"), count: 0
+    assert_select "a[href=?]", sign_org_sign_up_path(ri: "jp"), count: 0
   end
 
   test "local ceremony renders back to root link" do
@@ -99,7 +99,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_org_sign_in_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -110,7 +110,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   test "redirects to dashboard when logged in" do
     staff = operators(:one)
 
-    get sign_org_sign_in_entrance_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+    get sign_org_sign_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
     assert_response :redirect
     assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))

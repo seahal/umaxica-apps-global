@@ -65,6 +65,14 @@ class VisitorEmailTest < ActiveSupport::TestCase
     assert_predicate visitor_email.reload, :undeletable?
   end
 
+  test "requires email presence" do
+    visitor_email = VisitorEmail.new(@valid_attributes.except(:address))
+    visitor_email.address = ""
+
+    assert_not visitor_email.valid?
+    assert_not_empty visitor_email.errors[:address]
+  end
+
   test "verification token can be generated and verified" do
     visitor_email = VisitorEmail.create!(
       @valid_attributes.merge(address: "verify-#{SecureRandom.hex(4)}@example.com"),

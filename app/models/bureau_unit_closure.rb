@@ -32,6 +32,7 @@ class BureauUnitClosure < OrgRpRecord
              class_name: "BureauUnit",
              inverse_of: :ancestor_links
 
+  validates :depth, presence: true
   validates :depth, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :ancestor_id, uniqueness: { scope: :descendant_id }
 end

@@ -28,6 +28,9 @@ module SocialCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :provider, :status, :grant_jti,
               :expires_at, presence: true
+    validates :transaction_id, uniqueness: true
+    validates :grant_jti, uniqueness: true
+    validates :result_jti, uniqueness: true, allow_nil: true
     validates :surface, inclusion: { in: IdentitySocialCeremonyContract::SURFACES }
     validates :operation, inclusion: { in: IdentitySocialCeremonyContract::OPERATIONS }
     validates :provider, inclusion: { in: IdentitySocialCeremonyContract::PROVIDERS }

@@ -58,7 +58,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     def sign_app_settings_apple_path = "/settings/apple"
 
-    def sign_app_sign_in_entrance_path = "/sign/in"
+    def sign_app_sign_in_path = "/sign/in"
 
     def sign_app_root_path = "/"
   end

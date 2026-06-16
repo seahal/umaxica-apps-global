@@ -65,6 +65,7 @@ class ClientEmail < AppPrincipalRecord
                                  inverse_of: :client_emails
   belongs_to :user, class_name: "Client", inverse_of: :client_emails
   mfa_status_owner :user
+  validates :address, presence: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }

@@ -38,7 +38,7 @@ class Sign::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
            params: { invitation_code: @invitation.code, "cf-turnstile-response": "test" }
     end
 
-    assert_redirected_to sign_org_sign_in_entrance_path(ri: "jp")
+    assert_redirected_to sign_org_sign_in_path(ri: "jp")
     assert_predicate @invitation.reload, :consumed?
     assert_match(/operator ID/i, flash[:notice])
   end

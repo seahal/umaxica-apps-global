@@ -52,5 +52,6 @@ class AccountAccessEvent < ChronicleRecord
   validates :next_access_state, presence: true, inclusion: { in: AdministrativeAccessLockable::ACCESS_STATES }
   validates :operator_id, presence: true, numericality: { only_integer: true }
   validates :reason_code, presence: true, inclusion: { in: AdministrativeAccessLockable::ADMIN_LOCK_REASON_CODES }
+  validates :occurred_at, presence: true
   validates :metadata, exclusion: { in: [nil] }
 end

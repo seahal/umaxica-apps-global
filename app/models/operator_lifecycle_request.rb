@@ -32,7 +32,9 @@
 #
 #  index_operator_lifecycle_requests_on_action                    (action)
 #  index_operator_lifecycle_requests_on_approved_by_operator_id   (approved_by_operator_id)
+#  index_operator_lifecycle_requests_on_executed_by_operator_id   (executed_by_operator_id)
 #  index_operator_lifecycle_requests_on_public_id                 (public_id) UNIQUE
+#  index_operator_lifecycle_requests_on_rejected_by_operator_id   (rejected_by_operator_id)
 #  index_operator_lifecycle_requests_on_requested_by_operator_id  (requested_by_operator_id)
 #  index_operator_lifecycle_requests_on_status                    (status)
 #  index_operator_lifecycle_requests_on_target_email              (target_email)
@@ -70,7 +72,7 @@ class OperatorLifecycleRequest < OrgPrincipalRecord
   belongs_to :executed_by_operator,
              class_name: "Operator"
 
-  validates :action, inclusion: { in: ACTIONS }
+  validates :action, presence: true, inclusion: { in: ACTIONS }
   validates :status, inclusion: { in: STATUSES }
   validates :target_email, presence: true, if: :join?
   validates :organization_id, presence: true, if: :join?

@@ -180,7 +180,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
     assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
   end
 
@@ -347,7 +347,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
     assert config.fetch(:model).exists?(identity.id)
   end
 

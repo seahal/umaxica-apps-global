@@ -72,4 +72,10 @@ class AgentMembership < OrgRpRecord
   belongs_to :granted_by_agent, class_name: "Agent", inverse_of: false
   belongs_to :approved_by_agent, class_name: "Agent", inverse_of: false
   belongs_to :revoked_by_agent, class_name: "Agent", inverse_of: false
+
+  validates :agent_id,
+            uniqueness: {
+              conditions: -> { where(primary: true, revoked_at: nil, ends_at: nil) },
+            },
+            if: :primary?
 end

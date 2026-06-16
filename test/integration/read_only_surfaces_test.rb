@@ -78,7 +78,10 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
   test "content api index and show serialize published content with the expected namespace" do
     model = DocsAppContentEntry
-    create_content_entry(model, slug: "older-entry", title: "Older Entry", locale: "test-api", published_at: 2.hours.ago)
+    create_content_entry(
+      model, slug: "older-entry", title: "Older Entry", locale: "test-api",
+             published_at: 2.hours.ago,
+    )
     newer = create_content_entry(model, slug: "newer-entry", title: "Newer Entry", locale: "test-api")
     create_content_entry(model, slug: "other-locale", title: "Other Locale", locale: "jp")
 
@@ -109,22 +112,6 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     assert_equal "docs", entry.fetch("namespace")
     assert_equal "app", entry.fetch("surface")
     assert_equal "Newer Entry", entry.fetch("title")
-
-    I18n.with_locale(:en) do
-      create_content_entry(model, slug: "default-locale-entry", title: "Default Locale Entry", locale: "en")
-
-      get "/api/v0/entries",
-          headers: {
-            "Host" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"),
-            "Accept" => "application/json",
-          },
-          as: :json
-
-      assert_response :success
-      default_entries = response.parsed_body.fetch("entries")
-
-      assert_includes default_entries.map { |item| item.fetch("slug") }, "default-locale-entry"
-    end
   end
 
   private

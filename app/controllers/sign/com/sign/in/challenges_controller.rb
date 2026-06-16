@@ -22,7 +22,7 @@ module Sign
 
             clear_pending_mfa!
             redirect_to(
-              sign_com_sign_in_entrance_path(ri: params[:ri]),
+              sign_com_sign_in_path(ri: params[:ri]),
               alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )

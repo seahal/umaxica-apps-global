@@ -90,9 +90,15 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
+
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
       end
 
       # Social authentication ceremony.
@@ -103,14 +109,6 @@ scope module: :acme, as: :acme do
           post :continue, on: :member
           post :completion, on: :member
         end
-      end
-
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
-
-        resource :logout, only: :create
       end
 
       # OIDC end-session endpoint.
@@ -284,16 +282,14 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
-      end
 
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
 
+        # RP local logout: destroys only the local session.
         resource :logout, only: :create
       end
 
@@ -488,16 +484,14 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
-      end
 
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
 
+        # RP local logout: destroys only the local session.
         resource :logout, only: :create
       end
 

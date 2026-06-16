@@ -1256,8 +1256,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@zenuml/core@3.49.6':
-    resolution: {integrity: sha512-IbBqOJlJW1u48siboMP430YLCnUO7owFFehZTsfp6mXQ1/LkmXlHmhkFJIoUicel6r/NGAoG9UfvSWGSbiKxeA==}
+  '@zenuml/core@3.50.0':
+    resolution: {integrity: sha512-y+DhuUS7v3cpoZcOHf0VD3/68vS/Y999kazl3mz+rCIW0PJ75EKB9pW+m5BMdmND3m7N+DEF+4pvNjS0cK1org==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -2936,7 +2936,7 @@ snapshots:
 
   '@mermaid-js/mermaid-zenuml@0.2.3(@types/react@19.2.17)(mermaid@11.15.0)(tailwindcss@4.3.1)':
     dependencies:
-      '@zenuml/core': 3.49.6(@types/react@19.2.17)(tailwindcss@4.3.1)
+      '@zenuml/core': 3.50.0(@types/react@19.2.17)(tailwindcss@4.3.1)
       mermaid: 11.15.0
     transitivePeerDependencies:
       - '@babel/core'
@@ -3622,7 +3622,7 @@ snapshots:
   '@voidzero-dev/vite-plus-win32-x64-msvc@0.1.24':
     optional: true
 
-  '@zenuml/core@3.49.6(@types/react@19.2.17)(tailwindcss@4.3.1)':
+  '@zenuml/core@3.50.0(@types/react@19.2.17)(tailwindcss@4.3.1)':
     dependencies:
       '@floating-ui/react': 0.27.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@headlessui/react': 2.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

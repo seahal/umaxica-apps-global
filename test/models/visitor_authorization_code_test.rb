@@ -79,6 +79,35 @@ class VisitorAuthorizationCodeTest < ActiveSupport::TestCase
     assert_predicate code.errors[:code_challenge_method], :any?
   end
 
+  test "validates code and client_id length boundaries" do
+    code = VisitorAuthorizationCode.new(
+      @valid_params.merge(
+        code: "x" * 65,
+        client_id: "x" * 65,
+        code_challenge_method: "S256",
+        discarded_at: Time.current,
+      ),
+    )
+
+    assert_not code.valid?
+    assert_predicate code.errors[:code], :any?
+    assert_predicate code.errors[:client_id], :any?
+  end
+
+  test "validates code_challenge_method length boundary" do
+    code = VisitorAuthorizationCode.new(
+      @valid_params.merge(
+        code: "abc",
+        client_id: "test-client",
+        discarded_at: Time.current,
+        code_challenge_method: "S256S2569",
+      ),
+    )
+
+    assert_not code.valid?
+    assert_predicate code.errors[:code_challenge_method], :any?
+  end
+
   test "usable? checks expiration and consumption" do
     code = VisitorAuthorizationCode.issue!(**@valid_params)
 

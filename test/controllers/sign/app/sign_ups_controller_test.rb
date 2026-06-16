@@ -6,8 +6,8 @@ require "test_helper"
 class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "direct entrance normalizes to acme app authorization" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: { "Host" => host }
+  test "direct entry normalizes to acme app authorization" do
+    get sign_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
     assert_response :redirect
 
@@ -21,15 +21,15 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "valid login challenge renders local ceremony entrance" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+  test "valid login challenge renders local ceremony" do
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
   end
 
   test "sets lang attribute on html element" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -38,7 +38,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows registration methods and social providers" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -47,7 +47,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows telephone registration link" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -55,7 +55,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows social login buttons" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -70,7 +70,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders registration layout structure" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -90,7 +90,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "header contains authentication links" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -100,7 +100,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "footer contains navigation links" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -110,7 +110,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
   end
   test "renders specific cta text" do
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp", login_challenge: login_challenge),
+    get sign_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
@@ -120,7 +120,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should redirect to dashboard when logged in" do
     user = clients(:one)
-    get sign_app_sign_up_entrance_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
+    get sign_app_sign_up_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
 
     assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
@@ -128,7 +128,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   test "checkpoint without active registration redirects to sign up start" do
     get sign_app_sign_up_guard_email_path(ri: "jp"), headers: { "Host" => host }
 
-    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_url(ri: "jp")
   end
 
   private

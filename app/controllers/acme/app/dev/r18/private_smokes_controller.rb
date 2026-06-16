@@ -27,7 +27,7 @@ module Acme
           def require_dev_private_authentication!
             return if logged_in?
 
-            sign_in_url = sign_app_sign_in_entrance_url(ri: params[:ri], host: oidc_sign_host)
+            sign_in_url = sign_app_sign_in_url(ri: params[:ri], host: oidc_sign_host)
             redirect_to_jump_url(sign_in_url)
           end
 

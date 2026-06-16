@@ -10,8 +10,8 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
   end
 
-  test "direct entrance normalizes to acme org authorization" do
-    get sign_org_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @host }
+  test "direct entry normalizes to acme org authorization" do
+    get sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
 
@@ -25,14 +25,14 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "valid login challenge renders local ceremony entrance" do
+  test "valid login challenge renders local ceremony" do
     issuance = OidcAuthorizationTransactionService.issue!(
       surface: "org",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -46,7 +46,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -64,7 +64,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     )
 
     with_env("ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+      get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
           headers: { "Host" => @host }
     end
 
@@ -80,7 +80,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_entrance_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -132,7 +132,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   test "rejects when logged in" do
     staff = operators(:one)
 
-    get sign_org_sign_up_entrance_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+    get sign_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
     assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end

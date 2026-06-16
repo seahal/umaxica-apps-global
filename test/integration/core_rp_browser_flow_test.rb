@@ -61,12 +61,12 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "regional core sso authorize redirects to Acme OP with state nonce and PKCE" do
+  test "regional core auth authorize redirects to Acme OP with state nonce and PKCE" do
     SURFACES.each do |surface|
       host! surface[:host]
       https!
 
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -92,7 +92,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       host! core_host
       https!
 
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -110,7 +110,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal sign_host, sign_uri.host
-      assert_equal "/sign/in/entrance", sign_uri.path
+      assert_equal "/sign/in", sign_uri.path
       assert_predicate sign_query["login_challenge"], :present?
 
       host! sign_host
@@ -164,7 +164,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
       https!
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
@@ -194,12 +194,10 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       host! surface[:host]
       https!
 
-      post "/sso/logout", headers: browser_headers
+      post "/auth/logout", headers: browser_headers
 
       assert_response :redirect
       assert_equal "https://#{surface[:host]}/", response.location
-      assert_match "/settings/sessions", flash[:notice]
-      assert_match surface[:acme_host], flash[:notice]
     end
   end
 

@@ -49,7 +49,7 @@ class DomainOccurrence < OccurrenceRecord
   has_many :telephone_occurrences, through: :domain_telephone_occurrences
   has_many :domain_user_occurrences, class_name: "DomainClientOccurrence", dependent: :destroy,
                                      inverse_of: :domain_occurrence
-  has_many :client_occurrences, through: :domain_user_occurrences
+  has_many :client_occurrences, through: :domain_user_occurrences, source: :user_occurrence
   has_many :domain_zip_occurrences, dependent: :destroy, inverse_of: :domain_occurrence
   has_many :zip_occurrences, through: :domain_zip_occurrences
 

@@ -58,7 +58,7 @@ class TelephoneOccurrence < OccurrenceRecord
   has_many :staff_occurrences, through: :staff_telephone_occurrences
   has_many :telephone_user_occurrences, class_name: "TelephoneClientOccurrence", dependent: :destroy,
                                         inverse_of: :telephone_occurrence
-  has_many :client_occurrences, through: :telephone_user_occurrences
+  has_many :client_occurrences, through: :telephone_user_occurrences, source: :user_occurrence
   has_many :telephone_zip_occurrences, dependent: :destroy, inverse_of: :telephone_occurrence
   has_many :zip_occurrences, through: :telephone_zip_occurrences
 

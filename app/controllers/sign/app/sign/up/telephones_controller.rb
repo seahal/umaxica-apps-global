@@ -160,7 +160,7 @@ module Sign
               clear_otp(@user_telephone)
               session[:user_telephone_registration] = nil
               redirect_to(
-                sign_app_sign_in_entrance_path,
+                sign_app_sign_in_path,
                 notice: t("sign.app.registration.telephone.update.sign_in_required"),
               )
               return

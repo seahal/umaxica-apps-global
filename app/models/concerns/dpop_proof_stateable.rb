@@ -8,6 +8,10 @@ module DpopProofStateable
 
   included do
     scope :active_at, ->(time) { where(arel_table[:expires_at].gt(time)) }
+    validates :expires_at, presence: true
+    validates :seen_at, presence: true
+    validates :jti, uniqueness: true, allow_nil: true
+    validates :nonce, uniqueness: true, allow_nil: true
   end
 
   class_methods do

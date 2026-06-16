@@ -35,11 +35,11 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "sign in and sign up entry routes still resolve on sign" do
     sign_in = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in/entrance",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in",
       method: :get,
     )
     sign_up = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up/entrance",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up",
       method: :get,
     )
 

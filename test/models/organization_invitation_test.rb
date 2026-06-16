@@ -33,7 +33,7 @@ class OrganizationInvitationTest < ActiveSupport::TestCase
       [0, 1, 2, 3].each { |id| OrganizationStatus.find_or_create_by!(id: id) }
     end
     @staff = Operator.create!
-    @organization = Organization.create!(name: "Test Org")
+    @organization = Organization.create!(name: "Test Org", domain: "test-org-#{SecureRandom.hex(4)}")
     @invitation = OrganizationInvitation.create!(
       email: "invitee@example.com",
       organization_id: @organization.id,
@@ -101,6 +101,18 @@ class OrganizationInvitationTest < ActiveSupport::TestCase
 
     assert_not duplicate.valid?
     assert_not_empty duplicate.errors[:code]
+  end
+
+  test "code length validation" do
+    invitation = OrganizationInvitation.new(
+      email: "test@example.com",
+      organization_id: @organization.id,
+      invited_by: @staff,
+    )
+    invitation.code = "x" * 33
+
+    assert_not invitation.valid?
+    assert_not_empty invitation.errors[:code]
   end
 
   test "active? returns true for fresh invitation" do

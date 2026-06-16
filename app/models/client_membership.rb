@@ -26,6 +26,7 @@
 
 class ClientMembership < AppPrincipalRecord
   belongs_to :user, class_name: "Client", inverse_of: :client_memberships
+  validates :workspace_id, presence: true
 
   validates :user_id, uniqueness: { scope: :workspace_id }
 end

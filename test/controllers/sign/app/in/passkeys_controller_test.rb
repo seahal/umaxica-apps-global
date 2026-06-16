@@ -55,7 +55,7 @@ module Sign::App::In
       assert_select "[data-passkey-authentication-options-url-value=?]", sign_app_sign_in_passkey_options_path(ri: "jp")
       assert_select "[data-passkey-authentication-verification-url-value=?]",
                     sign_app_sign_in_passkey_verification_path(ri: "jp")
-      assert_select "a[href=?]", sign_app_sign_in_entrance_path(ri: "jp")
+      assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
     end
 
     # Case F-1: Identifier does not exist

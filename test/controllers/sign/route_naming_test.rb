@@ -10,9 +10,9 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     org: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
   }.freeze
 
-  test "sign entrance helpers use explicit lifecycle resources" do
-    assert_equal "/sign/up/entrance", sign_app_sign_up_entrance_path
-    assert_equal "/sign/in/entrance", sign_app_sign_in_entrance_path
+  test "sign entry helpers use explicit lifecycle resources" do
+    assert_equal "/sign/up", sign_app_sign_up_path
+    assert_equal "/sign/in", sign_app_sign_in_path
   end
 
   test "sign logout mutation helpers are gone from id host" do
@@ -28,8 +28,10 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
 
   test "top-level sign entry routes resolve conventionally on every sign surface" do
     SURFACES.each_key do |surface|
-      assert_recognizes_sign_route(surface, "/sign/up/entrance", :get, "sign/up/entrances", "show")
-      assert_recognizes_sign_route(surface, "/sign/in/entrance", :get, "sign/in/entrances", "show")
+      assert_recognizes_sign_route(surface, "/sign/up", :get, "sign/up/entrances", "show")
+      assert_recognizes_sign_route(surface, "/sign/in", :get, "sign/in/entrances", "show")
+      assert_unrecognized(surface, "/sign/up/entrance", :get)
+      assert_unrecognized(surface, "/sign/in/entrance", :get)
       assert_recognizes_sign_route(surface, "/signed-out", :get, "signed/outs", "show")
       assert_recognizes_sign_route(surface, "/oidc/backchannel/logout", :post, "oidc/backchannel/logouts", "create")
       assert_unrecognized(surface, "/oidc/frontchannel_logout", :get)

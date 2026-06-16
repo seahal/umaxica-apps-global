@@ -42,6 +42,7 @@ class Organization < OrgPrincipalRecord
            inverse_of: :organization
   has_many :departments, dependent: :nullify, inverse_of: :workspace
 
-  validates :domain, uniqueness: true
+  validates :domain, presence: true, uniqueness: true
+  validates :name, presence: true
   validates :workspace_status_id, numericality: { only_integer: true }, allow_nil: true
 end

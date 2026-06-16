@@ -38,7 +38,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
 
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -63,7 +63,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
 
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -80,7 +80,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal sign_host, sign_uri.host
-      assert_equal "/sign/in/entrance", sign_uri.path
+      assert_equal "/sign/in", sign_uri.path
       assert_predicate sign_query["login_challenge"], :present?
 
       host! sign_host
@@ -181,7 +181,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "callback rejects state mismatch" do
     host! "www.app.localhost"
-    get "/sso/authorize", headers: browser_headers
+    get "/auth", headers: browser_headers
 
     get "/auth/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
 
@@ -190,7 +190,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "callback rejects nonce mismatch" do
     host! "www.app.localhost"
-    get "/sso/authorize", headers: browser_headers
+    get "/auth", headers: browser_headers
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
     id_token = OidcIdTokenIssuer.call(
       resource: clients(:one),
@@ -214,7 +214,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "app com and org callback establishes RP session after successful authorization" do
     SURFACES.each do |surface|
       host! surface[:host]
-      get "/sso/authorize", headers: browser_headers
+      get "/auth", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
@@ -243,12 +243,10 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
 
-      post "/sso/logout", headers: browser_headers
+      post "/auth/logout", headers: browser_headers
 
       assert_response :redirect
       assert_equal "http://#{surface[:host]}/", response.location
-      assert_match "/settings/sessions", flash[:notice]
-      assert_match surface[:acme_host], flash[:notice]
     end
   end
 

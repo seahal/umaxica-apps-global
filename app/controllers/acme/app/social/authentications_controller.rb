@@ -60,13 +60,13 @@ module Acme
           complete_social_login!(commit, provider)
         rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
           redirect_to(
-            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
           )
         rescue SocialAuth::BaseError => e
           redirect_to(
-            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t(e.message),
             allow_other_host: cross_host_redirect_allowed?,
           )
@@ -163,7 +163,7 @@ module Acme
           end
 
           redirect_to(
-            sign_app_sign_in_entrance_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
           )

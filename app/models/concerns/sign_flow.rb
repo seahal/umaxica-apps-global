@@ -19,6 +19,7 @@ module SignFlow
 
     validates :status_id, presence: true, inclusion: { in: ->(record) { record.class::STATUS_IDS } }
     validates :step, presence: true, inclusion: { in: ->(record) { record.class::STEPS } }
+    validates :state, presence: true
     validates :nonce_digest, presence: true
     validates :issued_at, :expires_at, presence: true
     validate :legacy_state_matches_status

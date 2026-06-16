@@ -31,6 +31,8 @@
 #  fk_rails_...  (status_id => client_profile_statuses.id)
 #
 class ClientProfile < AppRpRecord
+  include PublicId
+
   belongs_to :client_status,
              class_name: "ClientProfileStatus",
              inverse_of: :clients

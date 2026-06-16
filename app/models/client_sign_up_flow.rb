@@ -16,7 +16,7 @@
 #  completed_at                    :datetime
 #  completed_requirements          :jsonb            not null
 #  discarded_at                    :datetime         default(Infinity), not null
-#  entry_method                    :string
+#  entry_method                    :string           not null
 #  expires_at                      :datetime         not null
 #  failed_at                       :datetime
 #  issued_at                       :datetime         not null

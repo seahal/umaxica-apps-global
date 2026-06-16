@@ -372,7 +372,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal sign_app_sign_in_entrance_url(ri: "jp"), response.location
+    assert_equal sign_app_sign_in_url(ri: "jp"), response.location
   end
 
   test "provider failure returns to sign up when social auth started from sign up" do
@@ -382,7 +382,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal sign_app_sign_up_entrance_url(ri: "jp"), response.location
+    assert_equal sign_app_sign_up_url(ri: "jp"), response.location
   end
 
   test "provider failure returns to sign in when social auth started from sign in" do
@@ -392,7 +392,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
-    assert_equal sign_app_sign_in_entrance_url(ri: "jp"), response.location
+    assert_equal sign_app_sign_in_url(ri: "jp"), response.location
   end
 
   test "Apple login with new uid waits for signup confirmation before creating user and identity" do

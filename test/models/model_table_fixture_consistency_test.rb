@@ -6,7 +6,7 @@ require "test_helper"
 class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
   fixtures_none!
 
-  IGNORED_MODEL_NAMES = %w[
+  IGNORED_MODEL_NAMES = %w(
     DocsAppContentEntry
     DocsComContentEntry
     DocsOrgContentEntry
@@ -16,7 +16,7 @@ class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
     NewsAppContentEntry
     NewsComContentEntry
     NewsOrgContentEntry
-  ].freeze
+  ).freeze
 
   test "application record table names follow model tableize convention" do
     Rails.application.eager_load!

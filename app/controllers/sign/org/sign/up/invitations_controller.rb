@@ -27,7 +27,7 @@ module Sign
 
             if result.success?
               redirect_to(
-                sign_org_sign_in_entrance_path,
+                sign_org_sign_in_path,
                 notice: t(".success", public_id: result.operator.public_id),
               )
             else

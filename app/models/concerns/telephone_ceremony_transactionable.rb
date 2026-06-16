@@ -28,6 +28,9 @@ module TelephoneCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :operation, :status, :grant_jti, :expires_at,
               presence: true
+    validates :transaction_id, uniqueness: true
+    validates :grant_jti, uniqueness: true
+    validates :result_jti, uniqueness: true, allow_nil: true
     validates :surface, inclusion: { in: IdentityTelephoneCeremonyContract::SURFACES }
     validates :operation, inclusion: { in: IdentityTelephoneCeremonyContract::OPERATIONS }
     validates :status, inclusion: { in: STATUSES }

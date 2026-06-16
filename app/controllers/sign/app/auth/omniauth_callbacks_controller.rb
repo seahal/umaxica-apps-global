@@ -365,7 +365,7 @@ module Sign
 
           unless user&.login_allowed?
             return redirect_to(
-              sign_app_sign_in_entrance_path,
+              sign_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -407,7 +407,7 @@ module Sign
             ),
           )
           redirect_to(
-            sign_app_sign_in_entrance_path(ri: params[:ri].presence || current_social_auth_ri),
+            sign_app_sign_in_path(ri: params[:ri].presence || current_social_auth_ri),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
           )
         end
@@ -543,13 +543,13 @@ module Sign
             Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.mfa_required"))
             safe_redirect_to(
               sign_in_result.redirect_to,
-              fallback: sign_app_sign_in_entrance_path,
+              fallback: sign_app_sign_in_path,
               notice: I18n.t("sign.app.in.mfa.required"),
             )
           else
             Rails.logger.warn(JitLogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
             redirect_to(
-              sign_app_sign_in_entrance_path,
+              sign_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -559,10 +559,10 @@ module Sign
           ri = params[:ri].presence || current_social_auth_ri
 
           if current_social_auth_entry == "sign_up"
-            return sign_app_sign_up_entrance_path(ri: ri)
+            return sign_app_sign_up_path(ri: ri)
           end
 
-          sign_app_sign_in_entrance_path(ri: ri)
+          sign_app_sign_in_path(ri: ri)
         end
 
         def social_auth_success_redirect_path

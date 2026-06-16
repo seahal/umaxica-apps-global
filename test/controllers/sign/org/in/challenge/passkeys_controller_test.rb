@@ -60,7 +60,7 @@ class Sign::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   test "new requires pending MFA session" do
     get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
 
-    assert_redirected_to sign_org_sign_in_entrance_path(ri: "jp")
+    assert_redirected_to sign_org_sign_in_path(ri: "jp")
     assert_equal I18n.t("sign.org.in.mfa.session_expired"), flash[:alert]
   end
 

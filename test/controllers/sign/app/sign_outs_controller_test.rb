@@ -26,7 +26,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
         }
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_sign_in_entrance_path(ri: "jp")
+    assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
     assert_predicate token.reload, :currently_usable?
   end
 end

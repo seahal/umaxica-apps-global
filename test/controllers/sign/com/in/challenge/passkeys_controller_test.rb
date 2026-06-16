@@ -52,7 +52,7 @@ class Sign::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
     assert_response :redirect
 
-    assert_redirected_to sign_com_sign_in_entrance_path(ri: "jp")
+    assert_redirected_to sign_com_sign_in_path(ri: "jp")
   end
 
   test "create verifies passkey and redirects on success" do

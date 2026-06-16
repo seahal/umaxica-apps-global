@@ -15,7 +15,7 @@ class Sign::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::Integrat
   test "guard redirects direct access without a cycle to signup entry" do
     get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_url(ri: "jp")
     assert_empty flash.to_hash
   end
 
@@ -28,7 +28,7 @@ class Sign::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::Integrat
 
     get sign_app_sign_up_guard_email_url(ri: "jp", sid: ticket.public_id), headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_url(ri: "jp")
     assert_empty flash.to_hash
   end
 

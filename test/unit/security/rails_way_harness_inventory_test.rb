@@ -68,7 +68,6 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
                                                                     "reviewed ceremony transaction model DSL concern",],
     "app/models/concerns/token_status_management.rb" => [4, "legacy token status query concern"],
     "app/models/concerns/totp_ceremony_transactionable.rb" => [12, "reviewed ceremony transaction model DSL concern"],
-    "app/models/concerns/version.rb" => [1, "legacy public id validation concern"],
     "app/models/concerns/withdrawable.rb" => [1, "legacy withdrawal query concern"],
     "app/models/concerns/withdrawal_flow.rb" => [10, "legacy withdrawal flow state concern"],
   }.freeze

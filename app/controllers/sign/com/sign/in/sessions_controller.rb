@@ -79,7 +79,7 @@ module Sign
               session.delete(:pending_login_visitor_id)
               log_out
               redirect_to(
-                sign_com_sign_in_entrance_path(ri: params[:ri]),
+                sign_com_sign_in_path(ri: params[:ri]),
                 notice: I18n.t("sign.app.in.session.cancelled"),
               )
             end
@@ -106,7 +106,7 @@ module Sign
 
           def redirect_to_login
             redirect_to(
-              sign_com_sign_in_entrance_path(ri: params[:ri]),
+              sign_com_sign_in_path(ri: params[:ri]),
               alert: I18n.t("sign.app.in.session.login_required"),
             )
           end

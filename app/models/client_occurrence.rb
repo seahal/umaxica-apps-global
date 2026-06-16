@@ -43,18 +43,23 @@ class ClientOccurrence < OccurrenceRecord
 
   belongs_to :user_occurrence_status, class_name: "ClientOccurrenceStatus", foreign_key: :status_id,
                                       inverse_of: :client_occurrences
-  has_many :area_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :area_user_occurrences, class_name: "AreaClientOccurrence", dependent: :destroy,
+                                   inverse_of: :user_occurrence
   has_many :area_occurrences, through: :area_user_occurrences
-  has_many :domain_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :domain_user_occurrences, class_name: "DomainClientOccurrence", dependent: :destroy,
+                                     inverse_of: :user_occurrence
   has_many :domain_occurrences, through: :domain_user_occurrences
-  has_many :email_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :email_user_occurrences, class_name: "EmailClientOccurrence", dependent: :destroy,
+                                    inverse_of: :user_occurrence
   has_many :email_occurrences, through: :email_user_occurrences
-  has_many :ip_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :ip_user_occurrences, class_name: "IpClientOccurrence", dependent: :destroy,
+                                 inverse_of: :user_occurrence
   has_many :ip_occurrences, through: :ip_user_occurrences
   has_many :staff_user_occurrences, class_name: "OperatorClientOccurrence", dependent: :destroy,
                                     inverse_of: :user_occurrence
   has_many :staff_occurrences, through: :staff_user_occurrences
-  has_many :telephone_user_occurrences, dependent: :destroy, inverse_of: :user_occurrence
+  has_many :telephone_user_occurrences, class_name: "TelephoneClientOccurrence", dependent: :destroy,
+                                        inverse_of: :user_occurrence
   has_many :telephone_occurrences, through: :telephone_user_occurrences
   has_many :client_zip_occurrences, dependent: :destroy, inverse_of: :user_occurrence
   has_many :zip_occurrences, through: :client_zip_occurrences

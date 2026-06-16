@@ -52,7 +52,7 @@ class EmailOccurrence < OccurrenceRecord
   has_many :telephone_occurrences, through: :email_telephone_occurrences
   has_many :email_user_occurrences, class_name: "EmailClientOccurrence", dependent: :destroy,
                                     inverse_of: :email_occurrence
-  has_many :client_occurrences, through: :email_user_occurrences
+  has_many :client_occurrences, through: :email_user_occurrences, source: :user_occurrence
   has_many :email_zip_occurrences, dependent: :destroy, inverse_of: :email_occurrence
   has_many :zip_occurrences, through: :email_zip_occurrences
 

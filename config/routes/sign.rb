@@ -29,6 +29,10 @@ scope module: :sign, as: :sign do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # Canonical ceremony entrypoints.
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+
       # Signed-out landing page.
       namespace :signed, path: "" do
         resource :out, only: :show, path: "signed-out"
@@ -79,7 +83,6 @@ scope module: :sign, as: :sign do
       namespace :sign do
         # Sign-up ceremony.
         namespace :up do
-          resource :entrance, only: :show
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
 
@@ -121,7 +124,6 @@ scope module: :sign, as: :sign do
 
         # Sign-in ceremony.
         namespace :in do
-          resource :entrance, only: :show
           resource :email, only: %i(new create edit update)
 
           resource :passkey, only: :new
@@ -167,7 +169,13 @@ scope module: :sign, as: :sign do
 
       # OmniAuth callbacks.
       namespace :auth, path: "auth" do
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
         resource :callback, only: :show
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
 
         # OmniAuth callback; keep provider path and defaults.
         get "google_app/callback",
@@ -286,6 +294,21 @@ scope module: :sign, as: :sign do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # Canonical ceremony entrypoints.
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+
+      # Auth callback and RP login/logout endpoints.
+      namespace :auth, path: "auth" do
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        resource :callback, only: :show
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
+      end
+
       # Signed-out landing page.
       namespace :signed, path: "" do
         resource :out, only: :show, path: "signed-out"
@@ -319,11 +342,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Auth callback.
-      namespace :auth, path: "auth" do
-        resource :callback, only: :show
-      end
-
       # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
@@ -338,7 +356,6 @@ scope module: :sign, as: :sign do
       namespace :sign do
         # Sign-up ceremony.
         namespace :up do
-          resource :entrance, only: :show
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
 
@@ -366,7 +383,6 @@ scope module: :sign, as: :sign do
 
         # Sign-in ceremony.
         namespace :in do
-          resource :entrance, only: :show
           resource :email, only: %i(new create edit update)
 
           resource :passkey, only: :new
@@ -496,6 +512,21 @@ scope module: :sign, as: :sign do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # Canonical ceremony entrypoints.
+      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up/entrances"
+      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in/entrances"
+
+      # Auth callback and RP login/logout endpoints.
+      namespace :auth, path: "auth" do
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        resource :callback, only: :show
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
+      end
+
       # Signed-out landing page.
       namespace :signed, path: "" do
         resource :out, only: :show, path: "signed-out"
@@ -519,11 +550,6 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # Auth callback.
-      namespace :auth, path: "auth" do
-        resource :callback, only: :show
-      end
-
       # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
@@ -538,13 +564,11 @@ scope module: :sign, as: :sign do
       namespace :sign do
         # Staff invitation sign-up.
         namespace :up do
-          resource :entrance, only: :show
           resources :invitations, only: %i(new create)
         end
 
         # Sign-in ceremony.
         namespace :in do
-          resource :entrance, only: :show
           resource :passkey, only: :new
 
           namespace :passkey do

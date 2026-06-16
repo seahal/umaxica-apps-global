@@ -28,6 +28,10 @@ module StepUpCeremonyTransactionable
 
     validates :transaction_id, :surface, :actor_ref, :session_ref, :required_scope, :required_aal, :status,
               :grant_jti, :expires_at, presence: true
+    validates :transaction_id, uniqueness: true
+    validates :grant_jti, uniqueness: true
+    validates :result_jti, uniqueness: true, allow_nil: true
+    validates :allowed_methods, presence: true
     validates :surface, inclusion: { in: IdentityStepUpCeremonyContract::SURFACES }
     validates :required_aal, inclusion: { in: IdentityStepUpCeremonyContract::AALS }
     validates :aal, inclusion: { in: IdentityStepUpCeremonyContract::AALS }, allow_blank: true

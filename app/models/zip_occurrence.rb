@@ -49,7 +49,7 @@ class ZipOccurrence < OccurrenceRecord
   has_many :telephone_zip_occurrences, dependent: :destroy, inverse_of: :zip_occurrence
   has_many :telephone_occurrences, through: :telephone_zip_occurrences
   has_many :client_zip_occurrences, dependent: :destroy, inverse_of: :zip_occurrence
-  has_many :client_occurrences, through: :client_zip_occurrences
+  has_many :client_occurrences, through: :client_zip_occurrences, source: :user_occurrence
 
   validates :body, length: { maximum: 16 }
   validates :status_id, numericality: { only_integer: true }

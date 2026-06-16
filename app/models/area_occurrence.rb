@@ -50,7 +50,7 @@ class AreaOccurrence < OccurrenceRecord
   has_many :area_telephone_occurrences, dependent: :destroy, inverse_of: :area_occurrence
   has_many :telephone_occurrences, through: :area_telephone_occurrences
   has_many :area_user_occurrences, class_name: "AreaClientOccurrence", dependent: :destroy, inverse_of: :area_occurrence
-  has_many :client_occurrences, through: :area_user_occurrences
+  has_many :client_occurrences, through: :area_user_occurrences, source: :user_occurrence
   has_many :area_zip_occurrences, dependent: :destroy, inverse_of: :area_occurrence
   has_many :zip_occurrences, through: :area_zip_occurrences
 

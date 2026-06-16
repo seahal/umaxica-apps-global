@@ -60,6 +60,7 @@ class VisitorEmail < ComPrincipalRecord
   mfa_status_owner :visitor
   belongs_to :visitor_email_status, inverse_of: :visitor_emails
 
+  validates :address, presence: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }

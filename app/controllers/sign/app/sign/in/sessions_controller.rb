@@ -102,7 +102,7 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
       log_out
-      redirect_to(sign_app_sign_in_entrance_path, notice: I18n.t("sign.app.in.session.cancelled"))
+      redirect_to(sign_app_sign_in_path, notice: I18n.t("sign.app.in.session.cancelled"))
     end
   end
 
@@ -138,7 +138,7 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
 
   def redirect_to_login
     redirect_to(
-      sign_app_sign_in_entrance_path,
+      sign_app_sign_in_path,
       alert: I18n.t("sign.app.in.session.login_required"),
     )
   end

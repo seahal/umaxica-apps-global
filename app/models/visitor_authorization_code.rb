@@ -37,11 +37,11 @@ class VisitorAuthorizationCode < ComTicketRecord
 
   belongs_to :visitor
 
-  validates :code, presence: true, uniqueness: true
-  validates :client_id, presence: true
+  validates :code, presence: true, uniqueness: true, length: { maximum: 64 }
+  validates :client_id, presence: true, length: { maximum: 64 }
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
-  validates :code_challenge_method, inclusion: { in: %w(S256) }
+  validates :code_challenge_method, inclusion: { in: %w(S256) }, length: { maximum: 8 }
   validates :discarded_at, presence: true
 
   scope :valid, -> { where(consumed_at: nil).where(arel_table[:discarded_at].gt(Time.current)) }

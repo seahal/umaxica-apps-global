@@ -126,7 +126,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before login completion"
   end
 

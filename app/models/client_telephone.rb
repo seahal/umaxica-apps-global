@@ -59,6 +59,7 @@ class ClientTelephone < AppPrincipalRecord
   belongs_to :user, class_name: "Client", inverse_of: :client_telephones
 
   # Note: :number validation is now handled by Telephone concern (E.164 normalization)
+  validates :number, presence: true
   validates :otp_attempts_count, presence: true, numericality: { only_integer: true }
   validates :otp_counter, presence: true
   validates :otp_private_key, presence: true, length: { maximum: 255 }

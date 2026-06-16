@@ -107,18 +107,34 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "core/app/auth/authorizations", action: "show" },
+      { path: "http://#{CORE_APP_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/app/auth/logouts", action: "create" },
+      { path: "http://#{CORE_APP_HOST}/auth/logout", method: :post },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/sso/authorize", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/sso/logout", method: :post)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/auth/acme", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/auth/acme/callback", method: :get)
+    end
+
+    assert_recognizes(
       { controller: "core/app/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{CORE_APP_HOST}/oidc/backchannel/logout", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "core/app/sso/authorizations", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/sso/authorize", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/app/sso/logouts", action: "create" },
-      { path: "http://#{CORE_APP_HOST}/sso/logout", method: :post },
     )
   end
 
@@ -219,18 +235,34 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "core/com/auth/authorizations", action: "show" },
+      { path: "http://#{CORE_COM_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/com/auth/logouts", action: "create" },
+      { path: "http://#{CORE_COM_HOST}/auth/logout", method: :post },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/sso/authorize", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/sso/logout", method: :post)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/auth/acme", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/auth/acme/callback", method: :get)
+    end
+
+    assert_recognizes(
       { controller: "core/com/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{CORE_COM_HOST}/oidc/backchannel/logout", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "core/com/sso/authorizations", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/sso/authorize", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/com/sso/logouts", action: "create" },
-      { path: "http://#{CORE_COM_HOST}/sso/logout", method: :post },
     )
   end
 
@@ -336,18 +368,34 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "core/org/auth/authorizations", action: "show" },
+      { path: "http://#{CORE_ORG_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/org/auth/logouts", action: "create" },
+      { path: "http://#{CORE_ORG_HOST}/auth/logout", method: :post },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/sso/authorize", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/sso/logout", method: :post)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/auth/acme", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/auth/acme/callback", method: :get)
+    end
+
+    assert_recognizes(
       { controller: "core/org/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{CORE_ORG_HOST}/oidc/backchannel/logout", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "core/org/sso/authorizations", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/sso/authorize", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "core/org/sso/logouts", action: "create" },
-      { path: "http://#{CORE_ORG_HOST}/sso/logout", method: :post },
     )
   end
 

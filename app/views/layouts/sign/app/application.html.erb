@@ -33,8 +33,8 @@
               <% if logged_in? %>
                 <%= link_to t("sign.app.layout.nav.logout"), edit_acme_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")) %>
               <% else %>
-                <%= link_to t("sign.app.layout.nav.sign_up"), sign_app_sign_up_entrance_url %>
-                <%= link_to t("sign.app.layout.nav.log_in"), sign_app_sign_in_entrance_url %>
+                <%= link_to t("sign.app.layout.nav.sign_up"), sign_app_sign_up_url %>
+                <%= link_to t("sign.app.layout.nav.log_in"), sign_app_sign_in_url %>
               <% end %>
             <% end %>
           <% end %>

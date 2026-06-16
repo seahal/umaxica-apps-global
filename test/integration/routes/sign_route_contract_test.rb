@@ -82,14 +82,32 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/app/auth/authorizations", action: "show" },
+      { path: "http://#{SIGN_APP_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/auth/logouts", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/auth/logout", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/app/sign/up/entrances", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/sign/up/entrance", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/app/sign/in/entrances", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/entrance", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/up/entrance", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/in/entrance", method: :get)
+    end
 
     assert_recognizes(
       { controller: "sign/app/sign/in/guards", action: "show" },
@@ -286,14 +304,32 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/com/auth/authorizations", action: "show" },
+      { path: "http://#{SIGN_COM_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/auth/logouts", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/auth/logout", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/com/sign/up/entrances", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/sign/up/entrance", method: :get },
+      { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/com/sign/in/entrances", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/entrance", method: :get },
+      { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/up/entrance", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/in/entrance", method: :get)
+    end
 
     assert_recognizes(
       { controller: "sign/com/sign/in/guards", action: "show" },
@@ -428,8 +464,23 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/org/auth/authorizations", action: "show" },
+      { path: "http://#{SIGN_ORG_HOST}/auth", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/auth/logouts", action: "create" },
+      { path: "http://#{SIGN_ORG_HOST}/auth/logout", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/org/sign/up/entrances", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/up/entrance", method: :get },
+      { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/sign/in/entrances", action: "show" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in", method: :get },
     )
 
     assert_recognizes(
@@ -442,10 +493,13 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/sign/up/invitations", method: :post },
     )
 
-    assert_recognizes(
-      { controller: "sign/org/sign/in/entrances", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/entrance", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/up/entrance", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/in/entrance", method: :get)
+    end
 
     assert_recognizes(
       { controller: "sign/org/sign/in/guards", action: "show" },
@@ -551,6 +605,90 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   test "sign negative route contract" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/sso/authorize",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/sso/logout",
+        method: :post,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/auth/acme",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/auth/acme/callback",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_COM_HOST}/sso/authorize",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_COM_HOST}/sso/logout",
+        method: :post,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_COM_HOST}/auth/acme",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_COM_HOST}/auth/acme/callback",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_ORG_HOST}/sso/authorize",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_ORG_HOST}/sso/logout",
+        method: :post,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_ORG_HOST}/auth/acme",
+        method: :get,
+      )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_ORG_HOST}/auth/acme/callback",
+        method: :get,
+      )
+    end
+
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{SIGN_APP_HOST}/oidc/backchannel_logout",

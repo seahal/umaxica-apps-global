@@ -267,7 +267,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
     assert_not ClientToken.exists?(user_id: user.id), "ClientToken must not be created before birthdate checkpoint"
   end
 

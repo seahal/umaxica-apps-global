@@ -102,8 +102,8 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
     assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=delete]"
-    assert_select "a[href*=?]", sign_com_sign_up_entrance_path, count: 0
-    assert_select "a[href*=?]", sign_com_sign_in_entrance_path, count: 0
+    assert_select "a[href*=?]", sign_com_sign_up_path, count: 0
+    assert_select "a[href*=?]", sign_com_sign_in_path, count: 0
 
     cycle = VisitorSignUpFlow.order(:id).find_by!(
       principal_id: visitor_email.visitor_id,
@@ -168,8 +168,8 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_sign_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_com_sign_up_entrance_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", sign_com_sign_in_entrance_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_com_sign_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp"), count: 1
   end
 
   test "create redirects to edit and allows edit page" do
@@ -569,7 +569,7 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     controller.define_singleton_method(:sign_com_sign_up_check_email_otp_path) { |_email, ri: nil, pt: nil|
       "/sign/up/check/email/otp?ri=#{ri}&pt=#{pt}"
     }
-    controller.define_singleton_method(:sign_com_sign_in_entrance_path) { |ri: nil| "/in?ri=#{ri}" }
+    controller.define_singleton_method(:sign_com_sign_in_path) { |ri: nil| "/in?ri=#{ri}" }
     controller.define_singleton_method(:t) { |key, **| key }
     controller.define_singleton_method(:safe_internal_path) { |path| path.to_s.start_with?("/") ? path : nil }
 

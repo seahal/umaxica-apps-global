@@ -31,7 +31,7 @@ class OrganizationInvitation < OrgTicketRecord
              class_name: "Operator",
              primary_key: :id
 
-  validates :code, presence: true, uniqueness: true
+  validates :code, presence: true, uniqueness: true, length: { maximum: 32 }
   validates :email, presence: true
   validates :organization_id, presence: true
   validates :expires_at, presence: true

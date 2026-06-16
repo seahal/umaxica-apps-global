@@ -310,7 +310,7 @@ module Sign
             if existing_signup_skip_otp?
               reset_email_flow!
               redirect_to(
-                sign_com_sign_in_entrance_path(ri: params[:ri]),
+                sign_com_sign_in_path(ri: params[:ri]),
                 notice: t("sign.app.registration.email.update.sign_in_required"),
               )
               return :redirected
@@ -331,7 +331,7 @@ module Sign
             reset_email_flow!
             session.delete(EXISTING_EMAIL_SESSION_KEY)
             redirect_to(
-              sign_com_sign_in_entrance_path(ri: params[:ri]),
+              sign_com_sign_in_path(ri: params[:ri]),
               notice: t("sign.app.registration.email.update.sign_in_required"),
             )
             :redirected

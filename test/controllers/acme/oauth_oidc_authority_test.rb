@@ -370,7 +370,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
-    assert_equal "/sign/in/entrance", uri.path
+    assert_equal "/sign/in", uri.path
     assert_predicate query["login_challenge"], :present?
 
     transaction = ClientOidcAuthorizationTransaction.find_by!(login_challenge: query["login_challenge"])
@@ -390,7 +390,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     uri = URI.parse(jump_rt_url_from_location(response.location))
 
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
-    assert_equal "/sign/up/entrance", uri.path
+    assert_equal "/sign/up", uri.path
   end
 
   test "acme oauth authorize rejects requests without openid scope" do

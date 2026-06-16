@@ -13,8 +13,8 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_org_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "a[href*=?]", sign_org_sign_up_entrance_path
-    assert_select "a[href*=?]", sign_org_sign_in_entrance_path
+    assert_select "a[href*=?]", sign_org_sign_up_path
+    assert_select "a[href*=?]", sign_org_sign_in_path
   end
 
   test "renders layout contract" do

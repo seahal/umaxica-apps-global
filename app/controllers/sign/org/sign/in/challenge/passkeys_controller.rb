@@ -109,7 +109,7 @@ module Sign
 
               clear_pending_mfa!
               redirect_to(
-                sign_org_sign_in_entrance_path,
+                sign_org_sign_in_path,
                 alert: I18n.t("sign.org.in.mfa.session_expired"),
                 status: :see_other,
               )
@@ -174,7 +174,7 @@ module Sign
                 )
               else
                 redirect_to(
-                  sign_org_sign_in_entrance_path,
+                  sign_org_sign_in_path,
                   alert: I18n.t("sign.org.in.mfa.verification_failed"),
                   status: :see_other,
                 )

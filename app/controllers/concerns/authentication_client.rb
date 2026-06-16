@@ -62,7 +62,7 @@ module AuthenticationClient
 
   def sign_in_url_with_pt(return_to)
     _ = return_to
-    sign_app_sign_in_entrance_url(
+    sign_app_sign_in_url(
       host: sign_app_redirect_host,
       protocol: "https",
     )

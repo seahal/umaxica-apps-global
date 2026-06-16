@@ -72,4 +72,10 @@ class IndividualMembership < ComRpRecord
   belongs_to :granted_by_individual, class_name: "Individual", inverse_of: false
   belongs_to :approved_by_individual, class_name: "Individual", inverse_of: false
   belongs_to :revoked_by_individual, class_name: "Individual", inverse_of: false
+
+  validates :individual_id,
+            uniqueness: {
+              conditions: -> { where(primary: true, revoked_at: nil, ends_at: nil) },
+            },
+            if: :primary?
 end

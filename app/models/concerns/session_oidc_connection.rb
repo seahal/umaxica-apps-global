@@ -8,6 +8,7 @@ module SessionOidcConnection
 
   included do
     before_validation :ensure_session_oidc_connection, on: :create
+    validates :oidc_client_id, length: { maximum: 64 }, allow_blank: true
   end
 
   private

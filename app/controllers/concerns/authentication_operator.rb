@@ -62,7 +62,7 @@ module AuthenticationOperator
 
   def sign_in_url_with_pt(return_to)
     _ = return_to
-    sign_org_sign_in_entrance_url(
+    sign_org_sign_in_url(
       host: sign_org_redirect_host,
       protocol: "https",
     )

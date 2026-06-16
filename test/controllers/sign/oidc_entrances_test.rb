@@ -9,36 +9,36 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
     ClientIdentityState.ensure_defaults!
   end
 
-  test "sign in entrance accepts a valid login challenge" do
+  test "sign in entry accepts a valid login challenge" do
     issuance = OidcAuthorizationTransactionService.issue!(
       surface: "app",
       intent: "sign_in",
       params: authorize_params,
     )
 
-    get sign_app_sign_in_entrance_url(login_challenge: issuance.transaction.login_challenge),
+    get sign_app_sign_in_url(login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
   end
 
-  test "sign up entrance accepts a valid login challenge" do
+  test "sign up entry accepts a valid login challenge" do
     issuance = OidcAuthorizationTransactionService.issue!(
       surface: "app",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_app_sign_up_entrance_url(login_challenge: issuance.transaction.login_challenge),
+    get sign_app_sign_up_url(login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
   end
 
-  test "sign entrance without login challenge normalizes to Acme authorize" do
-    get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @sign_host }
+  test "sign entry without login challenge normalizes to Acme authorize" do
+    get sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
     assert_response :redirect
     uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -51,8 +51,8 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "sign up entrance without login challenge normalizes to Acme authorize" do
-    get sign_app_sign_up_entrance_url(ri: "jp"), headers: { "Host" => @sign_host }
+  test "sign up entry without login challenge normalizes to Acme authorize" do
+    get sign_app_sign_up_url(ri: "jp"), headers: { "Host" => @sign_host }
 
     assert_response :redirect
     uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -70,7 +70,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       client = OidcClientRegistry.find!("sign-rp")
 
-      get sign_app_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @sign_host }
+      get sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -89,7 +89,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal @sign_host, sign_uri.host
-      assert_equal "/sign/in/entrance", sign_uri.path
+      assert_equal "/sign/in", sign_uri.path
       assert_predicate sign_query["login_challenge"], :present?
 
       host! @sign_host

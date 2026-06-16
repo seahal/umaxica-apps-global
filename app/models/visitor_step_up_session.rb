@@ -37,6 +37,7 @@ class VisitorStepUpSession < ComTicketRecord
 
   validates :scope, presence: true
   validates :return_to, presence: true
+  validates :visitor_token_id, uniqueness: true
   validates :method, inclusion: { in: METHODS }, allow_nil: true
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :discarded_at, presence: true

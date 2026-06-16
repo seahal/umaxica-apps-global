@@ -29,7 +29,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_response :redirect
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
   end
 
   test "protected settings sessions redirects to acme session authority" do
@@ -113,7 +113,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
             "HTTP_ORIGIN" => "http://#{@host}",
           )
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
   end
 
   test "update with active session returns forbidden" do
@@ -390,7 +390,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
              "HTTP_ORIGIN" => "http://#{@host}",
            )
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
   end
 
   test "destroy with active session returns forbidden" do
@@ -412,7 +412,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     delete sign_app_sign_in_session_url(ri: "jp"), headers: headers
 
-    assert_redirected_to sign_app_sign_in_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
 
     token.reload
 

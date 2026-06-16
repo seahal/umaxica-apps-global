@@ -17,6 +17,6 @@ class Sign::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     get sign_org_signed_out_url(ri: "jp", host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"))
 
     assert_response :success
-    assert_select "a[href=?]", sign_org_sign_in_entrance_path(ri: "jp")
+    assert_select "a[href=?]", sign_org_sign_in_path(ri: "jp")
   end
 end

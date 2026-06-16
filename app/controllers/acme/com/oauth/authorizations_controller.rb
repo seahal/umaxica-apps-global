@@ -63,13 +63,13 @@ module Acme
             )
           sign_url =
             if authorization_intent == "sign_up"
-              sign_com_sign_up_entrance_url(
+              sign_com_sign_up_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
                 login_challenge: issuance.transaction.login_challenge,
               )
             else
-              sign_com_sign_in_entrance_url(
+              sign_com_sign_in_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
                 login_challenge: issuance.transaction.login_challenge,

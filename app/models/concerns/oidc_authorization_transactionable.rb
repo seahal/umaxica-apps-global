@@ -26,6 +26,7 @@ module OidcAuthorizationTransactionable
     validates :response_type, inclusion: { in: ["code"] }
     validates :code_challenge_method, inclusion: { in: ["S256"] }
     validates :status, inclusion: { in: STATUSES }
+    validates :transaction_id, uniqueness: true
     validates :login_challenge, uniqueness: true
     validate :transaction_surface_matches_class
   end

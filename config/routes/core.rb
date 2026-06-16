@@ -62,9 +62,15 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
+
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
       end
 
       # OIDC back-channel receiver.
@@ -72,14 +78,6 @@ scope module: :core, as: :core do
         namespace :backchannel do
           resource :logout, only: :create
         end
-      end
-
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
-
-        resource :logout, only: :create
       end
     end
   end
@@ -143,9 +141,15 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
+
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
       end
 
       # OIDC back-channel receiver.
@@ -153,14 +157,6 @@ scope module: :core, as: :core do
         namespace :backchannel do
           resource :logout, only: :create
         end
-      end
-
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
-
-        resource :logout, only: :create
       end
     end
   end
@@ -227,9 +223,15 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback.
+      # Auth callback and RP login/logout endpoints.
       namespace :auth do
         resource :callback, only: :show
+
+        # RP login start: redirects to Acme /oauth/authorize.
+        resource :authorization, only: :show, path: ""
+
+        # RP local logout: destroys only the local session.
+        resource :logout, only: :create
       end
 
       # OIDC back-channel receiver.
@@ -237,14 +239,6 @@ scope module: :core, as: :core do
         namespace :backchannel do
           resource :logout, only: :create
         end
-      end
-
-      # SSO authorization/logout endpoints.
-      namespace :sso do
-        # SSO authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
-
-        resource :logout, only: :create
       end
     end
   end

@@ -10,8 +10,8 @@ module Sign
         @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
       end
 
-      test "direct entrance normalizes to acme com authorization" do
-        get sign_com_sign_in_entrance_url(ri: "jp"), headers: { "Host" => @host }
+      test "direct entry normalizes to acme com authorization" do
+        get sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :redirect
 
@@ -25,8 +25,8 @@ module Sign
         assert_nil session[:oidc_authorization_login_challenge]
       end
 
-      test "valid login challenge renders local ceremony entrance" do
-        get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+      test "valid login challenge renders local ceremony" do
+        get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
@@ -35,7 +35,7 @@ module Sign
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://id.umaxica.com/settings/sessions?ri=jp", padding: false)
 
-        get sign_com_sign_in_entrance_url(ri: "jp", pt: pt, login_challenge: login_challenge),
+        get sign_com_sign_in_url(ri: "jp", pt: pt, login_challenge: login_challenge),
             headers: { "Host" => @host }
 
         assert_response :success
@@ -45,7 +45,7 @@ module Sign
       end
 
       test "does not show social login buttons" do
-        get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+        get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action='/auth/google_app']", count: 0
@@ -56,7 +56,7 @@ module Sign
 
       test "does not show temporary google signin button when legacy flag is set" do
         with_env("COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "true") do
-          get sign_com_sign_in_entrance_url(ri: "jp", login_challenge: login_challenge),
+          get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge),
               headers: { "Host" => @host }
         end
 
@@ -72,7 +72,7 @@ module Sign
           visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
         )
 
-        get sign_com_sign_in_entrance_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
+        get sign_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
 
         assert_redirected_to acme_com_dashboard_url(
           ri: "jp",

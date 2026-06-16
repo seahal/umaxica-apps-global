@@ -102,7 +102,7 @@ class Sign::Org::Sign::In::SessionsController < ::Sign::Org::ApplicationControll
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
       log_out
-      redirect_to(sign_org_sign_in_entrance_path, notice: I18n.t("session_limit.cancelled"))
+      redirect_to(sign_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
     end
   end
 
@@ -134,7 +134,7 @@ class Sign::Org::Sign::In::SessionsController < ::Sign::Org::ApplicationControll
 
   def redirect_to_login
     redirect_to(
-      sign_org_sign_in_entrance_path,
+      sign_org_sign_in_path,
       alert: I18n.t("session_limit.login_required"),
     )
   end

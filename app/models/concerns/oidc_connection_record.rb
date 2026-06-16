@@ -8,6 +8,7 @@ module OidcConnectionRecord
     include ::PublicId
 
     validates :client_id, presence: true
+    validates :client_id, length: { maximum: 64 }
 
     scope :recent_first, -> { order(Arel.sql("COALESCE(last_used_at, updated_at, created_at) DESC")) }
     scope :active, -> { where(revoked_at: nil) }

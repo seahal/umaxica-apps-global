@@ -28,7 +28,7 @@ class Sign::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
 
   test "sign ceremony entry routes remain on sign" do
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_STAFF_URL")}/sign/in/entrance",
+      "https://#{ENV.fetch("SIGN_STAFF_URL")}/sign/in",
       method: :get,
     )
 

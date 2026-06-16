@@ -24,6 +24,7 @@
 #
 #  idx_on_subject_type_subject_id_occurred_at_com_pref          (subject_type,subject_id,occurred_at)
 #  index_com_preference_chronicles_on_actor_id_and_occurred_at  (actor_id,occurred_at)
+#  index_com_preference_chronicles_on_actor_type_and_actor_id   (actor_type,actor_id)
 #  index_com_preference_chronicles_on_event_id                  (event_id)
 #  index_com_preference_chronicles_on_level_id                  (level_id)
 #  index_com_preference_chronicles_on_occurred_at               (occurred_at)

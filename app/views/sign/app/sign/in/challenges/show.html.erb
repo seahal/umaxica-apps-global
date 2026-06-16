@@ -21,7 +21,7 @@
 
     <% unless @can_use_totp || @can_use_passkey %>
       <p><%= t("sign.app.in.mfa.no_methods_available") %></p>
-      <p><%= link_to t("sign.app.authentication.new.back"), sign_app_sign_in_entrance_path %></p>
+      <p><%= link_to t("sign.app.authentication.new.back"), sign_app_sign_in_path %></p>
     <% end %>
   </div>
 </div>

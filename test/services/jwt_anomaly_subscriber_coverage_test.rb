@@ -65,6 +65,31 @@ class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase
     assert_includes logged_message, "jwt.anomaly.subscriber_failed"
   end
 
+  test "emit ignores blank codes and events without a name" do
+    assert_no_difference "JwtAnomalyEvent.count" do
+      JwtAnomalySubscriber.new.emit(MockEvent.new(name: "jwt.anomaly.detected", payload: {}))
+      JwtAnomalySubscriber.new.emit(MockEvent.new(name: nil, payload: { code: "AUTH_USER_MALFORMED_TOKEN" }))
+    end
+  end
+
+  test "emit accepts string keyed payloads and defaults occurred_at to current time" do
+    travel_to Time.zone.parse("2026-06-15 21:00:00") do
+      assert_difference "JwtAnomalyEvent.count", 1 do
+        JwtAnomalySubscriber.new.emit(
+          MockEvent.new(
+            name: "jwt.anomaly.detected",
+            payload: { "code" => "AUTH_USER_MALFORMED_TOKEN", "extra" => "kept" },
+          ),
+        )
+      end
+    end
+
+    event = JwtAnomalyEvent.order(:id).last
+
+    assert_equal({ "extra" => "kept" }, event.metadata)
+    assert_equal Time.zone.parse("2026-06-15 21:00:00"), event.occurred_at
+  end
+
   test "build_metadata includes extra fields" do
     subscriber = JwtAnomalySubscriber.new
     payload = {

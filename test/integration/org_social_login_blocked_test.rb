@@ -36,7 +36,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "staff sign-in page does not contain social login buttons" do
     host! @staff_host
 
-    get "/sign/in/entrance", params: { login_challenge: login_challenge_for("org") }
+    get "/sign/in", params: { login_challenge: login_challenge_for("org") }
 
     assert_response :success
     assert_not_includes response.body, "/auth/google_app"

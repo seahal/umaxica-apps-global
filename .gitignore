@@ -142,3 +142,5 @@ nvim.log
 /plans/tmp/
 /plans/drafts/local/
 .antigravitycli/
+app/javascript/node_modules
+app/javascript/coverage

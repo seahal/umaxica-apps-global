@@ -20,7 +20,7 @@ module Sign
           def sign_in_sequence_surface = :com
 
           def guard_entry_path
-            sign_com_sign_in_entrance_path(ri: params[:ri])
+            sign_com_sign_in_path(ri: params[:ri])
           end
 
           def route_guard_cycle(cycle)

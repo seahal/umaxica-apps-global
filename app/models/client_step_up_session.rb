@@ -37,6 +37,7 @@ class ClientStepUpSession < AppTicketRecord
 
   validates :scope, presence: true
   validates :return_to, presence: true
+  validates :user_token_id, uniqueness: true
   validates :method, inclusion: { in: METHODS }, allow_nil: true
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :discarded_at, presence: true

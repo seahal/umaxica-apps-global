@@ -8,8 +8,8 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
   end
 
-  test "direct entrance normalizes to acme com authorization" do
-    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp"), headers: default_headers
+  test "direct entry normalizes to acme com authorization" do
+    get sign_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
 
     assert_response :redirect
 
@@ -24,7 +24,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony shows email and telephone registration methods" do
-    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
+    get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 2
@@ -33,7 +33,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "does not show social login buttons when flag is off" do
-    get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
+    get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
@@ -44,7 +44,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   test "does not show temporary google signup button when legacy flag is on" do
     with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_com_sign_up_entrance_url(ct: "dr", ri: "jp", login_challenge: login_challenge),
+      get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge),
           headers: default_headers
     end
 
@@ -60,13 +60,13 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get sign_com_sign_up_entrance_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
+    get sign_com_sign_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
     assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
   end
 
-  test "sign up entrance renders without an active registration" do
-    get sign_com_sign_up_entrance_url(ri: "jp", login_challenge: login_challenge), headers: default_headers
+  test "sign up entry renders without an active registration" do
+    get sign_com_sign_up_url(ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
   end

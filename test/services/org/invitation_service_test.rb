@@ -9,7 +9,7 @@ class OrgInvitationServiceTest < ActiveSupport::TestCase
     defined?(Prosopite) ? Prosopite.pause(&operation) : operation.call
 
     @staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
-    @organization = Organization.create!(name: "Test Org")
+    @organization = Organization.create!(name: "Test Org", domain: "test-org-#{SecureRandom.hex(4)}")
   end
 
   test "create generates a valid invitation" do

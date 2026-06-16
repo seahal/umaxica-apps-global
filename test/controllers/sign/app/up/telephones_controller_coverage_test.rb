@@ -88,8 +88,8 @@ class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
       "/sign/up/telephone/new?#{kwargs.compact.to_query}"
     end
 
-    def sign_app_sign_in_entrance_path(**kwargs)
-      "/sign/in/entrance?#{kwargs.compact.to_query}"
+    def sign_app_sign_in_path(**kwargs)
+      "/sign/in?#{kwargs.compact.to_query}"
     end
 
     def t(key, **)

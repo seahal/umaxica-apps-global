@@ -55,7 +55,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :success
 
-    assert_select "a[href=?]", sign_app_sign_up_entrance_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_app_sign_up_path(ri: "jp"), count: 1
     assert_select "a[href=?]", new_sign_app_sign_in_email_path(ri: "jp"), count: 1
   end
 
@@ -899,8 +899,8 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
     assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=delete]"
-    assert_select "a[href*=?]", sign_app_sign_up_entrance_path, count: 0
-    assert_select "a[href*=?]", sign_app_sign_in_entrance_path, count: 0
+    assert_select "a[href*=?]", sign_app_sign_up_path, count: 0
+    assert_select "a[href*=?]", sign_app_sign_in_path, count: 0
 
     get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
@@ -1145,7 +1145,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     post sign_app_sign_up_check_email_cancellation_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_entrance_url(ri: "jp")
+    assert_redirected_to sign_app_sign_up_url(ri: "jp")
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
 
     get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers

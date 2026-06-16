@@ -12,16 +12,16 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_select "title",
                   "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (app) | #{I18n.t("acme.app.preferences.footer.home")}"
     assert_select "main a[href*='/preference']", false
-    assert_select "nav a[href='#{acme_app_sso_authorization_path(ri: "jp", screen_hint: "signup")}']",
+    assert_select "nav a[href='#{acme_app_auth_authorization_path(ri: "jp", screen_hint: "signup")}']",
                   text: I18n.t("sign.app.layout.nav.sign_up")
-    assert_select "nav a[href='#{acme_app_sso_authorization_path(ri: "jp", screen_hint: "signin")}']",
+    assert_select "nav a[href='#{acme_app_auth_authorization_path(ri: "jp", screen_hint: "signin")}']",
                   text: I18n.t("sign.app.layout.nav.log_in")
   end
 
-  test "sso authorize preserves app sign up and sign in screen hints" do
+  test "auth authorize preserves app sign up and sign in screen hints" do
     host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
-    get acme_app_sso_authorization_url(ri: "jp", screen_hint: "signup")
+    get acme_app_auth_authorization_url(ri: "jp", screen_hint: "signup")
 
     assert_response :redirect
     signup_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -30,7 +30,7 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "signup", signup_query["screen_hint"]
     assert_equal "/dashboard?ri=jp", session[:oidc_pt]
 
-    get acme_app_sso_authorization_url(ri: "jp", screen_hint: "signin")
+    get acme_app_auth_authorization_url(ri: "jp", screen_hint: "signin")
 
     assert_response :redirect
     signin_uri = URI.parse(jump_rt_url_from_location(response.location))

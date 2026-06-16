@@ -7,7 +7,7 @@ class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
     Struct.new(:calls) do
       def sign_app_sign_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
-      def sign_app_sign_in_entrance_path(ri:) = "/sign/in/entrance?ri=#{ri}"
+      def sign_app_sign_in_path(ri:) = "/sign/in?ri=#{ri}"
 
       def acme_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 
@@ -16,7 +16,7 @@ class RedirectsNavigationTargetResolverTest < ActiveSupport::TestCase
 
   test "resolves registered navigation keys" do
     assert_equal "/sign/in/check?ri=jp", resolve(:checkpoint).value
-    assert_equal "/sign/in/entrance?ri=jp", resolve(:selector).value
+    assert_equal "/sign/in?ri=jp", resolve(:selector).value
     assert_equal "/dashboard?ri=jp", resolve(:dashboard).value
     assert_equal "/settings?ri=jp", resolve(:settings_security, scope: :settings).value
   end
