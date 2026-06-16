@@ -406,6 +406,18 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "scope must include openid", response.parsed_body["error_description"]
   end
 
+  test "acme oauth authorize rejects scopes outside the client allowlist" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host!(host)
+
+    assert_no_difference "ClientOidcAuthorizationTransaction.count" do
+      get "/oauth/authorize", params: oidc_authorize_params(scope: "openid palm.read"), headers: browser_headers
+    end
+
+    assert_response :bad_request
+    assert_equal "invalid_scope", response.parsed_body["error"]
+  end
+
   test "acme oauth authorize consumes login challenge once" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host!(host)

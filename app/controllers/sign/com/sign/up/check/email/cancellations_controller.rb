@@ -1,14 +1,26 @@
 # typed: false
 # frozen_string_literal: true
 
-# Dedicated cancellation endpoint for the email sign-up check step (com surface).
-# Inherits the email birthdate check controller to reuse its explicit-step
-# context (sign_up_family, gate setup) and the shared
-# SignUpExplicitStepControllerSupport#cancel_from_explicit_step behavior.
-class Sign::Com::Sign::Up::Check::Email::CancellationsController < ::Sign::Com::Sign::Up::Check::Email::BirthdatesController
+class Sign::Com::Sign::Up::Check::Email::CancellationsController < ::Sign::Com::ApplicationController
+  include SignUpExplicitStepControllerSupport
+
   AUTHENTICATION_MODE = :guest
+
+  before_action :hide_sign_up_auth_navigation
 
   def create
     cancel_from_explicit_step
   end
+
+  private
+
+  def sign_up_surface = :com
+
+  def sign_up_ticket_class = VisitorSignUpFlow
+
+  def sign_up_sequence_session_key = :sign_com_up_sequence_id
+
+  def sign_up_family = "email"
+
+  def sign_up_step = :birthdate
 end

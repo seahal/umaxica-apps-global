@@ -1,8 +1,18 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::Org::Settings::RevocationsController < Sign::Org::Settings::SessionsController
+class Sign::Org::Settings::RevocationsController < Sign::Org::ApplicationController
+  include ::SignAcmeAuthorityRedirect
+
   AUTHENTICATION_MODE = :private
 
-  def create = destroy
+  before_action :authenticate_operator!
+
+  def create = redirect_to_acme_sessions!
+
+  private
+
+  def redirect_to_acme_sessions!
+    redirect_to_acme_authority!("/settings/sessions")
+  end
 end

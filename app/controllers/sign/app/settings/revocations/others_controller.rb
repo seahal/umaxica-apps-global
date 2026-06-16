@@ -1,8 +1,18 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Settings::Revocations::OthersController < ::Sign::App::Settings::SessionsController
-  AUTHENTICATION_MODE = :open
+class Sign::App::Settings::Revocations::OthersController < ::Sign::App::ApplicationController
+  include ::SignAcmeAuthorityRedirect
 
-  def create = others
+  AUTHENTICATION_MODE = :private
+
+  before_action :authenticate_client!
+
+  def create = redirect_to_acme_sessions!
+
+  private
+
+  def redirect_to_acme_sessions!
+    redirect_to_acme_authority!("/settings/sessions")
+  end
 end

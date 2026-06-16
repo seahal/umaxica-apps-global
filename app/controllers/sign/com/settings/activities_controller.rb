@@ -4,10 +4,12 @@
 module Sign
   module Com
     module Settings
-      class ActivitiesController < ::Sign::RedirectOnlyController
+      class ActivitiesController < ::Sign::Com::ApplicationController
         include ::SignSettingsAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
+
+        before_action :authenticate_visitor!
       end
     end
   end

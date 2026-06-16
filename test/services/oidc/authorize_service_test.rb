@@ -105,6 +105,62 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     assert_equal "scope must include openid", result.error_description
   end
 
+  test "fails when non-Palm client requests disallowed scopes" do
+    %w(palm.read admin all write write:org).each do |scope|
+      assert_no_difference "ClientAuthorizationCode.count" do
+        result = OidcAuthorizeService.call(
+          params: valid_params.merge(scope: "openid #{scope}"),
+          resource: @user,
+        )
+
+        assert_not result.success?, scope
+        assert_equal "invalid_scope", result.error
+      end
+    end
+  end
+
+  test "palm iOS client can request palm.read" do
+    client = OidcClientRegistry.find!("app-ios-rp")
+    assert_difference "ClientAuthorizationCode.count", 1 do
+      result = OidcAuthorizeService.call(
+        params: valid_params(
+          client_id: client.client_id,
+          redirect_uri: client.redirect_uris.first,
+          scope: "openid palm.read",
+        ),
+        resource: @user,
+      )
+
+      assert_predicate result, :success?
+    end
+
+    code = ClientAuthorizationCode.last
+
+    assert_equal "openid palm.read", code.scope
+    assert_equal client.client_id, code.client_id
+  end
+
+  test "palm Android client can request palm.read" do
+    client = OidcClientRegistry.find!("app-android-rp")
+    assert_difference "ClientAuthorizationCode.count", 1 do
+      result = OidcAuthorizeService.call(
+        params: valid_params(
+          client_id: client.client_id,
+          redirect_uri: client.redirect_uris.first,
+          scope: "openid palm.read",
+        ),
+        resource: @user,
+      )
+
+      assert_predicate result, :success?
+    end
+
+    code = ClientAuthorizationCode.last
+
+    assert_equal "openid palm.read", code.scope
+    assert_equal client.client_id, code.client_id
+  end
+
   test "state is included in redirect URL when provided" do
     result = OidcAuthorizeService.call(
       params: valid_params.merge(state: "my_state_123"),
@@ -278,7 +334,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
 
   private
 
-  def valid_params
+  def valid_params(overrides = {})
     {
       response_type: "code",
       client_id: "core-next-rp",
@@ -288,7 +344,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
       state: "test_state",
       nonce: "test_nonce",
       scope: "openid profile email",
-    }
+    }.merge(overrides)
   end
 
   def create_visitor!

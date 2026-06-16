@@ -8,10 +8,13 @@ module OidcClientRegistry
 
   class InvalidRedirectUri < StandardError; end
 
+  DEFAULT_ALLOWED_SCOPES = %w(openid profile email).freeze
+  PALM_ALLOWED_SCOPES = (DEFAULT_ALLOWED_SCOPES + %w(palm.read)).freeze
+
   VisitorAccount =
     Data.define(
       :client_id, :client_secret, :redirect_uris, :post_logout_redirect_uris, :aud, :resource_type,
-      :name, :domains, :registered_token_endpoint_auth_method,
+      :name, :domains, :allowed_scopes, :registered_token_endpoint_auth_method,
       :metadata_token_endpoint_auth_method, :jwt_namespace, :backchannel_logout_uris,
       :backchannel_logout_session_required,
     ) do
@@ -54,6 +57,7 @@ module OidcClientRegistry
       resource_type: config[:resource_type],
       name: config[:name],
       domains: domains_from_redirect_uris(config[:redirect_uris]),
+      allowed_scopes: normalize_allowed_scopes(config.fetch(:allowed_scopes, DEFAULT_ALLOWED_SCOPES)),
       registered_token_endpoint_auth_method: registered_auth_method,
       metadata_token_endpoint_auth_method: registered_auth_method || metadata_auth_method(client_id.to_s),
       jwt_namespace: config[:jwt_namespace],
@@ -132,6 +136,10 @@ module OidcClientRegistry
     end.uniq
   end
 
+  def normalize_allowed_scopes(allowed_scopes)
+    Array(allowed_scopes).map(&:to_s).freeze
+  end
+
   # --- private ---
 
   def clients
@@ -164,6 +172,7 @@ module OidcClientRegistry
         aud: "sign-rp",
         resource_type: "client",
         name: "Sign RP",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "SIGN_APP",
       },
@@ -178,6 +187,7 @@ module OidcClientRegistry
         aud: "base-rails-rp",
         resource_type: "client",
         name: "Base Rails RP",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "ACME_APP",
       },
@@ -196,6 +206,7 @@ module OidcClientRegistry
         aud: "core-next-rp",
         resource_type: "client",
         name: "Core Next RP",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "CORE_APP",
       },
@@ -204,6 +215,7 @@ module OidcClientRegistry
         aud: "palm-api",
         resource_type: "client",
         name: "App iOS RP",
+        allowed_scopes: PALM_ALLOWED_SCOPES,
         token_endpoint_auth_method: "none",
       },
       "app-android-rp" => {
@@ -211,6 +223,7 @@ module OidcClientRegistry
         aud: "palm-api",
         resource_type: "client",
         name: "App Android RP",
+        allowed_scopes: PALM_ALLOWED_SCOPES,
         token_endpoint_auth_method: "none",
       },
       # Docs
@@ -219,18 +232,21 @@ module OidcClientRegistry
         aud: "umaxica-docs-app",
         resource_type: "client",
         name: "Docs App",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "docs_org" => {
         redirect_uris: build_redirect_uris("DOCS_STAFF_URL", "docs.org.localhost"),
         aud: "umaxica-docs-org",
         resource_type: "operator",
         name: "Docs Org",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "docs_com" => {
         redirect_uris: build_redirect_uris("DOCS_CORPORATE_URL", "docs.com.localhost"),
         aud: "umaxica-docs-com",
         resource_type: "visitor",
         name: "Docs Com",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       # News
       "news_app" => {
@@ -238,18 +254,21 @@ module OidcClientRegistry
         aud: "umaxica-news-app",
         resource_type: "client",
         name: "News App",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "news_org" => {
         redirect_uris: build_redirect_uris("NEWS_STAFF_URL", "news.org.localhost"),
         aud: "umaxica-news-org",
         resource_type: "operator",
         name: "News Org",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "news_com" => {
         redirect_uris: build_redirect_uris("NEWS_CORPORATE_URL", "news.com.localhost"),
         aud: "umaxica-news-com",
         resource_type: "visitor",
         name: "News Com",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       # Help
       "help_app" => {
@@ -257,18 +276,21 @@ module OidcClientRegistry
         aud: "umaxica-help-app",
         resource_type: "client",
         name: "Help App",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "help_org" => {
         redirect_uris: build_redirect_uris("HELP_STAFF_URL", "help.org.localhost"),
         aud: "umaxica-help-org",
         resource_type: "operator",
         name: "Help Org",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
       "help_com" => {
         redirect_uris: build_redirect_uris("HELP_CORPORATE_URL", "help.com.localhost"),
         aud: "umaxica-help-com",
         resource_type: "visitor",
         name: "Help Com",
+        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
       },
     }.freeze
   end
@@ -374,5 +396,5 @@ module OidcClientRegistry
                        :build_logout_uris, :public_host?,
                        :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
                        :filter_logout_uris, :logout_uri_resource_type, :logout_hosts_for,
-                       :normalize_resource_type, :metadata_auth_method
+                       :normalize_resource_type, :metadata_auth_method, :normalize_allowed_scopes
 end

@@ -4,8 +4,13 @@
 module Sign
   module Com
     module Settings
-      class WithdrawalsController < ::Sign::RedirectOnlyController
+      class WithdrawalsController < ::Sign::Com::ApplicationController
+        include ::SignAcmeAuthorityRedirect
+
         AUTHENTICATION_MODE = :private
+
+        before_action :authenticate_visitor!
+
         def new = redirect_to_acme_withdrawal!
 
         def edit = redirect_to_acme_withdrawal!

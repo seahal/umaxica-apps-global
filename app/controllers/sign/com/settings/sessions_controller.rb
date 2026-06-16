@@ -4,8 +4,13 @@
 module Sign
   module Com
     module Settings
-      class SessionsController < ::Sign::RedirectOnlyController
+      class SessionsController < ::Sign::Com::ApplicationController
+        include ::SignAcmeAuthorityRedirect
+
         AUTHENTICATION_MODE = :private
+
+        before_action :authenticate_visitor!
+
         def index = redirect_to_acme_sessions!
 
         def show = redirect_to_acme_sessions!

@@ -117,6 +117,31 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
+  test "clients expose explicit allowed scopes" do
+    expectations = {
+      "sign-rp" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "base-rails-rp" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "core-next-rp" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "app-ios-rp" => OidcClientRegistry::PALM_ALLOWED_SCOPES,
+      "app-android-rp" => OidcClientRegistry::PALM_ALLOWED_SCOPES,
+      "docs_app" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "docs_org" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "docs_com" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "news_app" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "news_org" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "news_com" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "help_app" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "help_org" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+      "help_com" => OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+    }
+
+    expectations.each do |client_id, allowed_scopes|
+      client = OidcClientRegistry.find!(client_id)
+
+      assert_equal allowed_scopes, client.allowed_scopes, client_id
+    end
+  end
+
   test "org clients have operator resource_type" do
     %w(docs_org news_org help_org).each do |client_id|
       client = OidcClientRegistry.find(client_id)
@@ -289,6 +314,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       resource_type: "client",
       name: "Test Client",
       domains: ["client.example"],
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
       registered_token_endpoint_auth_method: "client_secret_post",
       metadata_token_endpoint_auth_method: "client_secret_post",
       jwt_namespace: nil,

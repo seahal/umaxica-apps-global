@@ -26,85 +26,13 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     # Acme token refresh: RefreshesControllerBase provides shared token-refresh logic.
     "app/controllers/acme/com/edge/v0/token/refreshes_controller.rb",
 
-    # Sign::App::Settings inheritance chains. These controllers share session-management
-    # and passkey-registration behavior through local base classes. Candidate for concerns.
-    "app/controllers/sign/app/settings/emails/redeliveries_controller.rb",
-    "app/controllers/sign/app/settings/passkeys/options_controller.rb",
-    "app/controllers/sign/app/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/app/settings/revocations_controller.rb",
-    "app/controllers/sign/app/settings/revocations/alls_controller.rb",
-    "app/controllers/sign/app/settings/revocations/others_controller.rb",
-
-    # Sign::Com::Settings inheritance chains (parallel to app).
-    "app/controllers/sign/com/settings/passkeys/options_controller.rb",
-    "app/controllers/sign/com/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/com/settings/revocations_controller.rb",
-    "app/controllers/sign/com/settings/revocations/alls_controller.rb",
-    "app/controllers/sign/com/settings/revocations/others_controller.rb",
-
-    # Sign::Org::Settings inheritance chains (parallel to app).
-    "app/controllers/sign/org/settings/passkeys/options_controller.rb",
-    "app/controllers/sign/org/settings/passkeys/verifications_controller.rb",
-    "app/controllers/sign/org/settings/revocations_controller.rb",
-    "app/controllers/sign/org/settings/revocations/alls_controller.rb",
-    "app/controllers/sign/org/settings/revocations/others_controller.rb",
-
-    # Sign::App::Sign::In::* inheriting from Sign::App::Sign::In::* base controllers.
-    # The sign/sign/in/ layer is a routing namespace; in/ holds the behavior base.
-    # These are the highest-priority follow-up to move to concerns.
-    "app/controllers/sign/app/sign/in_controller.rb",
-    "app/controllers/sign/app/sign/in/passkey/options_controller.rb",
-    "app/controllers/sign/app/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/app/sign/in/session/cancellations_controller.rb",
-
-    # Sign::App::Sign::Up::* inheriting from Sign::App::Sign::Up::* base controllers.
-    "app/controllers/sign/app/sign/up/check/apple/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/email/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/google/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/google/confirmations_controller.rb",
-    "app/controllers/sign/app/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/app/sign/up_controller.rb",
-
-    # Sign::App::Social::* inheriting from AuthenticationsController base.
-    "app/controllers/sign/app/social/apple/connections_controller.rb",
-    "app/controllers/sign/app/social/apple/disconnections_controller.rb",
-    "app/controllers/sign/app/social/google/connections_controller.rb",
-    "app/controllers/sign/app/social/google/disconnections_controller.rb",
-
-    # Sign::App::Sign::Up::Check cross-family inheritance (google/confirmations inheriting apple base).
-    # Note: otps and telephone/birthdates are also PERMITTED_LOCAL_BASES for the sign/sign/up
-    # layer, so the detector skips them -- they are not listed here to avoid false stale entries.
-    "app/controllers/sign/app/sign/up/check/google/confirmations_controller.rb",
-
-    # Sign::App::Verification::RedeliveriesController < EmailsController.
-    "app/controllers/sign/app/verification/redeliveries_controller.rb",
-
-    # Sign::Com::Sign::In::* inheriting from Sign::Com::Sign::In::* base controllers.
-    "app/controllers/sign/com/sign/in_controller.rb",
-    "app/controllers/sign/com/sign/in/passkey/options_controller.rb",
-    "app/controllers/sign/com/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/com/sign/in/session/cancellations_controller.rb",
-
     # Sign::Com::Sign::Up::* inheriting from Sign::Com::Sign::Up::* base controllers.
-    "app/controllers/sign/com/sign/up/check/email/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/up/check/telephone/cancellations_controller.rb",
-    "app/controllers/sign/com/sign/up_controller.rb",
 
     # Sign::Com::Sign::Up::Check cross-family inheritance.
     # Note: com/up/check/email/otps and com/up/check/telephone/birthdates and otps are
     # also PERMITTED_LOCAL_BASES for the sign/sign/up layer, so not listed here.
 
-    # Sign::Com::Verification::RedeliveriesController < EmailsController.
-    "app/controllers/sign/com/verification/redeliveries_controller.rb",
-
-    # Sign::Org::Sign::In::* inheriting from Sign::Org::Sign::In::* base controllers.
-    "app/controllers/sign/org/sign/in_controller.rb",
-    "app/controllers/sign/org/sign/in/passkey/options_controller.rb",
-    "app/controllers/sign/org/sign/in/passkey/verifications_controller.rb",
-    "app/controllers/sign/org/sign/in/session/cancellations_controller.rb",
-
     # Sign::Org::Sign::Up::* inheriting from Sign::Org::Sign::Up::* base controllers.
-    "app/controllers/sign/org/sign/up_controller.rb",
 
     # Palm::App::Oauth::Callback controllers inherit a shared OAuth callback base.
     "app/controllers/palm/app/oauth/callback/android_controller.rb",

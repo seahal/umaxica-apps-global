@@ -31,6 +31,16 @@ class RouteTargetContractTest < ActiveSupport::TestCase
                  "Surface routes reference controllers without routable actions"
   end
 
+  test "surface route controllers declare authentication mode explicitly" do
+    missing_authentication_modes =
+      surface_route_controllers.filter_map do |controller|
+        controller.name unless controller.const_defined?(:AUTHENTICATION_MODE, false)
+      end
+
+    assert_empty missing_authentication_modes.uniq.sort,
+                 "Surface route controllers must declare AUTHENTICATION_MODE on the concrete class"
+  end
+
   private
 
   def surface_routes
@@ -40,5 +50,11 @@ class RouteTargetContractTest < ActiveSupport::TestCase
 
       controller.present? && action.present? && controller.match?(SURFACE_CONTROLLER_PREFIX)
     end
+  end
+
+  def surface_route_controllers
+    surface_routes.map do |route|
+      "#{route.defaults.fetch(:controller).camelize}Controller".constantize
+    end.uniq
   end
 end

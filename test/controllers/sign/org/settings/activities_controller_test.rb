@@ -4,15 +4,29 @@
 require "test_helper"
 
 class Sign::Org::Settings::ActivitiesControllerTest < ActionDispatch::IntegrationTest
+  fixtures :operators, :operator_token_kinds
+
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    @staff = operators(:one)
+    @token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     host! @host
   end
 
   test "sign settings activities redirects to acme authority" do
-    get sign_org_settings_activities_url(ri: "jp")
+    get sign_org_settings_activities_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to acme_org_settings_activities_url(ri: "jp", host: @acme_host)
+  end
+
+  private
+
+  def session_headers
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }
   end
 end

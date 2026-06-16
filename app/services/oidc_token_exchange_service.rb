@@ -34,6 +34,9 @@ class OidcTokenExchangeService < ApplicationService
     code_failure = validate_code(authorization_code)
     return code_failure if code_failure
 
+    scope_failure = validate_authorized_scopes(authorization_code)
+    return scope_failure if scope_failure
+
     pkce_failure = verify_pkce(authorization_code)
     return pkce_failure if pkce_failure
 
@@ -97,6 +100,16 @@ class OidcTokenExchangeService < ApplicationService
     return failure("invalid_request", "client_id mismatch") unless authorization_code.client_id == client_id
 
     nil
+  end
+
+  def validate_authorized_scopes(authorization_code)
+    client = OidcClientRegistry.find!(client_id)
+    requested_scopes = authorization_code.scope.to_s.split
+    invalid_scopes = requested_scopes - client.allowed_scopes
+
+    return nil if requested_scopes.include?("openid") && invalid_scopes.empty?
+
+    failure("invalid_grant", "Authorization code scope is invalid")
   end
 
   def verify_pkce(authorization_code)
@@ -313,6 +326,7 @@ class OidcTokenExchangeService < ApplicationService
       resource_type: resource_type,
       name: client.name,
       domains: client.domains,
+      allowed_scopes: client.allowed_scopes,
       registered_token_endpoint_auth_method: client.registered_token_endpoint_auth_method,
       metadata_token_endpoint_auth_method: client.metadata_token_endpoint_auth_method,
       jwt_namespace: client.jwt_namespace,

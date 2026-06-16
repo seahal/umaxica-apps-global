@@ -136,8 +136,8 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     challenge_id = response.parsed_body["challenge_id"]
     mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
-    original_method = Sign::Org::Sign::In::PasskeysController.instance_method(:with_challenge)
-    Sign::Org::Sign::In::PasskeysController.define_method(:with_challenge) do |*_args|
+    original_method = Sign::Org::Sign::In::Passkey::VerificationsController.instance_method(:with_challenge)
+    Sign::Org::Sign::In::Passkey::VerificationsController.define_method(:with_challenge) do |*_args|
       raise mismatch_error
     end
 
@@ -152,7 +152,7 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
         },
       )
     ensure
-      Sign::Org::Sign::In::PasskeysController.define_method(:with_challenge, original_method)
+      Sign::Org::Sign::In::Passkey::VerificationsController.define_method(:with_challenge, original_method)
     end
 
     assert_response :bad_request
@@ -268,8 +268,8 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:sign_count) { 1 }
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
-    original_method = Sign::Org::Sign::In::PasskeysController.instance_method(:perform_passkey_sign_in)
-    Sign::Org::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in) do |*_args|
+    original_method = Sign::Org::Sign::In::Passkey::VerificationsController.instance_method(:perform_passkey_sign_in)
+    Sign::Org::Sign::In::Passkey::VerificationsController.define_method(:perform_passkey_sign_in) do |*_args|
       { status: :unknown_status }
     end
 
@@ -289,7 +289,7 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
         )
       end
     ensure
-      Sign::Org::Sign::In::PasskeysController.define_method(:perform_passkey_sign_in, original_method)
+      Sign::Org::Sign::In::Passkey::VerificationsController.define_method(:perform_passkey_sign_in, original_method)
     end
 
     assert_response :unprocessable_content

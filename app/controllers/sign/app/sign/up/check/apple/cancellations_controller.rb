@@ -1,14 +1,26 @@
 # typed: false
 # frozen_string_literal: true
 
-# Dedicated cancellation endpoint for the Apple sign-up check step.
-# Inherits the Apple birthdate check controller to reuse its explicit-step
-# context (sign_up_family, gate setup) and the shared
-# SignUpExplicitStepControllerSupport#cancel_from_explicit_step behavior.
-class Sign::App::Sign::Up::Check::Apple::CancellationsController < ::Sign::App::Sign::Up::Check::Apple::BirthdatesController
+class Sign::App::Sign::Up::Check::Apple::CancellationsController < ::Sign::App::ApplicationController
+  include SignUpExplicitStepControllerSupport
+
   AUTHENTICATION_MODE = :guest
+
+  before_action :hide_sign_up_auth_navigation
 
   def create
     cancel_from_explicit_step
   end
+
+  private
+
+  def sign_up_surface = :app
+
+  def sign_up_ticket_class = ClientSignUpFlow
+
+  def sign_up_sequence_session_key = :sign_app_up_sequence_id
+
+  def sign_up_family = "apple"
+
+  def sign_up_step = :birthdate
 end

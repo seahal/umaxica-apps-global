@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Sign
-      class UpController < ::Sign::Com::SignUpsController
+      class UpController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest
         skip_before_action :set_region, raise: false

@@ -32,7 +32,7 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_match %r{/sign/in}, response.location
   end
 
-  test "protected settings sessions redirects to acme session authority" do
+  test "protected settings sessions requires authentication" do
     with_env(
       "ID_STAFF_URL" => "id.org.localhost",
       "SIGN_STAFF_URL" => "id.umaxica.org",
@@ -46,11 +46,8 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
       )
 
       assert_response :redirect
-      location = URI.parse(response.location)
-
-      assert_equal "www.umaxica.org", location.host
-      assert_equal "/settings/sessions", location.path
-      assert_equal "ri=jp", location.query
+      assert_not_includes response.location, "token="
+      assert_not_includes response.location, "session_id="
     end
   ensure
     Rails.application.reload_routes!
@@ -377,6 +374,21 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
     delete sign_org_sign_in_session_url(ri: "jp"), headers: headers
+
+    assert_response :redirect
+    assert_match %r{/sign/in}, response.location
+
+    token.reload
+
+    assert_not token.currently_usable?
+    assert_equal OperatorTokenStatus::REVOKED, token.staff_token_status_id
+  end
+
+  test "session cancellation route cancels restricted session and redirects to login" do
+    token = create_restricted_session(@staff)
+    headers = as_staff_headers_with_token(@staff, token, host: @host)
+
+    post sign_org_sign_in_session_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     assert_match %r{/sign/in}, response.location

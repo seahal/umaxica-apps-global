@@ -32,7 +32,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
   end
 
-  test "protected settings sessions redirects to acme session authority" do
+  test "protected settings sessions requires authentication" do
     with_env(
       "ID_SERVICE_URL" => "id.app.localhost",
       "SIGN_SERVICE_URL" => "id.umaxica.app",
@@ -46,11 +46,6 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
       )
 
       assert_response :redirect
-      location = URI.parse(response.location)
-
-      assert_equal "www.umaxica.app", location.host
-      assert_equal "/settings/sessions", location.path
-      assert_equal({ "ri" => "jp" }, Rack::Utils.parse_nested_query(location.query))
       assert_not_includes response.location, "token="
       assert_not_includes response.location, "session_id="
     end
@@ -411,6 +406,20 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_user_headers_with_token(@user, token, host: @host)
 
     delete sign_app_sign_in_session_url(ri: "jp"), headers: headers
+
+    assert_redirected_to sign_app_sign_in_url(ri: "jp")
+
+    token.reload
+
+    assert_not token.currently_usable?
+    assert_equal ClientTokenStatus::REVOKED, token.user_token_status_id
+  end
+
+  test "session cancellation route cancels restricted session and redirects to login" do
+    token = create_restricted_session(@user)
+    headers = as_user_headers_with_token(@user, token, host: @host)
+
+    post sign_app_sign_in_session_cancellation_url(ri: "jp"), headers: headers
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
 

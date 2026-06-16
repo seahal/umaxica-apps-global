@@ -8,13 +8,11 @@ module Sign
         include ::SignSettingsAuthorityRedirect
         include ::VerificationClient
 
-        AUTHENTICATION_MODE = :open
+        AUTHENTICATION_MODE = :private
 
-        def index
-          return redirect_to_acme_emails! unless logged_in?
+        before_action :authenticate_client!
 
-          @client_emails = current_client.client_emails
-        end
+        def index = redirect_to_acme_emails!
 
         def edit = redirect_to_acme_email_edit!
 

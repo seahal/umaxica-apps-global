@@ -27,6 +27,8 @@ module Acme
               start_authorization_ceremony!
             end
           end
+        rescue OidcAuthorizeRequestValidator::InvalidScope => e
+          render json: { error: "invalid_scope", error_description: e.message }, status: :bad_request
         rescue ArgumentError, ActiveRecord::RecordNotFound, OidcClientRegistry::ClientNotFound,
                OidcClientRegistry::InvalidRedirectUri => e
           render json: { error: "invalid_request", error_description: e.message }, status: :bad_request

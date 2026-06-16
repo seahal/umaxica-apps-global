@@ -6,7 +6,11 @@ module Sign
     module Sign
       module In
         module Passkey
-          class OptionsController < ::Sign::App::Sign::In::PasskeysController
+          class OptionsController < ::Sign::App::ApplicationController
+            include SignPasskeySignInEndpoint
+            include EmailValidation
+            include IdentifierDetection
+
             AUTHENTICATION_MODE = :guest
             declare_authentication_mode! :guest
 
@@ -32,6 +36,100 @@ module Sign
             )
 
             def create = options
+
+            private
+
+            def find_active_passkey_actor(identifier)
+              user = find_user_by_identifier(identifier)
+              user if user&.active?
+            end
+
+            def before_passkey_options_request!
+              verify_turnstile_stealth!
+            end
+
+            def allow_passkey_options_for_actor?(user)
+              if session_limit_hard_reject_for?(user)
+                render_session_limit_hard_reject
+                return false
+              end
+
+              true
+            end
+
+            def active_passkeys_for_actor(user)
+              user.client_passkeys.where(status_id: ClientPasskeyStatus::ACTIVE)
+            end
+
+            def passkey_challenge_actor_id_key
+              "user_id"
+            end
+
+            def passkey_sign_in_model
+              ClientPasskey
+            end
+
+            def passkey_belongs_to_challenge_actor?(passkey, actor_id)
+              passkey.user_id == actor_id
+            end
+
+            def passkey_owner_mismatch_log_message
+              "WebAuthn: Credential not found or user mismatch"
+            end
+
+            def allow_passkey_sign_in?(passkey)
+              return true if passkey.user.has_verified_pii?
+
+              Rails.logger.info(
+                JitLogEvent.format(
+                  "authentication.passkey.failed",
+                  reason: "verified_pii_missing",
+                  user_id: passkey.user_id,
+                  ip_address: request.remote_ip,
+                ),
+              )
+              render_error("errors.webauthn.credential_not_found", :unauthorized)
+              false
+            end
+
+            def perform_passkey_sign_in(passkey)
+              pt = retrieve_pt_for_checkpoint
+              establish_signed_in_session!(
+                passkey.user, pt: pt, ri: params[:ri], auth_method: "passkey",
+              )
+            end
+
+            def handle_domain_specific_login_status(result)
+              case result[:status]
+              when :mfa_required
+                render json: { status: "mfa_required", redirect_url: result[:redirect_path] }, status: :ok
+                true
+              when :session_limit_hard_reject
+                render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
+                true
+              else
+                false
+              end
+            end
+
+            def render_passkey_restricted_success(_result)
+              render json: {
+                status: "session_restricted",
+                redirect_url: sign_app_sign_in_session_path,
+                message: I18n.t("sign.app.in.session.restricted_notice"),
+              }, status: :ok
+            end
+
+            def passkey_checkpoint_redirect_url
+              sign_app_sign_in_check_path(
+                pt: retrieve_pt_for_checkpoint,
+                ri: params[:ri],
+              )
+            end
+
+            def passkey_default_redirect_url
+              sign_app_settings_path(ri: params[:ri])
+            end
           end
         end
       end

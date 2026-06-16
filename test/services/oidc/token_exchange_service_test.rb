@@ -412,6 +412,27 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "token exchange rejects codes with disallowed scopes" do
+    code_record = issue_code!(scope: "openid admin")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeService.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_secret: @client_secret,
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_grant", result.error
+    assert_equal "Authorization code scope is invalid", result.error_description
+    assert_not_predicate code_record.reload, :consumed?
+  end
+
   test "explicit public client fails with expired code" do
     public_client = public_visitor_account
     code_record = issue_code!(client_id: public_client.client_id, redirect_uri: public_client.redirect_uris.first)
@@ -735,6 +756,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "staff_nonce",
+      scope: "openid profile email",
     )
 
     result =
@@ -768,6 +790,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "staff_nonce",
+      scope: "openid profile email",
     )
 
     assert_difference "OperatorToken.count", 1 do
@@ -795,7 +818,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "staff_nonce",
-      scope: "openid staff",
+      scope: "openid profile email",
     )
 
     with_authenticated_org_client(staff_secret_credential) do
@@ -812,7 +835,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     connection = OperatorOidcConnection.find_by!(staff_id: staff.id, client_id: "core-next-rp")
     token = OperatorToken.order(:created_at).last
 
-    assert_equal "openid staff", connection.scope
+    assert_equal "openid profile email", connection.scope
     assert_equal connection.id, token.oidc_connection_id
   end
 
@@ -829,6 +852,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "visitor_nonce",
+      scope: "openid profile email",
     )
 
     result =
@@ -862,6 +886,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "visitor_nonce",
+      scope: "openid profile email",
     )
 
     assert_difference "VisitorToken.count", 1 do
@@ -889,7 +914,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       code_challenge: @code_challenge,
       code_challenge_method: "S256",
       nonce: "visitor_nonce",
-      scope: "openid visitor",
+      scope: "openid profile email",
     )
 
     with_authenticated_com_client(visitor_secret_credential) do
@@ -906,7 +931,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     connection = VisitorOidcConnection.find_by!(visitor_id: visitor.id, client_id: "core-next-rp")
     token = VisitorToken.order(:created_at).last
 
-    assert_equal "openid visitor", connection.scope
+    assert_equal "openid profile email", connection.scope
     assert_equal connection.id, token.oidc_connection_id
   end
 
@@ -1070,6 +1095,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       aud: PalmAccessTokenAuthenticator::AUDIENCE,
       redirect_uris: ["https://palm.jp.umaxica.app/auth/callback"],
       domains: ["palm.jp.umaxica.app"],
+      allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
     )
     code_record = issue_code!(
       client_id: public_client.client_id,
@@ -1098,6 +1124,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       assert_equal @user, palm_result.resource
       assert_equal "app-ios-rp", AuthorizationTokenClaims.client_id(palm_result.payload)
       assert_equal [PalmAccessTokenAuthenticator::AUDIENCE], Array(palm_result.payload.fetch("aud"))
+      assert_equal %w(openid palm.read), Array(AuthorizationTokenClaims.scopes(palm_result.payload))
     end
   end
 
@@ -1114,7 +1141,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
   end
 
-  def issue_code!(client_id: "core-next-rp", redirect_uri: @redirect_uri, scope: nil)
+  def issue_code!(client_id: "core-next-rp", redirect_uri: @redirect_uri, scope: "openid profile email")
     ClientAuthorizationCode.issue!(
       user: @user,
       client_id: client_id,
@@ -1189,6 +1216,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       resource_type: "client",
       name: "Test Client",
       domains: ["client.example"],
+      allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
       registered_token_endpoint_auth_method: "client_secret_post",
       metadata_token_endpoint_auth_method: "client_secret_post",
       jwt_namespace: nil,

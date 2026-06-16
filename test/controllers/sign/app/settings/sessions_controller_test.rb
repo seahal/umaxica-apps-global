@@ -19,6 +19,13 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_redirect_to_acme_sessions
   end
 
+  test "session revocation routes require authentication" do
+    post sign_app_settings_session_revocation_url("missing-session", ri: "jp"), headers: { "Host" => @host }
+
+    assert_response :redirect
+    assert_predicate @current_token.reload, :currently_usable?
+  end
+
   test "destroy_redirect_is_not_session_mutation" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 

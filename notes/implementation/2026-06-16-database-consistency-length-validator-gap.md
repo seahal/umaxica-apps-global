@@ -29,8 +29,8 @@ include them.
 
 ## Null constraint pass
 
-In the June 16 consistency pass, the safest `NullConstraintChecker` fixes were the direct
-user-input fields that already had clear model-level intent:
+In the June 16 consistency pass, the safest `NullConstraintChecker` fixes were the direct user-input
+fields that already had clear model-level intent:
 
 - `ClientEmail#address`
 - `VisitorEmail#address`
@@ -38,6 +38,6 @@ user-input fields that already had clear model-level intent:
 - `Organization#name`
 - `Organization#domain`
 
-I left the occurrence metadata columns with `default("")` alone for now. Those fields may still
-trip the checker, but treating them as required would be a broader behavior change than this batch
-was meant to absorb.
+I left the occurrence metadata columns with `default("")` alone for now. Those fields may still trip
+the checker, but treating them as required would be a broader behavior change than this batch was
+meant to absorb.

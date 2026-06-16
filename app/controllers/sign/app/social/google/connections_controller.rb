@@ -1,7 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
-class Sign::App::Social::Google::ConnectionsController < ::Sign::App::Social::AuthenticationsController
+class Sign::App::Social::Google::ConnectionsController < ::Sign::App::ApplicationController
+  include CloudflareTurnstile
+  include ::VerificationClient
+  include SocialAuth
+  include ::SignSocialAuthenticationEndpoint
+
   AUTHENTICATION_MODE = :open
 
   declare_authentication_mode! :open
@@ -15,7 +20,10 @@ class Sign::App::Social::Google::ConnectionsController < ::Sign::App::Social::Au
   end
 
   def create
-    params[:provider] = "google_app"
-    continue
+    continue_social_authentication(provider: social_provider)
   end
+
+  private
+
+  def social_provider = "google_app"
 end

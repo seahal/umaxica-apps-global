@@ -2,6 +2,10 @@
 # frozen_string_literal: true
 
 class OidcAuthorizeRequestValidator < ApplicationService
+  class InvalidScope < ArgumentError; end
+
+  ValidatedRequest = Data.define(:client, :scope)
+
   def initialize(params:, resource:)
     super()
     @params = params
@@ -11,10 +15,11 @@ class OidcAuthorizeRequestValidator < ApplicationService
   def call
     validate_required_params!
     client = find_client!
+    scope = validate_scope_allowlist!(client)
     validate_redirect_uri!
     validate_state_and_nonce!
     validate_resource!
-    client
+    ValidatedRequest.new(client: client, scope: scope)
   end
 
   private
@@ -41,6 +46,15 @@ class OidcAuthorizeRequestValidator < ApplicationService
     raise ArgumentError, "resource is not active" unless resource&.active?
   end
 
+  def validate_scope_allowlist!(client)
+    requested_scopes = scope_tokens
+    invalid_scopes = requested_scopes - client.allowed_scopes
+
+    raise InvalidScope, "scope is not allowed for client #{client.client_id}" if invalid_scopes.any?
+
+    requested_scopes.join(" ")
+  end
+
   def find_client!
     OidcClientRegistry.find!(client_id)
   end
@@ -61,6 +75,10 @@ class OidcAuthorizeRequestValidator < ApplicationService
   end
 
   def scope_includes_openid?
-    params[:scope].to_s.split.include?("openid")
+    scope_tokens.include?("openid")
+  end
+
+  def scope_tokens
+    params[:scope].to_s.split
   end
 end

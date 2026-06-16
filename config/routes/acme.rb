@@ -56,10 +56,13 @@ scope module: :acme, as: :acme do
         resource :timezone, only: %i(edit update)
         resource :language, only: %i(edit update)
         resource :currency, only: %i(edit update)
+        # FIXME: I think the following is a nasty naming.
         resource :date, only: %i(edit update)
+        # FIXME: I think the following is a nasty naming.
         resource :time, only: %i(edit update)
         resource :motion, only: %i(edit update)
         resource :density, only: %i(edit update)
+        # FIXME: I think the following is a nasty naming.
         resource :page_size, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :cookie, only: %i(edit update)

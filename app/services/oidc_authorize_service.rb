@@ -16,11 +16,13 @@ class OidcAuthorizeService < ApplicationService
   end
 
   def call
-    client = validate_request!
-    code_record = issue_authorization_code!(client)
+    validation = validate_request!
+    code_record = issue_authorization_code!(validation)
     build_success_redirect(code_record)
   rescue OidcClientRegistry::ClientNotFound => e
     failure("unauthorized_client", e.message)
+  rescue OidcAuthorizeRequestValidator::InvalidScope => e
+    failure("invalid_scope", e.message)
   rescue OidcClientRegistry::InvalidRedirectUri, ArgumentError => e
     failure("invalid_request", e.message)
   rescue ActiveRecord::RecordInvalid => e
@@ -37,8 +39,8 @@ class OidcAuthorizeService < ApplicationService
 
   def issue_authorization_code!(client)
     OidcAuthorizationCodeIssuer.call(
-      client: client,
-      params: params,
+      client: client.client,
+      params: params.merge(scope: client.scope),
       resource: resource,
       auth_method: auth_method,
       acr: acr,
