@@ -60,10 +60,8 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "options returns challenge and options" do
     grant = passkey_ceremony_grant
 
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
-           headers: @headers.merge(@origin_headers)
-    end
+    post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+         headers: @headers.merge(@origin_headers)
 
     assert_response :ok
     assert_not_nil response.parsed_body["challenge_id"]
@@ -86,10 +84,8 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "verification creates passkey on success" do
     grant = passkey_ceremony_grant
 
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
-           headers: @headers.merge(@origin_headers)
-    end
+    post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+         headers: @headers.merge(@origin_headers)
     challenge_id = response.parsed_body["challenge_id"]
     cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
 

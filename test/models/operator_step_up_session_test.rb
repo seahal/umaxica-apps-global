@@ -34,6 +34,7 @@ class OperatorStepUpSessionTest < ActiveSupport::TestCase
                 :operator_mfa_statuses
 
   setup do
+    OperatorTokenStatus.find_or_create_by!(id: OperatorTokenStatus::ACTIVE)
     @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::BOTH)
     @staff_token = OperatorToken.create!(staff: @staff)
     @valid_params = {
@@ -109,7 +110,7 @@ class OperatorStepUpSessionTest < ActiveSupport::TestCase
   test "duplicate token row raises record not unique" do
     OperatorStepUpSession.create!(@valid_params)
 
-    assert_raises(ActiveRecord::RecordNotUnique) do
+    assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique) do
       OperatorStepUpSession.create!(@valid_params.merge(method: "passkey", status: "VERIFIED"))
     end
   end

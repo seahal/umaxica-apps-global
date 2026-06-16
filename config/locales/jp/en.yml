@@ -115,6 +115,7 @@ en:
     private_key: Private key
     publish_at: Publish at
     public_id: Public ID
+    result_jti: Result JTI
     raw_number: Telephone number
     redirect_uri: Redirect URI
     redirect_url: Redirect URL
@@ -151,7 +152,10 @@ en:
     user_id: User
     user_occurrence_id: User occurrence
     user_secret_credential_kind: Secret credential kind
+    user_token_id: User token ID
     visitor: Visitor
+    visitor_token_id: Visitor token ID
+    staff_token_id: Staff token ID
     webauthn_id: WebAuthn ID
   auth:
     session_expired: Your session has expired. Please sign in again.
@@ -1277,6 +1281,12 @@ en:
         purged_at: Purge at
       user_identity_email:
         address: Email address
+      client_telephone_ceremony_transaction:
+        result_jti: Result JTI
+      visitor_step_up_session:
+        visitor_token_id: Visitor token ID
+      operator_step_up_session:
+        staff_token_id: Staff token ID
     errors:
       messages:
         invalid_e164_format: must be in E.164 format (e.g., +819012345678)

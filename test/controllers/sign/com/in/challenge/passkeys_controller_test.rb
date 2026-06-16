@@ -58,11 +58,9 @@ class Sign::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 
-    if true # Replaced STUB stub with real execution as per G1
-      get new_sign_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    get new_sign_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
 
-      assert_response :success
-    end
+    assert_response :success
 
     challenge_id = session[:passkey_challenges].keys.first
 

@@ -44,11 +44,9 @@ class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options returns challenge for known identifier" do
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_com_sign_in_passkey_options_path(ri: "jp"),
-           params: { identifier: @visitor.visitor_emails.first.address },
-           headers: @origin_headers
-    end
+    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: @visitor.visitor_emails.first.address },
+         headers: @origin_headers
 
     assert_response :ok
     json = response.parsed_body
@@ -59,22 +57,18 @@ class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options returns error when identifier is unknown" do
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_com_sign_in_passkey_options_path(ri: "jp"),
-           params: { identifier: "missing@example.com" },
-           headers: @origin_headers
-    end
+    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: "missing@example.com" },
+         headers: @origin_headers
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
   end
 
   test "verification logs visitor in on success" do
-    if true # Replaced STUB stub with real execution as per G1
-      post sign_com_sign_in_passkey_options_path(ri: "jp"),
-           params: { identifier: @visitor.visitor_emails.first.address },
-           headers: @origin_headers
-    end
+    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+         params: { identifier: @visitor.visitor_emails.first.address },
+         headers: @origin_headers
     challenge_id = response.parsed_body["challenge_id"]
 
     mock_credential = Object.new

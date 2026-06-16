@@ -179,14 +179,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    # Use STUB to stub valid? on the instance loaded by the controller
-    if true # Replaced STUB stub with real execution as per G1
-      patch sign_org_settings_passkey_url(passkey, ri: "jp"),
-            params: { staff_passkey: { description: "" } },
-            headers: @headers
+    patch sign_org_settings_passkey_url(passkey, ri: "jp"),
+          params: { staff_passkey: { description: "" } },
+          headers: @headers
 
-      assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
-    end
+    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
   end
 
   test "destroy redirects to acme without local mutation" do

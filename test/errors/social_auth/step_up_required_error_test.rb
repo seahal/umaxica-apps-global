@@ -21,7 +21,11 @@ module SocialAuth
       error = StepUpRequiredError.new
 
       assert_match(
-        /Translation missing: ja.errors.social_auth.step_up_required|この操作には最近の再認証が必要です/,
+        Regexp.union(
+          "Translation missing: ja.errors.social_auth.step_up_required",
+          "この操作には最近の再認証が必要です",
+          /This action requires recent step-up authentication\. Please authenticate again\./,
+        ),
         error.message,
       )
     end

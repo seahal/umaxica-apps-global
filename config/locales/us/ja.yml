@@ -141,6 +141,7 @@ ja:
     private_key: 秘密鍵
     publish_at: 公開日時
     public_id: 公開ID
+    result_jti: 結果JTI
     raw_number: 電話番号
     redirect_uri: リダイレクトURI
     redirect_url: リダイレクトURL
@@ -177,7 +178,10 @@ ja:
     user_id: ユーザーID
     user_occurrence_id: ユーザー発生ID
     user_secret_credential_kind: シークレット種別
+    user_token_id: ユーザートークンID
     visitor: ビジター
+    visitor_token_id: ビジタートークンID
+    staff_token_id: スタッフトークンID
     webauthn_id: WebAuthn ID
   activerecord:
     attributes:
@@ -251,6 +255,12 @@ ja:
         created_at: 登録日時
         last_used_at: 最終使用日
         sign_count: 使用回数
+      client_telephone_ceremony_transaction:
+        result_jti: 結果JTI
+      visitor_step_up_session:
+        visitor_token_id: ビジタートークンID
+      operator_step_up_session:
+        staff_token_id: スタッフトークンID
     errors:
       messages:
         code_format: 大文字・数字・アンダースコアのみを使用してください

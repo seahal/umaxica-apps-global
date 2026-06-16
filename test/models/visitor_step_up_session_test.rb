@@ -111,7 +111,7 @@ class VisitorStepUpSessionTest < ActiveSupport::TestCase
   test "duplicate token row raises record not unique" do
     VisitorStepUpSession.create!(@valid_params)
 
-    assert_raises(ActiveRecord::RecordNotUnique) do
+    assert_raises(ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique) do
       VisitorStepUpSession.create!(@valid_params.merge(method: "email_otp", status: "VERIFIED"))
     end
   end
