@@ -115,6 +115,12 @@ class SignUpContractsTest < ActiveSupport::TestCase
     assert_equal :app, context.surface
   end
 
+  test "requirement registry rejects unsupported ticket class" do
+    assert_raises(ArgumentError, match: /unsupported sign-up ticket class/) do
+      SignUpRequirementRegistry.surface_for_ticket(Object.new)
+    end
+  end
+
   test "state machine protocol rejects unknown events before core wiring" do
     ticket = build_cycle(ClientSignUpFlow, entry_method: "email")
 

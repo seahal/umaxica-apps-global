@@ -7,6 +7,20 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
   BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
   BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
   BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
+  PUBLIC_BASE_HOSTS = {
+    "base.jp.umaxica.app" => "base/app/roots",
+    "base.jp.umaxica.com" => "base/com/roots",
+    "base.jp.umaxica.org" => "base/org/roots",
+  }.freeze
+
+  test "base public host aliases route to the matching surface" do
+    PUBLIC_BASE_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "base app route contract" do
     recognized = Rails.application.routes.recognize_path(

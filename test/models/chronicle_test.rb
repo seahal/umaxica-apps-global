@@ -88,6 +88,28 @@ class ChronicleTest < ActiveSupport::TestCase
     assert_includes chronicle.errors[:erasable_at], "must be present for non-permanent retention"
   end
 
+  test "rejects metadata exceeding max json bytes" do
+    policy = ChronicleRetentionPolicy.create!(
+      code: "oversize",
+      name: "Oversize",
+      duration_days: 30,
+      permanent: false,
+    )
+
+    chronicle = Chronicle.new(
+      event_uuid: SecureRandom.uuid,
+      chronicle_retention_policy: policy,
+      action: "test.oversized",
+      result: "intent",
+      occurred_at: Time.current,
+      erasable_at: 30.days.from_now,
+      metadata: (0..5000).index_by { |i| i.to_s },
+    )
+
+    assert_not chronicle.valid?
+    assert_includes chronicle.errors[:metadata], "is too large"
+  end
+
   test "sanitizes forbidden metadata and changeset keys recursively" do
     policy = ChronicleRetentionPolicy.create!(
       code: "security",

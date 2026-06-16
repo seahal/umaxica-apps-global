@@ -7,6 +7,20 @@ class HelpRouteContractTest < ActionDispatch::IntegrationTest
   HELP_APP_HOST = ENV.fetch("HELP_SERVICE_URL", "help.app.localhost")
   HELP_COM_HOST = ENV.fetch("HELP_CORPORATE_URL", "help.com.localhost")
   HELP_ORG_HOST = ENV.fetch("HELP_STAFF_URL", "help.org.localhost")
+  PUBLIC_HELP_HOSTS = {
+    "help.jp.umaxica.app" => "help/app/roots",
+    "help.jp.umaxica.com" => "help/com/roots",
+    "help.jp.umaxica.org" => "help/org/roots",
+  }.freeze
+
+  test "help public host aliases route to the matching surface" do
+    PUBLIC_HELP_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "help app route contract" do
     recognized = Rails.application.routes.recognize_path(

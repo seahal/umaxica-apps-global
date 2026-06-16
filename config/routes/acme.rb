@@ -86,6 +86,7 @@ scope module: :acme, as: :acme do
         post :completion
       end
 
+      # TODO: I want to merge them, and rename them to api.
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
@@ -93,7 +94,6 @@ scope module: :acme, as: :acme do
           resource :theme, only: %i(show update)
         end
       end
-
       # Edge compatibility API.
       namespace :edge do
         namespace :v0 do

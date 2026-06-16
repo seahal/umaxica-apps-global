@@ -65,6 +65,12 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "model_for raises on unsupported surface" do
+    assert_raises(ArgumentError, match: /unsupported OIDC authorization surface/) do
+      OidcAuthorizationTransactionService.model_for("unsupported")
+    end
+  end
+
   test "expired login challenge is rejected when registering ceremony result" do
     issuance =
       OidcAuthorizationTransactionService.issue!(

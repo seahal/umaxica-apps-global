@@ -254,6 +254,21 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_predicate pref.cookie, :functional?
   end
 
+  test "hash is consistent for equal preferences" do
+    pref1 = Actor::Preference.new(language: "en", region: "us")
+    pref2 = Actor::Preference.new(language: "en", region: "us")
+
+    assert_equal pref1.hash, pref2.hash
+    assert_equal Set[pref1, pref2].size, 1
+  end
+
+  test "hash differs for different preferences" do
+    pref1 = Actor::Preference.new(language: "en", region: "us")
+    pref2 = Actor::Preference.new(language: "ja", region: "jp")
+
+    assert_not_equal pref1.hash, pref2.hash
+  end
+
   test "with_cookie keeps preference values and updates cookie state" do
     pref = Actor::Preference.new(
       language: "en",

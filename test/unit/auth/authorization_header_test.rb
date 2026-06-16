@@ -38,4 +38,28 @@ class AuthAuthorizationHeaderTest < ActiveSupport::TestCase
 
     assert_nil AuthAuthorizationHeader.scheme(request)
   end
+
+  test "scheme? returns true when scheme matches" do
+    request = RequestStub.new("Bearer abc123", {})
+
+    assert AuthAuthorizationHeader.scheme?(request, "Bearer")
+  end
+
+  test "scheme? matches case-insensitively" do
+    request = RequestStub.new("bearer abc123", {})
+
+    assert AuthAuthorizationHeader.scheme?(request, "Bearer")
+  end
+
+  test "scheme? returns false when scheme does not match" do
+    request = RequestStub.new("DPoP xyz789", {})
+
+    assert_not AuthAuthorizationHeader.scheme?(request, "Bearer")
+  end
+
+  test "scheme? returns false when no authorization header" do
+    request = RequestStub.new(nil, {})
+
+    assert_not AuthAuthorizationHeader.scheme?(request, "Bearer")
+  end
 end

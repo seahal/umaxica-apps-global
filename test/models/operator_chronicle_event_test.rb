@@ -46,4 +46,12 @@ class OperatorChronicleEventTest < ActiveSupport::TestCase
     assert_equal :destroy, association.options[:dependent]
     assert_equal :event_id, association.options[:foreign_key]
   end
+
+  test "ensure_defaults! inserts missing fixed ids" do
+    OperatorChronicleEvent.ensure_defaults!
+
+    OperatorChronicleEvent::DEFAULTS.each do |id|
+      assert OperatorChronicleEvent.exists?(id: id), "expected event id #{id} to exist"
+    end
+  end
 end

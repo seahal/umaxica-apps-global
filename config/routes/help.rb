@@ -4,7 +4,7 @@
 # Help owns the public help content surface.
 scope module: :help, as: :help do
   # App help host.
-  constraints host: ENV["HELP_SERVICE_URL"] do
+  constraints host: [ENV["HELP_SERVICE_URL"], "help.jp.umaxica.app", "help.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.
@@ -42,7 +42,7 @@ scope module: :help, as: :help do
   end
 
   # Corporate help host.
-  constraints host: ENV["HELP_CORPORATE_URL"] do
+  constraints host: [ENV["HELP_CORPORATE_URL"], "help.jp.umaxica.com", "help.com.localhost"].compact do
     # Corporate surface controllers.
     scope module: :com, as: :com do
       # Thin landing endpoint.
@@ -80,7 +80,7 @@ scope module: :help, as: :help do
   end
 
   # Staff help host.
-  constraints host: ENV["HELP_STAFF_URL"] do
+  constraints host: [ENV["HELP_STAFF_URL"], "help.jp.umaxica.org", "help.org.localhost"].compact do
     # Staff surface controllers.
     scope module: :org, as: :org do
       # Thin landing endpoint.

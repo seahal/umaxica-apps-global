@@ -6,6 +6,16 @@ require "test_helper"
 class PalmRouteContractTest < ActionDispatch::IntegrationTest
   PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
 
+  test "palm public host alias routes to app surface" do
+    recognized = Rails.application.routes.recognize_path(
+      "http://palm.jp.umaxica.app/",
+      method: :get,
+    )
+
+    assert_equal "palm/app/roots", recognized[:controller]
+    assert_equal "index", recognized[:action]
+  end
+
   test "palm route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{PALM_HOST}/",

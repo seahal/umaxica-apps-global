@@ -52,6 +52,15 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects invalid gateway origin URI" do
+    with_env("JUMP_GATEWAY_URL" => "://invalid") do
+      result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
+
+      assert_not result.ok?
+      assert_equal "invalid_uri", result.failure_reason
+    end
+  end
+
   test "rejects unsafe gateway origins" do
     with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
       result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")

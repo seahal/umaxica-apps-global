@@ -73,6 +73,16 @@ module SignIn
       assert_predicate cycle.reload, :sign_in_guardrail_pending?
     end
 
+    test "raises when evaluator returns non-item" do
+      actor = create_client
+      cycle = create_cycle(actor)
+      evaluator = ->(**) { "not_an_item" }
+
+      assert_raises(ArgumentError, match: /guardrail evaluator must return SignInParticipantItem/) do
+        SignInGuardrailParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).advance_if_clear!
+      end
+    end
+
     test "default guardrail advances for visitor and operator without blocking items" do
       [
         [VisitorSignInFlow, create_visitor],

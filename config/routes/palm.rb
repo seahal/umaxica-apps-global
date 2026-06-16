@@ -4,7 +4,7 @@
 # Palm owns the native API surface.
 scope module: :palm, as: :palm do
   # App native API host.
-  constraints host: ENV["PALM_SERVICE_URL"] do
+  constraints host: [ENV["PALM_SERVICE_URL"], "palm.jp.umaxica.app", "palm.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.

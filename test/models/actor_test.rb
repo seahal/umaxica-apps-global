@@ -148,6 +148,12 @@ class ActorTest < ActiveSupport::TestCase
     assert_not_predicate Actor, :user?
   end
 
+  test "step up null returns true for NULL and false for non-null" do
+    assert_predicate Actor::StepUp::NULL, :null?
+    assert_not Actor::StepUp::NULL.with(scope: "email").null?
+    assert_not Actor::StepUp::NULL.with(satisfied: true).null?
+  end
+
   test "step up predicates are false when no step up is required" do
     assert_equal Actor::StepUp::NULL, Actor.step_up
     assert_not_predicate Actor, :step_up_fresh?

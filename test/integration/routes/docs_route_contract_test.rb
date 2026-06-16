@@ -7,6 +7,20 @@ class DocsRouteContractTest < ActionDispatch::IntegrationTest
   DOCS_APP_HOST = ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
   DOCS_COM_HOST = ENV.fetch("DOCS_CORPORATE_URL", "docs.com.localhost")
   DOCS_ORG_HOST = ENV.fetch("DOCS_STAFF_URL", "docs.org.localhost")
+  PUBLIC_DOCS_HOSTS = {
+    "docs.jp.umaxica.app" => "docs/app/roots",
+    "docs.jp.umaxica.com" => "docs/com/roots",
+    "docs.jp.umaxica.org" => "docs/org/roots",
+  }.freeze
+
+  test "docs public host aliases route to the matching surface" do
+    PUBLIC_DOCS_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "docs app route contract" do
     recognized = Rails.application.routes.recognize_path(

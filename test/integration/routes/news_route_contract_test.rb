@@ -7,6 +7,20 @@ class NewsRouteContractTest < ActionDispatch::IntegrationTest
   NEWS_APP_HOST = ENV.fetch("NEWS_SERVICE_URL", "news.app.localhost")
   NEWS_COM_HOST = ENV.fetch("NEWS_CORPORATE_URL", "news.com.localhost")
   NEWS_ORG_HOST = ENV.fetch("NEWS_STAFF_URL", "news.org.localhost")
+  PUBLIC_NEWS_HOSTS = {
+    "news.jp.umaxica.app" => "news/app/roots",
+    "news.jp.umaxica.com" => "news/com/roots",
+    "news.jp.umaxica.org" => "news/org/roots",
+  }.freeze
+
+  test "news public host aliases route to the matching surface" do
+    PUBLIC_NEWS_HOSTS.each do |host, controller|
+      recognized = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, recognized[:controller]
+      assert_equal "index", recognized[:action]
+    end
+  end
 
   test "news app route contract" do
     recognized = Rails.application.routes.recognize_path(

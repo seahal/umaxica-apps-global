@@ -30,7 +30,7 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
       assert_select "a"
       assert_select "a[href=?]", sign_com_root_url(ri: "jp"),
                     text: I18n.t("sign.com.preferences.footer.home")
-      assert_select "a[href=?]", acme_com_preference_url(ri: "jp"),
+      assert_select "a[href=?]", acme_com_preference_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
                     text: I18n.t("sign.com.preferences.footer.preference")
       assert_select "a[href=?]", sign_com_settings_url(ri: "jp"),
                     text: I18n.t("sign.com.preferences.footer.settings")

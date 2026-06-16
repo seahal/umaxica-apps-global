@@ -77,6 +77,11 @@ class Sign::Org::SignUpsHelperTest < ActionView::TestCase
     assert_nil send(:safe_recruit_contact_url, "javascript:alert(1)")
   end
 
+  test "safe_recruit_contact_url handles invalid URI" do
+    assert_nil send(:safe_recruit_contact_url, "invalid uri with spaces and \x00null")
+    assert_nil send(:safe_recruit_contact_url, "https://[invalid")
+  end
+
   private
 
   def with_env(values)
