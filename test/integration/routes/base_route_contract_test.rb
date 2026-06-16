@@ -66,6 +66,14 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/settings",
+      method: :get,
+    )
+
+    assert_equal "base/app/settings", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/csp-violation-report",
       method: :post,
     )
@@ -132,6 +140,14 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/settings",
+      method: :get,
+    )
+
+    assert_equal "base/com/settings", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/csp-violation-report",
       method: :post,
     )
@@ -195,6 +211,14 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_equal "base/org/sitemaps", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/settings",
+      method: :get,
+    )
+
+    assert_equal "base/org/settings", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(

@@ -12,22 +12,20 @@ module Acme
 
         def show
           authorize!(current_client, to: :show?)
-          render "acme/shared/self_service/show", locals: { page_title: "Avatar" }
         end
 
         def edit
           authorize!(current_client, to: :update?)
-          render "acme/shared/self_service/show", locals: { page_title: "Avatar" }
         end
 
         def update
           authorize!(current_client, to: :update?)
-          render "acme/shared/self_service/show", locals: { page_title: "Avatar" }
+          redirect_to(acme_app_avatar_path(ri: params[:ri]), status: :see_other)
         end
 
         def destroy
           authorize!(current_client, to: :destroy?)
-          head :no_content
+          redirect_to(acme_app_avatar_path(ri: params[:ri]), status: :see_other)
         end
       end
     end

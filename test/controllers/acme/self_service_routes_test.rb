@@ -15,7 +15,7 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   test "app self service pages require authentication" do
     assert_requires_authentication(acme_app_avatar_url(ri: "jp", host: @app_host), host: @app_host)
     assert_requires_authentication(acme_app_identity_url(ri: "jp", host: @app_host), host: @app_host)
-    assert_requires_authentication(acme_app_organization_url(ri: "jp", host: @app_host), host: @app_host)
+    assert_requires_authentication(acme_app_current_organization_url(ri: "jp", host: @app_host), host: @app_host)
     assert_requires_authentication(acme_app_account_url(ri: "jp", host: @app_host), host: @app_host)
   end
 
@@ -29,16 +29,46 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     assert_self_service_page(acme_app_avatar_url(ri: "jp", host: @app_host), headers: headers, title: "Avatar")
     assert_self_service_page(acme_app_identity_url(ri: "jp", host: @app_host), headers: headers, title: "Identity")
     assert_self_service_page(
-      acme_app_organization_url(ri: "jp", host: @app_host), headers: headers,
-                                                            title: "Organization",
+      acme_app_current_organization_url(ri: "jp", host: @app_host), headers: headers,
+                                                                    title: "Organization",
+    )
+    assert_self_service_page(
+      edit_acme_app_current_organization_path(ri: "jp", host: @app_host), headers: headers,
+                                                                          title: "Organization",
     )
     assert_self_service_page(acme_app_account_url(ri: "jp", host: @app_host), headers: headers, title: "Account")
+    assert_self_service_page(edit_acme_app_account_path(ri: "jp", host: @app_host), headers: headers, title: "Account")
+
+    post acme_app_organizations_url(ri: "jp", host: @app_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_app_account_url(ri: "jp", host: @app_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_app_current_organization_url(ri: "jp", host: @app_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_app_avatar_url(ri: "jp", host: @app_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    delete acme_app_avatar_url(ri: "jp", host: @app_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
   end
 
   test "org self service pages require authentication" do
     assert_requires_authentication(acme_org_avatar_url(ri: "jp", host: @org_host), host: @org_host)
     assert_requires_authentication(acme_org_identity_url(ri: "jp", host: @org_host), host: @org_host)
-    assert_requires_authentication(acme_org_organization_url(ri: "jp", host: @org_host), host: @org_host)
+    assert_requires_authentication(acme_org_current_organization_url(ri: "jp", host: @org_host), host: @org_host)
     assert_requires_authentication(acme_org_account_url(ri: "jp", host: @org_host), host: @org_host)
   end
 
@@ -51,10 +81,40 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     assert_self_service_page(acme_org_avatar_url(ri: "jp", host: @org_host), headers: headers, title: "Avatar")
     assert_self_service_page(acme_org_identity_url(ri: "jp", host: @org_host), headers: headers, title: "Identity")
     assert_self_service_page(
-      acme_org_organization_url(ri: "jp", host: @org_host), headers: headers,
-                                                            title: "Organization",
+      acme_org_current_organization_url(ri: "jp", host: @org_host), headers: headers,
+                                                                    title: "Organization",
+    )
+    assert_self_service_page(
+      edit_acme_org_current_organization_path(ri: "jp", host: @org_host), headers: headers,
+                                                                          title: "Organization",
     )
     assert_self_service_page(acme_org_account_url(ri: "jp", host: @org_host), headers: headers, title: "Account")
+    assert_self_service_page(edit_acme_org_account_path(ri: "jp", host: @org_host), headers: headers, title: "Account")
+
+    post acme_org_organizations_url(ri: "jp", host: @org_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_org_account_url(ri: "jp", host: @org_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_org_current_organization_url(ri: "jp", host: @org_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_org_avatar_url(ri: "jp", host: @org_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    delete acme_org_avatar_url(ri: "jp", host: @org_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
   end
 
   test "com self service pages require authentication" do
@@ -70,15 +130,22 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
     assert_self_service_page(acme_com_identity_url(ri: "jp", host: @com_host), headers: headers, title: "Identity")
     assert_self_service_page(acme_com_account_url(ri: "jp", host: @com_host), headers: headers, title: "Account")
+    assert_self_service_page(edit_acme_com_account_path(ri: "jp", host: @com_host), headers: headers, title: "Account")
+
+    patch acme_com_account_url(ri: "jp", host: @com_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+
+    patch acme_com_current_organization_url(ri: "jp", host: @com_host)
+
+    assert_response :redirect
+    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
   end
 
   test "com does not expose avatar or organization self service routes" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("https://#{@com_host}/avatar", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("https://#{@com_host}/organization", method: :get)
     end
   end
 

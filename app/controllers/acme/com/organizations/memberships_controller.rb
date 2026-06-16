@@ -18,12 +18,12 @@ module Acme
           render plain: "New Membership"
         end
 
-        def create
-          head :unprocessable_content
-        end
-
         def edit
           render plain: "Edit Membership"
+        end
+
+        def create
+          head :unprocessable_content
         end
 
         def update

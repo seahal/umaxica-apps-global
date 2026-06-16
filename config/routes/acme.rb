@@ -72,7 +72,7 @@ scope module: :acme, as: :acme do
       # Context selector for the authenticated client: resolves which
       # account/organization context the principal acts in. This is identity/session
       # context resolution (Acme authority), not a credential ceremony (Sign), and it
-      # runs on the :private tier — identity-authenticated but context not yet selected.
+      # runs on the :private tier -- identity-authenticated but context not yet selected.
       resource :selector, only: %i(show update)
 
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
@@ -157,16 +157,14 @@ scope module: :acme, as: :acme do
         resource :out, only: %i(show edit create destroy)
       end
 
-      namespace :current do
-        # Current organization entrypoint.
-        resource :organization, only: %i(show edit update)
-
-        # Current avatar entrypoint.
-        resource :avatar, only: %i(show edit update destroy)
-      end
-
       # Current identity entrypoint.
       resource :identity, only: :show
+
+      # Current organization entrypoint.
+      resource :organization, only: %i(show edit update), as: :current_organization
+
+      # Current avatar entrypoint.
+      resource :avatar, only: %i(show edit update destroy)
 
       # Current account entrypoint.
       resource :account, only: %i(show edit update)
@@ -367,10 +365,8 @@ scope module: :acme, as: :acme do
       # Current identity entrypoint.
       resource :identity, only: :show
 
-      namespace :current do
-        # Current organization entrypoint.
-        resource :organization, only: %i(show edit update)
-      end
+      # Current organization entrypoint.
+      resource :organization, only: %i(show edit update), as: :current_organization
 
       # Current account entrypoint.
       resource :account, only: %i(show edit update)
@@ -593,16 +589,14 @@ scope module: :acme, as: :acme do
         resource :out, only: %i(show edit create destroy)
       end
 
-      namespace :current do
-        # Current organization entrypoint.
-        resource :organization, only: %i(show edit update)
-
-        # Current avatar entrypoint.
-        resource :avatar, only: %i(show edit update destroy)
-      end
-
       # Current identity entrypoint.
       resource :identity, only: :show
+
+      # Current organization entrypoint.
+      resource :organization, only: %i(show edit update), as: :current_organization
+
+      # Current avatar entrypoint.
+      resource :avatar, only: %i(show edit update destroy)
 
       # Current account entrypoint.
       resource :account, only: %i(show edit update)

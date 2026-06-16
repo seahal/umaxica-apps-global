@@ -141,15 +141,88 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_APP_HOST}/oauth/jwks", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "acme/app/avatars", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/avatar", method: :get },
-    )
+    [
+      { path: "/current/organization", method: :get },
+      { path: "/current/organization/edit", method: :get },
+      { path: "/current/organization", method: :patch },
+      { path: "/current/avatar", method: :get },
+      { path: "/current/avatar/edit", method: :get },
+      { path: "/current/avatar", method: :patch },
+      { path: "/current/avatar", method: :delete },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ACME_APP_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
+    end
+
+    %w(show edit update destroy).each do |action|
+      action_sym = action.to_sym
+      method = (action_sym == :update) ? :patch : ((action_sym == :destroy) ? :delete : :get)
+      path = (action_sym == :edit) ? "/avatar/edit" : "/avatar"
+
+      assert_recognizes(
+        { controller: "acme/app/avatars", action: action_sym },
+        { path: "http://#{ACME_APP_HOST}#{path}", method: },
+      )
+    end
 
     assert_recognizes(
       { controller: "acme/app/organizations", action: "show" },
       { path: "http://#{ACME_APP_HOST}/organization", method: :get },
     )
+
+    {
+      index: { path: "/organizations" },
+      new: { path: "/organizations/new" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "acme/app/organizations", action: },
+        { path: "http://#{ACME_APP_HOST}#{opts[:path]}", method: :get },
+      )
+    end
+
+    assert_recognizes(
+      { controller: "acme/app/organizations", action: "show", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/organizations/example", method: :get, id: "example" },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/organizations", action: "edit", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/organizations/example/edit", method: :get, id: "example" },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/organizations", action: "create" },
+      { path: "http://#{ACME_APP_HOST}/organizations", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/organizations", action: "update", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/organizations/example", method: :patch, id: "example" },
+    )
+
+    {
+      index: { method: :get, path: "/organizations/example/memberships" },
+      new: { method: :get, path: "/organizations/example/memberships/new" },
+      create: { method: :post, path: "/organizations/example/memberships" },
+      edit: { method: :get, path: "/organizations/example/memberships/member-example/edit", id: "member-example" },
+      update: { method: :patch, path: "/organizations/example/memberships/member-example", id: "member-example" },
+      destroy: { method: :delete, path: "/organizations/example/memberships/member-example", id: "member-example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "acme/app/organizations/memberships",
+          action:,
+          organization_id: "example",
+          id: opts[:id], }.compact,
+        { path: "http://#{ACME_APP_HOST}#{opts[:path]}",
+          method: opts[:method],
+          organization_id: "example",
+          id: opts[:id], }.compact,
+      )
+    end
 
     assert_recognizes(
       { controller: "acme/app/accounts", action: "show" },
@@ -165,6 +238,70 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/app/settings", action: "show" },
       { path: "http://#{ACME_APP_HOST}/settings", method: :get },
     )
+
+    assert_recognizes(
+      { controller: "acme/app/preferences", action: "show" },
+      { path: "http://#{ACME_APP_HOST}/preference", method: :get },
+    )
+
+    {
+      region: %w(edit patch),
+      timezone: %w(edit patch),
+      language: %w(edit patch),
+      currency: %w(edit patch),
+      calendar: %w(edit patch),
+      clock: %w(edit patch),
+      motion: %w(edit patch),
+      density: %w(edit patch),
+      pagination: %w(edit patch),
+      theme: %w(edit patch),
+      cookie: %w(edit patch),
+    }.each do |name, (edit_action, _update_verb)|
+      assert_recognizes(
+        { controller: "acme/app/preference/#{name.to_s.pluralize}", action: edit_action },
+        { path: "http://#{ACME_APP_HOST}/preference/#{name}/edit", method: :get },
+      )
+
+      assert_recognizes(
+        { controller: "acme/app/preference/#{name.to_s.pluralize}", action: "update" },
+        { path: "http://#{ACME_APP_HOST}/preference/#{name}", method: :patch },
+      )
+    end
+
+    assert_recognizes(
+      { controller: "acme/app/preference/resets", action: "edit" },
+      { path: "http://#{ACME_APP_HOST}/preference/reset/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/preference/resets", action: "destroy" },
+      { path: "http://#{ACME_APP_HOST}/preference/reset", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/preference/emails", action: "edit", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/preference/emails/example/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/preference/emails", action: "destroy", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/preference/emails/example", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/preference/emails", action: "create", id: "example" },
+      { path: "http://#{ACME_APP_HOST}/preference/emails/example", method: :post },
+    )
+
+    %w(date time page_size).each do |name|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/preference/#{name}/edit", method: :get)
+      end
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/preference/#{name}", method: :patch)
+      end
+    end
   end
 
   test "acme com route contract" do
@@ -253,12 +390,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_COM_HOST}/auth/logout", method: :post },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/sso/authorize", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/sso/logout", method: :post)
+    [
+      { path: "/sso/authorize", method: :get },
+      { path: "/sso/logout", method: :post },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ACME_COM_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
     end
 
     assert_recognizes(
@@ -301,15 +442,48 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_COM_HOST}/account", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "acme/com/identities", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/identity", method: :get },
-    )
+    [
+      { path: "/current/organization", method: :get },
+      { path: "/current/organization/edit", method: :get },
+      { path: "/current/organization", method: :patch },
+      { path: "/current/avatar", method: :get },
+      { path: "/current/avatar/edit", method: :get },
+      { path: "/current/avatar", method: :patch },
+      { path: "/current/avatar", method: :delete },
+      { path: "/avatar", method: :get },
+      { path: "/avatar/edit", method: :get },
+      { path: "/avatar", method: :patch },
+      { path: "/avatar", method: :delete },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ACME_COM_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
+    end
+
+    {
+      index: { path: "/organizations" },
+      show: { path: "/organizations/example", id: "example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "acme/com/organizations", action:, id: opts[:id] }.compact,
+        { path: "http://#{ACME_COM_HOST}#{opts[:path]}", method: :get, id: opts[:id] }.compact,
+      )
+    end
 
     assert_recognizes(
-      { controller: "acme/com/settings", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/settings", method: :get },
+      { controller: "acme/com/organizations/memberships", action: "index", organization_id: "example" },
+      { path: "http://#{ACME_COM_HOST}/organizations/example/memberships", method: :get, organization_id: "example" },
     )
+
+    %w(identity settings).each do |resource|
+      assert_recognizes(
+        { controller: "acme/com/#{resource}", action: "show" },
+        { path: "http://#{ACME_COM_HOST}/#{resource}", method: :get },
+      )
+    end
   end
 
   test "acme org route contract" do
@@ -395,12 +569,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   test "acme org route contract (continued)" do
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/sso/authorize", method: :get)
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/sso/logout", method: :post)
+    [
+      { path: "/sso/authorize", method: :get },
+      { path: "/sso/logout", method: :post },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ACME_ORG_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
     end
 
     assert_recognizes(
@@ -438,14 +616,73 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_ORG_HOST}/oauth/jwks", method: :get },
     )
 
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/organization", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/organization/edit", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/organization", method: :patch)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/avatar", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/avatar/edit", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/avatar", method: :patch)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/current/avatar", method: :delete)
+    end
+
     assert_recognizes(
       { controller: "acme/org/avatars", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/avatar", method: :get },
     )
 
     assert_recognizes(
+      { controller: "acme/org/avatars", action: "edit" },
+      { path: "http://#{ACME_ORG_HOST}/avatar/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/avatars", action: "update" },
+      { path: "http://#{ACME_ORG_HOST}/avatar", method: :patch },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/avatars", action: "destroy" },
+      { path: "http://#{ACME_ORG_HOST}/avatar", method: :delete },
+    )
+
+    assert_recognizes(
       { controller: "acme/org/organizations", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/organization", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/organizations", action: "index" },
+      { path: "http://#{ACME_ORG_HOST}/organizations", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/organizations/memberships",
+        action: "destroy",
+        organization_id: "example",
+        id: "member-example", },
+      { path: "http://#{ACME_ORG_HOST}/organizations/example/memberships/member-example",
+        method: :delete,
+        organization_id: "example",
+        id: "member-example", },
     )
 
     assert_recognizes(

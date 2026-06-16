@@ -16,6 +16,8 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
     "class variable request state" => /@@[A-Za-z_]/,
   }.freeze
 
+  SHARED_SELF_SERVICE_RENDER_PATTERN = /render\s+["']acme\/shared\/self_service\/show["']/.freeze
+
   test "application code does not use forbidden Rails security patterns" do
     offenders =
       application_paths.flat_map do |path|
@@ -31,6 +33,21 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
       end
 
     assert_empty offenders, "Forbidden security patterns found:\n#{offenders.join("\n")}"
+  end
+
+  test "acme controllers do not render the shared self service placeholder directly" do
+    offenders =
+      Rails.root.glob("app/controllers/acme/**/*.rb").filter_map do |path|
+        content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
+        next unless content.match?(SHARED_SELF_SERVICE_RENDER_PATTERN)
+
+        path.relative_path_from(Rails.root).to_s
+      end
+
+    assert_empty offenders,
+                 "Acme controllers must use implicit rendering or action-specific views " \
+                 "instead of the shared placeholder:\n" \
+                 "#{offenders.join("\n")}"
   end
 
   # Test-environment detection in app/lib is forbidden by policy: it lets

@@ -13,7 +13,15 @@ module Acme
 
       def show
         authorize!(current_visitor, to: :show?)
-        render "acme/shared/self_service/show", locals: { page_title: "Account" }
+      end
+
+      def edit
+        authorize!(current_visitor, to: :update?)
+      end
+
+      def update
+        authorize!(current_visitor, to: :update?)
+        redirect_to(acme_com_account_path(ri: params[:ri]), status: :see_other)
       end
     end
   end

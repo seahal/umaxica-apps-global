@@ -12,17 +12,15 @@ module Acme
 
         def show
           authorize!(current_operator, to: :show?)
-          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
         end
 
         def edit
           authorize!(current_operator, to: :update?)
-          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
         end
 
         def update
           authorize!(current_operator, to: :update?)
-          render "acme/shared/self_service/show", locals: { page_title: "Current Organization" }
+          redirect_to(acme_org_current_organization_path(ri: params[:ri]), status: :see_other)
         end
       end
     end

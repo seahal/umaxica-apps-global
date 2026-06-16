@@ -11,7 +11,20 @@ module Acme
 
       def show
         authorize!(current_operator, to: :show?)
-        render "acme/shared/self_service/show", locals: { page_title: "Avatar" }
+      end
+
+      def edit
+        authorize!(current_operator, to: :update?)
+      end
+
+      def update
+        authorize!(current_operator, to: :update?)
+        redirect_to(acme_org_avatar_path(ri: params[:ri]), status: :see_other)
+      end
+
+      def destroy
+        authorize!(current_operator, to: :destroy?)
+        redirect_to(acme_org_avatar_path(ri: params[:ri]), status: :see_other)
       end
     end
   end
