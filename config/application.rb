@@ -109,44 +109,5 @@ module Jit
     # Allow per-model/per-attribute i18n error message format customization
     config.active_model.i18n_customize_full_message = true
 
-    # Ensure default host environment variables are set for route generation and constraints,
-    # especially in test environment where they might not be loaded from external env files.
-    {
-      "ACME_CORPORATE_URL" => "www.com.localhost",
-      "ACME_SERVICE_URL" => "www.app.localhost",
-      "ACME_STAFF_URL" => "www.org.localhost",
-      "ACME_NETWORK_URL" => "www.net.localhost",
-      "ACME_DEVELOPER_URL" => "www.dev.localhost",
-      "BASE_CORPORATE_URL" => "base.com.localhost",
-      "BASE_SERVICE_URL" => "base.app.localhost",
-      "BASE_STAFF_URL" => "base.org.localhost",
-      "CORE_CORPORATE_URL" => "www.jp.umaxica.com",
-      "CORE_SERVICE_URL" => "www.jp.umaxica.app",
-      "CORE_STAFF_URL" => "www.jp.umaxica.org",
-      "ID_CORPORATE_URL" => "id.umaxica.com",
-      "ID_SERVICE_URL" => "id.umaxica.app",
-      "ID_STAFF_URL" => "id.umaxica.org",
-      "SIGN_CORPORATE_URL" => "id.umaxica.com",
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
-      "SIGN_STAFF_URL" => "id.umaxica.org",
-      "JUMP_CORPORATE_URL" => "jump.example.com",
-      "JUMP_SERVICE_URL" => "jump.example.app",
-      "JUMP_STAFF_URL" => "jump.example.org",
-      "MAIN_CORPORATE_URL" => "main.com.localhost",
-      "MAIN_SERVICE_URL" => "main.app.localhost",
-      "MAIN_STAFF_URL" => "main.org.localhost",
-      "PALM_SERVICE_URL" => "palm.jp.umaxica.app",
-      "NEWS_CORPORATE_URL" => "news.com.localhost",
-      "NEWS_SERVICE_URL" => "news.app.localhost",
-      "NEWS_STAFF_URL" => "news.org.localhost",
-      "HELP_CORPORATE_URL" => "help.com.localhost",
-      "HELP_SERVICE_URL" => "help.app.localhost",
-      "HELP_STAFF_URL" => "help.org.localhost",
-      "DOCS_CORPORATE_URL" => "docs.com.localhost",
-      "DOCS_SERVICE_URL" => "docs.app.localhost",
-      "DOCS_STAFF_URL" => "docs.org.localhost",
-    }.each do |key, value|
-      ENV[key] ||= value
-    end
   end
 end

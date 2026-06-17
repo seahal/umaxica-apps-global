@@ -285,7 +285,20 @@ module Sign
             event: :complete_social_callback,
             actor_context: Actor.authn,
           )
-          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.success?
+          return if result.success?
+
+          Rails.logger.warn(
+            JitLogEvent.format(
+              "sign.social.omniauth.pending_social_signup_failed",
+              status: result.status,
+              errors: result.errors,
+              ticket_status_id: cycle.status_id,
+              ticket_step: cycle.step,
+              entry_method: cycle.entry_method,
+              social_provider: cycle.social_provider,
+            ),
+          )
+          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
         end
 
         def pending_social_signup_uid_digest(provider:, uid:)

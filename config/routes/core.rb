@@ -4,7 +4,7 @@
 # Core owns the BFF surface.
 scope module: :core, as: :core do
   # Application BFF host.
-  constraints host: [ENV["CORE_SERVICE_URL"], "www.jp.umaxica.app", "jp.umaxica.app", "core.app.localhost"].compact do
+  constraints host: [ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -83,7 +83,7 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF host.
-  constraints host: [ENV["CORE_CORPORATE_URL"], "www.jp.umaxica.com", "core.com.localhost"].compact do
+  constraints host: [ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -162,7 +162,7 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF host.
-  constraints host: [ENV["CORE_STAFF_URL"], "www.jp.umaxica.org", "core.org.localhost"].compact do
+  constraints host: [ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

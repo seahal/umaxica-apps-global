@@ -19,7 +19,7 @@ FROM node:${NODE_MAJOR}-trixie-slim AS node-toolchain
 # ============================================================================
 # Production base — runtime-only dependencies
 # ============================================================================
-FROM ruby:${RUBY_VERSION}-slim-trixie AS production-base
+FROM docker.io/library/ruby:${RUBY_VERSION}-slim-trixie AS production-base
 SHELL ["/bin/bash", "-eu", "-o", "pipefail", "-c"]
 ARG DOCKER_UID
 ARG DOCKER_GID
@@ -28,6 +28,7 @@ ARG DOCKER_GROUP
 ENV HOME=/home/${DOCKER_USER}
 ENV APP_HOME=${HOME}/main
 ENV LANG=C.UTF-8 \
+    IS_SANDBOX=1 \
     RAILS_ENV=production \
     RACK_ENV=production \
     BUNDLE_WITHOUT=development:test \
@@ -37,6 +38,10 @@ ENV LANG=C.UTF-8 \
     BUNDLE_FROZEN=1 \
     BUNDLE_JOBS=4 \
     BUNDLE_RETRY=3
+
+# Update RubyGems before installing the latest Bundler
+RUN gem update --system \
+    && gem install bundler
 
 WORKDIR ${APP_HOME}
 
@@ -153,12 +158,17 @@ CMD ["bundle", "exec", "puma", "-C", "config/puma.rb", "--port", "8080"]
 # ============================================================================
 # Development base — system packages for the docker compose workflow
 # ============================================================================
-FROM ruby:${RUBY_VERSION}-trixie AS development-base
+FROM docker.io/library/ruby:${RUBY_VERSION}-trixie AS development-base
 SHELL ["/bin/bash", "-eu", "-o", "pipefail", "-c"]
 ENV TZ=UTC \
     LANG=C.UTF-8 \
+    IS_SANDBOX=1 \
     LC_ALL=C.UTF-8 \
     LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+
+# Update RubyGems before installing the latest Bundler
+RUN gem update --system \
+    && gem install bundler
 
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

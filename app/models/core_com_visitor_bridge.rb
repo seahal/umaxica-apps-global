@@ -8,7 +8,7 @@
 #
 #  id           :bigint           not null, primary key
 #  audience     :string           default("umaxica-core-com"), not null
-#  host         :string           default("www.jp.umaxica.com"), not null
+#  host         :string           default("www-jp.umaxica.com"), not null
 #  lock_version :integer          default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -32,6 +32,6 @@ class CoreComVisitorBridge < ComRpRecord
     actor_foreign_key: :visitor_id,
     client_id: "core-next-rp",
     audience: "umaxica-core-com",
-    host: "www.jp.umaxica.com",
+    host: "www-jp.umaxica.com",
   )
 end

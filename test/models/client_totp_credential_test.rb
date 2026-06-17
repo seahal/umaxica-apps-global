@@ -68,6 +68,36 @@ class ClientTotpCredentialTest < ActiveSupport::TestCase
     assert_equal @private_key, record.private_key
   end
 
+  test "persists private_key encrypted at rest" do
+    record = ClientTotpCredential.create!(
+      user: @user,
+      private_key: @private_key,
+      last_otp_at: @last_otp_at,
+    )
+
+    raw_private_key =
+      ClientTotpCredential.connection.select_value(
+        ClientTotpCredential.where(id: record.id).select(:private_key).to_sql,
+      )
+
+    assert_not_equal @private_key, raw_private_key
+    assert_not_equal @private_key, record.reload.read_attribute_before_type_cast("private_key")
+  end
+
+  test "verifies totp codes after encryption" do
+    secret = ROTP::Base32.random_base32
+    token = ROTP::TOTP.new(secret).now
+
+    record = ClientTotpCredential.create!(
+      user: @user,
+      private_key: secret,
+      last_otp_at: @last_otp_at,
+    )
+
+    assert_not_equal secret, record.reload.read_attribute_before_type_cast("private_key")
+    assert ROTP::TOTP.new(record.private_key).verify(token)
+  end
+
   test "has last_otp_at attribute" do
     record = ClientTotpCredential.new(
       user: @user,

@@ -5,9 +5,9 @@ require "test_helper"
 
 class CoreRouteNamingTest < ActionDispatch::IntegrationTest
   SURFACES = {
-    app: ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"),
-    com: ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
-    org: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
+    app: ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app"),
+    com: ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com"),
+    org: ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"),
   }.freeze
 
   test "robots sitemap csp and token refresh use the current core vocabulary" do

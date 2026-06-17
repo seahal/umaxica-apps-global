@@ -7,7 +7,7 @@ class CreateCoreComVisitorBridges < ActiveRecord::Migration[8.2]
       t.string(:public_id, null: false, default: "")
       t.string(:rp_client_id, null: false, default: "core_com")
       t.string(:audience, null: false, default: "umaxica-core-com")
-      t.string(:host, null: false, default: "www.jp.umaxica.com")
+      t.string(:host, null: false, default: "www-jp.umaxica.com")
       t.integer(:lock_version, null: false, default: 0)
       t.timestamps
 

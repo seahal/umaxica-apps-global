@@ -28,4 +28,21 @@ class SignUpCycleLocatorTest < ActiveSupport::TestCase
 
     assert_nil locator.current
   end
+
+  test "rescues KeyError when nonce is missing from session" do
+    cycle = ClientSignUpFlow.create!(
+      principal_id: 123,
+      status_id: ClientSignUpFlowStatus::STARTED,
+      step: "start",
+      nonce_digest: ClientSignUpFlow.digest_nonce("a-nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "email",
+    )
+
+    session = { app_sign_up_flow_locator: { "public_id" => cycle.public_id } }
+    locator = SignUpCycleLocator.new(session, surface: :app)
+
+    assert_nil locator.current
+  end
 end

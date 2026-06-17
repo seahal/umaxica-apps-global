@@ -153,4 +153,10 @@ class AcmeOrgSettingsActivityLogTest < ActiveSupport::TestCase
 
     assert_equal "{}", @log.context_text(activity)
   end
+
+  test "activities returns an enumerable" do
+    result = @log.activities
+
+    assert_kind_of Enumerable, result
+  end
 end

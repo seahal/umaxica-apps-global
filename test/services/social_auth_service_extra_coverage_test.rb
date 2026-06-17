@@ -86,6 +86,25 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  test "handle_link does not log raw uid" do
+    identity = ClientGoogleIdentity.create!(
+      uid: "log-safe-link",
+      provider: "google",
+      user: @user,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
+      token: "old-token",
+      token_expires_at: 1.day.from_now.to_i,
+    )
+    auth_hash = auth_hash_for(identity.uid)
+    logged = []
+
+    Rails.logger.stub(:debug, ->(message = nil, &block) { logged << (message || block&.call).to_s }) do
+      SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
+    end
+
+    assert_no_match(/log-safe-link/, logged.join("\n"))
+  end
+
   test "handle_link updates identity that already belongs to current user" do
     identity = ClientGoogleIdentity.create!(
       uid: "same-user-link",

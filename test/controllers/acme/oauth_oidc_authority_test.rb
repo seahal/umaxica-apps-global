@@ -150,6 +150,31 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "acme authorize endpoint rate limits by client id and ip" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    Rails.configuration.x.rate_limit.fetch(:store).clear
+
+    10.times do
+      get acme_app_oauth_authorization_url(
+        host: host,
+        **oidc_authorize_params(scope: "openid"),
+      ),
+          headers: { "Host" => host }
+
+      assert_response :redirect
+    end
+
+    get acme_app_oauth_authorization_url(
+      host: host,
+      **oidc_authorize_params(scope: "openid"),
+    ), headers: { "Host" => host }
+
+    assert_response :too_many_requests
+    assert_equal "rails", response.headers["X-RateLimit-Layer"]
+    assert_equal "acme_app_oauth_authorize", response.headers["X-RateLimit-Rule"]
+    assert_equal "60", response.headers["Retry-After"]
+  end
+
   test "acme userinfo authenticates against acme request binding" do
     captured = nil
     result = AuthResult.new(success: false, error: "invalid_token")

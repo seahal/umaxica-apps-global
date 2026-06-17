@@ -7,7 +7,7 @@ class StepUpResolver
 
   def self.call(token:, scope: nil, required_aal: DEFAULT_REQUIRED_AAL, allowed_methods: nil,
                 session_binding: nil, token_binding: nil, requirement: nil,
-                now: Time.current, ttl: DEFAULT_TTL)
+                now: Time.current, ttl: DEFAULT_TTL, require_session_binding: false)
     requirement =
       if requirement
         StepUpRequirement.build(requirement)
@@ -19,6 +19,7 @@ class StepUpResolver
           session_binding: session_binding,
           token_binding: token_binding,
           ttl: ttl,
+          require_session_binding: require_session_binding,
         )
       end
     new(token: token, requirement: requirement, now: now).call
@@ -101,6 +102,7 @@ class StepUpResolver
 
   def session_bound?
     expected = requirement.session_binding
+    return false if requirement.require_session_binding && expected.blank?
     return true if expected.blank?
 
     recorded = token_attribute(:last_step_up_session_public_id)

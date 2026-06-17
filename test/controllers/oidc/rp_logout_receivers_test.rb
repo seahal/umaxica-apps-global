@@ -8,11 +8,11 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     { host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), client_id: "sign-rp", resource_type: "client" },
     { host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"), client_id: "sign-rp", resource_type: "visitor" },
     { host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"), client_id: "sign-rp", resource_type: "operator" },
-    { host: ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"), client_id: "core-next-rp", resource_type: "client" },
-    { host: ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"),
+    { host: ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app"), client_id: "core-next-rp", resource_type: "client" },
+    { host: ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com"),
       client_id: "core-next-rp",
       resource_type: "visitor", },
-    { host: ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"), client_id: "core-next-rp", resource_type: "operator" },
+    { host: ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"), client_id: "core-next-rp", resource_type: "operator" },
   ].freeze
 
   setup do

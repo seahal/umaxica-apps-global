@@ -91,6 +91,7 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_equal existing_session.response.status, missing_session.response.status
     assert_equal existing_session.response.location, missing_session.response.location
+    assert_equal existing_session.response.body, missing_session.response.body
 
     if existing_session.flash[:notice].nil?
       assert_nil missing_session.flash[:notice]

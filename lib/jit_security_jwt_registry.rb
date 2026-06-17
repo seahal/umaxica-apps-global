@@ -30,9 +30,9 @@ module JitSecurityJwtRegistry
     "ACME_APP" => "https://www.umaxica.app",
     "ACME_COM" => "https://www.umaxica.com",
     "ACME_ORG" => "https://www.umaxica.org",
-    "CORE_APP" => "https://www.jp.umaxica.app",
-    "CORE_COM" => "https://www.jp.umaxica.com",
-    "CORE_ORG" => "https://www.jp.umaxica.org",
+    "CORE_APP" => "https://www-jp.umaxica.app",
+    "CORE_COM" => "https://www-jp.umaxica.com",
+    "CORE_ORG" => "https://www-jp.umaxica.org",
   }.freeze
 
   ConfigurationError = Class.new(StandardError)

@@ -1093,8 +1093,8 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     public_client = public_visitor_account(
       client_id: "app-ios-rp",
       aud: PalmAccessTokenAuthenticator::AUDIENCE,
-      redirect_uris: ["https://palm.jp.umaxica.app/auth/callback"],
-      domains: ["palm.jp.umaxica.app"],
+      redirect_uris: ["https://palm-jp.umaxica.app/auth/callback"],
+      domains: ["palm-jp.umaxica.app"],
       allowed_scopes: OidcClientRegistry::PALM_ALLOWED_SCOPES,
     )
     code_record = issue_code!(
@@ -1116,7 +1116,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
       palm_result = PalmAccessTokenAuthenticator.call(
         access_token: result.token_response.fetch(:access_token),
-        host: "palm.jp.umaxica.app",
+        host: "palm-jp.umaxica.app",
         authorization_scheme: "Bearer",
       )
 

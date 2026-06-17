@@ -1356,6 +1356,11 @@ en:
       verification_required: Verification required.
   activerecord:
     attributes:
+      client:
+        mfa_level: MFA level
+        mfa_status: MFA status
+        user_status: Status
+        visibility: Visibility
       user_email:
         address: Email address
         user: Client

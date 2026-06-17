@@ -3,7 +3,7 @@
 require "test_helper"
 
 class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
-  HOST = "jp.umaxica.app"
+  HOST = ENV.fetch("CORE_SERVICE_URL", "core.app.localhost")
 
   setup do
     @previous_flag = ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"]

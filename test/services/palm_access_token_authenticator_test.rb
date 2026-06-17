@@ -3,7 +3,7 @@
 require "test_helper"
 
 class PalmAccessTokenAuthenticatorTest < ActiveSupport::TestCase
-  HOST = "palm.jp.umaxica.app"
+  HOST = "palm-jp.umaxica.app"
 
   test "accepts acme issued palm audience bearer token" do
     token = persisted_token

@@ -31,16 +31,21 @@ class SocialAuthLoginHandlerCoverageTest < ActiveSupport::TestCase
       provider: "google",
       uid: "missing-google-uid",
     )
+    logged = []
 
-    assert_no_difference("Client.count") do
-      assert_no_difference("ClientGoogleIdentity.count") do
-        result = handler.call
+    Rails.logger.stub(:debug, ->(message = nil, &block) { logged << (message || block&.call).to_s }) do
+      assert_no_difference("Client.count") do
+        assert_no_difference("ClientGoogleIdentity.count") do
+          result = handler.call
 
-        assert result[:pending_social_signup]
-        assert_nil result[:user]
-        assert_nil result[:identity]
+          assert result[:pending_social_signup]
+          assert_nil result[:user]
+          assert_nil result[:identity]
+        end
       end
     end
+
+    assert_no_match(/missing-google-uid/, logged.join("\n"))
   end
 
   test "call returns login result for existing identity with user" do

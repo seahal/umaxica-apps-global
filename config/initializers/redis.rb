@@ -8,7 +8,18 @@ default_redis_url = Rails.app.creds.option(:REDIS_NORMAL_URL, default: "redis://
 # (required by managed providers such as Upstash). No explicit ssl_params needed here.
 redis_config = { url: default_redis_url }
 
-REDIS_CLIENT = Redis.new(redis_config)
+class NullRedisClient
+  def ping
+    "PONG"
+  end
+end
+
+REDIS_CLIENT =
+  if Rails.env.test?
+    NullRedisClient.new
+  else
+    Redis.new(redis_config)
+  end
 
 fail_fast_redis_by_default = Rails.env.development? || Rails.env.production?
 

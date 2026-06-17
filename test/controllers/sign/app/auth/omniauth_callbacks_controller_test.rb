@@ -459,6 +459,40 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "/sign/in?ri=jp", controller.send(:social_auth_failure_redirect_path)
   end
 
+  test "pending social signup failure is logged with state machine details" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    cycle = ClientSignUpFlow.create!(
+      principal_id: nil,
+      status_id: ClientSignUpFlowStatus::SOCIAL_CALLBACK_PENDING,
+      step: "social_callback",
+      nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "google",
+      social_provider: "google",
+    )
+    result = SignUpResult.build(
+      status: :invalid_transition,
+      ticket: cycle,
+      errors: ["terminal ticket cannot transition"],
+    )
+    logged = []
+
+    controller.define_singleton_method(:logger) { Rails.logger }
+    Rails.logger.stub(:warn, ->(message) { logged << message }) do
+      SignUpStateMachine.stub(:call, result) do
+        assert_raises(SocialAuth::ProviderError) do
+          controller.send(:advance_pending_social_sign_up_flow!, cycle)
+        end
+      end
+    end
+
+    assert_predicate logged.first, :present?
+    assert_includes logged.first, "sign.social.omniauth.pending_social_signup_failed"
+    assert_includes logged.first, "invalid_transition"
+    assert_includes logged.first, "terminal ticket cannot transition"
+  end
+
   private
 
   def assert_grantless_established_social_login_rejected(provider:, provider_name:)

@@ -182,6 +182,11 @@ ja:
     session_expired: セッションの有効期限が切れました。もう一度サインインしてください。
   activerecord:
     attributes:
+      client:
+        mfa_level: MFAレベル
+        mfa_status: MFAステータス
+        user_status: ステータス
+        visibility: 公開範囲
       user_email:
         address: メールアドレス
         confirm_policy: 利用規約

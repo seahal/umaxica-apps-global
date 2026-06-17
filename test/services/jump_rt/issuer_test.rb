@@ -43,6 +43,23 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
     end
   end
 
+  test "returns nil for url with invalid percent encoding" do
+    with_env(
+      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+    ) do
+      JumpRtKeyring.stub(:private_key, @private_key) do
+        result = JumpRtIssuer.call(
+          namespace: "SIGN_APP",
+          url: "http://example.com/%gg",
+          dst: "internal",
+        )
+
+        assert_nil result
+      end
+    end
+  end
+
   test "can mark issued jump rt as one-time replay policy" do
     with_env("JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a") do
       JumpRtKeyring.stub(:private_key, @private_key) do

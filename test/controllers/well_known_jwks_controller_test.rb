@@ -13,12 +13,12 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   ENDPOINTS = [
-    ["acme app", "ACME_APP", normalized_host(ENV.fetch("ACME_SERVICE_URL", "app.localhost"))],
-    ["acme com", "ACME_COM", normalized_host(ENV.fetch("ACME_CORPORATE_URL", "com.localhost"))],
-    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("ACME_STAFF_URL", "org.localhost"))],
-    ["core app", "CORE_APP", normalized_host(ENV.fetch("CORE_SERVICE_URL", "www.jp.umaxica.app"))],
-    ["core com", "CORE_COM", normalized_host(ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com"))],
-    ["core org", "CORE_ORG", normalized_host(ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"))],
+    ["acme app", "ACME_APP", normalized_host(ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))],
+    ["acme com", "ACME_COM", normalized_host(ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))],
+    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))],
+    ["core app", "CORE_APP", normalized_host(ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app"))],
+    ["core com", "CORE_COM", normalized_host(ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com"))],
+    ["core org", "CORE_ORG", normalized_host(ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"))],
     ["sign app", "SIGN_APP", normalized_host(ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app"))],
     ["sign com", "SIGN_COM", normalized_host(ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))],
     ["sign org", "SIGN_ORG", normalized_host(ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))],

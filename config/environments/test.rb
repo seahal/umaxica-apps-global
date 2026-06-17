@@ -111,9 +111,6 @@ Rails.application.configure do
     Minitest::Test.include(MissingHelpers) if defined?(Minitest::Test)
   end
 
-  # # 遅いクエリをログに出力（100ms以上）
+  # Log slow queries over 100ms.
   config.active_record.query_log_tags_enabled = true
-
-  # 大量レコード取得時に警告
-  config.active_record.warn_on_records_fetched_greater_than = 1000
 end

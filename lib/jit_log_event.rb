@@ -8,7 +8,7 @@ module JitLogEvent
   def format(name, payload = nil, **attributes)
     {
       event: name,
-      data: normalize_payload(payload, attributes),
+      data: ObservabilityRedactor.scrub(normalize_payload(payload, attributes)),
     }.compact.to_json
   end
 

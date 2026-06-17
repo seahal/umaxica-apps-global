@@ -131,6 +131,7 @@ module VerificationBase
       ttl: STEP_UP_TTL,
       purpose: :step_up,
       audience: step_up_audience,
+      require_session_binding: true,
     )
   end
 

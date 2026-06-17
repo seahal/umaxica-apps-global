@@ -252,7 +252,7 @@ class JumpRtReturnVerifier
   end
 
   def jump_gateway_url
-    ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
+    Rails.env.production? ? ENV.fetch("JUMP_GATEWAY_URL") : ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
   end
 
   def revoked_kid?(kid)

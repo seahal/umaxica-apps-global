@@ -154,4 +154,10 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
     assert @log.send(:sensitive_context_key?, "token_value")
     assert_not @log.send(:sensitive_context_key?, "browser")
   end
+
+  test "activities returns an enumerable" do
+    result = @log.activities
+
+    assert_kind_of Enumerable, result
+  end
 end

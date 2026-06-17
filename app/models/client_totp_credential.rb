@@ -34,6 +34,8 @@ class ClientTotpCredential < AppPrincipalRecord
   include ::PublicId
   include MfaStatusCredential
 
+  encrypts :private_key
+
   alias_attribute :user_totp_credential_status_id, :user_identity_totp_credential_status_id
   MAX_TOTPS_PER_USER = 2
 

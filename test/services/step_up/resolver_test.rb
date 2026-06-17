@@ -130,6 +130,62 @@ module StepUp
       assert_not StepUpResolver.call(token: token, requirement: wrong_audience, now: now).satisfied?
     end
 
+    test "rejects missing session binding when requirement explicitly requires it" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      token = token_at(now - 1.minute, scope: "settings_email", session_public_id: nil)
+      requirement = StepUpRequirement.new(
+        scope: "settings_email",
+        session_binding: nil,
+        require_session_binding: true,
+      )
+
+      step_up = StepUpResolver.call(token: token, requirement: requirement, now: now)
+
+      assert_not_predicate step_up, :satisfied?
+    end
+
+    test "rejects mismatched session binding when requirement explicitly requires it" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      token = token_at(now - 1.minute, scope: "settings_email", session_public_id: "session_1")
+      requirement = StepUpRequirement.new(
+        scope: "settings_email",
+        session_binding: "session_2",
+        require_session_binding: true,
+      )
+
+      assert_not StepUpResolver.call(token: token, requirement: requirement, now: now).satisfied?
+    end
+
+    test "still allows step-up without a session binding when it is not required" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      token = token_at(now - 1.minute, scope: "settings_email", session_public_id: nil)
+      requirement = StepUpRequirement.new(scope: "settings_email")
+
+      assert_predicate StepUpResolver.call(token: token, requirement: requirement, now: now), :satisfied?
+    end
+
+    test "browser step-up contract requires a live session binding" do
+      now = Time.zone.parse("2026-05-25 00:00:00")
+      token = token_at(now - 1.minute, scope: "settings_email", session_public_id: "session_1")
+      requirement = StepUpRequirement.new(
+        scope: "settings_email",
+        session_binding: "session_1",
+        require_session_binding: true,
+      )
+
+      assert_predicate StepUpResolver.call(token: token, requirement: requirement, now: now), :satisfied?
+      assert_not StepUpResolver.call(
+        token: token_at(now - 1.minute, scope: "settings_email", session_public_id: nil),
+        requirement: requirement,
+        now: now,
+      ).satisfied?
+      assert_not StepUpResolver.call(
+        token: token_at(now - 1.minute, scope: "settings_email", session_public_id: "other_session"),
+        requirement: requirement,
+        now: now,
+      ).satisfied?
+    end
+
     private
 
     def token_at(time, currently_usable: true, scope:, aal: "aal2", method: "totp",

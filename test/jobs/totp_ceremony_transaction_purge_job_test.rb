@@ -5,13 +5,17 @@ require "test_helper"
 
 class TotpCeremonyTransactionPurgeJobTest < ActiveJob::TestCase
   test "calls purger service" do
-    mock_purger = Minitest::Mock.new
-    mock_purger.expect(:call, true)
+    call_count = 0
 
-    IdentityTotpCeremonyTransactionPurger.stub(:new, mock_purger) do
+    stub_new =
+      -> {
+        -> { call_count += 1 }
+      }
+
+    IdentityTotpCeremonyTransactionPurger.stub(:new, stub_new) do
       TotpCeremonyTransactionPurgeJob.perform_now
     end
 
-    mock_purger.verify
+    assert_equal 1, call_count
   end
 end

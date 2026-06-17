@@ -15,6 +15,7 @@ class SocialAuthSignupFinalizer
     validate_auth_hash!
 
     AppPrincipalRecord.transaction do
+      ensure_signup_reference_defaults!
       ensure_identity_status!
       existing_identity = identity_class.lock.find_by(uid: uid, provider: provider)
       raise SocialAuth::ProviderError.new("errors.social_auth.identity_conflict") if existing_identity&.user_id.present?
@@ -30,7 +31,12 @@ class SocialAuthSignupFinalizer
 
       { user: user, identity: identity }
     end
-  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved, ActiveRecord::RecordNotUnique
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved, ActiveRecord::RecordNotUnique => e
+    Rails.logger.error(
+      "SocialAuthSignupFinalizer failed: #{e.class}: #{e.message} " \
+      "(record=#{e.respond_to?(:record) ? e.record&.class : "n/a"} " \
+      "errors=#{e.respond_to?(:record) ? e.record&.errors&.full_messages : "n/a"})",
+    )
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
   end
 
@@ -75,6 +81,15 @@ class SocialAuthSignupFinalizer
 
   def default_mfa_status_id
     ClientMfaStatus::UNCONFIGURED
+  end
+
+  def ensure_signup_reference_defaults!
+    [
+      ClientStatus,
+      ClientVisibility,
+      ClientMfaLevel,
+      ClientMfaStatus,
+    ].each { |klass| klass.ensure_defaults! if klass.respond_to?(:ensure_defaults!) }
   end
 
   def ensure_identity_status!

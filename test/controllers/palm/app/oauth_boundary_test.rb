@@ -9,7 +9,7 @@ module Palm
       fixtures_none!
 
       test "palm app exposes reserved callback stubs but no authorize or token endpoint" do
-        host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
+        host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
         assert_equal(
           "palm/app/oauth/callbacks#show",
@@ -41,7 +41,7 @@ module Palm
       end
 
       test "palm app exposes bearer profile api under the api namespace" do
-        host = ENV.fetch("PALM_SERVICE_URL", "palm.jp.umaxica.app")
+        host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
         assert_equal(
           "palm/app/api/v0/profiles#show",

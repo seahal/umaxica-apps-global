@@ -293,4 +293,28 @@ class WithdrawableTest < ActiveSupport::TestCase
     assert_not staff.active?
     assert_predicate staff, :can_recover?
   end
+
+  test "withdrawal_in_progress? returns true when closing" do
+    user = Client.find_by!(public_id: "one_id")
+    user.update!(withdrawn_at: nil, withdrawal_started_at: Time.current, deactivated_at: nil)
+
+    assert_predicate user, :withdrawal_in_progress?
+  end
+
+  test "withdrawal_in_progress? returns true when suspended" do
+    user = Client.find_by!(public_id: "one_id")
+    user.update!(
+      withdrawn_at: nil, deactivated_at: Time.current, discarded_at: Time.current,
+      purged_at: 31.days.from_now,
+    )
+
+    assert_predicate user, :withdrawal_in_progress?
+  end
+
+  test "withdrawal_in_progress? returns false when neither closing nor suspended" do
+    user = Client.find_by!(public_id: "one_id")
+    user.update!(withdrawn_at: nil, withdrawal_started_at: nil, deactivated_at: nil)
+
+    assert_not user.withdrawal_in_progress?
+  end
 end

@@ -8,9 +8,9 @@ module JumpRtReturnPolicy
     "https://www.umaxica.app" => %w(https://id.umaxica.app https://www.umaxica.app),
     "https://www.umaxica.com" => %w(https://id.umaxica.com https://www.umaxica.com),
     "https://www.umaxica.org" => %w(https://id.umaxica.org https://www.umaxica.org),
-    "https://www.jp.umaxica.app" => %w(https://www.jp.umaxica.app),
-    "https://www.jp.umaxica.com" => %w(https://www.jp.umaxica.com),
-    "https://www.jp.umaxica.org" => %w(https://www.jp.umaxica.org),
+    "https://www-jp.umaxica.app" => %w(https://www-jp.umaxica.app),
+    "https://www-jp.umaxica.com" => %w(https://www-jp.umaxica.com),
+    "https://www-jp.umaxica.org" => %w(https://www-jp.umaxica.org),
   }.freeze
 
   def allowed_source?(destination_origin:, source:)
@@ -61,21 +61,21 @@ module JumpRtReturnPolicy
         issuer_env: "ID_STAFF_URL",
         issuer_default: "id.org.localhost",
       ),
-      env_origin("CORE_SERVICE_URL", "www.jp.umaxica.app") => env_sources(
+      env_origin("CORE_SERVICE_URL", "www-jp.umaxica.app") => env_sources(
         destination_env: "CORE_SERVICE_URL",
-        destination_default: "www.jp.umaxica.app",
+        destination_default: "www-jp.umaxica.app",
         issuer_env: "ID_SERVICE_URL",
         issuer_default: "id.umaxica.app",
       ),
-      env_origin("CORE_CORPORATE_URL", "www.jp.umaxica.com") => env_sources(
+      env_origin("CORE_CORPORATE_URL", "www-jp.umaxica.com") => env_sources(
         destination_env: "CORE_CORPORATE_URL",
-        destination_default: "www.jp.umaxica.com",
+        destination_default: "www-jp.umaxica.com",
         issuer_env: "ID_CORPORATE_URL",
         issuer_default: "id.umaxica.com",
       ),
-      env_origin("CORE_STAFF_URL", "www.jp.umaxica.org") => env_sources(
+      env_origin("CORE_STAFF_URL", "www-jp.umaxica.org") => env_sources(
         destination_env: "CORE_STAFF_URL",
-        destination_default: "www.jp.umaxica.org",
+        destination_default: "www-jp.umaxica.org",
         issuer_env: "ID_STAFF_URL",
         issuer_default: "id.umaxica.org",
       ),
@@ -93,7 +93,7 @@ module JumpRtReturnPolicy
   end
 
   def env_origin(key, fallback)
-    value = ENV.fetch(key, fallback)
+    value = Rails.env.production? ? ENV.fetch(key) : ENV.fetch(key, fallback)
     raw = value.to_s.match?(%r{\Ahttps?://}) ? value : "https://#{value}"
     normalize_origin(raw)
   end

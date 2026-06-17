@@ -5,20 +5,18 @@ require "test_helper"
 
 class StepUpCeremonyTransactionPurgeJobTest < ActiveJob::TestCase
   test "calls purger service with custom batch size" do
-    mock_purger = Minitest::Mock.new
-    mock_purger.expect(:call, true)
+    call_count = 0
 
-    # Note: verify that new receives batch_size: 100
-    mock_new =
+    stub_new =
       lambda { |batch_size:|
         assert_equal 100, batch_size
-        mock_purger
+        -> { call_count += 1 }
       }
 
-    IdentityStepUpCeremonyTransactionPurger.stub(:new, mock_new) do
+    IdentityStepUpCeremonyTransactionPurger.stub(:new, stub_new) do
       StepUpCeremonyTransactionPurgeJob.perform_now(batch_size: 100)
     end
 
-    mock_purger.verify
+    assert_equal 1, call_count
   end
 end

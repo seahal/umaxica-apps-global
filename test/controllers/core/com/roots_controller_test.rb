@@ -5,14 +5,14 @@ require "test_helper"
 
 class Core::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
-    host! ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com")
+    host! ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com")
     get core_com_root_url(ri: "jp")
 
     assert_response :success
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("CORE_CORPORATE_URL", "www.jp.umaxica.com")
+    host! ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com")
 
     assert_difference("ComPreference.count", 1) do
       get core_com_root_url(ri: "jp")

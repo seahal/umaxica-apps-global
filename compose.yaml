@@ -66,10 +66,10 @@ services:
           - id.umaxica.app
           - id.umaxica.com
           - id.umaxica.org
-          - www.jp.umaxica.app
-          - www.jp.umaxica.com
-          - www.jp.umaxica.org
-          - palm.jp.umaxica.app
+          - www-jp.umaxica.app
+          - www-jp.umaxica.com
+          - www-jp.umaxica.org
+          - palm-jp.umaxica.app
           - docs.jp.umaxica.app
           - docs.jp.umaxica.com
           - docs.jp.umaxica.org
@@ -85,6 +85,10 @@ services:
           - www.app.localhost
           - www.com.localhost
           - www.org.localhost
+          - base.app.localhost
+          - base.com.localhost
+          - base.org.localhost
+          - palm.app.localhost
       observability: {}
       outer:
         aliases:

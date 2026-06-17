@@ -177,6 +177,48 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     assert_equal "application:script-src:unknown", data.fetch(:aggregation_key)
   end
 
+  test "handles non-hash non-array input gracefully" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: "\"simple string\"",
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 0, result.reports_count
+    assert_empty logged
+  end
+
+  test "handles numeric json input gracefully" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: "42",
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 0, result.reports_count
+    assert_empty logged
+  end
+
+  test "handles null json input gracefully" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: "null",
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 0, result.reports_count
+    assert_empty logged
+  end
+
   private
 
   def capturing_logger(messages)

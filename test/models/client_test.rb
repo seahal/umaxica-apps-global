@@ -92,6 +92,10 @@ class ClientTest < ActiveSupport::TestCase
     assert_equal :has_one, @user.class.reflect_on_association(:user_google_identity).macro
   end
 
+  test "human_attribute_name resolves user_status" do
+    assert_equal I18n.t("activerecord.attributes.client.user_status"), Client.human_attribute_name(:user_status)
+  end
+
   test "staff? should return false" do
     assert_not @user.staff?
   end
@@ -138,6 +142,10 @@ class ClientTest < ActiveSupport::TestCase
 
     assert_not user.valid?
     assert_not_empty user.errors[:mfa_level_enabled]
+  end
+
+  test "mfa_level has a translated attribute name" do
+    assert_equal "MFAレベル", Client.human_attribute_name(:mfa_level)
   end
 
   test "termination requires finite withdrawal completion" do

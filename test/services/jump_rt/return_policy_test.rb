@@ -96,23 +96,65 @@ class JumpRtReturnPolicyTest < ActiveSupport::TestCase
 
   test "core destinations allow matching idp sources" do
     assert JumpRtReturnPolicy.allowed_source?(
-      destination_origin: "https://www.jp.umaxica.app",
+      destination_origin: "https://www-jp.umaxica.app",
       source: "https://id.umaxica.app",
     )
     assert JumpRtReturnPolicy.allowed_source?(
-      destination_origin: "https://www.jp.umaxica.com",
+      destination_origin: "https://www-jp.umaxica.com",
       source: "https://id.umaxica.com",
     )
     assert JumpRtReturnPolicy.allowed_source?(
-      destination_origin: "https://www.jp.umaxica.org",
+      destination_origin: "https://www-jp.umaxica.org",
       source: "https://id.umaxica.org",
     )
   end
 
   test "core destinations reject cross surface idp sources" do
     assert_not JumpRtReturnPolicy.allowed_source?(
-      destination_origin: "https://www.jp.umaxica.app",
+      destination_origin: "https://www-jp.umaxica.app",
       source: "https://id.umaxica.org",
     )
+  end
+
+  test "env_origin fails fast in production when a required host is missing" do
+    with_env("ACME_SERVICE_URL" => nil) do
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+        error =
+          assert_raises(KeyError) do
+            JumpRtReturnPolicy.send(:env_origin, "ACME_SERVICE_URL", "www.app.localhost")
+          end
+
+        assert_equal 'key not found: "ACME_SERVICE_URL"', error.message
+      end
+    end
+  end
+
+  test "env_origin still allows local defaults outside production" do
+    with_env("ACME_SERVICE_URL" => nil) do
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("test")) do
+        assert_equal "https://www.app.localhost",
+                     JumpRtReturnPolicy.send(:env_origin, "ACME_SERVICE_URL", "www.app.localhost")
+      end
+    end
+  end
+
+  def with_env(values)
+    saved = values.to_h.transform_keys(&:to_s).transform_values { |key| ENV[key] }
+    values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+    yield
+  ensure
+    values.each_key do |key|
+      if saved[key.to_s].nil?
+        ENV.delete(key)
+      else
+        ENV[key] = saved[key.to_s]
+      end
+    end
   end
 end

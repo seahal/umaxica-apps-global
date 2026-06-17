@@ -8,7 +8,7 @@
 #
 #  id           :bigint           not null, primary key
 #  audience     :string           default("umaxica-core-org"), not null
-#  host         :string           default("www.jp.umaxica.org"), not null
+#  host         :string           default("www-jp.umaxica.org"), not null
 #  lock_version :integer          default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -33,6 +33,6 @@ class CoreOrgOperatorBridge < OrgRpRecord
     actor_foreign_key: :operator_id,
     client_id: "core-next-rp",
     audience: "umaxica-core-org",
-    host: "www.jp.umaxica.org",
+    host: "www-jp.umaxica.org",
   )
 end

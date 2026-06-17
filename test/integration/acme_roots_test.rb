@@ -5,7 +5,7 @@ require "test_helper"
 
 class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
   test "acme app root responds successfully" do
-    get "/", headers: { "Host" => "app.localhost" }
+    get "/", headers: { "Host" => "www.app.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success
@@ -19,14 +19,14 @@ class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "acme com root responds successfully" do
-    get "/", headers: { "Host" => "com.localhost" }
+    get "/", headers: { "Host" => "www.com.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme org root responds successfully" do
-    get "/", headers: { "Host" => "org.localhost" }
+    get "/", headers: { "Host" => "www.org.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success
@@ -42,21 +42,21 @@ end
 
 class SurfaceHealthEndpointTest < ActionDispatch::IntegrationTest
   test "acme app health responds successfully" do
-    get "/health", headers: { "Host" => "app.localhost" }
+    get "/health", headers: { "Host" => "www.app.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme com health responds successfully" do
-    get "/health", headers: { "Host" => "com.localhost" }
+    get "/health", headers: { "Host" => "www.com.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme org health responds successfully" do
-    get "/health", headers: { "Host" => "org.localhost" }
+    get "/health", headers: { "Host" => "www.org.localhost" }
     follow_redirect! if response.redirect?
 
     assert_response :success

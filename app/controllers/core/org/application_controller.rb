@@ -26,7 +26,7 @@ module Core
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("CORE_STAFF_URL", "www.jp.umaxica.org"),
+                             ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"),
                            ),
                            with: :exception
 

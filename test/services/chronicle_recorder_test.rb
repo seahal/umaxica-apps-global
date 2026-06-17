@@ -164,10 +164,11 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
   end
 
   test "sanitize_error_message truncates long messages" do
-    long = "x" * 2000
+    long = "." * (ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES + 100)
     result = ChronicleRecorder.send(:sanitize_error_message, long)
 
-    assert_operator result.bytesize, :<=, 1024
+    assert_operator result.bytesize, :<=, ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES
+    assert_equal "." * ChronicleRecorder::MAX_ERROR_MESSAGE_BYTES, result
   end
 
   test "sanitize_error_message returns nil for blank" do

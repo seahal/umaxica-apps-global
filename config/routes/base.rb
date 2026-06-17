@@ -4,7 +4,7 @@
 # Base owns the Rails control-plane surface.
 scope module: :base, as: :base do
   # App control-plane host.
-  constraints host: [ENV["BASE_SERVICE_URL"], "base.jp.umaxica.app", "base.app.localhost"].compact do
+  constraints host: [ENV["BASE_SERVICE_URL"], "base.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.
@@ -40,7 +40,7 @@ scope module: :base, as: :base do
   end
 
   # Corporate control-plane host.
-  constraints host: [ENV["BASE_CORPORATE_URL"], "base.jp.umaxica.com", "base.com.localhost"].compact do
+  constraints host: [ENV["BASE_CORPORATE_URL"], "base.com.localhost"].compact do
     # Corporate surface controllers.
     scope module: :com, as: :com do
       # Thin landing endpoint.
@@ -76,7 +76,7 @@ scope module: :base, as: :base do
   end
 
   # Staff control-plane host.
-  constraints host: [ENV["BASE_STAFF_URL"], "base.jp.umaxica.org", "base.org.localhost"].compact do
+  constraints host: [ENV["BASE_STAFF_URL"], "base.org.localhost"].compact do
     # Staff surface controllers.
     scope module: :org, as: :org do
       # Thin landing endpoint.

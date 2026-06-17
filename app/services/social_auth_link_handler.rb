@@ -20,7 +20,7 @@ class SocialAuthLinkHandler
   def call
     raise UnauthorizedError.new("errors.social_auth.not_logged_in") unless current_client
 
-    Rails.logger.debug { "[SocialAuth] handle_link - current_client_id: #{current_client_id}" }
+    Rails.logger.debug { "[SocialAuth] handle_link - current_client_present: #{current_client.present?}" }
 
     existing_for_user = identity_for_current_user
     return handle_existing_for_current_user(existing_for_user) if existing_for_user
@@ -38,7 +38,7 @@ class SocialAuthLinkHandler
         "social_auth.link_race_condition",
         user_id: current_client_id,
         provider: provider,
-        uid: uid,
+        uid: "[FILTERED]",
         error: e.message,
       ),
     )

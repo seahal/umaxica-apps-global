@@ -23,4 +23,10 @@ class CoreHostNormalizationTest < ActiveSupport::TestCase
 
     assert_nil result
   end
+
+  test "rescues from URI parse failure and falls back to host extraction" do
+    result = CoreHostNormalization.normalize("foo bar")
+
+    assert_equal "foo bar", result
+  end
 end

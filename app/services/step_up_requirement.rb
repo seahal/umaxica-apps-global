@@ -8,7 +8,7 @@ class StepUpRequirement
   DEFAULT_TTL = 15.minutes
 
   attr_reader :required_aal, :allowed_methods, :scope, :session_binding,
-              :token_binding, :ttl, :purpose, :audience
+              :token_binding, :ttl, :purpose, :audience, :require_session_binding
 
   def self.build(value = nil, **attributes)
     return value if value.is_a?(self)
@@ -22,7 +22,7 @@ class StepUpRequirement
 
   def initialize(required_aal: DEFAULT_AAL, allowed_methods: DEFAULT_ALLOWED_METHODS, scope: nil,
                  session_binding: nil, token_binding: nil, ttl: DEFAULT_TTL,
-                 purpose: nil, audience: nil)
+                 purpose: nil, audience: nil, require_session_binding: false)
     @required_aal = normalize_aal(required_aal)
     @allowed_methods = Array(allowed_methods).filter_map { |method| normalize_method(method) }.uniq.freeze
     @scope = scope.to_s.presence
@@ -31,6 +31,7 @@ class StepUpRequirement
     @ttl = ttl
     @purpose = purpose.to_s.presence
     @audience = audience.to_s.presence
+    @require_session_binding = require_session_binding
   end
 
   def aal_supported?

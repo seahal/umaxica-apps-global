@@ -252,6 +252,19 @@ class TokenStatusManagementTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { klass.expiry_column }
   end
 
+  test "token_status_model raises for unknown token class" do
+    klass =
+      Class.new do
+        extend TokenStatusManagement::ClassMethods
+
+        define_singleton_method(:name) do
+          "UnknownToken"
+        end
+      end
+
+    assert_raises(ArgumentError) { klass.token_status_model }
+  end
+
   test "works with OperatorToken as well" do
     staff = Operator.find_by!(public_id: "BCDE2345FGHJ67KM")
     token = OperatorToken.create!(staff: staff)

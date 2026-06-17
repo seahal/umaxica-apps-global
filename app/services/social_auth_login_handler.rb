@@ -25,7 +25,7 @@ class SocialAuthLoginHandler
       JitLogEvent.format(
         "social_auth.race_condition",
         provider: provider,
-        uid: uid,
+        uid: "[FILTERED]",
         error: e.message,
       ),
     )
@@ -40,7 +40,7 @@ class SocialAuthLoginHandler
     user = identity.user
     existing_account = user.present?
     Rails.logger.debug do
-      "[SocialAuth] Existing identity - user_id: #{user&.id}, orphaned: #{user.nil?}"
+      "[SocialAuth] Existing identity - linked: #{user.present?}, orphaned: #{user.nil?}"
     end
 
     return pending_social_signup if user.blank?
