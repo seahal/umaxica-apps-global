@@ -62,4 +62,18 @@ class IdentityOneTimeRevealTest < ActiveSupport::TestCase
       assert_nil reveal
     end
   end
+
+  test "returns nil for malformed/invalid token signature" do
+    actor = clients(:one)
+    Rails.stub(:cache, @cache) do
+      reveal = IdentityOneTimeReveal.consume!(
+        actor: actor,
+        session_nonce: "session-1",
+        token: "completely-malformed-token-or-signature",
+        purpose: "test.reveal",
+      )
+
+      assert_nil reveal
+    end
+  end
 end

@@ -20,6 +20,13 @@ class ChainSealableTest < ActiveSupport::TestCase
     end
   end
 
+  class DefaultsTestRecord
+    include ActiveModel::Model
+    include ChainSealable
+
+    attr_accessor :chain_seal_payload, :chain_seal
+  end
+
   setup do
     @private_key = OpenSSL::PKey::EC.generate("secp384r1")
     TestRecord.chain_seal_key_provider(lambda { |_record| { kid: "concern-kid", private_key: @private_key } })
@@ -76,5 +83,33 @@ class ChainSealableTest < ActiveSupport::TestCase
     record = TestRecord.new(event: "auth.sign_in.succeeded", metadata: { "a" => 1 })
 
     assert_raises(ChainSeal::FormatError) { record.build_chain_seal! }
+  end
+
+  test "default chain_seal_payload_method_name when not configured" do
+    assert_equal :chain_seal_payload, DefaultsTestRecord.chain_seal_payload_method_name
+  end
+
+  test "default chain_seal_column_name when not configured" do
+    assert_equal :chain_seal, DefaultsTestRecord.chain_seal_column_name
+  end
+
+  test "default chain_seal_key_provider_object when not configured" do
+    assert_nil DefaultsTestRecord.chain_seal_key_provider_object
+  end
+
+  test "chain_seal_key_material uses provider directly when it does not respond to call" do
+    TestRecord.chain_seal_key_provider({ kid: "static-kid", private_key: @private_key })
+
+    record = TestRecord.new(event: "auth.sign_in.succeeded", metadata: { "a" => 1 })
+    result = record.build_chain_seal!
+    seal = ChainSeal.verify(
+      compact: result.compact,
+      payload: record.audit_payload,
+      public_key: @private_key.public_key,
+    )
+
+    assert seal
+  ensure
+    TestRecord.chain_seal_key_provider(lambda { |_record| { kid: "concern-kid", private_key: @private_key } })
   end
 end

@@ -7,8 +7,8 @@ services:
       dockerfile: "./Dockerfile"
       args:
         COMMIT_HASH: abcdef
-        DOCKER_UID: "${UID:-1000}"
-        DOCKER_GID: "${GID:-1000}"
+        # DOCKER_UID/DOCKER_GID are host-shaped; they are supplied by the
+        # devcontainer override (.devcontainer/compose.override.yml).
     env_file: docker/core/env
     entrypoint:
     - "/bin/bash"
@@ -27,16 +27,35 @@ services:
     tmpfs:
     # tmpfs uid=/gid= options are rejected by rootless podman. Mode 1777 +
     # sticky bit lets the in-container user write under root-owned tmpfs.
+    # /tmp and tmp/pids are on tmpfs so stale server.pid never survives a
+    # container restart ("A server is already running" error).
+    - /tmp
     - /home/global/workspace/tmp
+    - /home/global/workspace/tmp/pids
     - /home/global/workspace/log
+    # Named volumes for high-write paths prevent rootless podman UID-mapping
+    # from rewriting host file ownership on the bind-mounted workspace:
+    #   - umaxica-home-cache  → pnpm / corepack / Vite+ / YJIT scratch
+    #   - umaxica-home-share  → pnpm store, devcontainer feature state
+    #   - umaxica-node-modules → workspace node_modules (off the repo tree)
+    #   - umaxica-bundle       → vendor/bundle (off the repo tree)
+    # Discard any of these with `podman volume rm <name>` to recover from
+    # a corrupted cache without affecting credentials or workspace state.
     volumes:
-    - type: bind
-      source: "."
-      target: "/home/global/workspace"
-    ports:
-    - "3001:3000"
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
+    - type: volume
+      source: umaxica-home-cache
+      target: "/home/global/.cache"
+    - type: volume
+      source: umaxica-home-share
+      target: "/home/global/.local/share"
+    - type: volume
+      source: umaxica-node-modules
+      target: "/home/global/workspace/node_modules"
+    - type: volume
+      source: umaxica-bundle
+      target: "/home/global/workspace/vendor/bundle"
+    # Workspace bind mount, host-port publishing, and host-gateway alias are
+    # host-shaped — see the devcontainer override.
     networks:
       backend: {}
       frontend:
@@ -189,8 +208,7 @@ services:
     networks:
     - backend
     restart: unless-stopped
-    ports:
-    - "9092:9092"
+    # Host port publishing lives in the devcontainer override.
     healthcheck:
       test:
       - CMD
@@ -213,11 +231,7 @@ services:
     image: grafana/tempo:2.10.5
     command:
     - "-config.file=/etc/tempo.yaml"
-    ports:
-    - "3200:3200"
-    - "4317:4317"
-    - "4318:4318"
-    - "9411:9411"
+    # Host port publishing lives in the devcontainer override.
     volumes:
     - "./docker/tempo/tempo.yaml:/etc/tempo.yaml:ro,z"
     - tempo-volume:/var/tempo
@@ -269,8 +283,7 @@ services:
     - "/bin/sh"
     - "-c"
     - "chmod 600 /pgpass && /entrypoint.sh"
-    ports:
-      - "5050:80"
+    # Host port publishing lives in the devcontainer override.
     environment:
       PGADMIN_DEFAULT_EMAIL: root@example.com
       PGADMIN_DEFAULT_PASSWORD: password
@@ -288,8 +301,7 @@ services:
         condition: service_started
   tinyrdm:
     image: ghcr.io/tiny-craft/tiny-rdm:latest
-    ports:
-    - "8086:8086"
+    # Host port publishing lives in the devcontainer override.
     environment:
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: change-me
@@ -327,3 +339,7 @@ volumes:
   grafana-volume: {}
   prometheus-volume: {}
   tinyrdm-volume: {}
+  umaxica-home-cache: {}
+  umaxica-home-share: {}
+  umaxica-node-modules: {}
+  umaxica-bundle: {}

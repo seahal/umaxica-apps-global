@@ -112,6 +112,7 @@ node_modules
 
 /docker/core/preferences/*
 !/docker/core/preferences/.bashrc
+/docker/core/preferences/.bash_history
 erd.pdf
 .pnpm-store/
 .claudeignore

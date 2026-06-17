@@ -6,6 +6,7 @@ require "test_helper"
 class RecoveryIdentityRequiredValidatorTest < ActiveSupport::TestCase
   class FakeModelWithConstantMessage
     include ActiveModel::Model
+
     attr_accessor :owner
 
     RECOVERY_REQUIRED = "Custom recovery message constant"
@@ -15,18 +16,21 @@ class RecoveryIdentityRequiredValidatorTest < ActiveSupport::TestCase
 
   class FakeModelWithStringMessage
     include ActiveModel::Model
+
     attr_accessor :owner
 
     validates_with RecoveryIdentityRequiredValidator, owner: :owner, message: "String message"
   end
 
-  FakeOwnerWithoutRecovery = Class.new do
-    def has_verified_recovery_identity? = false
-  end
+  FakeOwnerWithoutRecovery =
+    Class.new do
+      def has_verified_recovery_identity? = false
+    end
 
-  FakeOwnerWithRecovery = Class.new do
-    def has_verified_recovery_identity? = true
-  end
+  FakeOwnerWithRecovery =
+    Class.new do
+      def has_verified_recovery_identity? = true
+    end
 
   test "adds error when owner lacks verified recovery identity with symbol message" do
     record = FakeModelWithConstantMessage.new(owner: FakeOwnerWithoutRecovery.new)

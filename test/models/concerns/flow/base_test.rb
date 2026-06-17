@@ -19,6 +19,14 @@ class FlowBaseTest < ActiveSupport::TestCase
     include FlowBase
   end
 
+  class MisconfiguredCycleBaseTestRecord < ApplicationRecord
+    self.table_name = "cycle_base_test_records"
+
+    include FlowBase
+
+    cycle_status_column :nonexistent_status_column
+  end
+
   setup do
     @connection = ActiveRecord::Base.connection
     @connection.create_table(:cycle_base_test_records, force: true) do |t|
@@ -30,6 +38,7 @@ class FlowBaseTest < ActiveSupport::TestCase
     end
     CycleBaseTestRecord.reset_column_information
     UnconfiguredCycleBaseTestRecord.reset_column_information
+    MisconfiguredCycleBaseTestRecord.reset_column_information
   end
 
   teardown do
@@ -151,6 +160,54 @@ class FlowBaseTest < ActiveSupport::TestCase
       assert_match(/discarded_at must be <= purged_at/, error.message)
       assert_equal now + 1.day, record.reload.discarded_at
     end
+  end
+
+  test "read_cycle_time reads attribute value through column validation" do
+    now = Time.zone.local(2026, 5, 19, 10, 0, 0)
+    record = build_record(cycle_status_id: 10, discarded_at: now + 1.day, purged_at: now + 2.days)
+
+    assert_equal now + 1.day, record.send(:read_cycle_time, :discarded_at)
+  end
+
+  test "ensure_cycle_column raises for missing column" do
+    now = Time.zone.local(2026, 5, 19, 10, 0, 0)
+    record = MisconfiguredCycleBaseTestRecord.create!(
+      cycle_status_id: 10,
+      discarded_at: now + 1.day,
+      purged_at: now + 2.days,
+    )
+
+    error = assert_raises(FlowConfigurationError) { record.cycle_status_id }
+
+    assert_match(/does not have nonexistent_status_column/, error.message)
+  end
+
+  test "cycle_future_time returns true for infinity" do
+    record = build_record
+
+    assert record.send(:cycle_future_time?, Float::INFINITY, Time.current)
+  end
+
+  test "cycle_future_time returns true for future time" do
+    now = Time.zone.local(2026, 5, 19, 10, 0, 0)
+    record = build_record
+
+    travel_to now do
+      assert record.send(:cycle_future_time?, now + 1.hour, now)
+    end
+  end
+
+  test "retainable_required raises when Retainable is not included" do
+    now = Time.zone.local(2026, 5, 19, 10, 0, 0)
+    record = UnconfiguredCycleBaseTestRecord.create!(
+      cycle_status_id: 10,
+      discarded_at: now + 1.day,
+      purged_at: now + 2.days,
+    )
+
+    error = assert_raises(FlowConfigurationError) { record.cycle_accessible? }
+
+    assert_match(/include Retainable/, error.message)
   end
 
   test "cycle boundary predicates follow retention and expiry timestamps" do

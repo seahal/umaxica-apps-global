@@ -176,6 +176,19 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
     end
   end
 
+  test "replay store rejects invalid surface" do
+    assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+      IdentitySecretCredentialCeremonyReplayStore.for("invalid-surface")
+    end
+  end
+
+  test "replay store raises error on missing transaction" do
+    store = IdentitySecretCredentialCeremonyReplayStore.for("app")
+    assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+      store.find_transaction!("non-existent-id")
+    end
+  end
+
   private
 
   def issue_grant

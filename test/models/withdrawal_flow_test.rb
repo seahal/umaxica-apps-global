@@ -114,6 +114,23 @@ class WithdrawalFlowTest < ActiveSupport::TestCase
     assert_equal ClientWithdrawalFlowStatus::CLOSING, cycle.reload.status_id
   end
 
+  test "default_status_id returns REQUESTED status id" do
+    assert_equal ClientWithdrawalFlowStatus::REQUESTED, ClientWithdrawalFlow.default_status_id
+    assert_equal VisitorWithdrawalFlowStatus::REQUESTED, VisitorWithdrawalFlow.default_status_id
+  end
+
+  test "status_name_for returns the correct status name" do
+    assert_equal "REQUESTED", ClientWithdrawalFlow.status_name_for(ClientWithdrawalFlowStatus::REQUESTED)
+    assert_equal "TERMINATED", VisitorWithdrawalFlow.status_name_for(VisitorWithdrawalFlowStatus::TERMINATED)
+  end
+
+  test "can_transition_to? accepts valid next status" do
+    cycle = ClientWithdrawalFlow.create!(client: create_client)
+
+    assert cycle.can_transition_to?("CLOSING")
+    assert cycle.can_transition_to?(ClientWithdrawalFlowStatus::CLOSING)
+  end
+
   test "terminal and failed statuses require terminal timestamps" do
     recovered = ClientWithdrawalFlow.new(
       client: create_client,

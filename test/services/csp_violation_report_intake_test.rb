@@ -84,6 +84,99 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     assert_empty oversized_logged
   end
 
+  test "empty array and non-hash json values are ignored" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: "[]",
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 0, result.reports_count
+    assert_empty logged
+  end
+
+  test "legacy report with non-hash csp-report is ignored" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: { "csp-report" => "not a hash" }.to_json,
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 0, result.reports_count
+    assert_empty logged
+  end
+
+  test "invalid uri in blocked uri falls back to splitting on query/fragment" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: {
+        "csp-report" => {
+          "blocked-uri" => "not a valid uri?bad",
+          "effective-directive" => "script-src",
+        },
+      }.to_json,
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 1, result.reports_count
+
+    data = JSON.parse(logged.fetch(0), symbolize_names: true).fetch(:data)
+
+    assert_equal "not a valid uri", data.fetch(:blocked_uri)
+  end
+
+  test "invalid uri in extension detection falls back to scheme prefix check" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: {
+        "csp-report" => {
+          "blocked-uri" => "moz-extension:??not a valid uri",
+          "effective-directive" => "script-src",
+        },
+      }.to_json,
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 1, result.reports_count
+
+    data = JSON.parse(logged.fetch(0), symbolize_names: true).fetch(:data)
+
+    assert_equal "browser_extension", data.fetch(:category)
+  end
+
+  test "missing blocked uri defaults aggregation key to unknown" do
+    logged = []
+
+    result = CspViolationReportIntake.call(
+      raw_body: {
+        "csp-report" => {
+          "effective-directive" => "script-src",
+        },
+      }.to_json,
+      host: "app.example.test",
+      logger: capturing_logger(logged),
+    )
+
+    assert_equal :accepted, result.status
+    assert_equal 1, result.reports_count
+
+    data = JSON.parse(logged.fetch(0), symbolize_names: true).fetch(:data)
+
+    assert_equal "application:script-src:unknown", data.fetch(:aggregation_key)
+  end
+
   private
 
   def capturing_logger(messages)

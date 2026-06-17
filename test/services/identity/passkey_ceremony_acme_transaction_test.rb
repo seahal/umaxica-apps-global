@@ -105,4 +105,17 @@ class IdentityPasskeyCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_empty VisitorPasskeyCeremonyTransaction.column_names & forbidden_columns
     assert_empty OperatorPasskeyCeremonyTransaction.column_names & forbidden_columns
   end
+
+  test "replay store rejects invalid surface" do
+    assert_raises(IdentityPasskeyCeremonyContract::Error) do
+      IdentityPasskeyCeremonyReplayStore.for("invalid-surface")
+    end
+  end
+
+  test "replay store raises error on missing transaction" do
+    store = IdentityPasskeyCeremonyReplayStore.for("app")
+    assert_raises(IdentityPasskeyCeremonyContract::Error) do
+      store.find_transaction!("non-existent-id")
+    end
+  end
 end

@@ -52,7 +52,7 @@ class Actor::AuthenticationTest < ActiveSupport::TestCase
     )
 
     assert_equal auth1.hash, auth2.hash
-    assert_equal Set[auth1, auth2].size, 1
+    assert_equal 1, Set[auth1, auth2].size
   end
 
   test "hash differs for different authentications" do

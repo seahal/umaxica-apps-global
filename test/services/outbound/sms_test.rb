@@ -56,5 +56,22 @@ module Outbound
     ensure
       Rails.application.config.sms_provider = previous_provider
     end
+
+    test "deliver_now sends message immediately using provider" do
+      provider_double = Object.new
+      def provider_double.send_message(to:, title:, body:)
+        @called_with = { to: to, title: title, body: body }
+        true
+      end
+
+      def provider_double.called_with; @called_with; end
+
+      OutboundSms.stub(:provider, provider_double) do
+        result = OutboundSms.deliver_now(to: "+819012345678", title: "Immediate", body: "Now")
+
+        assert result
+        assert_equal({ to: "+819012345678", title: "Immediate", body: "Now" }, provider_double.called_with)
+      end
+    end
   end
 end

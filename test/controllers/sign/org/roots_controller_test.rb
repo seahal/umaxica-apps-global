@@ -32,7 +32,11 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
       assert_select "a"
       assert_select "a[href=?]", sign_org_root_url(ri: "jp"),
                     text: I18n.t("sign.org.preferences.footer.home")
-      assert_select "a[href=?]", acme_org_preference_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+      assert_select "a[href=?]",
+                    acme_org_preference_url(
+                      ri: "jp",
+                      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                    ),
                     text: I18n.t("sign.org.preferences.footer.preference")
       assert_select "a[href=?]", sign_org_settings_url(ri: "jp"),
                     text: I18n.t("sign.org.preferences.footer.settings")

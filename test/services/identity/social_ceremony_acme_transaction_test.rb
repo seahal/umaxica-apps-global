@@ -95,6 +95,19 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_empty ClientSocialCeremonyTransaction.column_names & forbidden_columns
   end
 
+  test "replay store rejects invalid surface" do
+    assert_raises(IdentitySocialCeremonyContract::Error) do
+      IdentitySocialCeremonyReplayStore.for("invalid-surface")
+    end
+  end
+
+  test "replay store raises error on missing transaction" do
+    store = IdentitySocialCeremonyReplayStore.for("app")
+    assert_raises(IdentitySocialCeremonyContract::Error) do
+      store.find_transaction!("non-existent-id")
+    end
+  end
+
   test "wrong actor, session, and provider subject are rejected before link commit" do
     travel_to @now do
       issuance = issue_grant

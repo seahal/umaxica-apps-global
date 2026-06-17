@@ -259,7 +259,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     pref2 = Actor::Preference.new(language: "en", region: "us")
 
     assert_equal pref1.hash, pref2.hash
-    assert_equal Set[pref1, pref2].size, 1
+    assert_equal 1, Set[pref1, pref2].size
   end
 
   test "hash differs for different preferences" do

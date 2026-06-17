@@ -24,7 +24,7 @@ class PromotionalEmailUnsubscribeHeadersTest < ActiveSupport::TestCase
 
     @mailer.send(:set_promotional_unsubscribe_headers, record)
 
-    assert @mailer.headers["List-Unsubscribe"].present?
+    assert_predicate @mailer.headers["List-Unsubscribe"], :present?
     assert_equal "List-Unsubscribe=One-Click", @mailer.headers["List-Unsubscribe-Post"]
   end
 

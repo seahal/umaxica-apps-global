@@ -27,6 +27,20 @@ class ReadOnlyContentEntryTest < ActiveSupport::TestCase
     assert_equal [visible], DocsAppContentEntry.published.for_locale("test-published").to_a
   end
 
+  test "published? returns true for published entry with published_at in the past" do
+    entry = DocsAppContentEntry.new(status: "published", published_at: 1.minute.ago)
+
+    assert_predicate entry, :published?
+
+    entry_draft = DocsAppContentEntry.new(status: "draft", published_at: 1.minute.ago)
+
+    assert_not entry_draft.published?
+
+    entry_future = DocsAppContentEntry.new(status: "published", published_at: 1.day.from_now)
+
+    assert_not entry_future.published?
+  end
+
   private
 
   def create_entry(slug, locale:, status:, published_at:)

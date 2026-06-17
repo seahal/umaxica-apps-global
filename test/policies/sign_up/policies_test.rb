@@ -245,6 +245,141 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
                          :start_social_callback?
   end
 
+  test "surface falls back to registry when context lacks surface method" do
+    ticket = build_ticket(ClientSignUpFlow, entry_method: "email", step: "start")
+    policy = SignUp::TicketPolicy.new(ticket, user: nil)
+
+    assert_not policy.show?
+  end
+
+  test "surface_matches? rescues argument error for unsupported ticket class" do
+    ticket = OpenStruct.new(step: "start")
+
+    policy = SignUp::TicketPolicy.new(ticket, user: nil)
+
+    assert_not policy.show?
+  end
+
+  test "actor_class_matches? verifies user class matches client sign-up flow" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      entry_method: "email",
+      step: "checkpoint",
+      principal_id: clients(:one).id,
+    )
+    context = policy_context(ticket)
+
+    assert_not_predicate SignUp::TicketPolicy.new(context, user: clients(:one)), :finalize?
+  end
+
+  test "actor_class_matches? verifies user class matches visitor sign-up flow" do
+    visitor = visitors(:reserved_visitor)
+    ticket = build_ticket(
+      VisitorSignUpFlow,
+      entry_method: "email",
+      step: "checkpoint",
+      principal_id: visitor.id,
+    )
+    context = policy_context(ticket)
+
+    assert_not_predicate SignUp::TicketPolicy.new(context, user: visitor), :finalize?
+  end
+
+  test "actor_class_matches? returns false for unknown ticket class" do
+    context = SignUpPolicyContext.build(
+      surface: :app,
+      actor_authentication: auth(signed_in: false),
+      ticket: OpenStruct.new(step: "checkpoint", public_id: "unknown", principal_id: 1),
+    )
+
+    assert_not_predicate SignUp::TicketPolicy.new(context, user: clients(:one)), :finalize?
+  end
+
+  test "ticket policy verify_contact requires contact step" do
+    ticket = build_ticket(ClientSignUpFlow, step: "contact")
+
+    assert_predicate SignUp::TicketPolicy.new(policy_context(ticket), user: nil), :verify_contact?
+  end
+
+  test "ticket policy enter_guardrail requires contact_verified step" do
+    ticket = build_ticket(ClientSignUpFlow, step: "contact_verified")
+
+    assert_predicate SignUp::TicketPolicy.new(policy_context(ticket), user: nil), :enter_guardrail?
+  end
+
+  test "ticket policy enter_checkpoint requires contact_verified or guardrail step" do
+    contact_verified = build_ticket(ClientSignUpFlow, step: "contact_verified")
+    guardrail = build_ticket(ClientSignUpFlow, step: "guardrail")
+    start = build_ticket(ClientSignUpFlow, step: "start")
+
+    assert_predicate SignUp::TicketPolicy.new(policy_context(contact_verified), user: nil), :enter_checkpoint?
+    assert_predicate SignUp::TicketPolicy.new(policy_context(guardrail), user: nil), :enter_checkpoint?
+    assert_not_predicate SignUp::TicketPolicy.new(policy_context(start), user: nil), :enter_checkpoint?
+  end
+
+  test "ticket policy clear_requirement requires checkpoint step and pending actor match" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      step: "checkpoint",
+      principal_id: 42,
+    )
+    context = SignUpPolicyContext.build(
+      surface: :app,
+      actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
+      ticket: ticket,
+    )
+
+    assert_not_predicate SignUp::TicketPolicy.new(context, user: nil), :clear_requirement?
+  end
+
+  test "ticket policy handoff_to_sign_in requires finalized step" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      step: "finalized",
+      principal_id: 42,
+    )
+
+    assert_not_predicate SignUp::TicketPolicy.new(policy_context(ticket), user: nil), :handoff_to_sign_in?
+  end
+
+  test "requirement policy clear_birthdate delegates to clear_named_requirement" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      entry_method: "telephone",
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      principal_id: 42,
+    )
+    context = requirement_context(ticket, requirement: :birthdate, pending_actor: PendingActor.new(id: 42))
+
+    assert_predicate SignUp::RequirementPolicy.new(context, user: nil), :clear_birthdate?
+  end
+
+  test "requirement policy rescues argument error for unsupported entry method" do
+    ticket = ClientSignUpFlow.new(
+      cycle_attrs(ClientSignUpFlow).merge(
+        entry_method: "unsupported",
+        status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+        step: "checkpoint",
+        principal_id: 42,
+        completed_requirements: {},
+      ),
+    )
+
+    context = SignUpRequirementContext.new(
+      surface: :app,
+      actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
+      ticket: ticket,
+      requirement: :otp,
+      pending_actor: PendingActor.new(id: 42),
+      pending_contact: nil,
+    )
+
+    policy = SignUp::RequirementPolicy.new(context, user: nil)
+
+    assert_not_predicate policy, :clear_requirement?
+  end
+
   test "social callback policy requires the matching social step" do
     start_ticket = build_ticket(
       ClientSignUpFlow,

@@ -17,6 +17,52 @@ module SignIn
       assert_equal "selector", cycle.step
     end
 
+    test "checkpoint evaluator must return SignInParticipantItem" do
+      actor = create_client
+      cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")
+      evaluator = lambda { |**| "not-an-item" }
+
+      assert_raises ArgumentError do
+        SignInCheckpointParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).evaluate
+      end
+    end
+
+    test "dashboard evaluator must return SignInParticipantItem" do
+      actor = create_client
+      cycle = create_cycle(actor, status_name: "DASHBOARD_PENDING")
+      evaluator = lambda { |**| "not-an-item" }
+
+      assert_raises ArgumentError do
+        SignInDashboardParticipant.new(cycle: cycle, actor: actor, evaluators: [evaluator]).evaluate
+      end
+    end
+
+    test "resolver with no resolved actor returns empty candidates" do
+      cycle = Object.new
+      cycle.singleton_class.class_eval do
+        def principal; nil; end
+      end
+      resolver = SignInActivationCandidateResolver.new(cycle: cycle, actor: nil)
+
+      assert_empty resolver.candidates
+    end
+
+    test "resolver falls back to default region on error" do
+      actor = create_client
+      # Stub preference/region lookup to raise StandardError
+      actor.singleton_class.class_eval do
+        def preferences
+          raise StandardError, "DB error"
+        end
+      end
+      resolver = SignInActivationCandidateResolver.new(cycle: nil, actor: actor)
+      candidates = resolver.candidates
+
+      assert_equal 1, candidates.size
+      assert_equal "jp", candidates.first.region
+      assert_equal "Client", candidates.first.persona
+    end
+
     test "blocking checkpoint item keeps cycle at checkpoint" do
       actor = create_client
       cycle = create_cycle(actor, status_name: "CHECKPOINT_PENDING")

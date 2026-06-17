@@ -2,6 +2,12 @@ name: umaxica-apps-global-dc
 services:
   core:
     container_name: global-devcontainer-core
+    # Host-shaped build args. The base compose intentionally omits them so the
+    # service contract does not embed the developer-machine UID/GID.
+    build:
+      args:
+        DOCKER_UID: "${UID:-1000}"
+        DOCKER_GID: "${GID:-1000}"
     userns_mode: keep-id
     # `userns_mode: keep-id` already maps the host UID to the in-container
     # UID baked by the Dockerfile. Specifying `user:` on top double-maps and
@@ -9,42 +15,62 @@ services:
     # value so the image's USER (provisioned at build time from DOCKER_UID/
     # DOCKER_GID) wins.
     user: !reset null
-    # Disable tmpfs for tmp/ and log/ in the devcontainer. Mounting them as
-    # tmpfs periodically caused issues (lost state across restarts, sporadic
-    # write failures), so fall back to the bind-mounted workspace directories.
-    # `!reset` clears the tmpfs list inherited from the base compose file —
-    # without it, compose would merge the base entries back in.
-    tmpfs: !reset null
+    # Reset the base tmpfs list and keep only the entries that are safe in
+    # devcontainer: workspace/tmp and workspace/log caused lost state and
+    # sporadic write failures so those fall back to the bind-mounted dirs.
+    # /tmp and tmp/pids stay on tmpfs so stale server.pid never survives a
+    # container restart ("A server is already running" error).
+    tmpfs: !reset
+      - /tmp
+      - /home/global/workspace/tmp/pids
+    # Workspace bind mount lives in the override. `:Z` adds an SELinux private
+    # label on Fedora/RHEL hosts; harmless on non-SELinux hosts (Arch, Ubuntu).
+    # Relative paths in compose files resolve against the project directory
+    # (the dir holding the first -f file), so `.` is the repo root.
+    volumes:
+      - type: bind
+        source: "."
+        target: "/home/global/workspace"
+        bind:
+          selinux: Z
+    ports:
+      - "3001:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
   primary:
     container_name: global-devcontainer-primary
-    ports: []
   replica:
     container_name: global-devcontainer-replica
-    ports: []
   valkey:
     container_name: global-devcontainer-valkey
-    ports: []
   kafka:
-    ports: !reset []
+    ports:
+      - "9092:9092"
   loki:
     container_name: global-devcontainer-loki
-    ports: []
   tempo:
     container_name: global-devcontainer-tempo
-    ports: !reset []
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+      - "9411:9411"
   grafana:
     container_name: global-devcontainer-grafana
-    ports: []
   # pgadmin and tinyrdm are admin GUIs that don't need to run for normal
   # devcontainer work. Gate them behind an opt-in profile so they only start
   # when explicitly requested (e.g. `--profile tools`).
   pgadmin:
     profiles:
       - tools
+    ports:
+      - "5050:80"
   tinyrdm:
     profiles:
       - tools
+    ports:
+      - "8086:8086"
