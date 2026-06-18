@@ -87,11 +87,13 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
 
   test "context_text handles non-serializable context" do
     bad_context = Object.new
+
     def bad_context.is_a?(klass) = (klass == Hash) ? true : super
 
     def bad_context.deep_stringify_keys
       raise TypeError, "can't convert to JSON"
     end
+
     activity = stub_activity(context: bad_context)
 
     assert_equal "{}", @log.context_text(activity)

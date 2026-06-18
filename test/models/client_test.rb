@@ -611,6 +611,32 @@ class ClientTest < ActiveSupport::TestCase
     assert_not @user.active_apple_identity_exists?
   end
 
+  test "active_social_provider? returns false for unknown provider" do
+    assert_not @user.active_social_provider?("unknown")
+  end
+
+  test "totp_enabled? with loaded association checks array" do
+    ClientTotpCredential.create!(
+      user: @user,
+      user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+    )
+
+    @user.client_totp_credentials.load
+
+    assert_predicate @user, :totp_enabled?
+  end
+
+  test "totp_enabled? returns false with loaded inactive totp" do
+    ClientTotpCredential.create!(
+      user: @user,
+      user_identity_totp_credential_status_id: ClientTotpCredentialStatus::INACTIVE,
+    )
+
+    @user.client_totp_credentials.load
+
+    assert_not @user.totp_enabled?
+  end
+
   test "social_unlink_methods_remaining includes email when verified" do
     ClientEmail.create!(
       user: @user,

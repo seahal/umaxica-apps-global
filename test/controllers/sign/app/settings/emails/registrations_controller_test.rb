@@ -229,9 +229,9 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     end
 
     assert_redirected_to acme_app_settings_emails_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                         )
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_equal @user.id, user_email.user_id
     assert_not_nil @token.reload.last_step_up_at
@@ -247,9 +247,9 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     )
 
     get new_sign_app_settings_emails_registration_url(
-      ri: "jp",
-      email_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+          ri: "jp",
+          email_ceremony_grant: issuance.grant,
+        ), headers: request_headers
 
     assert_response :success
 
@@ -277,9 +277,9 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           headers: request_headers
 
     assert_redirected_to acme_app_settings_emails_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                         )
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_predicate issuance.transaction.reload, :consumed?
   end
@@ -395,9 +395,9 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           headers: request_headers
 
     assert_redirected_to acme_app_settings_emails_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                         )
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
   end
 
@@ -562,9 +562,9 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           email_ceremony_grant: issuance.grant,
         }.merge(params),
       ), headers: request_headers.merge(
-        "X-TEST-CURRENT-USER" => user.id.to_s,
-        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-      ),
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    ),
     )
   end
 end

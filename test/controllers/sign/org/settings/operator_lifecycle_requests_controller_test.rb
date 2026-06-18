@@ -23,9 +23,9 @@ class Sign::Org::Settings::OperatorLifecycleRequestsControllerTest < ActionDispa
 
   test "new renders withdrawal request for current operator" do
     get new_sign_org_settings_operator_lifecycle_request_url(
-      action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
-      ri: "jp",
-    ), headers: authenticated_headers
+          action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
+          ri: "jp",
+        ), headers: authenticated_headers
 
     assert_response :success
     assert_select "input[value=?]", @operator.public_id

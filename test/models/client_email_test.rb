@@ -233,6 +233,12 @@ class ClientEmailTest < ActiveSupport::TestCase
     assert_not unlocked_email.subscription_preferences_locked?
   end
 
+  test "to_param returns public_id" do
+    user_email = ClientEmail.create!(@valid_attributes)
+
+    assert_equal user_email.public_id, user_email.to_param
+  end
+
   test "otp is active just before expiry and expired exactly at expiry" do
     user_email = ClientEmail.create!(@valid_attributes.merge(address: "otp-expiry@example.com"))
     now = Time.zone.parse("2026-05-25 12:00:00")

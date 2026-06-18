@@ -4,7 +4,7 @@
 module Sign
   module Com
     module Sign
-      class SignInsController < ::Sign::Com::ApplicationController
+      class UpsController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest
         skip_before_action :set_region, raise: false
@@ -21,11 +21,11 @@ module Sign
                 "authorization transaction expired" if transaction.login_challenge_expired?
           raise ActionController::BadRequest, "authorization transaction already consumed" if transaction.consumed?
           raise ActionController::BadRequest,
-                "authorization transaction intent mismatch" unless transaction.intent == "sign_in"
+                "authorization transaction intent mismatch" unless transaction.intent == "sign_up"
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "sign/com/sign_ins/new"
+          render "sign/com/sign_ups/new"
         rescue ActiveRecord::RecordNotFound
           render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
                  status: :bad_request
@@ -34,7 +34,7 @@ module Sign
         private
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_com_root_path(ri: params[:ri]), screen_hint: "signin")
+          url = initiate_oidc_session!(pt: sign_com_root_path(ri: params[:ri]), screen_hint: "signup")
           redirect_to_oidc_authorization_url(url)
         end
       end

@@ -110,8 +110,8 @@ module Sign
           user: @user,
           discarded_at: 1.day.from_now,
           public_id: "test_#{SecureRandom.hex(4)}",
-          # Default status/kind should trigger if FKs exist.
-          # If FK check fails, we might need to assume fixtures loaded statuses.
+        # Default status/kind should trigger if FKs exist.
+        # If FK check fails, we might need to assume fixtures loaded statuses.
         )
 
         # 1. Emit risk event (writes to occurrences)

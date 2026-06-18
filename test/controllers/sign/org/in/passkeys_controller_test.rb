@@ -144,12 +144,12 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     begin
       post(
         sign_org_sign_in_passkey_verification_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          credential: {
-            id: @staff_passkey.webauthn_id,
-            response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
-          },
+        challenge_id: challenge_id,
+        credential: {
+          id: @staff_passkey.webauthn_id,
+          response: { clientDataJSON: "e30=", authenticatorData: "e30=", signature: "sig", userHandle: "h" },
         },
+      },
       )
     ensure
       Sign::Org::Sign::In::Passkey::VerificationsController.define_method(:with_challenge, original_method)
@@ -277,15 +277,15 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
       WebAuthn::Credential.stub(:from_get, mock_credential) do
         post(
           sign_org_sign_in_passkey_verification_url(ri: "jp"), params: {
-            challenge_id: challenge_id,
-            credential: {
-              id: @staff_passkey.webauthn_id,
-              response: { clientDataJSON: "e30=",
-                          authenticatorData: "e30=",
-                          signature: "sig",
-                          userHandle: "h", },
-            },
+          challenge_id: challenge_id,
+          credential: {
+            id: @staff_passkey.webauthn_id,
+            response: { clientDataJSON: "e30=",
+                        authenticatorData: "e30=",
+                        signature: "sig",
+                        userHandle: "h", },
           },
+        },
         )
       end
     ensure

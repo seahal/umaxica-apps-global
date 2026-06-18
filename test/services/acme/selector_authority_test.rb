@@ -62,8 +62,8 @@ class AcmeSelectorAuthorityTest < ActiveSupport::TestCase
       surface: :app, principal: other,
       session: ClientToken.create!(user: other),
     )
-      .selectable_candidates
-      .first
+                                           .selectable_candidates
+                                           .first
 
     assert_raises AcmeSelectorAuthority::InvalidSelection do
       AcmeSelectorAuthority.select(

@@ -75,7 +75,8 @@ module Authentication
       # Simulate an audit-write failure (e.g. chronicle DB unreachable)
       # after the token has been revoked. The ensure block must still
       # clear cookies and the Rails session.
-      def record_audit(_event, resource:) # rubocop:disable Lint/UnusedMethodArgument
+      def record_audit(_event, resource:)
+        # rubocop:disable Lint/UnusedMethodArgument
         raise BoomError, "audit write failed"
       end
     end
@@ -96,9 +97,9 @@ module Authentication
       harness = Harness.new
       Actor.install_context!(
         actor: harness.resource, actor_type: :client, authn: Actor::Authentication.new(
-          login_public_id: "session-public-id",
-          actor_type: :client,
-        ),
+        login_public_id: "session-public-id",
+        actor_type: :client,
+      ),
       )
 
       harness.logout_current_session!(reason: "test_logout")
@@ -148,7 +149,7 @@ module Authentication
       # LogoutAllSessions from a dedicated endpoint instead.
       assert_not defined?(Oidc::SingleLogoutService),
                  "Oidc::SingleLogoutService must remain deleted. See " \
-                 "adr/logout-primitive-and-composition.md."
+                   "adr/logout-primitive-and-composition.md."
     end
 
     test "logout_current_session does NOT invoke logout_all_sessions_for!" do
@@ -161,7 +162,7 @@ module Authentication
 
       assert_not called,
                  "Ordinary logout must not fan out to LogoutAllSessions. " \
-                 "Multi-device logout requires an explicit endpoint."
+                   "Multi-device logout requires an explicit endpoint."
     end
 
     test "logout_current_session clears cookies and session even if revoke raises" do

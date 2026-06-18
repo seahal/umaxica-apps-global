@@ -30,7 +30,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
         )
         JWT.decode(
           token, @private_key.public_key, true, algorithms: ["ES384"], verify_iat: false,
-                                                verify_expiration: false, verify_not_before: false,
+          verify_expiration: false, verify_not_before: false,
         )
         payload, header = JWT.decode(token, nil, false)
 

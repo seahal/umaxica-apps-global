@@ -32,7 +32,7 @@ class Sign::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "sign/org/sign/sign_ins", route.fetch(:controller)
+    assert_equal "sign/org/sign/ins", route.fetch(:controller)
     assert_equal "show", route.fetch(:action)
   end
 end

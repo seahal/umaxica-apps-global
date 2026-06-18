@@ -4,6 +4,8 @@
 require "test_helper"
 
 class BaseRouteContractTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
   BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
   BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
@@ -228,5 +230,27 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_equal "base/org/csp_violation_reports", recognized[:controller]
     assert_equal "create", recognized[:action]
+  end
+
+  test "base remains a rails control-plane surface without provider endpoints" do
+    [BASE_APP_HOST, BASE_COM_HOST, BASE_ORG_HOST].each do |host|
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/settings",
+        method: :get,
+      )
+
+      assert_equal "show", recognized[:action]
+      assert_match(%r{\Abase/(app|com|org)/settings\z}, recognized[:controller])
+
+      %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
+        end
+      end
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/oauth/token", method: :post)
+      end
+    end
   end
 end

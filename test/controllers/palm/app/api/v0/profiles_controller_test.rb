@@ -20,6 +20,7 @@ module Palm
             assert_response :unauthorized
             assert_equal "authentication_required", response.parsed_body.dig("error", "code")
             assert_predicate response.parsed_body.dig("error", "request_id"), :present?
+            assert_empty response_set_cookie_lines
           end
 
           test "returns current client profile for valid palm bearer token without setting cookies" do
@@ -43,6 +44,7 @@ module Palm
 
             assert_response :unauthorized
             assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_empty response_set_cookie_lines
           end
 
           test "does not authenticate from cookie transport" do
@@ -52,6 +54,7 @@ module Palm
 
             assert_response :unauthorized
             assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_empty response_set_cookie_lines
           end
 
           test "rejects dpop scheme for this bearer boundary" do
@@ -59,6 +62,7 @@ module Palm
 
             assert_response :unauthorized
             assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_empty response_set_cookie_lines
           end
 
           private

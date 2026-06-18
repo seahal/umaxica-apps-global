@@ -50,4 +50,39 @@ class ApplicationRecordTest < ActiveSupport::TestCase
       ApplicationRecord.insert_missing_fixed_ids!(nil)
     end
   end
+
+  test "insert_missing_fixed_ids! skips when table does not exist" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+
+    nonexistent_class =
+      Class.new(ApplicationRecord) do
+        self.table_name = "nonexistent_table_for_test"
+      end
+
+    assert_nothing_raised do
+      nonexistent_class.insert_missing_fixed_ids!([1])
+    end
+  end
+
+  test "insert_missing_fixed_ids! skips when all ids already present" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    existing = ClientStatus.first!
+
+    assert_nothing_raised do
+      ClientStatus.insert_missing_fixed_ids!([existing.id])
+    end
+  end
+
+  test "insert_missing_fixed_ids! uses cache to skip redundant work" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_002
+
+    ClientStatus.insert_missing_fixed_ids!([missing_id])
+
+    # Second call should hit cache and skip
+    assert_nothing_raised do
+      ClientStatus.insert_missing_fixed_ids!([missing_id])
+    end
+  end
 end

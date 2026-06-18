@@ -133,8 +133,8 @@ class Sign::Com::Sign::Up::CheckpointPasskeysControllerTest < ActionDispatch::In
 
     patch(
       sign_com_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-        visitor_telephone: { pass_code: code },
-      },
+      visitor_telephone: { pass_code: code },
+    },
     )
 
     assert_redirected_to sign_com_sign_up_guard_telephone_url(ri: "jp")

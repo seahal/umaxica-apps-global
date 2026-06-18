@@ -40,9 +40,9 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       operation: "registration",
     )
     get new_sign_org_settings_telephones_registration_url(
-      ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+          ri: "jp",
+          telephone_ceremony_grant: issuance.grant,
+        ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
@@ -149,9 +149,9 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     end
 
     assert_redirected_to acme_org_settings_telephones_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                         )
     assert_equal OperatorTelephoneStatus::VERIFIED, tel.reload.staff_telephone_status_id
   end
 

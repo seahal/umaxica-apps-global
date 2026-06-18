@@ -50,8 +50,7 @@ class AuthClientTest < ActiveSupport::TestCase
   end
 
   class ResponseMock
-    def set_header(_name, _value)
-    end
+    def set_header(_name, _value) end
   end
 
   class CookieMock < Hash

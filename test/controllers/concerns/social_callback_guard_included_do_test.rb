@@ -5,8 +5,7 @@ require "test_helper"
 
 class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
   class GuardHarness
-    def self.before_action(*)
-    end
+    def self.before_action(*) end
 
     include SocialCallbackGuard
 

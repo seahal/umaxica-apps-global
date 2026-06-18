@@ -45,6 +45,7 @@ class RackTimeoutInitializerTest < ActiveSupport::TestCase
 
     Rack.const_set(:Timeout, Module.new)
     logger_class = Class.new
+
     def logger_class.level
       @level
     end
@@ -52,6 +53,7 @@ class RackTimeoutInitializerTest < ActiveSupport::TestCase
     def logger_class.level=(value)
       @level = value
     end
+
     Rack::Timeout.const_set(:Logger, logger_class)
     @rack_timeout_stubbed = true
   end
@@ -62,6 +64,6 @@ class RackTimeoutInitializerTest < ActiveSupport::TestCase
     end
 
     @original_timeout.nil? ? ENV.delete("RACK_TIMEOUT_SERVICE_TIMEOUT") : ENV["RACK_TIMEOUT_SERVICE_TIMEOUT"] =
-                                                                            @original_timeout
+      @original_timeout
   end
 end

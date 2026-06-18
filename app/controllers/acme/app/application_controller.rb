@@ -95,6 +95,7 @@ module Acme
       public
 
       def oidc_client_id
+        # Historical name for Acme's own browser/local-session RP client; Base does not own this callback.
         "base-rails-rp"
       end
 

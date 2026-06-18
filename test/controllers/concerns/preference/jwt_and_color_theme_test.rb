@@ -176,30 +176,30 @@ class PreferenceTokenTest < ActiveSupport::TestCase
       PreferenceToken.send(:report_invalid_header, host: "app.localhost", header: {})
       PreferenceToken.send(
         :report_invalid_header, host: "app.localhost",
-                                header: {
-                                  "alg" => PreferenceToken::JWT_ALGORITHM,
-                                  "typ" => PreferenceToken::TOKEN_TYPE,
-                                },
+        header: {
+          "alg" => PreferenceToken::JWT_ALGORITHM,
+          "typ" => PreferenceToken::TOKEN_TYPE,
+        },
       )
       PreferenceToken.send(
         :report_invalid_header, host: "app.localhost",
-                                header: { "alg" => "none", "kid" => "kid-1", "typ" => PreferenceToken::TOKEN_TYPE },
+        header: { "alg" => "none", "kid" => "kid-1", "typ" => PreferenceToken::TOKEN_TYPE },
       )
       PreferenceToken.send(
         :report_invalid_header, host: "app.localhost",
-                                header: { "alg" => "HS256", "kid" => "kid-1", "typ" => PreferenceToken::TOKEN_TYPE },
+        header: { "alg" => "HS256", "kid" => "kid-1", "typ" => PreferenceToken::TOKEN_TYPE },
       )
       PreferenceToken.send(
         :report_invalid_header, host: "app.localhost",
-                                header: { "alg" => PreferenceToken::JWT_ALGORITHM, "kid" => "kid-1" },
+        header: { "alg" => PreferenceToken::JWT_ALGORITHM, "kid" => "kid-1" },
       )
       PreferenceToken.send(
         :report_invalid_header, host: "app.localhost",
-                                header: {
-                                  "alg" => PreferenceToken::JWT_ALGORITHM,
-                                  "kid" => "kid-1",
-                                  "typ" => "wrong",
-                                },
+        header: {
+          "alg" => PreferenceToken::JWT_ALGORITHM,
+          "kid" => "kid-1",
+          "typ" => "wrong",
+        },
       )
     end
 
@@ -221,39 +221,39 @@ class PreferenceTokenTest < ActiveSupport::TestCase
       token_type = PreferenceToken::TOKEN_TYPE
       PreferenceToken.send(
         :report_invalid_payload, host: "app.localhost", header: {},
-                                 payload: {
-                                   "typ" => token_type,
-                                   "host" => "evil.localhost",
-                                   "aud" => ["app.localhost"],
-                                 },
+        payload: {
+          "typ" => token_type,
+          "host" => "evil.localhost",
+          "aud" => ["app.localhost"],
+        },
       )
       PreferenceToken.send(
         :report_invalid_payload, host: "app.localhost", header: {},
-                                 payload: {
-                                   "typ" => token_type,
-                                   "host" => "app.localhost",
-                                   "aud" => ["evil.localhost"],
-                                 },
+        payload: {
+          "typ" => token_type,
+          "host" => "app.localhost",
+          "aud" => ["evil.localhost"],
+        },
       )
       PreferenceToken.send(
         :report_invalid_payload, host: "app.localhost", header: {},
-                                 payload: {
-                                   "typ" => token_type,
-                                   "host" => "app.localhost",
-                                   "aud" => ["app.localhost"],
-                                 },
+        payload: {
+          "typ" => token_type,
+          "host" => "app.localhost",
+          "aud" => ["app.localhost"],
+        },
       )
       PreferenceToken.send(
         :report_claim_error, host: "app.localhost", header: {},
-                             error: JWT::InvalidIssuerError.new("bad iss"),
+        error: JWT::InvalidIssuerError.new("bad iss"),
       )
       PreferenceToken.send(
         :report_claim_error, host: "app.localhost", header: {},
-                             error: JWT::InvalidIatError.new("bad iat"),
+        error: JWT::InvalidIatError.new("bad iat"),
       )
       PreferenceToken.send(
         :report_claim_error, host: "app.localhost", header: {},
-                             error: JWT::ImmatureSignature.new("too early"),
+        error: JWT::ImmatureSignature.new("too early"),
       )
     end
 
@@ -261,19 +261,19 @@ class PreferenceTokenTest < ActiveSupport::TestCase
       JitSecurityJwtAnomalyReporter.stub(:report_preference, reporter) do
         PreferenceToken.send(
           :report_decode_error, host: "app.localhost", header: {},
-                                error: StandardError.new("Missing required claim public_id"),
+          error: StandardError.new("Missing required claim public_id"),
         )
         PreferenceToken.send(
           :report_decode_error, host: "app.localhost", header: {},
-                                error: StandardError.new("Signature verification failed"),
+          error: StandardError.new("Signature verification failed"),
         )
         PreferenceToken.send(
           :report_decode_error, host: "app.localhost", header: {},
-                                error: StandardError.new("Not enough or too many segments"),
+          error: StandardError.new("Not enough or too many segments"),
         )
         PreferenceToken.send(
           :report_decode_error, host: "app.localhost", header: {},
-                                error: StandardError.new("misc"),
+          error: StandardError.new("misc"),
         )
       end
     end

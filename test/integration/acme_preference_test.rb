@@ -158,9 +158,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
               params: { preference_timezone: { option_id: "Etc/UTC" } }
 
         assert_redirected_to public_send(
-          "edit_acme_#{domain[:name]}_preference_timezone_url",
-          default_state.merge(tz: nil),
-        )
+                               "edit_acme_#{domain[:name]}_preference_timezone_url",
+                               default_state.merge(tz: nil),
+                             )
       end
 
       pref.reload
@@ -219,9 +219,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
               params: { preference_language: { option_id: "EN" } }
 
         assert_redirected_to public_send(
-          "edit_acme_#{domain[:name]}_preference_language_url",
-          default_state.merge(lx: nil),
-        )
+                               "edit_acme_#{domain[:name]}_preference_language_url",
+                               default_state.merge(lx: nil),
+                             )
       end
 
       pref.reload
@@ -320,9 +320,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
       assert_redirected_to public_send(
-        "edit_acme_#{domain[:name]}_preference_timezone_url",
-        ri: "us",
-      )
+                             "edit_acme_#{domain[:name]}_preference_timezone_url",
+                             ri: "us",
+                           )
       follow_redirect!
 
       assert_select "select[name='preference_timezone[option_id]'] option[selected='selected'][value='1']"
@@ -846,9 +846,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     patch(public_send("acme_#{domain[:name]}_preference_#{suffix}_url", state), params: params)
 
     assert_redirected_to public_send(
-      "edit_acme_#{domain[:name]}_preference_#{suffix}_url",
-      preference_write_redirect_state(kind, state),
-    )
+                           "edit_acme_#{domain[:name]}_preference_#{suffix}_url",
+                           preference_write_redirect_state(kind, state),
+                         )
     follow_redirect!
 
     expect_notice = true

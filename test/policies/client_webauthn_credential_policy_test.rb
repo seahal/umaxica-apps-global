@@ -37,4 +37,14 @@ class ClientWebauthnCredentialPolicyTest < ActiveSupport::TestCase
   def test_destroy
     assert_not @policy.destroy?
   end
+
+  def test_record_owner_returns_false_when_user_does_not_own_record
+    user = Client.create!
+    record = ClientPasskey.new(user_id: user.id + 1)
+    policy = ClientWebauthnCredentialPolicy.new(record, user: user)
+
+    assert_not policy.show?
+    assert_not policy.update?
+    assert_not policy.destroy?
+  end
 end

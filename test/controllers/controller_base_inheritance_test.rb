@@ -118,7 +118,7 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
 
     assert_empty violations,
                  "Check namespace controllers must not inherit stale Checkpoint implementations:\n" \
-                 "#{violations.join("\n")}"
+                   "#{violations.join("\n")}"
   end
 
   test "application routes reference loadable controller classes" do

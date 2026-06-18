@@ -43,7 +43,7 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
                       "#{controller_class.name} must run access policy enforcement"
       assert(
         controller_class.const_defined?(:AUTHENTICATION_MODE, false) ||
-          controller_class.local_authentication_mode_rules.present?,
+        controller_class.local_authentication_mode_rules.present?,
         "#{controller_class.name} must declare an authentication mode",
       )
     end

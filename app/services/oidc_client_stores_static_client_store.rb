@@ -28,7 +28,8 @@ module OidcClientStoresStaticClientStore
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "SIGN_APP",
       },
-      # Acme/Base Rails browser RP.
+      # Historical name: this is Acme's own browser/local-session RP client.
+      # It does not mean Base owns the Acme `/auth/callback` endpoints.
       "base-rails-rp" => {
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
@@ -158,7 +159,7 @@ module OidcClientStoresStaticClientStore
     host = boot_host_for(env_key, default_host)
     protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
     port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/signed-out"]
+    ["#{protocol}://#{host}#{port_suffix}/sign/out"]
   end
 
   def build_logout_uris(env_key, default_host, endpoint)

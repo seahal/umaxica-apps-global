@@ -5,14 +5,14 @@
 Credential cookie names are role-based host-local transport slots. The cookie name describes the
 transport role, not the logical credential kind.
 
-| Role                | Secure context name          | Insecure dev/test name |
-| ------------------- | ---------------------------- | ---------------------- |
-| Auth access         | `__Host-auth_access`         | `auth_access`          |
-| Auth refresh        | `__Host-auth_refresh`        | `auth_refresh`         |
-| Auth DBSC / binding | `__Host-auth_dbsc`           | `auth_dbsc`            |
-| Preference access   | `__Host-preference_access`   | `preference_access`    |
-| Preference refresh  | `__Host-preference_refresh`  | `preference_refresh`   |
-| Preference DBSC     | `__Host-preference_dbsc`     | `preference_dbsc`      |
+| Role                | Secure context name         | Insecure dev/test name |
+| ------------------- | --------------------------- | ---------------------- |
+| Auth access         | `__Host-auth_access`        | `auth_access`          |
+| Auth refresh        | `__Host-auth_refresh`       | `auth_refresh`         |
+| Auth DBSC / binding | `__Host-auth_dbsc`          | `auth_dbsc`            |
+| Preference access   | `__Host-preference_access`  | `preference_access`    |
+| Preference refresh  | `__Host-preference_refresh` | `preference_refresh`   |
+| Preference DBSC     | `__Host-preference_dbsc`    | `preference_dbsc`      |
 
 New credential cookie writes are host-only. They use `Path=/`; secure contexts use `Secure` and the
 `__Host-` prefix. They never carry a `Domain` attribute.

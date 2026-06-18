@@ -55,8 +55,8 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
         ("csrf_token=#{csrf_token}" if csrf_token.present?),
         "#{OperatorVerification.cookie_name}=#{verification_token}",
       ]
-        .compact_blank
-        .join("; ")
+                            .compact_blank
+                            .join("; ")
     end
 
     headers
@@ -76,9 +76,9 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should get new" do
     get new_sign_org_settings_secret_credential_url(
-      ri: "jp",
-      secret_credential_ceremony_grant: secret_credential_ceremony_grant,
-    ), headers: authenticated_headers
+          ri: "jp",
+          secret_credential_ceremony_grant: secret_credential_ceremony_grant,
+        ), headers: authenticated_headers
 
     assert_response :success
   end
@@ -104,9 +104,9 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_redirected_to acme_org_settings_secrets_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                         )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
   end

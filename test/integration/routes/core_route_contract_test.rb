@@ -4,6 +4,8 @@
 require "test_helper"
 
 class CoreRouteContractTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   CORE_APP_HOST = ENV.fetch("CORE_SERVICE_URL", "core.app.localhost")
   CORE_COM_HOST = ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost")
   CORE_ORG_HOST = ENV.fetch("CORE_STAFF_URL", "core.org.localhost")
@@ -561,6 +563,20 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
         "http://#{CORE_ORG_HOST}/accounts",
         method: :get,
       )
+    end
+  end
+
+  test "core rails remains transitional and does not expose authorization server endpoints" do
+    [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST, CORE_NET_HOST, CORE_DEV_HOST].each do |host|
+      %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
+        end
+      end
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/oauth/token", method: :post)
+      end
     end
   end
 end

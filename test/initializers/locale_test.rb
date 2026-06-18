@@ -251,9 +251,9 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
   def config_locale_load_paths
     I18n.load_path
-      .map(&:to_s)
-      .select { |path| path.start_with?(Rails.root.join("config/locales").to_s) }
-      .sort
+        .map(&:to_s)
+        .select { |path| path.start_with?(Rails.root.join("config/locales").to_s) }
+        .sort
   end
 
   def supported_locale_paths

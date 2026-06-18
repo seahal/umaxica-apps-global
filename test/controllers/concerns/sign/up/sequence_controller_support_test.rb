@@ -110,9 +110,11 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
     assert harness.instance_variable_get(:@hide_auth_navigation)
 
     state = Object.new
+
     def state.age_restricted?
       false
     end
+
     flow = Struct.new(:current).new(:ticket)
     harness.sign_up_session_state_value = state
     harness.sign_up_flow_locator_value = flow
@@ -137,9 +139,11 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
     harness.rendered = nil
     context = Object.new
+
     def context.present?
       true
     end
+
     harness.sign_up_requirement_context_value = context
     harness.send(:authorize_sign_up_requirement_or_cleared_continue!, :show?)
 

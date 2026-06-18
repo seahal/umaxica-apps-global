@@ -34,10 +34,10 @@ class AppPreferenceStatusTest < ActiveSupport::TestCase
 
     AppPreferenceStatus.stub(
       :insert_missing_fixed_ids!, ->(ids) do
-                                    called = true
+      called = true
 
-                                    assert_equal AppPreferenceStatus::DEFAULTS, ids
-                                  end,
+      assert_equal AppPreferenceStatus::DEFAULTS, ids
+    end,
     ) do
       AppPreferenceStatus.ensure_defaults!
     end

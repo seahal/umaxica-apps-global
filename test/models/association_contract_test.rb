@@ -28,7 +28,7 @@ class AssociationContractTest < ActiveSupport::TestCase
 
     assert_empty violations.sort,
                  "Remove optional: true from belongs_to associations backed by NOT NULL foreign keys:\n" \
-                 "#{violations.sort.join("\n")}"
+                   "#{violations.sort.join("\n")}"
   end
 
   private

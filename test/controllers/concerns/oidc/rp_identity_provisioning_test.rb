@@ -18,10 +18,10 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core-next-rp")),
-        "sub" => OidcSubject.for(client, resource_type: "client"),
-        "aud" => "core-next-rp",
-      },
+      "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core-next-rp")),
+      "sub" => OidcSubject.for(client, resource_type: "client"),
+      "aud" => "core-next-rp",
+    },
     )
 
     identity = ClientIdentity.find_by!(source_record_id: client.id)
@@ -51,10 +51,10 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => "umaxica-auth:client",
-        "sub" => "opaque-idp-subject",
-        "aud" => "core-next-rp",
-      },
+      "iss" => "umaxica-auth:client",
+      "sub" => "opaque-idp-subject",
+      "aud" => "core-next-rp",
+    },
     )
 
     assert_equal client, actor
@@ -69,10 +69,10 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
-        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
-        "sub" => OidcSubject.for(visitor, resource_type: "visitor"),
-        "aud" => "base-rails-rp",
-      },
+      "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
+      "sub" => OidcSubject.for(visitor, resource_type: "visitor"),
+      "aud" => "base-rails-rp",
+    },
     )
 
     identity = VisitorIdentity.find_by!(source_record_id: visitor.id)

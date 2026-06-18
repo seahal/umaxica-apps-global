@@ -5,13 +5,13 @@
 Accepted on 2026-05-17.
 
 > **Update (2026-06-18):** Credential cookie names are now role-based transport names. Production
-> uses `__Host-auth_access`, `__Host-auth_refresh`, `__Host-auth_dbsc`,
-> `__Host-preference_access`, `__Host-preference_refresh`, and `__Host-preference_dbsc`. Development
-> and test use the same names without the `__Host-` prefix. Cookie names must not encode
-> `global`, `regional`, `app`, `com`, `org`, `core`, or `palm`. Credential meaning is enforced by
-> host-only scope, issuer, audience, validator contract, client classification, and transport
-> binding, not by the cookie name. Preference credential cookies are host-only; legacy
-> `{app,com,org}_preference_*` and old unscoped names are short-term read/delete compatibility only.
+> uses `__Host-auth_access`, `__Host-auth_refresh`, `__Host-auth_dbsc`, `__Host-preference_access`,
+> `__Host-preference_refresh`, and `__Host-preference_dbsc`. Development and test use the same names
+> without the `__Host-` prefix. Cookie names must not encode `global`, `regional`, `app`, `com`,
+> `org`, `core`, or `palm`. Credential meaning is enforced by host-only scope, issuer, audience,
+> validator contract, client classification, and transport binding, not by the cookie name.
+> Preference credential cookies are host-only; legacy `{app,com,org}_preference_*` and old unscoped
+> names are short-term read/delete compatibility only.
 
 > **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
 > useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
@@ -56,8 +56,8 @@ Preference credential cookies are no longer apex-scoped. New writes use only the
 successful reissue or refresh.
 
 Palm remains cookie-less. Palm API requests use `Authorization: Bearer ...` with the `palm-api`
-audience. Acme/Sign do not issue or consume Core/Base regional browser cookies. Sign is a special RP,
-not a token or refresh authority; refresh rotation authority is `AcmeRefreshTokenService`.
+audience. Acme/Sign do not issue or consume Core/Base regional browser cookies. Sign is a special
+RP, not a token or refresh authority; refresh rotation authority is `AcmeRefreshTokenService`.
 
 ## Evidence
 

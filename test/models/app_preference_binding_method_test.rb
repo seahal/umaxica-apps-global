@@ -46,10 +46,10 @@ class AppPreferenceBindingMethodTest < ActiveSupport::TestCase
 
     AppPreferenceBindingMethod.stub(
       :insert_missing_fixed_ids!, ->(ids) do
-                                    called = true
+      called = true
 
-                                    assert_equal AppPreferenceBindingMethod::DEFAULTS, ids
-                                  end,
+      assert_equal AppPreferenceBindingMethod::DEFAULTS, ids
+    end,
     ) do
       AppPreferenceBindingMethod.ensure_defaults!
     end

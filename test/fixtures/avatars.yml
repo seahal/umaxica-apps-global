@@ -39,6 +39,6 @@ one:
   public_id: "avatar_pk_123"
   active_handle: one
   capability_id: 1
-  image_data: {}
+  image_data: { }
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

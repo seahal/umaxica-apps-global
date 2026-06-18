@@ -20,6 +20,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       end
 
       @request_obj = Object.new
+
       def @request_obj.host = "id.app.localhost"
 
       def @request_obj.format = Struct.new(:json?, :ref).new(false, :html)
@@ -33,6 +34,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       def @request_obj.request_method = "GET"
 
       def @request_obj.path = "/preference"
+
       @response_obj = Struct.new(:headers).new({})
     end
 
@@ -75,8 +77,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       yield
     end
 
-    def adopt_preference_for!(res)
-    end
+    def adopt_preference_for!(res) end
 
     def current_resource
       @current_resource
@@ -331,6 +332,26 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
 
     assert @harness.instance_variable_get(:@preference_refresh_failed)
     assert @harness.instance_variable_get(:@preference_refresh_binding_denied)
+  end
+
+  test "clear_legacy_preference_auth_cookies deletes old apex scoped names" do
+    deleted = []
+    cookies = @harness.cookies
+    cookies.define_singleton_method(:delete) do |key, **options|
+      deleted << [key, options]
+      super(key)
+    end
+
+    JitSessionCookieConfig.stub(:force_secure?, true) do
+      @harness.send(:clear_legacy_preference_auth_cookies!)
+    end
+
+    domain_deletions = deleted.select { |(_key, options)| options[:domain] == ".app.localhost" }
+
+    assert_includes domain_deletions.map(&:first), "__Secure-preference_refresh"
+    assert_includes domain_deletions.map(&:first), "__Secure-app_preference_refresh"
+    assert_not_includes domain_deletions.map(&:first), "__Host-preference_refresh"
+    assert_not_includes domain_deletions.map(&:first), "__Host-app_preference_refresh"
   end
 
   test "render_preference_refresh_error! handles json and html" do

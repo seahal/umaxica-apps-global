@@ -183,10 +183,10 @@ contexts.each do |context_code, context|
     public_id = format("jwt_occurrence_%06d", index)
 %>
 <%= fixture_name %>:
-  body: "<%= body %>"
-  memo: "<%= memo %>"
-  public_id: "<%= public_id %>"
-  status_id: 2
+body: "<%= body %>"
+memo: "<%= memo %>"
+public_id: "<%= public_id %>"
+status_id: 2
 
 <% end
 end %>

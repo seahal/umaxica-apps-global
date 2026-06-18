@@ -43,9 +43,9 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "sign/app/sign/sign_ins", sign_in.fetch(:controller)
+    assert_equal "sign/app/sign/ins", sign_in.fetch(:controller)
     assert_equal "show", sign_in.fetch(:action)
-    assert_equal "sign/app/sign/sign_ups", sign_up.fetch(:controller)
+    assert_equal "sign/app/sign/ups", sign_up.fetch(:controller)
     assert_equal "show", sign_up.fetch(:action)
   end
 
@@ -73,7 +73,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "sign controllers keep withdrawal authority out of sign" do
     files = Rails.root.glob("app/controllers/sign/**/*.rb") +
-      Rails.root.glob("app/controllers/concerns/sign_*.rb")
+            Rails.root.glob("app/controllers/concerns/sign_*.rb")
     forbidden = /WithdrawalLifecycle\./
     offenders =
       files.filter do |file|

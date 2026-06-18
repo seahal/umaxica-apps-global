@@ -125,7 +125,7 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal URI.parse(redirect_uri).host, location.host
-    assert_equal "/signed-out", location.path
+    assert_equal "/sign/out", location.path
     assert_equal "xyz", query["state"]
   end
 

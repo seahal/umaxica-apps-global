@@ -40,7 +40,9 @@ module SignIn
     test "resolver with no resolved actor returns empty candidates" do
       cycle = Object.new
       cycle.singleton_class.class_eval do
-        def principal; nil; end
+        def principal
+          nil;
+        end
       end
       resolver = SignInActivationCandidateResolver.new(cycle: cycle, actor: nil)
 
@@ -129,6 +131,29 @@ module SignIn
         SignInSelectorParticipant.new(cycle: cycle, actor: create_client).auto_commit_single!
       end
       assert_predicate cycle.reload, :sign_in_selector_pending?
+    end
+
+    test "selector rejects unknown cycle class as actor class mismatch" do
+      actor = create_client
+      cycle = Object.new
+      cycle.singleton_class.class_eval do
+        define_method(:sign_in_selector_pending?) { true }
+        define_method(:expired?) { false }
+        define_method(:principal_id) { actor.id }
+        define_method(:principal) { actor }
+        define_method(:class) do
+          Class.new do
+            def self.transaction
+              yield
+            end
+          end
+        end
+        define_method(:lock!) {}
+      end
+
+      assert_raises SignInSelectorParticipant::InvalidCycle do
+        SignInSelectorParticipant.new(cycle: cycle, actor: actor).auto_commit_single!
+      end
     end
 
     test "legacy return participant consumes safe return path and completes cycle" do

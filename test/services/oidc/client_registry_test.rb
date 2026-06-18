@@ -59,7 +59,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(client_id: client.client_id, uri: "#{uri}/extra")
     assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
       client_id: client.client_id,
-      uri: uri.sub("/signed-out", "/SIGNED-OUT"),
+      uri: uri.sub("/sign/out", "/SIGN/OUT"),
     )
     assert_not OidcClientRegistry.valid_post_logout_redirect_uri?(
       client_id: "unknown",

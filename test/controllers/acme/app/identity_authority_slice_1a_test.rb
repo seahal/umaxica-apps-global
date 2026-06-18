@@ -22,7 +22,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     location = URI.parse(response.location)
 
     assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
-    assert_equal "/signed-out", location.path
+    assert_equal "/sign/out", location.path
   end
 
   test "acme_session_destroy_revokes_other_session" do

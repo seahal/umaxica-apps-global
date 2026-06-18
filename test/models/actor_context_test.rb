@@ -171,7 +171,7 @@ class ActorContextTest < ActiveSupport::TestCase
 
   test "preference handles custom locale and cookie object values" do
     cookie_source = Struct.new(:consented, :functional, :performant, :targetable, :consent_version, :consented_at)
-      .new(true, true, true, false, "2.0", Time.current)
+                          .new(true, true, true, false, "2.0", Time.current)
     pref = Actor::Preference.new(language: "fr").with_cookie(cookie_source)
 
     assert_equal :fr, pref.locale

@@ -192,7 +192,7 @@ class SignFlowTest < ActiveSupport::TestCase
     (SIGN_IN_CLASSES + SIGN_UP_CLASSES).each do |cycle_class|
       cycle = build_cycle(
         cycle_class, status_id: cycle_class.completed_status_id,
-                     step: completion_step_for(cycle_class),
+        step: completion_step_for(cycle_class),
       )
 
       assert_not cycle.valid?, cycle_class.name
@@ -461,8 +461,7 @@ class SignFlowTest < ActiveSupport::TestCase
   end
 
   def cycle_attrs(cycle_class, nonce: "nonce")
-    cycle_class.cleanup_status_class.ensure_defaults! if
-      cycle_class < SignUpFlowTicket && cycle_class.respond_to?(:cleanup_status_class)
+    cycle_class.cleanup_status_class.ensure_defaults! if cycle_class < SignUpFlowTicket && cycle_class.respond_to?(:cleanup_status_class)
 
     attrs = {
       principal_id: 123,

@@ -35,14 +35,10 @@ scope module: :sign, as: :sign do
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Canonical ceremony entrypoints.
-      # TODO: i want to change this entrypoint as resource :up / resource :in .
-        resource :sign_up, only: :show, path: "sign/up"
-        resource :sign_in, only: :show, path: "sign/in"
-      end
-
-      # Signed-out landing page.
-      namespace :signed, path: "" do
-        resource :out, only: :show, path: "signed-out"
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: :show
       end
 
       # OIDC back-channel receiver.
@@ -101,7 +97,7 @@ scope module: :sign, as: :sign do
             namespace :apple do
               resource :confirmation, only: %i(show update)
               resource :birthdate, only: %i(show update)
-              resource :cancellation, only: :create  # FIXME: use delete method!
+              resource :cancellation, only: :create # FIXME: use delete method!
             end
 
             namespace :google do
@@ -299,9 +295,10 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      scope module: :sign do
-        resource :sign_up, only: :show, path: "sign/up"
-        resource :sign_in, only: :show, path: "sign/in"
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: :show
       end
 
       # Auth callback and RP login/logout endpoints.
@@ -313,11 +310,6 @@ scope module: :sign, as: :sign do
 
         # RP local logout: destroys only the local session.
         resource :logout, only: :create
-      end
-
-      # Signed-out landing page.
-      namespace :signed, path: "" do
-        resource :out, only: :show, path: "signed-out"
       end
 
       # OIDC back-channel receiver.
@@ -519,9 +511,10 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      scope module: :sign do
-        resource :sign_up, only: :show, path: "sign/up"
-        resource :sign_in, only: :show, path: "sign/in"
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: :show
       end
 
       # Auth callback and RP login/logout endpoints.
@@ -533,11 +526,6 @@ scope module: :sign, as: :sign do
 
         # RP local logout: destroys only the local session.
         resource :logout, only: :create
-      end
-
-      # Signed-out landing page.
-      namespace :signed, path: "" do
-        resource :out, only: :show, path: "signed-out"
       end
 
       # OIDC back-channel receiver.

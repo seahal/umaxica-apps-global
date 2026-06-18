@@ -75,6 +75,7 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
       return nil unless current_resource
 
       obj = Object.new
+
       def obj.unread
         @unread ||= Struct.new(:oldest_first).new(
           Struct.new(:first).new(
@@ -86,6 +87,7 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
       def obj.find_by(id:)
         Struct.new(:id, :mark_as_read!).new(id, true)
       end
+
       obj
     end
 

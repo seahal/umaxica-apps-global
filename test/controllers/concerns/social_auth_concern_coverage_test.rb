@@ -15,6 +15,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
       @session_hash = {}
       @flash_hash = {}
       @request_obj = Object.new
+
       def @request_obj.headers = {}
 
       def @request_obj.format = Struct.new(:json?).new(false)

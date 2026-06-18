@@ -71,12 +71,6 @@ module TelephoneNormalization
                   maximum: 16, # +[15 digits]
 
                 }
-
-      validate do
-        next if public_send(field_name).blank?
-
-        public_send(field_name)
-      end
     end
   end
 

@@ -18,7 +18,7 @@ class IdentitySecretCredentialCeremonyContractTest < ActiveSupport::TestCase
     travel_to @now do
       grant_token = IdentitySecretCredentialCeremonyGrant.issue(
         valid_grant_claims, issuer_id: acme_issuer_id,
-                            now: @now,
+        now: @now,
       )
       grant = IdentitySecretCredentialCeremonyGrant.decode(grant_token, issuer_id: acme_issuer_id, now: @now)
 
@@ -27,7 +27,7 @@ class IdentitySecretCredentialCeremonyContractTest < ActiveSupport::TestCase
 
       result_token = IdentitySecretCredentialCeremonyResult.issue(
         valid_result_claims, issuer_id: sign_issuer_id,
-                             now: @now,
+        now: @now,
       )
       result = IdentitySecretCredentialCeremonyResult.decode(result_token, issuer_id: sign_issuer_id, now: @now)
 

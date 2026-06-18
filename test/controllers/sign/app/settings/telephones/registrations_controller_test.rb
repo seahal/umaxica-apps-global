@@ -53,9 +53,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       operation: "registration",
     )
     get new_sign_app_settings_telephones_registration_url(
-      ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+          ri: "jp",
+          telephone_ceremony_grant: issuance.grant,
+        ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("ClientTelephone.count", 1) do
@@ -102,9 +102,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       operation: "registration",
     )
     get new_sign_app_settings_telephones_registration_url(
-      ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+          ri: "jp",
+          telephone_ceremony_grant: issuance.grant,
+        ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_no_difference("ClientTelephone.count") do
@@ -129,9 +129,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       operation: "registration",
     )
     get new_sign_app_settings_telephones_registration_url(
-      ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
-    ), headers: request_headers
+          ri: "jp",
+          telephone_ceremony_grant: issuance.grant,
+        ), headers: request_headers
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
@@ -140,14 +140,14 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
   test "new rejects invalid telephone ceremony grant without starting sign authority" do
     get new_sign_app_settings_telephones_registration_url(
-      ri: "jp",
-      telephone_ceremony_grant: "invalid",
-    ), headers: request_headers
+          ri: "jp",
+          telephone_ceremony_grant: "invalid",
+        ), headers: request_headers
 
     assert_redirected_to acme_app_settings_telephones_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                         )
   end
 
   test "create rejects when turnstile fails" do
@@ -274,9 +274,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
         end
 
         assert_redirected_to acme_app_settings_telephones_url(
-          ri: "jp",
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        )
+                               ri: "jp",
+                               host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                             )
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
         assert_equal step_up_before, @token.reload.last_step_up_at
         assert_equal "settings_telephone", @token.last_step_up_scope
@@ -304,9 +304,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     end
 
     assert_redirected_to acme_app_settings_telephones_url(
-      ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-    )
+                           ri: "jp",
+                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                         )
     assert_equal "settings_telephone", @token.reload.last_step_up_scope
     assert_equal step_up_before, @token.reload.last_step_up_at
   end

@@ -144,7 +144,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-                        access_token: access_token,
+      access_token: access_token,
     )
 
     get "/edge/v0/token/check",
@@ -174,7 +174,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-                        access_token: access_token,
+      access_token: access_token,
     )
 
     get "/edge/v0/token/check",
@@ -229,7 +229,7 @@ class Sign::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-                        access_token: "different-token",
+      access_token: "different-token",
     )
 
     get "/edge/v0/token/check",

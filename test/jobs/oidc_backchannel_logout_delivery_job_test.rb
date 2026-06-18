@@ -17,12 +17,12 @@ class OidcBackchannelLogoutDeliveryJobTest < ActiveSupport::TestCase
     Net::HTTP.stub(:start, proc { |*_, &block| block.call(fake_http) }) do
       OidcLogoutTokenCodec.stub(
         :encode, proc { |**kwargs|
-                   assert_equal "sign-rp", kwargs.fetch(:client_id)
-                   assert_equal "client", kwargs.fetch(:resource_type)
-                   assert_equal "subject-1", kwargs.fetch(:subject)
-                   assert_equal sid, kwargs.fetch(:sid)
-                   "jwt-token"
-                 },
+        assert_equal "sign-rp", kwargs.fetch(:client_id)
+        assert_equal "client", kwargs.fetch(:resource_type)
+        assert_equal "subject-1", kwargs.fetch(:subject)
+        assert_equal sid, kwargs.fetch(:sid)
+        "jwt-token"
+      },
       ) do
         OidcBackchannelLogoutDeliveryJob.perform_now(
           "https://id.app.localhost/oidc/backchannel_logout",

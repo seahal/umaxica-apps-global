@@ -131,6 +131,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
       true
     end
+
     alias allowed_to? allow_to?
 
     def current_db_sign_in_flow_for_sequence = @cycle
@@ -310,7 +311,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_not @harness.send(
       :require_sign_in_sequence_participant!, participant: :checkpoint,
-                                              policy_rule: :show_checkpoint?,
+      policy_rule: :show_checkpoint?,
     )
     assert_equal :bad_request, @harness.rendered[:status]
   end

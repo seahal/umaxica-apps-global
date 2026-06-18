@@ -532,9 +532,9 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     travel 16.minutes do
       Rails.logger.stub(
         :info, ->(*args) do
-                 message = args.first
-                 logs << JSON.parse(message, symbolize_names: true) if message.present?
-               end,
+        message = args.first
+        logs << JSON.parse(message, symbolize_names: true) if message.present?
+      end,
       ) do
         get sign_app_sign_in_session_url(ri: "jp"), headers: headers
       end

@@ -20,8 +20,7 @@ class PreferenceGlobalTestController < ApplicationController
     nil
   end
 
-  def write_preference_cookie(_, _)
-  end
+  def write_preference_cookie(_, _) end
 
   include PreferenceGlobal
 

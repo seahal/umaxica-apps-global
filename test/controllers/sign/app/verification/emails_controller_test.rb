@@ -81,10 +81,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
       assert_enqueued_emails 1 do
         get new_sign_app_verification_email_url(
-          ri: "jp",
-          scope: "settings_email",
-          pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
-        ), headers: @headers
+              ri: "jp",
+              scope: "settings_email",
+              pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+            ), headers: @headers
       end
 
       assert_response :redirect
@@ -152,10 +152,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       get new_sign_app_verification_email_url(
-        ri: "jp",
-        scope: "settings_email",
-        pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
-      ), headers: @headers
+            ri: "jp",
+            scope: "settings_email",
+            pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+          ), headers: @headers
 
       assert_response :redirect
       assert_match %r{/verification/emails/.+/edit}, response.location
@@ -168,10 +168,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
         get new_sign_app_verification_email_url(
-          ri: "jp",
-          scope: "settings_email",
-          pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
-        ), headers: @headers
+              ri: "jp",
+              scope: "settings_email",
+              pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+            ), headers: @headers
       end
 
       assert_response :redirect
@@ -192,10 +192,10 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
         get new_sign_app_verification_email_url(
-          ri: "jp",
-          scope: "settings_email",
-          pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
-        ), headers: @headers
+              ri: "jp",
+              scope: "settings_email",
+              pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+            ), headers: @headers
       end
     end
 
@@ -342,11 +342,11 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_enqueued_emails 1 do
       post sign_app_verification_email_redelivery_url(
-        nonce,
-        ri: "jp",
-        scope: "settings_email",
-        pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
-      ), headers: @headers
+             nonce,
+             ri: "jp",
+             scope: "settings_email",
+             pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+           ), headers: @headers
     end
 
     assert_response :redirect
@@ -415,7 +415,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
            params: { verification: { scope: "settings_telephone",
                                      pt: signed_step_up_pt_for(
                                        return_to, surface: "app",
-                                                  session_nonce: @token.public_id,
+                                       session_nonce: @token.public_id,
                                      ), } },
            headers: @headers
 

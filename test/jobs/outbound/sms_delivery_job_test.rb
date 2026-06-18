@@ -9,12 +9,12 @@ module Outbound
       called = false
       OutboundSms.stub(
         :deliver_now, ->(to:, title:, body:) {
-          called = true
+        called = true
 
-          assert_equal "+819012345678", to
-          assert_equal "Verification", title
-          assert_equal "Your code is 123456", body
-        },
+        assert_equal "+819012345678", to
+        assert_equal "Verification", title
+        assert_equal "Your code is 123456", body
+      },
       ) do
         SmsDeliveryJob.perform_now(
           to: "+819012345678",

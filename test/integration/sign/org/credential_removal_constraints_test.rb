@@ -120,7 +120,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
 
   def operator_headers(operator, scope:, host: @host)
     token = OperatorToken.where(staff: operator).first ||
-      OperatorToken.create!(staff: operator, staff_token_status_id: OperatorTokenStatus::ACTIVE)
+            OperatorToken.create!(staff: operator, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: scope)
     {

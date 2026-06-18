@@ -8,7 +8,7 @@ class Acme::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     @host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "acme-dashboard-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
-      number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
+      number: "+8190#{SecureRandom.random_number(10 ** 8).to_s.rjust(8, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
   end

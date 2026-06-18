@@ -160,4 +160,26 @@ class TelephoneOccurrenceTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
     assert_predicate duplicate.errors[:body], :any?
   end
+
+  test "preserves HMAC body without normalization" do
+    hmac_body = "a" * 64
+    record = build_occurrence(TelephoneOccurrence, body: hmac_body, public_id: "tel_hmac_test_00001")
+
+    assert_predicate record, :valid?
+    assert_equal hmac_body, record.body
+  end
+
+  test "rejects invalid HMAC body format" do
+    record = build_occurrence(TelephoneOccurrence, body: "invalid_hmac", public_id: "tel_hmac_test_00002")
+
+    assert_not record.valid?
+    assert_predicate record.errors[:body], :any?
+  end
+
+  test "validates E.164 format for non-HMAC bodies" do
+    record = build_occurrence(TelephoneOccurrence, body: "+0123456789", public_id: "tel_hmac_test_00003")
+
+    assert_not record.valid?
+    assert_predicate record.errors[:body], :any?
+  end
 end

@@ -88,7 +88,7 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   test "rate limit overflow still returns no content" do
     host! ENV.fetch("SIGN_SERVICE_URL")
 
-    Rails.event.stub(:notify, ->(_name, _payload) { }) do
+    Rails.event.stub(:notify, ->(_name, _payload) {}) do
       121.times do
         post sign_app_csp_violation_report_path, params: csp_report_payload, as: :json
       end

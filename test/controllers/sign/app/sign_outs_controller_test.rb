@@ -19,7 +19,7 @@ class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get sign_app_signed_out_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+    get sign_app_sign_out_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
         headers: {
           "X-TEST-CURRENT-USER" => user.id.to_s,
           "X-TEST-SESSION-PUBLIC-ID" => token.public_id,

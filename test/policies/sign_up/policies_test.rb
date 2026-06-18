@@ -403,6 +403,75 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
                      :complete_social_callback?
   end
 
+  test "requirement policy rescues argument error in still pending check" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      entry_method: "email",
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      principal_id: 42,
+    )
+    context = requirement_context(ticket, requirement: :birthdate, pending_actor: PendingActor.new(id: 42))
+    policy = SignUp::RequirementPolicy.new(context, user: nil)
+    registry = Object.new
+    registry.singleton_class.class_eval do
+      define_method(:requirement?) { |*| true }
+      define_method(:requirement_cleared?) { |*| raise ArgumentError, "unsupported" }
+    end
+
+    SignUpRequirementRegistry.stub(:for_ticket, registry) do
+      assert_not_predicate policy, :clear_requirement?
+      assert_not_predicate policy, :continue_after_cleared_requirement?
+    end
+  end
+
+  test "finalization policy allows handoff to sign in from finalized step" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      entry_method: "email",
+      status_id: ClientSignUpFlowStatus::FINALIZED,
+      step: "finalized",
+      principal_id: 42,
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "birthdate" => { "cleared" => true },
+      },
+    )
+    context = SignUpFinalizationContext.build(
+      surface: :app,
+      actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
+      ticket: ticket,
+      pending_actor: PendingActor.new(id: 42),
+    )
+
+    assert_predicate SignUp::FinalizationPolicy.new(context, user: nil), :handoff_to_sign_in?
+  end
+
+  test "finalization policy rescues argument error in requirements check" do
+    ticket = build_ticket(
+      ClientSignUpFlow,
+      entry_method: "email",
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      principal_id: 42,
+      completed_requirements: {
+        "otp" => { "cleared" => true },
+        "birthdate" => { "cleared" => true },
+      },
+    )
+    context = SignUpFinalizationContext.build(
+      surface: :app,
+      actor_authentication: auth(active_sign_sequence_id: ticket.public_id),
+      ticket: ticket,
+      pending_actor: PendingActor.new(id: 42),
+    )
+    policy = SignUp::FinalizationPolicy.new(context, user: nil)
+
+    SignUpRequirementRegistry.stub(:for_ticket, ->(*) { raise ArgumentError, "unsupported" }) do
+      assert_not_predicate policy, :finalize?
+    end
+  end
+
   test "social callback policy rescues argument error for unsupported entry method" do
     unsupported_ticket = ClientSignUpFlow.new(
       cycle_attrs(ClientSignUpFlow).merge(

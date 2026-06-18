@@ -32,4 +32,4 @@
 #  fk_rails_...  (user_id => clients.id)
 #
 
-# Empty fixture - no test data needed yet
+  # Empty fixture - no test data needed yet

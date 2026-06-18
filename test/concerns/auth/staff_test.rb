@@ -5,6 +5,7 @@ require "test_helper"
 
 class AuthStaffTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses
+
   class FormatMock
     attr_accessor :format_type
 
@@ -46,8 +47,7 @@ class AuthStaffTest < ActiveSupport::TestCase
   end
 
   class ResponseMock
-    def set_header(_name, _value)
-    end
+    def set_header(_name, _value) end
   end
 
   class CookieMock < Hash

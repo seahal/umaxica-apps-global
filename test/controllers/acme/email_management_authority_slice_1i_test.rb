@@ -177,7 +177,7 @@ class AcmeEmailManagementAuthoritySlice1ITest < ActionDispatch::IntegrationTest
     )
     create_visitor_email!(visitor, "acme-com-email-spare@example.com")
     visitor.visitor_telephones.create!(
-      number: "+1555#{SecureRandom.random_number(10**7).to_s.rjust(7, "0")}",
+      number: "+1555#{SecureRandom.random_number(10 ** 7).to_s.rjust(7, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
@@ -278,7 +278,7 @@ class AcmeEmailManagementAuthoritySlice1ITest < ActionDispatch::IntegrationTest
   def create_verified_client_telephone!(user)
     ClientTelephone.create!(
       user: user,
-      number: "+1555#{SecureRandom.random_number(10**7).to_s.rjust(7, "0")}",
+      number: "+1555#{SecureRandom.random_number(10 ** 7).to_s.rjust(7, "0")}",
       user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
   end

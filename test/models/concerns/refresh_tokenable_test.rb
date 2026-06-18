@@ -40,6 +40,33 @@ class RefreshTokenableTest < ActiveSupport::TestCase
     assert_nil token.refresh_token_digest
   end
 
+  test "refresh token replay is terminal and revokes the whole family" do
+    original = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      refresh_token: "first-verifier",
+    )
+    original_refresh_token = ClientToken.build_refresh_token(original.public_id, "first-verifier")
+
+    first_rotation = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+    replacement = first_rotation.fetch(:token)
+
+    assert_predicate first_rotation, :success?
+    assert_equal original.refresh_token_family_id, replacement.refresh_token_family_id
+
+    replay = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+
+    assert_not_predicate replay, :success?
+    assert_equal :refresh_token_reuse_detected, replay.reason
+    assert_predicate original.reload, :expired_refresh?
+    assert_predicate replacement.reload, :expired_refresh?
+
+    replacement_reuse = AcmeRefreshTokenService.call(refresh_token: first_rotation.fetch(:refresh_token))
+
+    assert_not_predicate replacement_reuse, :success?
+    assert_equal :inactive_token, replacement_reuse.reason
+  end
+
   test "expired_refresh? and active? reflect discarding time" do
     token = ClientToken.new(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     token.define_singleton_method(:discarded_at) { 1.day.from_now }

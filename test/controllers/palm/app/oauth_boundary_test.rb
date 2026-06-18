@@ -8,27 +8,27 @@ module Palm
     class OauthBoundaryTest < ActiveSupport::TestCase
       fixtures_none!
 
-      test "palm app exposes reserved callback stubs but no authorize or token endpoint" do
+      test "palm app exposes only the generic reserved callback stub and no issuer endpoints" do
         host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
         assert_equal(
           "palm/app/oauth/callbacks#show",
           route_to("https://#{host}/oauth/callback", method: :get),
         )
-        assert_equal(
-          "palm/app/oauth/callback/ios#index",
-          route_to("https://#{host}/oauth/callback/ios", method: :get),
-        )
-        assert_equal(
-          "palm/app/oauth/callback/android#index",
-          route_to("https://#{host}/oauth/callback/android", method: :get),
-        )
 
         source = Rails.root.join("config/routes/palm.rb").read
 
+        assert_not_includes source, "ios"
+        assert_not_includes source, "android"
         assert_not_includes source, 'controller: "ios"'
         assert_not_includes source, 'controller: "android"'
 
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("https://#{host}/oauth/callback/ios", method: :get)
+        end
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("https://#{host}/oauth/callback/android", method: :get)
+        end
         assert_raises(ActionController::RoutingError) do
           Rails.application.routes.recognize_path("https://#{host}/oauth/authorize", method: :get)
         end

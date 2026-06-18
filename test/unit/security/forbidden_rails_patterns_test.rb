@@ -46,8 +46,8 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
 
     assert_empty offenders,
                  "Acme controllers must use implicit rendering or action-specific views " \
-                 "instead of the shared placeholder:\n" \
-                 "#{offenders.join("\n")}"
+                   "instead of the shared placeholder:\n" \
+                   "#{offenders.join("\n")}"
   end
 
   # Test-environment detection in app/lib is forbidden by policy: it lets
@@ -117,10 +117,10 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
 
     assert_equal SENSITIVE_SKIP_ALLOWLIST, offenders,
                  "Files skipping enforce_verification_if_required / enforce_step_up_prereqs! / " \
-                 "authenticate_client! changed. Each skip drops a security guard; confirm the " \
-                 "controller performs that flow itself and update SENSITIVE_SKIP_ALLOWLIST deliberately.\n" \
-                 "added:   #{(offenders - SENSITIVE_SKIP_ALLOWLIST).inspect}\n" \
-                 "removed: #{(SENSITIVE_SKIP_ALLOWLIST - offenders).inspect}"
+                   "authenticate_client! changed. Each skip drops a security guard; confirm the " \
+                   "controller performs that flow itself and update SENSITIVE_SKIP_ALLOWLIST deliberately.\n" \
+                   "added:   #{(offenders - SENSITIVE_SKIP_ALLOWLIST).inspect}\n" \
+                   "removed: #{(SENSITIVE_SKIP_ALLOWLIST - offenders).inspect}"
   end
 
   test "routes do not use catch-all method matching" do

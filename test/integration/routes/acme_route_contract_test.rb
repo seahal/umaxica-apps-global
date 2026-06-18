@@ -4,6 +4,8 @@
 require "test_helper"
 
 class AcmeRouteContractTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   ACME_APP_HOST = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
   ACME_COM_HOST = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
   ACME_ORG_HOST = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")

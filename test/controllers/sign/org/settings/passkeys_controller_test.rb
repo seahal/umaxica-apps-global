@@ -93,9 +93,9 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     Prosopite.pause do
       get new_sign_org_settings_passkey_url(
-        ri: "jp",
-        passkey_ceremony_grant: passkey_ceremony_grant(actor: operator, token: token),
-      ), headers: headers
+            ri: "jp",
+            passkey_ceremony_grant: passkey_ceremony_grant(actor: operator, token: token),
+          ), headers: headers
     end
 
     assert_response :success

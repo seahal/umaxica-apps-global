@@ -15,24 +15,24 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_equal "/sign/in", sign_app_sign_in_path
   end
 
-  test "sign logout mutation helpers are gone from id host" do
+  test "sign logout mutation helpers stay absent while completion page is present" do
     helpers = Rails.application.routes.url_helpers
 
-    assert_not_respond_to helpers, :sign_app_sign_out_path
+    assert_respond_to helpers, :sign_app_sign_out_path
     assert_not_respond_to helpers, :edit_sign_app_sign_out_path
     assert_not_respond_to helpers, :sign_app_sign_out_confirmation_path
     assert_not_respond_to helpers, :sign_app_sign_out_attempt_path
     assert_not_respond_to helpers, :sign_app_sign_out_completion_path
-    assert_respond_to helpers, :sign_app_signed_out_path
   end
 
   test "top-level sign entry routes resolve conventionally on every sign surface" do
     SURFACES.each_key do |surface|
-      assert_recognizes_sign_route(surface, "/sign/up", :get, "sign/sign_ups", "show")
-      assert_recognizes_sign_route(surface, "/sign/in", :get, "sign/sign_ins", "show")
+      assert_recognizes_sign_route(surface, "/sign/up", :get, "sign/ups", "show")
+      assert_recognizes_sign_route(surface, "/sign/in", :get, "sign/ins", "show")
       assert_unrecognized(surface, "/sign/up/entrance", :get)
       assert_unrecognized(surface, "/sign/in/entrance", :get)
-      assert_recognizes_sign_route(surface, "/signed-out", :get, "signed/outs", "show")
+      assert_recognizes_sign_route(surface, "/sign/out", :get, "sign/outs", "show")
+      assert_unrecognized(surface, "/signed-out", :get)
       assert_recognizes_sign_route(surface, "/oidc/backchannel/logout", :post, "oidc/backchannel/logouts", "create")
       assert_unrecognized(surface, "/oidc/frontchannel_logout", :get)
       assert_unrecognized(surface, "/sign/out/confirmation", :get)

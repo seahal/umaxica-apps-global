@@ -83,7 +83,7 @@ class ActorSupportTest < ActiveSupport::TestCase
     Actor.install_context!(preferences: Actor::Preference.new(cookie: cookie))
 
     hex_trace_id = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-    hex_span_id  = "f1e2d3c4b5a6f1e2"
+    hex_span_id = "f1e2d3c4b5a6f1e2"
 
     span_context = Minitest::Mock.new
     span_context.expect(:valid?, true)

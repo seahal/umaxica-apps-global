@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 module Sign
-  module Org
-    module Signed
+  module Com
+    module Sign
       class OutsController < BareController
         AUTHENTICATION_MODE = :bare
 

@@ -17,6 +17,7 @@ class PreferenceGlobalCoverageTest < ActiveSupport::TestCase
       @query_parameters = {}
       @request_obj = Object.new
       request_owner = self
+
       def @request_obj.host = "localhost"
 
       def @request_obj.base_url = "http://localhost"

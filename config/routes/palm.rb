@@ -47,15 +47,6 @@ scope module: :palm, as: :palm do
       namespace :oauth do
         # Generic native callback stub.
         resource :callback, only: :show
-
-        # Platform-specific native callback stubs.
-        namespace :callback, path: "callback" do
-          # iOS native callback stub.
-          resources :ios, only: :index, path: "ios"
-
-          # Android native callback stub.
-          resources :android, only: :index, path: "android"
-        end
       end
     end
   end

@@ -843,34 +843,34 @@ module MissingHelpers
   def insert_verified_user_email!(user_id:, address:)
     ClientEmail.insert_all(
       [{
-        user_id: user_id,
-        address: address,
-        address_digest: IdentifierBlindIndex.bidx_for_email(address),
-        user_email_status_id: ClientEmailStatus::VERIFIED,
-        otp_private_key: SecureRandom.base64(24),
-        otp_counter: "",
-        otp_attempts_count: 0,
-        public_id: SecureRandom.alphanumeric(21),
-        created_at: Time.current,
-        updated_at: Time.current,
-      }],
+         user_id: user_id,
+         address: address,
+         address_digest: IdentifierBlindIndex.bidx_for_email(address),
+         user_email_status_id: ClientEmailStatus::VERIFIED,
+         otp_private_key: SecureRandom.base64(24),
+         otp_counter: "",
+         otp_attempts_count: 0,
+         public_id: SecureRandom.alphanumeric(21),
+         created_at: Time.current,
+         updated_at: Time.current,
+       }],
     )
   end
 
   def insert_verified_visitor_email!(visitor_id:, address:)
     VisitorEmail.insert_all(
       [{
-        visitor_id: visitor_id,
-        address: address,
-        address_digest: IdentifierBlindIndex.bidx_for_email(address),
-        visitor_email_status_id: VisitorEmailStatus::VERIFIED,
-        otp_private_key: SecureRandom.base64(24),
-        otp_counter: "",
-        otp_attempts_count: 0,
-        public_id: SecureRandom.alphanumeric(21),
-        created_at: Time.current,
-        updated_at: Time.current,
-      }],
+         visitor_id: visitor_id,
+         address: address,
+         address_digest: IdentifierBlindIndex.bidx_for_email(address),
+         visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+         otp_private_key: SecureRandom.base64(24),
+         otp_counter: "",
+         otp_attempts_count: 0,
+         public_id: SecureRandom.alphanumeric(21),
+         created_at: Time.current,
+         updated_at: Time.current,
+       }],
     )
   end
 end
@@ -936,8 +936,7 @@ module AuthHelpers
 end
 
 module CommitteeHelper
-  def assert_response_schema_confirm(*)
-  end
+  def assert_response_schema_confirm(*) end
 end
 
 module AuthenticationBaseTestSupport

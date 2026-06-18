@@ -1209,8 +1209,8 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_client(&block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core-next-rp" && sec == @client_secret
-                     },
+      cid == "core-next-rp" && sec == @client_secret
+    },
     ) do
       block.call
     end
@@ -1219,8 +1219,8 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_org_client(secret_credential, &block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core-next-rp" && sec == secret_credential
-                     },
+      cid == "core-next-rp" && sec == secret_credential
+    },
     ) do
       block.call
     end
@@ -1229,8 +1229,8 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def with_authenticated_com_client(secret_credential, &block)
     OidcClientRegistry.stub(
       :authenticate, ->(cid, sec) {
-                       cid == "core-next-rp" && sec == secret_credential
-                     },
+      cid == "core-next-rp" && sec == secret_credential
+    },
     ) do
       block.call
     end

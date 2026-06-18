@@ -16,6 +16,7 @@ class RetainableTest < ActiveSupport::TestCase
     def validation_context
       @validation_context || :default
     end
+
     attr_writer :validation_context
 
     # mock update! for schedule_retention!

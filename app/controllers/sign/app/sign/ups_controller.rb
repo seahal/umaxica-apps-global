@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 module Sign
-  module Org
+  module App
     module Sign
-      class SignUpsController < ::Sign::Org::ApplicationController
+      class UpsController < ::Sign::App::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest
         skip_before_action :set_region, raise: false
@@ -14,7 +14,7 @@ module Sign
 
           transaction =
             OidcAuthorizationTransactionService.find_by_login_challenge!(
-              surface: "org",
+              surface: "app",
               login_challenge: params[:login_challenge].to_s,
             )
           raise ActionController::BadRequest,
@@ -25,7 +25,7 @@ module Sign
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "sign/org/sign_ups/new"
+          render "sign/app/sign_ups/new"
         rescue ActiveRecord::RecordNotFound
           render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
                  status: :bad_request
@@ -34,7 +34,7 @@ module Sign
         private
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_org_root_path(ri: params[:ri]), screen_hint: "signup")
+          url = initiate_oidc_session!(pt: sign_app_root_path(ri: params[:ri]), screen_hint: "signup")
           redirect_to_oidc_authorization_url(url)
         end
       end

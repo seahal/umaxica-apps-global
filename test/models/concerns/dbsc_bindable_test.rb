@@ -4,8 +4,7 @@
 require "test_helper"
 
 class UniquenessValidator < ActiveModel::EachValidator
-  def validate_each(*)
-  end
+  def validate_each(*) end
 end
 
 class DbscBindableTest < ActiveSupport::TestCase

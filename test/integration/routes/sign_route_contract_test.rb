@@ -4,6 +4,8 @@
 require "test_helper"
 
 class SignRouteContractTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   SIGN_APP_HOST = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
   SIGN_COM_HOST = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
   SIGN_ORG_HOST = ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
@@ -57,8 +59,8 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/signed/outs", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/signed-out", method: :get },
+      { controller: "sign/app/sign/outs", action: "show" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
@@ -92,12 +94,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/sign_ups", action: "show" },
+      { controller: "sign/app/sign/ups", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/sign_ins", action: "show" },
+      { controller: "sign/app/sign/ins", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
 
@@ -274,8 +276,8 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/signed/outs", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/signed-out", method: :get },
+      { controller: "sign/com/sign/outs", action: "show" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
@@ -309,12 +311,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/sign_ups", action: "show" },
+      { controller: "sign/com/sign/ups", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/sign_ins", action: "show" },
+      { controller: "sign/com/sign/ins", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
     )
 
@@ -429,8 +431,8 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/signed/outs", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/signed-out", method: :get },
+      { controller: "sign/org/sign/outs", action: "show" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
@@ -464,12 +466,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/sign_ups", action: "show" },
+      { controller: "sign/org/sign/ups", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/sign_ins", action: "show" },
+      { controller: "sign/org/sign/ins", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in", method: :get },
     )
 
@@ -757,6 +759,20 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
         "http://#{SIGN_APP_HOST}/sign/in/secret/new",
         method: :get,
       )
+    end
+  end
+
+  test "sign remains a relying party and does not expose oauth provider endpoints" do
+    [SIGN_APP_HOST, SIGN_COM_HOST, SIGN_ORG_HOST].each do |host|
+      %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
+        end
+      end
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/oauth/token", method: :post)
+      end
     end
   end
 end

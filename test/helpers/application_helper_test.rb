@@ -125,9 +125,9 @@ class ApplicationHelperTest < ActionView::TestCase
 
       AppPrincipalRecord.stub(
         :connected_to, ->(role:, &block) do
-                         roles << role
-                         block.call
-                       end,
+        roles << role
+        block.call
+      end,
       ) do
         assert_equal client_banners(:newer_current_user_banner),
                      current_banner_for(tld: :app, region: :jp, domain: :news)

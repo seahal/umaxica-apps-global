@@ -20,6 +20,7 @@ module Acme
         private
 
         def oidc_client_id
+          # Historical name for Acme's own browser RP callback; Base does not own this endpoint.
           "base-rails-rp"
         end
       end

@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    module Signed
+    module Sign
       class OutsController < BareController
         AUTHENTICATION_MODE = :bare
 

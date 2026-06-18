@@ -26,27 +26,27 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
   test "valid legacy nested report emits Rails event with scrubbed fixed schema payload" do
     result, events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: {
-          "csp-report" => {
-            "document-uri" => "https://app.example.test/path?token=secret#frag",
-            "blocked-uri" => "https://cdn.example.test/app.js?secret=value#frag",
-            "source-file" => "https://app.example.test/application.js?cookie=secret#frag",
-            "effective-directive" => "script-src",
-            "violated-directive" => "script-src-elem",
-            "original-policy" => "default-src 'self'",
-            "disposition" => "enforce",
-            "line-number" => "12",
-            "column-number" => "9",
-            "status-code" => "200",
-            "script-sample" => "private inline code",
-            "unknown" => "private",
-          },
-        }.to_json,
-        host: "app.example.test",
-        user_agent: "ExampleBrowser/1.0 details",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: {
+            "csp-report" => {
+              "document-uri" => "https://app.example.test/path?token=secret#frag",
+              "blocked-uri" => "https://cdn.example.test/app.js?secret=value#frag",
+              "source-file" => "https://app.example.test/application.js?cookie=secret#frag",
+              "effective-directive" => "script-src",
+              "violated-directive" => "script-src-elem",
+              "original-policy" => "default-src 'self'",
+              "disposition" => "enforce",
+              "line-number" => "12",
+              "column-number" => "9",
+              "status-code" => "200",
+              "script-sample" => "private inline code",
+              "unknown" => "private",
+            },
+          }.to_json,
+          host: "app.example.test",
+          user_agent: "ExampleBrowser/1.0 details",
+        )
+      end
 
     assert_equal :accepted, result.status
     assert_equal 1, result.reports_count
@@ -78,30 +78,30 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
   test "valid reporting api flat and array payloads emit the same event" do
     flat_result, flat_events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: {
-          "blocked-uri" => "https://cdn.example.test/app.js",
-          "effective-directive" => "script-src",
-        }.to_json,
-        host: "com.example.test",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: {
+            "blocked-uri" => "https://cdn.example.test/app.js",
+            "effective-directive" => "script-src",
+          }.to_json,
+          host: "com.example.test",
+        )
+      end
 
     array_result, array_events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: [
-          {
-            "type" => "csp-violation",
-            "body" => {
-              "blocked-uri" => "chrome-extension://abc/script.js",
-              "effective-directive" => "script-src",
+        CspViolationReportIntake.call(
+          raw_body: [
+            {
+              "type" => "csp-violation",
+              "body" => {
+                "blocked-uri" => "chrome-extension://abc/script.js",
+                "effective-directive" => "script-src",
+              },
             },
-          },
-        ].to_json,
-        host: "org.example.test",
-      )
-    end
+          ].to_json,
+          host: "org.example.test",
+        )
+      end
 
     assert_equal :accepted, flat_result.status
     assert_equal CspViolationReportIntake::EVENT_NAME, flat_events.fetch(0).fetch(0)
@@ -120,8 +120,8 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     bodies.each do |body|
       result, events =
         capture_events do
-        CspViolationReportIntake.call(raw_body: body, host: "app.example.test")
-      end
+          CspViolationReportIntake.call(raw_body: body, host: "app.example.test")
+        end
 
       assert_includes %i(malformed accepted), result.status
       assert_empty events
@@ -134,11 +134,11 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
 
     result, events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: raw_body,
-        host: "app.example.test",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: raw_body,
+          host: "app.example.test",
+        )
+      end
 
     assert_equal :accepted, result.status
     assert_equal "https://app.example.test/(", events.fetch(0).fetch(1).fetch(:document_uri)
@@ -149,15 +149,15 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
 
     _result, events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: {
-          "csp-report" => {
-            "effective-directive" => long_value,
-          },
-        }.to_json,
-        host: "app.example.test",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: {
+            "csp-report" => {
+              "effective-directive" => long_value,
+            },
+          }.to_json,
+          host: "app.example.test",
+        )
+      end
 
     assert_equal CspViolationReportIntake::MAX_STRING_LENGTH,
                  events.fetch(0).fetch(1).fetch(:effective_directive).length
@@ -166,11 +166,11 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
   test "oversized body returns too large and emits nothing" do
     result, events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: "x" * (CspViolationReportIntake::MAX_BODY_BYTES + 1),
-        host: "app.example.test",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: "x" * (CspViolationReportIntake::MAX_BODY_BYTES + 1),
+          host: "app.example.test",
+        )
+      end
 
     assert_equal :too_large, result.status
     assert_equal 0, result.reports_count
@@ -180,17 +180,17 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
   test "raw payload and script sample are not emitted" do
     _result, events =
       capture_events do
-      CspViolationReportIntake.call(
-        raw_body: {
-          "csp-report" => {
-            "blocked-uri" => "https://cdn.example.test/app.js?authorization=secret#token",
-            "effective-directive" => "script-src",
-            "script-sample" => "alert(document.cookie)",
-          },
-        }.to_json,
-        host: "app.example.test",
-      )
-    end
+        CspViolationReportIntake.call(
+          raw_body: {
+            "csp-report" => {
+              "blocked-uri" => "https://cdn.example.test/app.js?authorization=secret#token",
+              "effective-directive" => "script-src",
+              "script-sample" => "alert(document.cookie)",
+            },
+          }.to_json,
+          host: "app.example.test",
+        )
+      end
 
     payload = events.fetch(0).fetch(1)
 
@@ -210,11 +210,11 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     }.each do |host, surface|
       _result, events =
         capture_events do
-        CspViolationReportIntake.call(
-          raw_body: { "csp-report" => { "effective-directive" => "script-src" } }.to_json,
-          host: host,
-        )
-      end
+          CspViolationReportIntake.call(
+            raw_body: { "csp-report" => { "effective-directive" => "script-src" } }.to_json,
+            host: host,
+          )
+        end
 
       assert_equal surface, events.fetch(0).fetch(1).fetch(:surface)
     end

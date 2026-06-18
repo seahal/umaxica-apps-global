@@ -323,7 +323,7 @@ class SignUpStateMachineTest < ActiveSupport::TestCase
     payload = { checkpoint_version: "not-a-number" }
     machine = SignUpStateMachine.send(
       :new, ticket: ticket, event: :clear_requirement,
-            actor_context: nil, payload: payload,
+      actor_context: nil, payload: payload,
     )
 
     result = machine.send(:checkpoint_version_matches?)

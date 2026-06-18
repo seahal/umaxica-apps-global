@@ -14,7 +14,7 @@ class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signed-out page renders on com sign host" do
-    get sign_com_signed_out_url(ri: "jp", host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"))
+    get sign_com_sign_out_url(ri: "jp", host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"))
 
     assert_response :success
     assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp")

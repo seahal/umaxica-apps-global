@@ -155,7 +155,7 @@ class PreferenceBoosterTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     post "/test_theme_update", params: { preference_theme: { option_id: 1 } },
-                               env: { "HTTP_HOST" => "localhost" }
+         env: { "HTTP_HOST" => "localhost" }
 
     assert_response :success
   end

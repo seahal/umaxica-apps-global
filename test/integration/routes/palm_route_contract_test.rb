@@ -4,6 +4,8 @@
 require "test_helper"
 
 class PalmRouteContractTest < ActionDispatch::IntegrationTest
+  fixtures_none!
+
   PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
 
   test "palm route contract" do
@@ -87,20 +89,18 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "palm/app/oauth/callbacks", recognized[:controller]
     assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/oauth/callback/ios",
-      method: :get,
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{PALM_HOST}/oauth/callback/ios",
+        method: :get,
+      )
+    end
 
-    assert_equal "palm/app/oauth/callback/ios", recognized[:controller]
-    assert_equal "index", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/oauth/callback/android",
-      method: :get,
-    )
-
-    assert_equal "palm/app/oauth/callback/android", recognized[:controller]
-    assert_equal "index", recognized[:action]
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{PALM_HOST}/oauth/callback/android",
+        method: :get,
+      )
+    end
   end
 end

@@ -247,7 +247,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
   end
 
   test "preference_write_resource_preference! returns existing resource preference per surface" \
-       "and falls back to creation" do
+         "and falls back to creation" do
     user_pref = Object.new
     staff_pref = Object.new
     visitor_pref = Object.new

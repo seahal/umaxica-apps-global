@@ -225,8 +225,8 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
       ("csrf_token=#{csrf_token}" if csrf_token.present?),
       "#{ClientVerification.cookie_name}=#{verification_token}",
     ]
-      .compact_blank
-      .join("; ")
+                          .compact_blank
+                          .join("; ")
     headers
       .merge("Host" => host)
   end

@@ -40,8 +40,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/sign/app/settings/passkeys_controller.rb
     app/controllers/sign/app/settings/sessions_controller.rb
     app/controllers/sign/app/social/authentications_controller.rb
-    app/controllers/sign/app/sign_ins_controller.rb
-    app/controllers/sign/app/sign_ups_controller.rb
     app/controllers/sign/app/sign/up/check/apple/birthdates_controller.rb
     app/controllers/sign/app/sign/up/check/apple/confirmations_controller.rb
     app/controllers/sign/app/sign/up/check/email/birthdates_controller.rb
@@ -66,8 +64,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/sign/com/sign/in/sessions_controller.rb
     app/controllers/sign/com/settings/passkeys_controller.rb
     app/controllers/sign/com/settings/sessions_controller.rb
-    app/controllers/sign/com/sign_ins_controller.rb
-    app/controllers/sign/com/sign_ups_controller.rb
     app/controllers/sign/com/sign/up/check/email/birthdates_controller.rb
     app/controllers/sign/com/sign/up/check/email/otps_controller.rb
     app/controllers/sign/com/sign/up/check/telephone/birthdates_controller.rb
@@ -86,8 +82,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/sign/org/sign/in/sessions_controller.rb
     app/controllers/sign/org/settings/passkeys_controller.rb
     app/controllers/sign/org/settings/sessions_controller.rb
-    app/controllers/sign/org/sign_ins_controller.rb
-    app/controllers/sign/org/sign_ups_controller.rb
     app/controllers/sign/org/sign/up/invitations_controller.rb
     app/controllers/acme/app/jwks_controller.rb
     app/controllers/acme/com/jwks_controller.rb
@@ -139,19 +133,19 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     detected = detect_inheritance_violations
 
     new_violations = detected - KNOWN_VIOLATIONS
-    stale_entries  = KNOWN_VIOLATIONS - detected
+    stale_entries = KNOWN_VIOLATIONS - detected
 
     messages = []
 
     unless new_violations.empty?
       header = "New controller-to-controller inheritance violations " \
-               "(fix inheritance or add to KNOWN_VIOLATIONS with a documented reason):"
+        "(fix inheritance or add to KNOWN_VIOLATIONS with a documented reason):"
       messages << "#{header}\n#{new_violations.sort.map { |p| "  #{p}" }.join("\n")}"
     end
 
     unless stale_entries.empty?
       messages << "KNOWN_VIOLATIONS entries that no longer exist or are now fixed (remove them):\n" \
-                  "#{stale_entries.sort.map { |p| "  #{p}" }.join("\n")}"
+        "#{stale_entries.sort.map { |p| "  #{p}" }.join("\n")}"
     end
 
     assert_empty messages, messages.join("\n\n")

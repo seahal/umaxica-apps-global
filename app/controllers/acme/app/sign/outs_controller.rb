@@ -64,7 +64,7 @@ module Acme
 
         def redirect_to_signed_out_page!
           redirect_to(
-            sign_app_signed_out_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+            sign_app_sign_out_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
             allow_other_host: cross_host_redirect_allowed?,
             status: :see_other,
           )

@@ -202,6 +202,7 @@ class ApplicationPolicyTest < ActiveSupport::TestCase
       actor.calls,
     )
   end
+
   private
 
   def build_actor(type_class, id)

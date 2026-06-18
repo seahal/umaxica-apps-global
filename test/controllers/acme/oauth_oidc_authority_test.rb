@@ -156,18 +156,18 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     10.times do
       get acme_app_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
+            host: host,
+            **oidc_authorize_params(scope: "openid"),
+          ),
           headers: { "Host" => host }
 
       assert_response :redirect
     end
 
     get acme_app_oauth_authorization_url(
-      host: host,
-      **oidc_authorize_params(scope: "openid"),
-    ), headers: { "Host" => host }
+          host: host,
+          **oidc_authorize_params(scope: "openid"),
+        ), headers: { "Host" => host }
 
     assert_response :too_many_requests
     assert_equal "rails", response.headers["X-RateLimit-Layer"]
@@ -181,16 +181,16 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     10.times do
       get acme_com_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
+            host: host,
+            **oidc_authorize_params(scope: "openid"),
+          ),
           headers: { "Host" => host }
     end
 
     get acme_com_oauth_authorization_url(
-      host: host,
-      **oidc_authorize_params(scope: "openid"),
-    ), headers: { "Host" => host }
+          host: host,
+          **oidc_authorize_params(scope: "openid"),
+        ), headers: { "Host" => host }
 
     assert_response :too_many_requests
     assert_equal "rails", response.headers["X-RateLimit-Layer"]
@@ -204,16 +204,16 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     10.times do
       get acme_org_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
+            host: host,
+            **oidc_authorize_params(scope: "openid"),
+          ),
           headers: { "Host" => host }
     end
 
     get acme_org_oauth_authorization_url(
-      host: host,
-      **oidc_authorize_params(scope: "openid"),
-    ), headers: { "Host" => host }
+          host: host,
+          **oidc_authorize_params(scope: "openid"),
+        ), headers: { "Host" => host }
 
     assert_response :too_many_requests
     assert_equal "rails", response.headers["X-RateLimit-Layer"]
@@ -532,7 +532,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     travel 2.seconds do
       get "/oauth/authorize", params: { login_challenge: issuance.transaction.login_challenge },
-                              headers: browser_headers
+          headers: browser_headers
     end
 
     assert_response :bad_request

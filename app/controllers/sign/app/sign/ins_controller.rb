@@ -4,7 +4,7 @@
 module Sign
   module App
     module Sign
-      class SignInsController < ::Sign::App::ApplicationController
+      class InsController < ::Sign::App::ApplicationController
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
         skip_before_action :set_region, raise: false

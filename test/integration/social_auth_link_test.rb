@@ -124,7 +124,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Use X-STRICT-SOCIAL-STATE to prevent test-mode state bypass
     post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
          headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
-           .merge("X-STRICT-SOCIAL-STATE" => "1")
+                                   .merge("X-STRICT-SOCIAL-STATE" => "1")
 
     assert_response :forbidden
 

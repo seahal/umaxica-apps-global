@@ -81,9 +81,9 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to "/test/login"
     assert_includes [
-      I18n.t("session_limit.gate_expired", locale: :ja),
-      I18n.t("session_limit.gate_expired", locale: :en),
-    ], flash[:alert]
+                      I18n.t("session_limit.gate_expired", locale: :ja),
+                      I18n.t("session_limit.gate_expired", locale: :en),
+                    ], flash[:alert]
   end
 
   test "require_session_limit_gate! allows access with valid gate" do
@@ -110,9 +110,9 @@ class SessionLimitGateTest < ActionDispatch::IntegrationTest
 
       assert_redirected_to "/test/login"
       assert_includes [
-        I18n.t("session_limit.gate_expired", locale: :ja),
-        I18n.t("session_limit.gate_expired", locale: :en),
-      ], flash[:alert]
+                        I18n.t("session_limit.gate_expired", locale: :ja),
+                        I18n.t("session_limit.gate_expired", locale: :en),
+                      ], flash[:alert]
     end
   end
 

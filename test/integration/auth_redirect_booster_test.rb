@@ -42,17 +42,29 @@ class AuthRedirectTestController < ApplicationController
     render json: session[AuthenticationBase::BULLETIN_SESSION_KEY] || {}
   end
 
-  def am_i_user?; false; end
+  def am_i_user?
+    false;
+  end
 
-  def am_i_staff?; false; end
+  def am_i_staff?
+    false;
+  end
 
-  def am_i_owner?; false; end
+  def am_i_owner?
+    false;
+  end
 
-  def resource_type; "Client"; end
+  def resource_type
+    "Client";
+  end
 
-  def resource_class; Client; end
+  def resource_class
+    Client;
+  end
 
-  def token_class; ClientToken; end
+  def token_class
+    ClientToken;
+  end
 end
 
 class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest

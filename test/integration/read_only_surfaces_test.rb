@@ -92,7 +92,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     CONTENT_API_SURFACES.each do |helper, env_key, fallback, model, namespace, surface|
       create_content_entry(
         model, slug: "#{surface}-older-entry", title: "Older Entry", locale: "test-api",
-               published_at: 2.hours.ago,
+        published_at: 2.hours.ago,
       )
       newer = create_content_entry(
         model, slug: "#{surface}-newer-entry", title: "Newer Entry", locale: "test-api",

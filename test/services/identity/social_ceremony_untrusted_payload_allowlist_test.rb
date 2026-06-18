@@ -26,7 +26,7 @@ class IdentitySocialCeremonyUntrustedPayloadAllowlistTest < ActiveSupport::TestC
     assert_empty(
       unexpected,
       "decode_untrusted_routing_payload is untrusted and must stay confined to routing/extraction. " \
-      "Unexpected callers: #{unexpected.join(", ")}",
+        "Unexpected callers: #{unexpected.join(", ")}",
     )
   end
 

@@ -65,7 +65,7 @@ module Security
           path: "app/controllers/concerns/csp_violation_report.rb",
           line: /skip_forgery_protection\(only: :create\)/,
           reason: "CSP reports are browser sensor inputs, not session form mutations; " \
-                  "create still rate limits and reads bounded bodies only.",
+            "create still rate limits and reads bounded bodies only.",
         },
         {
           pattern: "csrf null_session",
@@ -208,7 +208,7 @@ module Security
 
         assert_empty offenders,
                      "Use Rails.logger.error(JitLogEvent.format(...)) or a sanitized audit sink instead:\n" \
-                     "#{offenders.join("\n")}"
+                       "#{offenders.join("\n")}"
       end
 
       private

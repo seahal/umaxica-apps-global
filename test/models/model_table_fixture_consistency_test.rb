@@ -43,6 +43,7 @@ class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
   end
 
   private
+
   def application_record_models
     ApplicationRecord.descendants.reject do |model|
       model.abstract_class? || model.name.blank? || model.name.include?("::")
