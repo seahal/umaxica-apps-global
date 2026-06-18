@@ -36,6 +36,7 @@ class IdentitySocialCeremonyFinalCommitter
     validate_transaction_state!
     consumption = IdentitySocialCeremonyResultConsumer.new(transaction: transaction, now: now).call(result_token)
     return commit_login!(consumption) if operation == "login"
+    return commit_signup!(consumption) if operation == "signup"
 
     identity = commit_link!
     record_audit!(identity)
@@ -111,6 +112,26 @@ class IdentitySocialCeremonyFinalCommitter
       identity: decision[:identity],
       user: decision[:user],
       existing_account: decision[:existing_account],
+      pt: transaction_return_to,
+      entry: transaction_return_entry,
+    )
+  end
+
+  def commit_signup!(consumption)
+    candidate = IdentitySocialCeremonyCandidateStore.consume!(result["candidate_ref"])
+    validate_candidate!(candidate)
+    birthdate = result["birthdate"].to_s
+    raise IdentitySocialCeremonyContract::Error, "birthdate is required" if birthdate.blank?
+    raise IdentitySocialCeremonyContract::Error, "birthdate is ineligible" unless
+      AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
+
+    signup = SocialAuthSignupFinalizer.call(auth_hash: candidate.auth_hash, birthdate: birthdate)
+    Commit.new(
+      transaction: consumption.transaction,
+      result: consumption.result,
+      identity: signup.fetch(:identity),
+      user: signup.fetch(:user),
+      existing_account: false,
       pt: transaction_return_to,
       entry: transaction_return_entry,
     )

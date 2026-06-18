@@ -10,7 +10,7 @@ class IdentitySocialCeremonyResult
     typ iss aud purpose surface actor_ref session_ref transaction_id grant_jti result_jti operation provider
     proof_method provider_subject_ref provider_subject_digest verified_at challenge_id expires_at iat exp
   ).freeze
-  OPTIONAL_CLAIMS = %w(email_digest email_verified auth_time candidate_ref candidate_digest).freeze
+  OPTIONAL_CLAIMS = %w(email_digest email_verified auth_time candidate_ref candidate_digest birthdate).freeze
   ALLOWED_CLAIMS = (REQUIRED_CLAIMS + OPTIONAL_CLAIMS).freeze
 
   attr_reader :payload, :kid

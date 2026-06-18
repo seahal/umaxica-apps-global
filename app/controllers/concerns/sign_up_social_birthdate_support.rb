@@ -2,17 +2,16 @@
 # frozen_string_literal: true
 
 # Social sign-up birthdate requirement clearing for apple and google check controllers.
-# Overrides the base clear_sign_up_birthdate_requirement to handle the social entry
-# method path: creates the actor from the candidate store instead of updating a pending actor.
-# Include after SignUpExplicitStepControllerSupport so that super resolves to
-# SignUpSequenceControllerSupport#clear_sign_up_birthdate_requirement.
+# Sign keeps the checkpoint UI and returns a signed completion result; Acme owns
+# the durable social signup commit and session issuance.
 module SignUpSocialBirthdateSupport
   private
 
   def clear_sign_up_birthdate_requirement
     return super unless pending_social_signup_confirmation?
     return if performed?
-    return continue_after_cleared_sign_up_requirement if sign_up_requirement_cleared?(:birthdate)
+    return render_social_signup_completion!(social_signup_candidate!, sign_up_birthdate_param) if
+      sign_up_requirement_cleared?(:birthdate)
     return unless validate_sign_up_checkpoint_version!
     return render_missing_social_signup_confirmation unless social_signup_confirmation_cleared?
 
@@ -26,8 +25,15 @@ module SignUpSocialBirthdateSupport
       return
     end
 
-    create_social_signup_actor!(birthdate)
-    run_sign_up_requirement_event(payload: { requirement: :birthdate })
+    candidate = social_signup_candidate!
+    result = perform_sign_up_event(
+      :clear_requirement,
+      payload: { requirement: :birthdate, checkpoint_version: sign_up_checkpoint_version_param },
+    )
+    return render_sign_up_result(result) unless result.success?
+    return render_sign_up_result(result) unless result.next_event == :finalize
+
+    render_social_signup_completion!(candidate, birthdate)
   rescue SocialAuth::BaseError, IdentitySocialCeremonyContract::Error
     render plain: I18n.t("errors.social_auth.provider_error"), status: :unprocessable_content
   end
@@ -46,33 +52,12 @@ module SignUpSocialBirthdateSupport
     render plain: "social_signup_confirmation_required", status: :unprocessable_content
   end
 
-  def create_social_signup_actor!(birthdate)
-    AppTicketRecord.connected_to(role: :writing) do
-      @sign_up_ticket.with_cycle_lock do
-        @sign_up_ticket.reload
-        return if @sign_up_ticket.principal_id.present?
-
-        candidate = consume_social_signup_candidate!
-        result = SocialAuthSignupFinalizer.call(
-          auth_hash: candidate.auth_hash,
-          birthdate: birthdate,
-        )
-        identity = result.fetch(:identity)
-        user = result.fetch(:user)
-
-        @sign_up_ticket.update!(
-          principal_id: user.id,
-          pending_contact_type: "social_identity",
-          pending_contact_id: identity.id,
-          social_provider: SocialIdentifiable.normalize_provider(identity.provider),
-        )
-      end
-    end
+  def social_signup_candidate!
+    validate_social_signup_candidate!(IdentitySocialCeremonyCandidateStore.fetch!(social_signup_evidence.fetch("candidate_ref")))
   end
 
-  def consume_social_signup_candidate!
+  def validate_social_signup_candidate!(candidate)
     evidence = social_signup_evidence
-    candidate = IdentitySocialCeremonyCandidateStore.consume!(evidence.fetch("candidate_ref"))
     raise IdentitySocialCeremonyContract::Error, "candidate digest mismatch" unless
       candidate.digest.to_s == evidence.fetch("candidate_digest").to_s
     raise IdentitySocialCeremonyContract::Error,
@@ -81,8 +66,9 @@ module SignUpSocialBirthdateSupport
       candidate.actor_ref.to_s == @sign_up_ticket.public_id.to_s
     raise IdentitySocialCeremonyContract::Error, "candidate session mismatch" unless
       candidate.session_ref.to_s == @sign_up_ticket.public_id.to_s
+    expected_transaction_id = evidence["grant_transaction_id"].presence || @sign_up_ticket.public_id
     raise IdentitySocialCeremonyContract::Error, "candidate transaction mismatch" unless
-      candidate.transaction_id.to_s == @sign_up_ticket.public_id.to_s
+      candidate.transaction_id.to_s == expected_transaction_id.to_s
     raise IdentitySocialCeremonyContract::Error,
           "candidate operation mismatch" unless candidate.operation.to_s == "signup"
 
@@ -100,6 +86,58 @@ module SignUpSocialBirthdateSupport
       expected_provider: candidate.provider,
     )
     candidate
+  end
+
+  def render_social_signup_completion!(candidate, birthdate)
+    grant = social_signup_ceremony_grant
+    result_token = IdentitySocialCeremonyResultIssuer.issue!(
+      grant_token: social_signup_ceremony_grant_token(grant),
+      auth_hash: candidate.auth_hash,
+      surface: "app",
+      actor_ref: grant["actor_ref"],
+      session_ref: grant["session_ref"],
+      operation: "signup",
+      challenge_id: @sign_up_ticket.public_id,
+      candidate: candidate,
+      birthdate: birthdate,
+    )
+    sign_up_session_state.clear_all!
+    render(
+      "sign/shared/social_completion",
+      locals: {
+        completion_url: completion_acme_app_social_authentication_url(
+          id: candidate.provider,
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        ),
+        result_token: result_token,
+        ri: params[:ri],
+      },
+      layout: false,
+    )
+  end
+
+  def social_signup_ceremony_grant
+    evidence = social_signup_evidence
+    transaction_id = evidence["grant_transaction_id"].presence
+    raise IdentitySocialCeremonyContract::Error, "social signup grant is required" if transaction_id.blank?
+
+    transaction = IdentitySocialCeremonyReplayStore.for("app").find_transaction!(transaction_id)
+    IdentitySocialCeremonyGrant.decode(
+      social_signup_ceremony_grant_token_from_transaction(transaction),
+      issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
+    )
+  end
+
+  def social_signup_ceremony_grant_token(grant)
+    transaction = IdentitySocialCeremonyReplayStore.for("app").find_transaction!(grant["transaction_id"])
+    social_signup_ceremony_grant_token_from_transaction(transaction)
+  end
+
+  def social_signup_ceremony_grant_token_from_transaction(transaction)
+    IdentitySocialCeremonyGrant.issue(
+      transaction.grant_claims,
+      issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
+    )
   end
 
   def social_signup_evidence

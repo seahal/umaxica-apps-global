@@ -8,11 +8,13 @@ module Acme
       declare_authentication_mode! :private
 
       def show
-        AcmeSelectorBootstrapAuthority.call(surface: :app, principal: current_client)
-        render json: AcmeSelectorAuthority.prepare(
-          surface: :app, principal: current_client,
-          session: current_session,
-        )
+        return render_selector_json if request.format.json?
+        return continue_selector_sequence! if current_db_sign_in_flow_for_sequence&.sign_in_selector_pending?
+
+        result = prepare_selector
+        return redirect_to(acme_app_dashboard_path(ri: params[:ri])) if result.fetch(:status).to_s == "selected"
+
+        render json: result, status: :unprocessable_content
       end
 
       def update
@@ -27,6 +29,18 @@ module Acme
       end
 
       private
+
+      def render_selector_json
+        render json: prepare_selector
+      end
+
+      def prepare_selector
+        AcmeSelectorBootstrapAuthority.call(surface: :app, principal: current_client)
+        AcmeSelectorAuthority.prepare(
+          surface: :app, principal: current_client,
+          session: current_session,
+        )
+      end
 
       def selector_params
         params.permit(

@@ -7,7 +7,7 @@ module Palm
       AUTHENTICATION_MODE = :bare
 
       def index
-        render plain: t(".message")
+        render layout: false
       end
     end
   end

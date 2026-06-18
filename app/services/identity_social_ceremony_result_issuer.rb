@@ -3,6 +3,7 @@
 
 class IdentitySocialCeremonyResultIssuer
   def self.issue!(grant_token:, auth_hash:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
+                  candidate: nil, birthdate: nil,
                   now: Time.current)
     new(
       grant_token: grant_token,
@@ -12,11 +13,14 @@ class IdentitySocialCeremonyResultIssuer
       session_ref: session_ref,
       operation: operation,
       challenge_id: challenge_id,
+      candidate: candidate,
+      birthdate: birthdate,
       now: now,
     ).issue!
   end
 
   def initialize(grant_token:, auth_hash:, surface:, actor_ref:, session_ref:, operation:, challenge_id: nil,
+                 candidate: nil, birthdate: nil,
                  now: Time.current)
     @grant_token = grant_token
     @auth_hash = auth_hash
@@ -25,6 +29,8 @@ class IdentitySocialCeremonyResultIssuer
     @session_ref = session_ref.to_s
     @operation = operation.to_s
     @challenge_id = challenge_id
+    @provided_candidate = candidate
+    @birthdate = birthdate
     @now = now
   end
 
@@ -38,7 +44,8 @@ class IdentitySocialCeremonyResultIssuer
 
   private
 
-  attr_reader :grant_token, :auth_hash, :surface, :actor_ref, :session_ref, :operation, :challenge_id, :now
+  attr_reader :grant_token, :auth_hash, :surface, :actor_ref, :session_ref, :operation, :challenge_id,
+              :provided_candidate, :birthdate, :now
 
   def validate_grant!
     raise IdentitySocialCeremonyContract::Error, "social ceremony grant is required" if grant_token.blank?
@@ -86,6 +93,8 @@ class IdentitySocialCeremonyResultIssuer
   end
 
   def candidate
+    return provided_candidate if provided_candidate.present?
+
     @candidate ||= IdentitySocialCeremonyCandidateStore.store!(
       surface: surface,
       actor_ref: actor_ref,
@@ -138,6 +147,7 @@ class IdentitySocialCeremonyResultIssuer
       "email_verified" => email_verified,
       "candidate_ref" => candidate&.ref,
       "candidate_digest" => candidate&.digest,
+      "birthdate" => birthdate,
       "verified_at" => now.to_i,
       "challenge_id" => challenge_id.presence || transaction.transaction_id,
       "expires_at" => transaction.expires_at.to_i,

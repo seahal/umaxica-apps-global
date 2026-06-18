@@ -235,8 +235,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_redirected_to public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
     follow_redirect!
 
-    assert_difference("Client.count", 1) do
-      assert_difference("#{config.fetch(:model)}.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("#{config.fetch(:model)}.count") do
         patch(
           public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
           params: {
@@ -246,6 +246,15 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
           },
           headers: browser_headers.merge(@callback_headers),
         )
+      end
+    end
+
+    assert_response :ok
+    assert_includes response.body, "social-completion-form"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("#{config.fetch(:model)}.count", 1) do
+        submit_social_completion_if_present!
       end
     end
 

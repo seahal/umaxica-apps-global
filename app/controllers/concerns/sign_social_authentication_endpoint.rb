@@ -26,6 +26,7 @@ module SignSocialAuthenticationEndpoint
       entry: social_auth_entry,
       ri: params[:ri].presence,
     )
+    sign_up_cycle = issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
     if params[:social_ceremony_grant].present?
       store_social_ceremony_grant!(params[:social_ceremony_grant])
     elsif intent.to_s == "login"
@@ -40,7 +41,6 @@ module SignSocialAuthenticationEndpoint
       )
       store_social_ceremony_grant!(issuance.grant)
     end
-    issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
 
     safe_redirect_to(
       omniauth_authorize_path(provider, state: state),
@@ -138,6 +138,7 @@ module SignSocialAuthenticationEndpoint
 
     sign_up_flow_locator.issue!(cycle)
     session[:sign_app_up_sequence_id] = cycle.public_id
+    cycle
   end
 
   def social_login_actor_ref

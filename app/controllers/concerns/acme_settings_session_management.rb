@@ -21,11 +21,15 @@ module AcmeSettingsSessionManagement
     return render_current_session_error if current_session_record?(@session)
 
     revoke_sessions!([@session], action: "session.revoke")
+    return render_session_limit_promotion_success if promote_current_restricted_session_if_possible
+
     render_revoke_success
   end
 
   def others
     revoke_sessions!(other_active_sessions, action: "session.revoke_others")
+    return render_session_limit_promotion_success if promote_current_restricted_session_if_possible
+
     render_revoke_success
   end
 
@@ -61,6 +65,31 @@ module AcmeSettingsSessionManagement
       revoked_count += 1
     end
     record_session_revoke_activity(action: action, revoked_count: revoked_count)
+  end
+
+  def promote_current_restricted_session_if_possible
+    session = current_session
+    return false unless session&.restricted?
+    return false unless current_restricted_session_promotable?
+
+    session.promote_to_active!
+    true
+  end
+
+  def current_restricted_session_promotable?
+    visible_sessions.active_status.count < session_limit_maximum
+  end
+
+  def session_limit_maximum
+    %i(MAX_SESSIONS_PER_USER MAX_SESSIONS_PER_STAFF MAX_SESSIONS_PER_VISITOR).each do |constant_name|
+      return current_session.class.const_get(constant_name) if current_session.class.const_defined?(constant_name)
+    end
+
+    raise NotImplementedError, "#{current_session.class.name} does not declare a session limit maximum"
+  end
+
+  def render_session_limit_promotion_success
+    render_revoke_success
   end
 
   def each_session(sessions, &)

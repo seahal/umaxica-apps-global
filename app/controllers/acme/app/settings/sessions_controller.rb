@@ -84,6 +84,10 @@ module Acme
         def render_current_session_error
           redirect_to(acme_app_settings_sessions_path, alert: t("session_limit.cannot_revoke_current"))
         end
+
+        def render_session_limit_promotion_success
+          redirect_to(acme_app_dashboard_path(ri: params[:ri]), status: :see_other)
+        end
       end
     end
   end

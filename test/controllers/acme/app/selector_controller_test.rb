@@ -26,6 +26,14 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
     assert_predicate @token.reload, :selected_actor_context?
   end
 
+  test "html selector request redirects after preparing a single selected context" do
+    get acme_app_selector_url(host: @host, ri: "jp"),
+        headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)
+
+    assert_redirected_to acme_app_dashboard_path(ri: "jp")
+    assert_predicate @token.reload, :selected_actor_context?
+  end
+
   test "selector update persists valid selected actor context" do
     AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @user)
     candidate = AcmeSelectorAuthority.new(

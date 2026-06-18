@@ -354,7 +354,7 @@ module SocialAuth
       token.to_s,
       issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
     )
-    unless %w(link login).include?(grant["operation"].to_s)
+    unless %w(link login signup).include?(grant["operation"].to_s)
       raise SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
     end
 

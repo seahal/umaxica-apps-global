@@ -36,6 +36,17 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       expected_body: "News API is available",
     },
   ].freeze
+  SURFACE_HOME_PAGES = [
+    ["help.jp.umaxica.app", "Help App", "Help API is available. Browser article pages are served outside Rails."],
+    ["help.jp.umaxica.com", "Help Com", "Help API is available. Browser article pages are served outside Rails."],
+    ["help.jp.umaxica.org", "Help Org", "Help API is available. Browser article pages are served outside Rails."],
+    ["docs.jp.umaxica.app", "Docs App", "Docs API is available. Browser article pages are served outside Rails."],
+    ["docs.jp.umaxica.com", "Docs Com", "Docs API is available. Browser article pages are served outside Rails."],
+    ["docs.jp.umaxica.org", "Docs Org", "Docs API is available. Browser article pages are served outside Rails."],
+    ["news.jp.umaxica.app", "News App", "News API is available. Browser article pages are served outside Rails."],
+    ["news.jp.umaxica.com", "News Com", "News API is available. Browser article pages are served outside Rails."],
+    ["news.jp.umaxica.org", "News Org", "News API is available. Browser article pages are served outside Rails."],
+  ].freeze
 
   test "help docs and news app surfaces respond on their public read-only endpoints" do
     SURFACES.each do |surface|
@@ -45,7 +56,8 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       get surface.fetch(:root_path), headers: { "Host" => host }
 
       assert_response :success, surface.fetch(:label)
-      assert_includes response.body, surface.fetch(:expected_body), surface.fetch(:label)
+      assert_homepage_html title: "#{surface.fetch(:label)} App",
+                           message: "#{surface.fetch(:expected_body)}. Browser article pages are served outside Rails."
 
       get surface.fetch(:health_path), headers: { "Host" => host }
 
@@ -76,7 +88,27 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "help docs and news public host families render standalone homepages" do
+    SURFACE_HOME_PAGES.each do |host, title, message|
+      host! host
+
+      get "/?ri=jp", headers: { "Host" => host }
+
+      assert_response :success, title
+      assert_homepage_html title: title, message: message
+    end
+  end
+
   private
+
+  def assert_homepage_html(title:, message:)
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "<!doctype html>"
+    assert_select "html body main section h1", text: title
+    assert_select "html body main section p", text: message
+    assert_select "header", count: 0
+    assert_select "footer", count: 0
+  end
 
   def create_content_entry(model, namespace)
     model.create!(

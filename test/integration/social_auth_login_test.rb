@@ -93,6 +93,41 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, cycle.status_id
   end
 
+  test "Google login with session limit pending redirects to acme session management" do
+    existing_uid = "existing_google_session_limit_#{SecureRandom.hex(4)}"
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "lim_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
+    ClientGoogleIdentity.create!(
+      user: existing_user,
+      uid: existing_uid,
+      provider: "google_app",
+      token: "old_token",
+      expires_at: 1.week.from_now.to_i,
+      user_google_identity_status: client_google_identity_statuses(:active),
+    )
+    2.times { create_active_user_session_for_limit(existing_user) }
+    setup_google_mock_auth(uid: existing_uid)
+
+    state = start_social_auth_flow(provider: "google_app", intent: "login")
+
+    get sign_app_auth_google_app_callback_url(ri: "jp"),
+        params: { state: state },
+        headers: browser_headers.merge(@callback_headers)
+    submit_social_completion_if_present!
+
+    assert_redirected_to acme_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+  end
+
+  def create_active_user_session_for_limit(user)
+    token = ClientToken.new(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    token.send(:skip_session_limit_check=, true)
+    token.save!
+    token
+  end
+
   test "Google established login callback posts a one-shot result to acme without provider tokens" do
     existing_uid = "existing_google_transport_#{SecureRandom.hex(4)}"
     existing_user = Client.create!(
@@ -329,8 +364,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_sign_up_check_google_birthdate_url(ri: "jp")
 
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientGoogleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientGoogleIdentity.count") do
         patch sign_app_sign_up_check_google_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
@@ -338,6 +373,15 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
                 checkpoint_version: cycle.reload.checkpoint_version,
               },
               headers: browser_headers.merge(@callback_headers)
+      end
+    end
+
+    assert_response :ok
+    assert_includes response.body, "social-completion-form"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientGoogleIdentity.count", 1) do
+        submit_social_completion_if_present!
       end
     end
 
@@ -439,8 +483,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_sign_up_check_apple_birthdate_url(ri: "jp")
 
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
         patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
@@ -448,6 +492,15 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
                 checkpoint_version: cycle.reload.checkpoint_version,
               },
               headers: browser_headers.merge(@callback_headers)
+      end
+    end
+
+    assert_response :ok
+    assert_includes response.body, "social-completion-form"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        submit_social_completion_if_present!
       end
     end
 

@@ -36,6 +36,25 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_predicate current_token.reload, :currently_usable?
   end
 
+  test "acme_session_revoke_others_promotes_current_restricted_session" do
+    active_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    restricted_token = ClientToken.new(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::RESTRICTED,
+      discarded_at: 15.minutes.from_now,
+    )
+    restricted_token.send(:skip_session_limit_check=, true)
+    restricted_token.save!
+
+    delete others_acme_app_settings_sessions_url(ri: "jp"), headers: session_headers(restricted_token)
+
+    assert_response :see_other
+    assert_redirected_to acme_app_dashboard_path(ri: "jp")
+    assert_predicate active_token.reload, :lapsed?
+    assert_predicate restricted_token.reload, :active_status?
+  end
+
   test "acme_revoke_all_get_is_not_session_mutation" do
     current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(current_token, scope: "session_revoke_all", at: 5.minutes.ago)

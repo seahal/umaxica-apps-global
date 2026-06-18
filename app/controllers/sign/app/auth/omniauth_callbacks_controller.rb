@@ -255,11 +255,13 @@ module Sign
           end
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless cycle.entry_method == provider
 
+          grant = social_signup_ceremony_grant_for(cycle, auth.provider)
+
           candidate = IdentitySocialCeremonyCandidateStore.store!(
             surface: "app",
-            actor_ref: cycle.public_id,
-            session_ref: cycle.public_id,
-            transaction_id: cycle.public_id,
+            actor_ref: grant["actor_ref"],
+            session_ref: grant["session_ref"],
+            transaction_id: grant["transaction_id"],
             operation: "signup",
             provider: auth.provider,
             auth_hash: auth,
@@ -273,6 +275,7 @@ module Sign
                 "candidate_digest" => candidate.digest,
                 "provider" => provider,
                 "uid_digest" => pending_social_signup_uid_digest(provider: provider, uid: uid),
+                "grant_transaction_id" => grant["transaction_id"],
                 "stored_at" => Time.current.iso8601,
               },
             ),
@@ -306,6 +309,22 @@ module Sign
             "SHA256",
             Rails.application.secret_key_base,
             [provider, uid].map(&:to_s).join(":"),
+          )
+        end
+
+        def social_signup_ceremony_grant_for(cycle, provider)
+          issuance = IdentitySocialCeremonyGrantIssuer.issue!(
+            surface: "app",
+            actor_ref: cycle.public_id,
+            session_ref: cycle.public_id,
+            operation: "signup",
+            provider: provider,
+            resource_ref: "sign_up",
+            return_to: cycle.return_to,
+          )
+          IdentitySocialCeremonyGrant.decode(
+            issuance.grant,
+            issuer_id: IdentitySocialCeremonyContract.acme_issuer_id("app"),
           )
         end
 

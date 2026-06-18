@@ -11,6 +11,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     get "/", headers: { "Host" => host }
 
     assert_response :success
+    assert_homepage_html title: "Base App", message: "Base services are available. See /settings."
 
     get "/health", headers: { "Host" => host }
 
@@ -31,13 +32,32 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "base public host family renders standalone homepages" do
+    [
+      [ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"), "Base App"],
+      [ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"), "Base Com"],
+      [ENV.fetch("BASE_STAFF_URL", "base.org.localhost"), "Base Org"],
+    ].each do |host, title|
+      host! host
+
+      get "/?ri=jp", headers: { "Host" => host }
+
+      assert_response :success
+      assert_homepage_html title: title, message: "Base services are available. See /settings."
+    end
+  end
+
   test "palm app public endpoints and bearer profile api respond on the native surface" do
     host = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
     host! host
 
-    get "/", headers: { "Host" => host }
+    get "/?ri=jp", headers: { "Host" => host }
 
     assert_response :success
+    assert_homepage_html(
+      title: "Palm App",
+      message: "Palm API is available for native and handheld clients. Browser access is not a product UI.",
+    )
 
     get "/health", headers: { "Host" => host }
 
@@ -50,6 +70,15 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_homepage_html(title:, message:)
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "<!doctype html>"
+    assert_select "html body main section h1", text: title
+    assert_select "html body main section p", text: message
+    assert_select "header", count: 0
+    assert_select "footer", count: 0
+  end
 
   def json_headers
     {

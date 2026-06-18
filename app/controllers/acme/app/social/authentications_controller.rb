@@ -55,7 +55,8 @@ module Acme
           )
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless commit.user
 
-          return complete_social_signup!(commit, provider) if social_sign_up_required?(commit)
+          return complete_social_signup!(commit, provider) if commit.result["operation"].to_s != "signup" &&
+            social_sign_up_required?(commit)
 
           complete_social_login!(commit, provider)
         rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
@@ -125,8 +126,9 @@ module Acme
           sign_in_result = sign_in_result_from_session_result(result, actor: commit.user)
 
           if sign_in_result.status == :success || sign_in_result.status == :session_limit_pending
+            complete_acme_social_signup_flow!(commit, sign_in_result) if commit.result["operation"].to_s == "signup"
             return redirect_to(
-              sign_in_result.redirect_to,
+              acme_social_login_redirect_to(sign_in_result),
               notice: I18n.t(
                 "sign.app.social.sessions.create.already_registered",
                 provider: SocialIdentifiable.normalize_provider(provider).humanize,
@@ -136,6 +138,12 @@ module Acme
           end
 
           handle_social_login_failure!(sign_in_result)
+        end
+
+        def acme_social_login_redirect_to(sign_in_result)
+          return acme_app_settings_sessions_url(ri: params[:ri]) if sign_in_result.session_limit_pending?
+
+          sign_in_result.redirect_to
         end
 
         def complete_social_signup!(commit, provider)
@@ -171,6 +179,49 @@ module Acme
 
         def social_sign_up_required?(commit)
           !commit.existing_account || commit.user&.birthdate.blank?
+        end
+
+        def complete_acme_social_signup_flow!(commit, sign_in_result)
+          flow_id = commit.result["actor_ref"].to_s
+          return if flow_id.blank?
+
+          AppTicketRecord.connected_to(role: :writing) do
+            cycle = ClientSignUpFlow.find_by!(public_id: flow_id)
+            cycle.with_cycle_lock do
+              cycle.reload
+              cycle.update!(
+                principal_id: commit.user.id,
+                pending_contact_type: "social_identity",
+                pending_contact_id: commit.identity.id,
+                social_provider: SocialIdentifiable.normalize_provider(commit.identity.provider),
+              )
+              finalize = SignUpStateMachine.call(
+                ticket: cycle,
+                event: :finalize,
+                actor_context: Actor.authn,
+                payload: { finalization_result: :accepted },
+              )
+              raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless finalize.success?
+
+              handoff = SignUpStateMachine.call(
+                ticket: cycle,
+                event: :handoff_to_sign_in,
+                actor_context: Actor.authn,
+                payload: {
+                  sign_in_handoff_status: :accepted,
+                  sign_in_handoff: sign_in_result.status,
+                },
+              )
+              raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless handoff.success?
+
+              complete = SignUpStateMachine.call(
+                ticket: cycle,
+                event: :complete,
+                actor_context: Actor.authn,
+              )
+              raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless complete.success?
+            end
+          end
         end
 
         def create_social_sign_up_flow!(commit)

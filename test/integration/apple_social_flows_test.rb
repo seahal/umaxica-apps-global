@@ -45,8 +45,8 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_sign_up_check_apple_birthdate_url(ri: "jp")
 
-    assert_difference("Client.count", 1) do
-      assert_difference("ClientAppleIdentity.count", 1) do
+    assert_no_difference("Client.count") do
+      assert_no_difference("ClientAppleIdentity.count") do
         patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
               params: {
                 requirement: "birthdate",
@@ -54,6 +54,15 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
                 checkpoint_version: cycle.reload.checkpoint_version,
               },
               headers: @callback_headers
+      end
+    end
+
+    assert_response :ok
+    assert_includes response.body, "social-completion-form"
+
+    assert_difference("Client.count", 1) do
+      assert_difference("ClientAppleIdentity.count", 1) do
+        submit_social_completion_if_present!
       end
     end
   end
