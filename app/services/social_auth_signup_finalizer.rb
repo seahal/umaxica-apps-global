@@ -33,9 +33,12 @@ class SocialAuthSignupFinalizer
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved, ActiveRecord::RecordNotUnique => e
     Rails.logger.error(
-      "SocialAuthSignupFinalizer failed: #{e.class}: #{e.message} " \
-      "(record=#{e.respond_to?(:record) ? e.record&.class : "n/a"} " \
-      "errors=#{e.respond_to?(:record) ? e.record&.errors&.full_messages : "n/a"})",
+      JitLogEvent.format(
+        "social_auth.signup_finalizer.failed",
+        error_class: e.class.name,
+        record_class: e.respond_to?(:record) ? e.record&.class&.name : nil,
+        record_errors: e.respond_to?(:record) ? e.record&.errors&.full_messages : nil,
+      ),
     )
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
   end

@@ -4,14 +4,13 @@
 require "test_helper"
 
 class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
-  test "routes record CSP violations for representative surfaces" do
-    logged = []
+  setup { clear_rate_limit_store }
+  teardown { clear_rate_limit_store }
 
-    Rails.logger.stub(
-      :info, proc { |message = nil|
-               logged << JSON.parse(message.to_s, symbolize_names: true) if message
-             },
-    ) do
+  test "routes record CSP violations for representative surfaces through Rails event" do
+    events = []
+
+    Rails.event.stub(:notify, ->(name, payload) { events << [name, payload] }) do
       csp_report_cases.each do |host, helper_name|
         host!(host)
 
@@ -21,24 +20,98 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_equal csp_report_cases.size, logged.size
-    assert logged.all? { |entry| entry[:event] == "security.csp_violation" }
-    assert logged.all? { |entry| entry.dig(:data, :category) == "application" }
-    assert logged.all? { |entry| entry.dig(:data, :blocked_uri) == "https://cdn.example.test/script.js" }
-    assert logged.all? { |entry| entry.dig(:data, :script_sample).nil? }
+    assert_equal csp_report_cases.size, events.size
+    assert events.all? { |name, _payload| name == CspViolationReportIntake::EVENT_NAME }
+    assert events.all? { |_name, payload| payload[:category] == "application" }
+    assert events.all? { |_name, payload| payload[:blocked_uri] == "https://cdn.example.test/script.js" }
+    assert events.all? { |_name, payload| payload[:script_sample].nil? }
   end
 
-  test "malformed JSON still returns no_content and does not record an event" do
+  test "post without csrf token returns no content" do
     host! ENV.fetch("SIGN_SERVICE_URL")
 
-    logged = []
-    Rails.logger.stub(:info, proc { |message = nil| logged << message if message }) do
+    post sign_app_csp_violation_report_path, params: csp_report_payload, as: :json
+
+    assert_response :no_content
+  end
+
+  test "application csp report content type returns no content" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    post sign_app_csp_violation_report_path,
+         params: csp_report_payload.to_json,
+         headers: { "CONTENT_TYPE" => "application/csp-report" }
+
+    assert_response :no_content
+  end
+
+  test "application json content type returns no content" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    post sign_app_csp_violation_report_path,
+         params: csp_report_payload.to_json,
+         headers: { "CONTENT_TYPE" => "application/json" }
+
+    assert_response :no_content
+  end
+
+  test "malformed JSON still returns no content and does not record an event" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    events = []
+    Rails.event.stub(:notify, ->(name, payload) { events << [name, payload] }) do
       post sign_app_csp_violation_report_path, params: "{not valid json", headers: json_headers
 
       assert_response :no_content
     end
 
-    assert_empty logged
+    assert_empty events
+  end
+
+  test "oversized content length returns no content without calling intake" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    called = false
+    CspViolationReportIntake.stub(:call, ->(**) { called = true }) do
+      post sign_app_csp_violation_report_path,
+           params: "",
+           headers: {
+             "CONTENT_TYPE" => "application/csp-report",
+             "CONTENT_LENGTH" => (CspViolationReportIntake::MAX_BODY_BYTES + 1).to_s,
+           }
+    end
+
+    assert_response :no_content
+    assert_not called
+  end
+
+  test "rate limit overflow still returns no content" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    Rails.event.stub(:notify, ->(_name, _payload) { }) do
+      121.times do
+        post sign_app_csp_violation_report_path, params: csp_report_payload, as: :json
+      end
+    end
+
+    assert_response :no_content
+  end
+
+  test "controller calls intake but does not call subscriber directly" do
+    host! ENV.fetch("SIGN_SERVICE_URL")
+
+    called = false
+    CspViolationReportIntake.stub(:call, ->(**) { called = true }) do
+      CspViolationSubscriber.stub(
+        :new,
+        -> { raise RuntimeError, "subscriber must not be instantiated by controller" },
+      ) do
+        post sign_app_csp_violation_report_path, params: csp_report_payload, as: :json
+      end
+    end
+
+    assert_response :no_content
+    assert called
   end
 
   private
@@ -89,7 +162,7 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
     { "CONTENT_TYPE" => "application/json" }
   end
 
-  def normalize_host(host)
-    CommonRedirect.normalize_host(host)
+  def clear_rate_limit_store
+    Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 end

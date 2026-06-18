@@ -140,6 +140,16 @@ describe("TurnstileController", () => {
     document.head.removeChild(script);
   });
 
+  test("disconnect skips script listener removal when apiScript is absent", () => {
+    const c = createController();
+    c.apiScript = null;
+
+    c.disconnect();
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge);
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge);
+  });
+
   test("scheduleChallenge renders visible turnstile once", () => {
     const c = createController();
     c.modeValue = "render";

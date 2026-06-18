@@ -6,7 +6,7 @@ require "uri"
 class CspViolationReportIntake
   MAX_BODY_BYTES = 64.kilobytes
   MAX_STRING_LENGTH = 256
-  EVENT_NAME = "security.csp_violation"
+  EVENT_NAME = "security.csp_violation.reported"
 
   URL_FIELDS = %w(
     blocked-uri
@@ -18,6 +18,7 @@ class CspViolationReportIntake
   DIRECTIVE_FIELDS = %w(
     disposition
     effective-directive
+    original-policy
     violated-directive
   ).freeze
 
@@ -36,21 +37,39 @@ class CspViolationReportIntake
   ).freeze
 
   Result = Data.define(:status, :reports_count)
+  RequestHost = Struct.new(:host)
+
+  SCHEMA_KEYS = %i(
+    surface
+    host
+    category
+    disposition
+    document_uri
+    blocked_uri
+    source_file
+    effective_directive
+    violated_directive
+    original_policy
+    status_code
+    line_number
+    column_number
+    aggregation_key
+    user_agent_family
+  ).freeze
 
   def self.call(...) = new(...).call
 
-  def initialize(raw_body:, host:, user_agent: nil, logger: Rails.logger)
-    @raw_body = raw_body.to_s
+  def initialize(raw_body:, host:, user_agent: nil)
+    @raw_body = safe_string(raw_body)
     @host = host.to_s
     @user_agent = user_agent.to_s.presence
-    @logger = logger
   end
 
   def call
     return Result.new(status: :too_large, reports_count: 0) if raw_body.bytesize > MAX_BODY_BYTES
 
     report_objects = parse_report_objects
-    report_objects.each { |report| log_report(report) }
+    report_objects.each { |report| emit_event(report) }
 
     Result.new(status: :accepted, reports_count: report_objects.size)
   rescue JSON::ParserError
@@ -59,7 +78,7 @@ class CspViolationReportIntake
 
   private
 
-  attr_reader :raw_body, :host, :user_agent, :logger
+  attr_reader :raw_body, :host, :user_agent
 
   def parse_report_objects
     normalize_reports(JSON.parse(raw_body)).filter_map { |report| sanitize_report(report) }
@@ -106,20 +125,26 @@ class CspViolationReportIntake
       sanitized[underscore(field)] = sanitize_integer(report[field]) if report.key?(field)
     end
 
-    sanitized.compact!
-    return if sanitized.blank?
+    return if sanitized.compact.blank?
 
     category = report_category(sanitized)
-    sanitized.merge(
-      category: category,
-      aggregation_key: aggregation_key(sanitized, category),
-      host: host,
-      user_agent_family: user_agent_family,
-    ).compact
+    fixed_payload(
+      sanitized.merge(
+        category: category,
+        aggregation_key: aggregation_key(sanitized, category),
+        host: sanitize_string(host),
+        surface: CoreSurface.current(RequestHost.new(host)).to_s,
+        user_agent_family: user_agent_family,
+      ),
+    )
   end
 
-  def log_report(report)
-    logger.info(JitLogEvent.format(EVENT_NAME, report))
+  def fixed_payload(values)
+    SCHEMA_KEYS.index_with { |key| values[key] }
+  end
+
+  def emit_event(report)
+    Rails.event.notify(EVENT_NAME, report)
   end
 
   def sanitize_url(value)
@@ -137,7 +162,11 @@ class CspViolationReportIntake
   def sanitize_string(value)
     return unless value.is_a?(String) || value.is_a?(Symbol) || value.is_a?(Numeric)
 
-    value.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "").first(MAX_STRING_LENGTH)
+    safe_string(value).first(MAX_STRING_LENGTH)
+  end
+
+  def safe_string(value)
+    value.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
   end
 
   def sanitize_integer(value)

@@ -13,6 +13,12 @@ class Actor
     class NullValue
       def nil? = true
 
+      def ==(other)
+        other.nil? || other.is_a?(self.class)
+      end
+
+      alias eql? ==
+
       def blank? = true
 
       def present? = false

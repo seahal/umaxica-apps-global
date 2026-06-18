@@ -101,6 +101,8 @@ Current request-context decisions:
 Current logging / observability decisions:
 
 - `adr/application-logging-boundary.md`
+- `adr/non-log-event-reporting-boundary.md` — permits `Rails.event.notify` only for non-log
+  observability events, with CSP violation reports as the first in-process subscriber use.
 - `adr/traces-and-metrics-routing-via-alloy.md`
 
 Current health / edge access decisions:

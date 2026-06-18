@@ -8,22 +8,20 @@
 # https://guides.rubyonrails.org/security.html#content-security-policy-header
 
 Rails.application.configure do
+  boot_config = Rails.configuration.x.boot_config
   config.content_security_policy do |policy|
     acme_form_hosts =
       [
-        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
-        ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+        boot_config.fetch(:hosts).acme_service.to_s,
+        boot_config.fetch(:hosts).acme_corporate.to_s,
+        boot_config.fetch(:hosts).acme_staff.to_s,
       ].map { |host| "https://#{host}" }
     sign_form_hosts =
-      %w(
-        ID_SERVICE_URL
-        SIGN_SERVICE_URL
-        ID_CORPORATE_URL
-        SIGN_CORPORATE_URL
-        ID_STAFF_URL
-        SIGN_STAFF_URL
-      ).filter_map { |key| ENV[key].presence }.uniq
+      [
+        boot_config.fetch(:hosts).sign_service.to_s,
+        boot_config.fetch(:hosts).sign_corporate.to_s,
+        boot_config.fetch(:hosts).sign_staff.to_s,
+      ].uniq
     sign_form_hosts.map! { |host| "https://#{host}" }
 
     policy.default_src(:self)

@@ -294,6 +294,14 @@ class WithdrawableTest < ActiveSupport::TestCase
     assert_predicate staff, :can_recover?
   end
 
+  test "operator withdrawal_in_progress? delegates to withdrawable concern" do
+    staff = Operator.create!
+    staff.update_columns(withdrawal_started_at: Time.current, deactivated_at: nil)
+
+    assert_predicate staff, :withdrawal_in_progress?
+    assert_predicate staff, :withdrawal_in_progress?
+  end
+
   test "withdrawal_in_progress? returns true when closing" do
     user = Client.find_by!(public_id: "one_id")
     user.update!(withdrawn_at: nil, withdrawal_started_at: Time.current, deactivated_at: nil)

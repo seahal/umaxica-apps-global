@@ -23,6 +23,7 @@ module ObservabilityRedactor
     authorization cookie set-cookie x-csrf-token x-request-id x-forwarded-for
     dpop dpop-proof
   ).freeze
+  NON_SENSITIVE_KEYS = %w(event_uuid).freeze
 
   def scrub(value)
     case value
@@ -51,6 +52,8 @@ module ObservabilityRedactor
 
   def sensitive_key?(key)
     normalized = key.to_s.tr("-", "_").downcase
+    return false if NON_SENSITIVE_KEYS.include?(normalized)
+
     SENSITIVE_KEY_PATTERN.match?(normalized) || SENSITIVE_HEADER_KEYS.include?(normalized)
   end
 

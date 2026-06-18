@@ -8,10 +8,13 @@ require "sha3"
 
 ENV["ID_SERVICE_URL"] ||= "id.umaxica.app"
 ENV["SIGN_SERVICE_URL"] ||= "id.umaxica.app"
+ENV["MAIN_SERVICE_URL"] ||= "www.umaxica.app"
 ENV["ID_STAFF_URL"] ||= "id.umaxica.org"
 ENV["SIGN_STAFF_URL"] ||= "id.umaxica.org"
+ENV["MAIN_STAFF_URL"] ||= "www.umaxica.org"
 ENV["ID_CORPORATE_URL"] ||= "id.umaxica.com"
 ENV["SIGN_CORPORATE_URL"] ||= "id.umaxica.com"
+ENV["MAIN_CORPORATE_URL"] ||= "www.umaxica.com"
 
 ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret_credential"
 ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret_credential"

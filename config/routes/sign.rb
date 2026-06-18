@@ -3,8 +3,10 @@
 
 # Sign owns the credential gateway surface.
 scope module: :sign, as: :sign do
+  boot_config = Rails.configuration.x.boot_config
+
   # User credential gateway host.
-  constraints host: ENV["SIGN_SERVICE_URL"] do
+  constraints host: boot_config.fetch(:hosts).sign_service.host do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -266,7 +268,7 @@ scope module: :sign, as: :sign do
   end
 
   # Corporate credential gateway host.
-  constraints host: ENV["SIGN_CORPORATE_URL"] do
+  constraints host: boot_config.fetch(:hosts).sign_corporate.host do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -475,7 +477,7 @@ scope module: :sign, as: :sign do
   end
 
   # Staff credential gateway host.
-  constraints host: ENV["SIGN_STAFF_URL"] do
+  constraints host: boot_config.fetch(:hosts).sign_staff.host do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

@@ -26,6 +26,8 @@ Current logging behavior is:
 - Application logs are emitted through `Rails.logger`.
 - Event-style application log call sites are migrated to `Rails.logger` with `LogEvent.format`.
 - `Rails.event` is not the application logging API.
+- Non-log observability events may use `Rails.event.notify` when an accepted ADR defines the event
+  boundary and subscriber behavior.
 
 Structured application logging should be implemented with a logging gem or a dedicated logger
 formatter. It should not be implemented by monkey-patching `Rails.event`.
@@ -74,6 +76,22 @@ Rails.event.record(...)
 
 Those methods were custom application logging shims and are not part of the current logging
 contract.
+
+## Non-Log Observability Events
+
+`Rails.event.notify` is reserved for non-log observability events. It is not a replacement
+application logging API. Subscribers that turn those events into structured log lines must run
+in-process and write through `Rails.logger`.
+
+Current event:
+
+| Event name                        | Producer                   | Subscriber               | Schema keys                                                                                                                                                                                                                                       |
+| --------------------------------- | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `security.csp_violation.reported` | `CspViolationReportIntake` | `CspViolationSubscriber` | `surface`, `host`, `category`, `disposition`, `document_uri`, `blocked_uri`, `source_file`, `effective_directive`, `violated_directive`, `original_policy`, `status_code`, `line_number`, `column_number`, `aggregation_key`, `user_agent_family` |
+
+The CSP report payload is allowlisted and scrubbed before emission. Raw CSP report bodies,
+`script-sample`, cookies, authorization values, query strings, fragments, and unknown report keys
+must not be emitted.
 
 ## Observability Layers
 

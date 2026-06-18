@@ -139,7 +139,8 @@ class JumpRtReturnPolicyTest < ActiveSupport::TestCase
   end
 
   def with_env(values)
-    saved = values.to_h.transform_keys(&:to_s).transform_values { |key| ENV[key] }
+    saved = {}
+    values.each_key { |key| saved[key.to_s] = ENV[key.to_s] }
     values.each do |key, value|
       if value.nil?
         ENV.delete(key)

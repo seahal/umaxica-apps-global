@@ -8,7 +8,7 @@ class Sign::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = JitIdHostEnv.service_url || "id.app.localhost"
+    @host = CoreHostNormalization.normalize(JitIdHostEnv.service_url) || "id.app.localhost"
     host! @host
   end
 

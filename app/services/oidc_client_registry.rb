@@ -33,9 +33,6 @@ module OidcClientRegistry
   CLIENTS_MUTEX = Mutex.new
   CLIENTS_CACHE = Concurrent::AtomicReference.new(nil)
 
-  LOOPBACK_HOST_TOKENS = %w(localhost 127.0.0.1 ::1).freeze
-  private_constant :LOOPBACK_HOST_TOKENS
-
   module_function
 
   # @param client_id [String]
@@ -76,16 +73,14 @@ module OidcClientRegistry
   # @return [Boolean]
   def valid_redirect_uri?(client_id, uri)
     client = find(client_id)
-    return false unless client
 
-    client.redirect_uris.include?(uri)
+    OidcRedirectUriValidator.valid_redirect_uri?(client, uri)
   end
 
   def valid_post_logout_redirect_uri?(client_id:, uri:)
     client = find(client_id)
-    return false unless client
 
-    client.post_logout_redirect_uris.include?(uri)
+    OidcRedirectUriValidator.valid_post_logout_redirect_uri?(client, uri)
   end
 
   def backchannel_logout_uris_for(client_id:, resource_type: nil)
@@ -156,177 +151,11 @@ module OidcClientRegistry
   end
 
   def build_clients
-    {
-      # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
-      "sign-rp" => {
-        redirect_uris: build_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
-          build_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
-          build_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("SIGN_SERVICE_URL", "id.app.localhost") +
-          build_post_logout_redirect_uris("SIGN_STAFF_URL", "id.org.localhost") +
-          build_post_logout_redirect_uris("SIGN_CORPORATE_URL", "id.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("SIGN_SERVICE_URL", "id.app.localhost", "backchannel/logout") +
-          build_logout_uris("SIGN_STAFF_URL", "id.org.localhost", "backchannel/logout") +
-          build_logout_uris("SIGN_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
-        backchannel_logout_session_required: true,
-        aud: "sign-rp",
-        resource_type: "client",
-        name: "Sign RP",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "SIGN_APP",
-      },
-      # Acme/Base Rails browser RP.
-      "base-rails-rp" => {
-        redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
-          build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
-          build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
-          build_post_logout_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
-          build_post_logout_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost"),
-        aud: "base-rails-rp",
-        resource_type: "client",
-        name: "Base Rails RP",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "ACME_APP",
-      },
-      # Core browser RP.
-      "core-next-rp" => {
-        redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "www-jp.umaxica.app") +
-          build_redirect_uris("CORE_STAFF_URL", "www-jp.umaxica.org") +
-          build_redirect_uris("CORE_CORPORATE_URL", "www-jp.umaxica.com"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("CORE_SERVICE_URL", "www-jp.umaxica.app") +
-          build_post_logout_redirect_uris("CORE_STAFF_URL", "www-jp.umaxica.org") +
-          build_post_logout_redirect_uris("CORE_CORPORATE_URL", "www-jp.umaxica.com"),
-        backchannel_logout_uris: build_logout_uris("CORE_SERVICE_URL", "www-jp.umaxica.app", "backchannel/logout") +
-          build_logout_uris("CORE_STAFF_URL", "www-jp.umaxica.org", "backchannel/logout") +
-          build_logout_uris("CORE_CORPORATE_URL", "www-jp.umaxica.com", "backchannel/logout"),
-        backchannel_logout_session_required: true,
-        aud: "core-next-rp",
-        resource_type: "client",
-        name: "Core Next RP",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "CORE_APP",
-      },
-      "app-ios-rp" => {
-        redirect_uris: ["umaxica://oauth/callback"],
-        aud: "palm-api",
-        resource_type: "client",
-        name: "App iOS RP",
-        allowed_scopes: PALM_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "none",
-      },
-      "app-android-rp" => {
-        redirect_uris: ["com.umaxica.app:/oauth/callback"],
-        aud: "palm-api",
-        resource_type: "client",
-        name: "App Android RP",
-        allowed_scopes: PALM_ALLOWED_SCOPES,
-        token_endpoint_auth_method: "none",
-      },
-      # Docs
-      "docs_app" => {
-        redirect_uris: build_redirect_uris("DOCS_SERVICE_URL", "docs.app.localhost"),
-        aud: "umaxica-docs-app",
-        resource_type: "client",
-        name: "Docs App",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "docs_org" => {
-        redirect_uris: build_redirect_uris("DOCS_STAFF_URL", "docs.org.localhost"),
-        aud: "umaxica-docs-org",
-        resource_type: "operator",
-        name: "Docs Org",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "docs_com" => {
-        redirect_uris: build_redirect_uris("DOCS_CORPORATE_URL", "docs.com.localhost"),
-        aud: "umaxica-docs-com",
-        resource_type: "visitor",
-        name: "Docs Com",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      # News
-      "news_app" => {
-        redirect_uris: build_redirect_uris("NEWS_SERVICE_URL", "news.app.localhost"),
-        aud: "umaxica-news-app",
-        resource_type: "client",
-        name: "News App",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "news_org" => {
-        redirect_uris: build_redirect_uris("NEWS_STAFF_URL", "news.org.localhost"),
-        aud: "umaxica-news-org",
-        resource_type: "operator",
-        name: "News Org",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "news_com" => {
-        redirect_uris: build_redirect_uris("NEWS_CORPORATE_URL", "news.com.localhost"),
-        aud: "umaxica-news-com",
-        resource_type: "visitor",
-        name: "News Com",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      # Help
-      "help_app" => {
-        redirect_uris: build_redirect_uris("HELP_SERVICE_URL", "help.app.localhost"),
-        aud: "umaxica-help-app",
-        resource_type: "client",
-        name: "Help App",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "help_org" => {
-        redirect_uris: build_redirect_uris("HELP_STAFF_URL", "help.org.localhost"),
-        aud: "umaxica-help-org",
-        resource_type: "operator",
-        name: "Help Org",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-      "help_com" => {
-        redirect_uris: build_redirect_uris("HELP_CORPORATE_URL", "help.com.localhost"),
-        aud: "umaxica-help-com",
-        resource_type: "visitor",
-        name: "Help Com",
-        allowed_scopes: DEFAULT_ALLOWED_SCOPES,
-      },
-    }.freeze
-  end
-
-  def build_redirect_uris(env_key, default_host)
-    host = ENV.fetch(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
-    ["#{protocol}://#{host}#{port_suffix}/auth/callback"]
-  end
-
-  def build_post_logout_redirect_uris(env_key, default_host)
-    host = ENV.fetch(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
-    ["#{protocol}://#{host}#{port_suffix}/signed-out"]
-  end
-
-  def build_logout_uris(env_key, default_host, endpoint)
-    host = ENV.fetch(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":#{ENV.fetch("PORT", "3000")}"
-    ["#{protocol}://#{host}#{port_suffix}/oidc/#{endpoint}"]
-  end
-
-  def public_host?(host)
-    normalized_host = URI.parse("//#{host}").host.to_s
-
-    normalized_host.present? &&
-      LOOPBACK_HOST_TOKENS.none? { |token| normalized_host.include?(token) }
-  rescue URI::InvalidURIError
-    false
+    OidcClientStoresStaticClientStore.clients
   end
 
   def resolve_secret_credential(client_id)
-    Rails.app.creds.option(credential_key_for(client_id))
+    OidcClientSecretResolver.resolve(client_id)
   end
 
   # This method is metadata/diagnostic-only. It must not be used for token endpoint authentication
@@ -339,6 +168,21 @@ module OidcClientRegistry
     redirect_uris.filter_map { |uri| URI.parse(uri).host.presence }.uniq
   rescue URI::InvalidURIError
     []
+  end
+
+  def public_host?(host)
+    parsed_host = normalize_host(host)
+    return false if parsed_host.blank?
+
+    uri = URI.parse("//#{parsed_host}")
+    return false if uri.host.blank?
+
+    ip = IPAddr.new(uri.host)
+    !ip.loopback? && !ip.private? && !ip.link_local?
+  rescue IPAddr::InvalidAddressError
+    uri.host.present? && uri.host != "localhost"
+  rescue URI::InvalidURIError
+    false
   end
 
   def filter_logout_uris(uris, resource_type)
@@ -361,27 +205,24 @@ module OidcClientRegistry
   end
 
   def logout_hosts_for(resource_type)
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     case normalize_resource_type(resource_type)
     when "operator"
       [
-        ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
-        ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"),
+        normalize_host(hosts.sign_staff),
+        normalize_host(hosts.core_staff),
       ]
     when "visitor"
       [
-        ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-        ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com"),
+        normalize_host(hosts.sign_corporate),
+        normalize_host(hosts.core_corporate),
       ]
     else
       [
-        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-        ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app"),
+        normalize_host(hosts.sign_service),
+        normalize_host(hosts.core_service),
       ]
     end
-  end
-
-  def credential_key_for(client_id)
-    :"OIDC_CLIENT_SECRETS_#{client_id.to_s.upcase}"
   end
 
   def normalize_resource_type(resource_type)
@@ -392,9 +233,17 @@ module OidcClientRegistry
     end
   end
 
-  private_class_method :clients, :build_clients, :build_redirect_uris, :build_post_logout_redirect_uris,
-                       :build_logout_uris, :public_host?,
-                       :resolve_secret_credential, :domains_from_redirect_uris, :credential_key_for,
+  def normalize_host(host)
+    parsed_host = URI.parse(host.to_s).host if host.to_s.include?("://")
+    parsed_host.presence || URI.parse("//#{host}").host.to_s.presence || host.to_s
+  rescue URI::InvalidURIError
+    host.to_s
+  end
+
+  private_class_method :clients, :build_clients,
+                       :resolve_secret_credential, :domains_from_redirect_uris,
+                       :public_host?,
                        :filter_logout_uris, :logout_uri_resource_type, :logout_hosts_for,
-                       :normalize_resource_type, :metadata_auth_method, :normalize_allowed_scopes
+                       :normalize_resource_type, :metadata_auth_method, :normalize_allowed_scopes,
+                       :normalize_host
 end

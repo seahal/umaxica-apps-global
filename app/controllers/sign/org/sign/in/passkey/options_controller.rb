@@ -11,6 +11,8 @@ module Sign
 
             AUTHENTICATION_MODE = :guest
             declare_authentication_mode! :guest
+            before_action :start_minimum_response_budget
+            after_action :enforce_minimum_response_budget
 
             rate_limit(
               to: 5,

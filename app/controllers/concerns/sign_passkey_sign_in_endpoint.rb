@@ -14,11 +14,6 @@ module SignPasskeySignInEndpoint
   include MinimumResponseBudget
   include CloudflareTurnstile
 
-  included do
-    before_action :start_minimum_response_budget
-    after_action :enforce_minimum_response_budget
-  end
-
   private
 
   def before_passkey_options_request!

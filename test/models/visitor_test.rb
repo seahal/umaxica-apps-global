@@ -290,4 +290,22 @@ class VisitorTest < ActiveSupport::TestCase
 
     assert_predicate visitor, :passkey_login_available?
   end
+
+  test "passkey_login_available? uses loaded association when visitor_passkeys are loaded" do
+    visitor = Visitor.create!
+    VisitorTelephone.create!(
+      visitor: visitor,
+      number: "+15550002222",
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+    VisitorPasskey.create!(
+      visitor: visitor,
+      webauthn_id: "loaded-passkey",
+      public_key: "loaded-public-key",
+      description: "Loaded Passkey",
+    )
+    visitor.visitor_passkeys.load
+
+    assert_predicate visitor, :passkey_login_available?
+  end
 end

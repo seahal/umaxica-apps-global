@@ -19,12 +19,12 @@ module JitIdHostEnv
   end
 
   def validate!
-    missing = []
-    missing << "ID_SERVICE_URL" if service_url.blank?
-    missing << "ID_CORPORATE_URL" if corporate_url.blank?
-    missing << "ID_STAFF_URL" if staff_url.blank?
-    return if missing.empty?
+    missing_keys = []
+    missing_keys << "ID_SERVICE_URL" if service_url.blank?
+    missing_keys << "ID_CORPORATE_URL" if corporate_url.blank?
+    missing_keys << "ID_STAFF_URL" if staff_url.blank?
+    return if missing_keys.empty?
 
-    raise MissingHostError, "Missing required id host env: #{missing.join(", ")}"
+    raise MissingHostError, "Missing required id host env: #{missing_keys.join(', ')}"
   end
 end

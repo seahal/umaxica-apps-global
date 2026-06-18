@@ -43,13 +43,14 @@ module OidcIssuer
   end
 
   def host_for_resource_type(resource_type)
+    boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     case resource_type.to_s
     when "operator", "staff"
-      ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+      host_component(boot_hosts.acme_staff)
     when "visitor", "customer"
-      ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      host_component(boot_hosts.acme_corporate)
     else
-      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      host_component(boot_hosts.acme_service)
     end
   end
 
@@ -91,7 +92,7 @@ module OidcIssuer
     return "" if Rails.env.production? || public_host?(host)
     return "" if host.include?(":")
 
-    ":#{ENV.fetch("PORT", "3000")}"
+    ":3000"
   end
 
   def public_host?(host)
@@ -100,5 +101,17 @@ module OidcIssuer
       LOOPBACK_HOST_TOKENS.none? { |token| normalized_host.include?(token) }
   rescue URI::InvalidURIError
     false
+  end
+
+  def host_component(value)
+    raw = value.to_s.strip
+    return raw if raw.blank?
+
+    parsed = URI.parse(raw)
+    return parsed.host if parsed.host.present?
+
+    raw.delete_prefix("//")
+  rescue URI::InvalidURIError
+    raw.delete_prefix("https://").delete_prefix("http://")
   end
 end

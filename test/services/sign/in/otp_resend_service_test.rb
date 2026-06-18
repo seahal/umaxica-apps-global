@@ -33,6 +33,15 @@ module Sign
         assert_not_includes job_args.fetch("title"), otp_code
         assert_not_includes job_args.inspect, otp_code
       end
+
+      test "parse returns nil for blank token" do
+        assert_nil SignInOtpResendState.parse("")
+        assert_nil SignInOtpResendState.parse(nil)
+      end
+
+      test "parse returns nil for invalid token signature" do
+        assert_nil SignInOtpResendState.parse("invalid-token-signature")
+      end
     end
   end
 end

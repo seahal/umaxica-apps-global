@@ -34,7 +34,7 @@ user_secret.password = sample_user_secret
 user_secret.save!
 
 staff = Operator.find_or_initialize_by(public_id: sample_staff_public_id)
-staff.status_id = OperatorIdentityStatus::ACTIVE
+staff.status_id = OperatorStatus::ACTIVE
 staff.save!
 
 staff_email = OperatorEmail.find_or_initialize_by(address: sample_staff_email_address)

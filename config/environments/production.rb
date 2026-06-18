@@ -95,7 +95,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("ID_SERVICE_URL") }
+  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.to_s }
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
@@ -123,24 +123,21 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
-  config.hosts = ENV.values_at(
-    "ACME_CORPORATE_URL",
-    "ACME_SERVICE_URL",
-    "ACME_STAFF_URL",
-    "ACME_NETWORK_URL",
-    "ACME_DEVELOPER_URL",
-    "SIGN_CORPORATE_URL",
-    "SIGN_SERVICE_URL",
-    "SIGN_STAFF_URL",
-    "JUMP_CORPORATE_URL",
-    "JUMP_SERVICE_URL",
-    "JUMP_STAFF_URL",
-    "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
-    "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
-    "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
-    "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
-    "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
-  ).compact_blank
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+  config.hosts = [
+    boot_hosts.acme_service.to_s,
+    boot_hosts.acme_corporate.to_s,
+    boot_hosts.acme_staff.to_s,
+    boot_hosts.sign_service.to_s,
+    boot_hosts.sign_corporate.to_s,
+    boot_hosts.sign_staff.to_s,
+    boot_hosts.core_service.to_s,
+    boot_hosts.core_corporate.to_s,
+    boot_hosts.core_staff.to_s,
+    boot_hosts.help_service.to_s,
+    boot_hosts.help_corporate.to_s,
+    boot_hosts.help_staff.to_s,
+  ]
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.
   config.host_authorization = { exclude: ->(request) { request.path == "/health" } }

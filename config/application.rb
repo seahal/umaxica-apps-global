@@ -12,6 +12,7 @@ Bundler.require(*Rails.groups)
 surface_middleware_path = File.expand_path("../app/middleware/core/surface_middleware.rb", __dir__)
 require_relative "../app/middleware/core/surface_middleware" if File.exist?(surface_middleware_path)
 require_relative "../lib/jit_security_active_record_encryption_key_provider"
+require_relative "../lib/app_config_loader"
 
 module Jit
   module TrustedProxiesConfig
@@ -62,6 +63,7 @@ module Jit
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)
     # This allows Rails to correctly determine the protocol (HTTP/HTTPS) and host
     config.action_dispatch.trusted_proxies = TrustedProxiesConfig.parse(ENV["TRUSTED_PROXIES"])
+    config.x.boot_config = AppConfigLoader.load!
 
     # Active Record Encryption Configuration
     if %w(test production development).include?(Rails.env)
@@ -108,6 +110,5 @@ module Jit
 
     # Allow per-model/per-attribute i18n error message format customization
     config.active_model.i18n_customize_full_message = true
-
   end
 end

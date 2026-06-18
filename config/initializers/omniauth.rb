@@ -54,9 +54,11 @@ module OmniAuthCallbackOrigin
     "#{scheme}://#{request.host_with_port}"
   end
 
-  PUBLIC_SIGN_HOSTS = %w(ID_SERVICE_URL SIGN_SERVICE_URL ID_STAFF_URL SIGN_STAFF_URL).filter_map do |key|
-    ENV[key].to_s.downcase.presence
-  end.freeze
+  PUBLIC_SIGN_HOSTS =
+    [
+      Rails.configuration.x.boot_config.fetch(:hosts).sign_service.to_s,
+      Rails.configuration.x.boot_config.fetch(:hosts).sign_staff.to_s,
+    ].map(&:downcase).freeze
 
   def public_sign_host?(host)
     public_sign_hosts.include?(host.to_s.downcase)
@@ -91,9 +93,10 @@ class OmniAuthNonAppSocialGuard
   private
 
   def blocked_host?(env)
+    boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     blocked_hosts = [
-      ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
-      ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      boot_hosts.acme_corporate.to_s,
+      boot_hosts.acme_staff.to_s,
     ]
     blocked_hosts.include?(Rack::Request.new(env).host)
   end

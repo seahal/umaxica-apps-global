@@ -110,11 +110,11 @@ class JumpRtIssuer
   end
 
   def default_ttl
-    ENV.fetch(TTL_ENV, DEFAULT_TTL.to_i).to_i.seconds
+    Rails.configuration.x.boot_config.fetch(:jump).ttl_seconds.seconds
   end
 
   def jump_audience
-    ENV.fetch(AUDIENCE_ENV, DEFAULT_AUDIENCE).presence || DEFAULT_AUDIENCE
+    Rails.configuration.x.boot_config.fetch(:jump).audience
   end
 
   def local_http_allowed?(uri)

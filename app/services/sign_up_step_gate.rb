@@ -135,7 +135,19 @@ class SignUpStepGate
 
   def current_ticket
     locator = SignUpCycleLocator.new(controller.session, surface: surface, cycle_class: cycle_class)
-    locator.current
+    locator.current || ticket_from_sequence_id
+  end
+
+  def ticket_from_sequence_id
+    public_id = controller.send(:sign_up_ticket_public_id) if controller.respond_to?(:sign_up_ticket_public_id, true)
+    return if public_id.blank?
+
+    cycle = cycle_class.find_by(public_id: public_id)
+    return unless cycle
+    return if cycle.expired? || (cycle.respond_to?(:lapsed?) && cycle.lapsed?)
+    return if cycle.respond_to?(:sign_up_terminal?) && cycle.sign_up_terminal?
+
+    cycle
   end
 
   def cycle_class

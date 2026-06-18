@@ -403,6 +403,23 @@ class SignUpPoliciesTest < ActiveSupport::TestCase
                      :complete_social_callback?
   end
 
+  test "social callback policy rescues argument error for unsupported entry method" do
+    unsupported_ticket = ClientSignUpFlow.new(
+      cycle_attrs(ClientSignUpFlow).merge(
+        entry_method: "unsupported",
+        status_id: ClientSignUpFlowStatus::STARTED,
+        step: "start",
+      ),
+    )
+    context = SignUpPolicyContext.build(
+      surface: :app,
+      actor_authentication: auth,
+      ticket: unsupported_ticket,
+    )
+
+    assert_not_predicate SignUp::SocialCallbackPolicy.new(context, user: nil), :start_social_callback?
+  end
+
   private
 
   def auth(signed_in: false, active_sign_sequence_id: nil)

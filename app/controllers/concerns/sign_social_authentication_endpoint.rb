@@ -7,11 +7,6 @@ module SignSocialAuthenticationEndpoint
   SUPPORTED_PROVIDERS = %w(google_app apple).freeze
   SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
 
-  included do
-    rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
-    rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
-  end
-
   private
 
   def continue_social_authentication(provider:)

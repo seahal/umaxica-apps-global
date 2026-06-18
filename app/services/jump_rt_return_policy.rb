@@ -42,59 +42,39 @@ module JumpRtReturnPolicy
   end
 
   def env_allowed_sources
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     {
-      env_origin("ACME_SERVICE_URL", "www.app.localhost") => env_sources(
-        destination_env: "ACME_SERVICE_URL",
-        destination_default: "www.app.localhost",
-        issuer_env: "ID_SERVICE_URL",
-        issuer_default: "id.app.localhost",
+      normalize_origin(hosts.acme_service.to_s) => env_sources(
+        destination_host: hosts.acme_service.to_s,
+        issuer_host: hosts.sign_service.to_s,
       ),
-      env_origin("ACME_CORPORATE_URL", "www.com.localhost") => env_sources(
-        destination_env: "ACME_CORPORATE_URL",
-        destination_default: "www.com.localhost",
-        issuer_env: "ID_CORPORATE_URL",
-        issuer_default: "id.com.localhost",
+      normalize_origin(hosts.acme_corporate.to_s) => env_sources(
+        destination_host: hosts.acme_corporate.to_s,
+        issuer_host: hosts.sign_corporate.to_s,
       ),
-      env_origin("ACME_STAFF_URL", "www.org.localhost") => env_sources(
-        destination_env: "ACME_STAFF_URL",
-        destination_default: "www.org.localhost",
-        issuer_env: "ID_STAFF_URL",
-        issuer_default: "id.org.localhost",
+      normalize_origin(hosts.acme_staff.to_s) => env_sources(
+        destination_host: hosts.acme_staff.to_s,
+        issuer_host: hosts.sign_staff.to_s,
       ),
-      env_origin("CORE_SERVICE_URL", "www-jp.umaxica.app") => env_sources(
-        destination_env: "CORE_SERVICE_URL",
-        destination_default: "www-jp.umaxica.app",
-        issuer_env: "ID_SERVICE_URL",
-        issuer_default: "id.umaxica.app",
+      normalize_origin(hosts.core_service.to_s) => env_sources(
+        destination_host: hosts.core_service.to_s,
+        issuer_host: hosts.sign_service.to_s,
       ),
-      env_origin("CORE_CORPORATE_URL", "www-jp.umaxica.com") => env_sources(
-        destination_env: "CORE_CORPORATE_URL",
-        destination_default: "www-jp.umaxica.com",
-        issuer_env: "ID_CORPORATE_URL",
-        issuer_default: "id.umaxica.com",
+      normalize_origin(hosts.core_corporate.to_s) => env_sources(
+        destination_host: hosts.core_corporate.to_s,
+        issuer_host: hosts.sign_corporate.to_s,
       ),
-      env_origin("CORE_STAFF_URL", "www-jp.umaxica.org") => env_sources(
-        destination_env: "CORE_STAFF_URL",
-        destination_default: "www-jp.umaxica.org",
-        issuer_env: "ID_STAFF_URL",
-        issuer_default: "id.umaxica.org",
+      normalize_origin(hosts.core_staff.to_s) => env_sources(
+        destination_host: hosts.core_staff.to_s,
+        issuer_host: hosts.sign_staff.to_s,
       ),
     }.compact
   end
 
-  def env_sources(destination_env:, destination_default:, issuer_env:, issuer_default:)
-    sources = [
-      env_origin(issuer_env, issuer_default),
-      env_origin(destination_env, destination_default),
-    ]
+  def env_sources(destination_host:, issuer_host:)
+    sources = [normalize_origin("https://#{issuer_host}"), normalize_origin("https://#{destination_host}")]
     sources.compact!
     sources.uniq!
     sources
-  end
-
-  def env_origin(key, fallback)
-    value = Rails.env.production? ? ENV.fetch(key) : ENV.fetch(key, fallback)
-    raw = value.to_s.match?(%r{\Ahttps?://}) ? value : "https://#{value}"
-    normalize_origin(raw)
   end
 end

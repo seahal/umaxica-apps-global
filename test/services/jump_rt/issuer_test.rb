@@ -218,6 +218,13 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
     assert_nil JumpRtSurface.namespace_for_controller("Jump::App::RootsController")
   end
 
+  test "normalizes host by stripping scheme and path" do
+    assert_equal "example.com", JumpRtSurface.normalize_host("https://example.com/path")
+    assert_equal "example.com", JumpRtSurface.normalize_host("http://example.com")
+    assert_equal "example.com", JumpRtSurface.normalize_host("example.com")
+    assert_equal "example.com:3000", JumpRtSurface.normalize_host("https://example.com:3000/path")
+  end
+
   private
 
   def with_env(values)

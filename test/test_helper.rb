@@ -32,8 +32,8 @@ if ENV["COVERAGE"] == "true"
     add_group "Validators", "app/validators"
     add_group "Errors", "app/errors"
 
-    minimum_coverage line: 93
-    # minimum_coverage_by_file line: 90
+    minimum_coverage line: 98
+    minimum_coverage_by_file line: 92
   end
 end
 
@@ -42,7 +42,7 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    parallelize(workers: 1)
+    parallelize(workers: (ENV["COVERAGE"] == "true") ? 1 : :number_of_processors)
 
     fixtures :all
   end

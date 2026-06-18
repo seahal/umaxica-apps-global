@@ -5,7 +5,7 @@
 # optional `performant` analytics consent is granted.
 #
 # These patterns are retained for future consent-aware analytics work.
-# Application logging no longer uses Rails.event.
+# Application logging uses Rails.logger. Non-log observability events may use Rails.event.
 module AnalyticsConsentGuardPreConsentAllowlist
   # Authentication, authorization, session, and identity events.
   # Rationale: required for service delivery, fraud detection, and audit.

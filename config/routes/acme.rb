@@ -3,8 +3,10 @@
 
 # Acme owns the OP/Authorization Server and durable identity/session authority.
 scope module: :acme, as: :acme do
+  boot_config = Rails.configuration.x.boot_config
+
   # App OP/AS host.
-  constraints host: [ENV["ACME_SERVICE_URL"], "www.app.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).acme_service.host].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -220,7 +222,7 @@ scope module: :acme, as: :acme do
   end
 
   # Corporate OP/AS host.
-  constraints host: [ENV["ACME_CORPORATE_URL"], "www.com.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).acme_corporate.host].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -413,7 +415,7 @@ scope module: :acme, as: :acme do
   end
 
   # Staff OP/AS host.
-  constraints host: [ENV["ACME_STAFF_URL"], "www.org.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).acme_staff.host].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

@@ -73,6 +73,6 @@ class ClientTotpCredential < AppPrincipalRecord
   end
 
   def generate_private_key_if_blank
-    self.private_key = ROTP::Base32.random_base32 if private_key.blank?
+    self.private_key = ROTP::Base32.random_base32 if read_attribute_before_type_cast("private_key").blank?
   end
 end

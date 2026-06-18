@@ -242,25 +242,23 @@ class JumpRtReturnVerifier
   end
 
   def jwks_url
-    ENV.fetch("JUMP_GATEWAY_JWKS_URL") do
-      uri = URI.parse(jump_gateway_url)
-      uri.path = "/.well-known/jwks.json"
-      uri.query = nil
-      uri.fragment = nil
-      uri.to_s
-    end
+    current_jump_config.jwks_uri
   end
 
   def jump_gateway_url
-    Rails.env.production? ? ENV.fetch("JUMP_GATEWAY_URL") : ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
+    current_jump_config.origin.to_s
   end
 
   def revoked_kid?(kid)
-    ENV["JUMP_RETURN_REVOKED_KIDS"].to_s.split(",").map(&:strip).include?(kid.to_s)
+    current_jump_config.revoked_kids.include?(kid.to_s)
   end
 
   def max_ttl_seconds
-    ENV.fetch("JUMP_RETURN_MAX_TTL_SECONDS", DEFAULT_MAX_TTL.to_i).to_i
+    current_jump_config.ttl_seconds
+  end
+
+  def current_jump_config
+    ConfigValues::JumpGatewayValues.build(env: ENV, production: Rails.env.production?)
   end
 
   def failure(error)

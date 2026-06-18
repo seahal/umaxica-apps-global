@@ -85,6 +85,12 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
     assert_equal "{}", @log.context_text(activity)
   end
 
+  test "context_text returns empty hash when JSON generation fails" do
+    activity = stub_activity(context: { "value" => Float::NAN })
+
+    assert_equal "{}", @log.context_text(activity)
+  end
+
   test "user_agent_summary detects Chrome desktop" do
     activity = stub_activity(context: { "user_agent" => "Mozilla/5.0 Chrome/120.0.0.0 Safari/537.36" })
 

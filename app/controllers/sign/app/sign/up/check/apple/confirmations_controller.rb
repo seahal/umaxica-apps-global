@@ -10,7 +10,7 @@ module Sign
             class ConfirmationsController < ::Sign::App::ApplicationController
               include SignUpExplicitStepControllerSupport
 
-              AUTHENTICATION_MODE = :guest
+              AUTHENTICATION_MODE = :open
 
               def show
                 return unless load_gate_context!(gate_for_show)

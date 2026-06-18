@@ -61,6 +61,13 @@ module Security
           reason: "OIDC logout must redirect to the RP post-logout URI after state validation.",
         },
         {
+          pattern: "csrf bypass",
+          path: "app/controllers/concerns/csp_violation_report.rb",
+          line: /skip_forgery_protection\(only: :create\)/,
+          reason: "CSP reports are browser sensor inputs, not session form mutations; " \
+                  "create still rate limits and reads bounded bodies only.",
+        },
+        {
           pattern: "csrf null_session",
           path: "app/controllers/sign/app/tokens_controller.rb",
           line: /protect_from_forgery with: :null_session, only: :create/,

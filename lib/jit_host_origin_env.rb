@@ -13,8 +13,8 @@ module JitHostOriginEnv
     return [] if raw.blank?
     return [raw] if raw.match?(%r{\Ahttps?://})
 
-    return ["https://#{raw}"] if Rails.env.production?
+    return ["http://#{raw}", "https://#{raw}"] if Rails.env.local?
 
-    ["http://#{raw}", "https://#{raw}"]
+    ["https://#{raw}"]
   end
 end

@@ -12,6 +12,8 @@ class Sign::App::Social::Apple::ConnectionsController < ::Sign::App::Application
   declare_authentication_mode! :open
   declare_authentication_mode! :private, only: :show
 
+  rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
+  rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
   before_action :authenticate_client!, only: :show
   before_action :require_social_link_step_up!, only: :create
 
