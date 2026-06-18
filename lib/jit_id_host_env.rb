@@ -25,6 +25,6 @@ module JitIdHostEnv
     missing_keys << "ID_STAFF_URL" if staff_url.blank?
     return if missing_keys.empty?
 
-    raise MissingHostError, "Missing required id host env: #{missing_keys.join(', ')}"
+    raise MissingHostError, "Missing required id host env: #{missing_keys.join(", ")}"
   end
 end

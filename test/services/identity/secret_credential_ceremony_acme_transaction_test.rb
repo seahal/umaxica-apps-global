@@ -19,12 +19,10 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
     @session_ref = "session-#{SecureRandom.hex(4)}"
-    @candidate_store = ActiveSupport::Cache::MemoryStore.new
-    IdentitySecretCredentialCeremonyCandidateStore.store = @candidate_store
   end
 
   teardown do
-    IdentitySecretCredentialCeremonyCandidateStore.store = nil
+    IdentitySecretCredentialCeremonyCandidate.find_each(&:destroy!)
     travel_back
   end
 
@@ -76,6 +74,7 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
 
       assert_predicate issuance.transaction.reload, :consumed?
       assert_raises(IdentitySecretCredentialCeremonyContract::Error) { IdentitySecretCredentialCeremonyCandidateStore.fetch!(candidate.ref) }
+      assert_not_nil IdentitySecretCredentialCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
       assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
         IdentitySecretCredentialCeremonyFinalCommitter.call!(
           result_token: result_token,
@@ -104,6 +103,7 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
       assert_not payload.key?("password")
       assert_not payload.key?("password_digest")
       assert_not payload.key?("raw_secret_credential")
+      assert_not_includes encrypted_secret_candidate_password_digest(candidate.ref), candidate.password_digest
     end
 
     forbidden_columns = %w(
@@ -114,6 +114,46 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
     assert_empty ClientSecretCredentialCeremonyTransaction.column_names & forbidden_columns
     assert_empty VisitorSecretCredentialCeremonyTransaction.column_names & forbidden_columns
     assert_empty OperatorSecretCredentialCeremonyTransaction.column_names & forbidden_columns
+  end
+
+  test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
+    travel_to @now do
+      cache = Minitest::Mock.new
+
+      Rails.stub(:cache, cache) do
+        issue_grant
+        expired = store_candidate(expires_at: @now - 1.second)
+        deleted = store_candidate(expires_at: @now + 5.minutes)
+        IdentitySecretCredentialCeremonyCandidateStore.delete(deleted.ref)
+        malformed = IdentitySecretCredentialCeremonyCandidate.create!(
+          ref: SecureRandom.uuid,
+          digest: "digest",
+          surface: "app",
+          actor_ref: @client.public_id,
+          session_ref: @session_ref,
+          transaction_id: "txn-malformed",
+          operation: "enrollment",
+          password_digest: password_digest,
+          name: "Malformed",
+          enabled: true,
+          expires_at: @now + 5.minutes,
+        )
+        malformed.surface = "invalid-surface"
+        malformed.save!(validate: false)
+
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(expired.ref)
+        end
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(deleted.ref)
+        end
+        assert_raises(IdentitySecretCredentialCeremonyContract::Error) do
+          IdentitySecretCredentialCeremonyCandidateStore.fetch!(malformed.ref)
+        end
+      end
+
+      cache.verify
+    end
   end
 
   test "candidate and result bindings reject wrong actor and session" do
@@ -235,5 +275,16 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
       operation: "enrollment",
       now: @now,
     )
+  end
+
+  def encrypted_secret_candidate_password_digest(ref)
+    IdentitySecretCredentialCeremonyCandidate.connection.select_value(
+      IdentitySecretCredentialCeremonyCandidate.sanitize_sql_array(
+        [
+          "SELECT password_digest FROM identity_secret_credential_ceremony_candidates WHERE ref = ?",
+          ref,
+        ],
+      ),
+    ).to_s
   end
 end

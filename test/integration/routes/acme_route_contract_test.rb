@@ -164,7 +164,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       path = (action_sym == :edit) ? "/avatar/edit" : "/avatar"
 
       assert_recognizes(
-        { controller: "acme/app/avatars", action: action_sym },
+        { controller: "acme/app/avatars", action: action },
         { path: "http://#{ACME_APP_HOST}#{path}", method: },
       )
     end
@@ -179,7 +179,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       new: { path: "/organizations/new" },
     }.each do |action, opts|
       assert_recognizes(
-        { controller: "acme/app/organizations", action: },
+        { controller: "acme/app/organizations", action: action.to_s },
         { path: "http://#{ACME_APP_HOST}#{opts[:path]}", method: :get },
       )
     end

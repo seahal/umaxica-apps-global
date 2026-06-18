@@ -2,11 +2,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "ostruct"
 
 class SignRouteHostTest < ActionDispatch::IntegrationTest
   test "sign app routes match SIGN_SERVICE_URL" do
-    with_env("SIGN_SERVICE_URL" => "sign.app.example.test") do
-      Rails.application.reload_routes!
+    with_boot_config(sign_service_host: "sign.app.example.test") do
       host!("sign.app.example.test")
 
       get("http://sign.app.example.test/")
@@ -18,9 +18,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   test "sign com named root route points at sign/com/roots#index" do
-    with_env("ID_CORPORATE_URL" => "sign.com.example.test") do
-      Rails.application.reload_routes!
-
+    with_boot_config(sign_corporate_host: "sign.com.example.test") do
       route = Rails.application.routes.named_routes[:sign_com_root]
 
       assert_equal "/", route.path.spec.to_s
@@ -32,8 +30,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   test "sign org routes match SIGN_STAFF_URL" do
-    with_env("SIGN_STAFF_URL" => "sign.org.example.test") do
-      Rails.application.reload_routes!
+    with_boot_config(sign_staff_host: "sign.org.example.test") do
       host!("sign.org.example.test")
 
       get("http://sign.org.example.test/")
@@ -46,18 +43,23 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_env(vars)
-    original = {}
-    vars.each_key { |key| original[key] = ENV[key] }
+  HostSet = Struct.new(:sign_service, :sign_corporate, :sign_staff)
+  BootConfig = Struct.new(:hosts)
 
-    vars.each do |key, value|
-      value.nil? ? ENV.delete(key) : ENV[key] = value
-    end
+  def with_boot_config(sign_service_host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+                       sign_corporate_host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                       sign_staff_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
+    hosts = HostSet.new(
+      OpenStruct.new(host: sign_service_host),
+      OpenStruct.new(host: sign_corporate_host),
+      OpenStruct.new(host: sign_staff_host),
+    )
 
-    yield
-  ensure
-    original.each do |key, value|
-      value.nil? ? ENV.delete(key) : ENV[key] = value
+    Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do
+      Rails.application.reload_routes!
+      yield
+    ensure
+      Rails.application.reload_routes!
     end
   end
 end

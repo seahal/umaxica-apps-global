@@ -2,9 +2,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "ostruct"
 
 class JumpRtIssuerTest < ActiveSupport::TestCase
   fixtures_none!
+
+  HostSet = Struct.new(:sign_service)
+  BootConfig = Struct.new(:hosts, :jump)
 
   setup do
     @private_key = OpenSSL::PKey::EC.generate("secp384r1")
@@ -90,23 +94,23 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   end
 
   test "uses environment configured ttl when ttl is omitted" do
-    with_env(
-      "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "sign.example.test",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
-      "JUMP_RT_TTL_SECONDS" => "60",
-    ) do
-      JumpRtKeyring.stub(:private_key, @private_key) do
-        token = JumpRtIssuer.call(
-          namespace: "SIGN_APP",
-          url: "https://target.example/path",
-          now: Time.zone.at(1_800_000_000),
-          jti: "jti-test",
-        )
-        payload, = JWT.decode(token, nil, false)
+    hosts = HostSet.new(OpenStruct.new(host: "sign.example.test"))
+    boot_config = BootConfig.new(hosts, OpenStruct.new(ttl_seconds: 60, audience: "https://jump.umaxica.net"))
 
-        assert_equal 1_800_000_000, payload["iat"]
-        assert_equal 1_800_000_060, payload["exp"]
+    with_env("JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a") do
+      Rails.configuration.x.stub(:boot_config, boot_config) do
+        JumpRtKeyring.stub(:private_key, @private_key) do
+          token = JumpRtIssuer.call(
+            namespace: "SIGN_APP",
+            url: "https://target.example/path",
+            now: Time.zone.at(1_800_000_000),
+            jti: "jti-test",
+          )
+          payload, = JWT.decode(token, nil, false)
+
+          assert_equal 1_800_000_000, payload["iat"]
+          assert_equal 1_800_000_060, payload["exp"]
+        end
       end
     end
   end

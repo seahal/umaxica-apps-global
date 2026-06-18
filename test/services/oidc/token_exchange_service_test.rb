@@ -5,6 +5,8 @@ require "test_helper"
 
 class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   setup do
+    @previous_client_assertion_replay_store = OidcClientAssertionJwt.replay_store
+    OidcClientAssertionJwt.replay_store = ActiveSupport::Cache::MemoryStore.new
     @user = clients(:one)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
@@ -14,6 +16,10 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     @client = OidcClientRegistry.find("core-next-rp")
     @redirect_uri = @client.redirect_uris.first
     @client_secret = "test_secret_credential_for_core_app"
+  end
+
+  teardown do
+    OidcClientAssertionJwt.replay_store = @previous_client_assertion_replay_store
   end
 
   test "exchanges valid code for tokens" do
@@ -84,6 +90,41 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
       assert_not result.success?
       assert_equal "invalid_client", result.error
+    end
+  end
+
+  test "rejects reused private_key_jwt client assertion before exchanging a second code" do
+    first_code_record = issue_code!
+    second_code_record = issue_code!
+    token_url = "https://id.umaxica.app/oauth/token"
+
+    with_oidc_client_key("CORE_APP") do
+      assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
+
+      first_result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: first_code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core-next-rp",
+        client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: assertion,
+        code_verifier: @code_verifier,
+        token_endpoint_uri: token_url,
+      )
+      second_result = OidcTokenExchangeService.call(
+        grant_type: "authorization_code",
+        code: second_code_record.code,
+        redirect_uri: @redirect_uri,
+        client_id: "core-next-rp",
+        client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+        client_assertion: assertion,
+        code_verifier: @code_verifier,
+        token_endpoint_uri: token_url,
+      )
+
+      assert_predicate first_result, :success?
+      assert_not second_result.success?
+      assert_equal "invalid_client", second_result.error
     end
   end
 

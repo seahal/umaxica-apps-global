@@ -11,6 +11,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
   end
 
   teardown do
+    IdentitySocialCeremonyCandidate.find_each(&:destroy!)
     travel_back
   end
 
@@ -57,7 +58,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
-  test "candidate store is one-shot and keeps provider tokens server-side" do
+  test "candidate store is one-shot and keeps provider tokens server-side in database records" do
     travel_to(@now) do
       auth_hash = OmniAuth::AuthHash.new(
         provider: "google_app",
@@ -82,16 +83,76 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
 
       assert_equal "candidate-access-token", fetched.auth_hash.dig("credentials", "token")
       assert_equal candidate.digest, fetched.digest
+      assert_equal candidate.ref, IdentitySocialCeremonyCandidate.find_by!(ref: candidate.ref).ref
+      assert_not_includes encrypted_social_candidate_auth_hash(candidate.ref), "candidate-access-token"
+      assert_not_includes encrypted_social_candidate_auth_hash(candidate.ref), "candidate-refresh-token"
 
       consumed = IdentitySocialCeremonyCandidateStore.consume!(candidate.ref)
 
       assert_equal candidate.ref, consumed.ref
+      assert_not_nil IdentitySocialCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
       assert_social_ceremony_error("candidate is not found") do
         IdentitySocialCeremonyCandidateStore.fetch!(candidate.ref)
       end
     end
-  ensure
-    IdentitySocialCeremonyCandidateStore.store = nil
+  end
+
+  test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
+    travel_to(@now) do
+      cache = Minitest::Mock.new
+      auth_hash = OmniAuth::AuthHash.new(provider: "google_app", uid: "candidate-google")
+
+      Rails.stub(:cache, cache) do
+        expired = IdentitySocialCeremonyCandidateStore.store!(
+          surface: "app",
+          actor_ref: "anonymous",
+          session_ref: "session-expired",
+          transaction_id: "txn-expired",
+          operation: "login",
+          provider: "google_app",
+          auth_hash: auth_hash,
+          expires_at: @now - 1.second,
+        )
+        deleted = IdentitySocialCeremonyCandidateStore.store!(
+          surface: "app",
+          actor_ref: "anonymous",
+          session_ref: "session-deleted",
+          transaction_id: "txn-deleted",
+          operation: "login",
+          provider: "google_app",
+          auth_hash: auth_hash,
+          expires_at: @now + 5.minutes,
+        )
+        IdentitySocialCeremonyCandidateStore.delete(deleted.ref)
+
+        malformed = IdentitySocialCeremonyCandidate.create!(
+          ref: SecureRandom.uuid,
+          digest: "digest",
+          surface: "app",
+          actor_ref: "anonymous",
+          session_ref: "session-malformed",
+          transaction_id: "txn-malformed",
+          operation: "login",
+          provider: "google_app",
+          auth_hash: { "provider" => "google_app", "uid" => "candidate-google" },
+          expires_at: @now + 5.minutes,
+        )
+        malformed.auth_hash = { "provider" => "google_app" }
+        malformed.save!(validate: false)
+
+        assert_social_ceremony_error("candidate is expired") {
+          IdentitySocialCeremonyCandidateStore.fetch!(expired.ref)
+        }
+        assert_social_ceremony_error("candidate is not found") {
+          IdentitySocialCeremonyCandidateStore.fetch!(deleted.ref)
+        }
+        assert_social_ceremony_error("candidate is invalid") {
+          IdentitySocialCeremonyCandidateStore.fetch!(malformed.ref)
+        }
+      end
+
+      cache.verify
+    end
   end
 
   test "grant rejects binding, provider, audience, purpose, surface, operation, expiry, and forbidden fields" do
@@ -218,5 +279,16 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
   def assert_social_ceremony_error(message)
     error = assert_raises(IdentitySocialCeremonyContract::Error) { yield }
     assert_includes error.message, message
+  end
+
+  def encrypted_social_candidate_auth_hash(ref)
+    IdentitySocialCeremonyCandidate.connection.select_value(
+      IdentitySocialCeremonyCandidate.sanitize_sql_array(
+        [
+          "SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref = ?",
+          ref,
+        ],
+      ),
+    ).to_s
   end
 end

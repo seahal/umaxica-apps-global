@@ -2,12 +2,6 @@
 # frozen_string_literal: true
 
 class IdentityTotpCeremonyCandidateStore
-  class << self
-    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    attr_writer :store
-    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-  end
-
   Candidate = Data.define(
     :ref,
     :digest,
@@ -20,14 +14,7 @@ class IdentityTotpCeremonyCandidateStore
     :expires_at,
   )
 
-  PREFIX = "identity:totp_ceremony:candidate"
   DEFAULT_TTL = IdentityTotpCeremonyTransaction::DEFAULT_TTL
-
-  # rubocop:disable ThreadSafety/ClassInstanceVariable
-  def self.store
-    @store || Rails.cache
-  end
-  # rubocop:enable ThreadSafety/ClassInstanceVariable
 
   def self.store!(surface:, actor_ref:, session_ref:, private_key:, title:, last_otp_at:, expires_at:)
     new.store!(
@@ -56,68 +43,72 @@ class IdentityTotpCeremonyCandidateStore
   def store!(surface:, actor_ref:, session_ref:, private_key:, title:, last_otp_at:, expires_at:)
     raise IdentityTotpCeremonyContract::Error, "TOTP candidate secret is required" if private_key.blank?
 
-    ref = SecureRandom.uuid
-    payload = {
-      "ref" => ref,
-      "digest" => digest_for(private_key),
-      "surface" => surface.to_s,
-      "actor_ref" => actor_ref.to_s,
-      "session_ref" => session_ref.to_s,
-      "private_key" => private_key.to_s,
-      "title" => title.to_s,
-      "last_otp_at" => last_otp_at.to_i,
-      "expires_at" => expires_at.to_i,
-    }
-    self.class.store.write(cache_key(ref), payload, expires_in: ttl_for(expires_at))
-    candidate_from(payload)
+    record =
+      IdentityTotpCeremonyCandidate.connection_owner.connected_to(role: :writing) do
+        IdentityTotpCeremonyCandidate.create!(
+          ref: SecureRandom.uuid,
+          digest: digest_for(private_key),
+          surface: surface.to_s,
+          actor_ref: actor_ref.to_s,
+          session_ref: session_ref.to_s,
+          private_key: private_key.to_s,
+          title: title.to_s,
+          last_otp_at: Time.zone.at(last_otp_at.to_i),
+          expires_at: expires_at,
+        )
+      end
+    candidate_from(record)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
+    raise IdentityTotpCeremonyContract::Error, "TOTP candidate is invalid: #{e.message}"
   end
 
   def fetch!(ref)
-    payload = self.class.store.read(cache_key(ref.to_s))
-    raise IdentityTotpCeremonyContract::Error, "TOTP candidate is not found" if payload.blank?
-
-    candidate = candidate_from(payload)
-    raise IdentityTotpCeremonyContract::Error,
-          "TOTP candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
-
-    candidate
+    record = IdentityTotpCeremonyCandidate.find_active_by_ref!(
+      ref,
+      now: Time.current,
+      error_class: IdentityTotpCeremonyContract::Error,
+      not_found_message: "TOTP candidate is not found",
+      expired_message: "TOTP candidate is expired",
+    )
+    candidate_from(record)
   end
 
   def consume!(ref)
-    candidate = fetch!(ref)
-    delete(ref)
-    candidate
+    record = IdentityTotpCeremonyCandidate.new(ref: ref.to_s).consume!(
+      now: Time.current,
+      error_class: IdentityTotpCeremonyContract::Error,
+      not_found_message: "TOTP candidate is not found",
+      expired_message: "TOTP candidate is expired",
+    )
+    candidate_from(record)
   end
 
   def delete(ref)
-    self.class.store.delete(cache_key(ref.to_s))
+    IdentityTotpCeremonyCandidate.connection_owner.connected_to(role: :writing) do
+      record = IdentityTotpCeremonyCandidate.find_by(ref: ref.to_s)
+      record&.update!(consumed_at: Time.current)
+    end
   end
 
   private
 
-  def candidate_from(payload)
+  def candidate_from(record)
+    raise IdentityTotpCeremonyContract::Error, "TOTP candidate is invalid" unless record.valid?
+
     Candidate.new(
-      ref: payload.fetch("ref"),
-      digest: payload.fetch("digest"),
-      surface: payload.fetch("surface"),
-      actor_ref: payload.fetch("actor_ref"),
-      session_ref: payload.fetch("session_ref"),
-      private_key: payload.fetch("private_key"),
-      title: payload["title"],
-      last_otp_at: Time.zone.at(payload.fetch("last_otp_at").to_i),
-      expires_at: Time.zone.at(payload.fetch("expires_at").to_i),
+      ref: record.ref,
+      digest: record.digest,
+      surface: record.surface,
+      actor_ref: record.actor_ref,
+      session_ref: record.session_ref,
+      private_key: record.private_key,
+      title: record.title,
+      last_otp_at: record.last_otp_at,
+      expires_at: record.expires_at,
     )
   end
 
   def digest_for(private_key)
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, private_key.to_s)
-  end
-
-  def ttl_for(expires_at)
-    [expires_at.to_i - Time.current.to_i, 1].max.seconds
-  end
-
-  def cache_key(ref)
-    "#{PREFIX}:#{ref}"
   end
 end

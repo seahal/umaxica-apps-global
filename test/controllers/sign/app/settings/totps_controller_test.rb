@@ -58,13 +58,12 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    IdentityTotpCeremonyCandidateStore.store = ActiveSupport::Cache::MemoryStore.new
   end
 
   teardown do
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
-    IdentityTotpCeremonyCandidateStore.store = nil
+    IdentityTotpCeremonyCandidate.find_each(&:destroy!)
   end
 
   def with_prosopite_paused

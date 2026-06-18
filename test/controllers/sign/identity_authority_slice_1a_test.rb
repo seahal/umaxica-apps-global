@@ -92,7 +92,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     ]
 
     redirect_only_controllers.each do |controller|
-      assert_equal Sign::RedirectOnlyController, controller.superclass
+      assert_match(/::ApplicationController\z/, controller.superclass.name)
       assert_not_includes controller.included_modules, Session
       assert_not_includes controller.included_modules, PreferenceGlobal
       assert_not_includes controller.included_modules, SessionLimitGate

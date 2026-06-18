@@ -14,12 +14,10 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     @client = clients(:one)
     @client.client_totp_credentials.destroy_all
     @session_ref = "session-#{SecureRandom.hex(4)}"
-    @candidate_store = ActiveSupport::Cache::MemoryStore.new
-    IdentityTotpCeremonyCandidateStore.store = @candidate_store
   end
 
   teardown do
-    IdentityTotpCeremonyCandidateStore.store = nil
+    IdentityTotpCeremonyCandidate.find_each(&:destroy!)
     travel_back
   end
 
@@ -72,6 +70,7 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
       assert_predicate issuance.transaction.reload, :consumed?
       assert_raises(IdentityTotpCeremonyContract::Error) { IdentityTotpCeremonyCandidateStore.fetch!(candidate.ref) }
+      assert_not_nil IdentityTotpCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
       assert_raises(IdentityTotpCeremonyContract::Error) do
         IdentityTotpCeremonyFinalCommitter.call!(
           result_token: result_token,
@@ -99,6 +98,7 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_not payload.key?("private_key")
       assert_not payload.key?("totp_secret")
       assert_not payload.key?("first_token")
+      assert_not_includes encrypted_totp_candidate_private_key(candidate.ref), candidate.private_key
     end
 
     forbidden_columns = %w(
@@ -107,6 +107,36 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     )
 
     assert_empty ClientTotpCeremonyTransaction.column_names & forbidden_columns
+  end
+
+  test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
+    travel_to @now do
+      cache = Minitest::Mock.new
+
+      Rails.stub(:cache, cache) do
+        expired = store_candidate(expires_at: @now - 1.second)
+        deleted = store_candidate(expires_at: @now + 5.minutes)
+        IdentityTotpCeremonyCandidateStore.delete(deleted.ref)
+        malformed = IdentityTotpCeremonyCandidate.create!(
+          ref: SecureRandom.uuid,
+          digest: "digest",
+          surface: "app",
+          actor_ref: @client.public_id,
+          session_ref: @session_ref,
+          private_key: "JBSWY3DPEHPK3PXP",
+          last_otp_at: @now,
+          expires_at: @now + 5.minutes,
+        )
+        malformed.surface = "invalid-surface"
+        malformed.save!(validate: false)
+
+        assert_raises(IdentityTotpCeremonyContract::Error) { IdentityTotpCeremonyCandidateStore.fetch!(expired.ref) }
+        assert_raises(IdentityTotpCeremonyContract::Error) { IdentityTotpCeremonyCandidateStore.fetch!(deleted.ref) }
+        assert_raises(IdentityTotpCeremonyContract::Error) { IdentityTotpCeremonyCandidateStore.fetch!(malformed.ref) }
+      end
+
+      cache.verify
+    end
   end
 
   test "candidate and result bindings reject wrong actor and session" do
@@ -203,5 +233,16 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       operation: "registration",
       now: @now,
     )
+  end
+
+  def encrypted_totp_candidate_private_key(ref)
+    IdentityTotpCeremonyCandidate.connection.select_value(
+      IdentityTotpCeremonyCandidate.sanitize_sql_array(
+        [
+          "SELECT private_key FROM identity_totp_ceremony_candidates WHERE ref = ?",
+          ref,
+        ],
+      ),
+    ).to_s
   end
 end

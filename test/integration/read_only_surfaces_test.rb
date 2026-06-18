@@ -70,12 +70,12 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     )
 
     host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
-    get docs_app_api_v0_entry_url(id: published.slug, locale: published.locale)
+    get docs_app_api_v0_entry_url(slug: published.slug, locale: published.locale)
 
     assert_response :success
     assert_equal "visible-entry", response.parsed_body.fetch("entry").fetch("slug")
 
-    get docs_app_api_v0_entry_url(id: "future-entry", locale: published.locale)
+    get docs_app_api_v0_entry_url(slug: "future-entry", locale: published.locale)
 
     assert_response :not_found
 
@@ -102,7 +102,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       host = ENV.fetch(env_key, fallback)
       host! host
 
-      get public_send(helper, id: newer.slug, locale: "test-api", host: host),
+      get public_send(helper, slug: newer.slug, locale: "test-api", host: host),
           headers: { "Host" => host, "Accept" => "application/json" },
           as: :json
 
@@ -114,7 +114,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       assert_equal surface, entry.fetch("surface")
       assert_equal "Newer Entry", entry.fetch("title")
 
-      get public_send(helper, id: "#{surface}-future-entry", locale: "test-api", host: host),
+      get public_send(helper, slug: "#{surface}-future-entry", locale: "test-api", host: host),
           headers: { "Host" => host, "Accept" => "application/json" },
           as: :json
 

@@ -225,6 +225,27 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects invalid url in token payload" do
+    token = sign_return_token(url: "not a valid url")
+
+    assert_equal "invalid_url", verify(token).error
+  end
+
+  test "fetch_jwks rescues invalid uri error and re-raises decode error" do
+    verifier = JumpRtReturnVerifier.new(
+      token: "dummy",
+      request_url: "https://www.umaxica.app/path",
+      request_base_url: "https://www.umaxica.app",
+      now: @now,
+    )
+
+    with_env("JUMP_GATEWAY_JWKS_URL" => "not a valid url") do
+      error = assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
+
+      assert_equal "jwks fetch failed", error.message
+    end
+  end
+
   private
 
   def verify(token)

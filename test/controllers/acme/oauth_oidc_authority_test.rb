@@ -175,6 +175,52 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "60", response.headers["Retry-After"]
   end
 
+  test "acme com authorize endpoint rate limits by client id and ip" do
+    host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    Rails.configuration.x.rate_limit.fetch(:store).clear
+
+    10.times do
+      get acme_com_oauth_authorization_url(
+        host: host,
+        **oidc_authorize_params(scope: "openid"),
+      ),
+          headers: { "Host" => host }
+    end
+
+    get acme_com_oauth_authorization_url(
+      host: host,
+      **oidc_authorize_params(scope: "openid"),
+    ), headers: { "Host" => host }
+
+    assert_response :too_many_requests
+    assert_equal "rails", response.headers["X-RateLimit-Layer"]
+    assert_equal "acme_com_oauth_authorize", response.headers["X-RateLimit-Rule"]
+    assert_equal "60", response.headers["Retry-After"]
+  end
+
+  test "acme org authorize endpoint rate limits by client id and ip" do
+    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    Rails.configuration.x.rate_limit.fetch(:store).clear
+
+    10.times do
+      get acme_org_oauth_authorization_url(
+        host: host,
+        **oidc_authorize_params(scope: "openid"),
+      ),
+          headers: { "Host" => host }
+    end
+
+    get acme_org_oauth_authorization_url(
+      host: host,
+      **oidc_authorize_params(scope: "openid"),
+    ), headers: { "Host" => host }
+
+    assert_response :too_many_requests
+    assert_equal "rails", response.headers["X-RateLimit-Layer"]
+    assert_equal "acme_org_oauth_authorize", response.headers["X-RateLimit-Rule"]
+    assert_equal "60", response.headers["Retry-After"]
+  end
+
   test "acme userinfo authenticates against acme request binding" do
     captured = nil
     result = AuthResult.new(success: false, error: "invalid_token")

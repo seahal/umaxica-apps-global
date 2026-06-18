@@ -2,12 +2,6 @@
 # frozen_string_literal: true
 
 class IdentitySecretCredentialCeremonyCandidateStore
-  class << self
-    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    attr_writer :store
-    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-  end
-
   Candidate = Data.define(
     :ref,
     :digest,
@@ -21,14 +15,6 @@ class IdentitySecretCredentialCeremonyCandidateStore
     :enabled,
     :expires_at,
   )
-
-  PREFIX = "identity:secret_credential_ceremony:candidate"
-
-  # rubocop:disable ThreadSafety/ClassInstanceVariable
-  def self.store
-    @store || Rails.cache
-  end
-  # rubocop:enable ThreadSafety/ClassInstanceVariable
 
   def self.store!(**attributes)
     new.store!(**attributes)
@@ -51,73 +37,78 @@ class IdentitySecretCredentialCeremonyCandidateStore
     raise IdentitySecretCredentialCeremonyContract::Error,
           "secret credential password digest is required" if password_digest.blank?
 
-    ref = SecureRandom.uuid
-    payload = {
-      "ref" => ref,
-      "digest" => digest_for(surface, actor_ref, session_ref, transaction_id, operation, password_digest),
-      "surface" => surface.to_s,
-      "actor_ref" => actor_ref.to_s,
-      "session_ref" => session_ref.to_s,
-      "transaction_id" => transaction_id.to_s,
-      "operation" => operation.to_s,
-      "password_digest" => password_digest.to_s,
-      "name" => name.to_s,
-      "enabled" => ActiveModel::Type::Boolean.new.cast(enabled),
-      "expires_at" => expires_at.to_i,
-    }
-    self.class.store.write(cache_key(ref), payload, expires_in: ttl_for(expires_at))
-    candidate_from(payload)
+    enabled_value = ActiveModel::Type::Boolean.new.cast(enabled)
+    record =
+      IdentitySecretCredentialCeremonyCandidate.connection_owner.connected_to(role: :writing) do
+        IdentitySecretCredentialCeremonyCandidate.create!(
+          ref: SecureRandom.uuid,
+          digest: digest_for(surface, actor_ref, session_ref, transaction_id, operation, password_digest),
+          surface: surface.to_s,
+          actor_ref: actor_ref.to_s,
+          session_ref: session_ref.to_s,
+          transaction_id: transaction_id.to_s,
+          operation: operation.to_s,
+          password_digest: password_digest.to_s,
+          name: name.to_s,
+          enabled: enabled_value,
+          expires_at: expires_at,
+        )
+      end
+    candidate_from(record)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
+    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential candidate is invalid: #{e.message}"
   end
 
   def fetch!(ref)
-    payload = self.class.store.read(cache_key(ref.to_s))
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential candidate is not found" if payload.blank?
-
-    candidate = candidate_from(payload)
-    raise IdentitySecretCredentialCeremonyContract::Error,
-          "secret credential candidate is expired" if candidate.expires_at.to_i <= Time.current.to_i
-
-    candidate
+    record = IdentitySecretCredentialCeremonyCandidate.find_active_by_ref!(
+      ref,
+      now: Time.current,
+      error_class: IdentitySecretCredentialCeremonyContract::Error,
+      not_found_message: "secret credential candidate is not found",
+      expired_message: "secret credential candidate is expired",
+    )
+    candidate_from(record)
   end
 
   def consume!(ref)
-    candidate = fetch!(ref)
-    delete(ref)
-    candidate
+    record = IdentitySecretCredentialCeremonyCandidate.new(ref: ref.to_s).consume!(
+      now: Time.current,
+      error_class: IdentitySecretCredentialCeremonyContract::Error,
+      not_found_message: "secret credential candidate is not found",
+      expired_message: "secret credential candidate is expired",
+    )
+    candidate_from(record)
   end
 
   def delete(ref)
-    self.class.store.delete(cache_key(ref.to_s))
+    IdentitySecretCredentialCeremonyCandidate.connection_owner.connected_to(role: :writing) do
+      record = IdentitySecretCredentialCeremonyCandidate.find_by(ref: ref.to_s)
+      record&.update!(consumed_at: Time.current)
+    end
   end
 
   private
 
-  def candidate_from(payload)
+  def candidate_from(record)
+    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential candidate is invalid" unless record.valid?
+
     Candidate.new(
-      ref: payload.fetch("ref"),
-      digest: payload.fetch("digest"),
-      surface: payload.fetch("surface"),
-      actor_ref: payload.fetch("actor_ref"),
-      session_ref: payload.fetch("session_ref"),
-      transaction_id: payload.fetch("transaction_id"),
-      operation: payload.fetch("operation"),
-      password_digest: payload.fetch("password_digest"),
-      name: payload.fetch("name"),
-      enabled: ActiveModel::Type::Boolean.new.cast(payload.fetch("enabled")),
-      expires_at: Time.zone.at(payload.fetch("expires_at").to_i),
+      ref: record.ref,
+      digest: record.digest,
+      surface: record.surface,
+      actor_ref: record.actor_ref,
+      session_ref: record.session_ref,
+      transaction_id: record.transaction_id,
+      operation: record.operation,
+      password_digest: record.password_digest,
+      name: record.name,
+      enabled: ActiveModel::Type::Boolean.new.cast(record.enabled),
+      expires_at: record.expires_at,
     )
   end
 
   def digest_for(surface, actor_ref, session_ref, transaction_id, operation, password_digest)
     data = [surface, actor_ref, session_ref, transaction_id, operation, password_digest].map(&:to_s).join(":")
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, data)
-  end
-
-  def ttl_for(expires_at)
-    [expires_at.to_i - Time.current.to_i, 1].max.seconds
-  end
-
-  def cache_key(ref)
-    "#{PREFIX}:#{ref}"
   end
 end
