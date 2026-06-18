@@ -25,12 +25,7 @@ class OidcLogoutRequestTest < ActiveSupport::TestCase
     assert_equal "jp", OidcLogoutRequest.verify(token)[:ri]
   end
 
-  # Regression: signed logout requests must be one-shot. Rails.cache is
-  # :null_store in the test env, so we inject a real cache for replay
-  # tracking; with that in place a second verify() of the same token
-  # returns nil. See S-3.
   test "returns nil on the second verify of the same token (replay protection)" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
     first = OidcLogoutRequest.verify(token)
@@ -39,12 +34,9 @@ class OidcLogoutRequestTest < ActiveSupport::TestCase
     assert_not_nil first
     assert_equal "base-rails-rp", first[:client_id]
     assert_nil second, "Re-presenting the same signed logout request must be rejected"
-  ensure
-    OidcLogoutRequest.replay_store = nil
   end
 
   test "includes a non-empty jti claim on every issued token" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     token_a = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
     token_b = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
@@ -54,29 +46,36 @@ class OidcLogoutRequestTest < ActiveSupport::TestCase
     assert_predicate payload_a[:jti], :present?
     assert_predicate payload_b[:jti], :present?
     assert_not_equal payload_a[:jti], payload_b[:jti]
-  ensure
-    OidcLogoutRequest.replay_store = nil
   end
 
-  # If the replay-tracking store is unreachable we treat the token as
-  # already consumed (fail closed) rather than allow replay. See S-3.
-  class RaisingReplayStore
-    def exist?(_key)
-      raise StandardError, "boom"
-    end
+  test "stores a digest instead of raw logout request jti" do
+    token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
+    payload = OidcLogoutRequest.verify(token)
 
-    def write(*)
-      nil
-    end
+    record = SecurityConsumedJti.find_by!(
+      purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_logout_request),
+      issuer: "base-rails-rp",
+      jti_digest: SecurityConsumedJti.digest_jti(payload.fetch(:jti)),
+    )
+
+    assert_not_equal payload.fetch(:jti), record.jti_digest
+    assert_operator record.expires_at, :>, Time.current
   end
 
-  test "fail-closed when the replay store raises on read" do
-    OidcLogoutRequest.replay_store = RaisingReplayStore.new
+  test "does not use Rails cache for logout request replay tracking" do
+    cache = Class.new do
+      def exist?(*)
+        raise "Rails.cache must not track logout request replay"
+      end
+
+      def write(*)
+        raise "Rails.cache must not track logout request replay"
+      end
+    end.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
-    assert_nil OidcLogoutRequest.verify(token),
-               "verify must return nil (fail-closed) when replay tracking is unreachable"
-  ensure
-    OidcLogoutRequest.replay_store = nil
+    Rails.stub(:cache, cache) do
+      assert_not_nil OidcLogoutRequest.verify(token)
+    end
   end
 end

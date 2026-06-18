@@ -108,17 +108,18 @@ Runtime preference reads should go through `Actor.preferences`.
 For normal Rails request code, preference data flows in one direction:
 
 ```text
-DB -> access-token JWT prf -> Actor.preferences
+DB -> Preference JWT payload -> Actor.preferences
 ```
 
-The database is the source of truth and storage boundary. The access-token JWT is the runtime read
-cache. `Actor.preferences` is the immutable request runtime value built from that claim, with valid
-request-local `lx`, `ct`, and `tz` values overlaid when explicitly present. JS-readable preference
-cookies are Rails write-only compatibility mirrors and must not be trusted as Rails request input.
+The database is the source of truth and storage boundary. The Preference JWT is the runtime read
+cache. `Actor.preferences` is the immutable request runtime value built from that payload, with valid
+request-local `lx`, `ct`, and `tz` values overlaid when explicitly present. Auth access tokens do not
+carry preference snapshots. JS-readable preference cookies are Rails write-only compatibility mirrors
+and must not be trusted as Rails request input.
 
-The overlay is not a write path. For example, if the token says `lx=ja` and the request says
+The overlay is not a write path. For example, if the Preference JWT says `lx=ja` and the request says
 `lx=en`, the current request renders with `Actor.preferences.language == "en"`, but the database and
-JWT remain `ja`.
+Preference JWT remain `ja`.
 
 Controllers should not directly read and interpret preference model internals when a concern method
 or `Actor.preferences` exposes the needed value. Writes remain in the preference concerns and

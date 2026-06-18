@@ -194,25 +194,21 @@ class JumpRtReturnVerifier
   end
 
   def consume_jti!(payload)
-    ttl = payload["exp"].to_i - now.to_i + LEEWAY
-    return false unless ttl.positive?
+    expires_at = Time.zone.at(payload["exp"].to_i + LEEWAY)
+    return false unless expires_at.future?
 
-    Rails.cache.write(
-      jti_cache_key(payload),
-      true,
-      expires_in: ttl.seconds,
-      unless_exist: true,
+    SecurityConsumedJti.consume!(
+      purpose: SecurityConsumedJti::PURPOSES.fetch(:jump_rt_return),
+      issuer: payload["iss"],
+      jti: payload["jti"],
+      expires_at: expires_at,
     )
+  rescue ActiveRecord::ActiveRecordError
+    false
   end
 
   def one_time_return?(payload)
     payload["rpl"].to_s == "once"
-  end
-
-  def jti_cache_key(payload)
-    issuer = payload["iss"].to_s
-    jti = payload["jti"].to_s
-    "jump_rt:return_jti:#{Digest::SHA256.hexdigest("#{issuer}:#{jti}")}"
   end
 
   # Returns a comparable tuple [scheme, host, port, path, query_hash] so the

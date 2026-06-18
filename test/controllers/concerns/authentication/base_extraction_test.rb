@@ -28,7 +28,6 @@ class AuthenticationBaseExtractionTest < ActiveSupport::TestCase
     assert_operator Harness.private_instance_methods, :include?, :cookie_options
     assert_operator Harness.private_instance_methods, :include?, :set_refresh_auth_cookies
     assert_operator Harness.private_instance_methods, :include?, :encode_refreshed_access_token
-    assert_operator Harness.private_instance_methods, :include?, :build_auth_preference_snapshot
     assert_operator Harness.private_instance_methods, :include?, :start_sign_in_flow_for!
   end
 

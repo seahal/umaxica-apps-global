@@ -568,7 +568,6 @@ module SignUpSequenceControllerSupport
     if sign_in_result.success?
       redirect_to_sign_in_sequence!(
         pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
-        notice: I18n.t("sign.app.registration.email.update.success"),
       )
     elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
       redirect_to(sign_in_result.redirect_to)

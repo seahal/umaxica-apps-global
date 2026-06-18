@@ -63,7 +63,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     def sign_app_root_path = "/"
   end
 
-  test "prepare social auth intent stores login context and rejects invalid intent" do
+  test "prepare social auth intent stores slim login context and rejects invalid intent" do
     harness = Harness.new
 
     state = harness.send(
@@ -78,8 +78,8 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_predicate state, :present?
     assert_equal "login", harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
     assert_equal "google", harness.session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
-    assert_equal "encoded-pt", harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
-    assert_equal "encoded-pt", harness.send(:current_social_auth_pt)
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
+    assert_nil harness.send(:current_social_auth_pt)
     assert_equal "sign_up", harness.send(:current_social_auth_entry)
     assert_equal "jp", harness.send(:current_social_auth_ri)
     assert_nil harness.session_hash[SocialAuth::SOCIAL_USER_ID_SESSION_KEY]
@@ -161,14 +161,14 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     assert_nil harness.session_hash[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
-  test "process social auth callback returns pt before clearing session" do
+  test "process social auth callback does not return session stored pt" do
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google", pt: "encoded-pt")
 
     SocialAuthService.stub(:handle_callback, ->(**) { { user: clients(:one), existing_account: true } }) do
       result = harness.send(:process_social_auth_callback)
 
-      assert_equal "encoded-pt", result[:pt]
+      assert_nil result[:pt]
     end
 
     assert_nil harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]

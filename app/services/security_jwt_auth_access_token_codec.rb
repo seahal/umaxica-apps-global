@@ -11,9 +11,9 @@ class SecurityJwtAuthAccessTokenCodec
 
   class << self
     def encode(resource, host:, resource_type: nil, dpop_jkt: nil, expires_at: nil,
-               session_public_id: nil, session_id: nil, oidc_sid: nil, oidc_jti: nil, preferences: nil,
-               scopes: nil, acr: nil, amr: nil, access_token_ttl: 1.hour, jwt_issuer_id: nil,
-               issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil, client_id: nil)
+               session_public_id: nil, session_id: nil, oidc_sid: nil, oidc_jti: nil, scopes: nil, acr: nil,
+               amr: nil, access_token_ttl: 1.hour, jwt_issuer_id: nil, issuer: nil, audiences: nil,
+               subject: nil, auth_time: nil, step_up_until: nil, client_id: nil)
       resource_type ||=
         case resource
         when ::Client then "client"
@@ -36,7 +36,6 @@ class SecurityJwtAuthAccessTokenCodec
         issued_at: issued_at,
         access_token_ttl: access_token_ttl,
         expires_at: expires_at,
-        preferences: preferences,
         scopes: scopes,
         acr: acr,
         amr: amr,

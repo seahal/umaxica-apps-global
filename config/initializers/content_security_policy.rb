@@ -10,19 +10,21 @@
 Rails.application.configure do
   boot_config = Rails.configuration.x.boot_config
   config.content_security_policy do |policy|
+    # OriginValue#to_s already returns a scheme-prefixed origin (e.g. "https://www.umaxica.app").
+    # Do not prepend "https://" again — doing so produces a malformed allowlist entry like
+    # "https://https://www.umaxica.app" which silently breaks form-action enforcement.
     acme_form_hosts =
       [
         boot_config.fetch(:hosts).acme_service.to_s,
         boot_config.fetch(:hosts).acme_corporate.to_s,
         boot_config.fetch(:hosts).acme_staff.to_s,
-      ].map { |host| "https://#{host}" }
+      ]
     sign_form_hosts =
       [
         boot_config.fetch(:hosts).sign_service.to_s,
         boot_config.fetch(:hosts).sign_corporate.to_s,
         boot_config.fetch(:hosts).sign_staff.to_s,
       ].uniq
-    sign_form_hosts.map! { |host| "https://#{host}" }
 
     policy.default_src(:self)
     policy.base_uri(:self)

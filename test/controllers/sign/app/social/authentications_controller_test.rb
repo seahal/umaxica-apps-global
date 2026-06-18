@@ -23,6 +23,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     stored_value = session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
 
     assert_predicate stored_value, :present?
+    assert_nil session[SocialAuth::SOCIAL_PT_SESSION_KEY]
     assert_no_match(/\./, stored_value, "session must not store the signed social ceremony grant JWT")
     assert_operator stored_value.bytesize, :<, 80
     assert ClientSocialCeremonyTransaction.find_by(transaction_id: stored_value)

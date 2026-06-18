@@ -74,10 +74,12 @@ module SocialCallbackGuard
     provider = match[:provider]
     state = request.session["omniauth.state"].to_s.presence || request.params["state"].to_s.presence
     return if state.blank?
+    return if request.session[SOCIAL_STATE_SESSION_KEY].to_s == state &&
+      request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY].to_s == provider
 
     request.session[SOCIAL_STATE_SESSION_KEY] = state
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+    request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
     SocialAuthCallbackStateStore.issue!(state: state, provider: provider)
   end
@@ -363,7 +365,7 @@ module SocialCallbackGuard
     if query["state"].present?
       request.session[SOCIAL_STATE_SESSION_KEY] = query["state"].to_s
       request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-      request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+      request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
       request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
       SocialAuthCallbackStateStore.issue!(state: query["state"].to_s, provider: provider)
       return
@@ -378,7 +380,7 @@ module SocialCallbackGuard
 
     request.session[SOCIAL_STATE_SESSION_KEY] = generated_state
     request.session[SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    request.session[SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+    request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
     SocialAuthCallbackStateStore.issue!(state: generated_state, provider: provider)
   end

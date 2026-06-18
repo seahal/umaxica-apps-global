@@ -15,15 +15,6 @@ class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
     { host: ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org"), client_id: "core-next-rp", resource_type: "operator" },
   ].freeze
 
-  setup do
-    @previous_logout_token_replay_store = OidcLogoutTokenCodec.replay_store
-    OidcLogoutTokenCodec.replay_store = ActiveSupport::Cache::MemoryStore.new
-  end
-
-  teardown do
-    OidcLogoutTokenCodec.replay_store = @previous_logout_token_replay_store
-  end
-
   test "back-channel receiver revokes a matching RP session" do
     SURFACES.each do |surface|
       sid = SecureRandom.uuid

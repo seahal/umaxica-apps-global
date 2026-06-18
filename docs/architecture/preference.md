@@ -249,8 +249,8 @@ request params:   lx=en
 Actor.preferences: language=en, theme=sy, timezone=Asia/Tokyo
 ```
 
-The page renders in English for that request. The database and access-token JWT remain Japanese
-until an explicit preference write path changes them and reissues a token.
+The page renders in English for that request. The database and Preference JWT remain Japanese until
+an explicit preference write path changes them and reissues a token.
 
 Do not reverse this flow.
 
@@ -299,16 +299,15 @@ to the database or JWT.
 - Surface preference records use the `app_setting`, `org_setting`, or `com_setting` database
   connection.
 - `Actor::Preference` is the runtime read interface for request code. In the normal request path it
-  is built from the access-token `prf` claim, then valid request-local `lx`, `ct`, and `tz` values
-  are overlaid when explicitly present. Request code reads the resolved effective value through
+  is built from the Preference JWT payload, then valid request-local `lx`, `ct`, and `tz` values are
+  overlaid when explicitly present. Request code reads the resolved effective value through
   `Actor.preferences`.
-- Auth access tokens carry the preference snapshot in the `prf` claim with stable short keys.
-  Localization and theme use `lx`, `ri`, `tz`, and `ct`. Extended options use `cu` for currency,
-  `df` for date format, `tf` for time format, `mo` for motion, `dn` for density, and `ps` for items
-  per page.
-- `prf` is an application private claim, not a JWT Registered Claim. The nested `ver` key records
-  the preference snapshot schema version. Current code emits `ver: 1` only; it does not reject or
-  migrate tokens based on this value.
+- Auth access tokens do not carry preference snapshots. Preference snapshots belong to the
+  `*_preference_access` token payload, whose stable short keys include `lx`, `ri`, `tz`, and `ct`.
+  Extended options use `cu` for currency, `df` for date format, `tf` for time format, `mo` for motion,
+  `dn` for density, and `ps` for items per page.
+- The obsolete auth access-token `prf` claim is no longer emitted. Existing already-issued tokens
+  that contain it are ignored by runtime preference hydration until they expire.
 - Region request context is mandatory. A valid `ri` request parameter wins for that request. If `ri`
   is missing, the system redirects to a valid `ri` value; optional context keys are not backfilled
   into URLs. `lx`, `ct`, and `tz` are optional; when valid and present they affect only the current

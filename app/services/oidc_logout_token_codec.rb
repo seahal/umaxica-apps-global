@@ -14,18 +14,6 @@ class OidcLogoutTokenCodec
     end
 
   class << self
-    # Replay tracking store. Defaults to Rails.cache in runtime environments.
-    # Tests may inject a real store because Rails.cache is :null_store there.
-    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    attr_writer :replay_store
-    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-
-    # rubocop:disable ThreadSafety/ClassInstanceVariable
-    def replay_store
-      @replay_store ||= Rails.cache
-    end
-    # rubocop:enable ThreadSafety/ClassInstanceVariable
-
     def encode(client_id:, resource_type:, subject: nil, sid:, issued_at: Time.current, expires_in: 2.minutes)
       payload = {
         "iss" => OidcIssuer.for_resource_type(resource_type),
@@ -48,14 +36,13 @@ class OidcLogoutTokenCodec
     end
 
     def decode(logout_token:, client_id:, resource_type:, replay_store: nil)
-      replay_store ||= self.replay_store
       payload = decode_payload!(
         logout_token: logout_token,
         client_id: client_id,
         resource_type: resource_type,
       )
       validate_payload!(payload)
-      consume_jti!(payload.fetch("jti"), replay_store)
+      consume_jti!(payload.fetch("jti"), issuer: payload.fetch("iss"))
 
       Result.new(success: true, payload: payload, error: nil)
     rescue JWT::DecodeError, JWT::VerificationError, OpenSSL::PKey::PKeyError, ArgumentError, TypeError, KeyError
@@ -102,14 +89,15 @@ class OidcLogoutTokenCodec
       raise JWT::DecodeError, "invalid events" unless events == { EVENT_CLAIM => {} }
     end
 
-    def consume_jti!(jti, replay_store)
-      key = "oidc:logout_token:jti:#{jti}"
-      raise JWT::DecodeError, "replayed jti" if replay_store.exist?(key)
-
-      raise JWT::DecodeError, "replay store unavailable" unless replay_store.write(key, true, expires_in: REPLAY_TTL)
-    rescue StandardError => e
-      raise e if e.is_a?(JWT::DecodeError)
-
+    def consume_jti!(jti, issuer:)
+      consumed = SecurityConsumedJti.consume!(
+        purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_logout_token),
+        issuer: issuer,
+        jti: jti,
+        expires_at: REPLAY_TTL.from_now,
+      )
+      raise JWT::DecodeError, "replayed jti" unless consumed
+    rescue ActiveRecord::ActiveRecordError
       raise JWT::DecodeError, "replay store unavailable"
     end
   end

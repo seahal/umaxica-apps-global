@@ -4,14 +4,13 @@
 
 Accepted on 2026-04-07.
 
-> **Hydration & 動的 region シード追補（2026-05-30）:** リクエストの実効ロケールは
-> `apply_localization_preferences` が `Actor.preferences.language` から決める。`Actor.preferences`
-> は Preference JWT payload（DB の署名付き射影）から hydrate されるようになった（auth トークンの
-> `prf` は読まない。 `adr/preference-soft-bubble-doctrine.md`
-> の 2026-05-30 追補を参照）。言語の優先順位は ①`?lx`（request-local overlay）→
-> ②明示設定された言語（`explicit_fields` マーカー）→ ③`?ri` 由来の動的シード（`jp`→ja /
-> `us`→en、未設定ユーザー向け）→ ④default(`ja`)。これにより、英語を明示設定したユーザーは `?ri=jp`
-> でも英語で描画され、未設定ユーザーは `?ri` に追従する。
+> **Hydration and dynamic region seeding update (2026-05-30, updated 2026-06-18):** The effective
+> request locale is chosen by `apply_localization_preferences` from `Actor.preferences.language`.
+> `Actor.preferences` is hydrated from the Preference JWT payload, the signed projection of the
+> database source of truth. Auth access tokens do not carry or read the obsolete `prf` preference
+> claim. Language priority is: `?lx` request-local overlay, explicit language from the
+> `explicit_fields` marker, dynamic `?ri` seeding (`jp` -> `ja`, `us` -> `en`) for unset users, then
+> the default `ja`.
 
 ## Context
 

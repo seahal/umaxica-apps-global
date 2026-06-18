@@ -17,10 +17,11 @@
 > `app_setting`, `org_setting`, and `com_setting`. Actor-local preferences stay in the matching
 > principal database.
 >
-> **Runtime overlay update (2026-05-19):** `Actor.preferences` is the effective request runtime
-> preference. Normal authenticated requests build it from the verified access-token `prf` claim,
-> then overlay valid request-local `lx`, `ct`, and `tz` parameters when explicitly present. The
-> overlay is not a write path and must never be copied back to the database or JWT.
+> **Runtime overlay update (2026-05-19, superseded 2026-05-30):** `Actor.preferences` is the
+> effective request runtime preference. Normal authenticated requests now build it from the
+> Preference JWT payload, then overlay valid request-local `lx`, `ct`, and `tz` parameters when
+> explicitly present. The overlay is not a write path and must never be copied back to the database or
+> JWT.
 >
 > **Preference edit entry update (2026-05-19):** Logged-in HTML preference edit screens are a
 > bounded DB -> JWT refresh point. They may copy the actor-local preference DB value into the
@@ -32,25 +33,24 @@
 > and must treat preference state as read-only. Request context overlays, RP rendering, and jump
 > redirects are not preference write paths.
 >
-> **Hydration source supersession (2026-05-30):** `Actor.preferences`
-> の構築元を、認証アクセストークンの `prf` クレームから **Preference
-> JWT(`*_preference_access`)の payload** に一本化する。Preference
-> JWT は DB(SSoT) の署名付き射影であり、`set_preferences_cookie` が `set_current_actor`
-> より前にデコード済みなので、追加 DB / 再発行なしの read-only で hydrate できる。旧経路の `prf`
-> は実装上 DB を一度も写しておらず（NULL+overlay から生成されていた）transport として死んでいたため、読み取りを停止する。`prf`
-> の生成自体の撤去は auth 側の別タスクで、当面は unread の dead data として残置する。
+> **Hydration source supersession (2026-05-30, updated 2026-06-18):** `Actor.preferences` is hydrated
+> from the Preference JWT (`*_preference_access`) payload instead of the auth access-token `prf`
+> claim. The Preference JWT is the signed projection of the database source of truth and is decoded by
+> `set_preferences_cookie` before `set_current_actor`, so request hydration stays read-only and does
+> not need an extra database read or token reissue. The obsolete auth access-token `prf` claim is no
+> longer read and is no longer emitted for newly issued auth access tokens.
 >
-> **明示 vs 未設定と動的 region シード（2026-05-30）:**
-> 子レコード（language ほか）は初回訪問で常に default
-> option 付きで作られるため、「ユーザーが明示的に選んだ」か「自動 default か」を値だけでは区別できない。これを
-> `app/com/org_preferences.explicit_fields`(jsonb) マーカーで表現する。ローカライズは次の優先順位で言語を決める:
-> ①`?lx`（request-local、DB/JWT には書かない）→ ②明示設定された言語（`explicit_fields` に含まれる）→
-> ③`?ri` 由来の動的シード（`jp`→ja / `us`→en、未設定ユーザー向け）→ ④default(`ja`)。
+> **Explicit state versus unset state and dynamic region seeding (2026-05-30):** Child records such as
+> language are created with default options on first visit, so the value alone cannot distinguish an
+> explicit user choice from an automatic default. The `app/com/org_preferences.explicit_fields` jsonb
+> marker records explicit choices. Localization resolves language in this order: `?lx` request-local
+> overlay, explicit language in `explicit_fields`, dynamic `?ri` seeding (`jp` -> `ja`, `us` -> `en`)
+> for unset users, then the default `ja`.
 >
-> **フォールバック（2026-05-30）:** Bearer/OIDC API や `set_preferences_cookie`
-> をスキップするエンドポイントは Preference JWT cookie を持たないため、`Actor::Preference::NULL` +
-> overlay に落ちる。長期的には `explicit_fields`
-> マーカーを廃し「子レコード不在＝未設定」とする A 案へ移行する（`plans/backlog/preference-explicit-child-records-model-a.md`）。
+> **Fallback (2026-05-30):** Bearer/OIDC APIs and endpoints that skip `set_preferences_cookie` have no
+> Preference JWT cookie, so they fall back to `Actor::Preference::NULL` plus the request overlay. The
+> longer-term direction is model A, where absent child records mean unset and the `explicit_fields`
+> marker can be retired (`plans/backlog/preference-explicit-child-records-model-a.md`).
 
 ## Context
 
@@ -83,8 +83,8 @@ Relevant runtime code is already in place:
 - `app/models/actor.rb` defines `Actor < ActiveSupport::CurrentAttributes` with a `preference` slot.
 - `app/models/actor/preference.rb` defines `Actor::Preference`, an immutable value object with a
   `from_jwt` constructor and a `NULL` instance for guests / bearer-only requests.
-- `app/controllers/concerns/actor_support.rb` resolves `Actor.preferences` via a three-stage
-  fallback: actor-side DB record → JWT `prf` claim → `NULL`.
+- `app/controllers/concerns/actor_support.rb` resolves `Actor.preferences` from the Preference JWT
+  payload, then falls back to `Actor::Preference::NULL` for bearer-only or preference-free requests.
 
 Past plans assumed two things that we now reject:
 
@@ -133,19 +133,20 @@ at the `ActorSupport` boundary, not pushed up into callers.
 For normal authenticated requests, `Actor.preferences` is the effective request runtime preference:
 
 ```text
-access-token JWT prf -> Actor.preferences
+Preference JWT payload -> Actor.preferences
 request lx/ct/tz -> Actor.preferences request overlay
 ```
 
 Valid request-local `lx`, `ct`, and `tz` parameters may change the current request's effective
 language, theme, or timezone. They do not update the database, reissue JWTs, or mutate persistent
-preference state. If a token says `lx=ja` and a request says `lx=en`, the request renders in English
-while the persistent preference remains Japanese.
+preference state. If the Preference JWT says `lx=ja` and a request says `lx=en`, the request renders
+in English while the persistent preference remains Japanese.
 
 Logged-in HTML preference edit screens are a bounded exception to the normal runtime cache path.
 Before initializing `Actor.preferences`, they may read the actor-local preference database, copy it
-to the current surface preference, and issue a fresh access-token JWT. This exception exists only
-for preference screen entry; it is not a generic database fallback for normal pages or broken JWTs.
+to the current surface preference, and issue a fresh preference access-token JWT. This exception
+exists only for preference screen entry; it is not a generic database fallback for normal pages or
+broken JWTs.
 
 Explicit preference setting writes still go to the per-DB models (since the bubbles are real), but
 those writes are owned by the `sign` preference surfaces. `acme` and `jump` must not persist
@@ -157,8 +158,9 @@ over time.
 
 `AppPreference` / `ComPreference` / `OrgPreference` and their child / option / cookie / chronicle
 tables stay. They were introduced to manage preference state on the front-end side without forcing
-the client to own it; replacing them with JWT-snapshot-only would regress the design intent. The JWT
-`prf` claim is a transport mechanism, not a replacement for the DB-backed session-side store.
+the client to own it; replacing them with JWT-snapshot-only would regress the design intent. The
+Preference JWT payload is a transport mechanism, not a replacement for the DB-backed session-side
+store.
 
 ### 4. `guest` is the com TLD authentication DB, not a "guest / anonymous" DB
 

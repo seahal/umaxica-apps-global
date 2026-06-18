@@ -21,7 +21,6 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
 
   teardown do
     Actor.clear
-    OidcLogoutRequest.replay_store = nil
   end
 
   test "returns confirmation for no-hint request" do
@@ -47,7 +46,6 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
 
   test "id_token_hint takes precedence over legacy logout_request" do
     install_actor_context!
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     legacy = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
     result = call(id_token_hint: id_token, logout_request: legacy)
@@ -136,7 +134,6 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
   end
 
   test "legacy logout_request verifies on post and preserves replay protection" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
     first = call({ logout_request: token })
@@ -149,7 +146,6 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
   end
 
   test "legacy logout_request is not consumed on get" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
     get_request = Request.new(host: @request.host, method: "GET")
 
@@ -162,7 +158,6 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
 
   # HEAD shares Rails routing with GET, so it must not consume the single-use logout_request token.
   test "legacy logout_request is not consumed on head" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
     head_request = Request.new(host: @request.host, method: "HEAD")
 

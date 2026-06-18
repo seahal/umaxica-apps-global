@@ -54,10 +54,12 @@ module OmniAuthCallbackOrigin
     "#{scheme}://#{request.host_with_port}"
   end
 
+  # Compared against request.host (a bare hostname). Use OriginValue#host, not #to_s
+  # which is a full "https://..." origin and would never match.
   PUBLIC_SIGN_HOSTS =
     [
-      Rails.configuration.x.boot_config.fetch(:hosts).sign_service.to_s,
-      Rails.configuration.x.boot_config.fetch(:hosts).sign_staff.to_s,
+      Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
+      Rails.configuration.x.boot_config.fetch(:hosts).sign_staff.host,
     ].map(&:downcase).freeze
 
   def public_sign_host?(host)
@@ -95,8 +97,8 @@ class OmniAuthNonAppSocialGuard
   def blocked_host?(env)
     boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     blocked_hosts = [
-      boot_hosts.acme_corporate.to_s,
-      boot_hosts.acme_staff.to_s,
+      boot_hosts.acme_corporate.host,
+      boot_hosts.acme_staff.host,
     ]
     blocked_hosts.include?(Rack::Request.new(env).host)
   end

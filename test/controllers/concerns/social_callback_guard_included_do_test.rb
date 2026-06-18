@@ -85,10 +85,14 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
 
     assert_nil SocialCallbackGuard.verify_request_phase!(env)
     assert_equal "known-state", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY]
+    assert_not env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
 
+    issued_count = ClientOauthCallbackState.count
     SocialCallbackGuard.capture_request_state!(env)
 
     assert_equal "apple", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
+    assert_equal issued_count, ClientOauthCallbackState.count
+    assert_not env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
 
     generated_env = Rack::MockRequest.env_for(
       "/auth/apple",
@@ -100,6 +104,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     assert_nil SocialCallbackGuard.verify_request_phase!(generated_env)
     assert_match(/state=/, generated_env["QUERY_STRING"])
     assert_predicate generated_env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY], :present?
+    assert_not generated_env["rack.session"].key?(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
   ensure
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, nil)

@@ -17,26 +17,12 @@ module OidcLogoutRequest
   PURPOSE = "oidc_logout_request"
   TTL = 2.minutes
   JTI_BYTES = 16
-  REPLAY_CACHE_PREFIX = "oidc:logout_request:consumed:"
   # Track consumed jtis slightly longer than the token TTL so a token
   # that expires in-flight cannot be replayed against a process whose
   # clock skew gives it a few extra seconds.
   REPLAY_TRACKING_TTL = TTL + 30.seconds
 
   class << self
-    # Replay tracking store. Defaults to Rails.cache (Solid Cache in
-    # production). Tests may inject a real store because Rails.cache
-    # is `:null_store` in the test environment.
-    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
-    attr_writer :replay_store
-    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
-
-    # rubocop:disable ThreadSafety/ClassInstanceVariable
-    def replay_store
-      @replay_store ||= Rails.cache
-    end
-    # rubocop:enable ThreadSafety/ClassInstanceVariable
-
     def issue(client_id:, ri:)
       verifier.generate(
         {
@@ -61,9 +47,7 @@ module OidcLogoutRequest
 
       jti = payload["jti"].to_s
       return if jti.blank?
-      return if jti_consumed?(jti)
-
-      consume_jti!(jti)
+      return unless consume_jti!(issuer: client_id, jti: jti)
 
       {
         client_id: client_id,
@@ -82,39 +66,22 @@ module OidcLogoutRequest
       Rails.application.message_verifier(:oidc_logout_request)
     end
 
-    def jti_consumed?(jti)
-      replay_store.exist?(replay_cache_key(jti))
-    rescue StandardError => e
-      # Fail closed: if the store is unreachable we treat the token as
-      # already consumed rather than risk allowing replay. Operators
-      # see the failure via application logs.
-      Rails.logger.info(
-        JitLogEvent.format(
-          "oidc.logout_request.replay_store_unavailable",
-          op: "exist?",
-          error_class: e.class.name,
-          error_message: e.message,
-        ),
+    def consume_jti!(issuer:, jti:)
+      SecurityConsumedJti.consume!(
+        purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_logout_request),
+        issuer: issuer,
+        jti: jti,
+        expires_at: REPLAY_TRACKING_TTL.from_now,
       )
-      true
-    end
-
-    def consume_jti!(jti)
-      replay_store.write(replay_cache_key(jti), true, expires_in: REPLAY_TRACKING_TTL)
-    rescue StandardError => e
+    rescue ActiveRecord::ActiveRecordError => e
       Rails.logger.info(
         JitLogEvent.format(
-          "oidc.logout_request.replay_store_unavailable",
-          op: "write",
+          "oidc.logout_request.replay_record_unavailable",
           error_class: e.class.name,
           error_message: e.message,
         ),
       )
       false
-    end
-
-    def replay_cache_key(jti)
-      "#{REPLAY_CACHE_PREFIX}#{jti}"
     end
   end
 end

@@ -68,24 +68,21 @@ module SocialAuth
   end
 
   def store_social_auth_intent_context(intent, provider:, pt:, entry:, ri:)
+    _ = pt
     session[SOCIAL_INTENT_SESSION_KEY] = intent
     session[SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SOCIAL_FLOW_ID_SESSION_KEY] = SecureRandom.hex(16)
     session[SOCIAL_PROVIDER_SESSION_KEY] = provider
     session[SOCIAL_ENTRY_SESSION_KEY] = entry if entry.present?
     session[SOCIAL_RI_SESSION_KEY] = ri if ri.present?
-    if pt.present?
-      session[SOCIAL_PT_SESSION_KEY] = pt
-    else
-      session.delete(SOCIAL_PT_SESSION_KEY)
-    end
+    session.delete(SOCIAL_PT_SESSION_KEY)
   end
 
   def store_oauth_callback_state(provider)
     state = SecureRandom.hex(24)
     session[SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY] = state
     session[SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY] = Time.current.to_i
-    session[SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY] = nil
+    session.delete(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
     session[SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
     SocialAuthCallbackStateStore.issue!(
       state: state,
@@ -228,7 +225,6 @@ module SocialAuth
   def process_social_auth_callback
     auth_hash = omniauth_auth_hash
     intent = current_social_auth_intent
-    pt = current_social_auth_pt
     entry = current_social_auth_entry
     authorize_social_auth_link!(social_auth_user) if intent == "link"
 
@@ -245,7 +241,6 @@ module SocialAuth
           sign_up_entry: intent == "login",
         )
       end
-    result[:pt] = pt if pt.present?
     result[:entry] = entry if entry.present?
 
     clear_social_auth_intent!

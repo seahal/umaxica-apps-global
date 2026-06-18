@@ -95,7 +95,9 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.to_s }
+  # url_for's :host option expects a bare hostname; OriginValue#to_s returns a full
+  # "https://..." origin, so use #host.
+  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host }
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
@@ -124,19 +126,21 @@ Rails.application.configure do
   # Enable DNS rebinding protection and other `Host` header attacks.
   # Collect all host ENV vars used in route constraints.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+  # Rails host authorization matches against the bare hostname from the Host header,
+  # so use OriginValue#host (e.g. "www.umaxica.app") — not #to_s which is a full origin.
   config.hosts = [
-    boot_hosts.acme_service.to_s,
-    boot_hosts.acme_corporate.to_s,
-    boot_hosts.acme_staff.to_s,
-    boot_hosts.sign_service.to_s,
-    boot_hosts.sign_corporate.to_s,
-    boot_hosts.sign_staff.to_s,
-    boot_hosts.core_service.to_s,
-    boot_hosts.core_corporate.to_s,
-    boot_hosts.core_staff.to_s,
-    boot_hosts.help_service.to_s,
-    boot_hosts.help_corporate.to_s,
-    boot_hosts.help_staff.to_s,
+    boot_hosts.acme_service.host,
+    boot_hosts.acme_corporate.host,
+    boot_hosts.acme_staff.host,
+    boot_hosts.sign_service.host,
+    boot_hosts.sign_corporate.host,
+    boot_hosts.sign_staff.host,
+    boot_hosts.core_service.host,
+    boot_hosts.core_corporate.host,
+    boot_hosts.core_staff.host,
+    boot_hosts.help_service.host,
+    boot_hosts.help_corporate.host,
+    boot_hosts.help_staff.host,
   ]
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.

@@ -378,7 +378,6 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "acme oidc logout consumes signed request and completes on acme sign out" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = ClientToken.create!(
@@ -426,8 +425,6 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal host, location.host
     assert_equal "/sign/out", location.path
     assert_equal "ri=jp", location.query
-  ensure
-    OidcLogoutRequest.replay_store = nil
   end
 
   test "acme oauth authorize starts sign in ceremony on unauthenticated requests" do

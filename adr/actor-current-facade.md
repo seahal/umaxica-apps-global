@@ -2,14 +2,13 @@
 
 **Status:** Accepted (2026-05-13)
 
-> **Hydration source supersession (2026-05-30):** 本 ADR 本文は `Actor.preferences`
-> を「検証済みアクセストークンの `prf`
-> クレームから初期化する」と記すが、これは廃止する。`Actor.preferences` は **Preference
-> JWT(`*_preference_access`)の payload**（DB(SSoT) の署名付き射影）から hydrate し、その後有効な
-> `lx`/`ct`/`tz` の request-local overlay を重ねる（overlay は DB/JWT を書かない点は不変）。 `prf`
-> は DB を写しておらず transport として死んでいたため読み取りを停止する（生成撤去は auth 側の別タスク）。言語決定は「明示設定 >
-> `?ri` 由来の動的シード > default」で、明示性は `explicit_fields` マーカーで判定する。詳細は
-> `adr/preference-soft-bubble-doctrine.md` の 2026-05-30 追補を参照。
+> **Hydration source supersession (2026-05-30, updated 2026-06-18):** This ADR's original text says
+> `Actor.preferences` is initialized from the verified auth access-token `prf` claim, but that source
+> is retired. `Actor.preferences` is hydrated from the Preference JWT (`*_preference_access`) payload,
+> the signed projection of the database source of truth, and then valid request-local `lx`, `ct`, and
+> `tz` overlays are applied without writing the database or JWT. The obsolete auth access-token `prf`
+> claim is no longer read and is no longer emitted for newly issued auth access tokens. See the
+> 2026-05-30 update in `adr/preference-soft-bubble-doctrine.md`.
 
 ## Context
 
@@ -57,10 +56,10 @@ second-layer `Actor.preferences` reader. It carries the request's localization a
 preference snapshot, including `language`, `region`, `timezone`, `theme`, `currency`, `date_format`,
 `time_format`, `motion`, `density`, and `items_per_page`.
 
-For normal authenticated requests, `Actor.preferences` is initialized from the verified access-token
-`prf` claim and then rebuilt with a request-local overlay for valid explicit `lx`, `ct`, and `tz`
-parameters. That overlay is part of the current request's effective runtime context only. It must
-not write the database, reissue tokens, or become the next persistent preference snapshot.
+For normal authenticated requests, `Actor.preferences` is initialized from the Preference JWT payload
+and then rebuilt with a request-local overlay for valid explicit `lx`, `ct`, and `tz` parameters.
+That overlay is part of the current request's effective runtime context only. It must not write the
+database, reissue tokens, or become the next persistent preference snapshot.
 
 Updates replace the whole `Actor::Context` snapshot instead of mutating independent current
 attributes in place. Existing `Actor.actor = ...` style writers are compatibility API only; new

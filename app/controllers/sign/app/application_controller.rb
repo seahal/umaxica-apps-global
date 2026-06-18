@@ -112,18 +112,20 @@ module Sign
 
       def oidc_authorization_after_login_path
         challenge = oidc_authorization_login_challenge
-        result =
-          OidcAuthorizationTransactionService.register_result!(
-            surface: "app",
-            login_challenge: challenge,
-            actor: current_resource,
-            session_ref: current_session_public_id,
-            auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
-            acr: Actor.authn.access_claims&.dig("acr"),
-          )
-        result.resume_url
+        register_oidc_authorization_result!(challenge).resume_url
       ensure
         session.delete(:oidc_authorization_login_challenge)
+      end
+
+      def register_oidc_authorization_result!(login_challenge)
+        OidcAuthorizationTransactionService.register_result!(
+          surface: "app",
+          login_challenge: login_challenge,
+          actor: current_resource,
+          session_ref: current_session_public_id,
+          auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
+          acr: Actor.authn.access_claims&.dig("acr"),
+        )
       end
     end
   end

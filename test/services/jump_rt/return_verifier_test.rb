@@ -44,18 +44,30 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     assert_equal "replayed", verify(token).error
   end
 
-  test "one-time jti cache expires no later than token expiration plus leeway" do
+  test "one-time jti record expires no later than token expiration plus leeway" do
     token = sign_return_token(jti: "ttl-jti", rpl: "once", exp: @now.to_i + 10)
 
     assert_predicate verify(token), :success?
 
-    key = "jump_rt:return_jti:#{Digest::SHA256.hexdigest("https://jump.umaxica.net:ttl-jti")}"
-
-    assert Rails.cache.exist?(key)
+    record = SecurityConsumedJti.find_by!(
+      purpose: SecurityConsumedJti::PURPOSES.fetch(:jump_rt_return),
+      issuer: "https://jump.umaxica.net",
+      jti_digest: SecurityConsumedJti.digest_jti("ttl-jti"),
+    )
 
     travel_to(@now + JumpRtReturnVerifier::LEEWAY + 11.seconds) do
-      assert_not Rails.cache.exist?(key)
+      assert_operator record.expires_at, :<, Time.current
     end
+  end
+
+  test "one-time jti replay guard does not write return jti entries to Rails cache" do
+    token = sign_return_token(jti: "db-backed-jti", rpl: "once")
+
+    assert_predicate verify(token), :success?
+
+    cached_keys = Rails.cache.instance_variable_get(:@data).keys
+
+    assert_empty cached_keys.grep(/return_jti/)
   end
 
   test "rejects unknown replay policy" do
@@ -231,7 +243,7 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     assert_equal "invalid_url", verify(token).error
   end
 
-  test "fetch_jwks rescues invalid uri error and re-raises decode error" do
+  test "fetch_jwks rejects invalid jwks origin configuration" do
     verifier = JumpRtReturnVerifier.new(
       token: "dummy",
       request_url: "https://www.umaxica.app/path",
@@ -239,10 +251,13 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
       now: @now,
     )
 
-    with_env("JUMP_GATEWAY_JWKS_URL" => "not a valid url") do
-      error = assert_raises(JWT::DecodeError) { verifier.send(:fetch_jwks) }
+    with_env(
+      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "JUMP_GATEWAY_JWKS_URL" => "not a valid url",
+    ) do
+      error = assert_raises(ArgumentError) { verifier.send(:fetch_jwks) }
 
-      assert_equal "jwks fetch failed", error.message
+      assert_equal "invalid origin", error.message
     end
   end
 

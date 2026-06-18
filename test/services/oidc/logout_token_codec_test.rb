@@ -4,15 +4,6 @@
 require "test_helper"
 
 class OidcLogoutTokenCodecTest < ActiveSupport::TestCase
-  setup do
-    @previous_replay_store = OidcLogoutTokenCodec.replay_store
-    OidcLogoutTokenCodec.replay_store = ActiveSupport::Cache::MemoryStore.new
-  end
-
-  teardown do
-    OidcLogoutTokenCodec.replay_store = @previous_replay_store
-  end
-
   test "encodes and verifies a back-channel logout token" do
     with_oidc_key("ACME_APP") do
       token = OidcLogoutTokenCodec.encode(
@@ -77,6 +68,60 @@ class OidcLogoutTokenCodecTest < ActiveSupport::TestCase
         client_id: "sign-rp",
         resource_type: "client",
       ).success?
+    end
+  end
+
+  test "stores a digest instead of raw logout token jti" do
+    with_oidc_key("ACME_APP") do
+      token = OidcLogoutTokenCodec.encode(
+        client_id: "sign-rp",
+        resource_type: "client",
+        subject: "subject-1",
+        sid: SecureRandom.uuid,
+      )
+
+      result = OidcLogoutTokenCodec.decode(
+        logout_token: token,
+        client_id: "sign-rp",
+        resource_type: "client",
+      )
+
+      record = SecurityConsumedJti.find_by!(
+        purpose: SecurityConsumedJti::PURPOSES.fetch(:oidc_logout_token),
+        issuer: OidcIssuer.for_resource_type("client"),
+        jti_digest: SecurityConsumedJti.digest_jti(result.payload.fetch("jti")),
+      )
+
+      assert_not_equal result.payload.fetch("jti"), record.jti_digest
+      assert_operator record.expires_at, :>, Time.current
+    end
+  end
+
+  test "does not use Rails cache for logout token replay tracking" do
+    with_oidc_key("ACME_APP") do
+      token = OidcLogoutTokenCodec.encode(
+        client_id: "sign-rp",
+        resource_type: "client",
+        subject: "subject-1",
+        sid: SecureRandom.uuid,
+      )
+      cache = Class.new do
+        def exist?(*)
+          raise "Rails.cache must not track logout token replay"
+        end
+
+        def write(*)
+          raise "Rails.cache must not track logout token replay"
+        end
+      end.new
+
+      Rails.stub(:cache, cache) do
+        assert_predicate OidcLogoutTokenCodec.decode(
+          logout_token: token,
+          client_id: "sign-rp",
+          resource_type: "client",
+        ), :success?
+      end
     end
   end
 

@@ -244,10 +244,9 @@ module ActorSupport
   # set_preferences_cookie, which the controller lifecycle runs before
   # set_current_actor (locked by controller_lifecycle_order_invariant_test).
   #
-  # The auth access-token `prf` claim is intentionally no longer read here: it
-  # never mirrored the DB (it was built from the NULL+overlay value), so it was
-  # dead transport. It is left in place as unread data; its removal is a separate
-  # auth-side task.
+  # The obsolete auth access-token `prf` claim is intentionally not read here:
+  # it never mirrored the DB and is no longer emitted for newly issued auth
+  # access tokens.
   #
   # Bearer/OIDC requests and the endpoints that skip set_preferences_cookie carry
   # no Preference JWT cookie, so they fall back to NULL+overlay.

@@ -146,7 +146,6 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "legacy logout_request get renders confirmation and post consumes once" do
-    OidcLogoutRequest.replay_store = ActiveSupport::Cache::MemoryStore.new
     logout_request = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
     get(
@@ -174,8 +173,6 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     )
 
     assert_response :bad_request
-  ensure
-    OidcLogoutRequest.replay_store = nil
   end
 
   private

@@ -14,7 +14,6 @@ module AuthenticationJwtTokens
       resource_type: resource_type,
       dpop_jkt: dpop_jkt,
       expires_at: access_expires_at,
-      preferences: build_auth_preference_snapshot(resource),
       acr: "aal1",
       amr: normalize_amr(token_kind_id),
       jwt_issuer_id: auth_jwt_issuer_id,
@@ -33,7 +32,6 @@ module AuthenticationJwtTokens
       resource_type: resource_type,
       dpop_jkt: token_record_attribute(token_record, :dpop_jkt),
       expires_at: access_expires_at,
-      preferences: build_auth_preference_snapshot(resource),
       acr: "aal1",
       amr: nil,
       jwt_issuer_id: auth_jwt_issuer_id,
@@ -84,20 +82,6 @@ module AuthenticationJwtTokens
     )
   end
 
-  def build_auth_preference_snapshot(resource)
-    pref = resolved_current_preference(resource) if respond_to?(:resolved_current_preference, true)
-    pref ||= Actor.preferences
-    return unless pref && !pref.null?
-
-    {
-      "ver" => Actor::Preference::SCHEMA_VERSION,
-      "lx" => pref.language,
-      "ri" => pref.region,
-      "tz" => pref.timezone,
-      "ct" => pref.theme,
-    }
-  end
-
   def reissue_access_token!
     resource = current_resource
     return unless resource
@@ -115,7 +99,6 @@ module AuthenticationJwtTokens
       resource_type: resource_type,
       dpop_jkt: token_record_attribute(current_session, :dpop_jkt),
       expires_at: access_expires_at,
-      preferences: build_auth_preference_snapshot(resource),
       jwt_issuer_id: auth_jwt_issuer_id,
     )
     return unless new_access_token

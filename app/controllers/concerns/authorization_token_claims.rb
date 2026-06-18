@@ -5,9 +5,8 @@ module AuthorizationTokenClaims
   module_function
 
   def build(resource:, session_id: nil, session_public_id: nil, oidc_sid: nil, oidc_jti: nil, resource_type:,
-            issued_at:, access_token_ttl:, expires_at: nil, preferences: nil, scopes: nil, acr: nil, amr: nil,
-            dpop_jkt: nil, issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil,
-            client_id: nil)
+            issued_at:, access_token_ttl:, expires_at: nil, scopes: nil, acr: nil, amr: nil, dpop_jkt: nil,
+            issuer: nil, audiences: nil, subject: nil, auth_time: nil, step_up_until: nil, client_id: nil)
     sid = oidc_sid.presence || session_public_id || session_id
     issued_at_seconds = timestamp_value(issued_at)
     expires_at_seconds = timestamp_value(expires_at || (issued_at + access_token_ttl))
@@ -31,7 +30,6 @@ module AuthorizationTokenClaims
     payload["auth_time"] = timestamp_value(auth_time) if auth_time.present?
     payload["step_up_until"] = timestamp_value(step_up_until) if step_up_until.present?
     payload["client_id"] = client_id if client_id.present?
-    payload["prf"] = preferences if preferences.is_a?(Hash) && preferences.present?
     payload["cnf"] = { "jkt" => dpop_jkt } if dpop_jkt.present?
     payload
   end
@@ -56,10 +54,6 @@ module AuthorizationTokenClaims
 
   def jti(payload)
     payload&.dig("jti")
-  end
-
-  def preferences(payload)
-    payload&.dig("prf")
   end
 
   def scopes(payload)

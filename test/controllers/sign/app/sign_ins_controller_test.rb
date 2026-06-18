@@ -127,6 +127,36 @@ module Sign
         get sign_app_sign_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
         assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+        assert_nil flash[:alert]
+      end
+
+      test "logged in entry with login challenge resumes acme authorization" do
+        user = clients(:one)
+        issuance =
+          OidcAuthorizationTransactionService.issue!(
+            surface: "app",
+            intent: "sign_in",
+            params: authorize_params,
+          )
+        headers = as_user_headers(user, host: @host)
+
+        get sign_app_sign_in_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+            headers: headers
+
+        assert_response :redirect
+
+        redirect_uri = URI.parse(response.location)
+        redirect_query = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)
+        transaction = issuance.transaction.reload
+
+        assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+        assert_equal "/oauth/authorize", redirect_uri.path
+        assert_equal issuance.transaction.login_challenge, redirect_query["login_challenge"]
+        assert_predicate transaction, :authenticated?
+        assert_equal user.public_id, transaction.actor_ref
+        assert_equal headers.fetch("X-TEST-SESSION-PUBLIC-ID"), transaction.session_ref
+        assert_nil session[:oidc_authorization_login_challenge]
+        assert_nil flash[:alert]
       end
 
       private

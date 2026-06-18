@@ -22,7 +22,7 @@ module SignSocialAuthenticationEndpoint
     state = prepare_social_auth_intent!(
       intent,
       provider: provider,
-      pt: signed_pt_token(resolved_path_or_navigation_target),
+      pt: nil,
       entry: social_auth_entry,
       ri: params[:ri].presence,
     )

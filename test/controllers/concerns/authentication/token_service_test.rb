@@ -99,6 +99,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
 
     assert_predicate payload, :present?
     assert_equal user.id, payload["sub"]
+    assert_nil payload["prf"], "auth access tokens must not carry preference snapshots"
   end
 
   test "encode infers staff resource type" do

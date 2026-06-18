@@ -23,8 +23,8 @@ class AuthenticationBaseTestController < ApplicationController
     enforce_authentication_private! enforce_authentication_guest! resolve_access_policy_for
     refresh_dbsc_allowed? refresh_dbsc_source refresh_binding_source
     token_kind_model set_pending_mfa! pending_mfa pending_mfa_valid? clear_pending_mfa!
-    session_limit_gate_pt session_limit_gate_flow build_auth_preference_snapshot
-    reissue_access_token! log_in populate_current_attributes! path_from_signed_pt signed_pt_token
+    session_limit_gate_pt session_limit_gate_flow reissue_access_token!
+    log_in populate_current_attributes! path_from_signed_pt signed_pt_token
     issue_dbsc_challenge_for! legacy_unbound_refresh_allowed? dbsc_registration_challenge_expired?
     downgrade_pending_dbsc_to_nothing! dbsc_registration_eligible_kind? default_dbsc_token_attributes
     refresh_dpop_allowed? refresh_idle_allowed? handle_refresh_idle_timeout
@@ -838,15 +838,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert ClientTokenStatus.exists?(id: ClientTokenStatus::NOTHING)
   end
 
-  test "preference snapshot and reissue access token cover early returns and success" do
-    pref = Struct.new(:language, :region, :timezone, :theme, :null?).new("ja", "jp", "Asia/Tokyo", "sy", false)
-    Actor.install_context!(preferences: pref)
-
-    assert_equal(
-      { "ver" => Actor::Preference::SCHEMA_VERSION, "lx" => "ja", "ri" => "jp", "tz" => "Asia/Tokyo", "ct" => "sy" },
-      @controller.build_auth_preference_snapshot(@user),
-    )
-
+  test "reissue access token covers early returns and success without preference claim" do
     @controller.define_singleton_method(:current_resource) { nil }
 
     assert_nil @controller.reissue_access_token!
@@ -855,11 +847,8 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:current_resource) { @user }
     @controller.define_singleton_method(:current_session) { session_record }
     @controller.define_singleton_method(:resource_type) { "client" }
-    @controller.define_singleton_method(:resolved_current_preference) { |_| pref }
 
     assert_nil @controller.reissue_access_token!
-  ensure
-    Actor.install_context!(preferences: nil)
   end
 
   test "log_in binds access token to valid DPoP proof" do

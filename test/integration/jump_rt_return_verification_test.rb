@@ -27,15 +27,15 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
 
   test "rails issued rt can round trip through a stubbed jump gateway and return verifier" do
     with_env(
-      "ACME_SERVICE_URL" => "www.app.localhost",
       "ID_SERVICE_URL" => "www.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:active_kid, "acme-app-test") do
         JumpRtKeyring.stub(:private_key, @rails_private_key) do
+          app_origin = acme_app_origin
           rails_rt = JumpRtIssuer.call(
             namespace: "ACME_APP",
-            url: "https://www.app.localhost/",
+            url: "#{app_origin}/",
             dst: "internal",
             now: @now,
             jti: "rails-jti",
@@ -45,40 +45,39 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
           returned_rt = Rack::Utils.parse_nested_query(URI.parse(returned_location).query).fetch("rt")
           prime_jump_jwks_cache
 
-          host! "www.app.localhost"
           https!
-          get "/", params: { rt: returned_rt }
+          get "#{app_origin}/", params: { rt: returned_rt }
         end
       end
     end
 
     assert_response :see_other
-    assert_equal "https://www.app.localhost/", response.location
+    assert_equal "#{acme_app_origin}/", response.location
     assert_match(/no-store/, response.headers.fetch("Cache-Control"))
   end
 
   test "acme app consumes valid jump return rt and strips it from url" do
-    host! "www.app.localhost"
+    app_origin = acme_app_origin
     https!
     token = sign_return_token(
-      aud: "https://www.app.localhost",
+      aud: app_origin,
       src: "https://id.app.localhost",
-      url: "https://www.app.localhost/?ok=1",
+      url: "#{app_origin}/?ok=1",
     )
 
     JumpRtReturnVerifier.stub(:call, verifier_success) do
-      get "/", params: { ok: "1", rt: token }
+      get "#{app_origin}/", params: { ok: "1", rt: token }
     end
 
     assert_response :see_other
-    assert_equal "https://www.app.localhost/?ok=1", response.location
+    assert_equal "#{app_origin}/?ok=1", response.location
   end
 
   test "acme app rejects invalid jump return rt before normal auth flow" do
-    host! "www.app.localhost"
+    app_origin = acme_app_origin
     https!
 
-    get "/", params: { rt: "not-a-jwt" }
+    get "#{app_origin}/", params: { rt: "not-a-jwt" }
 
     assert_response :bad_request
   end
@@ -118,8 +117,8 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   def verifier_success
     lambda do |token:, request_url:, request_base_url:|
       assert_predicate token, :present?
-      assert_equal "https://www.app.localhost/?ok=1&rt=#{token}", request_url
-      assert_equal "https://www.app.localhost", request_base_url
+      assert_equal "#{acme_app_origin}/?ok=1&rt=#{token}", request_url
+      assert_equal acme_app_origin, request_base_url
 
       JumpRtReturnVerifier::Result.new(success: true, payload: {}, error: nil)
     end
@@ -147,10 +146,10 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     assert_equal 1, payload.fetch("schema")
     assert_equal "jump-redirect", payload.fetch("sub")
     assert_equal "internal", payload.fetch("dst")
-    assert_equal "https://www.app.localhost/", payload.fetch("url")
+    assert_equal "#{acme_app_origin}/", payload.fetch("url")
 
     return_rt = sign_return_token(
-      aud: "https://www.app.localhost",
+      aud: acme_app_origin,
       src: payload.fetch("iss"),
       url: payload.fetch("url"),
       jti: "jump-jti",
@@ -158,7 +157,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       nbf: @now.to_i,
       exp: @now.to_i + 60,
     )
-    "https://www.app.localhost/?#{Rack::Utils.build_query(rt: return_rt)}"
+    "#{acme_app_origin}/?#{Rack::Utils.build_query(rt: return_rt)}"
   end
 
   def prime_jump_jwks_cache
@@ -184,6 +183,10 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     }.merge(overrides)
 
     JWT.encode(payload, @jump_private_key, "ES384", { typ: "JWT", kid: "jump-test" })
+  end
+
+  def acme_app_origin
+    "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}"
   end
 
   def with_env(values)
