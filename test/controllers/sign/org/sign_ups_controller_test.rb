@@ -129,12 +129,13 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "rejects when logged in" do
+  test "rejects direct entry when logged in" do
     staff = operators(:one)
 
     get sign_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_response :forbidden
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   private

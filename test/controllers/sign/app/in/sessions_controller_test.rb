@@ -559,7 +559,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    get acme_app_settings_url(ri: "jp", host: acme_host), headers: headers
+    get acme_app_dashboard_url(ri: "jp", host: acme_host), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

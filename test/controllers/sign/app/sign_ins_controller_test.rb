@@ -121,13 +121,13 @@ module Sign
                       count: 1
       end
 
-      test "redirects to dashboard when logged in" do
+      test "rejects direct entry when logged in" do
         user = clients(:one)
 
         get sign_app_sign_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
-        assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
-        assert_nil flash[:alert]
+        assert_response :forbidden
+        assert_equal I18n.t("errors.messages.already_authenticated"), response.body
       end
 
       test "logged in entry with login challenge resumes acme authorization" do

@@ -62,6 +62,11 @@ step-up gate owns challenge issuance, redirect, return target validation, contin
 ticket/session mutation. Controller/action metadata may exist for route inventory and CI assertions,
 but runtime must not use it as a second source of truth for step-up requirements.
 
+Rails owns application-semantic rate limiting, not network-layer firewalling or generic HTTP abuse
+controls. Public HTTP flood mitigation, path-based coarse limits, bot filtering, and viewer-IP
+allow/deny belong to CloudFront + AWS WAF. ALB and ECS networking own origin gating. See
+`adr/dos-and-firewall-controls-at-cdn-aws-edge-not-in-rails.md`.
+
 ### Legacy Compatibility Controllers
 
 `OpenController`, `PrivateController`, and `GuestController` may exist temporarily as compatibility

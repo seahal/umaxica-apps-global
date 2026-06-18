@@ -1,6 +1,6 @@
 <%
   default_host = ENV.fetch("POSTGRESQL_HOST", "localhost")
-  test_host = ENV.fetch("POSTGRESQL_TEST_HOST", default_host)
+  test_host = ENV.fetch("POSTGRESQL_TEST_HOST", "127.0.0.1")
 %>
 default: &default
   adapter: postgresql
@@ -368,13 +368,13 @@ test:
   com_setting:
     !!merge <<: *test_default
     database: test_com_setting_db
-    host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || test_host %>
+    host: <%= test_host %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   com_setting_replica:
     !!merge <<: *test_default
     database: test_com_setting_replica_db
-    host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || test_host %>
+    host: <%= test_host %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   search:

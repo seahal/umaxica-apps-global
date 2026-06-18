@@ -20,7 +20,7 @@
                     data: { turbo_confirm: t("sign.app.settings.telephone.index.delete_confirm") } %>
     </div>
     <div>
-      <%= link_to t("sign.app.common.cancel"), acme_com_settings_telephones_path(ri: params[:ri]) %>
+      <%= link_to t("sign.app.common.cancel"), acme_com_settings_telephones_url(ri: params[:ri], host: acme_authority_host) %>
     </div>
   </div>
 </div>

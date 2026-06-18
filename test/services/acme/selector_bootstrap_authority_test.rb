@@ -10,13 +10,14 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
 
   test "app bootstrap creates account organization membership and avatar idempotently" do
     user = create_client!
+    result = nil
 
     assert_difference -> { ClientAccount.count }, 1 do
       assert_difference -> { ClientIdentity.count }, 1 do
         assert_difference -> { Persona.count }, 1 do
           assert_difference -> { Enterprise.count }, 1 do
             assert_difference -> { Avatar.count }, 1 do
-              AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
+              result = AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
             end
           end
         end
@@ -27,21 +28,27 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
       AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
     end
     assert_equal 1, Persona.first.current_memberships.count
+    assert_predicate result.avatar, :present?
   end
 
   test "com and org bootstrap do not create app avatars" do
     visitor = create_visitor!
     operator = create_operator!
 
+    com_result = nil
+    org_result = nil
+
     assert_no_difference -> { Avatar.count } do
-      AcmeSelectorBootstrapAuthority.call(surface: :com, principal: visitor)
-      AcmeSelectorBootstrapAuthority.call(surface: :org, principal: operator)
+      com_result = AcmeSelectorBootstrapAuthority.call(surface: :com, principal: visitor)
+      org_result = AcmeSelectorBootstrapAuthority.call(surface: :org, principal: operator)
     end
 
     assert_equal 1, VisitorAccount.where(visitor_id: visitor.id).count
     assert_equal 1, OperatorAccount.where(staff_id: operator.id).count
     assert_equal 1, Individual.count
     assert_equal 1, Agent.count
+    assert_nil com_result.avatar
+    assert_nil org_result.avatar
   end
 
   test "rolls back zenith rows when account creation fails after identity creation" do

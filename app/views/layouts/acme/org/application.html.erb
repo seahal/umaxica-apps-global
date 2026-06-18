@@ -25,7 +25,6 @@
     <% unless logged_in? %>
       <%= link_to "#{t('sign.org.layout.nav.sign_up')} / #{t('sign.org.layout.nav.log_in')}", acme_org_auth_authorization_path %>
     <% else %>
-      <%= link_to t("sign.org.layout.nav.settings"), acme_org_settings_url(host: ENV.fetch('ACME_STAFF_URL', 'org.localhost')) %>
       <%= button_to t("sign.org.layout.nav.logout"), acme_org_auth_logout_path, method: :post %>
     <% end %>
   </nav>

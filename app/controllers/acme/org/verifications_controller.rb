@@ -33,7 +33,7 @@ module Acme
           surface: "org",
           actor: current_operator,
           token: current_session_token,
-          fallback: acme_org_settings_path(ri: params[:ri]),
+          fallback: acme_org_dashboard_path(ri: params[:ri]),
         )
       end
 

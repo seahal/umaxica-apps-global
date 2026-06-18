@@ -39,6 +39,7 @@ module Sign
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_operator, :logged_in?, :active_operator?, :logged_in_operator?
+      helper_method :acme_authority_host
 
       # Restricted session guard - explicitly enabled to block restricted sessions
       # from accessing routes other than /in/session
@@ -74,13 +75,17 @@ module Sign
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
+      def acme_authority_host
+        oidc_acme_host
+      end
+
       private
 
       # Post-session landing belongs to acme/www.
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        acme_org_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+        acme_org_dashboard_url(ri: params[:ri], host: acme_authority_host)
       end
 
       def after_login_allows_other_host?

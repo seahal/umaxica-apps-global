@@ -16,5 +16,6 @@ Rails.application.config.session_store(
   secure: force_secure,
   httponly: true,
   same_site: :lax,
+  domain: ->(request) { CoreCookieDomain.for(surface: :app, request_host: request.host) },
   partitioned: JitSessionCookieConfig.partitioned?,
 )

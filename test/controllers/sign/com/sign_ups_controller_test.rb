@@ -53,7 +53,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action*=?]", "/auth/google", count: 0
   end
 
-  test "rejects when logged in" do
+  test "rejects direct entry when logged in" do
     visitor = create_verified_visitor_with_email(email_address: "com-up-logged-in@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002224",
@@ -62,7 +62,8 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get sign_com_sign_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+    assert_response :forbidden
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   test "sign up entry renders without an active registration" do

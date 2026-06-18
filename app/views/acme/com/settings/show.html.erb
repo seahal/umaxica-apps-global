@@ -29,7 +29,7 @@
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), edit_acme_com_sign_out_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), acme_com_sign_out_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.app.settings.show.withdrawal"), new_acme_com_settings_withdrawal_path %></li>
   </ul>
 </section>

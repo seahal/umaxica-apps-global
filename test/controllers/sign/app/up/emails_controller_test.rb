@@ -33,6 +33,13 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"
   end
 
+  test "direct email entry route renders the sign up form" do
+    get "/sign/up/email?ri=jp", headers: default_headers
+
+    assert_response :success
+    assert_select "form"
+  end
+
   test "collection get is not routed" do
     get sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
 

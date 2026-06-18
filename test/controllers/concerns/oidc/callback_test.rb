@@ -38,6 +38,10 @@ class OidcCallbackTestController < ApplicationController
     "client"
   end
 
+  def sign_in_url_with_pt(_return_to)
+    "https://id.app.localhost/sign/in"
+  end
+
   def provision_rp_account_from_id_token!(payload)
     Struct.new(:id).new(payload.fetch("sub"))
   end
@@ -91,7 +95,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/after"
   end
 
-  test "show redirects to root on failed exchange" do
+  test "show redirects to sign in on failed exchange" do
     get "/oidc/callback/session", params: { code_verifier: "verifier", state: "state" }
 
     result = Result.new(
@@ -114,7 +118,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to "/"
+    assert_redirected_to "https://id.app.localhost/sign/in"
     assert_equal 1, logged.count { |entry| entry[:event] == "oidc.rp.callback.failed" }
   end
 

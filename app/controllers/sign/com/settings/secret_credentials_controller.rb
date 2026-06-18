@@ -149,7 +149,7 @@ module Sign
 
         # Compatibility entry only. sign/id owns account-facing secret credential lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_sign_authority!(acme_settings_authority_path, query: request.query_parameters)
+          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
         end
 
         def acme_settings_authority_path

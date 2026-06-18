@@ -33,7 +33,7 @@ module Acme
           surface: "app",
           actor: current_client,
           token: current_session_token,
-          fallback: acme_app_settings_path(ri: params[:ri]),
+          fallback: acme_app_dashboard_path(ri: params[:ri]),
         )
       end
 

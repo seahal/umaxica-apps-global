@@ -10,6 +10,7 @@ module Sign
         skip_before_action :set_region, raise: false
 
         def show
+          return reject_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
           return normalize_to_acme_authorize! if params[:login_challenge].blank?
 
           transaction =
@@ -32,6 +33,10 @@ module Sign
         end
 
         private
+
+        def reject_logged_in_direct_entry!
+          render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden
+        end
 
         def normalize_to_acme_authorize!
           url = initiate_oidc_session!(pt: sign_app_root_path(ri: params[:ri]), screen_hint: "signup")

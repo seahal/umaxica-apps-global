@@ -33,7 +33,7 @@ module Acme
           surface: "com",
           actor: current_visitor,
           token: current_session_token,
-          fallback: acme_com_settings_path(ri: params[:ri]),
+          fallback: acme_com_dashboard_path(ri: params[:ri]),
         )
       end
 

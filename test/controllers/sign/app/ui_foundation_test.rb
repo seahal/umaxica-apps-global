@@ -37,8 +37,6 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "PageHeader on sub-pages points back to settings" do
     sign_head = as_user_headers(@user, host: @host)
     pages = [
-      [sign_app_settings_totps_url(ri: "jp", host: @sign_host),
-       acme_session_headers(scope: "settings_totp", host: @sign_host),],
       [sign_app_settings_passkeys_url(ri: "jp", host: @sign_host),
        acme_session_headers(scope: "settings_passkey", host: @sign_host),],
       [
@@ -50,9 +48,18 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     ]
 
     Prosopite.pause do
+      get sign_app_settings_totps_url(ri: "jp", host: @sign_host),
+          headers: acme_session_headers(scope: "settings_totp", host: @sign_host)
+
+      assert_response :see_other
+      location = URI.parse(response.location)
+
+      assert_equal @acme_host, location.host
+      assert_equal "/settings/totps", location.path
+
       pages.each do |path, head|
         get path, headers: head
-        follow_redirect!(headers: head) if response.redirect?
+        follow_cross_host_redirect!(head) if response.redirect?
 
         assert_response :success, "Failed to load #{path}"
       end
@@ -62,7 +69,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "acme-owned authority pages redirect to acme instead of rendering sign UI" do
     head = as_user_headers(@user, host: @host)
     authority_pages = {
-      acme_app_sign_settings_sessions_path(ri: "jp") => "/sign/settings/sessions",
+      sign_app_settings_sessions_url(ri: "jp", host: @sign_host) => "/sign/settings/sessions",
     }
 
     authority_pages.each do |path, expected_path|
@@ -122,5 +129,12 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
+  end
+
+  def follow_cross_host_redirect!(headers)
+    location = URI.parse(response.location)
+    follow_redirect!(
+      headers: headers.merge("Host" => location.host),
+    )
   end
 end

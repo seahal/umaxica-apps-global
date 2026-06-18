@@ -38,8 +38,10 @@ scope module: :sign, as: :sign do
       namespace :sign do
         resource :up, only: :show
         resource :in, only: :show
-        resource :out, only: :show
       end
+
+      # Canonical signed-out confirmation and cleanup flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # OIDC back-channel receiver.
       scope module: :oidc, path: "oidc" do
@@ -83,6 +85,7 @@ scope module: :sign, as: :sign do
       namespace :sign do
         # Sign-up ceremony.
         namespace :up do
+          get :email, to: "emails#new", as: nil
           resource :email, only: %i(new create)
           resource :telephone, only: %i(new create)
 

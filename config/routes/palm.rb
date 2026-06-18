@@ -36,6 +36,9 @@ scope module: :palm, as: :palm do
         resource :authorization, only: :show, path: ""
       end
 
+      # Native sign-out notice; does not clear bearer tokens from the browser.
+      resource :sign_out, only: %i(show create), path: "sign/out"
+
       # Browser CSP report sink.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 

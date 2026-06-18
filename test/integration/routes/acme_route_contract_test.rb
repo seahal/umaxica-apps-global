@@ -94,8 +94,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/auth/logouts", action: "create" },
-      { path: "http://#{ACME_APP_HOST}/auth/logout", method: :post },
+      { controller: "acme/app/sign/outs", action: "show" },
+      { path: "http://#{ACME_APP_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/outs", action: "create" },
+      { path: "http://#{ACME_APP_HOST}/sign/out", method: :post },
     )
 
     assert_raises(ActionController::RoutingError) do
@@ -388,8 +393,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/auth/logouts", action: "create" },
-      { path: "http://#{ACME_COM_HOST}/auth/logout", method: :post },
+      { controller: "acme/com/sign/outs", action: "show" },
+      { path: "http://#{ACME_COM_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/com/sign/outs", action: "create" },
+      { path: "http://#{ACME_COM_HOST}/sign/out", method: :post },
     )
 
     [
@@ -568,8 +578,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/org/auth/logouts", action: "create" },
-      { path: "http://#{ACME_ORG_HOST}/auth/logout", method: :post },
+      { controller: "acme/org/sign/outs", action: "show" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/sign/outs", action: "create" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :post },
     )
   end
 

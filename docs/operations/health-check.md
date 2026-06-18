@@ -73,6 +73,13 @@ probe configuration must point at the `liveness` / `readiness` paths.
 All probe responses must avoid exposing internal topology, exception details, credentials, or full
 dependency names. See `docs/reference/health-endpoints.md` for the JSON contract.
 
+## Related Edge And Firewall Boundary
+
+Do not use Rails, Nginx, or task-local firewall rules as the primary control for public abuse
+traffic. Public HTTP DoS and generic abuse controls are expected to live at CloudFront + AWS WAF,
+with the ALB acting as an origin gate and ECS tasks accepting traffic only from the ALB security
+group. See `adr/dos-and-firewall-controls-at-cdn-aws-edge-not-in-rails.md`.
+
 ## Related
 
 - `app/controllers/concerns/health_check_rendering.rb`

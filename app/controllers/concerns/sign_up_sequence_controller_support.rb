@@ -254,6 +254,17 @@ module SignUpSequenceControllerSupport
     return render_sign_up_finalization_forbidden(json: json) unless
       allowed_to?(:finalize?, context, with: SignUp::FinalizationPolicy)
 
+    # This is the shared sign-up completion boundary for all surfaces.
+    #
+    # Surface matrix:
+    # - app: email, google, apple, telephone
+    # - com: email, telephone
+    # - org: not routed through this sign-up finalize path
+    #
+    # The surface-specific credential work happens before this method
+    # returns, inside `finalize_sign_up_side_effect!`. After that, the
+    # durable identity graph is provisioned, then the actor is handed off
+    # to the sign-in boundary.
     finalized = nil
     handoff = nil
     sign_in_result = nil
@@ -485,6 +496,9 @@ module SignUpSequenceControllerSupport
     actor = sign_up_pending_actor
     return :failed unless actor
 
+    # The ticket type decides which surface finalizer to run.
+    # App and com share the same finalize boundary, but they differ in
+    # which contact types are accepted and what credential work is needed.
     case @sign_up_ticket
     when ClientSignUpFlow
       finalize_app_sign_up_actor!(actor)
@@ -498,11 +512,15 @@ module SignUpSequenceControllerSupport
   def finalize_app_sign_up_actor!(actor)
     case @sign_up_ticket.pending_contact_type
     when "telephone"
+      # Telephone sign-up keeps the contact proof and active passcode/passkey
+      # work in the dedicated finalizer because it has extra credential rules.
       telephone = ClientTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
       return :failed unless telephone
 
       SignAppUpTelephoneRegistrationFinalizer.call(telephone: telephone)
     when "email", "social_identity"
+      # Email and social sign-up only need the actor promoted into the
+      # verified-with-sign-up state before the durable graph is provisioned.
       Client.transaction do
         actor.update!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP) if
           actor.status_id == ClientStatus::UNVERIFIED_WITH_SIGN_UP
@@ -520,6 +538,8 @@ module SignUpSequenceControllerSupport
   def finalize_com_sign_up_actor!(_actor)
     case @sign_up_ticket.pending_contact_type
     when "telephone"
+      # Com sign-up has its own telephone finalizer because the checkpoint
+      # requirements are different from app, but the graph handoff is shared.
       telephone = VisitorTelephone.find_by(id: @sign_up_ticket.pending_contact_id)
       return :failed unless telephone
 
@@ -551,6 +571,8 @@ module SignUpSequenceControllerSupport
   end
 
   def sign_up_auth_method
+    # The sign-in handoff only needs a coarse auth-method label; the
+    # specific entry method stays recorded on the sign-up ticket.
     case @sign_up_ticket.entry_method
     when "google", "apple"
       "social"

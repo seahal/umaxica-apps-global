@@ -43,16 +43,40 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
 
   private
 
-  HostSet = Struct.new(:sign_service, :sign_corporate, :sign_staff)
-  BootConfig = Struct.new(:hosts)
+  class BootConfig
+    def initialize(hosts)
+      @hosts = hosts
+    end
+
+    def fetch(key)
+      return @hosts if key == :hosts
+
+      raise KeyError, key.to_s
+    end
+  end
 
   def with_boot_config(sign_service_host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
                        sign_corporate_host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
                        sign_staff_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
-    hosts = HostSet.new(
-      OpenStruct.new(host: sign_service_host),
-      OpenStruct.new(host: sign_corporate_host),
-      OpenStruct.new(host: sign_staff_host),
+    hosts = OpenStruct.new(
+      acme_service: OpenStruct.new(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+      acme_corporate: OpenStruct.new(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
+      acme_staff: OpenStruct.new(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+      sign_service: OpenStruct.new(host: sign_service_host),
+      sign_corporate: OpenStruct.new(host: sign_corporate_host),
+      sign_staff: OpenStruct.new(host: sign_staff_host),
+      core_service: OpenStruct.new(host: ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app")),
+      core_corporate: OpenStruct.new(host: ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com")),
+      core_staff: OpenStruct.new(host: ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org")),
+      base_service: OpenStruct.new(host: ENV.fetch("BASE_SERVICE_URL", "base-jp.umaxica.app")),
+      base_corporate: OpenStruct.new(host: ENV.fetch("BASE_CORPORATE_URL", "base-jp.umaxica.com")),
+      base_staff: OpenStruct.new(host: ENV.fetch("BASE_STAFF_URL", "base-jp.umaxica.org")),
+      palm_service: OpenStruct.new(host: ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")),
+      palm_corporate: OpenStruct.new(host: ENV.fetch("PALM_CORPORATE_URL", "palm-jp.umaxica.com")),
+      palm_staff: OpenStruct.new(host: ENV.fetch("PALM_STAFF_URL", "palm-jp.umaxica.org")),
+      help_service: OpenStruct.new(host: ENV.fetch("HELP_SERVICE_URL", "help.app.localhost")),
+      help_corporate: OpenStruct.new(host: ENV.fetch("HELP_CORPORATE_URL", "help.com.localhost")),
+      help_staff: OpenStruct.new(host: ENV.fetch("HELP_STAFF_URL", "help.org.localhost")),
     )
 
     Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do

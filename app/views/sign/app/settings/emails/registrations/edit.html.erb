@@ -6,6 +6,7 @@
   <%= render "sign/app/emails/registrations/verification_fields", form: f, user_email: @user_email, verification_token: @verification_token %>
 <% end %>
 
+<% acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") %>
 <div>
   <%= button_to t("otp.resend.button"),
                 sign_app_settings_emails_registration_redelivery_path(ri: params[:ri], pt: signed_pt_param),
@@ -13,5 +14,5 @@
 </div>
 
 <div>
-  <%= link_to t("sign.app.common.cancel"), acme_app_settings_emails_path(ri: params[:ri]) %>
+  <%= link_to t("sign.app.common.cancel"), "https://#{acme_host}/settings/emails?ri=#{params[:ri]}" %>
 </div>

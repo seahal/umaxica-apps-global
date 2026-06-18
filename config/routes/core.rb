@@ -73,6 +73,9 @@ scope module: :core, as: :core do
         resource :logout, only: :create
       end
 
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
+
       # OIDC back-channel receiver.
       namespace :oidc do
         namespace :backchannel do
@@ -151,6 +154,9 @@ scope module: :core, as: :core do
         # RP local logout: destroys only the local session.
         resource :logout, only: :create
       end
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # OIDC back-channel receiver.
       namespace :oidc do
@@ -233,6 +239,9 @@ scope module: :core, as: :core do
         # RP local logout: destroys only the local session.
         resource :logout, only: :create
       end
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # OIDC back-channel receiver.
       namespace :oidc do

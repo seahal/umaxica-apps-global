@@ -20,10 +20,16 @@ module RateLimit
     response.headers["X-RateLimit-Rule"] = rule_name.to_s
     response.headers["Retry-After"] = retry_after_seconds.to_s
 
-    render json: {
+    payload = {
       error: "rate_limited",
       rule: rule_name.to_s,
       message: I18n.t("errors.rate_limit.exceeded"),
-    }, status: :too_many_requests
+      retry_after: retry_after_seconds,
+    }
+
+    respond_to do |format|
+      format.json { render json: payload, status: :too_many_requests }
+      format.html { render plain: payload.fetch(:message), status: :too_many_requests }
+    end
   end
 end

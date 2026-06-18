@@ -1,7 +1,35 @@
 <% surface = controller_path.split("/").second %>
-<% settings_path = public_send("acme_#{surface}_settings_path", ri: params[:ri]) %>
+<% root_path = public_send("acme_#{surface}_root_path", ri: params[:ri]) %>
+<% selector_path = public_send("acme_#{surface}_selector_path", ri: params[:ri]) %>
+<% dashboard_path = public_send("acme_#{surface}_dashboard_path", ri: params[:ri]) %>
+<% sign_out_confirmation_path = public_send("acme_#{surface}_sign_out_path", ri: params[:ri]) %>
+<% authorization_sign_in_path = public_send("acme_#{surface}_auth_authorization_path", ri: params[:ri], screen_hint: "signin") %>
+<% authorization_sign_up_path = public_send("acme_#{surface}_auth_authorization_path", ri: params[:ri], screen_hint: "signup") %>
+<% oauth_discovery_path = public_send("acme_#{surface}_well_known_discovery_path") %>
+<% oauth_jwks_path = public_send("acme_#{surface}_well_known_jwks_path") %>
+<% oauth_userinfo_path = public_send("acme_#{surface}_oauth_userinfo_path") %>
 
 <h1><%= title "Dashboard" %></h1>
 
 <p>Signed in</p>
-<p><%= link_to "Settings", settings_path %></p>
+
+<section>
+  <h2>Primary links</h2>
+  <ul>
+    <li><%= link_to "Root", root_path %></li>
+    <li><%= link_to "Dashboard", dashboard_path %></li>
+    <li><%= link_to "Selector", selector_path %></li>
+    <li><%= link_to "Logout", sign_out_confirmation_path %></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Protocol links</h2>
+  <ul>
+    <li><%= link_to "Authorize (sign in)", authorization_sign_in_path %></li>
+    <li><%= link_to "Authorize (sign up)", authorization_sign_up_path %></li>
+    <li><%= link_to "OIDC discovery", oauth_discovery_path %></li>
+    <li><%= link_to "JWKS", oauth_jwks_path %></li>
+    <li><%= link_to "UserInfo", oauth_userinfo_path %></li>
+  </ul>
+</section>

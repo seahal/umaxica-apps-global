@@ -15,5 +15,5 @@
 
 <div>
   <%= link_to t("sign.common.cancel"),
-              acme_org_settings_telephones_path(ri: params[:ri]) %>
+              acme_org_settings_telephones_url(ri: params[:ri], host: acme_authority_host) %>
 </div>

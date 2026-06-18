@@ -1,0 +1,11 @@
+<% content_for :page_title, t("sign.shared.sign_out.title") %>
+
+<div>
+  <h1><%= title t("sign.shared.sign_out.title") %></h1>
+  <p><%= t("sign.shared.sign_out.confirm_description") %></p>
+  <%= button_to t("sign.shared.sign_out.button"),
+                base_org_sign_out_path,
+                method: :post,
+                form: { data: { turbo: false } } %>
+  <p><%= link_to t("sign.shared.sign_out.home_link"), base_org_root_path %></p>
+</div>

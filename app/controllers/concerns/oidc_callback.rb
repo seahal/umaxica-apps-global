@@ -87,7 +87,7 @@ module OidcCallback
       ),
     )
     clear_oidc_session_state!
-    redirect_to("/", alert: I18n.t("errors.messages.login_required"), allow_other_host: false)
+    redirect_to(sign_in_url_with_pt(nil), alert: I18n.t("errors.messages.login_required"), allow_other_host: true)
   end
 
   def clear_oidc_session_state!

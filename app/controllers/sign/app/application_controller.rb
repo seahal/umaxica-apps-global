@@ -43,6 +43,7 @@ module Sign
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
+      helper_method :acme_authority_host
 
       # NOTE: Order matters (dependencies rely on this sequence)
       # Surface-wide default web request limit (defense-in-depth baseline).
@@ -83,7 +84,7 @@ module Sign
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+        acme_app_dashboard_url(ri: params[:ri], host: acme_authority_host)
       end
 
       def after_login_allows_other_host?
@@ -126,6 +127,10 @@ module Sign
           auth_method: Array(Actor.authn.access_claims&.dig("amr")).first || "unknown",
           acr: Actor.authn.access_claims&.dig("acr"),
         )
+      end
+
+      def acme_authority_host
+        oidc_acme_host
       end
     end
   end

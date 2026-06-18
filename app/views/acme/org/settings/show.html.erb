@@ -28,7 +28,7 @@
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), edit_acme_org_sign_out_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), acme_org_sign_out_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.org.settings.show.withdrawal"), acme_org_settings_withdrawal_path %></li>
     <li>
       <%# Operator lifecycle requests remain out of scope for this settings shell cleanup. %>

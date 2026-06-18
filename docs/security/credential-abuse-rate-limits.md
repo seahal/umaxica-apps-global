@@ -7,6 +7,11 @@ limits across the `app`, `com`, and `org` surfaces.
 Current implementation values remain the source of truth for each specific operation until a rule is
 documented here and backed by implementation.
 
+This document covers Rails semantic rate limits and related application-aware rejection logic. It
+does not define CloudFront, AWS WAF, ALB, security-group, or task-local firewall policy. Those
+network and edge controls are owned by the CDN / AWS edge boundary described in
+`adr/dos-and-firewall-controls-at-cdn-aws-edge-not-in-rails.md`.
+
 ## Standard Time Windows
 
 Rate-limit policy tables use these time windows:

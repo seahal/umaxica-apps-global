@@ -34,6 +34,9 @@ scope module: :base, as: :base do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
+
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :auth do
         resource :authorization, only: :show, path: ""
@@ -75,6 +78,9 @@ scope module: :base, as: :base do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
+
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :auth do
         resource :authorization, only: :show, path: ""
@@ -115,6 +121,9 @@ scope module: :base, as: :base do
 
       # Control-plane settings index.
       resource :settings, only: :show
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :auth do

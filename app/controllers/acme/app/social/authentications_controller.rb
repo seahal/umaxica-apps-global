@@ -116,6 +116,9 @@ module Acme
         end
 
         def complete_social_login!(commit, provider)
+          # Social login reuses the same graph-provisioning boundary as
+          # sign-up finalization. The final durable state is still written
+          # through the app-side selector bootstrap after provider proof.
           IdentityGraphProvisioner.call!(surface: :app, principal: commit.user)
           result = establish_signed_in_session!(
             commit.user,
@@ -183,6 +186,9 @@ module Acme
         end
 
         def complete_acme_social_signup_flow!(commit, sign_in_result)
+          # Unknown social identities enter the sign-up cycle first, then
+          # reuse the shared finalize/handoff/complete path once the
+          # callback has been bound to the pending ticket.
           flow_id = commit.result["actor_ref"].to_s
           return if flow_id.blank?
 
@@ -226,6 +232,9 @@ module Acme
         end
 
         def create_social_sign_up_flow!(commit)
+          # The callback only creates the pending sign-up ticket here; the
+          # durable identity graph is still created later by the shared
+          # sign-up finalize boundary.
           AppTicketRecord.connected_to(role: :writing) do
             ClientSignUpFlowStatus.ensure_defaults!
             ClientSignUpFlow.create!(

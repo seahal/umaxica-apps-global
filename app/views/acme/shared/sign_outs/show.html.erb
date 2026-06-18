@@ -1,12 +1,15 @@
 <% surface = controller_path.split("/").second %>
 <% root_path = public_send("acme_#{surface}_root_path", ri: params[:ri]) %>
 
-<% content_for :page_title, t("sign.shared.sign_out.completed_title") %>
+<% surface = controller_path.split("/").second %>
+<% content_for :page_title, t("sign.shared.sign_out.title") %>
 
 <div>
-  <h1><%= title t("sign.shared.sign_out.completed_title") %></h1>
-  <% if (description = sign_out_completed_description).present? %>
-    <p><%= description %></p>
-  <% end %>
+  <h1><%= title t("sign.shared.sign_out.title") %></h1>
+  <p><%= t("sign.shared.sign_out.confirm_description") %></p>
+  <%= button_to t("sign.shared.sign_out.button"),
+                public_send("acme_#{surface}_sign_out_path", ri: params[:ri]),
+                method: :post,
+                form: { data: { turbo: false } } %>
   <p><%= link_to t("sign.shared.sign_out.home_link"), root_path %></p>
 </div>

@@ -20,7 +20,7 @@
     <% end %>
 
     <div>
-      <%= link_to acme_org_root_path do %>
+      <%= link_to acme_org_root_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")) do %>
         <span><%= t("sign.org.authentication.new.back_to_root") %></span>
       <% end %>
     </div>

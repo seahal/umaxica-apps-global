@@ -154,10 +154,8 @@ scope module: :acme, as: :acme do
         resource :jwks, only: :show
       end
 
-      # Sign-out bridge to credential gateway.
-      namespace :sign do
-        resource :out, only: %i(show edit create destroy)
-      end
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # Current identity entrypoint.
       resource :identity, only: :show
@@ -177,8 +175,6 @@ scope module: :acme, as: :acme do
       end
 
       # Account and credential settings.
-      # TODO: wtf???
-      resource :settings, only: :show
       namespace :sign do
         namespace :settings do
           resources :sessions, only: %i(index destroy) do
@@ -330,10 +326,8 @@ scope module: :acme, as: :acme do
         resource :jwks, only: :show
       end
 
-      # Sign-out bridge to credential gateway.
-      namespace :sign do
-        resource :out, only: %i(show edit create destroy)
-      end
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # Current identity entrypoint.
       resource :identity, only: :show
@@ -351,8 +345,6 @@ scope module: :acme, as: :acme do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
 
-      # Account and credential settings.
-      resource :settings, only: :show
       namespace :sign do
         namespace :settings do
           resources :sessions, only: %i(index destroy) do
@@ -549,10 +541,8 @@ scope module: :acme, as: :acme do
         resource :jwks, only: :show
       end
 
-      # Sign-out bridge to credential gateway.
-      namespace :sign do
-        resource :out, only: %i(show edit create destroy)
-      end
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
 
       # Current identity entrypoint.
       resource :identity, only: :show
@@ -571,8 +561,6 @@ scope module: :acme, as: :acme do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
 
-      # Account and credential settings.
-      resource :settings, only: :show
       namespace :sign do
         namespace :settings do
           resources :sessions, only: %i(index destroy) do

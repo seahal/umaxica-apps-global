@@ -29,15 +29,13 @@ class AcmeSelectorBootstrapAuthority
         collective = ensure_collective_for(account)
         unit = ensure_root_unit!(collective)
         ensure_membership!(account: account, collective: collective, unit: unit)
+        avatar = provision_avatar!(account: account, collective: collective)
 
         bootstrap_result = BootstrapResult.new(
           rp_account: rp_account, identity: identity, account: account,
-          collective: collective, unit: unit,
+          collective: collective, unit: unit, avatar: avatar,
         )
       end
-
-      ensure_avatar!(account: bootstrap_result.account, collective: bootstrap_result.collective) if
-        config.requires_avatar
 
       bootstrap_result
     end
@@ -47,7 +45,7 @@ class AcmeSelectorBootstrapAuthority
 
   attr_reader :config, :principal
 
-  BootstrapResult = Data.define(:rp_account, :identity, :account, :collective, :unit)
+  BootstrapResult = Data.define(:rp_account, :identity, :account, :collective, :unit, :avatar)
 
   def with_writing_connections(&block)
     connection_owners.reduce(block) do |inner, owner|
@@ -138,7 +136,11 @@ class AcmeSelectorBootstrapAuthority
     account.memberships.current.primary_first.first || raise
   end
 
-  def ensure_avatar!(account:, collective:)
+  def provision_avatar!(account:, collective:)
+    # The avatar hook is always part of the surface bootstrap interface.
+    # App persists an avatar; com/org traverse the same hook and return nil.
+    return nil unless config.requires_avatar
+
     return if AvatarAssignment.exists?(user_id: principal.id, role: "owner")
 
     handle = create_unique(

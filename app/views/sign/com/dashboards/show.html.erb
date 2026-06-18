@@ -1,4 +1,25 @@
 <h1><%= title "Dashboard" %></h1>
 
-<p>Signed in</p>
-<p><%= link_to "Settings", sign_com_settings_path(ri: params[:ri]) %></p>
+<p>Sign com signed-in landing.</p>
+
+<section>
+  <h2>Primary links</h2>
+  <ul>
+    <li><%= link_to "Root", sign_com_root_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Sign in", sign_com_sign_in_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Sign up", sign_com_sign_up_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Settings", sign_com_settings_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Logout", sign_com_sign_out_path(ri: params[:ri]) %></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Ceremony links</h2>
+  <ul>
+    <li><%= link_to "Sign-in guard", sign_com_sign_in_guard_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Sign-in check", sign_com_sign_in_check_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Sign-in challenge", sign_com_sign_in_challenge_path(ri: params[:ri]) %></li>
+    <li><%= link_to "Sign-in TOTP", new_sign_com_sign_in_challenge_totp_path(ri: params[:ri]) %></li>
+    <li>Selector: handled by the sign-in guard sequence, no direct dashboard route</li>
+  </ul>
+</section>

@@ -114,8 +114,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/auth/logouts", action: "create" },
-      { path: "http://#{CORE_APP_HOST}/auth/logout", method: :post },
+      { controller: "core/app/sign/outs", action: "show" },
+      { path: "http://#{CORE_APP_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/app/sign/outs", action: "create" },
+      { path: "http://#{CORE_APP_HOST}/sign/out", method: :post },
     )
 
     assert_raises(ActionController::RoutingError) do
@@ -242,8 +247,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/auth/logouts", action: "create" },
-      { path: "http://#{CORE_COM_HOST}/auth/logout", method: :post },
+      { controller: "core/com/sign/outs", action: "show" },
+      { path: "http://#{CORE_COM_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/com/sign/outs", action: "create" },
+      { path: "http://#{CORE_COM_HOST}/sign/out", method: :post },
     )
 
     assert_raises(ActionController::RoutingError) do
@@ -375,8 +385,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/auth/logouts", action: "create" },
-      { path: "http://#{CORE_ORG_HOST}/auth/logout", method: :post },
+      { controller: "core/org/sign/outs", action: "show" },
+      { path: "http://#{CORE_ORG_HOST}/sign/out", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/org/sign/outs", action: "create" },
+      { path: "http://#{CORE_ORG_HOST}/sign/out", method: :post },
     )
 
     assert_raises(ActionController::RoutingError) do

@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 7a5951bd2aa321d9cc7c69358a9007797c97ccf1
+  revision: 3dc4e99a4c2b755437ee33a0186c6df58034a474
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -1022,7 +1022,7 @@ GEM
       logger
     strong_migrations (2.8.0)
       activerecord (>= 7.2)
-    tailwindcss-rails (4.4.0)
+    tailwindcss-rails (4.5.0)
       railties (>= 7.0.0)
       tailwindcss-ruby (~> 4.0)
     tailwindcss-ruby (4.3.1-aarch64-linux-gnu)
@@ -1576,7 +1576,7 @@ CHECKSUMS
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   stripe (19.2.1) sha256=21bdf5fd766ff912cf1a21e8706b27b83896750d7a5750699464e34daae6e369
   strong_migrations (2.8.0) sha256=cb9c0f8160e60f3e9c0e76098d57a6f61825b9618e8eb41cebbd1c1079874439
-  tailwindcss-rails (4.4.0) sha256=efa2961351a52acebe616e645a81a30bb4f27fde46cc06ce7688d1cd1131e916
+  tailwindcss-rails (4.5.0) sha256=6b4a098df5c7382a9c6f8f6e155f5dcd8e324e9999326fac5d241ba93e11e177
   tailwindcss-ruby (4.3.1-aarch64-linux-gnu) sha256=b42af5fdb7ade3f3f70cda217c288986cc6b773601437b8deb80ea229a96680c
   tailwindcss-ruby (4.3.1-aarch64-linux-musl) sha256=2854eec6704d5773346d44cf884944e1f90b1b195327e9cfa207cba614c024ab
   tailwindcss-ruby (4.3.1-arm64-darwin) sha256=477ef19dde7fa4db32a0f916c02398e5fcc6af7f18d5e773012d93d6b96ecfa3

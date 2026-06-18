@@ -128,6 +128,13 @@ module Security
         )
       end
 
+      test "session cookie domain shares the apex across sibling subdomains" do
+        domain_option = Rails.application.config.session_options[:domain]
+        request = Struct.new(:host).new("base-jp.umaxica.app")
+
+        assert_equal ".umaxica.app", domain_option.call(request)
+      end
+
       private
 
       def assert_auth_cookie_options(options)

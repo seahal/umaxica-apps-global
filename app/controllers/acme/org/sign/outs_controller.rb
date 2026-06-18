@@ -15,17 +15,17 @@ module Acme
         helper_method :sign_out_completed_description
 
         def show
-          redirect_to_signed_out_page!
+          render "acme/shared/sign_outs/edit"
         end
 
         def edit
-          render "acme/shared/sign_outs/edit"
+          redirect_to(acme_org_sign_out_path(ri: params[:ri]), status: :see_other)
         end
 
         def create
           unless ActiveModel::Type::Boolean.new.cast(params[:confirm])
             redirect_to(
-              edit_acme_org_sign_out_path(ri: params[:ri]),
+              acme_org_sign_out_path(ri: params[:ri]),
               alert: t("views.sign.app.settings.outs.edit.confirm_label"),
             )
             return
@@ -64,7 +64,7 @@ module Acme
 
         def redirect_to_signed_out_page!
           redirect_to(
-            sign_org_sign_out_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
+            sign_org_root_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
             allow_other_host: cross_host_redirect_allowed?,
             status: :see_other,
           )

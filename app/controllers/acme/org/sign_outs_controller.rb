@@ -6,66 +6,41 @@ module Acme
     class SignOutsController < Acme::Org::ApplicationController
       include ::AuthenticationLogoutable
       include ::SignOutNotice
+      include ::SignOidcLogout
 
       AUTHENTICATION_MODE = :open
       declare_authentication_mode! :open
 
-      before_action :authenticate!, only: %i(edit create destroy)
+      before_action :authenticate!, only: %i(show create)
       helper_method :sign_out_completed_description
 
       def show
-        redirect_to_signed_out_page!
-      end
-
-      def edit
-        render "acme/shared/sign_outs/edit"
+        render "acme/shared/sign_outs/show"
       end
 
       def create
-        unless ActiveModel::Type::Boolean.new.cast(params[:confirm])
-          redirect_to(
-            edit_acme_org_sign_out_path(ri: params[:ri]),
-            alert: t("views.sign.app.settings.outs.edit.confirm_label"),
-          )
-          return
-        end
-
-        perform_sign_out!
-      end
-
-      def destroy
-        perform_sign_out!
+        redirect_to(
+          acme_org_oidc_logout_path(
+            ri: params[:ri],
+            id_token_hint: current_session_id_token_hint,
+            post_logout_redirect_uri: acme_org_root_url(ri: params[:ri]),
+          ),
+          status: :temporary_redirect,
+          allow_other_host: false,
+        )
       end
 
       private
 
-      def perform_sign_out!
-        raw_pt = path_target_value
-        pt = signed_pt_param
-        destination = path_from_signed_pt(pt) if pt.present?
-
-        return if authorize_current_session_for_sign_out! == false
-
-        logout_current_session!(reason: "org_operator_logout")
-        return render_invalid_return_target! if raw_pt.present? && destination.blank?
-        return redirect_to_pt_destination!(destination) if destination.present?
-
-        redirect_to_signed_out_page!
-      end
-
-      def authorize_current_session_for_sign_out!
-        return true if current_session.blank?
-        return true if allowed_to?(:destroy?, current_session, context: { user: current_resource })
-
-        head :forbidden
-        false
-      end
-
-      def redirect_to_signed_out_page!
-        redirect_to(
-          sign_org_sign_out_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
-          allow_other_host: cross_host_redirect_allowed?,
-          status: :see_other,
+      def current_session_id_token_hint
+        OidcIdTokenIssuer.call(
+          resource: current_resource,
+          client: OidcClientRegistry.find!("base-rails-rp"),
+          nonce: "sign-out",
+          issuer: OidcIssuer.for_resource_type("operator"),
+          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("operator"),
+          subject: OidcSubject.for(current_resource, resource_type: "operator"),
+          sid: current_session_public_id,
         )
       end
     end

@@ -9,13 +9,16 @@ class Acme::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   setup do
     @host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
-    OperatorToken.where(staff: @staff).delete_all
   end
 
   test "dashboard_requires_authentication" do
     get acme_org_dashboard_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
+    signin_uri = URI.parse(jump_rt_url_from_location(response.location))
+
+    assert_equal @host, signin_uri.host
+    assert_equal "/oauth/authorize", signin_uri.path
   end
 
   test "dashboard_renders_when_signed_in" do
@@ -27,7 +30,16 @@ class Acme::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_response :success
     assert_select "h1", "Dashboard"
     assert_no_match(/id\.umaxica/, response.body)
-    assert_select "a[href=?]", acme_org_settings_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_root_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_dashboard_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_selector_path(ri: "jp")
+    assert_select "a[href=?]", edit_acme_org_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_select "a[href=?]", acme_org_well_known_discovery_path
+    assert_select "a[href=?]", acme_org_well_known_jwks_path
+    assert_select "a[href=?]", acme_org_oauth_userinfo_path
+    assert_no_match(%r{https?://|//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
   end
 
   test "welcome_route_exists" do

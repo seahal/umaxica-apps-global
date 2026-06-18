@@ -21,23 +21,34 @@ module Sign
           # Defence-in-depth for sign-up entry. Tighten OTP fanout from a single
           # source and from repeated attempts against the same email digest.
           rate_limit(
-            to: 5,
-            within: 1.minute,
+            to: RateLimitProfiles.interactive_post_ip.to,
+            within: RateLimitProfiles.interactive_post_ip.within,
             by: -> { "sign_up_email_ip:#{request.remote_ip}" },
-            with: -> { render_rate_limited(rule_name: "sign_up_email_ip", retry_after: 60) },
+            with: -> {
+              render_rate_limited(
+                rule_name: "sign_up_email_ip",
+                retry_after: RateLimitProfiles.interactive_post_ip.retry_after,
+              )
+            },
             store: rate_limit_store,
             name: "ip_burst",
             scope: "sign_app_sign_up_email",
             only: :create,
           )
           rate_limit(
-            to: 3,
-            within: 10.minutes,
+            to: RateLimitProfiles.email_address_submit.to,
+            within: RateLimitProfiles.email_address_submit.within,
             by: -> {
               digest = sign_up_email_digest_for_rate_limit
-              digest.present? ? "sign_up_email_addr:#{digest}" : "sign_up_email_addr:none"
+              "sign_up_email_addr:#{digest}"
             },
-            with: -> { render_rate_limited(rule_name: "sign_up_email_addr", retry_after: 600) },
+            if: -> { sign_up_email_digest_for_rate_limit.present? },
+            with: -> {
+              render_rate_limited(
+                rule_name: "sign_up_email_addr",
+                retry_after: RateLimitProfiles.email_address_submit.retry_after,
+              )
+            },
             store: rate_limit_store,
             name: "email_sustained",
             scope: "sign_app_sign_up_email",
@@ -81,9 +92,7 @@ module Sign
               return
             end
 
-            email_params = params.permit(
-              user_email: %i(raw_address address confirm_policy promotional notifiable),
-            )[:user_email]
+            email_params = registration_email_params
             email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
 
             if email_address.blank?
@@ -209,6 +218,13 @@ module Sign
             signed_pt_token(encoded_url)
           end
 
+          def registration_email_params
+            params.permit(
+              client_email: %i(raw_address address confirm_policy promotional notifiable),
+              user_email: %i(raw_address address confirm_policy promotional notifiable),
+            )[:client_email] || params[:user_email]
+          end
+
           def valid_email_session?
             return false if @user_email.blank?
 
@@ -318,7 +334,9 @@ module Sign
               params.dig(:visitor_email, :address)
             return nil if raw.blank?
 
-            normalized = raw.to_s.strip.downcase
+            normalized = JitUtilsEmailValidator.normalize(raw)
+            return nil if normalized.blank?
+
             Digest::SHA256.hexdigest(normalized)
           end
 

@@ -47,7 +47,7 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
         { "operation" => "signup", "session_ref" => "session-1" },
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
-          IdentityGraphProvisioner.stub(:call!, ->(**) { graph_provisioned = true }) do
+          IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { graph_provisioned = true }) do
             post :completion, params: { id: "google_app", ri: "jp", social_ceremony_result: "signed-token" }
           end
         end
@@ -86,7 +86,7 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
         { "operation" => "signup", "session_ref" => "session-1" },
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
-          IdentityGraphProvisioner.stub(:call!, ->(**) { raise error }) do
+          IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { raise error }) do
             raised =
               assert_raises(RuntimeError) do
                 post(

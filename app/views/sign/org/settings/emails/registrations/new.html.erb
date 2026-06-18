@@ -32,6 +32,6 @@
     <%= form.submit %>
   </div>
   <div>
-    <%= link_to t("actions.cancel"), acme_org_settings_emails_path(ri: params[:ri]) %>
+    <%= link_to t("actions.cancel"), acme_org_settings_emails_url(ri: params[:ri], host: acme_authority_host) %>
   </div>
 <% end %>

@@ -201,10 +201,10 @@ module Sign::App::Up
       assert_response :created
 
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-      get acme_app_settings_url(ri: "jp", host: acme_host)
+      get acme_app_dashboard_url(ri: "jp", host: acme_host)
 
       assert_response :redirect
-      assert_not_equal acme_app_settings_url(ri: "jp", host: acme_host), response.location
+      assert_not_equal acme_app_dashboard_url(ri: "jp", host: acme_host), response.location
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 

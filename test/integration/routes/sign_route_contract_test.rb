@@ -64,6 +64,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/app/sign/outs", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/app/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/oidc/backchannel/logout", method: :post },
     )
@@ -89,13 +94,13 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/logouts", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/auth/logout", method: :post },
+      { controller: "sign/app/sign/ups", action: "show" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/ups", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
+      { controller: "sign/app/sign/up/emails", action: "new" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/email", method: :get },
     )
 
     assert_recognizes(
@@ -281,6 +286,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/com/sign/outs", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/com/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/oidc/backchannel/logout", method: :post },
     )
@@ -306,13 +316,13 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/auth/logouts", action: "create" },
-      { path: "http://#{SIGN_COM_HOST}/auth/logout", method: :post },
+      { controller: "sign/com/sign/ups", action: "show" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/ups", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
+      { controller: "sign/com/sign/up/emails", action: "new" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/email", method: :get },
     )
 
     assert_recognizes(
@@ -436,6 +446,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/org/sign/outs", action: "create" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/org/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/backchannel/logout", method: :post },
     )
@@ -461,13 +476,13 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/auth/logouts", action: "create" },
-      { path: "http://#{SIGN_ORG_HOST}/auth/logout", method: :post },
+      { controller: "sign/org/sign/ups", action: "show" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/ups", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
+      { controller: "sign/org/sign/up/emails", action: "new" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/up/email", method: :get },
     )
 
     assert_recognizes(

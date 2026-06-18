@@ -53,6 +53,8 @@ Current content-model references:
 - `docs/security/chain_seal.md`
 - `docs/security/observability-boundary.md`
 - `docs/security/security-headers.md`
+- `docs/operations/health-check.md`
+- `docs/architecture/controller-boundaries.md`
 - `docs/security/turnstile.md`
 - `docs/security/authentication-assurance-levels.md`
 - `docs/security/step-up-mfa-status.md`

@@ -116,6 +116,21 @@ class RateLimitTest < ActionDispatch::IntegrationTest
       assert_equal "rate_limited", body["error"]
       assert_equal "dummy_ip", body["rule"]
       assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
+      assert_equal 60, body["retry_after"]
+    end
+  end
+
+  test "rails rate limiter returns html 429 with plain message" do
+    with_routing do |set|
+      set.draw { get "/test_rate_limit_html", to: "rate_limit_dummy#index" }
+
+      get "/test_rate_limit_html", headers: { "Host" => "example.com", "Accept" => "text/html" }
+      get "/test_rate_limit_html", headers: { "Host" => "example.com", "Accept" => "text/html" }
+
+      assert_response :too_many_requests
+      assert_equal "text/plain; charset=utf-8", response.content_type
+      assert_equal I18n.t("errors.rate_limit.exceeded"), response.body
+      assert_equal "60", response.headers["Retry-After"]
     end
   end
 

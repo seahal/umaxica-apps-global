@@ -110,6 +110,9 @@ Current health / edge access decisions:
 - `adr/internal-health-endpoint-edge-isolation.md` — `/health` and every path beneath it are
   internal-only checkpoints blocked at the Cloudflare edge; user-facing availability is served by a
   separate integrated status page (external service).
+- `adr/dos-and-firewall-controls-at-cdn-aws-edge-not-in-rails.md` — current source of truth for
+  keeping DoS and firewall controls at the CDN/AWS edge instead of in Rails, including CloudFront +
+  AWS WAF, ALB origin gating, ECS task ingress, and Rails semantic rate limiting.
 
 Current browser security header decisions:
 

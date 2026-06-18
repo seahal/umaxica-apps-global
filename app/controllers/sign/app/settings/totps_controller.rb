@@ -135,6 +135,10 @@ module Sign
           false
         end
 
+        def redirect_to_acme_settings_authority!
+          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
+        end
+
         def generate_totp_session
           session[:private_key] ||= ROTP::Base32.random_base32
           @png = generate_qrcode(session[:private_key])
@@ -194,7 +198,7 @@ module Sign
 
         # Compatibility entry only. acme/www owns account-facing TOTP lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_sign_authority!(request.path, query: request.query_parameters)
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

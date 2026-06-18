@@ -87,6 +87,10 @@ class Sign::App::Sign::Up::EmailsControllerCoverageTest < ActiveSupport::TestCas
     @controller.params_hash = {}
 
     assert_nil @controller.send(:sign_up_email_digest_for_rate_limit)
+
+    @controller.params_hash = { user_email: { raw_address: "not-an-email" } }
+
+    assert_nil @controller.send(:sign_up_email_digest_for_rate_limit)
   end
 
   test "current_registration_email prefers the session email and falls back to the flow contact" do

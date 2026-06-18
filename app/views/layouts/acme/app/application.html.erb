@@ -28,7 +28,6 @@
       <%= link_to t("sign.app.layout.nav.log_in"),
                   acme_app_auth_authorization_path(ri: params[:ri], screen_hint: "signin") %>
     <% else %>
-      <%= link_to t("sign.app.layout.nav.settings"), acme_app_settings_url(host: ENV.fetch('ACME_SERVICE_URL', 'app.localhost')) %>
       <%= button_to t("sign.app.layout.nav.logout"), acme_app_auth_logout_path, method: :post %>
     <% end %>
   </nav>

@@ -104,16 +104,16 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", acme_org_root_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_root_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 
-  test "redirects to dashboard when logged in" do
+  test "rejects direct entry when logged in" do
     staff = operators(:one)
 
     get sign_org_sign_in_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :redirect
-    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_response :forbidden
+    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   private

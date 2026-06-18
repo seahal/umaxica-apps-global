@@ -175,7 +175,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_not_equal "evil.example", uri.host
     assert_includes [nil, host], uri.host
-    assert_equal acme_app_settings_path(ri: "jp"), uri.request_uri
+    assert_equal acme_app_dashboard_path(ri: "jp"), uri.request_uri
     assert_equal "settings_email", token.reload.last_step_up_scope
   end
 
