@@ -27,7 +27,7 @@ module Security
       test "closing resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:closing)
 
-        get acme_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+        get acme_app_sign_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
             headers: headers
 
         assert_predicate user.reload, :closing?
@@ -38,7 +38,7 @@ module Security
       test "suspended resource gets withdrawal required on json protected routes" do
         _user, headers = withdrawal_user_and_headers(:suspended)
 
-        get acme_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+        get acme_app_sign_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
             headers: headers.merge("Accept" => "application/json")
 
         assert_response :forbidden
@@ -48,7 +48,7 @@ module Security
       test "terminated resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:terminated)
 
-        get acme_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+        get acme_app_sign_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
             headers: headers
 
         assert_predicate user.reload, :terminated?

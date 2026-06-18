@@ -56,6 +56,7 @@
         <h1 id="base-com-title">Base Com</h1>
         <p><%= t("base.com.roots.message") %></p>
         <p><%= link_to "Settings", base_com_settings_path(ri: params[:ri]) %></p>
+        <p><%= link_to "Sign up", base_com_auth_authorization_path(ri: params[:ri]) %></p>
       </section>
     </main>
   </body>

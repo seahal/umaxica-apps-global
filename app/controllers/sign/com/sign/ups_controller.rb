@@ -10,6 +10,7 @@ module Sign
         skip_before_action :set_region, raise: false
 
         def show
+          return redirect_signed_in_direct_entry! if logged_in? && params[:login_challenge].blank?
           return normalize_to_acme_authorize! if params[:login_challenge].blank?
 
           transaction =
@@ -32,6 +33,10 @@ module Sign
         end
 
         private
+
+        def redirect_signed_in_direct_entry!
+          redirect_to(after_login_path, allow_other_host: after_login_allows_other_host?)
+        end
 
         def normalize_to_acme_authorize!
           url = initiate_oidc_session!(pt: sign_com_root_path(ri: params[:ri]), screen_hint: "signup")

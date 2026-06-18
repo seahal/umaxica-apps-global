@@ -37,11 +37,13 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "PageHeader on sub-pages points back to settings" do
     sign_head = as_user_headers(@user, host: @host)
     pages = [
-      [acme_app_settings_totps_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_totp")],
-      [acme_app_settings_passkeys_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_passkey")],
+      [sign_app_settings_totps_url(ri: "jp", host: @sign_host),
+       acme_session_headers(scope: "settings_totp", host: @sign_host),],
+      [sign_app_settings_passkeys_url(ri: "jp", host: @sign_host),
+       acme_session_headers(scope: "settings_passkey", host: @sign_host),],
       [
-        acme_app_settings_secrets_url(ri: "jp", host: @acme_host),
-        acme_session_headers(scope: "settings_secret_credential"),
+        sign_app_settings_secrets_url(ri: "jp", host: @sign_host),
+        acme_session_headers(scope: "settings_secret_credential", host: @sign_host),
       ],
       [sign_app_settings_mfa_challenge_path(ri: "jp"), sign_head],
       [sign_app_settings_google_path(ri: "jp"), sign_head],
@@ -60,7 +62,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "acme-owned authority pages redirect to acme instead of rendering sign UI" do
     head = as_user_headers(@user, host: @host)
     authority_pages = {
-      sign_app_settings_sessions_path(ri: "jp") => "/settings/sessions",
+      acme_app_sign_settings_sessions_path(ri: "jp") => "/sign/settings/sessions",
     }
 
     authority_pages.each do |path, expected_path|
@@ -104,7 +106,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   private
 
-  def acme_session_headers(scope: nil)
+  def acme_session_headers(scope: nil, host: @acme_host)
     token = ClientToken.new(
       user: @user,
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
@@ -116,7 +118,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: scope) if scope.present?
 
     {
-      "Host" => @acme_host,
+      "Host" => host,
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }

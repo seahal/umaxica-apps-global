@@ -34,6 +34,11 @@ scope module: :base, as: :base do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # RP login start: redirects to Acme /oauth/authorize.
+      namespace :auth do
+        resource :authorization, only: :show, path: ""
+      end
+
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -70,6 +75,11 @@ scope module: :base, as: :base do
       # Control-plane settings index.
       resource :settings, only: :show
 
+      # RP login start: redirects to Acme /oauth/authorize.
+      namespace :auth do
+        resource :authorization, only: :show, path: ""
+      end
+
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
     end
@@ -105,6 +115,11 @@ scope module: :base, as: :base do
 
       # Control-plane settings index.
       resource :settings, only: :show
+
+      # RP login start: redirects to Acme /oauth/authorize.
+      namespace :auth do
+        resource :authorization, only: :show, path: ""
+      end
 
       # Browser CSP report sink; keep configured report-uri path.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"

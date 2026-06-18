@@ -56,6 +56,7 @@
         <h1 id="base-org-title">Base Org</h1>
         <p><%= t("base.org.roots.message") %></p>
         <p><%= link_to "Settings", base_org_settings_path(ri: params[:ri]) %></p>
+        <p><%= link_to "Sign up", base_org_auth_authorization_path(ri: params[:ri]) %></p>
       </section>
     </main>
   </body>

@@ -64,7 +64,7 @@ class Sign::Com::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
     location = URI.parse(response.location)
 
     assert_equal @acme_host, location.host
-    assert_equal "/settings/sessions", location.path
+    assert_equal "/sign/settings/sessions", location.path
     assert_equal "ri=jp", location.query
   end
 end

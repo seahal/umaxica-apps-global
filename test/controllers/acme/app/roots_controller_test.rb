@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :clients, :client_statuses
+
   test "renders a thin landing page" do
     host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     get acme_app_root_url(ri: "jp")
@@ -58,5 +60,16 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
     assert_predicate cookies[PreferenceCookieName.refresh(surface: :app)], :present?
+  end
+
+  test "redirects to dashboard when logged in" do
+    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+
+    get acme_app_root_url(ri: "jp"),
+        headers: as_user_headers(user, host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+
+    assert_response :redirect
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 end

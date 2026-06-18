@@ -31,6 +31,11 @@ scope module: :palm, as: :palm do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
+      # RP login start: redirects to Acme /oauth/authorize.
+      namespace :auth do
+        resource :authorization, only: :show, path: ""
+      end
+
       # Browser CSP report sink.
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 

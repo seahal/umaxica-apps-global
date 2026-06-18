@@ -36,13 +36,13 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "GET / renders root when logged in" do
+  test "GET / redirects to dashboard when logged in" do
     staff = operators(:one)
 
     get sign_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))
 
-    assert_response :success
-    assert_select "h1", text: "Sign Org"
+    assert_response :redirect
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 end

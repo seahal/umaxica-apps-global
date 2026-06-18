@@ -34,7 +34,7 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "GET / renders root when logged in" do
+  test "GET / redirects to dashboard when logged in" do
     visitor = create_verified_visitor_with_email(email_address: "com-root-logged-in@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002223",
@@ -44,7 +44,7 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_root_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))
 
-    assert_response :success
-    assert_select "h1", text: "Sign Com"
+    assert_response :redirect
+    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
   end
 end

@@ -13,6 +13,6 @@ class Sign::Com::Settings::RevocationsController < Sign::Com::ApplicationControl
   private
 
   def redirect_to_acme_sessions!
-    redirect_to_acme_authority!("/settings/sessions")
+    redirect_to_acme_authority!("/sign/settings/sessions")
   end
 end

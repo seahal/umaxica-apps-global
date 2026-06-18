@@ -8,6 +8,7 @@ module Acme
       layout false
 
       def index
+        redirect_to(acme_com_dashboard_path(ri: params[:ri])) if logged_in?
       end
     end
   end

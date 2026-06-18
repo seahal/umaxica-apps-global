@@ -29,7 +29,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    delete acme_app_settings_session_url(other_token.public_id, ri: "jp"), headers: session_headers(current_token)
+    delete acme_app_sign_settings_session_url(other_token.public_id, ri: "jp"), headers: session_headers(current_token)
 
     assert_response :see_other
     assert_predicate other_token.reload, :lapsed?
@@ -47,7 +47,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     restricted_token.send(:skip_session_limit_check=, true)
     restricted_token.save!
 
-    delete others_acme_app_settings_sessions_url(ri: "jp"), headers: session_headers(restricted_token)
+    delete others_acme_app_sign_settings_sessions_url(ri: "jp"), headers: session_headers(restricted_token)
 
     assert_response :see_other
     assert_redirected_to acme_app_dashboard_path(ri: "jp")
@@ -59,7 +59,7 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(current_token, scope: "session_revoke_all", at: 5.minutes.ago)
 
-    get revoke_all_acme_app_settings_sessions_url(ri: "jp"), headers: session_headers(current_token)
+    get revoke_all_acme_app_sign_settings_sessions_url(ri: "jp"), headers: session_headers(current_token)
 
     assert_not_predicate current_token.reload, :lapsed?
   end
@@ -75,9 +75,13 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     )
     mark_token_step_up_satisfied_for_test(token, scope: "withdrawal")
 
-    patch acme_app_settings_withdrawal_url(ri: "jp"),
+    patch sign_app_settings_withdrawal_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
           params: { ack_deactivate_today: "1" },
-          headers: session_headers(token, user: user)
+          headers: session_headers(
+            token,
+            user: user,
+            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+          )
 
     assert_response :see_other
     assert_not_nil user.reload.withdrawal_started_at
@@ -86,9 +90,9 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   private
 
-  def session_headers(token, user: @user)
+  def session_headers(token, user: @user, host: @host)
     {
-      "Host" => @host,
+      "Host" => host,
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }

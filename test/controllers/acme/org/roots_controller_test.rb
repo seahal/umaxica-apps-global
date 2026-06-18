@@ -4,6 +4,8 @@
 require "test_helper"
 
 class Acme::Org::RootsControllerTest < ActionDispatch::IntegrationTest
+  fixtures :operators, :operator_statuses
+
   test "should get index" do
     host! ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     get acme_org_root_url(ri: "jp")
@@ -35,5 +37,16 @@ class Acme::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_predicate cookies[PreferenceCookieName.access(surface: :org)], :present?
     assert_predicate cookies[PreferenceCookieName.refresh(surface: :org)], :present?
+  end
+
+  test "redirects to dashboard when logged in" do
+    host! ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    staff = operators(:one)
+
+    get acme_org_root_url(ri: "jp"),
+        headers: as_staff_headers(staff, host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+
+    assert_response :redirect
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 end

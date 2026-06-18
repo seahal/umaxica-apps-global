@@ -66,6 +66,14 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
+      "http://#{PALM_HOST}/auth",
+      method: :get,
+    )
+
+    assert_equal "palm/app/auth/authorizations", recognized[:controller]
+    assert_equal "show", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
       "http://#{PALM_HOST}/csp-violation-report",
       method: :post,
     )

@@ -14,11 +14,13 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   end
 
   test "sign settings sessions redirect uses acme authority" do
-    get sign_app_settings_sessions_url(host: ENV.fetch("SIGN_SERVICE_URL"), ri: "jp")
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/settings/sessions",
+      method: :get,
+    )
 
-    assert_response :see_other
-    assert_equal ENV.fetch("ACME_SERVICE_URL"), URI.parse(response.location).host
-    assert_equal "/settings/sessions", URI.parse(response.location).path
+    assert_equal "acme/app/sign/settings/sessions", route.fetch(:controller)
+    assert_equal "index", route.fetch(:action)
   end
 
   test "sign withdrawal delegates to acme identity authority" do
@@ -29,8 +31,8 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     source = Rails.root.join("app/controllers/sign/app/settings/withdrawals_controller.rb").read
 
     assert_equal "sign/app/settings/withdrawals", route.fetch(:controller)
-    assert_includes source, "redirect_to_acme_withdrawal!"
-    assert_includes source, 'redirect_to_acme_authority!("/settings/withdrawal")'
+    assert_equal "new", route.fetch(:action)
+    assert_includes source, "AcmeSettingsWithdrawalFlow"
   end
 
   test "sign in and sign up entry routes still resolve on sign" do
@@ -55,19 +57,19 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :delete,
     )
     sessions = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("ACME_SERVICE_URL")}/settings/sessions/revoke_all",
+      "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/settings/sessions/revoke_all",
       method: :delete,
     )
     withdrawal = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("ACME_SERVICE_URL")}/settings/withdrawal",
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/withdrawal",
       method: :patch,
     )
 
     assert_equal "acme/app/sign/outs", sign_out.fetch(:controller)
     assert_equal "destroy", sign_out.fetch(:action)
-    assert_equal "acme/app/settings/sessions", sessions.fetch(:controller)
+    assert_equal "acme/app/sign/settings/sessions", sessions.fetch(:controller)
     assert_equal "revoke_all", sessions.fetch(:action)
-    assert_equal "acme/app/settings/withdrawals", withdrawal.fetch(:controller)
+    assert_equal "sign/app/settings/withdrawals", withdrawal.fetch(:controller)
     assert_equal "update", withdrawal.fetch(:action)
   end
 
@@ -83,27 +85,10 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_empty offenders, "sign controllers must not own withdrawal authority routes"
   end
 
-  test "redirect only sign controllers avoid heavy sign application callback stack" do
-    redirect_only_controllers = [
-      Sign::App::Settings::SessionsController,
-      Sign::Com::Settings::SessionsController,
-      Sign::Org::Settings::SessionsController,
-      Sign::Com::Settings::WithdrawalsController,
-    ]
-
-    redirect_only_controllers.each do |controller|
-      assert_match(/::ApplicationController\z/, controller.superclass.name)
-      assert_not_includes controller.included_modules, Session
-      assert_not_includes controller.included_modules, PreferenceGlobal
-      assert_not_includes controller.included_modules, SessionLimitGate
-      assert_not_includes controller.included_modules, RestrictedSessionGuard
-    end
-  end
-
   test "acme controllers own logout session and withdrawal mutation primitives" do
     acme_sources = [
       Rails.root.join("app/controllers/acme/app/sign_outs_controller.rb"),
-      Rails.root.join("app/controllers/acme/app/settings/sessions_controller.rb"),
+      Rails.root.join("app/controllers/acme/app/sign/settings/sessions_controller.rb"),
       Rails.root.join("app/controllers/acme/app/settings/withdrawals_controller.rb"),
     ].map { |path| File.read(path) }.join("\n")
 

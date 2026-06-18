@@ -142,7 +142,7 @@ module Acme
         end
 
         def acme_social_login_redirect_to(sign_in_result)
-          return acme_app_settings_sessions_url(ri: params[:ri]) if sign_in_result.session_limit_pending?
+          return acme_app_sign_settings_sessions_url(ri: params[:ri]) if sign_in_result.session_limit_pending?
 
           sign_in_result.redirect_to
         end

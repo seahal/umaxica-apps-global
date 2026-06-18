@@ -177,12 +177,15 @@ scope module: :acme, as: :acme do
       end
 
       # Account and credential settings.
+      # TODO: wtf???
       resource :settings, only: :show
-      namespace :settings do
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
+      namespace :sign do
+        namespace :settings do
+          resources :sessions, only: %i(index destroy) do
+            collection do
+              delete :others
+              delete :revoke_all
+            end
           end
         end
       end
@@ -350,11 +353,13 @@ scope module: :acme, as: :acme do
 
       # Account and credential settings.
       resource :settings, only: :show
-      namespace :settings do
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
+      namespace :sign do
+        namespace :settings do
+          resources :sessions, only: %i(index destroy) do
+            collection do
+              delete :others
+              delete :revoke_all
+            end
           end
         end
       end
@@ -568,11 +573,13 @@ scope module: :acme, as: :acme do
 
       # Account and credential settings.
       resource :settings, only: :show
-      namespace :settings do
-        resources :sessions, only: %i(index destroy) do
-          collection do
-            delete :others
-            delete :revoke_all
+      namespace :sign do
+        namespace :settings do
+          resources :sessions, only: %i(index destroy) do
+            collection do
+              delete :others
+              delete :revoke_all
+            end
           end
         end
       end

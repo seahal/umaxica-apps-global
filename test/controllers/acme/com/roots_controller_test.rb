@@ -36,4 +36,19 @@ class Acme::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate cookies[PreferenceCookieName.access(surface: :com)], :present?
     assert_predicate cookies[PreferenceCookieName.refresh(surface: :com)], :present?
   end
+
+  test "redirects to dashboard when logged in" do
+    host! ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    visitor = create_verified_visitor_with_email(email_address: "acme-com-root-logged-in@example.com")
+    visitor.visitor_telephones.create!(
+      number: "+15550002226",
+      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
+    )
+
+    get acme_com_root_url(ri: "jp"),
+        headers: as_visitor_headers(visitor, host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+
+    assert_response :redirect
+    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+  end
 end

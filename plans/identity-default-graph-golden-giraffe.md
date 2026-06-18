@@ -1,8 +1,25 @@
 # Identity Default Graph — Signup Invariant Audit
 
 **Plan name:** identity-default-graph-golden-giraffe  
-**Status:** proposal (not yet active)  
+**Status:** partially implemented — social signup path (Finding 1a) remaining  
 **Surfaces:** app / com / org
+
+## Implementation Status
+
+| Finding                                            | Status                        | Notes                                                                                                                   |
+| -------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Finding 1 — email/tel signup cookie precedes graph | ✅ Fixed                      | `IdentityGraphProvisioner.call!` inserted before `handoff_to_sign_in_flow!` in `sign_up_sequence_controller_support.rb` |
+| Finding 1a — social signup cookie precedes graph   | ❌ Open                       | `complete_acme_social_signup_flow!` has no graph provisioning                                                           |
+| Finding 2 — no transaction in bootstrap            | ✅ Fixed                      | `AcmeSelectorBootstrapAuthority#call` wraps zenith writes in `rp_account_class.transaction`                             |
+| Finding 3 — find_or_create scatter                 | ✅ No action needed           | Isolated to bootstrap service                                                                                           |
+| Finding 4 — selector deadlock on missing nodes     | ✅ Mitigated by Finding 1 fix | Safety net still in selector                                                                                            |
+| Finding 5 — surface selector state                 | ✅ No action needed           | Auto-select works correctly                                                                                             |
+| Finding 5a — org invitation path                   | ⏳ Backlog                    | Out of scope for this slice                                                                                             |
+| Finding 6 — no repair task                         | ✅ Fixed                      | `lib/tasks/identity_graph_repair.rake` exists                                                                           |
+| Finding 7 — DB constraints                         | ✅ No action needed           | Within-zenith constraints are sound                                                                                     |
+
+**Note:** The implementation uses `IdentityGraphProvisioner` rather than
+`IdentityDefaultGraphService` as named in this plan.
 
 ---
 

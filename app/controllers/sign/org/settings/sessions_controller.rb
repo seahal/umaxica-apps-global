@@ -25,7 +25,7 @@ module Sign
 
         # sign/id is redirect-only here. acme/www owns session management.
         def redirect_to_acme_sessions!
-          redirect_to_acme_authority!("/settings/sessions")
+          redirect_to_acme_authority!("/sign/settings/sessions")
         end
       end
     end

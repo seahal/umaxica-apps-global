@@ -50,6 +50,8 @@
       <section aria-labelledby="palm-app-title">
         <h1 id="palm-app-title">Palm App</h1>
         <p><%= t("palm.app.roots.message") %></p>
+        <p><%= link_to "Sign up on iOS", palm_app_auth_authorization_path(client_id: "app-ios-rp") %></p>
+        <p><%= link_to "Sign up on Android", palm_app_auth_authorization_path(client_id: "app-android-rp") %></p>
       </section>
     </main>
   </body>

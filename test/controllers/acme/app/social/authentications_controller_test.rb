@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestCase
+class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
   tests Acme::App::Social::AuthenticationsController
 
   setup do
