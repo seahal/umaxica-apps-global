@@ -5,6 +5,7 @@ module Acme
   module Org
     class RootsController < Acme::Org::ApplicationController
       AUTHENTICATION_MODE = :open
+      layout false
 
       def index
       end

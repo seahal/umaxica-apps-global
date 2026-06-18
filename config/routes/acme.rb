@@ -179,44 +179,12 @@ scope module: :acme, as: :acme do
       # Account and credential settings.
       resource :settings, only: :show
       namespace :settings do
-        resources :passkeys, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :totps, only: %i(index edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :secrets, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-        namespace :emails do
-          resource :registration, only: :create
-        end
-
-        resources :telephones, only: %i(index destroy)
-        namespace :telephones do
-          resource :registration, only: :create
-        end
-
-        # FIXME: use resource(s)!
-        resources :connections, only: %i(index show destroy) do
-          post "social/:provider/link", action: :social_link, on: :collection, as: :social_link
-          delete "social/:provider", action: :social_unlink, on: :collection, as: :social_unlink
-        end
-
-        resources :activities, only: :index
-
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
             delete :revoke_all
           end
         end
-
-        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
@@ -383,35 +351,12 @@ scope module: :acme, as: :acme do
       # Account and credential settings.
       resource :settings, only: :show
       namespace :settings do
-        resources :passkeys, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :secrets, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-        namespace :emails do
-          resource :registration, only: :create
-        end
-
-        resources :telephones, only: %i(index destroy)
-        namespace :telephones do
-          resource :registration, only: :create
-        end
-
-        resources :connections, only: %i(index show destroy)
-        resources :activities, only: :index
-
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
             delete :revoke_all
           end
         end
-
-        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
@@ -624,35 +569,12 @@ scope module: :acme, as: :acme do
       # Account and credential settings.
       resource :settings, only: :show
       namespace :settings do
-        resources :passkeys, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :secrets, only: %i(index show edit update destroy) do
-          post :enrollment, on: :collection
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-        namespace :emails do
-          resource :registration, only: :create
-        end
-
-        resources :telephones, only: %i(index destroy)
-        namespace :telephones do
-          resource :registration, only: :create
-        end
-
-        resources :connections, only: %i(index show destroy)
-        resources :activities, only: :index
-
         resources :sessions, only: %i(index destroy) do
           collection do
             delete :others
             delete :revoke_all
           end
         end
-
-        resource :withdrawal, only: :show
       end
     end
   end

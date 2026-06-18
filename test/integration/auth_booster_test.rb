@@ -8,7 +8,8 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
     include AuthenticationBase
 
     class ClientAudit
-      def self.create!(*args) end
+      def self.create!(*args)
+      end
     end
 
     def resource_class

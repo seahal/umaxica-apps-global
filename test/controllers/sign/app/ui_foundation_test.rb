@@ -9,12 +9,13 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   setup do
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
     @host = ENV["ID_SERVICE_URL"]
+    @sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
   end
 
   test "should render settings page with new UI foundation" do
-    head = acme_session_headers
-    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
+    head = as_user_headers(@user, host: @sign_host)
+    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
 
@@ -26,8 +27,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   end
 
   test "PageHeader renders correct up_to link" do
-    head = acme_session_headers
-    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
+    head = as_user_headers(@user, host: @sign_host)
+    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.settings.show.page_title")
@@ -75,15 +76,15 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "dark mode class is rendered based on cookie" do
     # Testing the theme_html_class helper's effect via integration
-    headers = acme_session_headers
-    get acme_app_settings_url(ri: "jp", ct: "dark", host: @acme_host), headers: headers
+    headers = as_user_headers(@user, host: @sign_host)
+    get sign_app_settings_url(ri: "jp", ct: "dark", host: @sign_host), headers: headers
 
     assert_response :success
 
     assert_includes response.body, 'class="theme-dark dark"'
 
-    headers = acme_session_headers
-    get acme_app_settings_url(ri: "jp", ct: "light", host: @acme_host), headers: headers
+    headers = as_user_headers(@user, host: @sign_host)
+    get sign_app_settings_url(ri: "jp", ct: "light", host: @sign_host), headers: headers
 
     assert_response :success
 
@@ -91,8 +92,8 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   end
 
   test "UI components are used in the page" do
-    head = acme_session_headers
-    get acme_app_settings_url(ri: "jp", host: @acme_host), headers: head
+    head = as_user_headers(@user, host: @sign_host)
+    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
 

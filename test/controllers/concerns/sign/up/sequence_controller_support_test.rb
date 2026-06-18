@@ -52,6 +52,10 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
         def clear!
           self.cleared = true
         end
+
+        def clear_all!
+          clear!
+        end
       end.new(false, false)
     end
 
@@ -205,5 +209,117 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
     )
 
     assert_equal visitor_telephone, harness.send(:sign_up_pending_telephone)
+  end
+
+  test "finalize_sign_up_from_checkpoint! provisions the graph before handoff" do
+    harness = Harness.new
+    harness.sign_up_surface_value = :app
+    harness.sign_up_pending_actor_value = Client.create!(
+      status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
+      visibility_id: ClientVisibility::USER,
+    )
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:return_to) do
+        def sign_up_checkpoint_pending? = true
+
+        def reload = self
+
+        def with_cycle_lock = yield
+      end.new(nil),
+    )
+
+    events = []
+    graph_provisioned = false
+
+    harness.define_singleton_method(:sign_up_finalization_context) do
+      Struct.new(:pending_actor).new(sign_up_pending_actor_value)
+    end
+    harness.define_singleton_method(:finalize_sign_up_side_effect!) do
+      events << :finalize_side_effect
+      :accepted
+    end
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+      events << event
+
+      case event
+      when :finalize
+        Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
+      when :handoff_to_sign_in
+        Struct.new(:success?, :status, :next_event).new(true, :sign_in_handoff_accepted, nil)
+      when :complete
+        Struct.new(:success?, :status, :next_event).new(true, :completed, nil)
+      else
+        raise "unexpected event: #{event}"
+      end
+    end
+    harness.define_singleton_method(:handoff_to_sign_in_flow!) do |_actor|
+      raise "graph was not provisioned" unless graph_provisioned
+
+      SignInResult.from_session_result(
+        { status: :success, redirect_path: "/dashboard" },
+        actor: sign_up_pending_actor_value,
+      )
+    end
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
+      redirect_to("/dashboard")
+    end
+
+    IdentityGraphProvisioner.stub(:call!, ->(**) { graph_provisioned = true }) do
+      harness.send(:finalize_sign_up_from_checkpoint!)
+    end
+
+    assert_equal %i(finalize_side_effect finalize handoff_to_sign_in complete), events
+    assert_predicate graph_provisioned, :itself
+    assert_predicate harness.sign_up_session_state, :cleared
+    assert_equal ["/dashboard"], harness.redirected.first
+  end
+
+  test "finalize_sign_up_from_checkpoint! stops before handoff when graph provisioning fails" do
+    harness = Harness.new
+    harness.sign_up_surface_value = :com
+    harness.sign_up_pending_actor_value = Visitor.create!(
+      status_id: VisitorStatus::ACTIVE,
+      visibility_id: VisitorVisibility::VISITOR,
+    )
+    harness.instance_variable_set(
+      :@sign_up_ticket,
+      Struct.new(:return_to) do
+        def sign_up_checkpoint_pending? = true
+
+        def reload = self
+
+        def with_cycle_lock = yield
+      end.new(nil),
+    )
+
+    events = []
+
+    harness.define_singleton_method(:sign_up_finalization_context) do
+      Struct.new(:pending_actor).new(sign_up_pending_actor_value)
+    end
+    harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+      events << event
+      Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
+    end
+    harness.define_singleton_method(:handoff_to_sign_in_flow!) do |_actor|
+      raise "handoff should not run"
+    end
+
+    error = RuntimeError.new("graph boom")
+
+    IdentityGraphProvisioner.stub(:call!, ->(**) { raise error }) do
+      raised =
+        assert_raises(RuntimeError) do
+          harness.send(:finalize_sign_up_from_checkpoint!)
+        end
+
+      assert_same error, raised
+    end
+
+    assert_equal [:finalize], events
+    assert_nil harness.redirected
+    assert_not_predicate harness.sign_up_session_state, :cleared
   end
 end

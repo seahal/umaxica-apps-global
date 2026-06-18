@@ -49,4 +49,11 @@ class ChronicleRetentionPolicyTest < ActiveSupport::TestCase
   test "has many chronicles" do
     assert_equal :has_many, ChronicleRetentionPolicy.reflect_on_association(:chronicles).macro
   end
+
+  test "permanent policy with non-zero duration adds error message" do
+    policy = ChronicleRetentionPolicy.new(code: "perm", name: "Permanent", duration_days: 1, permanent: true)
+
+    assert_not policy.valid?
+    assert_includes policy.errors[:duration_days], "must be 0 for permanent retention"
+  end
 end

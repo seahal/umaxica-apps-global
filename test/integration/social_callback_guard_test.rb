@@ -111,7 +111,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
     get sign_app_auth_google_app_callback_url(ri: "jp", state: state),
         headers: callback_headers(origin: "https://accounts.google.com")
-                   .merge(as_user_headers(user, host: @host))
+          .merge(as_user_headers(user, host: @host))
 
     assert_response :redirect
     assert_not_equal :forbidden, response.status

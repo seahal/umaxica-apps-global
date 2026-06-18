@@ -27,25 +27,25 @@ module Sign
         include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
-        include ::SignAcmeAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
+        before_action :authorize_passkeys!, only: :index
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_app_passkey_ceremony_grant!, only: %i(new options verification)
-        before_action :set_passkey, only: []
+        before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
 
         # GET /settings/passkeys
         def index
-          redirect_to_acme_settings_authority!
+          @passkeys = authorized_scope(current_client.client_passkeys).order(created_at: :desc)
         end
 
         # GET /settings/passkeys/:id
         def show
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         # GET /settings/passkeys/new
@@ -56,7 +56,7 @@ module Sign
 
         # GET /settings/passkeys/:id/edit
         def edit
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         # POST /settings/passkeys
@@ -177,15 +177,72 @@ module Sign
 
         # PATCH/PUT /settings/passkeys/:id
         def update
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+          return render_turnstile_failure(:edit) unless cloudflare_turnstile_stealth_validation["success"]
+
+          if @passkey.update(update_params)
+            redirect_to(
+              sign_app_settings_passkey_path(@passkey.public_id, ri: params[:ri]),
+              notice: t("messages.passkey_successfully_updated"),
+              status: :see_other,
+            )
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         # DELETE /settings/passkeys/:id
         def destroy
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+          return redirect_last_method unless AuthMethodGuard.can_remove_passkey?(current_client, @passkey)
+          return redirect_turnstile_failure unless cloudflare_turnstile_stealth_validation["success"]
+
+          @passkey.destroy!
+          redirect_to(
+            sign_app_settings_passkeys_path(ri: params[:ri]),
+            notice: t("messages.passkey_successfully_destroyed"),
+            status: :see_other,
+          )
         end
 
         private
+
+        def authorize_passkeys!
+          authorize!(ClientPasskey, to: :index?)
+        end
+
+        def set_passkey
+          @passkey = current_client.client_passkeys.find_by!(public_id: params(:id))
+        end
+
+        def update_params
+          key = %i(client_passkey user_passkey passkey).find { |candidate| params.key?(candidate) }
+          return {} unless key
+
+          params.fetch(key, {}).permit(:description)
+        end
+
+        def render_turnstile_failure(template)
+          @passkey.errors.add(:base, t("turnstile_error"))
+          flash.now[:alert] = t("turnstile_error")
+          render template, status: :unprocessable_content
+        end
+
+        def redirect_turnstile_failure
+          redirect_to(
+            sign_app_settings_passkeys_path(ri: params[:ri]),
+            alert: t("turnstile_error"),
+            status: :see_other,
+          )
+        end
+
+        def redirect_last_method
+          redirect_to(
+            sign_app_settings_passkeys_path(ri: params[:ri]),
+            alert: t("messages.cannot_delete_last_passkey"),
+            status: :see_other,
+          )
+        end
 
         def verify_settings_passkey_turnstile!
           return true if cloudflare_turnstile_stealth_validation["success"]
@@ -208,7 +265,7 @@ module Sign
           respond_to do |format|
             format.html do
               redirect_to(
-                acme_app_settings_passkeys_path(ri: params[:ri]),
+                sign_app_settings_passkeys_path(ri: params[:ri]),
                 alert: I18n.t("errors.messages.invalid"),
                 status: :see_other,
               )
@@ -268,9 +325,9 @@ module Sign
         end
 
         def render_verification_success(passkey)
-          default_redirect_url = acme_app_settings_passkeys_url(
+          default_redirect_url = sign_app_settings_passkeys_url(
             ri: params[:ri],
-            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
           redirect_url = bootstrap_return_path(default_redirect_url)
 
@@ -317,15 +374,10 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          acme_app_settings_secrets_url(
+          sign_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
-        end
-
-        # Compatibility entry only. acme/www owns account-facing passkey lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

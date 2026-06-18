@@ -38,9 +38,9 @@ module Sign
 
           def after_email_registration_verified_path
             email_registration_return_path(
-              acme_app_settings_emails_url(
+              sign_app_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
               ),
             )
           end

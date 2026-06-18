@@ -13,34 +13,8 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_org_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "a[href*=?]", sign_org_sign_up_path
-    assert_select "a[href*=?]", sign_org_sign_in_path
-  end
-
-  test "renders layout contract" do
-    get sign_org_root_url(ri: "jp")
-
-    assert_response :success
-    assert_layout_contract
-  end
-
-  test "footer contains navigation links" do
-    get sign_org_root_url(ri: "jp")
-
-    assert_response :success
-    assert_select "footer" do
-      assert_select "a"
-      assert_select "a[href=?]", sign_org_root_url(ri: "jp"),
-                    text: I18n.t("sign.org.preferences.footer.home")
-      assert_select "a[href=?]",
-                    acme_org_preference_url(
-                      ri: "jp",
-                      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-                    ),
-                    text: I18n.t("sign.org.preferences.footer.preference")
-      assert_select "a[href=?]", sign_org_settings_url(ri: "jp"),
-                    text: I18n.t("sign.org.preferences.footer.settings")
-    end
+    assert_select "title", "Sign Org"
+    assert_select "h1", text: "Sign Org"
   end
 
   test "creates preference cookies on root" do
@@ -69,6 +43,6 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))
 
     assert_response :success
-    assert_select "h1", minimum: 1
+    assert_select "h1", text: "Sign Org"
   end
 end

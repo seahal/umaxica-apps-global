@@ -412,6 +412,53 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_raises(Health::MissingProfileError) { inherited_child.new.send(:health_profile) }
   end
 
+  test "every declared health surface executes its controller show actions" do
+    SURFACES.each do |surface|
+      host! surface[:host]
+
+      profile = surface[:profile]
+      liveness = Health::CheckResult.new(check: :liveness, status: :ok, surface: profile.surface_label)
+      readiness = Health::CheckResult.new(
+        check: :readiness,
+        status: :ok,
+        surface: profile.surface_label,
+        dependencies: {},
+      )
+      startup = Health::CheckResult.new(check: :startup, status: :ok, surface: profile.surface_label)
+      snapshot = Health::CheckResult.new(
+        check: :health,
+        status: :ok,
+        surface: profile.surface_label,
+        dependencies: {
+          "liveness" => liveness.as_public_json,
+          "readiness" => readiness.as_public_json,
+          "startup" => startup.as_public_json,
+        },
+      )
+
+      Health::LivenessCheck.stub(:call, liveness) do
+        Health::ReadinessCheck.stub(:call, readiness) do
+          Health::StartupCheck.stub(:call, startup) do
+            Health::SnapshotCheck.stub(:call, snapshot) do
+              get "/health.json"
+
+              assert_response :success
+              assert_equal "application/json", response.media_type
+
+              %w(liveness readiness startup).each do |probe|
+                get "/health/#{probe}"
+
+                assert_response :success
+                assert_equal "application/json", response.media_type
+                assert_equal probe, response.parsed_body["check"]
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
   private
 
   def assert_health_route(host, path, controller)

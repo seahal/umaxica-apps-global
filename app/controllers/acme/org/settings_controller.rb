@@ -10,8 +10,14 @@ module Acme
       before_action :authenticate_operator!
 
       def show
-        authorize!(current_operator, to: :show?)
-        render "acme/org/settings/show"
+        redirect_to(
+          sign_org_settings_url(
+            ri: params[:ri],
+            host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+          ),
+          allow_other_host: cross_host_redirect_allowed?,
+          status: :see_other,
+        )
       end
     end
   end

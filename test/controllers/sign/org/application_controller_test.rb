@@ -24,6 +24,10 @@ module Sign::Org
       assert_includes @controller.class, RateLimit
     end
 
+    test "defines full access controller" do
+      assert_equal ::Sign::Org::ApplicationController, ::Sign::Org::FullAccessController.superclass
+    end
+
     test "reflects localization and theme after actor context is set" do
       callbacks = ApplicationController._process_action_callbacks
       before_filters = callbacks.select { |callback| callback.kind == :before }.map(&:filter)

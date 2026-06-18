@@ -15,10 +15,9 @@
   <h2><%= t("sign.app.settings.show.account_settings") %></h2>
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.email"), sign_com_settings_emails_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.telephone"), acme_com_settings_telephones_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.telephone"), sign_com_settings_telephones_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.birthdate"), sign_com_settings_birthdate_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.session"), sign_com_settings_sessions_path %></li>
-    <li><%= link_to t("sign.settings.connections.index.page_title"), acme_com_settings_connections_path(ri: params[:ri]) %></li>
     <li><%= link_to t("controller.sign.app.setting.index.activity"), sign_com_settings_activities_path %></li>
   </ul>
 </section>
@@ -26,7 +25,7 @@
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), edit_acme_com_sign_out_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")) %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), sign_com_sign_out_url(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.app.settings.show.withdrawal"), new_sign_com_settings_withdrawal_path %></li>
   </ul>
 </section>

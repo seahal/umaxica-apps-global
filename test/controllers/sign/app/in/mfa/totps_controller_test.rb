@@ -84,7 +84,7 @@ module Sign::App::In
 
       # Verify user's OTPs are accessible
       otps = user.client_totp_credentials
-                 .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
+        .where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
 
       assert_not_empty otps,
                        "Client should have active OTPs. All OTPs: #{user.client_totp_credentials.pluck(
@@ -105,9 +105,9 @@ module Sign::App::In
         errors = response.body.scan(/class="[^"]*error[^"]*"[^>]*>([^<]+)</)
 
         flunk "TOTP verification failed (422). Errors: #{errors.inspect}. " \
-                "TOTP code: #{totp_code}. " \
-                "Client OTP count: #{user.client_totp_credentials.count}. " \
-                "pending_mfa after: #{session[:pending_mfa].inspect}"
+              "TOTP code: #{totp_code}. " \
+              "Client OTP count: #{user.client_totp_credentials.count}. " \
+              "pending_mfa after: #{session[:pending_mfa].inspect}"
       end
 
       assert_response :found
@@ -192,12 +192,12 @@ module Sign::App::In
       with_prosopite_paused do
         post(
           sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
-          secret_credential_login_form: {
-            identifier: @email,
-            secret_credential_value: @raw_secret_credential,
+            secret_credential_login_form: {
+              identifier: @email,
+              secret_credential_value: @raw_secret_credential,
+            },
+            "cf-turnstile-response": "test_token",
           },
-          "cf-turnstile-response": "test_token",
-        },
         )
       end
 

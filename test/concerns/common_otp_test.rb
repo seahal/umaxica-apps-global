@@ -64,7 +64,7 @@ class CommonOtpTest < ActiveSupport::TestCase
 
     result = @obj.send(
       :verify_hotp_code, secret_credential: secret_credential, counter: counter,
-      pass_code: invalid_code,
+                         pass_code: invalid_code,
     )
 
     assert_not result, "Expected verification to return false for invalid pass_code"
@@ -76,7 +76,7 @@ class CommonOtpTest < ActiveSupport::TestCase
 
     result = @obj.send(
       :verify_hotp_code, secret_credential: secret_credential, counter: wrong_counter,
-      pass_code: pass_code,
+                         pass_code: pass_code,
     )
 
     assert_not result, "Expected verification to return false for wrong counter"
@@ -88,7 +88,7 @@ class CommonOtpTest < ActiveSupport::TestCase
 
     result = @obj.send(
       :verify_hotp_code, secret_credential: wrong_secret_credential, counter: counter,
-      pass_code: pass_code,
+                         pass_code: pass_code,
     )
 
     assert_not result, "Expected verification to return false for wrong secret_credential"

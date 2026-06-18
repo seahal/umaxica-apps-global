@@ -62,6 +62,12 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     assert_includes ClientTelephone.included_modules, Telephone
   end
 
+  test "to_param returns the public id" do
+    phone = ClientTelephone.create!(@valid_attributes)
+
+    assert_equal phone.public_id, phone.to_param
+  end
+
   # Telephone concern validation tests
   test "should be valid with valid phone number and policy confirmations" do
     user_telephone = ClientTelephone.new(@valid_attributes)

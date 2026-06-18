@@ -129,7 +129,7 @@ module Security
           next unless application_controller_class?(controller_class)
           next if controller_class.const_defined?(:AUTHENTICATION_MODE, false)
           next if controller_class.respond_to?(:local_authentication_mode_rules) &&
-                  controller_class.local_authentication_mode_rules.present?
+            controller_class.local_authentication_mode_rules.present?
 
           "#{route.verb.presence || "ANY"} #{route.path.spec} => #{controller_class.name}##{action_name}"
         end

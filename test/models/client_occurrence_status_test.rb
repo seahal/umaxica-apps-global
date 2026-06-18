@@ -38,4 +38,12 @@ class ClientOccurrenceStatusTest < ActiveSupport::TestCase
     assert_equal 3, ClientOccurrenceStatus::INACTIVE
     assert_equal 4, ClientOccurrenceStatus::DELETED
   end
+
+  test "ensure_defaults! creates default records" do
+    ClientOccurrenceStatus.ensure_defaults!
+
+    ClientOccurrenceStatus::DEFAULTS.each do |id|
+      assert ClientOccurrenceStatus.exists?(id), "missing default client occurrence status #{id}"
+    end
+  end
 end

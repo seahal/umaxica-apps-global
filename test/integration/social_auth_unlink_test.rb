@@ -343,25 +343,6 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     assert_predicate Rack::Utils.parse_query(uri.query)["rt"], :present?
   end
 
-  test "acme unlink route method-preserving redirects to sign without local mutation" do
-    google_identity = ClientGoogleIdentity.create!(
-      user: @user,
-      uid: "sign_compat_google_#{SecureRandom.hex(4)}",
-      provider: "google_app",
-      token: "token",
-      expires_at: 1.week.from_now.to_i,
-      user_google_identity_status: client_google_identity_statuses(:active),
-    )
-
-    delete social_unlink_acme_app_settings_connections_url(provider: "google_app", ri: "jp", host: @acme_host),
-           headers: social_unlink_headers.merge("Host" => @acme_host)
-
-    assert_response :temporary_redirect
-    assert_equal @host, URI.parse(response.location).host
-    assert_equal "/social/google/disconnection", URI.parse(response.location).path
-    assert ClientGoogleIdentity.exists?(google_identity.id)
-  end
-
   test "unlink succeeds when user has only inactive legacy social identity and an active email" do
     inactive_google = ClientGoogleIdentity.create!(
       user: @user,

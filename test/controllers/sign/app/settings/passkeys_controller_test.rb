@@ -268,9 +268,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     grant = passkey_ceremony_grant(actor: unverified_user, token: token)
 
     post sign_app_settings_passkeys_options_path(
-           ri: "jp",
-           passkey_ceremony_grant: grant,
-         ), headers: headers
+      ri: "jp",
+      passkey_ceremony_grant: grant,
+    ), headers: headers
     challenge_id = response.parsed_body["challenge_id"]
 
     mock_credential = Object.new
@@ -486,9 +486,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     with_prosopite_paused do
       get new_sign_app_settings_passkey_path(
-            ri: "jp",
-            passkey_ceremony_grant: passkey_ceremony_grant(actor: unverified_user, token: token),
-          ), headers: headers
+        ri: "jp",
+        passkey_ceremony_grant: passkey_ceremony_grant(actor: unverified_user, token: token),
+      ), headers: headers
     end
 
     assert_response :ok

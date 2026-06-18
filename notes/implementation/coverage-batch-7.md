@@ -24,7 +24,11 @@ Continue incremental coverage improvement toward 99% through daily safe batches.
 
 ## Note on Aggregate Coverage Movement
 
-Aggregate line coverage appears to decrease slightly in the official final run. This is attributable to pre-existing uncommitted changes in the working tree (controller renames, route changes, fixture modifications, docs) that cause baseline test failures and load a different set of files across runs. The batch itself only touches test files; no production code was changed. All targeted tests passed during narrow validation before the test environment became unstable.
+Aggregate line coverage appears to decrease slightly in the official final run. This is attributable
+to pre-existing uncommitted changes in the working tree (controller renames, route changes, fixture
+modifications, docs) that cause baseline test failures and load a different set of files across
+runs. The batch itself only touches test files; no production code was changed. All targeted tests
+passed during narrow validation before the test environment became unstable.
 
 ## Selected Targets
 
@@ -47,20 +51,30 @@ Twelve safe targets were selected from models, services, policies, and model con
 
 ### New Test Files
 
-- `test/models/visitor_preference_adult_content_gate_test.rb` — covers `set_option_id` defaulting to `NOTHING`.
-- `test/services/chronicle_intent_writer_test.rb` — covers blank visibility context skipping and valid context attachment.
-- `test/services/chronicle_result_writer_test.rb` — covers the fallback-and-reraise path on result update failure.
-- `test/models/concerns/selected_actor_context_test.rb` — covers `selected_actor_context?` and `clear_selected_actor_context!`.
+- `test/models/visitor_preference_adult_content_gate_test.rb` — covers `set_option_id` defaulting to
+  `NOTHING`.
+- `test/services/chronicle_intent_writer_test.rb` — covers blank visibility context skipping and
+  valid context attachment.
+- `test/services/chronicle_result_writer_test.rb` — covers the fallback-and-reraise path on result
+  update failure.
+- `test/models/concerns/selected_actor_context_test.rb` — covers `selected_actor_context?` and
+  `clear_selected_actor_context!`.
 - `test/models/actor/selected_context_test.rb` — covers equality, hash, and NULL context behavior.
 
 ### Modified Test Files
 
-- `test/models/concerns/chronicle_capturable_test.rb` — added test for failure-result write invalidation path.
-- `test/policies/client_webauthn_credential_policy_test.rb` — added test for non-owner record denial.
-- `test/models/concerns/mfa_status_trackable_test.rb` — added test for default empty `configured_mfa_level_methods`.
-- `test/services/sign_in/post_issuance_participants_test.rb` — added test for unknown cycle class in `actor_class_matches?`.
-- `test/policies/operator_passkey_policy_test.rb` — added tests for relation scope filtering by `staff_id` and nil-user none scope.
-- `test/policies/sign_up/policies_test.rb` — added tests for requirement still-pending rescue, finalized handoff, and finalization requirements rescue.
+- `test/models/concerns/chronicle_capturable_test.rb` — added test for failure-result write
+  invalidation path.
+- `test/policies/client_webauthn_credential_policy_test.rb` — added test for non-owner record
+  denial.
+- `test/models/concerns/mfa_status_trackable_test.rb` — added test for default empty
+  `configured_mfa_level_methods`.
+- `test/services/sign_in/post_issuance_participants_test.rb` — added test for unknown cycle class in
+  `actor_class_matches?`.
+- `test/policies/operator_passkey_policy_test.rb` — added tests for relation scope filtering by
+  `staff_id` and nil-user none scope.
+- `test/policies/sign_up/policies_test.rb` — added tests for requirement still-pending rescue,
+  finalized handoff, and finalization requirements rescue.
 
 ## App/DB Changes
 
@@ -95,7 +109,8 @@ vp check --fix
 bundle exec rubocop -a
 ```
 
-Both completed. RuboCop auto-corrected formatting in touched test files and reported pre-existing offenses elsewhere.
+Both completed. RuboCop auto-corrected formatting in touched test files and reported pre-existing
+offenses elsewhere.
 
 ## Full Coverage Commands Run
 
@@ -108,13 +123,18 @@ VP coverage remains 100% across all metrics.
 
 ## Skipped Risky Areas
 
-- `app/services/org_invitation_service.rb:64` and `app/services/org_registration_policy.rb:58` — `consume!` failure paths are structurally unreachable without stubs or race conditions; deferred as in Batch 6.
+- `app/services/org_invitation_service.rb:64` and `app/services/org_registration_policy.rb:58` —
+  `consume!` failure paths are structurally unreachable without stubs or race conditions; deferred
+  as in Batch 6.
 - Security-sensitive auth/token/OIDC/JWT/DBSC flows were not touched.
 - Controller, route, fixture, and config changes were avoided.
 
 ## Environmental Note
 
-The working tree contains many pre-existing uncommitted changes outside this batch (controller renames, route changes, fixture modifications, docs). These cause baseline test failures and fixture-loading instability, which worsened during repeated full-suite runs. The batch's targeted tests passed in isolation before the environment degraded.
+The working tree contains many pre-existing uncommitted changes outside this batch (controller
+renames, route changes, fixture modifications, docs). These cause baseline test failures and
+fixture-loading instability, which worsened during repeated full-suite runs. The batch's targeted
+tests passed in isolation before the environment degraded.
 
 ## Next Batch Candidates
 

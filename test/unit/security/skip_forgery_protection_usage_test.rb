@@ -25,10 +25,10 @@ class SkipForgeryProtectionUsageTest < ActiveSupport::TestCase
 
     assert_empty violations,
                  "skip_forgery_protection must not be added to controllers without review. " \
-                   "Remove it from: #{violations.join("\n  ")}"
+                 "Remove it from: #{violations.join("\n  ")}"
 
     assert_empty missing_allowed,
                  "Allowed list contains controllers that no longer call skip_forgery_protection. " \
-                   "Please update ALLOWED_SKIP_FORGERY_PROTECTION_PATHS: #{missing_allowed.join("\n  ")}"
+                 "Please update ALLOWED_SKIP_FORGERY_PROTECTION_PATHS: #{missing_allowed.join("\n  ")}"
   end
 end

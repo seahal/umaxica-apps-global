@@ -5,26 +5,27 @@ module Sign
   module Org
     module Settings
       class WithdrawalsController < ::Sign::Org::ApplicationController
+        include ::VerificationOperator
+
         AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
+        before_action :authenticate_operator!
+        before_action :authorize_withdrawal!, only: :show
 
         def show
-          redirect_to_acme_withdrawal! unless step_up_satisfied?(scope: "withdrawal")
+          render "sign/org/settings/withdrawals/show"
         end
 
         private
 
-        def redirect_to_acme_withdrawal!
-          redirect_to(
-            URI::Generic.build(
-              scheme: request.scheme,
-              host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-              path: "/settings/withdrawal",
-              query: { ri: params[:ri] }.compact.to_query,
-            ).to_s,
-            allow_other_host: cross_host_redirect_allowed?,
-            status: :see_other,
-          )
+        def authorize_withdrawal!
+          authorize!(current_operator, to: :show?, with: OperatorWithdrawalPolicy)
         end
+
+        def verification_required_action? = true
+
+        def verification_scope = "withdrawal"
       end
     end
   end

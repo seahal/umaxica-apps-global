@@ -503,9 +503,9 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     travel 16.minutes do
       Rails.logger.stub(
         :info, ->(*args) do
-        message = args.first
-        logs << JSON.parse(message, symbolize_names: true) if message.present?
-      end,
+                 message = args.first
+                 logs << JSON.parse(message, symbolize_names: true) if message.present?
+               end,
       ) do
         get sign_org_sign_in_session_url(ri: "jp"), headers: headers
       end
@@ -561,7 +561,7 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   def as_staff_headers_with_token(staff, token, host:)
     access_token = AuthenticationToken.encode(
       staff, host: host, session_public_id: token.public_id,
-      resource_type: "operator",
+             resource_type: "operator",
     )
     browser_headers.merge(
       "Host" => host,

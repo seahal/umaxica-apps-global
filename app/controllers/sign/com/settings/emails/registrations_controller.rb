@@ -31,9 +31,9 @@ module Sign
             return if accept_email_ceremony_grant!(surface: "com")
 
             redirect_to(
-              acme_com_settings_emails_url(
+              sign_com_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
               ),
               notice: t("sign.app.registration.email.edit.session_expired"),
               allow_other_host: cross_host_redirect_allowed?,
@@ -120,9 +120,9 @@ module Sign
             session.delete(registration_email_session_key)
             redirect_to(
               email_registration_return_path(
-                acme_com_settings_emails_url(
+                sign_com_settings_emails_url(
                   ri: params[:ri],
-                  host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                  host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
                 ),
               ),
               notice: t("sign.app.registration.email.update.success"),

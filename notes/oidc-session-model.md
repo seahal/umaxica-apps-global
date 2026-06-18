@@ -1,163 +1,128 @@
 # OIDC Session Model Note
 
-This note captures the current preferred direction for OIDC, session handling, and access
-validation.
+This note records the current direction for OIDC session liveness and access validation.
+
+## Boundary
+
+- Acme is the only Identity Provider and Authorization Server.
+- Sign is a special relying party.
+- Sign may verify whether the Acme authority session is still live before rendering sensitive pages.
+- Sign must not become an IdP, session authority, or token authority.
 
 ## Direction
 
-- use OpenID Connect for authentication
-- use Authorization Code Flow with PKCE
-- align implementation with OAuth 2.1 direction
-- keep browser-visible state minimal
-- prefer relying-party session cookies over browser-held auth tokens
+- Use OpenID Connect for authentication.
+- Use Authorization Code Flow with PKCE.
+- Prefer relying-party session cookies over browser-held auth tokens.
+- Keep browser-visible state minimal.
+- Treat session liveness assurance as distinct from step-up authentication.
 
-## Role Split
+## Sign Session Liveness Assurance
 
-### `sign.*`
+The preferred mechanism is OIDC `prompt=none` against Acme `/authorize`.
 
-`sign.*` is intended to act as the identity provider.
+Target flow:
 
-Responsibilities:
+1. A sensitive Sign page calls `sign_require_live_session!`.
+2. If the local Sign RP session is missing, fall back to the existing login flow.
+3. If the local Sign RP session exists but liveness must be checked, redirect to Acme `/authorize`
+   with `prompt=none`.
+4. Acme returns success if the Acme authority session is still live.
+5. Acme returns `login_required` if the user is no longer logged in at Acme.
+6. The Sign callback handles the result and returns to the original URL on success.
 
-- primary authentication
-- verification and step-up flows
-- login/session-family state
-- token issuance
-- refresh-token validation
-- authentication audit and anomaly handling
-- management of login-critical verified identity attributes
+Required OIDC parameters include at least:
 
-Non-goals:
+- `response_type=code`
+- `client_id`
+- `redirect_uri`
+- `scope=openid`
+- `state`
+- `nonce`
+- `prompt=none`
 
-- product/domain authorization rules for every relying party
-- broad business-domain profile ownership
-- unrelated application state
+## Failure Handling
 
-### Relying-party surfaces
+- `login_required`: fail closed, purge the local Sign RP session, and redirect to the login/start
+  flow.
+- `temporarily_unavailable`, timeout, network error, or Acme 5xx: fail closed, do not render the
+  sensitive page, do not automatically purge the local Sign RP session, and show or redirect to a
+  recoverable authentication-check failure state.
+- Do not silently allow access under timeout grace.
 
-Surfaces such as `acme`, `core`, `docs`, `help`, and `news` are intended to be relying parties.
+## Naming
 
-Responsibilities:
+Use Sign-scoped helper names.
 
-- redirect unauthenticated users to `sign.*`
-- complete callback handling
-- exchange authorization code for tokens over the back channel
-- verify the returned identity result
-- create and manage their own local session
-- perform local authorization decisions for their own domain
+Preferred examples:
 
-## Session-First Model
+- `sign_require_live_session!`
+- `sign_live_session?`
+- `sign_start_silent_session_check!`
+- `sign_handle_silent_session_check_callback!`
+- `sign_clear_session_due_to_authority_logout!`
 
-The preferred model is session-first.
+Avoid `idp_*` helper names, including:
 
-That means:
+- `require_fresh_idp_session!`
+- `idp_session_fresh?`
+- `verify_idp_session_now!`
+- `stamp_idp_session_confirmed!`
 
-- the browser should primarily hold a relying-party session cookie
-- the browser should not be the long-term holder of auth tokens
-- access token / refresh token handling should remain server-side where reasonably possible
+The word `fresh` should remain reserved for step-up and recent reauthentication. This feature is
+session liveness assurance, not step-up.
 
-In practical terms:
+## Persistence And Cache
 
-1. the relying party detects that the user is not signed in
-2. the relying party starts OIDC Authorization Code + PKCE
-3. the user authenticates at `sign.*`
-4. the relying party receives `code` and `state` at its callback
-5. the relying party performs token exchange server-to-server
-6. the relying party establishes its own session
+- Do not add `last_idp_confirmed_at` columns to `client_tokens`, `operator_tokens`, or
+  `visitor_tokens`.
+- Do not persist session assurance timestamps in token tables.
+- If throttling or caching is needed, use only short-lived volatile cache such as `Rails.cache` or
+  SolidCache, keyed by Sign session identifier and scope.
+- Cache entries are not authority.
 
-## PKCE
+## Route Contract
 
-The preferred PKCE method is `S256`.
+No proprietary Acme internal session-check route should be introduced.
 
-The relying party:
+If a dedicated Sign-local route contract is needed, keep it Sign-local, for example:
 
-- generates `code_verifier`
-- derives `code_challenge`
-- stores `code_verifier` in Rails session
-- stores `state` in Rails session
+- `GET /auth/session_check`
+- `GET /auth/session_check/callback`
 
-The relying party should consume and clear those values after callback processing.
+If the existing Sign auth callback flow is sufficient, no new route is required.
 
-## Rails Session Use
+## SameSite Risk
 
-Rails session is acceptable for temporary callback state such as:
+The `SameSite=Strict` interaction for the browser-based silent check is an implementation risk to
+verify with browser tests. It is not a reason to introduce a proprietary Acme session-check API.
 
-- `oidc_code_verifier`
-- `oidc_state`
-- `oidc_return_to`
+## What This Feature Is Not
 
-Those values should be deleted when they are no longer needed.
+This feature answers:
 
-## Access Validation Model
+- Is the Acme authority session still live?
 
-### Token Access
+This feature does not answer:
 
-Use token-only validation for low-risk access where brief post-sign-out validity is acceptable.
+- Did the user recently re-authenticate?
+- Did the user perform step-up?
+- Can the user change passkeys, password, or TOTP?
 
-### Verified Access
+High-risk mutation pages should keep or add a separate `sign_require_fresh_authentication!` gate
+later. That later gate can use `max_age=0` or the existing step-up ceremony.
 
-Use state-backed checks for:
+## Tests To Add
 
-- side effects
-- sensitive configuration changes
-- actions that require a current non-revoked session lineage
-- actions that may require `Verification` / `StepUp`
-
-### Refresh Access
-
-Refresh-token exchange must be state-backed and must not be purely token-only.
-
-## Session Lifecycle Model
-
-### Sign-out
-
-Sign-out ends the current relying-party session and invalidates its related refresh/session state.
-
-Short-lived access tokens may remain usable until expiry for token-only access unless a stronger
-revocation model is required.
-
-### Session Revoke
-
-Session revoke invalidates a specific session lineage.
-
-This is the appropriate model for session-management UI such as `/settings/session` style
-operations.
-
-### Global Sign-out
-
-Global sign-out should invalidate the wider login family rooted at the identity provider.
-
-Immediate universal propagation is not required for the initial design. Eventual invalidation via
-follow-up state checks is acceptable.
-
-### Hard Revoke
-
-Hard revoke is a stronger future capability for near-real-time invalidation of access tokens.
-
-If required later, this likely implies a revoked `sid` / `jti` store backed by Redis or an
-equivalent fast lookup system.
-
-## Cookie Direction
-
-### Authentication/session cookies
-
-- prefer host-only semantics for auth/session cookies
-- use `__Host-` cookies where applicable
-- do not rely on cross-subdomain cookie sharing for auth session state
-
-### Preference cookies
-
-- may continue on a separate design path from auth/session cookies
-- do not treat preference-cookie behavior as the model for auth-cookie behavior
-
-## Authorization Boundary
-
-This note is about authentication/session validity, not full product authorization.
-
-- identity provider concerns: authentication, verification, session state, token issuance
-- relying-party concerns: authorization for application/domain behavior
+- Local Sign session missing redirects to the normal login flow.
+- Local Sign session present and Acme `prompt=none` success allows the sensitive page.
+- Acme `login_required` purges the Sign session and requires login.
+- Acme timeout or 5xx denies the sensitive page and preserves the Sign session.
+- Helper names are `sign_*` and no `idp_*` helper names are introduced.
+- No `last_idp_confirmed_at` migration exists.
+- No Acme proprietary session-check route exists.
 
 ## Status
 
-This note is a design-direction document, not a statement that every part of the repository already
-implements the model exactly as described.
+This note is the current design direction for Sign session liveness assurance. It replaces the older
+proprietary session-check proposal.

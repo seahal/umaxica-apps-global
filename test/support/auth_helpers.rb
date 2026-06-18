@@ -11,8 +11,8 @@ module AuthHelpers
   TEST_RESOURCE_HEADER = "X-TEST-CURRENT-RESOURCE"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
   MODERN_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " \
-    "AppleWebKit/537.36 (KHTML, like Gecko) " \
-    "Chrome/120.0.0.0 Safari/537.36" unless const_defined?(:MODERN_USER_AGENT)
+                      "AppleWebKit/537.36 (KHTML, like Gecko) " \
+                      "Chrome/120.0.0.0 Safari/537.36" unless const_defined?(:MODERN_USER_AGENT)
 
   def host_headers(host = nil)
     host_value =

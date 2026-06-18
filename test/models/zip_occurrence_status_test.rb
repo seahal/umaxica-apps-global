@@ -29,6 +29,14 @@ class ZipOccurrenceStatusTest < ActiveSupport::TestCase
     assert_status_association(ZipOccurrenceStatus, :zip_occurrences)
   end
 
+  test "ensure_defaults! creates default records" do
+    ZipOccurrenceStatus.ensure_defaults!
+
+    ZipOccurrenceStatus::DEFAULTS.each do |id|
+      assert ZipOccurrenceStatus.exists?(id), "missing default zip occurrence status #{id}"
+    end
+  end
+
   #   test "expires_at default" do
   #     record = ZipOccurrenceStatus.new(id: "EXPIRES_AT_TEST")
   #

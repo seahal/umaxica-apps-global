@@ -8,7 +8,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     @host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @operator = operators(:one)
     @operator_token = OperatorToken.where(staff_id: @operator.id).first ||
-                      OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+      OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(@operator_token, scope: "session_revoke_all")
   end
 

@@ -38,10 +38,10 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           assert_response :success
 
           get new_sign_app_verification_passkey_url(
-                ri: "jp",
-                scope: "settings_email",
-                return_to: return_to,
-              ), headers: @headers
+            ri: "jp",
+            scope: "settings_email",
+            return_to: return_to,
+          ), headers: @headers
 
           assert_response :redirect
           assert_redirected_to sign_app_settings_url(ri: "jp")
@@ -61,10 +61,10 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         assert_response :success
 
         get new_sign_app_verification_passkey_url(
-              ri: "jp",
-              scope: "settings_email",
-              return_to: return_to,
-            ), headers: @headers
+          ri: "jp",
+          scope: "settings_email",
+          return_to: return_to,
+        ), headers: @headers
 
         assert_response :redirect
         assert_redirected_to sign_app_settings_url(ri: "jp")
@@ -84,10 +84,10 @@ class Sign::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         assert_select "a[href^='#{new_sign_app_verification_passkey_path(ri: "jp")}']"
 
         get new_sign_app_verification_passkey_url(
-              ri: "jp",
-              scope: "settings_passkey",
-              pt: return_to,
-            ), headers: @headers
+          ri: "jp",
+          scope: "settings_passkey",
+          pt: return_to,
+        ), headers: @headers
 
         assert_response :redirect
         assert_redirected_to sign_app_settings_url(ri: "jp")

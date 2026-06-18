@@ -34,6 +34,14 @@ class IpOccurrenceStatusTest < ActiveSupport::TestCase
     assert_status_association(IpOccurrenceStatus, :ip_occurrences)
   end
 
+  test "ensure_defaults! creates default records" do
+    IpOccurrenceStatus.ensure_defaults!
+
+    IpOccurrenceStatus::DEFAULTS.each do |id|
+      assert IpOccurrenceStatus.exists?(id), "missing default ip occurrence status #{id}"
+    end
+  end
+
   #   test "expires_at default" do
   #     record = IpOccurrenceStatus.new(id: "EXPIRES_AT_TEST")
   #

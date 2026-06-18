@@ -92,7 +92,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "ensure_verified_recovery_identity_for_registration! renders forbidden " \
-         "plain text when recovery identity is missing" do
+       "plain text when recovery identity is missing" do
     controller = Sign::Com::Settings::SecretCredentialsController.new
     controller.request = ActionDispatch::TestRequest.create
     controller.instance_variable_set(:@_response, ActionDispatch::Response.new)
@@ -122,9 +122,9 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_response :redirect, response.body
     assert_redirected_to acme_com_settings_secrets_url(
-                           ri: "jp",
-                           host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
-                         )
+      ri: "jp",
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+    )
     assert_predicate flash[:notice], :present?
   end
 

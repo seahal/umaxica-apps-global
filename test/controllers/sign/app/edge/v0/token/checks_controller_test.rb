@@ -128,7 +128,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     token_record = ClientToken.create!(user: @user)
     access_token = jwt_access_token_for(
       @user, host: @host, session_public_id: token_record.public_id,
-      resource_type: "client",
+             resource_type: "client",
     )
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
@@ -188,7 +188,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-      access_token: access_token,
+                        access_token: access_token,
     )
 
     get "/edge/v0/token/check",
@@ -218,7 +218,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-      access_token: access_token,
+                        access_token: access_token,
     )
 
     get "/edge/v0/token/check",
@@ -273,7 +273,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       private_key, jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-      access_token: "different-token",
+                        access_token: "different-token",
     )
 
     get "/edge/v0/token/check",
@@ -306,7 +306,7 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     )
     proof = build_dpop_proof(
       proof_key, proof_jwk, method: "GET", uri: "http://#{@host}/edge/v0/token/check",
-      access_token: access_token,
+                            access_token: access_token,
     )
 
     get "/edge/v0/token/check",

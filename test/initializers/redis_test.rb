@@ -55,7 +55,7 @@ class RedisInitializerTest < ActiveSupport::TestCase
       with_reloaded_redis_client do
         Redis.stub(:new, redis_client) do
           Rails.stub(:env, env) do
-            Rails.logger.stub(:error, ->(_message) {}) do
+            Rails.logger.stub(:error, ->(_message) { }) do
               assert_raises(Redis::CannotConnectError) { load INITIALIZER_PATH }
             end
           end

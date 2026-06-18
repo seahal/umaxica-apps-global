@@ -4,18 +4,14 @@
 require "test_helper"
 
 class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
+  test "renders a thin landing page" do
     host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     get acme_app_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "title",
-                  "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (app) | #{I18n.t("acme.app.preferences.footer.home")}"
-    assert_select "main a[href*='/preference']", false
-    assert_select "nav a[href='#{acme_app_auth_authorization_path(ri: "jp", screen_hint: "signup")}']",
-                  text: I18n.t("sign.app.layout.nav.sign_up")
-    assert_select "nav a[href='#{acme_app_auth_authorization_path(ri: "jp", screen_hint: "signin")}']",
-                  text: I18n.t("sign.app.layout.nav.log_in")
+    assert_select "title", "Acme App"
+    assert_select "h1", text: "Acme App"
+    assert_select "main p", text: "Thin landing endpoint."
   end
 
   test "auth authorize preserves app sign up and sign in screen hints" do

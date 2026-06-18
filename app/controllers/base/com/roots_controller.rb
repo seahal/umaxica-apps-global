@@ -5,9 +5,9 @@ module Base
   module Com
     class RootsController < Base::Com::BareController
       AUTHENTICATION_MODE = :bare
+      layout false
 
       def index
-        render layout: false
       end
     end
   end

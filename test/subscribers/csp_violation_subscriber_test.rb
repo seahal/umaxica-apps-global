@@ -37,7 +37,7 @@ class CspViolationSubscriberTest < ActiveSupport::TestCase
 
     def event.payload = raise(RuntimeError, "object payload must not be called")
 
-    Rails.logger.stub(:info, ->(_message) {}) do
+    Rails.logger.stub(:info, ->(_message) { }) do
       CspViolationSubscriber.new.emit(event)
     end
 
@@ -82,7 +82,7 @@ class CspViolationSubscriberTest < ActiveSupport::TestCase
       end
 
     ActiveSupport::Notifications.subscribed(callback, "sql.active_record") do
-      Rails.logger.stub(:info, ->(_message) {}) do
+      Rails.logger.stub(:info, ->(_message) { }) do
         CspViolationSubscriber.new.emit(
           name: CspViolationReportIntake::EVENT_NAME,
           payload: { surface: "app", host: "app.example.test" },

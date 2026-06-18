@@ -34,4 +34,12 @@ class AppPreferenceCurrencyOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "ensure_defaults! creates default records" do
+    AppPreferenceCurrencyOption.ensure_defaults!
+
+    AppPreferenceCurrencyOption::DEFAULTS.each do |id|
+      assert AppPreferenceCurrencyOption.exists?(id), "missing default app preference currency option #{id}"
+    end
+  end
 end

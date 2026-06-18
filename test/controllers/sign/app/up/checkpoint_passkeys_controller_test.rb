@@ -474,8 +474,8 @@ module Sign::App::Up
 
       patch(
         sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-        user_telephone: { pass_code: code },
-      },
+          user_telephone: { pass_code: code },
+        },
       )
 
       assert_redirected_to sign_app_sign_up_guard_telephone_url(ri: "jp")

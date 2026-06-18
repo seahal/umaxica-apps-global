@@ -211,10 +211,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     with_prosopite_paused do
       get new_sign_app_verification_totp_url(
-            ri: "jp",
-            scope: "settings_email",
-            pt: pt,
-          ), headers: @headers
+        ri: "jp",
+        scope: "settings_email",
+        pt: pt,
+      ), headers: @headers
     end
 
     assert_response :success
@@ -251,10 +251,10 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     with_prosopite_paused do
       get new_sign_app_verification_totp_url(
-            ri: "jp",
-            scope: "settings_totp",
-            pt: pt,
-          ), headers: @headers
+        ri: "jp",
+        scope: "settings_totp",
+        pt: pt,
+      ), headers: @headers
     end
 
     assert_response :success

@@ -66,6 +66,7 @@ module SignUpSocialBirthdateSupport
       candidate.actor_ref.to_s == @sign_up_ticket.public_id.to_s
     raise IdentitySocialCeremonyContract::Error, "candidate session mismatch" unless
       candidate.session_ref.to_s == @sign_up_ticket.public_id.to_s
+
     expected_transaction_id = evidence["grant_transaction_id"].presence || @sign_up_ticket.public_id
     raise IdentitySocialCeremonyContract::Error, "candidate transaction mismatch" unless
       candidate.transaction_id.to_s == expected_transaction_id.to_s

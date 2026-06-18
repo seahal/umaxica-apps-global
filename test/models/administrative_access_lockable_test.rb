@@ -37,4 +37,26 @@ class AdministrativeAccessLockableTest < ActiveSupport::TestCase
     assert client.access_token_stale_for_administrative_lock?("iat" => 1.minute.ago.to_i)
     assert_not client.access_token_stale_for_administrative_lock?("iat" => 1.minute.from_now.to_i)
   end
+
+  test "access_locked? mirrors admin_locked?" do
+    locked = Client.new(
+      access_state: AdministrativeAccessLockable::ACCESS_STATE_ADMIN_LOCKED,
+      admin_locked_at: Time.current,
+      admin_locked_by_operator_id: 1,
+      admin_locked_reason_code: "other",
+    )
+
+    assert_predicate locked, :access_locked?
+
+    enabled = Client.new
+
+    assert_not enabled.access_locked?
+  end
+
+  test "lock metadata without admin_locked state is inconsistent" do
+    client = Client.new(admin_locked_at: Time.current)
+
+    assert_not client.valid?
+    assert_includes client.errors[:access_state], "must be admin_locked when lock metadata is present"
+  end
 end

@@ -21,4 +21,12 @@ class FinisherTest < ActiveSupport::TestCase
 
     assert_raises(RuntimeError) { controller.send(:finish_request) }
   end
+
+  test "purge_current clears the actor context" do
+    controller = DummyController.new
+
+    Actor.stub(:clear, nil) do
+      assert_nothing_raised { controller.send(:purge_current) }
+    end
+  end
 end

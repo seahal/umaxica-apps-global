@@ -311,7 +311,7 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     assert_not @harness.send(
       :require_sign_in_sequence_participant!, participant: :checkpoint,
-      policy_rule: :show_checkpoint?,
+                                              policy_rule: :show_checkpoint?,
     )
     assert_equal :bad_request, @harness.rendered[:status]
   end

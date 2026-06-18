@@ -7,8 +7,9 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :client_statuses, :client_token_kinds, :client_token_statuses,
            :client_chronicle_events, :client_chronicle_levels
 
-  test "acme app settings shell renders account UI and keeps credential links on sign" do
+  test "acme app settings shell redirects to sign authority" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     user = clients(:one)
     user.update!(status_id: ClientStatus::ACTIVE)
 
@@ -17,11 +18,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
 
     get acme_app_settings_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
-    assert_response :success
-    assert_no_match(/id\.umaxica/, response.body)
-    assert_select "a[href^=?]", sign_app_settings_passkeys_path(ri: "jp")
-    assert_select "a[href^=?]", acme_app_settings_connections_path(ri: "jp")
-    assert_select "a[href^=?]", acme_app_settings_activities_path
+    assert_redirected_to sign_app_settings_url(ri: "jp", host: sign_host)
   end
 
   test "acme app activities list only current user entries" do
@@ -43,72 +40,24 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "other-login-event"
   end
 
-  test "acme app connections index and show render from acme authority" do
-    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    user = clients(:one)
-    token = create_user_token!(user)
-    connection = ClientOidcConnection.create!(
-      user: user,
-      client_id: "core_app",
-      scope: "openid profile",
-    )
-
-    get acme_app_settings_connections_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
-
-    assert_response :success
-    assert_no_match(/id\.umaxica/, response.body)
-    assert_includes response.body, connection.rp_name
-    assert_select "a[href=?]", acme_app_settings_path(ri: "jp")
-
-    get acme_app_settings_connection_url(connection.public_id, ri: "jp", host: host),
-        headers: app_session_headers(host, token, user)
-
-    assert_response :success
-    assert_no_match(/id\.umaxica/, response.body)
-    assert_includes response.body, connection.client_id
-    assert_select "a[href=?]", acme_app_settings_connections_path(ri: "jp")
-  end
-
-  test "acme app connection destroy revokes connection and linked downstream tokens" do
-    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    user = clients(:one)
-    current_token = create_user_token!(user)
-    mark_token_step_up_satisfied_for_test(current_token, scope: "settings_connection")
-    connection = ClientOidcConnection.create!(user: user, client_id: "core_app", scope: "openid profile")
-    rp_token = create_user_token!(
-      user,
-      oidc_connection: connection,
-      oidc_client_id: "core_app",
-      oidc_scope: "openid profile",
-    )
-
-    delete acme_app_settings_connection_url(connection.public_id, ri: "jp", host: host),
-           headers: app_session_headers(host, current_token, user)
-
-    assert_redirected_to acme_app_settings_connections_url(ri: "jp", host: host)
-    assert_predicate connection.reload, :revoked?
-    assert_predicate rp_token.reload, :revoked?
-    assert_not_predicate current_token.reload, :revoked?
-  end
-
-  test "acme com and org settings shell routes exist" do
+  test "acme com and org settings shell routes redirect to sign authority" do
     visitor = create_verified_visitor_with_email(email_address: "settings-#{SecureRandom.hex(4)}@example.com")
     com_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    sign_com_host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
     visitor_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     select_token!(surface: :com, principal: visitor, token: visitor_token)
     get acme_com_settings_url(ri: "jp", host: com_host), headers: com_session_headers(com_host, visitor_token, visitor)
 
-    assert_response :success
-    assert_no_match(/id\.umaxica/, response.body)
+    assert_redirected_to sign_com_settings_url(ri: "jp", host: sign_com_host)
 
     staff = operators(:one)
     org_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    sign_org_host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     staff_token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     select_token!(surface: :org, principal: staff, token: staff_token)
     get acme_org_settings_url(ri: "jp", host: org_host), headers: org_session_headers(org_host, staff_token, staff)
 
-    assert_response :success
-    assert_no_match(/id\.umaxica/, response.body)
+    assert_redirected_to sign_org_settings_url(ri: "jp", host: sign_org_host)
   end
 
   private

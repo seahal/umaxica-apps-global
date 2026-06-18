@@ -34,4 +34,12 @@ class OrgPreferenceCurrencyOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "ensure_defaults! creates default records" do
+    OrgPreferenceCurrencyOption.ensure_defaults!
+
+    OrgPreferenceCurrencyOption::DEFAULTS.each do |id|
+      assert OrgPreferenceCurrencyOption.exists?(id), "missing default org preference currency option #{id}"
+    end
+  end
 end

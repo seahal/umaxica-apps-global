@@ -36,4 +36,12 @@ class ComPreferenceCurrencyOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "ensure_defaults! creates default records" do
+    ComPreferenceCurrencyOption.ensure_defaults!
+
+    ComPreferenceCurrencyOption::DEFAULTS.each do |id|
+      assert ComPreferenceCurrencyOption.exists?(id), "missing default com preference currency option #{id}"
+    end
+  end
 end

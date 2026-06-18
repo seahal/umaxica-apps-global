@@ -308,5 +308,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
       headers: browser_headers.merge(@callback_headers),
     )
+
+    submit_social_completion_if_present!
   end
 end

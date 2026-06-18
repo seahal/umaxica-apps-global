@@ -249,7 +249,7 @@ class FlowBaseTest < ActiveSupport::TestCase
   test "with_cycle_lock rejects unpersisted records" do
     record = CycleBaseTestRecord.new(cycle_status_id: 10, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
 
-    error = assert_raises(FlowInvalidTransition) { record.send(:with_cycle_lock) {} }
+    error = assert_raises(FlowInvalidTransition) { record.send(:with_cycle_lock) { } }
 
     assert_match(/cycle must be persisted/, error.message)
   end

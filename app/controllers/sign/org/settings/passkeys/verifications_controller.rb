@@ -25,7 +25,7 @@ class Sign::Org::Settings::Passkeys::VerificationsController < ::Sign::Org::Appl
 
     respond_to do |format|
       format.html do
-        redirect_to(acme_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
+        redirect_to(sign_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
       end
       format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
     end
@@ -39,7 +39,7 @@ class Sign::Org::Settings::Passkeys::VerificationsController < ::Sign::Org::Appl
   def passkey_registration_passkeys = current_operator.staff_passkeys
 
   def passkey_registration_redirect_url
-    acme_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"))
   end
 
   def recovery_passcode_requirement_actor = current_operator
@@ -47,9 +47,9 @@ class Sign::Org::Settings::Passkeys::VerificationsController < ::Sign::Org::Appl
   def recovery_passcode_requirement_credential_class = OperatorSecretCredential
 
   def recovery_passcode_setup_url
-    acme_org_settings_secrets_url(
+    sign_org_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
   end
 end

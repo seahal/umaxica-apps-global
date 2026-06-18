@@ -4,7 +4,8 @@
 require "test_helper"
 
 class OidcCallbackTestController < ApplicationController
-  def self.declare_authentication_mode!(*) end
+  def self.declare_authentication_mode!(*)
+  end
 
   include OidcCallback
 
@@ -104,9 +105,9 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     OidcRpTokenClient.stub(:call, result) do
       Rails.logger.stub(
         :info, ->(message = nil, &block) {
-        message = block.call if message.nil? && block
-        logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
-      },
+                 message = block.call if message.nil? && block
+                 logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
+               },
       ) do
         get "/oidc/callback", params: { code: "abc", state: "state" }
       end
@@ -156,7 +157,8 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     # create a dummy controller without overriding
     dummy_class =
       Class.new(ApplicationController) do
-        def self.declare_authentication_mode!(*) end
+        def self.declare_authentication_mode!(*)
+        end
 
         include OidcCallback
       end
@@ -169,7 +171,8 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
   test "oidc_client_secret_credential uses ClientRegistry" do
     dummy_class =
       Class.new(ApplicationController) do
-        def self.declare_authentication_mode!(*) end
+        def self.declare_authentication_mode!(*)
+        end
 
         include OidcCallback
 

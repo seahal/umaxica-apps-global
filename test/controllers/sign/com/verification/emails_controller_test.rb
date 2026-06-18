@@ -12,7 +12,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "com-verified-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
-      number: "+8190#{SecureRandom.random_number(10 ** 8).to_s.rjust(8, "0")}",
+      number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     @headers = as_visitor_headers(@visitor, host: @host)
@@ -156,11 +156,11 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_enqueued_emails 1 do
       post sign_com_verification_email_redelivery_url(
-             nonce,
-             ri: "jp",
-             scope: "settings_email",
-             pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
-           ), headers: @headers
+        nonce,
+        ri: "jp",
+        scope: "settings_email",
+        pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
+      ), headers: @headers
     end
 
     assert_response :redirect

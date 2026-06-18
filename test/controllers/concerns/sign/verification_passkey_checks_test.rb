@@ -82,7 +82,7 @@ class SignVerificationPasskeyChecksTest < ActiveSupport::TestCase
 
     credential = Struct.new(:id, :sign_count) do
       define_method(:verify) do |*|
-        true;
+        true
       end
     end.new("cred-1", 7)
     passkey_model =

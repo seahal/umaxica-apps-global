@@ -285,6 +285,10 @@ module SignUpSequenceControllerSupport
         )
         next unless finalized.success?
 
+        IdentityGraphProvisioner.call!(
+          surface: sign_up_surface,
+          principal: context.pending_actor,
+        )
         sign_in_result = handoff_to_sign_in_flow!(context.pending_actor)
         handoff = perform_sign_up_event(
           :handoff_to_sign_in,

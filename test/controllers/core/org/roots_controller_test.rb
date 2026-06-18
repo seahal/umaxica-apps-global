@@ -4,11 +4,13 @@
 require "test_helper"
 
 class Core::Org::RootsControllerTest < ActionDispatch::IntegrationTest
-  test "should get index" do
+  test "renders a thin landing page" do
     host! ENV.fetch("CORE_STAFF_URL", "www-jp.umaxica.org")
     get core_org_root_url(ri: "jp")
 
     assert_response :success
+    assert_select "title", "Core Org"
+    assert_select "h1", text: "Core Org"
   end
 
   test "creates preference cookies on root" do

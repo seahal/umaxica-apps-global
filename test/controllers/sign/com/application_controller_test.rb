@@ -15,6 +15,10 @@ module Sign::Com
       assert_includes controller.class, ::ActorSupport
     end
 
+    test "defines full access controller" do
+      assert_equal ::Sign::Com::ApplicationController, ::Sign::Com::FullAccessController.superclass
+    end
+
     test "has verification before access_policy" do
       callbacks = ApplicationController._process_action_callbacks
       before_filters = callbacks.select { |c| c.kind == :before }.map { |c| c.filter.to_s }

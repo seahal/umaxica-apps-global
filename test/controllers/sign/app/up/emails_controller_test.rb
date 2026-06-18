@@ -561,11 +561,11 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     # Verify the turnstile error message key exists in all locales
     assert_not_nil I18n.t(
       "sign.app.registration.email.create.turnstile_validation_failed", locale: :ja,
-      default: nil,
+                                                                        default: nil,
     )
     assert_not_nil I18n.t(
       "sign.app.registration.email.create.turnstile_validation_failed", locale: :en,
-      default: nil,
+                                                                        default: nil,
     )
   end
 

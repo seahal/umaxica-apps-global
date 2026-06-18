@@ -5,9 +5,9 @@ module Core
   module Org
     class RootsController < Core::Org::ApplicationController
       AUTHENTICATION_MODE = :open
+      layout false
 
       def index
-        render template: "acme/org/roots/index"
       end
     end
   end

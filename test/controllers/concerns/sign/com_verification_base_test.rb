@@ -105,14 +105,14 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "unknown",
-        pt_param: "/settings/emails",
+                                 pt_param: "/settings/emails",
       )
     end
 
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "settings_email",
-        pt_param: "/settings/secrets",
+                                 pt_param: "/settings/secrets",
       )
     end
   end
@@ -129,8 +129,8 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.discarded_at = 1.minute.ago })
     assert_not harness.send(
       :valid_step_up_session?, valid_session.dup.tap { |rs|
-      rs.visitor_token_id = other_token.id
-    },
+                                 rs.visitor_token_id = other_token.id
+                               },
     )
     assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
     assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })

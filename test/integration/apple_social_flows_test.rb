@@ -111,9 +111,9 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     submit_social_completion_if_present!
 
     assert_redirected_to acme_app_dashboard_url(
-                           ri: "jp",
-                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-                         )
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
   end
 
   test "settings link succeeds for logged in user via Sign callback" do

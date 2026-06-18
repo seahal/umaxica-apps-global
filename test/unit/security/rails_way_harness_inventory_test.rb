@@ -108,7 +108,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     )
 
     assert_empty offenders, "Controller concerns must not install callbacks/helpers/rescues in included do:\n" \
-      "#{format_inventory(offenders)}"
+                            "#{format_inventory(offenders)}"
   end
 
   test "model concern included-do side effects stay in the reviewed allowlist" do
@@ -118,7 +118,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
       REVIEWED_MODEL_CONCERN_SIDE_EFFECTS,
       actual,
       "Model concern included-do side effects changed. " \
-        "Move Rails DSL to the model or update this allowlist intentionally",
+      "Move Rails DSL to the model or update this allowlist intentionally",
     )
   end
 
@@ -133,7 +133,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
       REVIEWED_BRANCH_EXCEPTIONS,
       actual,
       "Do not use Required/Unauthorized/StepUp exceptions as ordinary branches. " \
-        "Use predicates plus render/redirect/return",
+      "Use predicates plus render/redirect/return",
     )
   end
 
@@ -146,9 +146,9 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
 
     assert_equal REVIEWED_RAILS_WAY_DIRECTORIES.keys.sort, actual,
                  "Rails Way escape hatch directories changed. Add app code under controllers, models, concerns, " \
-                   "policies, validators, jobs, or mailers unless a reviewed boundary requires otherwise.\n" \
-                   "added: #{(actual - REVIEWED_RAILS_WAY_DIRECTORIES.keys).inspect}\n" \
-                   "removed: #{(REVIEWED_RAILS_WAY_DIRECTORIES.keys - actual).inspect}"
+                 "policies, validators, jobs, or mailers unless a reviewed boundary requires otherwise.\n" \
+                 "added: #{(actual - REVIEWED_RAILS_WAY_DIRECTORIES.keys).inspect}\n" \
+                 "removed: #{(REVIEWED_RAILS_WAY_DIRECTORIES.keys - actual).inspect}"
     assert REVIEWED_RAILS_WAY_DIRECTORIES.values.all?(&:present?), "Rails Way directory allowlist entries need reasons"
   end
 
@@ -196,7 +196,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     assert expected.values.all? { |_count, reason| reason.present? }, "Allowlist entries need reasons"
     assert_equal expected.transform_values(&:first), actual,
                  "#{message}\nadded: #{(actual.keys - expected.keys).inspect}\n" \
-                   "removed: #{(expected.keys - actual.keys).inspect}\nactual:\n#{format_inventory(actual)}"
+                 "removed: #{(expected.keys - actual.keys).inspect}\nactual:\n#{format_inventory(actual)}"
   end
 
   def format_inventory(inventory)

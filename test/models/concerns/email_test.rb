@@ -454,4 +454,12 @@ class EmailTest < ActiveSupport::TestCase
 
     assert_not email.reregistration_window_active?
   end
+
+  test "find_by_address returns the matching email or nil" do
+    created = create_email(address: "findable@example.com", confirm_policy: true)
+
+    assert_equal created, ClientEmail.public_send(:find_by_address, "findable@example.com")
+    assert_nil ClientEmail.public_send(:find_by_address, "")
+    assert_nil ClientEmail.public_send(:find_by_address, "missing@example.com")
+  end
 end

@@ -11,7 +11,7 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       email_address: "com-config-registration-#{SecureRandom.hex(4)}@example.com",
     )
     @visitor.visitor_telephones.create!(
-      number: "+1555#{SecureRandom.random_number(10 ** 7).to_s.rjust(7, "0")}",
+      number: "+1555#{SecureRandom.random_number(10**7).to_s.rjust(7, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     @headers = as_visitor_headers(@visitor, host: @host)
@@ -36,9 +36,9 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       operation: "registration",
     )
     get new_sign_com_settings_emails_registration_url(
-          ri: "jp",
-          email_ceremony_grant: issuance.grant,
-        ), headers: @headers
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: @headers
 
     assert_response :success
     assert_select "input[type=email][name='visitor_email[address]']", count: 1
@@ -49,7 +49,7 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   test "new allows bootstrap when visitor multi factor status is unconfigured" do
     visitor = Visitor.create!(status_id: VisitorStatus::NOTHING)
     visitor.visitor_telephones.create!(
-      number: "+1555#{SecureRandom.random_number(10 ** 7).to_s.rjust(7, "0")}",
+      number: "+1555#{SecureRandom.random_number(10**7).to_s.rjust(7, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     headers = as_visitor_headers(visitor, host: @host)
@@ -63,9 +63,9 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       operation: "registration",
     )
     get new_sign_com_settings_emails_registration_url(
-          ri: "jp",
-          email_ceremony_grant: issuance.grant,
-        ), headers: headers
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: headers
 
     assert_response :success
     assert_equal VisitorMfaStatus::UNCONFIGURED, visitor.reload.mfa_status_id
@@ -93,9 +93,9 @@ class Sign::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       operation: "registration",
     )
     get new_sign_com_settings_emails_registration_url(
-          ri: "jp",
-          email_ceremony_grant: issuance.grant,
-        ), headers: @headers
+      ri: "jp",
+      email_ceremony_grant: issuance.grant,
+    ), headers: @headers
 
     assert_enqueued_emails 1 do
       post sign_com_settings_emails_registration_url(ri: "jp"),

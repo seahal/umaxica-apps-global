@@ -29,17 +29,14 @@
     <% when :app %>
       <li><%= link_to t("controller.sign.app.setting.index.email"), acme_app_settings_emails_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.telephone"), acme_app_settings_telephones_path(ri: params[:ri]) %></li>
-      <li><%= link_to t("sign.settings.connections.index.page_title"), acme_app_settings_connections_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.session"), acme_app_settings_sessions_path(ri: params[:ri]) %></li>
     <% when :com %>
       <li><%= link_to t("controller.sign.app.setting.index.email"), acme_com_settings_emails_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.telephone"), acme_com_settings_telephones_path(ri: params[:ri]) %></li>
-      <li><%= link_to t("sign.settings.connections.index.page_title"), acme_com_settings_connections_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.session"), acme_com_settings_sessions_path(ri: params[:ri]) %></li>
     <% when :org %>
       <li><%= link_to t("controller.sign.app.setting.index.email"), acme_org_settings_emails_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.telephone"), acme_org_settings_telephones_path(ri: params[:ri]) %></li>
-      <li><%= link_to t("sign.settings.connections.index.page_title"), acme_org_settings_connections_path(ri: params[:ri]) %></li>
       <li><%= link_to t("controller.sign.app.setting.index.session"), acme_org_settings_sessions_path(ri: params[:ri]) %></li>
     <% end %>
   </ul>

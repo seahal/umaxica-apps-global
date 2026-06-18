@@ -25,7 +25,7 @@ class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::Appl
 
     respond_to do |format|
       format.html do
-        redirect_to(acme_app_settings_passkeys_path(ri: params[:ri]), status: :see_other)
+        redirect_to(sign_app_settings_passkeys_path(ri: params[:ri]), status: :see_other)
       end
       format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
     end
@@ -39,7 +39,7 @@ class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::Appl
   def passkey_registration_passkeys = current_client.client_passkeys
 
   def passkey_registration_redirect_url
-    acme_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    sign_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 
   def passkey_registration_log_prefix = "sign.webauthn.registration"
@@ -53,9 +53,9 @@ class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::Appl
   def recovery_passcode_requirement_credential_class = ClientSecretCredential
 
   def recovery_passcode_setup_url
-    acme_app_settings_secrets_url(
+    sign_app_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
   end
 end

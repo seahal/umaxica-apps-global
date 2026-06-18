@@ -4,12 +4,13 @@
 module Sign
   module App
     class SettingsController < ::Sign::App::ApplicationController
-      include ::SignSettingsAuthorityRedirect
-
       AUTHENTICATION_MODE = :private
 
+      before_action :authenticate_client!
+
       def show
-        redirect_to_acme_settings_authority! unless logged_in?
+        authorize!(current_client, to: :show?)
+        render "sign/app/settings/show"
       end
     end
   end

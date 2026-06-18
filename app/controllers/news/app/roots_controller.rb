@@ -5,9 +5,9 @@ module News
   module App
     class RootsController < News::App::BareController
       AUTHENTICATION_MODE = :bare
+      layout false
 
       def index
-        render layout: false
       end
     end
   end

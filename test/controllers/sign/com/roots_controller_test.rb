@@ -11,34 +11,8 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "a[href*=?]", sign_com_sign_up_path
-    assert_select "a[href*=?]", sign_com_sign_in_path
-  end
-
-  test "renders layout contract" do
-    get sign_com_root_url(ri: "jp")
-
-    assert_response :success
-    assert_layout_contract
-  end
-
-  test "footer contains navigation links" do
-    get sign_com_root_url(ri: "jp")
-
-    assert_response :success
-    assert_select "footer" do
-      assert_select "a"
-      assert_select "a[href=?]", sign_com_root_url(ri: "jp"),
-                    text: I18n.t("sign.com.preferences.footer.home")
-      assert_select "a[href=?]",
-                    acme_com_preference_url(
-                      ri: "jp",
-                      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
-                    ),
-                    text: I18n.t("sign.com.preferences.footer.preference")
-      assert_select "a[href=?]", sign_com_settings_url(ri: "jp"),
-                    text: I18n.t("sign.com.preferences.footer.settings")
-    end
+    assert_select "title", "Sign Com"
+    assert_select "h1", text: "Sign Com"
   end
 
   test "creates preference cookies on root" do
@@ -71,6 +45,6 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))
 
     assert_response :success
-    assert_select "h1", minimum: 1
+    assert_select "h1", text: "Sign Com"
   end
 end

@@ -14,9 +14,6 @@ class StepUpScopeCatalogTest < ActiveSupport::TestCase
 
   test "later step up scopes remain registered" do
     assert StepUpScopeCatalog::APP.key?("social_link")
-    assert StepUpScopeCatalog::APP.key?("settings_connection")
-    assert StepUpScopeCatalog::COM.key?("settings_connection")
-    assert StepUpScopeCatalog::ORG.key?("settings_connection")
     assert StepUpScopeCatalog::ORG.key?("operator_lifecycle")
   end
 

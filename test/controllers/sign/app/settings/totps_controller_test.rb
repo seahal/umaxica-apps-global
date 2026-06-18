@@ -294,11 +294,11 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_redirected_to acme_app_settings_totps_url(
-                             ri: "jp",
-                             host: ENV.fetch(
-                               "ACME_SERVICE_URL", "www.app.localhost",
-                             ),
-                           )
+        ri: "jp",
+        host: ENV.fetch(
+          "ACME_SERVICE_URL", "www.app.localhost",
+        ),
+      )
       assert_operator @token.reload.last_step_up_at, :<, step_up_before
       assert_equal "settings_totp", @token.last_step_up_scope
     end
@@ -488,9 +488,9 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       with_prosopite_paused do
         get new_sign_app_settings_totp_url(
-              ri: "jp",
-              totp_ceremony_grant: grant,
-            ), headers: headers
+          ri: "jp",
+          totp_ceremony_grant: grant,
+        ), headers: headers
       end
 
       assert_response :success

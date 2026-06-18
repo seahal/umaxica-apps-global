@@ -19,19 +19,27 @@ class AcmeSelectorBootstrapAuthority
 
     with_writing_connections do
       config.principal_class.lock.find(principal.id)
-      ensure_reference_rows!
-      rp_account = ensure_rp_account!
-      identity = ensure_identity!
-      account = ensure_account!(identity)
-      collective = ensure_collective_for(account)
-      unit = ensure_root_unit!(collective)
-      ensure_membership!(account: account, collective: collective, unit: unit)
-      ensure_avatar!(account: account, collective: collective) if config.requires_avatar
+      bootstrap_result = nil
 
-      BootstrapResult.new(
-        rp_account: rp_account, identity: identity, account: account,
-        collective: collective, unit: unit,
-      )
+      config.rp_account_class.transaction do
+        ensure_reference_rows!
+        rp_account = ensure_rp_account!
+        identity = ensure_identity!
+        account = ensure_account!(identity)
+        collective = ensure_collective_for(account)
+        unit = ensure_root_unit!(collective)
+        ensure_membership!(account: account, collective: collective, unit: unit)
+
+        bootstrap_result = BootstrapResult.new(
+          rp_account: rp_account, identity: identity, account: account,
+          collective: collective, unit: unit,
+        )
+      end
+
+      ensure_avatar!(account: bootstrap_result.account, collective: bootstrap_result.collective) if
+        config.requires_avatar
+
+      bootstrap_result
     end
   end
 

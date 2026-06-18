@@ -136,15 +136,15 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
         session.get(
           "/oauth/authorize", params: {
-          response_type: "code",
-          client_id: surface[:client_id],
-          redirect_uri: redirect_uri_for(surface),
-          code_challenge: SecureRandom.urlsafe_base64(32),
-          code_challenge_method: "S256",
-          state: "state",
-          nonce: "nonce",
-          scope: "openid profile",
-        }, headers: browser_headers,
+            response_type: "code",
+            client_id: surface[:client_id],
+            redirect_uri: redirect_uri_for(surface),
+            code_challenge: SecureRandom.urlsafe_base64(32),
+            code_challenge_method: "S256",
+            state: "state",
+            nonce: "nonce",
+            scope: "openid profile",
+          }, headers: browser_headers,
         )
 
         if surface[:acme_host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")

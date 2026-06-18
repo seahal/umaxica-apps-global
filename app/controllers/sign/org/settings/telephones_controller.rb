@@ -20,7 +20,9 @@ module Sign
         # Verification guards remain in place.
         before_action :authorize_telephone_registration!, only: %i(new create)
 
-        def index = redirect_to_acme_settings_authority!
+        def index
+          @staff_telephones = current_operator.staff_telephones.order(created_at: :asc)
+        end
 
         def new
           @staff_telephone = OperatorTelephone.new
@@ -43,7 +45,25 @@ module Sign
           redirect_to(edit_sign_org_settings_telephones_registration_path(ri: params[:ri]))
         end
 
-        def destroy = redirect_to_acme_settings_authority!
+        def destroy
+          telephone = current_operator.staff_telephones.find(params(:id))
+          authorize!(telephone)
+
+          unless AuthMethodGuard.can_remove_telephone?(current_operator, telephone)
+            redirect_to(
+              sign_org_settings_telephones_path(ri: params[:ri]),
+              alert: t("sign.org.settings.telephone.destroy.last_method"),
+            )
+            return
+          end
+
+          telephone.destroy!
+          redirect_to(
+            sign_org_settings_telephones_path(ri: params[:ri]),
+            notice: t("sign.org.settings.telephone.destroy.success"),
+            status: :see_other,
+          )
+        end
 
         private
 

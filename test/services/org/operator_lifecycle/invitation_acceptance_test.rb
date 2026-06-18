@@ -19,7 +19,17 @@ class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
     assert_difference -> { Operator.count }, 1 do
       assert_difference -> { OperatorEmail.count }, 1 do
         assert_difference -> { OperatorAccount.count }, 1 do
-          @result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
+          assert_difference -> { OperatorIdentity.count }, 1 do
+            assert_difference -> { Agent.count }, 1 do
+              assert_difference -> { Bureau.count }, 1 do
+                assert_difference -> { BureauUnit.count }, 1 do
+                  assert_difference -> { AgentMembership.count }, 1 do
+                    @result = OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation.code)
+                  end
+                end
+              end
+            end
+          end
         end
       end
     end
@@ -32,6 +42,7 @@ class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
     assert_equal OperatorEmailStatus::VERIFIED, @result.email.staff_email_status_id
     assert_predicate @result.email, :undeletable?
     assert_predicate @result.operator.rp_account, :present?
+    assert_equal 1, OperatorIdentity.where(source_record_id: @result.operator.id).count
   end
 
   test "rejects consumed invitation without creating operator" do

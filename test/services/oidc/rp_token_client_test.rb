@@ -13,9 +13,9 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
     with_oidc_client_key("ACME_APP") do
       Net::HTTP.stub(
         :post_form, ->(_uri, params) {
-        captured = params
-        response
-      },
+                      captured = params
+                      response
+                    },
       ) do
         result = OidcRpTokenClient.call(
           token_url: "https://id.umaxica.app/oauth/token",

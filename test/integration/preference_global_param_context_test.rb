@@ -206,18 +206,18 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
       url_method = domain[:preference_url_method] || domain[:root_url_method]
       get public_send(
-            url_method,
-            ri: "us",
-            lx: "en",
-            ct: "dr",
-            tz: "utc",
-            cu: "usd",
-            df: "us",
-            tf: "12",
-            mo: "rd",
-            dn: "cp",
-            ps: "50",
-          )
+        url_method,
+        ri: "us",
+        lx: "en",
+        ct: "dr",
+        tz: "utc",
+        cu: "usd",
+        df: "us",
+        tf: "12",
+        mo: "rd",
+        dn: "cp",
+        ps: "50",
+      )
 
       assert_response :success
 

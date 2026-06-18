@@ -30,10 +30,10 @@ class FailFastEnvironmentConfigTest < ActiveSupport::TestCase
     proxies = Jit::TrustedProxiesConfig.parse("10.0.0.0/8, 192.0.2.10,2001:db8::/32")
 
     assert_equal [
-                   IPAddr.new("10.0.0.0/8"),
-                   IPAddr.new("192.0.2.10"),
-                   IPAddr.new("2001:db8::/32"),
-                 ], proxies
+      IPAddr.new("10.0.0.0/8"),
+      IPAddr.new("192.0.2.10"),
+      IPAddr.new("2001:db8::/32"),
+    ], proxies
   end
 
   test "trusted proxies config raises for invalid entries" do

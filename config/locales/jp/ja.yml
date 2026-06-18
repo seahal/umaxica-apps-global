@@ -527,40 +527,6 @@ ja:
         title: リカバリーパスコードが必要です
         description: "このMFA方法を登録するには、未使用のリカバリーパスコードが%{minimum}個以上必要です。現在は%{count}個です。"
         setup_link: リカバリーパスコードを管理する
-    settings:
-      connections:
-        index:
-          page_title: 連携RP
-          description: このIdPで連携したRPを管理します。
-          empty: 連携中のRPはありません。
-        table:
-          rp_name: RP
-          domain: ドメイン
-          status: 状態
-          last_used_at: 最終利用日時
-          scope: scope
-          actions: 操作
-        statuses:
-          active: 有効
-          revoked: 解除済み
-        actions:
-          detail: 詳細
-          revoke: 解除
-          revoke_confirm: このRP連携を解除しますか？
-          back: 連携RP一覧へ戻る
-        destroy:
-          success: RP連携を解除しました。
-        detail:
-          client_id: Client ID
-          status: 状態
-          domains: ドメイン
-          scope: scope
-          last_used_at: 最終利用日時
-          connected_at: 連携日時
-          active_tokens: 有効なトークン
-          resource_type: リソース種別
-          audience: Audience
-          redirect_uris: Redirect URI
     token_refresh:
       errors:
         restricted_session: きんそくじこうです

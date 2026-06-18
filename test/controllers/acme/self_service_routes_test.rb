@@ -30,11 +30,11 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     assert_self_service_page(acme_app_identity_url(ri: "jp", host: @app_host), headers: headers, title: "Identity")
     assert_self_service_page(
       acme_app_current_organization_url(ri: "jp", host: @app_host), headers: headers,
-      title: "Organization",
+                                                                    title: "Organization",
     )
     assert_self_service_page(
       edit_acme_app_current_organization_path(ri: "jp", host: @app_host), headers: headers,
-      title: "Organization",
+                                                                          title: "Organization",
     )
     assert_self_service_page(acme_app_account_url(ri: "jp", host: @app_host), headers: headers, title: "Account")
     assert_self_service_page(edit_acme_app_account_path(ri: "jp", host: @app_host), headers: headers, title: "Account")
@@ -82,11 +82,11 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     assert_self_service_page(acme_org_identity_url(ri: "jp", host: @org_host), headers: headers, title: "Identity")
     assert_self_service_page(
       acme_org_current_organization_url(ri: "jp", host: @org_host), headers: headers,
-      title: "Organization",
+                                                                    title: "Organization",
     )
     assert_self_service_page(
       edit_acme_org_current_organization_path(ri: "jp", host: @org_host), headers: headers,
-      title: "Organization",
+                                                                          title: "Organization",
     )
     assert_self_service_page(acme_org_account_url(ri: "jp", host: @org_host), headers: headers, title: "Account")
     assert_self_service_page(edit_acme_org_account_path(ri: "jp", host: @org_host), headers: headers, title: "Account")

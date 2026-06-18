@@ -43,27 +43,27 @@ class AuthRedirectTestController < ApplicationController
   end
 
   def am_i_user?
-    false;
+    false
   end
 
   def am_i_staff?
-    false;
+    false
   end
 
   def am_i_owner?
-    false;
+    false
   end
 
   def resource_type
-    "Client";
+    "Client"
   end
 
   def resource_class
-    Client;
+    Client
   end
 
   def token_class
-    ClientToken;
+    ClientToken
   end
 end
 

@@ -10,8 +10,14 @@ module Acme
       before_action :authenticate_client!
 
       def show
-        authorize!(current_client, to: :show?)
-        render "acme/app/settings/show"
+        redirect_to(
+          sign_app_settings_url(
+            ri: params[:ri],
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+          ),
+          allow_other_host: cross_host_redirect_allowed?,
+          status: :see_other,
+        )
       end
     end
   end

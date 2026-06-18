@@ -31,12 +31,12 @@ class ClientPasskeyStatusTest < ActiveSupport::TestCase
 
   test "default ids include every fixed status" do
     assert_equal [
-                   ClientPasskeyStatus::ACTIVE,
-                   ClientPasskeyStatus::DISABLED,
-                   ClientPasskeyStatus::REVOKED,
-                   ClientPasskeyStatus::DELETED,
-                   ClientPasskeyStatus::NOTHING,
-                 ], ClientPasskeyStatus::DEFAULTS
+      ClientPasskeyStatus::ACTIVE,
+      ClientPasskeyStatus::DISABLED,
+      ClientPasskeyStatus::REVOKED,
+      ClientPasskeyStatus::DELETED,
+      ClientPasskeyStatus::NOTHING,
+    ], ClientPasskeyStatus::DEFAULTS
   end
 
   test "ensure_defaults! keeps fixed status rows present" do

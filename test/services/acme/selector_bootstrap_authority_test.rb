@@ -44,6 +44,23 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_equal 1, Agent.count
   end
 
+  test "rolls back zenith rows when account creation fails after identity creation" do
+    user = create_client!
+
+    failing_authority = Class.new(AcmeSelectorBootstrapAuthority) do
+      def ensure_account!(_identity)
+        raise "boom"
+      end
+    end.new(surface: :app, principal: user)
+
+    assert_raises(RuntimeError) do
+      failing_authority.call
+    end
+
+    assert_nil ClientIdentity.find_by(source_record_id: user.id)
+    assert_nil ClientAccount.find_by(user_id: user.id)
+  end
+
   private
 
   def ensure_reference_rows!

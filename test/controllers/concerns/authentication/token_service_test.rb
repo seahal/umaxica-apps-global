@@ -93,7 +93,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     user = clients(:one)
     token = AuthenticationTokenService.encode(
       user, host: "example.com", session_id: "sid123",
-      resource_type: "client",
+            resource_type: "client",
     )
 
     assert_predicate token, :present?
@@ -113,13 +113,13 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     travel_to now do
       JitSecurityJwtKeyring.stub(
         :encode, ->(payload, **_kwargs) {
-        captured_payload = payload
-        "encoded-token"
-      },
+                   captured_payload = payload
+                   "encoded-token"
+                 },
       ) do
         token = AuthenticationTokenService.encode(
           user, host: "example.com", session_id: "sid123",
-          resource_type: "client",
+                resource_type: "client",
         )
 
         assert_equal "encoded-token", token
@@ -154,7 +154,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     user = clients(:one)
     token = AuthenticationTokenService.encode(
       user, host: "example.com", session_id: "sid123",
-      resource_type: "client",
+            resource_type: "client",
     )
 
     assert_nil AuthenticationTokenService.decode(token, host: "example.com", resource_type: "operator")
@@ -165,7 +165,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     visitor = Visitor.create!
     token = AuthenticationTokenService.encode(
       visitor, host: "example.com", session_id: "sid999",
-      resource_type: "visitor",
+               resource_type: "visitor",
     )
 
     assert_predicate token, :present?
@@ -194,7 +194,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     user = clients(:one)
     token = AuthenticationTokenService.encode(
       user, host: "example.com", session_id: "sid123",
-      resource_type: "client", dpop_jkt: "thumb123",
+            resource_type: "client", dpop_jkt: "thumb123",
     )
 
     payload = AuthenticationTokenService.decode(token, host: "example.com", resource_type: "client")
@@ -215,7 +215,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     user = clients(:one)
     token = AuthenticationTokenService.encode(
       user, host: "example.com", session_public_id: "legacy_sid",
-      resource_type: "client",
+            resource_type: "client",
     )
 
     payload = AuthenticationTokenService.decode(token, host: "example.com", resource_type: "client")
@@ -229,7 +229,7 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     oidc_jti = "6d0d34c8-f250-4480-92ef-154bcbfc9ec7"
     token = AuthenticationTokenService.encode(
       user, host: "example.com", session_public_id: "token_public_id",
-      oidc_sid: oidc_sid, oidc_jti: oidc_jti, resource_type: "client",
+            oidc_sid: oidc_sid, oidc_jti: oidc_jti, resource_type: "client",
     )
 
     payload = AuthenticationTokenService.decode(token, host: "example.com", resource_type: "client")

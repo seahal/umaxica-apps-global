@@ -26,7 +26,7 @@ module SignSocialAuthenticationEndpoint
       entry: social_auth_entry,
       ri: params[:ri].presence,
     )
-    sign_up_cycle = issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
+    issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
     if params[:social_ceremony_grant].present?
       store_social_ceremony_grant!(params[:social_ceremony_grant])
     elsif intent.to_s == "login"

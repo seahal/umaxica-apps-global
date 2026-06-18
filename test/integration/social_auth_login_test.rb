@@ -118,7 +118,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to acme_app_settings_sessions_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
   end
 
   def create_active_user_session_for_limit(user)

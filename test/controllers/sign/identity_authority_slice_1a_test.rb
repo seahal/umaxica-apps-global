@@ -73,7 +73,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "sign controllers keep withdrawal authority out of sign" do
     files = Rails.root.glob("app/controllers/sign/**/*.rb") +
-            Rails.root.glob("app/controllers/concerns/sign_*.rb")
+      Rails.root.glob("app/controllers/concerns/sign_*.rb")
     forbidden = /WithdrawalLifecycle\./
     offenders =
       files.filter do |file|

@@ -26,6 +26,17 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
     assert_predicate @token.reload, :selected_actor_context?
   end
 
+  test "freshly provisioned identity auto-selects on the first selector request" do
+    IdentityGraphProvisioner.call!(surface: :app, principal: @user)
+
+    get acme_app_selector_url(host: @host), headers: as_user_headers(@user, host: @host), as: :json
+
+    assert_response :success
+    assert_equal "selected", response.parsed_body.fetch("status")
+    assert_predicate @token.reload, :selected_actor_context?
+    assert_equal 1, ClientIdentity.where(source_record_id: @user.id).count
+  end
+
   test "html selector request redirects after preparing a single selected context" do
     get acme_app_selector_url(host: @host, ri: "jp"),
         headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)

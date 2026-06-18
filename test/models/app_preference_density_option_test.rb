@@ -34,4 +34,12 @@ class AppPreferenceDensityOptionTest < ActiveSupport::TestCase
 
     assert_nil option.name
   end
+
+  test "ensure_defaults! creates default records" do
+    AppPreferenceDensityOption.ensure_defaults!
+
+    AppPreferenceDensityOption::DEFAULTS.each do |id|
+      assert AppPreferenceDensityOption.exists?(id), "missing default app preference density option #{id}"
+    end
+  end
 end

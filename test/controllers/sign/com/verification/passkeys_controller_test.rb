@@ -12,7 +12,7 @@ class Sign::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
       email_address: "com-passkey-stepup-#{SecureRandom.hex(4)}@example.com",
     )
     @visitor.visitor_telephones.create!(
-      number: "+8190#{SecureRandom.random_number(10 ** 8).to_s.rjust(8, "0")}",
+      number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     @headers = as_visitor_headers(@visitor, host: @host)
@@ -38,10 +38,10 @@ class Sign::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           assert_response :success
 
           get new_sign_com_verification_passkey_url(
-                ri: "jp",
-                scope: "settings_email",
-                return_to: return_to,
-              ), headers: @headers
+            ri: "jp",
+            scope: "settings_email",
+            return_to: return_to,
+          ), headers: @headers
 
           assert_response :redirect
 
@@ -67,10 +67,10 @@ class Sign::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
         assert_response :success
 
         get new_sign_com_verification_passkey_url(
-              ri: "jp",
-              scope: "settings_email",
-              return_to: return_to,
-            ), headers: @headers
+          ri: "jp",
+          scope: "settings_email",
+          return_to: return_to,
+        ), headers: @headers
 
         assert_response :redirect
       end

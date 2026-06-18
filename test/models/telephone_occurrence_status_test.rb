@@ -34,6 +34,14 @@ class TelephoneOccurrenceStatusTest < ActiveSupport::TestCase
     assert_status_association(TelephoneOccurrenceStatus, :telephone_occurrences)
   end
 
+  test "ensure_defaults! creates default records" do
+    TelephoneOccurrenceStatus.ensure_defaults!
+
+    TelephoneOccurrenceStatus::DEFAULTS.each do |id|
+      assert TelephoneOccurrenceStatus.exists?(id), "missing default telephone occurrence status #{id}"
+    end
+  end
+
   #   test "expires_at default" do
   #     record = TelephoneOccurrenceStatus.new(id: "EXPIRES_AT_TEST")
   #

@@ -30,7 +30,7 @@ module Security
 
       assert_empty violations,
                    "State-changing routes must reject missing/invalid CSRF tokens instead of " \
-                     "using null_session. Review:\n  #{violations.join("\n  ")}"
+                   "using null_session. Review:\n  #{violations.join("\n  ")}"
     end
 
     private

@@ -66,7 +66,7 @@ module Outbound
       end
 
       def provider_double.called_with
-        @called_with;
+        @called_with
       end
 
       OutboundSms.stub(:provider, provider_double) do

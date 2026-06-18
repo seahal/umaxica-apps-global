@@ -5,8 +5,8 @@ require "test_helper"
 
 class ProsopiteInitializerTest < ActiveSupport::TestCase
   TEST_QUERY = 'SELECT "app_preferences"."id" FROM "app_preferences" ' \
-    'WHERE "app_preferences"."public_id" = ' \
-    "'abc123' LIMIT 1"
+               'WHERE "app_preferences"."public_id" = ' \
+               "'abc123' LIMIT 1"
 
   test "fingerprint works while Active Record base is in reading role" do
     fingerprint =

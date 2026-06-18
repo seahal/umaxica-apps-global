@@ -77,7 +77,8 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       yield
     end
 
-    def adopt_preference_for!(res) end
+    def adopt_preference_for!(res)
+    end
 
     def current_resource
       @current_resource

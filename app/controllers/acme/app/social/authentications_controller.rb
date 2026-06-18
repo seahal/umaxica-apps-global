@@ -116,6 +116,7 @@ module Acme
         end
 
         def complete_social_login!(commit, provider)
+          IdentityGraphProvisioner.call!(surface: :app, principal: commit.user)
           result = establish_signed_in_session!(
             commit.user,
             pt: commit.pt,

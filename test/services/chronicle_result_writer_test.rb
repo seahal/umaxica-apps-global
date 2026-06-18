@@ -24,6 +24,19 @@ class ChronicleResultWriterTest < ActiveSupport::TestCase
     )
   end
 
+  test "returns updated chronicle on success" do
+    result = ChronicleResultWriter.call(
+      chronicle: @chronicle,
+      result: "succeeded",
+      event_uuid: SecureRandom.uuid,
+      request_id: "request-result-success",
+      action: "auth.sign_in.failed",
+    )
+
+    assert_equal @chronicle, result
+    assert_equal "succeeded", @chronicle.reload.result
+  end
+
   test "logs fallback and reraises when result update fails" do
     fallback_called = false
     error = StandardError.new("update failed")

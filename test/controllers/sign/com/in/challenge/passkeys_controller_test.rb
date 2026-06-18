@@ -99,12 +99,12 @@ class Sign::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   def establish_pending_mfa!
     post(
       sign_com_sign_in_secret_credential_path(ri: "jp"), params: {
-      secret_credential_login_form: {
-        identifier: @visitor.visitor_emails.first.address,
-        secret_credential_value: @raw_secret_credential,
+        secret_credential_login_form: {
+          identifier: @visitor.visitor_emails.first.address,
+          secret_credential_value: @raw_secret_credential,
+        },
+        "cf-turnstile-response": "test_token",
       },
-      "cf-turnstile-response": "test_token",
-    },
     )
 
     assert_response :redirect

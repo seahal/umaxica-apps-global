@@ -15,7 +15,8 @@ class AuthorizationAuditTest < ActiveSupport::TestCase
   end
 
   class DummyAudit
-    def self.rescue_from(*) end
+    def self.rescue_from(*)
+    end
 
     include AuthorizationAudit
 

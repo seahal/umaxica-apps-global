@@ -384,11 +384,11 @@ class OperatorTest < ActiveSupport::TestCase
     call_count = 0
     Operator.stub(
       :exists?, ->(conditions) {
-      call_count += 1
-      # First call: simulate collision (return true)
-      # Second call and onwards: no collision (return false)
-      call_count == 1 && conditions[:public_id] == existing_public_id
-    },
+                  call_count += 1
+                  # First call: simulate collision (return true)
+                  # Second call and onwards: no collision (return false)
+                  call_count == 1 && conditions[:public_id] == existing_public_id
+                },
     ) do
       new_staff = Operator.new
       # Stub generate_public_id to return existing_public_id first, then a different one

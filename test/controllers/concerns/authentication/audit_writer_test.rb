@@ -187,8 +187,8 @@ module Authentication
 
       AuthenticationAuditWriter.stub(
         :write!, ->(*) {
-        raise AuthenticationAuditWriter::AuditWriteError, "forced"
-      },
+                   raise AuthenticationAuditWriter::AuditWriteError, "forced"
+                 },
       ) do
         assert_difference -> {
           ChronicleRecord.connected_to(role: :reading) { ChronicleOutboxEntry.count }
@@ -232,8 +232,8 @@ module Authentication
 
       AuthenticationAuditWriter.stub(
         :write!, ->(*) {
-        raise AuthenticationAuditWriter::AuditWriteError, "forced"
-      },
+                   raise AuthenticationAuditWriter::AuditWriteError, "forced"
+                 },
       ) do
         AuthenticationAuditWriter.write(
           ClientChronicle,

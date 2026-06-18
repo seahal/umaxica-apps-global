@@ -115,12 +115,12 @@ module Sign::App::In
     def establish_pending_mfa_via_secret_credential!
       post(
         sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
-        secret_credential_login_form: {
-          identifier: @email,
-          secret_credential_value: @raw_secret_credential,
+          secret_credential_login_form: {
+            identifier: @email,
+            secret_credential_value: @raw_secret_credential,
+          },
+          "cf-turnstile-response": "test_token",
         },
-        "cf-turnstile-response": "test_token",
-      },
       )
       # Skip redirect verification - route helper sign_app_sign_in_mfa_path is undefined
       # assert_redirected_to sign_app_sign_in_mfa_path(ri: "jp")

@@ -8,7 +8,7 @@ module Sign
     module Settings
       class TotpsController < ::Sign::App::ApplicationController
         include ::CloudflareTurnstile
-        include ::SignAcmeAuthorityRedirect
+        include ::SignAuthorityRedirect
         include ::SignTotpCeremonyDelegation
         include ::SignRequiresRecoveryPasscodes
 
@@ -91,10 +91,10 @@ module Sign
           reset_totp_ceremony_session!
           redirect_to(
             bootstrap_return_path(
-              acme_app_settings_totps_url(
+              sign_app_settings_totps_url(
                 ri: params[:ri],
                 host: ENV.fetch(
-                  "ACME_SERVICE_URL", "www.app.localhost",
+                  "ID_SERVICE_URL", "id.app.localhost",
                 ),
               ),
             ),
@@ -128,7 +128,7 @@ module Sign
           return true if accept_totp_ceremony_grant!(surface: "app")
 
           redirect_to(
-            acme_app_settings_totps_path(ri: params[:ri]),
+            sign_app_settings_totps_path(ri: params[:ri]),
             alert: I18n.t("errors.messages.invalid"),
             status: :see_other,
           )
@@ -186,15 +186,15 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          acme_app_settings_secrets_url(
+          sign_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
         end
 
         # Compatibility entry only. acme/www owns account-facing TOTP lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
+          redirect_to_sign_authority!(request.path, query: request.query_parameters)
         end
       end
     end

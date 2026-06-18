@@ -144,13 +144,13 @@ class AuthMethodGuardCoverageTest < ActiveSupport::TestCase
     end
 
     assert_equal [
-                   [actor, nil, true],
-                   [actor, passkey, true],
-                   [actor, nil, true],
-                   [actor, passkey, true],
-                   [actor, email, true],
-                   [actor, telephone, true],
-                   [actor, totp, true],
-                 ], calls
+      [actor, nil, true],
+      [actor, passkey, true],
+      [actor, nil, true],
+      [actor, passkey, true],
+      [actor, email, true],
+      [actor, telephone, true],
+      [actor, totp, true],
+    ], calls
   end
 end

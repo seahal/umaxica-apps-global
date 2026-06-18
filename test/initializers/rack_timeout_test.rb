@@ -64,6 +64,6 @@ class RackTimeoutInitializerTest < ActiveSupport::TestCase
     end
 
     @original_timeout.nil? ? ENV.delete("RACK_TIMEOUT_SERVICE_TIMEOUT") : ENV["RACK_TIMEOUT_SERVICE_TIMEOUT"] =
-      @original_timeout
+                                                                            @original_timeout
   end
 end

@@ -27,7 +27,7 @@ module Sign
         include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
-        include ::SignAcmeAuthorityRedirect
+        include ::SignAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
 
@@ -160,7 +160,7 @@ module Sign
               status: "ok",
               passkey_id: passkey.id,
               redirect_url: bootstrap_return_path(
-                acme_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
               ),
             }, status: :created
           end
@@ -227,7 +227,7 @@ module Sign
           respond_to do |format|
             format.html do
               redirect_to(
-                acme_org_settings_passkeys_path(ri: params[:ri]),
+                sign_org_settings_passkeys_path(ri: params[:ri]),
                 alert: I18n.t("errors.messages.invalid"),
                 status: :see_other,
               )
@@ -302,15 +302,15 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          acme_org_settings_secrets_url(
+          sign_org_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+            host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
           )
         end
 
         # Compatibility entry only. acme/www owns account-facing passkey lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
+          redirect_to_sign_authority!(request.path, query: request.query_parameters)
         end
       end
     end

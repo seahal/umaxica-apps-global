@@ -103,9 +103,9 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           headers: request_headers
 
     assert_redirected_to acme_org_settings_emails_url(
-                           ri: "jp",
-                           host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-                         )
+      ri: "jp",
+      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+    )
     assert_equal OperatorEmailStatus::VERIFIED, staff_email.reload.staff_email_status_id
   end
 

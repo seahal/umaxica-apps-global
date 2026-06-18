@@ -68,10 +68,10 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     )
 
     get sign_org_sign_in_url(
-          ri: "jp",
-          pt: Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false),
-          login_challenge: issuance.transaction.login_challenge,
-        ), headers: { "Host" => @host }
+      ri: "jp",
+      pt: Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false),
+      login_challenge: issuance.transaction.login_challenge,
+    ), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "a[href=?]", new_sign_org_sign_in_passkey_path(ri: "jp")

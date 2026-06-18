@@ -10,7 +10,7 @@ module Sign
         include ::SignSettingsSecretCredentialTurnstileGuard
 
         include ::SignSettingsSecretCredentialCacheControl
-        include ::SignAcmeAuthorityRedirect
+        include ::SignAuthorityRedirect
         include ::SignSecretCredentialCeremonyDelegation
 
         AUTHENTICATION_MODE = :private
@@ -64,10 +64,10 @@ module Sign
 
           flash[:notice] = t(".created")
           redirect_to(
-            acme_app_settings_secrets_url(
+            sign_app_settings_secret_credentials_url(
               ri: params[:ri],
               host: ENV.fetch(
-                "ACME_SERVICE_URL", "www.app.localhost",
+                "ID_SERVICE_URL", "id.app.localhost",
               ),
             ), allow_other_host: cross_host_redirect_allowed?,
           )
@@ -134,7 +134,7 @@ module Sign
           return true if accept_secret_credential_ceremony_grant!(surface: "app")
 
           redirect_to(
-            acme_app_settings_secrets_path(ri: params[:ri]),
+            sign_app_settings_secret_credentials_path(ri: params[:ri]),
             alert: I18n.t("errors.messages.invalid"),
             status: :see_other,
           )
@@ -149,9 +149,9 @@ module Sign
           "settings_secret_credential"
         end
 
-        # Compatibility entry only. acme/www owns account-facing secret credential lifecycle.
+        # Compatibility entry only. sign/id owns account-facing secret credential lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
+          redirect_to_sign_authority!(acme_settings_authority_path, query: request.query_parameters)
         end
 
         def acme_settings_authority_path

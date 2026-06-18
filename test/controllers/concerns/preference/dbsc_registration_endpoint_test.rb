@@ -32,7 +32,8 @@ class PreferenceDbscRegistrationEndpointTestController < ApplicationController
     "http://www.example.com/test/dbsc"
   end
 
-  def set_preference_dbsc_cookie!(*) end
+  def set_preference_dbsc_cookie!(*)
+  end
 
   def preference_dbsc_cookie_expires_at(_preference)
     15.minutes.from_now

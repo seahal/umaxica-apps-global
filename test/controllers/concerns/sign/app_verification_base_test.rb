@@ -187,8 +187,8 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     assert harness.app_call(:valid_step_up_session?, valid_session)
     assert_not harness.app_call(
       :valid_step_up_session?, valid_session.dup.tap { |rs|
-      rs.user_token_id = other_token.id
-    },
+                                 rs.user_token_id = other_token.id
+                               },
     )
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.discarded_at = 1.minute.ago })
     assert_not harness.app_call(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.scope = "" })
@@ -259,9 +259,9 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
 
     Rails.cache.write(
       "step_up_session:#{step_up_session.id}:email_otp", {
-      "secret_credential" => "secret_credential",
-      "counter" => 1,
-    },
+        "secret_credential" => "secret_credential",
+        "counter" => 1,
+      },
     )
     step_up_session.update_columns(discarded_at: 1.minute.ago, purged_at: 1.minute.ago)
 

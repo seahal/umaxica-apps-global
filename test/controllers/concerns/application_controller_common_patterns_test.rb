@@ -8,23 +8,23 @@ module Concerns
     self.fixture_table_names = []
 
     ALL_CONTROLLER_FILES = Dir.glob(Rails.root.join("app/controllers/**/application_controller.rb").to_s)
-                              .reject { |f| f.include?("/vendor/") }
-                              .reject { |f| f.end_with?("/controllers/application_controller.rb") }
-                              .reject { |f| f.include?("/sign/com/") }
-                              .reject { |f| f.include?("/jump/") }
-                              .sort
+      .reject { |f| f.include?("/vendor/") }
+      .reject { |f| f.end_with?("/controllers/application_controller.rb") }
+      .reject { |f| f.include?("/sign/com/") }
+      .reject { |f| f.include?("/jump/") }
+      .sort
     CONTROLLER_FILES =
       ALL_CONTROLLER_FILES.index_with do |file|
         {
           content: File.read(file),
           name: file.gsub(Rails.root.join("app/controllers/").to_s, "")
-                    .gsub("/application_controller.rb", "")
-                    .gsub("/", "::")
-                    .gsub("_", " ")
-                    .split.map(&:capitalize).join("::"),
+            .gsub("/application_controller.rb", "")
+            .gsub("/", "::")
+            .gsub("_", " ")
+            .split.map(&:capitalize).join("::"),
           path_name: file.gsub(Rails.root.join("app/controllers/").to_s, "")
-                         .gsub("/application_controller.rb", "")
-                         .gsub("/", "::"),
+            .gsub("/application_controller.rb", "")
+            .gsub("/", "::"),
         }
       end
 

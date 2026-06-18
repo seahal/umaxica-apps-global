@@ -200,40 +200,6 @@ en:
         year: YYYY
         month: MM
         day: DD
-    settings:
-      connections:
-        index:
-          page_title: Connected RPs
-          description: Manage relying parties connected through this IdP.
-          empty: No relying parties are connected.
-        table:
-          rp_name: RP
-          domain: Domain
-          status: Status
-          last_used_at: Last used
-          scope: Scope
-          actions: Actions
-        statuses:
-          active: Active
-          revoked: Revoked
-        actions:
-          detail: Details
-          revoke: Revoke
-          revoke_confirm: Revoke this RP connection?
-          back: Back to connected RPs
-        destroy:
-          success: RP connection revoked.
-        detail:
-          client_id: Client ID
-          status: Status
-          domains: Domains
-          scope: Scope
-          last_used_at: Last used
-          connected_at: Connected
-          active_tokens: Active tokens
-          resource_type: Resource type
-          audience: Audience
-          redirect_uris: Redirect URIs
     default_passkey_description: My Passkey
     com:
       registration:

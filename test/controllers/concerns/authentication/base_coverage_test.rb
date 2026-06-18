@@ -260,8 +260,8 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal record, @controller.load_session_record(:email_id, AuthenticationBaseFakeModel, status_id: 1)
     assert_equal record, @controller.load_session_record(
       :email_id, AuthenticationBaseFakeModel, custom: ->(candidate) {
-      candidate.id == 7
-    },
+                                                candidate.id == 7
+                                              },
     )
 
     record.expired = true
@@ -935,10 +935,10 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal :mfa_required, result[:status]
     assert_equal 0, reset_count,
                  "reset_session must NOT run while MFA is still pending; " \
-                   "it runs at MFA completion via finalize_mfa_login!"
+                 "it runs at MFA completion via finalize_mfa_login!"
     assert_equal 0, clear_count,
                  "clear_previous_login_cookies! must NOT run while MFA " \
-                   "is still pending; it runs at the actual session-issuance step"
+                 "is still pending; it runs at the actual session-issuance step"
   end
 
   # Regression: when no MFA is required (or already satisfied), log_in

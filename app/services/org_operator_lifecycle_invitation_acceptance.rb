@@ -45,6 +45,15 @@ class OrgOperatorLifecycleInvitationAcceptance
     failure(invitation: invitation, error: e.record.errors.full_messages.to_sentence)
   rescue ActiveRecord::RecordNotUnique
     failure(invitation: invitation, error: "Invitation email is already registered")
+  rescue StandardError => e
+    Rails.logger.error(
+      JitLogEvent.format(
+        "org.operator_lifecycle.invitation_acceptance.failed",
+        error_class: e.class.name,
+        error_message: e.message,
+      ),
+    )
+    failure(invitation: invitation, error: e.message)
   end
 
   private
@@ -82,6 +91,7 @@ class OrgOperatorLifecycleInvitationAcceptance
     # clean state for retry.
     begin
       create_operator_account!(operator)
+      IdentityGraphProvisioner.call!(surface: :org, principal: operator)
     rescue StandardError
       compensate_operator_creation!(operator)
       raise

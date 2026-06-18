@@ -41,7 +41,7 @@ module SignIn
       cycle = Object.new
       cycle.singleton_class.class_eval do
         def principal
-          nil;
+          nil
         end
       end
       resolver = SignInActivationCandidateResolver.new(cycle: cycle, actor: nil)
@@ -148,7 +148,7 @@ module SignIn
             end
           end
         end
-        define_method(:lock!) {}
+        define_method(:lock!) { }
       end
 
       assert_raises SignInSelectorParticipant::InvalidCycle do

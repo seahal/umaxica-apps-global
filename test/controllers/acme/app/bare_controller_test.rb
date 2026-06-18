@@ -53,10 +53,10 @@ module Acme
 
         assert_empty unexpected,
                      "Controllers under Acme::App::BareController changed. Each one inherits the bare " \
-                       "boundary; confirm the new/removed controller is a public, self-defending " \
-                       "endpoint and update ALLOWED_DESCENDANTS deliberately.\n" \
-                       "added:   #{unexpected.inspect}\n" \
-                       "removed: #{missing.inspect}"
+                     "boundary; confirm the new/removed controller is a public, self-defending " \
+                     "endpoint and update ALLOWED_DESCENDANTS deliberately.\n" \
+                     "added:   #{unexpected.inspect}\n" \
+                     "removed: #{missing.inspect}"
         assert_empty missing
       end
     end

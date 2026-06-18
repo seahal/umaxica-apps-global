@@ -82,4 +82,11 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
     assert_in_delta(150.0, harness.send(:minimum_response_budget_ms))
     assert_in_delta(250.0, harness.send(:minimum_response_budget_max_sleep_ms))
   end
+
+  test "default budget is disabled and timing protection sleep is enabled" do
+    plain = Class.new { include MinimumResponseBudget }.new
+
+    assert_not plain.send(:minimum_response_budget_enabled?)
+    assert plain.send(:timing_protection_sleep_enabled?)
+  end
 end

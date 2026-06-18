@@ -14,7 +14,6 @@ module StepUpScopeCatalog
     "settings_secret_credential" => %r{\A/settings/(?:secrets|secret_credentials)},
     "settings_birthdate" => %r{\A/settings/birthdate(?:\z|[?#])},
     "settings_totp" => %r{\A/settings/totps},
-    "settings_connection" => %r{\A/settings/connections},
   }.freeze
 
   COM = APP.except("settings_totp", "social_link").freeze
@@ -33,7 +32,6 @@ module StepUpScopeCatalog
     "settings_mfa" => %r{\A/settings/mfa/challenge},
     "settings_secret_credential" => %r{\A/settings/(?:secrets|secret_credentials)},
     "settings_birthdate" => %r{\A/settings/birthdate(?:\z|[?#])},
-    "settings_connection" => %r{\A/settings/connections},
     "operator_lifecycle" => %r{\A/settings/operator_lifecycle_requests},
   }.freeze
 end

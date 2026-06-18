@@ -27,9 +27,9 @@ module Sign
             return if accept_telephone_ceremony_grant!(surface: "org")
 
             redirect_to(
-              acme_org_settings_telephones_url(
+              sign_org_settings_telephones_url(
                 ri: params[:ri],
-                host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
               ),
               notice: t("sign.org.registration.telephone.edit.session_expired"),
               allow_other_host: cross_host_redirect_allowed?,
@@ -124,9 +124,9 @@ module Sign
               )
               reset_registration_session!
               redirect_to(
-                acme_org_settings_telephones_url(
+                sign_org_settings_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+                  host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
                 ),
                 notice: t("sign.org.registration.telephone.update.success"),
                 allow_other_host: cross_host_redirect_allowed?,

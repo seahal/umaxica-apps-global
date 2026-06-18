@@ -75,11 +75,11 @@ module Sign
         get sign_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
 
         assert_redirected_to acme_com_dashboard_url(
-                               ri: "jp",
-                               host: ENV.fetch(
-                                 "ACME_CORPORATE_URL", "www.com.localhost",
-                               ),
-                             )
+          ri: "jp",
+          host: ENV.fetch(
+            "ACME_CORPORATE_URL", "www.com.localhost",
+          ),
+        )
       end
 
       private

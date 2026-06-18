@@ -9,8 +9,8 @@ class Acme::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get acme_com_root_url(ri: "jp")
 
     assert_response :success
-    assert_select "title",
-                  "#{ENV.fetch("BRAND_NAME", "UMAXICA").upcase} (com) | #{I18n.t("acme.com.preferences.footer.home")}"
+    assert_select "title", "Acme Com"
+    assert_select "h1", text: "Acme Com"
   end
 
   test "creates preference cookies on root" do

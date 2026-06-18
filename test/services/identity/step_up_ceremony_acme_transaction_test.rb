@@ -45,7 +45,7 @@ class IdentityStepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       result_token = result_for(issuance.transaction)
 
       consumption = IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
-                                                        .call(result_token)
+        .call(result_token)
 
       assert_predicate consumption.transaction.reload, :consumed?
       assert_equal "result-1", consumption.transaction.result_jti
@@ -66,7 +66,7 @@ class IdentityStepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_equal "settings_email", @token.last_step_up_scope
       assert_raises(IdentityStepUpCeremonyContract::Error) do
         IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction.reload, now: @now)
-                                            .call(result_token)
+          .call(result_token)
       end
     end
   end
@@ -77,28 +77,28 @@ class IdentityStepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
       assert_step_up_error("actor_ref does not match transaction") do
         IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
-                                            .call(result_for(issuance.transaction, "actor_ref" => "wrong"))
+          .call(result_for(issuance.transaction, "actor_ref" => "wrong"))
       end
 
       assert_step_up_error("scope does not match transaction") do
         IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
-                                            .call(result_for(issuance.transaction, "scope" => "settings_phone"))
+          .call(result_for(issuance.transaction, "scope" => "settings_phone"))
       end
 
       assert_step_up_error("AAL is insufficient") do
         IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
-                                            .call(result_for(issuance.transaction, "aal" => "aal1"))
+          .call(result_for(issuance.transaction, "aal" => "aal1"))
       end
 
       assert_step_up_error("method is not allowed") do
         IdentityStepUpCeremonyResultConsumer.new(transaction: issuance.transaction, now: @now)
-                                            .call(result_for(issuance.transaction, "method" => "email_otp"))
+          .call(result_for(issuance.transaction, "method" => "email_otp"))
       end
 
       expired = create_transaction!("expired-txn", expires_at: @now - 1.minute)
       assert_step_up_error("transaction is expired") do
         IdentityStepUpCeremonyResultConsumer.new(transaction: expired, now: @now)
-                                            .call(result_for(expired, "expires_at" => (@now + 1.minute).to_i))
+          .call(result_for(expired, "expires_at" => (@now + 1.minute).to_i))
       end
     end
   end

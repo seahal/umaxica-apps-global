@@ -45,7 +45,7 @@ class DefaultWebRateLimitTest < ActionDispatch::IntegrationTest
   test "every ApplicationController that includes RateLimit declares a default_web limit" do
     bases =
       Rails.root.glob("app/controllers/**/application_controller.rb")
-           .select { |path| path.read.match?(/include ::RateLimit\b/) }
+        .select { |path| path.read.match?(/include ::RateLimit\b/) }
 
     assert_operator bases.size, :>=, 11, "expected at least 11 RateLimit-including surface bases"
 

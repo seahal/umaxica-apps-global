@@ -164,9 +164,9 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     with_prosopite_paused do
       get new_sign_app_settings_secret_credential_url(
-            ri: "jp",
-            secret_credential_ceremony_grant: secret_credential_ceremony_grant,
-          ), headers: authenticated_headers
+        ri: "jp",
+        secret_credential_ceremony_grant: secret_credential_ceremony_grant,
+      ), headers: authenticated_headers
     end
 
     assert_response :success
@@ -218,9 +218,9 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_redirected_to acme_app_settings_secrets_url(
-                           ri: "jp",
-                           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-                         )
+      ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+    )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
     assert_operator @token.reload.last_step_up_at, :>=, step_up_before - 1.second

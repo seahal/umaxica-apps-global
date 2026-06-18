@@ -573,10 +573,10 @@ module Preference
       @controller.send(:refresh_preference_token_from_db_for_edit_entry!)
 
       assert_equal [
-                     [:copy, resource_preference, shared_preference, "App"],
-                     [:reload, shared_preference],
-                     [:issue, shared_preference],
-                   ], calls
+        [:copy, resource_preference, shared_preference, "App"],
+        [:reload, shared_preference],
+        [:issue, shared_preference],
+      ], calls
     end
 
     test "preference edit entry refresh is a no-op without a logged-in resource preference" do
@@ -1231,11 +1231,11 @@ module Preference
         Class.new do
           class << self
             define_method(:rotated=) do |val|
-              @rotated = val;
+              @rotated = val
             end
 
             define_method(:rotated) do
-              @rotated;
+              @rotated
             end
 
             define_method(:name) do
