@@ -81,11 +81,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_no_difference(
       "VisitorSecretCredential.where(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE).count",
     ) do
-      delete acme_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+      delete acme_com_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
              headers: visitor_headers(visitor, scope: "settings_secret_credential", host: @acme_host)
     end
 
-    assert_redirected_to acme_com_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_com_settings_secrets_url(ri: "jp", host: @acme_host)
     assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 

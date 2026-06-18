@@ -3,6 +3,18 @@
 
 require "test_helper"
 
+class PreferenceSecurityInvariantController < ApplicationController
+  include PreferenceBase
+
+  def test_preference_auth_cookie_options(expires_at:)
+    preference_auth_cookie_options(expires_at: expires_at)
+  end
+
+  def test_preference_cookie_options(expires_at:, httponly:)
+    preference_cookie_options(expires_at: expires_at, httponly: httponly)
+  end
+end
+
 module Security
   module Invariants
     class CookieSecurityInvariantTest < ActiveSupport::TestCase
@@ -24,6 +36,43 @@ module Security
       test "production auth cookie names use host prefix" do
         assert_equal "__Host-auth_access", AuthenticationCookieName.access(production: true)
         assert_equal "__Host-auth_refresh", AuthenticationCookieName.refresh(production: true)
+        assert_equal "__Host-auth_dbsc", AuthenticationCookieName.dbsc(production: true)
+      end
+
+      test "production preference cookie names use host prefix" do
+        assert_equal "__Host-preference_access", PreferenceCookieName.access(production: true)
+        assert_equal "__Host-preference_refresh", PreferenceCookieName.refresh(production: true)
+        assert_equal "__Host-preference_dbsc", PreferenceCookieName.dbsc(production: true)
+      end
+
+      test "insecure context cookie names stay role based without host prefix" do
+        assert_equal "auth_access", AuthenticationCookieName.access(production: false)
+        assert_equal "auth_refresh", AuthenticationCookieName.refresh(production: false)
+        assert_equal "auth_dbsc", AuthenticationCookieName.dbsc(production: false)
+        assert_equal "preference_access", PreferenceCookieName.access(production: false)
+        assert_equal "preference_refresh", PreferenceCookieName.refresh(production: false)
+        assert_equal "preference_dbsc", PreferenceCookieName.dbsc(production: false)
+      end
+
+      test "new credential cookie names do not encode authority surface or component names" do
+        names = [
+          AuthenticationCookieName.access(production: true),
+          AuthenticationCookieName.refresh(production: true),
+          AuthenticationCookieName.dbsc(production: true),
+          PreferenceCookieName.access(production: true),
+          PreferenceCookieName.refresh(production: true),
+          PreferenceCookieName.dbsc(production: true),
+          AuthenticationCookieName.access(production: false),
+          AuthenticationCookieName.refresh(production: false),
+          AuthenticationCookieName.dbsc(production: false),
+          PreferenceCookieName.access(production: false),
+          PreferenceCookieName.refresh(production: false),
+          PreferenceCookieName.dbsc(production: false),
+        ]
+
+        names.each do |name|
+          assert_no_match(/(?:^|_)(?:global|regional|app|com|org|core|palm)(?:_|$)/, name)
+        end
       end
 
       test "auth cookies use secure host-prefix compatible attributes" do
@@ -41,6 +90,24 @@ module Security
 
         assert_auth_cookie_options(cookies.writes.fetch(AuthenticationCookieName.access))
         assert_auth_cookie_options(cookies.writes.fetch(AuthenticationCookieName.refresh))
+      end
+
+      test "preference credential cookies use secure host-prefix compatible attributes" do
+        controller = PreferenceSecurityInvariantController.new
+        controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.example")
+        controller.response = ActionDispatch::TestResponse.new
+
+        production = ActiveSupport::EnvironmentInquirer.new("production")
+
+        Rails.stub(:env, production) do
+          access_options = controller.test_preference_auth_cookie_options(expires_at: 10.minutes.from_now)
+          refresh_options = controller.test_preference_auth_cookie_options(expires_at: 30.days.from_now)
+          dbsc_options = controller.test_preference_cookie_options(expires_at: 10.minutes.from_now, httponly: true)
+
+          assert_auth_cookie_options(access_options)
+          assert_auth_cookie_options(refresh_options)
+          assert_auth_cookie_options(dbsc_options)
+        end
       end
 
       test "production session cookie is secure httponly lax and host-prefixed" do

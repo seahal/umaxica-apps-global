@@ -140,4 +140,17 @@ class OperatorPreferenceTest < ActiveSupport::TestCase
     assert_not pref.performant
     assert_not pref.targetable
   end
+
+  test "adult_content_gate returns nothing when no gate is set" do
+    assert_equal "nothing", OperatorPreference.new.adult_content_gate
+  end
+
+  test "adult_content_gate returns the gate option name when a gate is set" do
+    preference = OperatorPreference.new
+    preference.build_operator_preference_adult_content_gate(
+      option: OperatorPreferenceAdultContentGateOption.new(id: OperatorPreferenceAdultContentGateOption::APPROVED),
+    )
+
+    assert_equal "approved", preference.adult_content_gate
+  end
 end

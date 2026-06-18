@@ -62,7 +62,7 @@ module Sign
 
           flash[:notice] = t("sign.app.settings.secret_credentials.create.created")
           redirect_to(
-            acme_com_settings_secret_credentials_url(
+            acme_com_settings_secrets_url(
               ri: params[:ri],
               host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
             ),
@@ -132,7 +132,7 @@ module Sign
           return true if accept_secret_credential_ceremony_grant!(surface: "com")
 
           redirect_to(
-            acme_com_settings_secret_credentials_path(ri: params[:ri]),
+            acme_com_settings_secrets_path(ri: params[:ri]),
             alert: I18n.t("errors.messages.invalid"),
             status: :see_other,
           )
@@ -149,7 +149,11 @@ module Sign
 
         # Compatibility entry only. acme/www owns account-facing secret credential lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
+          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
+        end
+
+        def acme_settings_authority_path
+          request.path.sub(%r{\A/settings/secret_credentials}, "/settings/secrets")
         end
       end
     end

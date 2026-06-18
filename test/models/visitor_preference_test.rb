@@ -142,4 +142,17 @@ class VisitorPreferenceTest < ActiveSupport::TestCase
     assert_not preference.performant
     assert_not preference.targetable
   end
+
+  test "adult_content_gate returns nothing when no gate is set" do
+    assert_equal "nothing", VisitorPreference.new.adult_content_gate
+  end
+
+  test "adult_content_gate returns the gate option name when a gate is set" do
+    preference = VisitorPreference.new
+    preference.build_visitor_preference_adult_content_gate(
+      option: VisitorPreferenceAdultContentGateOption.new(id: VisitorPreferenceAdultContentGateOption::APPROVED),
+    )
+
+    assert_equal "approved", preference.adult_content_gate
+  end
 end

@@ -133,7 +133,7 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     harness.params_hash = {
       ri: "jp",
       scope: "settings_secret_credential",
-      pt: "/settings/secret_credentials",
+      pt: "/settings/secrets",
       verification: {
         scope: "settings_email",
         return_to: return_to,
@@ -142,9 +142,9 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     }
 
     assert_equal "settings_email", harness.send(:incoming_scope)
-    assert_equal "/settings/secret_credentials", harness.send(:incoming_pt)
+    assert_equal "/settings/secrets", harness.send(:incoming_pt)
     assert_equal(
-      { ri: "jp", scope: "settings_email", pt: "/settings/secret_credentials" },
+      { ri: "jp", scope: "settings_email", pt: "/settings/secrets" },
       harness.send(:verification_recovery_redirect_params),
     )
     assert_equal %w(scope), harness.app_call(:verification_params).keys

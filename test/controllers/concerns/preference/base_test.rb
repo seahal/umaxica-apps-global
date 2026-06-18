@@ -830,11 +830,13 @@ module Preference
 
       assert_not deletion_options.key?(:expires)
       assert_equal :strict, deletion_options[:same_site]
-      assert_not deletion_options[:secure]
+      assert_equal "/", deletion_options[:path]
+      assert_not deletion_options.key?(:domain)
     end
 
-    test "preference cookie options use secure cookies only in production" do
+    test "preference credential cookie options are host only and host-prefix compatible in secure contexts" do
       expires_at = 1.hour.from_now
+
       production = ActiveSupport::EnvironmentInquirer.new("production")
 
       Rails.stub(:env, production) do
@@ -842,6 +844,8 @@ module Preference
 
         assert options[:secure]
         assert_equal :strict, options[:same_site]
+        assert_equal "/", options[:path]
+        assert_not options.key?(:domain)
       end
     end
 
@@ -853,6 +857,26 @@ module Preference
       @controller.send(:set_refresh_token_cookie, "refresh-token", expires_at)
 
       assert_equal "refresh-token", @controller.send(:cookies)[@controller.send(:refresh_token_cookie_name)]
+    end
+
+    test "legacy scoped preference refresh cookie is read during compatibility window" do
+      @controller.send(:cookies)["app_preference_refresh"] = "legacy-refresh-token"
+
+      assert_equal "legacy-refresh-token", @controller.send(:refresh_token_value)
+    end
+
+    test "new preference credential write clears legacy scoped cookies" do
+      cookies = @controller.send(:cookies)
+      cookies["app_preference_access"] = "legacy-access-token"
+      cookies["app_preference_refresh"] = "legacy-refresh-token"
+      cookies["app_preference_dbsc"] = "legacy-dbsc-token"
+
+      @controller.send(:set_refresh_token_cookie, "refresh-token", 1.hour.from_now)
+
+      assert_equal "refresh-token", cookies[@controller.send(:refresh_token_cookie_name)]
+      assert_nil cookies["app_preference_access"]
+      assert_nil cookies["app_preference_refresh"]
+      assert_nil cookies["app_preference_dbsc"]
     end
 
     test "load access token payload falls back when referenced preference record is missing" do

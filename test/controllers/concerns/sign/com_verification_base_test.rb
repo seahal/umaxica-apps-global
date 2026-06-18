@@ -112,7 +112,7 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     assert_raises(ActionController::BadRequest) do
       harness.send(
         :start_step_up_session!, scope: "settings_email",
-                                 pt_param: "/settings/secret_credentials",
+                                 pt_param: "/settings/secrets",
       )
     end
   end

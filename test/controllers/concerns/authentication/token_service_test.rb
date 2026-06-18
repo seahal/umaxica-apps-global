@@ -4,6 +4,8 @@
 require "test_helper"
 
 class AuthenticationTokenServiceTest < ActiveSupport::TestCase
+  include ActiveSupport::Testing::TimeHelpers
+
   def ensure_visitor_reference_records!
     VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
     VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
@@ -100,6 +102,31 @@ class AuthenticationTokenServiceTest < ActiveSupport::TestCase
     assert_predicate payload, :present?
     assert_equal user.id, payload["sub"]
     assert_nil payload["prf"], "auth access tokens must not carry preference snapshots"
+  end
+
+  test "encode default access token ttl matches the application policy" do
+    user = clients(:one)
+    now = Time.zone.parse("2026-06-18 01:08:54")
+    captured_payload = nil
+
+    travel_to now do
+      JitSecurityJwtKeyring.stub(
+        :encode, ->(payload, **_kwargs) {
+                   captured_payload = payload
+                   "encoded-token"
+                 },
+      ) do
+        token = AuthenticationTokenService.encode(
+          user, host: "example.com", session_id: "sid123",
+                resource_type: "client",
+        )
+
+        assert_equal "encoded-token", token
+      end
+    end
+
+    assert_equal now.to_i, captured_payload["iat"]
+    assert_equal (now + SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL).to_i, captured_payload["exp"]
   end
 
   test "encode infers staff resource type" do

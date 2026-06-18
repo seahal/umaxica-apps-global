@@ -220,4 +220,17 @@ class ComPreferenceTest < ActiveSupport::TestCase
     assert_not_equal original.id, rotated.id
     assert_equal rotated.id, original.reload.replaced_by_id
   end
+
+  test "adult_content_gate returns nothing when no gate is set" do
+    assert_equal "nothing", ComPreference.new.adult_content_gate
+  end
+
+  test "adult_content_gate returns the gate option name when a gate is set" do
+    preference = ComPreference.new
+    preference.build_com_preference_adult_content_gate(
+      option: ComPreferenceAdultContentGateOption.new(id: ComPreferenceAdultContentGateOption::APPROVED),
+    )
+
+    assert_equal "approved", preference.adult_content_gate
+  end
 end

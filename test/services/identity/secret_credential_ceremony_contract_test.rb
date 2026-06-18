@@ -88,7 +88,7 @@ class IdentitySecretCredentialCeremonyContractTest < ActiveSupport::TestCase
     end
     assert_secret_credential_ceremony_error("unknown claims") do
       IdentitySecretCredentialCeremonyResult.new(
-        valid_result_claims.merge("return_to" => "/settings/secret_credentials"), now: @now,
+        valid_result_claims.merge("return_to" => "/settings/secrets"), now: @now,
       )
     end
     %w(password password_digest raw_password raw_secret_credential session_token refresh_token secret recent_auth sudo

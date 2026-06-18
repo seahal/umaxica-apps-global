@@ -61,7 +61,7 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
   def recovery_passcode_requirement_credential_class = OperatorSecretCredential
 
   def recovery_passcode_setup_url
-    acme_org_settings_secret_credentials_url(
+    acme_org_settings_secrets_url(
       ri: params[:ri],
       host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
     )

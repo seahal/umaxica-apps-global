@@ -65,13 +65,13 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "should get index" do
     get sign_org_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
   end
 
   test "should get show" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
   end
 
   test "should get new" do
@@ -87,7 +87,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     get edit_sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}/edit?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}/edit?ri=jp")
   end
 
   test "should create secret_credential and redirect to index" do
@@ -103,7 +103,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
            headers: authenticated_headers
     end
 
-    assert_redirected_to acme_org_settings_secret_credentials_url(
+    assert_redirected_to acme_org_settings_secrets_url(
       ri: "jp",
       host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
     )
@@ -117,7 +117,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "test", },
           headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
     @staff_secret_credential.reload
 
     assert_equal "Test Secret", @staff_secret_credential.name
@@ -130,7 +130,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @staff_secret_credential.reload.staff_secret_status_id
   end
 
@@ -140,21 +140,21 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     # Verify URL contains public_id, not numeric ID
     assert_not_includes request.fullpath, "/#{@staff_secret_credential.id}/"
     assert_includes request.fullpath, "/#{@staff_secret_credential.public_id}"
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
   end
 
   test "should access secret_credential by public_id" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential.public_id, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
   end
 
   test "numeric id is redirected without local lookup" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential.id, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.id}?ri=jp")
   end
 
   test "create requires successful stealth turnstile" do
@@ -179,7 +179,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "bad", },
           headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
     assert_equal "Test Secret", @staff_secret_credential.reload.name
   end
 
@@ -192,7 +192,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
     assert_not_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end
 

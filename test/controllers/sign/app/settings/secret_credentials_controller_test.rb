@@ -74,7 +74,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
   end
 
   test "index requires step-up when session freshness is stale" do
@@ -85,7 +85,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
   end
 
   test "should show back link on index page" do
@@ -93,7 +93,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
   end
 
   test "index renders destroy as delete form" do
@@ -101,7 +101,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
   end
 
   test "should get show" do
@@ -110,7 +110,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
   end
 
   test "new redirects to setup when MFA is unavailable" do
@@ -180,7 +180,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}/edit?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}/edit?ri=jp")
   end
 
   test "should show back link on edit page" do
@@ -189,7 +189,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}/edit?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}/edit?ri=jp")
   end
 
   test "should create secret_credential and redirect to index" do
@@ -217,7 +217,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to acme_app_settings_secret_credentials_url(
+    assert_redirected_to acme_app_settings_secrets_url(
       ri: "jp",
       host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
     )
@@ -301,7 +301,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     @user_secret_credential.reload
 
     assert_equal "Test Secret", @user_secret_credential.name
@@ -322,7 +322,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :see_other
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     assert_nil flash[:notice]
     assert_equal ClientSecretCredentialStatus::ACTIVE, @user_secret_credential.reload.user_identity_secret_status_id
   end
@@ -333,7 +333,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     # Verify URL contains public_id, not numeric ID
     assert_not_includes request.fullpath, "/#{@user_secret_credential.id}/"
     assert_includes request.fullpath, "/#{@user_secret_credential.public_id}"
@@ -345,7 +345,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     assert_equal @user_secret_credential.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -356,7 +356,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.id}?ri=jp")
   end
 
   test "should return 404 for other user's secret_credential" do
@@ -374,7 +374,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
           headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{other_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{other_secret_credential.public_id}?ri=jp")
   end
 
   test "update does not disable last method" do
@@ -404,7 +404,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{secret_credential.public_id}?ri=jp")
     assert_nil flash[:alert]
     assert_equal ClientSecretCredentialStatus::ACTIVE, secret_credential.reload.user_identity_secret_status_id
   end
@@ -436,7 +436,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     assert_equal "Test Secret", @user_secret_credential.reload.name
   end
 
@@ -451,7 +451,7 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@user_secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
     assert_nil flash[:alert]
   end
 

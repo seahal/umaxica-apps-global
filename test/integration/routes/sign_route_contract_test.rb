@@ -92,12 +92,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/up", action: "show" },
+      { controller: "sign/app/sign/sign_ups", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in", action: "show" },
+      { controller: "sign/app/sign/sign_ins", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
 
@@ -227,8 +227,8 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/secrets", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/settings/secrets", method: :get },
+      { controller: "sign/app/settings/secret_credentials", action: "index" },
+      { path: "http://#{SIGN_APP_HOST}/settings/secret_credentials", method: :get },
     )
   end
 
@@ -309,12 +309,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/up", action: "show" },
+      { controller: "sign/com/sign/sign_ups", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in", action: "show" },
+      { controller: "sign/com/sign/sign_ins", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
     )
 
@@ -464,12 +464,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/up", action: "show" },
+      { controller: "sign/org/sign/sign_ups", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in", action: "show" },
+      { controller: "sign/org/sign/sign_ins", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in", method: :get },
     )
 

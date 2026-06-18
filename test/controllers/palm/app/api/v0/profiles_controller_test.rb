@@ -23,7 +23,8 @@ module Palm
           end
 
           test "returns current client profile for valid palm bearer token without setting cookies" do
-            token = palm_token
+            persisted = persisted_palm_token
+            token = palm_token(sid: persisted.oidc_sid, jti: persisted.oidc_jti)
 
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{token}")
 
@@ -71,13 +72,14 @@ module Palm
           end
 
           def palm_token(client: clients(:one), scopes: %w(openid palm.read),
-                         audiences: [PalmAccessTokenAuthenticator::AUDIENCE], client_id: "app-ios-rp")
+                         audiences: [PalmAccessTokenAuthenticator::AUDIENCE], client_id: "app-ios-rp",
+                         sid: SecureRandom.uuid, jti: SecureRandom.uuid)
             AuthenticationTokenService.encode(
               client,
               host: OidcIssuer.host_for_resource_type("client"),
               resource_type: "client",
-              session_public_id: "palm-session",
-              session_id: "palm-session",
+              session_public_id: sid,
+              session_id: sid,
               expires_at: 10.minutes.from_now,
               scopes: scopes,
               issuer: OidcIssuer.for_resource_type("client"),
@@ -85,6 +87,19 @@ module Palm
               subject: OidcSubject.for(client, resource_type: "client"),
               jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("client"),
               client_id: client_id,
+              oidc_sid: sid,
+              oidc_jti: jti,
+            )
+          end
+
+          def persisted_palm_token(client: clients(:one), client_id: "app-ios-rp")
+            ClientToken.create!(
+              user: client,
+              user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+              user_token_status_id: ClientTokenStatus::ACTIVE,
+              oidc_sid: SecureRandom.uuid,
+              oidc_jti: SecureRandom.uuid,
+              oidc_client_id: client_id,
             )
           end
         end

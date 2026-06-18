@@ -73,7 +73,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, acme_org_settings_secret_credentials_url(
+    assert_includes response.body, acme_org_settings_secrets_url(
       ri: "jp",
       host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
     )

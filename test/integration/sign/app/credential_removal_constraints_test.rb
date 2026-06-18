@@ -71,11 +71,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     secret_credential = create_active_secret_credential(client)
 
     assert_no_difference("ClientSecretCredential.count") do
-      delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+      delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
              headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
     end
 
-    assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
     assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -154,10 +154,10 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_email(client, "app-removal-secret_credential-allowed@example.com")
     secret_credential = create_active_secret_credential(client)
 
-    delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+    delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
            headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
 
-    assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
     # ClientSecretCredentialsDestroy soft-deletes via discard_now! -- count does not change.
     # Assert the credential is logically deleted instead.
     assert_predicate secret_credential.reload, :lapsed?
@@ -181,10 +181,10 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     stolen_token.send(:skip_session_limit_check=, true)
     stolen_token.save!
 
-    delete acme_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+    delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
            headers: headers
 
-    assert_redirected_to acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
     assert_predicate stolen_token.reload, :revoked?
   end
 

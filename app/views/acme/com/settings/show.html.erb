@@ -9,7 +9,7 @@
   <ul>
     <%# Credential ceremony remains on sign/id. %>
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), acme_com_settings_passkeys_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), acme_com_settings_secret_credentials_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), acme_com_settings_secrets_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.app.settings.show.mfa"), sign_com_settings_mfa_challenge_path(ri: params[:ri]) %></li>
   </ul>
 </section>

@@ -114,9 +114,9 @@ Request code should not read preference state from controller instance variables
 legacy current-context APIs when `Actor.preferences` is available.
 
 `Actor::Preference` contains the resolved runtime preference used by the app/org/com preference
-flows. In normal authenticated requests it is initialized from the Preference JWT payload, then valid
-request-local `lx`, `ct`, and `tz` values are overlaid when explicitly present. That overlay affects
-only the current request and must not be copied back to the database or JWT.
+flows. In normal authenticated requests it is initialized from the Preference JWT payload, then
+valid request-local `lx`, `ct`, and `tz` values are overlaid when explicitly present. That overlay
+affects only the current request and must not be copied back to the database or JWT.
 
 Logged-in HTML preference edit screens may first refresh the current surface preference token from
 the actor-local preference DB so another browser's preference change is visible before the edit

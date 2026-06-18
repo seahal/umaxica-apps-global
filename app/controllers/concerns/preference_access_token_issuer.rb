@@ -24,6 +24,7 @@ module PreferenceAccessTokenIssuer
       preference_auth_cookie_options(expires_at: PreferenceBase::ACCESS_TOKEN_TTL.from_now).merge(
         value: token,
       )
+    clear_legacy_preference_auth_cookies!
 
     @preference_payload = PreferenceToken.decode(token, host: request.host, jwt_issuer_id: preference_jwt_issuer_id)
     return if @preference_payload.present?

@@ -304,8 +304,8 @@ to the database or JWT.
   `Actor.preferences`.
 - Auth access tokens do not carry preference snapshots. Preference snapshots belong to the
   `*_preference_access` token payload, whose stable short keys include `lx`, `ri`, `tz`, and `ct`.
-  Extended options use `cu` for currency, `df` for date format, `tf` for time format, `mo` for motion,
-  `dn` for density, and `ps` for items per page.
+  Extended options use `cu` for currency, `df` for date format, `tf` for time format, `mo` for
+  motion, `dn` for density, and `ps` for items per page.
 - The obsolete auth access-token `prf` claim is no longer emitted. Existing already-issued tokens
   that contain it are ignored by runtime preference hydration until they expire.
 - Region request context is mandatory. A valid `ri` request parameter wins for that request. If `ri`

@@ -39,7 +39,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       [acme_app_settings_totps_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_totp")],
       [acme_app_settings_passkeys_url(ri: "jp", host: @acme_host), acme_session_headers(scope: "settings_passkey")],
       [
-        acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host),
+        acme_app_settings_secrets_url(ri: "jp", host: @acme_host),
         acme_session_headers(scope: "settings_secret_credential"),
       ],
       [sign_app_settings_mfa_challenge_path(ri: "jp"), sign_head],

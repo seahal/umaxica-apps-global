@@ -35,8 +35,10 @@ scope module: :sign, as: :sign do
       resource :csp_violation_report, only: :create, path: "csp-violation-report"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
+      # TODO: i want to change this entrypoint as resource :up / resource :in .
+        resource :sign_up, only: :show, path: "sign/up"
+        resource :sign_in, only: :show, path: "sign/in"
+      end
 
       # Signed-out landing page.
       namespace :signed, path: "" do
@@ -99,19 +101,19 @@ scope module: :sign, as: :sign do
             namespace :apple do
               resource :confirmation, only: %i(show update)
               resource :birthdate, only: %i(show update)
-              resource :cancellation, only: :create
+              resource :cancellation, only: :create  # FIXME: use delete method!
             end
 
             namespace :google do
               resource :confirmation, only: %i(show update)
               resource :birthdate, only: %i(show update)
-              resource :cancellation, only: :create
+              resource :cancellation, only: :create # FIXME: use delete method!
             end
 
             namespace :email do
               resource :otp, only: %i(show create update)
               resource :birthdate, only: %i(show update)
-              resource :cancellation, only: :create
+              resource :cancellation, only: :create # FIXME: use delete method!
             end
 
             namespace :telephone do
@@ -119,7 +121,7 @@ scope module: :sign, as: :sign do
               resource :passkey, only: %i(show create update)
               resource :passcode, only: %i(show update)
               resource :birthdate, only: %i(show update)
-              resource :cancellation, only: :create
+              resource :cancellation, only: :create # FIXME: use delete method!
             end
           end
         end
@@ -297,8 +299,10 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
+      scope module: :sign do
+        resource :sign_up, only: :show, path: "sign/up"
+        resource :sign_in, only: :show, path: "sign/in"
+      end
 
       # Auth callback and RP login/logout endpoints.
       namespace :auth, path: "auth" do
@@ -515,8 +519,10 @@ scope module: :sign, as: :sign do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # Canonical ceremony entrypoints.
-      resource :sign_up, only: :show, path: "sign/up", controller: "sign/up"
-      resource :sign_in, only: :show, path: "sign/in", controller: "sign/in"
+      scope module: :sign do
+        resource :sign_up, only: :show, path: "sign/up"
+        resource :sign_in, only: :show, path: "sign/in"
+      end
 
       # Auth callback and RP login/logout endpoints.
       namespace :auth, path: "auth" do

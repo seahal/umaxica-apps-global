@@ -20,7 +20,9 @@ module Sign
 
         private
 
-        def canonical_resource_path = request.path.delete_suffix("/rotation")
+        def canonical_resource_path
+          request.path.delete_suffix("/rotation").sub(%r{\A/settings/secret_credentials}, "/settings/secrets")
+        end
       end
     end
   end

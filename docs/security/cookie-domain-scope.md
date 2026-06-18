@@ -1,30 +1,25 @@
 # Cookie Domain Scope
 
-> **Supersession (2026-06-12):** Core's target browser session cookie is `__Host-core_sid`, is
-> host-only, and must not use `Domain=.example.com`. Core and Base do not share cookies or sessions.
-> Use `adr/acme-sign-core-base-port-boundary.md` and `docs/architecture/acme-sign-core-base-port.md`
-> for the target component boundary. The details below remain historical Rails cookie-scope context
-> where they describe `acme/www` or `sign/id`.
-
-> **Partially superseded by Identity Authority inversion:** Cookie scope does not imply logical
-> authority. `acme/www` is the Session, Token, Account, Preference, Authorization, and
-> downstream-token Authority. `sign/id` is ceremony-only. Existing sign-side physical tables/models
-> do not imply sign-side authority.
-
 ## Current Behavior
 
-Cookie domain scope is split by surface and is intentional. Do not "normalize" the two surfaces to
-the same `domain:` value — the asymmetry is the design.
+Credential cookie names are role-based host-local transport slots. The cookie name describes the
+transport role, not the logical credential kind.
 
-| Cookie group                                | Setter                                                                              | `domain:`      | Scope                                        | HttpOnly                                              |
-| ------------------------------------------- | ----------------------------------------------------------------------------------- | -------------- | -------------------------------------------- | ----------------------------------------------------- |
-| Authentication access / refresh / device-id | `app/controllers/concerns/authentication/cookie_service.rb` (`auth_cookie_options`) | `false`        | **Host-only** (not shared across subdomains) | `true`                                                |
-| Preference refresh / DBSC / device-id       | `app/controllers/concerns/preference/base.rb` (`preference_cookie_options`)         | default `true` | **Acme** (`.example.com`, all subdomains)    | `true`                                                |
-| Preference theme/locale, consent flag       | `preference/base.rb` (`set_color_theme`), `preference/consented_buffer.rb`          | default `true` | **Acme**                                     | `false` (intentionally JS-readable, not a credential) |
+| Role                | Secure context name          | Insecure dev/test name |
+| ------------------- | ---------------------------- | ---------------------- |
+| Auth access         | `__Host-auth_access`         | `auth_access`          |
+| Auth refresh        | `__Host-auth_refresh`        | `auth_refresh`         |
+| Auth DBSC / binding | `__Host-auth_dbsc`           | `auth_dbsc`            |
+| Preference access   | `__Host-preference_access`   | `preference_access`    |
+| Preference refresh  | `__Host-preference_refresh`  | `preference_refresh`   |
+| Preference DBSC     | `__Host-preference_dbsc`     | `preference_dbsc`      |
 
-The mechanism is `Core::CookieOptions.for`: `domain: true` (default) calls `Core::CookieDomain.for`
-and produces an apex-scoped cookie; `domain: false` omits the `domain` attribute and produces a
-host-only cookie.
+New credential cookie writes are host-only. They use `Path=/`; secure contexts use `Secure` and the
+`__Host-` prefix. They never carry a `Domain` attribute.
+
+Cookie names must not include `global`, `regional`, `app`, `com`, `org`, `core`, or `palm`. For
+example, Acme's `__Host-auth_access`, Sign's `__Host-auth_access`, and Core/Base browser hosts'
+`__Host-auth_access` are separate cookies because the browser stores them per host.
 
 ## JS-Readable Preference Mirrors
 
@@ -45,26 +40,38 @@ credentials, or credential/session authority data.
 CSRF tokens stay in the existing meta/header flow, not in these mirror cookies. `ri` remains URL
 request context and is not mirrored into a cookie.
 
-Preference credential cookies are apex-scoped but their names are surface-scoped:
-`app_preference_*`, `com_preference_*`, and `org_preference_*`. This prevents an `AppPreference`
-refresh token from being interpreted as a `ComPreference` or `OrgPreference` refresh token on
-another host under the same apex. The legacy unscoped access cookie name is read only as a
-compatibility fallback when the JWT `preference_type` matches the current surface.
+Preference credential cookies are host-only and use the role names in the table above. Surface and
+record separation is resolved from host/surface context and the database preference record, not from
+the cookie name.
 
-## Cross-Subdomain SSO
+## Compatibility Window
 
-Cross-subdomain SSO is carried by the **preference** refresh token, which is apex-scoped. The
-**authentication** access/refresh tokens are host-only and are deliberately not shared across
-subdomains.
+New writes use only `preference_access`, `preference_refresh`, and `preference_dbsc` in insecure
+contexts, or their `__Host-` names in secure contexts.
 
-## Accepted Risk Scope
+Legacy `{app,com,org}_preference_*` names and old `__Secure-preference_*` names are short-term
+read/delete compatibility only. A successful preference reissue or refresh deletes the legacy names.
+Application code must not add new direct references to `app_preference_access`,
+`com_preference_refresh`, `org_preference_dbsc`, or similar literal cookie names.
 
-The accepted-risk note in `app/services/core/cookie_domain.rb:84-87` ("auth cookies are readable by
-ALL subdomains ... mitigated by httponly") applies only to the **apex-scoped preference cookie
-group**. It does **not** apply to the authentication tokens, which are host-only and therefore more
-strictly isolated. The note's "mitigated by httponly" reasoning covers the apex-scoped token cookies
-(`httponly: true`); the apex-scoped `httponly: false` cookies are non-credential preference values
-(theme/locale, consent flag), so credential exposure reasoning is unaffected.
+## Authority and Transport Boundaries
+
+Credential kind is enforced by issuer, audience, validator contract, client classification, and
+transport binding:
+
+- Acme is the only Authorization Server and token authority.
+- Sign is a special RP. It does not own issuer, token, or refresh authority.
+- `SignRefreshTokenService` is a legacy compatibility subclass; new refresh authority references
+  should use `AcmeRefreshTokenService`.
+- Core browser credentials use the `core-browser` audience from cookie transport.
+- Palm API tokens use the `palm-api` audience from `Authorization: Bearer`.
+- Core browser cookie validators reject `palm-api`.
+- Palm bearer validators reject `core-browser`.
+- Palm controllers do not read auth or preference cookies and do not issue browser session cookies.
+- Acme/Sign do not issue or consume Core/Base regional browser cookies.
+
+Because `__Host-` requires `Path=/`, refresh cookies are not path-restricted. Refresh endpoint
+exclusivity is a server-side transport and endpoint contract.
 
 ## Related
 

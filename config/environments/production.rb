@@ -127,7 +127,7 @@ Rails.application.configure do
   # Collect all host ENV vars used in route constraints.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
   # Rails host authorization matches against the bare hostname from the Host header,
-  # so use OriginValue#host (e.g. "www.umaxica.app") — not #to_s which is a full origin.
+  # so use OriginValue#host (e.g. "www.umaxica.app") - not #to_s which is a full origin.
   config.hosts = [
     boot_hosts.acme_service.host,
     boot_hosts.acme_corporate.host,
@@ -138,6 +138,12 @@ Rails.application.configure do
     boot_hosts.core_service.host,
     boot_hosts.core_corporate.host,
     boot_hosts.core_staff.host,
+    boot_hosts.base_service.host,
+    boot_hosts.base_corporate.host,
+    boot_hosts.base_staff.host,
+    boot_hosts.palm_service.host,
+    boot_hosts.palm_corporate.host,
+    boot_hosts.palm_staff.host,
     boot_hosts.help_service.host,
     boot_hosts.help_corporate.host,
     boot_hosts.help_staff.host,

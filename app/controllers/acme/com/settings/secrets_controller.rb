@@ -4,7 +4,7 @@
 module Acme
   module Com
     module Settings
-      class SecretCredentialsController < Acme::Com::ApplicationController
+      class SecretsController < Acme::Com::ApplicationController
         include ::VerificationVisitor
         include ::SignSettingsSecretCredentialTurnstileGuard
         include ::SignSettingsSecretCredentialCacheControl
@@ -30,7 +30,7 @@ module Acme
           authorize!(VisitorSecretCredential, to: :create?)
           if current_visitor.visitor_secret_credentials.count >= VisitorSecretCredential::MAX_SECRETS_PER_VISITOR
             redirect_to(
-              acme_com_settings_secret_credentials_path(ri: params[:ri]),
+              acme_com_settings_secrets_path(ri: params[:ri]),
               alert: t("errors.messages.too_many", default: "Limit reached"),
               status: :see_other,
             )
@@ -66,7 +66,7 @@ module Acme
             excluding: @secret_credential,
           )
             flash[:alert] = t("sign.app.settings.secret_credentials.update.last_method")
-            return redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_com_settings_secrets_path(ri: params[:ri]))
           end
 
           VisitorSecretCredentialStatus.find_or_create_by!(id: VisitorSecretCredentialStatus::ACTIVE)
@@ -80,7 +80,7 @@ module Acme
           @secret_credential.save!(validate: false)
 
           flash[:notice] = t("sign.app.settings.secret_credentials.update.updated")
-          redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]))
+          redirect_to(acme_com_settings_secrets_path(ri: params[:ri]))
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential = e.record.is_a?(VisitorSecretCredential) ? e.record : @secret_credential
           render :edit, status: :unprocessable_content
@@ -90,14 +90,14 @@ module Acme
           authorize!(@secret_credential)
           if AuthMethodGuard.last_method?(current_visitor, excluding: @secret_credential)
             flash[:alert] = t("sign.app.settings.secret_credentials.destroy.last_method")
-            return redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_com_settings_secrets_path(ri: params[:ri]))
           end
 
           @secret_credential.discard_now!(purge_after: 1.day)
           @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredentialStatus::DELETED
           @secret_credential.save!
           flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
-          redirect_to(acme_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to(acme_com_settings_secrets_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -119,7 +119,7 @@ module Acme
         end
 
         def secret_credential_turnstile_failure_redirect_path
-          acme_com_settings_secret_credentials_path(ri: params[:ri])
+          acme_com_settings_secrets_path(ri: params[:ri])
         end
 
         def verification_required_action?

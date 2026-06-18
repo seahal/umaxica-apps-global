@@ -4,6 +4,15 @@
 
 Accepted on 2026-05-17.
 
+> **Update (2026-06-18):** Credential cookie names are now role-based transport names. Production
+> uses `__Host-auth_access`, `__Host-auth_refresh`, `__Host-auth_dbsc`,
+> `__Host-preference_access`, `__Host-preference_refresh`, and `__Host-preference_dbsc`. Development
+> and test use the same names without the `__Host-` prefix. Cookie names must not encode
+> `global`, `regional`, `app`, `com`, `org`, `core`, or `palm`. Credential meaning is enforced by
+> host-only scope, issuer, audience, validator contract, client classification, and transport
+> binding, not by the cookie name. Preference credential cookies are host-only; legacy
+> `{app,com,org}_preference_*` and old unscoped names are short-term read/delete compatibility only.
+
 > **Partial supersession (2026-06-02):** The vocabulary and security properties in this ADR remain
 > useful, but authority ownership is superseded by `adr/identity-authority-boundary.md`. `acme/www`
 > owns session, token, account, preference, authorization, downstream-token trust, and step-up
@@ -27,52 +36,53 @@ opposite domain scoping.
 
 ## Decision
 
-Domain scoping is split by surface and is intentional:
+Credential cookie names are role-based transport slots:
 
-- **Authentication surface tokens are host-only.** The access and refresh token cookies (and the
-  device-id cookie) are set with `domain: false`. They are **not** shared across subdomains. The
-  `cookie_domain.rb` accepted-risk note does **not** apply to them.
-- **Preference surface cookies are apex-scoped.** The preference refresh token, DBSC, and device-id
-  cookies are set with the default `domain: true`, so they are apex-scoped and readable by all
-  subdomains. Their credential cookie names are surface-scoped (`app_preference_*`,
-  `com_preference_*`, `org_preference_*`) so one surface does not consume another surface's
-  preference record. **Cross-subdomain SSO is carried by the preference refresh token, not by the
-  authentication refresh token.** The `cookie_domain.rb` accepted-risk note applies here.
+- `auth_access`, `auth_refresh`, and `auth_dbsc` carry auth credentials for the current host.
+- `preference_access`, `preference_refresh`, and `preference_dbsc` carry preference credentials for
+  the current host.
+- Secure contexts add the `__Host-` prefix. `__Host-` cookies must be Secure, use `Path=/`, omit
+  `Domain`, and remain host-only.
+- Cookie names must not encode `global`, `regional`, `app`, `com`, `org`, `core`, or `palm`.
 
-The accepted cross-subdomain XSS risk in `cookie_domain.rb:84-87` is therefore scoped to the
-apex-scoped **preference** cookie group only. It is mitigated for the token cookies by
-`httponly: true`. The same apex scope also carries non-token preference cookies with
-`httponly: false` (theme/locale, consent flag); those are intentionally JS-readable values, not
-credentials, so the "mitigated by httponly" reasoning for credentials is not weakened.
+The same cookie name can exist on different hosts without conflict because these are host-only
+cookies. Acme's `__Host-auth_access`, Sign's `__Host-auth_access`, and Core/Base browser hosts'
+`__Host-auth_access` are separate browser cookie jar entries. The credential kind is enforced by the
+issuer, audience, validator contract, client classification, and accepted transport.
 
-Do not change either surface's `domain:` value to "make them consistent". The asymmetry is the
-decision: authentication is isolated per host; preference is shared for SSO.
+Preference credential cookies are no longer apex-scoped. New writes use only the unscoped
+`preference_*` role names, host-only. Legacy `{app,com,org}_preference_*` and old unscoped
+`__Secure-preference_*` names may be read for a short compatibility window and must be deleted after
+successful reissue or refresh.
+
+Palm remains cookie-less. Palm API requests use `Authorization: Bearer ...` with the `palm-api`
+audience. Acme/Sign do not issue or consume Core/Base regional browser cookies. Sign is a special RP,
+not a token or refresh authority; refresh rotation authority is `AcmeRefreshTokenService`.
 
 ## Evidence
 
 - `app/services/core/cookie_options.rb:8-22` — `domain:` keyword gates `Core::CookieDomain.for`.
 - `app/services/core/cookie_domain.rb:84-94` — apex scoping (`best_effort_apex`) and the
   accepted-risk note.
-- `app/controllers/concerns/authentication/cookie_service.rb:27-39` — authentication cookies use
-  `domain: false` (`auth_cookie_options`).
-- `app/controllers/concerns/authentication/cookie_service.rb:41-49` — authentication cookie deletion
-  options use `domain: false` (`auth_cookie_deletion_options`).
-- `app/controllers/concerns/preference/base.rb:992-1000` — `preference_cookie_options` omits
-  `domain:`, so the preference refresh / DBSC / device-id cookies are apex-scoped with
-  `httponly: true`; the credential cookie names are derived through `Preference::CookieName` with
-  the current surface.
+- `app/controllers/concerns/authentication_cookie_name.rb` — auth role-name mapper.
+- `app/controllers/concerns/preference_cookie_name.rb` — preference role-name mapper plus legacy
+  read/delete name inventory.
+- `app/controllers/concerns/authentication_cookie_service.rb` — authentication cookies use
+  `domain: false` and `path: "/"`.
+- `app/controllers/concerns/preference_base.rb` — preference credential cookies use `domain: false`
+  and `path: "/"`; legacy preference credential cookies are deleted during reissue/refresh.
 - `app/controllers/concerns/preference/base.rb:139-145` (`set_color_theme`) and
   `app/controllers/concerns/preference/consented_buffer.rb:23-29` — apex-scoped, intentionally
   `httponly: false` non-token preference cookies (theme, consent flag).
 
 ## Consequences
 
-- An XSS on any subdomain cannot read the authentication access/refresh tokens (host-only).
-- An XSS on any subdomain still cannot read the preference token cookies because they are
-  `httponly: true`, but a subdomain compromise widens exposure for the acme-shared preference
-  cookies, as documented in `cookie_domain.rb`.
-- Any future SSO requirement for the authentication surface must be designed explicitly; it must not
-  be obtained by flipping authentication cookies to `domain: true`.
+- Authentication and preference credential cookies are isolated by exact host.
+- Refresh cookies also use `Path=/` in secure contexts because `__Host-` requires it. Endpoints that
+  must reject refresh credentials outside refresh flows must enforce that server-side through
+  transport and endpoint contracts, not cookie path.
+- Cross-host preference sharing cannot rely on apex-scoped credential cookies. Host/surface context
+  and the DB preference record resolve the preference boundary.
 
 ## Related
 

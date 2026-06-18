@@ -302,7 +302,7 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          acme_org_settings_secret_credentials_url(
+          acme_org_settings_secrets_url(
             ri: params[:ri],
             host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
           )

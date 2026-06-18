@@ -70,7 +70,7 @@ class IdentitySocialCeremonyResult
       "purpose" => PURPOSE,
       "proof_method" => PROOF_METHOD,
       "iat" => now.to_i,
-      "exp" => attributes.fetch(:expires_at, attributes["expires_at"]),
+      "exp" => IdentityCeremonyNumericDate.value(attributes.fetch(:expires_at) { attributes.fetch("expires_at") }),
     }
   end
 end

@@ -214,7 +214,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     }.each do |action, opts|
       assert_recognizes(
         { controller: "acme/app/organizations/memberships",
-          action:,
+          action: action.to_s,
           organization_id: "example",
           id: opts[:id], }.compact,
         { path: "http://#{ACME_APP_HOST}#{opts[:path]}",
@@ -468,7 +468,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       show: { path: "/organizations/example", id: "example" },
     }.each do |action, opts|
       assert_recognizes(
-        { controller: "acme/com/organizations", action:, id: opts[:id] }.compact,
+        { controller: "acme/com/organizations", action: action.to_s, id: opts[:id] }.compact,
         { path: "http://#{ACME_COM_HOST}#{opts[:path]}", method: :get, id: opts[:id] }.compact,
       )
     end
@@ -478,12 +478,15 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_COM_HOST}/organizations/example/memberships", method: :get, organization_id: "example" },
     )
 
-    %w(identity settings).each do |resource|
-      assert_recognizes(
-        { controller: "acme/com/#{resource}", action: "show" },
-        { path: "http://#{ACME_COM_HOST}/#{resource}", method: :get },
-      )
-    end
+    assert_recognizes(
+      { controller: "acme/com/identities", action: "show" },
+      { path: "http://#{ACME_COM_HOST}/identity", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/com/settings", action: "show" },
+      { path: "http://#{ACME_COM_HOST}/settings", method: :get },
+    )
   end
 
   test "acme org route contract" do
@@ -724,6 +727,41 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/org/settings", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/settings", method: :get },
     )
+  end
+
+  test "acme settings secret routes use secrets resource names" do
+    {
+      ACME_APP_HOST => "app",
+      ACME_COM_HOST => "com",
+      ACME_ORG_HOST => "org",
+    }.each do |host, surface|
+      assert_recognizes(
+        { controller: "acme/#{surface}/settings/secrets", action: "index" },
+        { path: "http://#{host}/settings/secrets", method: :get },
+      )
+
+      assert_recognizes(
+        { controller: "acme/#{surface}/settings/secrets", action: "enrollment" },
+        { path: "http://#{host}/settings/secrets/enrollment", method: :post },
+      )
+
+      assert_recognizes(
+        { controller: "acme/#{surface}/settings/secrets", action: "edit", id: "secret-example" },
+        { path: "http://#{host}/settings/secrets/secret-example/edit", method: :get },
+      )
+
+      assert_recognizes(
+        { controller: "acme/#{surface}/settings/secrets", action: "destroy", id: "secret-example" },
+        { path: "http://#{host}/settings/secrets/secret-example", method: :delete },
+      )
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{host}/settings/secret_credentials",
+          method: :get,
+        )
+      end
+    end
   end
 
   test "acme retired routes do not resolve" do

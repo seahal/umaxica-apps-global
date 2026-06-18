@@ -68,11 +68,11 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     secret_credential = create_active_secret_credential(operator)
 
     assert_no_difference("OperatorSecretCredential.count") do
-      delete acme_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+      delete acme_org_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
              headers: operator_headers(operator, scope: "settings_secret_credential", host: @acme_host)
     end
 
-    assert_redirected_to acme_org_settings_secret_credentials_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_org_settings_secrets_url(ri: "jp", host: @acme_host)
     assert_equal I18n.t("sign.org.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -102,7 +102,7 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     end
 
     assert_no_difference("OperatorSecretCredential.count") do
-      delete acme_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+      delete acme_org_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
              headers: operator_headers(operator, scope: "settings_secret_credential", host: @acme_host)
     end
 

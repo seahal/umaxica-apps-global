@@ -9,7 +9,8 @@ class PreferenceIoKeysTest < ActiveSupport::TestCase
   end
 
   test "preference io key values stay stable" do
-    assert_equal "__Secure-", PreferenceIoKeys::SECURE_COOKIE_PREFIX
+    assert_equal "__Host-", PreferenceIoKeys::HOST_COOKIE_PREFIX
+    assert_equal "__Host-", PreferenceIoKeys::SECURE_COOKIE_PREFIX
     assert_equal "ct", PreferenceIoKeys::Cookies::THEME
     assert_equal "language", PreferenceIoKeys::Cookies::LANGUAGE
     assert_equal "tz", PreferenceIoKeys::Cookies::TIMEZONE

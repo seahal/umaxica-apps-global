@@ -2,7 +2,8 @@
 # frozen_string_literal: true
 
 module PreferenceIoKeys
-  SECURE_COOKIE_PREFIX = "__Secure-"
+  HOST_COOKIE_PREFIX = "__Host-"
+  SECURE_COOKIE_PREFIX = HOST_COOKIE_PREFIX
 
   module Cookies
     THEME = "ct"
@@ -60,5 +61,6 @@ module PreferenceIoKeys
     public_constant :OPTION_ID
   end
 
+  public_constant :HOST_COOKIE_PREFIX
   public_constant :SECURE_COOKIE_PREFIX
 end

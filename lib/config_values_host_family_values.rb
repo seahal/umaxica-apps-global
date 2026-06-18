@@ -12,6 +12,12 @@ module ConfigValues
       :core_service,
       :core_corporate,
       :core_staff,
+      :base_service,
+      :base_corporate,
+      :base_staff,
+      :palm_service,
+      :palm_corporate,
+      :palm_staff,
       :help_service,
       :help_corporate,
       :help_staff,
@@ -26,6 +32,14 @@ module ConfigValues
 
       def core_origins
         [core_service, core_corporate, core_staff]
+      end
+
+      def base_origins
+        [base_service, base_corporate, base_staff]
+      end
+
+      def palm_origins
+        [palm_service, palm_corporate, palm_staff]
       end
     end
 end
@@ -49,6 +63,22 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "www-jp.umaxica.org", production: production),
+      base_service: origin(env, "BASE_SERVICE_URL", production ? nil : "base-jp.umaxica.app", production: production),
+      base_corporate: origin(
+        env,
+        "BASE_CORPORATE_URL",
+        production ? nil : "base-jp.umaxica.com",
+        production: production,
+      ),
+      base_staff: origin(env, "BASE_STAFF_URL", production ? nil : "base-jp.umaxica.org", production: production),
+      palm_service: origin(env, "PALM_SERVICE_URL", production ? nil : "palm-jp.umaxica.app", production: production),
+      palm_corporate: origin(
+        env,
+        "PALM_CORPORATE_URL",
+        production ? nil : "palm-jp.umaxica.com",
+        production: production,
+      ),
+      palm_staff: origin(env, "PALM_STAFF_URL", production ? nil : "palm-jp.umaxica.org", production: production),
       help_service: origin(env, "HELP_SERVICE_URL", production ? nil : "help.app.localhost", production: production),
       help_corporate: origin(
         env,

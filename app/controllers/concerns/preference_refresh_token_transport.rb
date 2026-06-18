@@ -224,7 +224,7 @@ module PreferenceRefreshTokenTransport
   # Accepting them via URL/body params leaks them to logs, history, and Referer
   # headers, defeating the HttpOnly/Secure cookie protections.
   def refresh_token_value
-    cookies[refresh_token_cookie_name]
+    refresh_token_cookie_names.lazy.filter_map { |cookie_name| cookies[cookie_name].to_s.presence }.first
   end
 
   def refresh_token_expiry

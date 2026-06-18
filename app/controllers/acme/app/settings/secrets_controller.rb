@@ -4,7 +4,7 @@
 module Acme
   module App
     module Settings
-      class SecretCredentialsController < Acme::App::ApplicationController
+      class SecretsController < Acme::App::ApplicationController
         include ::VerificationClient
         include ::SignSettingsSecretCredentialTurnstileGuard
         include ::SignSettingsSecretCredentialCacheControl
@@ -30,7 +30,7 @@ module Acme
           authorize!(ClientSecretCredential, to: :create?)
           if current_client.client_secret_credentials.count >= ClientSecretCredential::MAX_SECRETS_PER_USER
             redirect_to(
-              acme_app_settings_secret_credentials_path(ri: params[:ri]),
+              acme_app_settings_secrets_path(ri: params[:ri]),
               alert: t("errors.messages.too_many", default: "Limit reached"),
               status: :see_other,
             )
@@ -62,7 +62,7 @@ module Acme
           authorize!(@secret_credential)
           if disabling_secret_credential? && AuthMethodGuard.last_method?(current_client, excluding: @secret_credential)
             flash[:alert] = t("sign.app.settings.secret_credentials.update.last_method")
-            return redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_app_settings_secrets_path(ri: params[:ri]))
           end
 
           ClientSecretCredentialsUpdate.call(
@@ -72,7 +72,7 @@ module Acme
           )
 
           flash[:notice] = t("sign.app.settings.secret_credentials.update.updated")
-          redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]))
+          redirect_to(acme_app_settings_secrets_path(ri: params[:ri]))
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential = e.record.is_a?(ClientSecretCredential) ? e.record : @secret_credential
           render :edit, status: :unprocessable_content
@@ -82,14 +82,14 @@ module Acme
           authorize!(@secret_credential)
           if AuthMethodGuard.last_method?(current_client, excluding: @secret_credential)
             flash[:alert] = t("sign.app.settings.secret_credentials.destroy.last_method")
-            return redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_app_settings_secrets_path(ri: params[:ri]))
           end
 
           ClientSecretCredentialsDestroy.call(actor: current_client, secret_credential: @secret_credential)
           AuthenticationLogoutAllSessions.call(resource: current_client, reason: "credential_destroyed")
           record_audit(AuthenticationBase::AUDIT_EVENTS[:logout_all_sessions], resource: current_client)
           flash[:notice] = t("sign.app.settings.secret_credentials.destroy.destroyed")
-          redirect_to(acme_app_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to(acme_app_settings_secrets_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -111,7 +111,7 @@ module Acme
         end
 
         def secret_credential_turnstile_failure_redirect_path
-          acme_app_settings_secret_credentials_path(ri: params[:ri])
+          acme_app_settings_secrets_path(ri: params[:ri])
         end
 
         def verification_required_action?

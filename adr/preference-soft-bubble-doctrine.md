@@ -20,8 +20,8 @@
 > **Runtime overlay update (2026-05-19, superseded 2026-05-30):** `Actor.preferences` is the
 > effective request runtime preference. Normal authenticated requests now build it from the
 > Preference JWT payload, then overlay valid request-local `lx`, `ct`, and `tz` parameters when
-> explicitly present. The overlay is not a write path and must never be copied back to the database or
-> JWT.
+> explicitly present. The overlay is not a write path and must never be copied back to the database
+> or JWT.
 >
 > **Preference edit entry update (2026-05-19):** Logged-in HTML preference edit screens are a
 > bounded DB -> JWT refresh point. They may copy the actor-local preference DB value into the
@@ -33,24 +33,26 @@
 > and must treat preference state as read-only. Request context overlays, RP rendering, and jump
 > redirects are not preference write paths.
 >
-> **Hydration source supersession (2026-05-30, updated 2026-06-18):** `Actor.preferences` is hydrated
-> from the Preference JWT (`*_preference_access`) payload instead of the auth access-token `prf`
-> claim. The Preference JWT is the signed projection of the database source of truth and is decoded by
-> `set_preferences_cookie` before `set_current_actor`, so request hydration stays read-only and does
-> not need an extra database read or token reissue. The obsolete auth access-token `prf` claim is no
-> longer read and is no longer emitted for newly issued auth access tokens.
+> **Hydration source supersession (2026-05-30, updated 2026-06-18):** `Actor.preferences` is
+> hydrated from the Preference JWT (`*_preference_access`) payload instead of the auth access-token
+> `prf` claim. The Preference JWT is the signed projection of the database source of truth and is
+> decoded by `set_preferences_cookie` before `set_current_actor`, so request hydration stays
+> read-only and does not need an extra database read or token reissue. The obsolete auth
+> access-token `prf` claim is no longer read and is no longer emitted for newly issued auth access
+> tokens.
 >
-> **Explicit state versus unset state and dynamic region seeding (2026-05-30):** Child records such as
-> language are created with default options on first visit, so the value alone cannot distinguish an
-> explicit user choice from an automatic default. The `app/com/org_preferences.explicit_fields` jsonb
-> marker records explicit choices. Localization resolves language in this order: `?lx` request-local
-> overlay, explicit language in `explicit_fields`, dynamic `?ri` seeding (`jp` -> `ja`, `us` -> `en`)
-> for unset users, then the default `ja`.
+> **Explicit state versus unset state and dynamic region seeding (2026-05-30):** Child records such
+> as language are created with default options on first visit, so the value alone cannot distinguish
+> an explicit user choice from an automatic default. The `app/com/org_preferences.explicit_fields`
+> jsonb marker records explicit choices. Localization resolves language in this order: `?lx`
+> request-local overlay, explicit language in `explicit_fields`, dynamic `?ri` seeding (`jp` ->
+> `ja`, `us` -> `en`) for unset users, then the default `ja`.
 >
-> **Fallback (2026-05-30):** Bearer/OIDC APIs and endpoints that skip `set_preferences_cookie` have no
-> Preference JWT cookie, so they fall back to `Actor::Preference::NULL` plus the request overlay. The
-> longer-term direction is model A, where absent child records mean unset and the `explicit_fields`
-> marker can be retired (`plans/backlog/preference-explicit-child-records-model-a.md`).
+> **Fallback (2026-05-30):** Bearer/OIDC APIs and endpoints that skip `set_preferences_cookie` have
+> no Preference JWT cookie, so they fall back to `Actor::Preference::NULL` plus the request overlay.
+> The longer-term direction is model A, where absent child records mean unset and the
+> `explicit_fields` marker can be retired
+> (`plans/backlog/preference-explicit-child-records-model-a.md`).
 
 ## Context
 

@@ -150,7 +150,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
   test "acme secret credential update mutates owner scoped metadata" do
     @token.update!(last_step_up_scope: "settings_secret_credential")
 
-    patch acme_app_settings_secret_credential_url(@secret_credential.public_id, ri: "jp", host: @acme_host),
+    patch acme_app_settings_secret_url(@secret_credential.public_id, ri: "jp", host: @acme_host),
           params: { user_secret_credential: { name: "Updated Secret", enabled: "1" } },
           headers: app_headers(@acme_host)
 
@@ -161,13 +161,13 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
   test "acme secret credential index renders enrollment action" do
     @token.update!(last_step_up_scope: "settings_secret_credential")
 
-    get acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host),
+    get acme_app_settings_secrets_url(ri: "jp", host: @acme_host),
         headers: app_headers(@acme_host)
 
     assert_response :success
     assert_includes response.body, "Original Secret"
     assert_select "form[action=?][method=?]",
-                  enrollment_acme_app_settings_secret_credentials_path(ri: "jp"),
+                  enrollment_acme_app_settings_secrets_path(ri: "jp"),
                   "post"
   end
 
@@ -175,7 +175,7 @@ class AcmeAuthenticatorLifecycleAuthorityTest < ActionDispatch::IntegrationTest
     @token.update!(last_step_up_scope: "settings_secret_credential")
 
     assert_difference -> { ClientSecretCredentialCeremonyTransaction.count }, 1 do
-      post enrollment_acme_app_settings_secret_credentials_url(ri: "jp", host: @acme_host),
+      post enrollment_acme_app_settings_secrets_url(ri: "jp", host: @acme_host),
            headers: app_headers(@acme_host)
     end
 

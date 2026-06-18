@@ -4,7 +4,7 @@
 module Sign
   module App
     module Sign
-      class InController < ::Sign::App::ApplicationController
+      class SignInsController < ::Sign::App::ApplicationController
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
         skip_before_action :set_region, raise: false
@@ -32,13 +32,13 @@ module Sign
         end
 
         def redirect_signed_in_direct_entry!
-          redirect_to after_login_path, allow_other_host: after_login_allows_other_host?
+          redirect_to(after_login_path, allow_other_host: after_login_allows_other_host?)
         end
 
         def redirect_signed_in_authorization_transaction!(transaction)
           session.delete(:oidc_authorization_login_challenge)
           result = register_oidc_authorization_result!(transaction.login_challenge)
-          redirect_to result.resume_url, allow_other_host: true
+          redirect_to(result.resume_url, allow_other_host: true)
         end
 
         def load_sign_in_authorization_transaction!

@@ -4,7 +4,7 @@
 module Sign
   module Org
     module Sign
-      class UpController < ::Sign::Org::ApplicationController
+      class SignUpsController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest
         skip_before_action :set_region, raise: false

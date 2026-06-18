@@ -799,7 +799,9 @@ module PreferenceBase
       return false
     end
 
-    dbsc_cookie = cookies[preference_dbsc_cookie_name].to_s.presence
+    dbsc_cookie = preference_dbsc_cookie_names.lazy.filter_map { |cookie_name|
+      cookies[cookie_name].to_s.presence
+    }.first
     if dbsc_cookie.blank?
       @preference_refresh_binding_reason = "missing_bound_cookie"
       return false
@@ -977,8 +979,10 @@ module PreferenceBase
       request: request,
       expires: expires_at,
       httponly: httponly,
-      secure: Rails.env.production?,
+      secure: ::JitSessionCookieConfig.force_secure?,
       same_site: :strict,
+      path: "/",
+      domain: false,
     )
   end
 
@@ -991,19 +995,27 @@ module PreferenceBase
   end
 
   def access_token_cookie_name
-    PreferenceCookieName.access(surface: preference_cookie_surface)
+    PreferenceCookieName.access
   end
 
   def access_token_cookie_names
-    [access_token_cookie_name, PreferenceCookieName.access].uniq
+    [access_token_cookie_name, *PreferenceCookieName.legacy_access_names(surface: preference_cookie_surface)].uniq
   end
 
   def refresh_token_cookie_name
-    PreferenceCookieName.refresh(surface: preference_cookie_surface)
+    PreferenceCookieName.refresh
   end
 
   def preference_dbsc_cookie_name
-    PreferenceCookieName.dbsc(surface: preference_cookie_surface)
+    PreferenceCookieName.dbsc
+  end
+
+  def refresh_token_cookie_names
+    [refresh_token_cookie_name, *PreferenceCookieName.legacy_refresh_names(surface: preference_cookie_surface)].uniq
+  end
+
+  def preference_dbsc_cookie_names
+    [preference_dbsc_cookie_name, *PreferenceCookieName.legacy_dbsc_names(surface: preference_cookie_surface)].uniq
   end
 
   def preference_cookie_surface
@@ -1018,17 +1030,33 @@ module PreferenceBase
     cookies[refresh_token_cookie_name] = preference_auth_cookie_options(expires_at: expires_at).merge(
       value: token,
     )
+    clear_legacy_preference_auth_cookies!
   end
 
   def set_preference_dbsc_cookie!(token, expires_at:)
     cookies[preference_dbsc_cookie_name] = preference_cookie_options(expires_at: expires_at, httponly: true).merge(
       value: token,
     )
+    clear_legacy_preference_auth_cookies!
   end
 
   def clear_preference_auth_cookies!
-    [access_token_cookie_name, refresh_token_cookie_name,
-     preference_dbsc_cookie_name,].uniq.each do |cookie_name|
+    [access_token_cookie_name, refresh_token_cookie_name, preference_dbsc_cookie_name,
+     *PreferenceCookieName.legacy_access_names(surface: preference_cookie_surface),
+     *PreferenceCookieName.legacy_refresh_names(surface: preference_cookie_surface),
+     *PreferenceCookieName.legacy_dbsc_names(surface: preference_cookie_surface),].uniq.each do |cookie_name|
+      cookies.delete(cookie_name, **preference_cookie_deletion_options)
+    end
+  end
+
+  def clear_legacy_preference_auth_cookies!
+    [*PreferenceCookieName.legacy_access_names(surface: preference_cookie_surface),
+     *PreferenceCookieName.legacy_refresh_names(surface: preference_cookie_surface),
+     *PreferenceCookieName.legacy_dbsc_names(surface: preference_cookie_surface),].uniq.each do |cookie_name|
+      next if cookie_name == access_token_cookie_name
+      next if cookie_name == refresh_token_cookie_name
+      next if cookie_name == preference_dbsc_cookie_name
+
       cookies.delete(cookie_name, **preference_cookie_deletion_options)
     end
   end

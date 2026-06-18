@@ -72,11 +72,11 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "index show and edit redirect to acme while new remains on sign" do
     get sign_com_settings_secret_credentials_url(ri: "jp"), headers: request_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials?ri=jp")
+    assert_redirected_to_acme("/settings/secrets?ri=jp")
 
     get sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"), headers: request_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
 
     grant = secret_credential_ceremony_grant
 
@@ -88,7 +88,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     get edit_sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
         headers: request_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}/edit?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}/edit?ri=jp")
   end
 
   test "ensure_verified_recovery_identity_for_registration! renders forbidden " \
@@ -121,7 +121,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :redirect, response.body
-    assert_redirected_to acme_com_settings_secret_credentials_url(
+    assert_redirected_to acme_com_settings_secrets_url(
       ri: "jp",
       host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
     )
@@ -136,7 +136,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
     @secret_credential.reload
 
     assert_equal "Login Secret", @secret_credential.name
@@ -150,7 +150,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
             headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
@@ -161,7 +161,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
@@ -194,7 +194,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              }
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE,
                  secret_credential.reload.visitor_secret_credential_status_id
 
@@ -214,7 +214,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
            headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
   end
 
   test "removal attempt rejects client authentication on com surface" do
@@ -253,7 +253,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "bad", },
           headers: request_headers
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
     assert_equal "Login Secret", @secret_credential.reload.name
   end
 
@@ -266,7 +266,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp")
+    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 

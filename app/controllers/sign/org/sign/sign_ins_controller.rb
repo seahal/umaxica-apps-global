@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 module Sign
-  module App
+  module Org
     module Sign
-      class UpController < ::Sign::App::ApplicationController
+      class SignInsController < ::Sign::Org::ApplicationController
         AUTHENTICATION_MODE = :guest
         declare_authentication_mode! :guest
         skip_before_action :set_region, raise: false
@@ -14,18 +14,18 @@ module Sign
 
           transaction =
             OidcAuthorizationTransactionService.find_by_login_challenge!(
-              surface: "app",
+              surface: "org",
               login_challenge: params[:login_challenge].to_s,
             )
           raise ActionController::BadRequest,
                 "authorization transaction expired" if transaction.login_challenge_expired?
           raise ActionController::BadRequest, "authorization transaction already consumed" if transaction.consumed?
           raise ActionController::BadRequest,
-                "authorization transaction intent mismatch" unless transaction.intent == "sign_up"
+                "authorization transaction intent mismatch" unless transaction.intent == "sign_in"
 
           session[:oidc_authorization_login_challenge] = transaction.login_challenge
           @oidc_authorization_intent = transaction.intent
-          render "sign/app/sign_ups/new"
+          render "sign/org/sign_ins/new"
         rescue ActiveRecord::RecordNotFound
           render plain: I18n.t("errors.messages.invalid_request", default: "Invalid request"),
                  status: :bad_request
@@ -34,7 +34,7 @@ module Sign
         private
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_app_root_path(ri: params[:ri]), screen_hint: "signup")
+          url = initiate_oidc_session!(pt: sign_org_root_path(ri: params[:ri]), screen_hint: "signin")
           redirect_to_oidc_authorization_url(url)
         end
       end

@@ -4,7 +4,7 @@
 module Acme
   module Org
     module Settings
-      class SecretCredentialsController < Acme::Org::ApplicationController
+      class SecretsController < Acme::Org::ApplicationController
         include ::VerificationOperator
         include ::SignSettingsSecretCredentialTurnstileGuard
         include ::SignSettingsSecretCredentialCacheControl
@@ -30,7 +30,7 @@ module Acme
           authorize!(OperatorSecretCredential, to: :create?)
           if current_operator.staff_secret_credentials.count >= OperatorSecretCredential::MAX_SECRETS_PER_STAFF
             redirect_to(
-              acme_org_settings_secret_credentials_path(ri: params[:ri]),
+              acme_org_settings_secrets_path(ri: params[:ri]),
               alert: t("errors.messages.too_many", default: "Limit reached"),
               status: :see_other,
             )
@@ -65,7 +65,7 @@ module Acme
             excluding: @secret_credential,
           )
             flash[:alert] = t("sign.org.settings.secret_credentials.update.last_method")
-            return redirect_to(acme_org_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_org_settings_secrets_path(ri: params[:ri]))
           end
 
           OperatorSecretCredentialsUpdate.call(
@@ -75,7 +75,7 @@ module Acme
           )
 
           flash[:notice] = t("sign.org.settings.secret_credentials.update.updated")
-          redirect_to(acme_org_settings_secret_credentials_path(ri: params[:ri]))
+          redirect_to(acme_org_settings_secrets_path(ri: params[:ri]))
         rescue ActiveRecord::RecordInvalid => e
           @secret_credential = e.record.is_a?(OperatorSecretCredential) ? e.record : @secret_credential
           render :edit, status: :unprocessable_content
@@ -85,12 +85,12 @@ module Acme
           authorize!(@secret_credential)
           if AuthMethodGuard.last_method?(current_operator, excluding: @secret_credential)
             flash[:alert] = t("sign.org.settings.secret_credentials.destroy.last_method")
-            return redirect_to(acme_org_settings_secret_credentials_path(ri: params[:ri]))
+            return redirect_to(acme_org_settings_secrets_path(ri: params[:ri]))
           end
 
           OperatorSecretCredentialsDestroy.call(actor: current_operator, secret_credential: @secret_credential)
           flash[:notice] = t("sign.org.settings.secret_credentials.destroy.destroyed")
-          redirect_to(acme_org_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to(acme_org_settings_secrets_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -112,7 +112,7 @@ module Acme
         end
 
         def secret_credential_turnstile_failure_redirect_path
-          acme_org_settings_secret_credentials_path(ri: params[:ri])
+          acme_org_settings_secrets_path(ri: params[:ri])
         end
 
         def verification_required_action?

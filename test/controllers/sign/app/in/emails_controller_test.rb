@@ -234,7 +234,7 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal cycle.public_id, session.dig(:app_sign_in_flow_locator, "public_id")
   end
 
-  test "successful OTP verification sets auth cookies with app domain" do
+  test "successful OTP verification sets host-only auth cookies" do
     user = clients(:one)
     test_email = user.client_emails.create!(
       address: "cookie_domain_in_#{SecureRandom.hex(4)}@example.com",
@@ -256,10 +256,17 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
-    set_cookie = response.headers["Set-Cookie"].to_s
+    auth_cookie_lines =
+      response_set_cookie_lines.select do |line|
+        line.start_with?("#{AuthenticationCookieName.access}=", "#{AuthenticationCookieName.refresh}=")
+      end
 
-    assert_match(/domain=\.umaxica\.app/i, set_cookie)
-    assert_no_match(/domain=\.localhost/i, set_cookie)
+    assert_equal 2, auth_cookie_lines.size
+    auth_cookie_lines.each do |line|
+      assert_includes line, "path=/"
+      assert_match(/httponly/i, line)
+      assert_no_match(/domain=/i, line)
+    end
   end
 
   test "email sign-in redirects to MFA challenge when MFA is enabled" do

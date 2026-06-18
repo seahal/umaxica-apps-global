@@ -187,7 +187,7 @@ scope module: :acme, as: :acme do
           post :enrollment, on: :collection
         end
 
-        resources :secret_credentials, only: %i(index show edit update destroy) do
+        resources :secrets, only: %i(index show edit update destroy) do
           post :enrollment, on: :collection
         end
 
@@ -375,6 +375,8 @@ scope module: :acme, as: :acme do
 
       # Organizations owned or visible to the current actor.
       resources :organizations, only: %i(index show new create edit update) do
+        # Keep membership URLs nested under organizations while routing to the surface-local
+        # organizations/memberships controller namespace.
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
 
@@ -385,7 +387,7 @@ scope module: :acme, as: :acme do
           post :enrollment, on: :collection
         end
 
-        resources :secret_credentials, only: %i(index show edit update destroy) do
+        resources :secrets, only: %i(index show edit update destroy) do
           post :enrollment, on: :collection
         end
 
@@ -425,6 +427,7 @@ scope module: :acme, as: :acme do
         # JWKS endpoint; keep fixed JSON suffix.
         resource :jwks, only: :show, path: "jwks.json", format: false
 
+        # TODO: I cannot agree with the naming. wtf discovery?
         # OIDC discovery endpoint; keep protocol path.
         resource :discovery, only: :show, path: "openid-configuration", format: false
       end
@@ -461,30 +464,40 @@ scope module: :acme, as: :acme do
       resource :configuration, only: :show
 
       # Staff management areas.
+      # IAM
       resources :iam, only: :index
+      # System configuration
       resources :system, only: :index
+      # Audit panel
       resources :audit, only: :index
+      # TODO: Do we need support entrypoint here?
       resources :support, only: :index
 
       namespace :support do
         resources :clients, only: [] do
-          resource :sessions, only: [], controller: "client_sessions" do
-            delete :purge
-            delete :emergency_revoke
+          scope module: :clients do
+            resource :session, only: [], path: "sessions" do
+              delete :purge
+              delete :emergency_revoke
+            end
           end
         end
 
         resources :visitors, only: [] do
-          resource :sessions, only: [], controller: "visitor_sessions" do
-            delete :purge
-            delete :emergency_revoke
+          scope module: :visitors do
+            resource :session, only: [], path: "sessions" do
+              delete :purge
+              delete :emergency_revoke
+            end
           end
         end
 
         resources :operators, only: [] do
-          resource :sessions, only: [], controller: "operator_sessions" do
-            delete :purge
-            delete :emergency_revoke
+          scope module: :operators do
+            resource :session, only: [], path: "sessions" do
+              delete :purge
+              delete :emergency_revoke
+            end
           end
         end
       end
@@ -615,7 +628,7 @@ scope module: :acme, as: :acme do
           post :enrollment, on: :collection
         end
 
-        resources :secret_credentials, only: %i(index show edit update destroy) do
+        resources :secrets, only: %i(index show edit update destroy) do
           post :enrollment, on: :collection
         end
 

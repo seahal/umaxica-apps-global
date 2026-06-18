@@ -108,6 +108,21 @@ Rails.application.configure do
   config.middleware.use(Rack::Deflater)
 
   # Enable DNS rebinding protection for hosts used in route constraints.
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+  tunnel_hosts =
+    boot_hosts.core_origins.map(&:host) +
+    boot_hosts.base_origins.map(&:host) +
+    boot_hosts.palm_origins.map(&:host) +
+    %w(
+      www-jp.umaxica.app
+      www-jp.umaxica.com
+      www-jp.umaxica.org
+      base-jp.umaxica.app
+      base-jp.umaxica.com
+      base-jp.umaxica.org
+      palm-jp.umaxica.app
+      palm.app.localhost
+    )
   config.hosts.concat(
     ENV.values_at(
       "ACME_CORPORATE_URL",
@@ -123,10 +138,12 @@ Rails.application.configure do
       "JUMP_STAFF_URL",
       "MAIN_SERVICE_URL", "MAIN_STAFF_URL", "MAIN_CORPORATE_URL",
       "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
+      "BASE_SERVICE_URL", "BASE_STAFF_URL", "BASE_CORPORATE_URL",
+      "PALM_SERVICE_URL",
       "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
       "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
       "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",
-    ).compact_blank + [
+    ).compact_blank + tunnel_hosts + [
       "core.app.localhost",
       "core.com.localhost",
       "core.org.localhost",

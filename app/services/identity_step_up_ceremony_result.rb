@@ -62,7 +62,7 @@ class IdentityStepUpCeremonyResult
       "aud" => IdentityStepUpCeremonyContract.acme_audience(surface),
       "purpose" => PURPOSE,
       "iat" => now.to_i,
-      "exp" => attributes["expires_at"] || attributes[:expires_at],
+      "exp" => IdentityCeremonyNumericDate.value(attributes.fetch(:expires_at) { attributes.fetch("expires_at") }),
     }
   end
 end

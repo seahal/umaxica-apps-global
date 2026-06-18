@@ -16,7 +16,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     assert_routing(
       { method: :delete, path: "http://#{@host}/support/clients/#{clients(:one).id}/sessions/purge" },
       {
-        controller: "acme/org/support/client_sessions",
+        controller: "acme/org/support/clients/sessions",
         action: "purge",
         client_id: clients(:one).id.to_s,
       },
@@ -39,7 +39,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     delete(
-      purge_acme_org_support_client_sessions_url(client, host: @host),
+      purge_acme_org_support_client_session_url(client, host: @host),
       params: { reason_code: "security_incident", ticket_id: "SEC-635" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -61,7 +61,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
     delete(
-      emergency_revoke_acme_org_support_visitor_sessions_url(visitor, host: @host),
+      emergency_revoke_acme_org_support_visitor_session_url(visitor, host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -76,7 +76,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
 
   test "missing reason code returns unprocessable content" do
     delete(
-      purge_acme_org_support_client_sessions_url(clients(:one), host: @host),
+      purge_acme_org_support_client_session_url(clients(:one), host: @host),
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
     )
@@ -89,7 +89,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     @operator_token.update!(last_step_up_at: nil, last_step_up_scope: nil)
 
     delete(
-      purge_acme_org_support_client_sessions_url(clients(:one), host: @host),
+      purge_acme_org_support_client_session_url(clients(:one), host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -101,7 +101,7 @@ class Acme::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
 
   test "unknown target returns not found" do
     delete(
-      purge_acme_org_support_client_sessions_url(999_999, host: @host),
+      purge_acme_org_support_client_session_url(999_999, host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,

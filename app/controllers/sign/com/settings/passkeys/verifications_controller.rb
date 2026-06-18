@@ -47,7 +47,7 @@ class Sign::Com::Settings::Passkeys::VerificationsController < ::Sign::Com::Appl
   def recovery_passcode_requirement_credential_class = VisitorSecretCredential
 
   def recovery_passcode_setup_url
-    acme_com_settings_secret_credentials_url(
+    acme_com_settings_secrets_url(
       ri: params[:ri],
       host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
     )
