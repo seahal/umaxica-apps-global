@@ -84,13 +84,14 @@ module Sign::App::Up
       assert_includes response.body, "電話番号"
       assert_includes response.body, "SMS"
       assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
+      assert_not_includes response.body, "prohibited this sample from being saved"
     end
 
     test "should create telephone and redirect to edit" do
       assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
         assert_difference("ClientTelephone.count") do
           post sign_app_sign_up_telephone_url, params: {
-            user_telephone: {
+            client_telephone: {
               raw_number: "+1234567890",
               confirm_policy: "1",
               confirm_using_mfa: "1",
@@ -110,6 +111,14 @@ module Sign::App::Up
       assert_equal ClientSignUpFlowStatus::CONTACT_PENDING, cycle.status_id
       assert_equal "telephone", cycle.entry_method
       assert_equal registration_telephone.id, cycle.pending_contact_id
+    end
+
+    test "new page does not use sample wording in error summary" do
+      get new_sign_app_sign_up_telephone_url(ri: "jp")
+
+      assert_response :success
+      assert_not_includes response.body, "prohibited this sample from being saved"
+      assert_includes response.body, "prohibited this telephone from being saved"
     end
 
     test "create with existing telephone still redirects and does not create a new record" do
@@ -180,14 +189,23 @@ module Sign::App::Up
     end
 
     test "rejects invalid telephone format" do
-      post sign_app_sign_up_telephone_url, params: {
-        user_telephone: {
-          raw_number: "invalid-telephone",
-          confirm_policy: "1",
-          confirm_using_mfa: "1",
-        },
-        "cf-turnstile-response": "test",
-      }
+      logged =
+        capture_telephone_log do
+          post(
+            sign_app_sign_up_telephone_url, params: {
+              user_telephone: {
+                raw_number: "invalid-telephone",
+                confirm_policy: "1",
+                confirm_using_mfa: "1",
+              },
+              "cf-turnstile-response": "test",
+            },
+          )
+        end
+
+      assert_includes logged, "sign.signup.telephone.create.received"
+      assert_includes logged, "sign.signup.telephone.create.rejected"
+      assert_includes logged, "telephone_invalid"
 
       assert_response :unprocessable_content
     end
@@ -225,6 +243,16 @@ module Sign::App::Up
       end
 
       assert_response :unprocessable_content
+    end
+
+    def capture_telephone_log
+      io = StringIO.new
+      original = Rails.logger
+      Rails.logger = ActiveSupport::Logger.new(io)
+      yield
+      io.string
+    ensure
+      Rails.logger = original
     end
 
     test "should update telephone with valid otp" do

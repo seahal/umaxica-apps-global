@@ -83,14 +83,10 @@ module Sign
           end
 
           def create
-            unless cloudflare_turnstile_validation["success"]
-              @user_email = ClientEmail.new
-              @user_email.errors.add(
-                :base, t("sign.app.registration.email.create.turnstile_validation_failed"),
-              )
-              render :new, status: :unprocessable_content
-              return
-            end
+            log_sign_signup_event(
+              "sign.signup.email.create.received",
+              sign_signup_request_flags.merge(step: "email_otp"),
+            )
 
             email_params = registration_email_params
             email_address = email_params&.[](:raw_address).presence || email_params&.[](:address).presence
@@ -99,6 +95,10 @@ module Sign
               @user_email = ClientEmail.new
               @user_email.errors.add(
                 :base, t("sign.app.registration.email.create.address_required"),
+              )
+              log_sign_signup_event(
+                "sign.signup.email.create.rejected",
+                sign_signup_request_flags.merge(step: "email_otp", reason: "email_blank").compact,
               )
               render :new, status: :unprocessable_content
               return
@@ -120,6 +120,10 @@ module Sign
             unless result
               log_signup_email_errors
               strip_user_owner_errors!
+              log_sign_signup_event(
+                "sign.signup.email.create.rejected",
+                sign_signup_request_flags.merge(step: "email_otp", reason: "unexpected_error").compact,
+              )
               render :new, status: :unprocessable_content
               return
             end

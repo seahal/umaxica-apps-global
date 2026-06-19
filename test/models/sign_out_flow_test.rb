@@ -191,7 +191,7 @@ class SignOutFlowTest < ActiveSupport::TestCase
     cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
     requested_id = ClientSignOutFlow.status_id_for("REQUESTED")
 
-    # Passing the current status id as an integer — this is not a real transition
+    # Passing the current status id as an integer -- this is not a real transition
     # but exercises the normalize_status_id integer branch before the guard.
     assert_not cycle.can_transition_to?(requested_id)
   end
@@ -202,6 +202,30 @@ class SignOutFlowTest < ActiveSupport::TestCase
     cycle.valid?
 
     assert_includes cycle.errors[:completed_at], "must be present for completed cycles"
+  end
+
+  test "awaiting_expiry scope returns cycles with the awaiting expiry status" do
+    awaiting_id = ClientSignOutFlow.status_id_for("AWAITING_EXPIRY")
+    requested = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
+    awaiting = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow).merge(status_id: awaiting_id))
+
+    results = ClientSignOutFlow.awaiting_expiry
+
+    assert_not_includes results, requested
+    assert_includes results, awaiting
+  end
+
+  test "transition_to_completed sets completed_at when reaching the completed status" do
+    now = Time.zone.local(2026, 5, 19, 12, 0, 0)
+    awaiting_id = ClientSignOutFlow.status_id_for("AWAITING_EXPIRY")
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow).merge(status_id: awaiting_id))
+
+    travel_to now do
+      cycle.transition_to!("COMPLETED")
+    end
+
+    assert_predicate cycle, :sign_out_completed?
+    assert_equal now, cycle.completed_at
   end
 
   private

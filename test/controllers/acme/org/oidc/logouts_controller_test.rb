@@ -92,7 +92,7 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "/sign/out", location.path
     assert_equal "jp", query["ri"]
-    assert_predicate query["ct"], :present?
+    assert_predicate query["sot"], :present?
 
     completion_location = location.request_uri
 
@@ -107,7 +107,7 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     get completion_location, headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-    assert_equal "logout completion is stale", JSON.parse(response.body).fetch("error_description")
+    assert_equal "logout completion is stale", response.parsed_body.fetch("error_description")
   end
 
   test "invalid id_token_hint signature does not mutate or redirect externally" do

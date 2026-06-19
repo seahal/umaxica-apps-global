@@ -82,4 +82,17 @@ class OrgRegistrationPolicyTest < ActiveSupport::TestCase
       policy.consume!
     end
   end
+
+  test "consume! raises InvalidInvitationError when service consume fails" do
+    failure = OrgInvitationService::Result.new(
+      success: false, invitation: @invitation, code: @invitation.code, error: "Failed to consume invitation",
+    )
+    policy = OrgRegistrationPolicy.new(invitation_code: @invitation.code)
+
+    OrgInvitationService.stub(:consume, failure) do
+      assert_raises(OrgRegistrationPolicy::InvalidInvitationError) do
+        policy.consume!
+      end
+    end
+  end
 end

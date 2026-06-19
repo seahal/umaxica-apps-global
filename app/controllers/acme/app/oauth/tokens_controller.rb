@@ -4,7 +4,7 @@
 module Acme
   module App
     module Oauth
-      class TokensController < Acme::App::BareController
+      class TokensController < Acme::App::Oauth::ProtocolController
         include ::RateLimit
         include AcmeOauthEndpoint
         include AcmeOauthTokenEndpoint

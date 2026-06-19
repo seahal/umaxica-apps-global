@@ -72,7 +72,9 @@ class JitSecurityTurnstileVerifier
       return failure("missing turnstile secret")
     end
 
-    perform_request
+    response = perform_request
+    log_development_response(response)
+    response
   rescue StandardError => e
     # Decoupled notification: only if Rails event system exists
     if defined?(Rails) && Rails.respond_to?(:event)
@@ -107,6 +109,26 @@ class JitSecurityTurnstileVerifier
       },
     )
     JSON.parse(response.body)
+  end
+
+  def log_development_response(response)
+    return unless defined?(Rails) && Rails.env.development? && defined?(Rails.logger) && Rails.logger
+    return unless response.is_a?(Hash)
+
+    Rails.logger.warn(
+      JitLogEvent.format(
+        "turnstile.verify.response",
+        mode: @mode || :visible,
+        success: response["success"],
+        error_codes: response["error-codes"],
+        hostname: response["hostname"],
+        action: response["action"],
+        challenge_ts: response["challenge_ts"],
+        cdata_present: response["cdata"].present?,
+        secret_key_present: @secret_key.present?,
+        token_present: @token.present?,
+      ),
+    )
   end
 
   def log_missing_secret

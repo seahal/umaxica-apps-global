@@ -195,6 +195,7 @@ module SignEmailRegistrable
   end
 
   def build_user_email(email_address, confirm_policy, email_preferences = {})
+    email_preferences = email_preferences.to_unsafe_h if email_preferences.respond_to?(:to_unsafe_h)
     @user_email = ClientEmail.new(
       { raw_address: email_address, confirm_policy: confirm_policy }.merge(email_preferences),
     )

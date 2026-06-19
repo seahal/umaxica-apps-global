@@ -102,4 +102,35 @@ class ApplicationRecordTest < ActiveSupport::TestCase
   ensure
     Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
   end
+
+  test "insert_missing_fixed_ids! fallback tolerates concurrent creation collisions" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_004
+    prosopite = defined?(Prosopite) ? Prosopite : nil
+
+    Object.send(:remove_const, :Prosopite) if prosopite
+
+    relation = ClientStatus.where(id: missing_id)
+
+    ClientStatus.stub(:insert_all, ->(*) { raise ActiveRecord::StatementInvalid, "unsupported" }) do
+      relation.stub(:first_or_create!, -> { raise ActiveRecord::RecordNotUnique, "duplicate" }) do
+        ClientStatus.stub(
+          :where, ->(conditions) {
+                    if conditions["id"] == missing_id || conditions[:id] == missing_id
+                      relation
+                    else
+                      ClientStatus.unscoped.where(conditions)
+                    end
+                  },
+        ) do
+          assert_nothing_raised do
+            ClientStatus.insert_missing_fixed_ids!([missing_id])
+          end
+        end
+      end
+    end
+  ensure
+    Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
+  end
 end

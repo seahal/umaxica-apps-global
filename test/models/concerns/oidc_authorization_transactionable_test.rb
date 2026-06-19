@@ -50,14 +50,15 @@ class OidcAuthorizationTransactionableTest < ActiveSupport::TestCase
     expired = create_transaction(OperatorOidcAuthorizationTransaction, surface: "org")
     expired.update!(expires_at: 1.minute.ago)
 
-    error = assert_raises(ArgumentError) do
-      expired.register_authentication!(
-        actor_ref: "operator-1",
-        session_ref: "session-1",
-        auth_method: "pwd",
-        acr: "aal2",
-      )
-    end
+    error =
+      assert_raises(ArgumentError) do
+        expired.register_authentication!(
+          actor_ref: "operator-1",
+          session_ref: "session-1",
+          auth_method: "pwd",
+          acr: "aal2",
+        )
+      end
     assert_match(/expired/, error.message)
 
     transaction = create_transaction(OperatorOidcAuthorizationTransaction, surface: "org", unique: "two")

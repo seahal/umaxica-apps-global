@@ -22,6 +22,7 @@ module Acme
         Acme::App::Health::StartupsController
         Acme::App::HealthsController
         Acme::App::Oauth::JwksController
+        Acme::App::Oauth::ProtocolController
         Acme::App::Oauth::RevocationsController
         Acme::App::Oauth::TokensController
         Acme::App::Oauth::UserinfosController

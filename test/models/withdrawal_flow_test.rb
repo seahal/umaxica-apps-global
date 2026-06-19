@@ -42,8 +42,10 @@ class WithdrawalFlowTest < ActiveSupport::TestCase
     cycle = nil
     travel_to now do
       cycle = ClientWithdrawalFlow.create!(client: create_client)
+
       assert_predicate cycle, :withdrawal_requested?
       cycle.confirm_withdrawal!(token_public_id: "token-one", reason: "confirmed")
+
       assert_predicate cycle, :withdrawal_closing?
       cycle.discard_withdrawal!(token_public_id: "token-one", reason: "finalized")
     end

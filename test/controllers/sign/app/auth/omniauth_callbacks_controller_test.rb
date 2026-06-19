@@ -253,7 +253,9 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
-    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| session_snapshots << [:redirect_to, args, kwargs] }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs|
+      session_snapshots << [:redirect_to, args, kwargs]
+    }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"

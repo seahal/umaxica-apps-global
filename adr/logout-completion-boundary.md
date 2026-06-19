@@ -12,16 +12,16 @@ current session, clears auth cookies and Rails session state, records logout aud
 existing logout primitive, and decides the post-mutation navigation target.
 
 The user-visible post-logout screen still needs a stable place. The completion result may be shown
-only once, and the result display must be consumed from a session-bound marker so a stale or replayed
-completion URL cannot keep displaying logout success.
+only once, and the result display must be consumed from a session-bound marker so a stale or
+replayed completion URL cannot keep displaying logout success.
 
 ## Decision
 
 `acme/www` owns logout completion as a mutation. `sign/id` owns only the logged-out guest entry
 screen.
 
-After a successful ordinary logout, acme redirects to a sign-hosted completion page that is
-consumed once:
+After a successful ordinary logout, acme redirects to a sign-hosted completion page that is consumed
+once:
 
 ```text
 GET /signed-out

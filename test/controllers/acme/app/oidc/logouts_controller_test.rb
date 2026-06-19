@@ -91,7 +91,7 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "/sign/out", location.path
     assert_equal "jp", query["ri"]
-    assert_predicate query["ct"], :present?
+    assert_predicate query["sot"], :present?
 
     completion_location = location.request_uri
 
@@ -106,7 +106,25 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     get completion_location, headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-    assert_equal "logout completion is stale", JSON.parse(response.body).fetch("error_description")
+    assert_equal "logout completion is stale", response.parsed_body.fetch("error_description")
+  end
+
+  test "preference normalization keeps sign out completion token intact" do
+    assert_enqueued_jobs 2, only: OidcBackchannelLogoutDeliveryJob do
+      post acme_app_oidc_logout_url(host: @host),
+           params: { id_token_hint: id_token, ri: "jp" },
+           headers: session_headers
+    end
+
+    completion_location = URI.parse(response.location).request_uri
+
+    assert_includes completion_location, "sot="
+    assert_not_includes completion_location, "ct="
+
+    get completion_location, headers: { "Host" => @host }
+
+    assert_response :success
+    assert_includes response.body, I18n.t("sign.shared.sign_out.completed_title")
   end
 
   test "valid id_token_hint on post enqueues multiple backchannel deliveries without n plus one queries" do

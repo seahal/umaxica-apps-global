@@ -34,13 +34,16 @@ services:
         bind:
           selinux: Z
     ports:
-      - "3001:3000"
+      - "3000:3000"
+      - "3036:3036"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
       - TMPDIR=/home/global/workspace/tmp
       - DEVCONTAINER=1
       - RUBY_DEBUG_OPEN=false
+      - VITE_RUBY_HOST=0.0.0.0
+      - VITE_RUBY_PORT=3036
   primary:
     container_name: global-devcontainer-primary
   replica:

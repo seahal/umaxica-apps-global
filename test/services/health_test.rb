@@ -70,6 +70,10 @@ class HealthTest < ActiveSupport::TestCase
     assert_equal 200, Health::StatusPolicy.http_status(:starting, probe: :liveness)
   end
 
+  test "status policy rejects unknown status" do
+    assert_raises(ArgumentError) { Health::StatusPolicy.http_status(:broken, probe: :readiness) }
+  end
+
   test "profile dependency allowlists are explicit" do
     assert_equal [AppRpRecord, AppSettingRecord, AppSignalRecord, AvatarRecord, OccurrenceRecord],
                  Health::Profiles::App.record_classes
@@ -169,6 +173,22 @@ class HealthTest < ActiveSupport::TestCase
     result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
 
     assert_not result.ok?
+  end
+
+  test "database check reports unready when connection fails" do
+    failing_record_class =
+      Class.new do
+        def self.connected_to(_role:, &)
+          raise StandardError, "connection refused"
+        end
+      end
+
+    result = Health::Checks::Database.new(record_class: failing_record_class, deadline: 1.0).call
+
+    assert_not result.ok?
+    assert_equal :database, result.kind
+    assert_equal :unready, result.status
+    assert_equal "Dependency unavailable", result.message
   end
 
   test "startup uses only the boot check" do

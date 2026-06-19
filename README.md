@@ -33,7 +33,7 @@ and subdomain matter in both development and production.
 Useful commands:
 
 ```bash
-bin/rails tailwindcss:watch     # Tailwind watch mode
+bin/dev                         # Web, Vite, and jobs
 bin/rails assets:precompile     # Production asset build
 bin/rails vite:build            # Vite frontend build
 bin/rails assets:clobber        # Remove compiled assets
@@ -89,12 +89,12 @@ If dependencies are already installed, you can start development directly:
 TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/dev
 ```
 
-`bin/dev` runs `bin/rails db:prepare` unless `SKIP_DB_PREPARE=1`, then starts:
+`bin/dev` is the unified local entrypoint. It runs `bin/rails db:prepare` unless
+`SKIP_DB_PREPARE=1`, then starts:
 
 - `web`: Rails server on port `3000`
-- `css`: `bin/rails tailwindcss:watch`
-- `job`: `bin/jobs start`
-- `: `
+- `vite`: `bin/vite dev`
+- `jobs`: `bin/jobs start`
 
 ## Development URLs
 
@@ -242,12 +242,12 @@ These checks cover formatting, linting, security audits, database consistency, a
 
 ## Troubleshooting
 
-| Problem                                  | Fix                                                                                   |
-| :--------------------------------------- | :------------------------------------------------------------------------------------ |
-| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev` or `bin/rails tailwindcss:watch` |
-| Tests fail because databases are missing | Run `bin/rails db:prepare`                                                            |
-| `bin/dev` stops during boot              | Check `TRUSTED_ORIGINS` and database availability                                     |
-| Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment                             |
+| Problem                                  | Fix                                                       |
+| :--------------------------------------- | :-------------------------------------------------------- |
+| Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev`      |
+| Tests fail because databases are missing | Run `bin/rails db:prepare`                                |
+| `bin/dev` stops during boot              | Check `TRUSTED_ORIGINS` and database availability         |
+| Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment |
 
 ## Acknowledgement
 

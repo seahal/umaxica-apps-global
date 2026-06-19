@@ -5,20 +5,11 @@ module Acme
   module App
     module Oauth
       class AuthorizationsController < Acme::App::ApplicationController
+        include ::OauthAuthorizeRateLimit
+
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
         skip_before_action :set_region, raise: false
-
-        rate_limit(
-          to: 10,
-          within: 1.minute,
-          by: -> { [request.remote_ip, params[:client_id].presence || "unknown"].join(":") },
-          scope: "acme_app_oauth_authorize",
-          name: "authorize",
-          store: rate_limit_store,
-          with: -> { render_rate_limited(rule_name: "acme_app_oauth_authorize", retry_after: 60) },
-          only: :show,
-        )
 
         def show
           if params[:login_challenge].present?

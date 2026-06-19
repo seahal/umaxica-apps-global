@@ -26,6 +26,10 @@ module Sign
             # to avoid session attack
             session[:user_telephone_registration] = nil
             sign_up_flow_locator.clear!
+            log_sign_signup_event(
+              "sign.signup.telephone.new.rendered",
+              sign_signup_request_flags.merge(step: "telephone_otp"),
+            )
           end
 
           def edit
@@ -39,15 +43,23 @@ module Sign
           end
 
           def create
+            log_sign_signup_event(
+              "sign.signup.telephone.create.received",
+              sign_signup_request_flags.merge(step: "telephone_otp"),
+            )
             ensure_signup_reference_defaults!
 
-            telephone_params = params.fetch(:user_telephone, {}).permit(
+            telephone_params = telephone_signup_params.permit(
               :raw_number, :number, :confirm_policy, :confirm_using_mfa,
             )
 
             if telephone_params.blank?
               @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:raw_number, :blank)
+              log_sign_signup_event(
+                "sign.signup.telephone.create.rejected",
+                sign_signup_request_flags.merge(step: "telephone_otp", reason: "telephone_blank").compact,
+              )
               render :new, status: :unprocessable_content
               return
             end
@@ -60,6 +72,10 @@ module Sign
               @user_telephone.errors.add(
                 :base,
                 t("sign.app.registration.telephone.create.turnstile_validation_failed"),
+              )
+              log_sign_signup_event(
+                "sign.signup.telephone.create.rejected",
+                sign_signup_request_flags.merge(step: "telephone_otp", reason: "turnstile_failed").compact,
               )
               render :new, status: :unprocessable_content
               return
@@ -74,6 +90,10 @@ module Sign
 
             if has_errors && !uniqueness_only
               log_signup_telephone_errors
+              log_sign_signup_event(
+                "sign.signup.telephone.create.rejected",
+                sign_signup_request_flags.merge(step: "telephone_otp", reason: "telephone_invalid").compact,
+              )
               render :new, status: :unprocessable_content
               return
             end
@@ -119,6 +139,10 @@ module Sign
             rescue ActiveRecord::RecordInvalid => e
               @user_telephone = e.record
               log_signup_telephone_errors
+              log_sign_signup_event(
+                "sign.signup.telephone.create.rejected",
+                sign_signup_request_flags.merge(step: "telephone_otp", reason: "unexpected_error").compact,
+              )
               render :new, status: :unprocessable_content
             end
           end
@@ -228,6 +252,10 @@ module Sign
           def render_telephone_session_expired
             @user_telephone.errors.add(:base, t("sign.app.registration.telephone.edit.session_expired"))
             render :edit, status: :unprocessable_content
+          end
+
+          def telephone_signup_params
+            params.fetch(:client_telephone, params.fetch(:user_telephone, {}))
           end
 
           def valid_registration_session?(registration_session)

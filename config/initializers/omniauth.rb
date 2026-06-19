@@ -104,6 +104,29 @@ class OmniAuthNonAppSocialGuard
   end
 end
 
+class OmniAuthSocialOriginSanitizer
+  AUTH_PATH_PREFIXES = %w(/auth/google_app /auth/apple).freeze
+
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    if auth_request_path?(env["PATH_INFO"])
+      env.delete("HTTP_REFERER")
+    end
+
+    @app.call(env)
+  end
+
+  private
+
+  def auth_request_path?(path)
+    AUTH_PATH_PREFIXES.any? { |prefix| path.to_s.start_with?(prefix) }
+  end
+end
+
+Rails.application.config.middleware.use(OmniAuthSocialOriginSanitizer)
 Rails.application.config.middleware.use(OmniAuthNonAppSocialGuard)
 Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------

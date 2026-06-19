@@ -5,7 +5,7 @@ module SignOidcLogout
   extend ActiveSupport::Concern
 
   included do
-    after_action :sign_out_notice_cache_headers!, only: %i[show create]
+    after_action :sign_out_notice_cache_headers!, only: %i(show create)
   end
 
   def show
@@ -45,7 +45,7 @@ module SignOidcLogout
       redirect_to(post_logout_redirect_uri_with_state(result), allow_other_host: true, status: :see_other)
     else
       redirect_to(
-        oidc_logout_completed_path(ri: result.legacy_ri || params[:ri], ct: @sign_out_notice_token),
+        oidc_logout_completed_path(ri: result.legacy_ri || params[:ri], sot: @sign_out_notice_token),
         status: :see_other,
       )
     end
@@ -74,13 +74,19 @@ module SignOidcLogout
   end
 
   def sign_out_completion_notice_present?
-    request.params[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM].present? ||
+    request_token = Rack::Utils.parse_nested_query(request.query_string.to_s)
+
+    request_token[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM.to_s].present? ||
+      request_token["ct"].present? ||
+      request.params[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM].present? ||
+      request.params[:ct].present? ||
       session.key?(SignOutNotice::SIGN_OUT_NOTICE_SESSION_KEY)
   end
 
   def sign_out_confirmation_request?
     if @oidc_end_session_request.requires_confirmation?
       return true if request.post?
+
       return current_resource.present? || current_session_public_id.present?
     end
 

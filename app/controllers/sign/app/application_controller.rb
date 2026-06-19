@@ -9,6 +9,7 @@ module Sign
       include ::PreferenceGlobal
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
       include ::PreferenceAdoption
+      include ::SignSignupObservability
       include ::AuthenticationClient
       include ::SignErrorResponses
       include ::SessionLimitGate

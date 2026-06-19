@@ -9,7 +9,7 @@
 
     <% if @user_telephone.errors.any? %>
       <div id="error_explanation">
-        <h2><%= pluralize(@user_telephone.errors.count, "error") %> prohibited this sample from being saved:</h2>
+        <h2><%= pluralize(@user_telephone.errors.count, "error") %> prohibited this telephone from being saved:</h2>
 
         <ul>
           <% @user_telephone.errors.each do |error| %>

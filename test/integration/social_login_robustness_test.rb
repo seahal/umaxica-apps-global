@@ -164,6 +164,21 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     assert_includes [301, 302, 400, 403, 422], response.status
   end
 
+  test "social auth request phase ignores oversized referer to avoid cookie overflow" do
+    long_referer = "https://#{@host}/" + ("x" * 10_000)
+
+    state = seed_social_auth_session(
+      provider: "google_app",
+      intent: "login",
+      ri: "jp",
+      referer: long_referer,
+    )
+
+    assert_predicate state, :present?
+    assert_response :redirect
+    assert_nil session["omniauth.origin"]
+  end
+
   def social_auth_state_from_response
     session[:social_auth_state].presence ||
       begin

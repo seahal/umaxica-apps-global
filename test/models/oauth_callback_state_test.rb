@@ -29,4 +29,15 @@ class OauthCallbackStateTest < ActiveSupport::TestCase
     assert_not SocialAuthCallbackStateStore.issue!(state: "state-three", provider: "google_#{"com"}", intent: "login")
     assert_not SocialAuthCallbackStateStore.consume!(state: "state-three", provider: "google_#{"com"}")
   end
+
+  test "issue recovers from a race-condition uniqueness violation" do
+    ClientOauthCallbackState.issue!(state: "race-state", provider: "google_app", intent: "login")
+    existing = ClientOauthCallbackState.find_by!(state_digest: ClientOauthCallbackState.digest_state("race-state"))
+
+    ClientOauthCallbackState.stub(:find_or_create_by!, ->(*) { raise ActiveRecord::RecordNotUnique, "duplicate" }) do
+      result = ClientOauthCallbackState.issue!(state: "race-state", provider: "google_app", intent: "login")
+
+      assert_equal existing, result
+    end
+  end
 end

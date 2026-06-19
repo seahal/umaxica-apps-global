@@ -327,7 +327,7 @@ module MissingHelpers
       end
   end
 
-  def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil)
+  def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
     host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
@@ -343,6 +343,7 @@ module MissingHelpers
     with_social_auth_csrf_route do |csrf_path|
       csrf_token = fetch_csrf_token(csrf_path)
       headers = social_callback_headers(host).merge(csrf_headers(csrf_token))
+      headers["Referer"] = referer if referer.present?
       if user
         user_headers = as_user_headers(user, host: host)
         if intent.to_s == "link"

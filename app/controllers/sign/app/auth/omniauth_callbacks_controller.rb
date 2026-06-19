@@ -51,6 +51,25 @@ module Sign
             expected_provider: params[:provider],
           )
 
+          if SocialIdentifiable.normalize_provider(auth.provider) == "apple"
+            Rails.logger.info(
+              JitLogEvent.format(
+                "social_auth.apple.form_post.received",
+                surface: :app,
+                region: params[:ri],
+                flow_id: session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY],
+                request_id: request.request_id,
+                callback_path: request.path,
+                origin_present: request.headers["Origin"].present?,
+                origin_null: request.headers["Origin"] == "null",
+                state_present: params[:state].present?,
+                id_token_present: params[:id_token].present?,
+                user_payload_present: params[:user].present?,
+                candidate_present: session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY].present?,
+              ),
+            )
+          end
+
           intent = current_social_auth_intent
           Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
           result = process_social_auth_callback

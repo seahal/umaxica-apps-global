@@ -22,4 +22,25 @@ class RateLimitProfilesTest < ActiveSupport::TestCase
     assert_equal 30, verify_ip.to
     assert_equal 1.minute, verify_ip.within
   end
+
+  test "oauth authorize is relaxed in test and development" do
+    profile_set = RateLimitProfiles.oauth_authorize
+
+    assert_equal 300, profile_set.ip_surface.to
+    assert_equal 120, profile_set.browser_client.to
+    assert_equal 1000, profile_set.client_redirect_host.to
+    assert_equal 10.minutes, profile_set.client_redirect_host.within
+  end
+
+  test "oauth authorize is tighter in production" do
+    Rails.env
+    Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      profile_set = RateLimitProfiles.oauth_authorize
+
+      assert_equal 120, profile_set.ip_surface.to
+      assert_equal 60, profile_set.browser_client.to
+      assert_equal 600, profile_set.client_redirect_host.to
+      assert_equal 10.minutes, profile_set.client_redirect_host.within
+    end
+  end
 end

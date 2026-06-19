@@ -238,6 +238,16 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
     assert_includes logged, "request_path"
   end
 
+  test "handle_social_auth_error emits specialized reason events" do
+    error = SocialAuth::UnauthorizedError.new("errors.social_auth.invalid_intent")
+    logged =
+      capture_error_context_log do
+        @harness.send(:handle_social_auth_error, error)
+      end
+
+    assert_includes logged, "social_auth.intent.invalid"
+  end
+
   test "handle_social_auth_error renders json for json" do
     req = @harness.request
     req.define_singleton_method(:format) do

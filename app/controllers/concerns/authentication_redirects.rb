@@ -227,7 +227,36 @@ module AuthenticationRedirects
 
     return token if path_from_signed_pt(token).present?
 
-    log_signed_target_rejection("path_target.rejected", "invalid_signed_pt_param")
+    log_signed_target_rejection(
+      "path_target.rejected",
+      signed_pt_rejection_reason(token),
+    )
+    nil
+  end
+
+  def signed_pt_rejection_reason(token)
+    return "missing" if token.blank?
+    return "malformed" unless token.is_a?(String)
+
+    payload = signed_pt_verification_payload(token)
+    return "expired" if payload == :expired
+    return "signature_invalid" if payload.nil?
+
+    "verifier_error"
+  end
+
+  def signed_pt_verification_payload(token)
+    verified_signed_target_payload(
+      token,
+      purpose: PATH_TARGET_TOKEN_PURPOSE,
+      salt: PATH_TARGET_TOKEN_SALT,
+      expected_flow: authentication_pt_flow,
+      expected_surface: authentication_pt_surface,
+      session_nonce: authentication_pt_session_nonce,
+    )
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    :expired
+  rescue StandardError
     nil
   end
 

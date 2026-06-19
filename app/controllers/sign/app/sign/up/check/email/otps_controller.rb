@@ -42,6 +42,7 @@ module Sign
                 return render_code_required unless validate_code_present
 
                 result = verify_otp_ceremony!
+                log_email_otp_rejection(result) unless result.success?
                 return handle_locked_result if result.status == :locked
                 return render_otp_ceremony_result(result) unless result.success?
 
@@ -98,6 +99,28 @@ module Sign
 
                 @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
                 render "sign/app/sign/up/emails/edit", status: :unprocessable_content
+              end
+
+              def log_email_otp_rejection(result)
+                reason =
+                  case result.status
+                  when :blank_code then "otp_blank"
+                  when :invalid_code then "otp_mismatch"
+                  when :locked then "otp_locked"
+                  when :rate_limited then "otp_attempts_exceeded"
+                  when :missing_otp then "otp_candidate_not_found"
+                  else "unexpected_error"
+                  end
+
+                log_sign_signup_event(
+                  "sign.signup.email.otp.rejected",
+                  sign_signup_request_flags.merge(
+                    step: "email_otp",
+                    reason: reason,
+                    attempts_remaining: @user_email.respond_to?(:otp_attempts_remaining) ? @user_email.otp_attempts_remaining : nil,
+                    **sign_signup_safe_otp_state(@user_email),
+                  ).compact,
+                )
               end
 
               def redirect_invalid_session

@@ -108,6 +108,30 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "no-cache", response.headers["Pragma"]
   end
 
+  test "acme token endpoint rejects missing csrf metadata with oauth json error instead of csrf 422" do
+    result = TokenResult.new(
+      success: false,
+      error: "invalid_grant",
+      error_description: "invalid_code",
+    )
+
+    OidcTokenExchangeService.stub(:call, ->(**) { result }) do
+      post acme_app_oauth_token_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+           params: {
+             grant_type: "authorization_code",
+             code: "bad-code",
+             redirect_uri: "https://client.example/callback",
+             client_id: "core-next-rp",
+             client_secret: "secret",
+             code_verifier: "verifier",
+           }
+    end
+
+    assert_response :bad_request
+    assert_equal "invalid_grant", response.parsed_body["error"]
+    assert_equal "invalid_code", response.parsed_body["error_description"]
+  end
+
   test "sign token endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
@@ -150,75 +174,54 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme authorize endpoint rate limits by client id and ip" do
+  test "acme authorize endpoint uses request windows and ignores old token history" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
 
-    10.times do
-      get acme_app_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
-          headers: { "Host" => host }
-
-      assert_response :redirect
-    end
+    create_old_client_tokens(count: 25)
 
     get acme_app_oauth_authorization_url(
       host: host,
       **oidc_authorize_params(scope: "openid"),
     ), headers: { "Host" => host }
 
-    assert_response :too_many_requests
-    assert_equal "rails", response.headers["X-RateLimit-Layer"]
-    assert_equal "acme_app_oauth_authorize", response.headers["X-RateLimit-Rule"]
-    assert_equal "60", response.headers["Retry-After"]
+    assert_response :redirect
+    assert_not_equal 429, response.status
   end
 
-  test "acme com authorize endpoint rate limits by client id and ip" do
-    host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+  test "acme authorize endpoint rate limits repeated requests and sets retry after" do
+    profile_set = RateLimitProfiles::AuthorizeProfileSet.new(
+      ip_surface: RateLimitProfiles::Profile.new(to: 1, within: 1.minute, retry_after: 60),
+      browser_client: RateLimitProfiles::Profile.new(to: 100, within: 1.minute, retry_after: 60),
+      client_redirect_host: RateLimitProfiles::Profile.new(to: 100, within: 10.minutes, retry_after: 600),
+    )
+
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
 
-    10.times do
-      get acme_com_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
-          headers: { "Host" => host }
+    logs = []
+    Rails.logger.stub(:info, ->(*args, &_block) { logs << args.first if args.first.present? }) do
+      RateLimitProfiles.stub(:oauth_authorize, profile_set) do
+        get acme_app_oauth_authorization_url(
+          host: host,
+          **oidc_authorize_params(scope: "openid"),
+        ), headers: { "Host" => host }
+
+        assert_response :redirect
+
+        get acme_app_oauth_authorization_url(
+          host: host,
+          **oidc_authorize_params(scope: "openid"),
+        ), headers: { "Host" => host }
+
+        assert_response :too_many_requests
+        assert_equal "rails", response.headers["X-RateLimit-Layer"]
+        assert_equal "oauth_authorize_ip_surface", response.headers["X-RateLimit-Rule"]
+        assert_equal "60", response.headers["Retry-After"]
+      end
     end
 
-    get acme_com_oauth_authorization_url(
-      host: host,
-      **oidc_authorize_params(scope: "openid"),
-    ), headers: { "Host" => host }
-
-    assert_response :too_many_requests
-    assert_equal "rails", response.headers["X-RateLimit-Layer"]
-    assert_equal "acme_com_oauth_authorize", response.headers["X-RateLimit-Rule"]
-    assert_equal "60", response.headers["Retry-After"]
-  end
-
-  test "acme org authorize endpoint rate limits by client id and ip" do
-    host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
-    Rails.configuration.x.rate_limit.fetch(:store).clear
-
-    10.times do
-      get acme_org_oauth_authorization_url(
-        host: host,
-        **oidc_authorize_params(scope: "openid"),
-      ),
-          headers: { "Host" => host }
-    end
-
-    get acme_org_oauth_authorization_url(
-      host: host,
-      **oidc_authorize_params(scope: "openid"),
-    ), headers: { "Host" => host }
-
-    assert_response :too_many_requests
-    assert_equal "rails", response.headers["X-RateLimit-Layer"]
-    assert_equal "acme_org_oauth_authorize", response.headers["X-RateLimit-Rule"]
-    assert_equal "60", response.headers["Retry-After"]
+    assert logs.any? { |message| message.include?("oidc.authorize.rate_limited") }
   end
 
   test "acme userinfo authenticates against acme request binding" do
@@ -443,7 +446,10 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_equal host, location.host
     assert_equal "/sign/out", location.path
-    assert_equal "ri=jp", location.query
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal "jp", query["ri"]
+    assert_predicate query["sot"], :present?
   end
 
   test "acme oauth authorize starts sign in ceremony on unauthenticated requests" do
@@ -573,6 +579,23 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     }
     params[:screen_hint] = screen_hint if screen_hint.present?
     params
+  end
+
+  def create_old_client_tokens(count:)
+    user = clients(:one)
+
+    OrgTicketRecord.connected_to(role: :writing) do
+      count.times do |index|
+        token = ClientToken.new(
+          user: user,
+          user_token_status_id: ClientTokenStatus::ACTIVE,
+          created_at: (count + index + 1).hours.ago,
+          updated_at: (count + index + 1).hours.ago,
+        )
+        token.send(:skip_session_limit_check=, true)
+        token.save!
+      end
+    end
   end
 
   def assert_recognizes_acme_route(host, path, method, controller_name, action)

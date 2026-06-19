@@ -6,7 +6,7 @@
   "containerUser": "global",
   "workspaceFolder": "/home/global/workspace",
   "overrideCommand": true,
-  "forwardPorts": [3001, 5050],
+  "forwardPorts": [3000, 3036, 5050],
   "remoteEnv": {
     "EDITOR": "code --wait --reuse-window",
     "DEBUGGER_DISABLE": "1",

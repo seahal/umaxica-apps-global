@@ -1175,6 +1175,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :redirect
     uri = URI.parse(response.location)
+
     assert_equal "jump.umaxica.net", uri.host
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 

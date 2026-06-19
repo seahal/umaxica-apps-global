@@ -21,9 +21,9 @@ module Acme
 
         private
 
-        def oidc_logout_completed_path(ri:, ct: nil)
+        def oidc_logout_completed_path(ri:, sot: nil)
           params = { ri: ri }
-          params[:ct] = ct if ct.present?
+          params[:sot] = sot if sot.present?
           acme_org_sign_out_path(**params)
         end
       end

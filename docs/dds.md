@@ -171,7 +171,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   `app/javascript/pages`.
 - JavaScript is bundled through Vite Rails; pnpm and Vite Plus manage linting, formatting, tests,
   and build tooling.
-- Tailwind CSS is compiled through Rails' Tailwind CLI (`bin/rails tailwindcss:watch`).
+- Tailwind CSS is compiled through the Vite-backed frontend pipeline and surfaced through `bin/dev`.
 
 ### 3.10 Services & Integrations
 
@@ -297,12 +297,12 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
   credentials, OTLP endpoint.
 - `compose.yml` launches all infra dependencies with sensible defaults; volumes store data per
   service.
-- `Procfile.dev` ensures the Rails server and local development processes run concurrently; Tailwind
-  watcher runs via `bin/rails tailwindcss:watch`.
+- `bin/dev` ensures the Rails server, Vite dev server, and background jobs run concurrently via
+  `foreman start -f Procfile.dev`.
 - Build/test commands:
   - `bundle install`, `pnpm install`
   - `bin/rails db:prepare`
-  - `foreman start -f Procfile.dev`
+  - `bin/dev`
   - Tests: `bin/rails test`
   - Lint: `bundle exec rubocop`, `bundle exec erb_lint .`, `pnpm run lint`, `pnpm run format`,
     `pnpm run check`

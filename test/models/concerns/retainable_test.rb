@@ -107,15 +107,16 @@ class RetainableTest < ActiveSupport::TestCase
   end
 
   test "validation debug log fires when discarded_at after purged_at" do
-    original_level = Rails.logger.level
-    Rails.logger.level = Logger::DEBUG
+    log_output = StringIO.new
+    test_logger = Logger.new(log_output, level: Logger::DEBUG)
 
-    @dummy.discarded_at = 2.hours.from_now
-    @dummy.purged_at = 1.hour.from_now
+    Rails.stub(:logger, test_logger) do
+      @dummy.discarded_at = 2.hours.from_now
+      @dummy.purged_at = 1.hour.from_now
 
-    assert_not @dummy.valid?
-    assert_includes @dummy.errors[:discarded_at], "must be <= purged_at"
-  ensure
-    Rails.logger.level = original_level
+      assert_not @dummy.valid?
+      assert_includes @dummy.errors[:discarded_at], "must be <= purged_at"
+      assert_match(/DEBUG:.*discarded_at.*purged_at/, log_output.string)
+    end
   end
 end

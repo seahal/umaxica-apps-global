@@ -225,8 +225,8 @@ Sensitive columns leverage Active Record encryption.
 - `compose.yml` launches: Postgres primaries/replicas for each logical DB, Valkey, MinIO, Loki,
   Tempo, Grafana. Ports default to `5435-5436` (Postgres), `56379` (Valkey), `9000/9001` (MinIO),
   `33100/3200/4317` (observability), `8000` (Grafana).
-- `Procfile.dev` runs Rails server and supporting local processes; `foreman start -f Procfile.dev`
-  orchestrates them. JavaScript tooling (Biome) runs via pnpm when linting/formatting.
+- `bin/dev` is the unified local entrypoint; it wraps `foreman start -f Procfile.dev` to orchestrate
+  Rails, Vite, and jobs. JavaScript tooling (Biome) runs via pnpm when linting/formatting.
 
 ### 6.2 CI/CD
 

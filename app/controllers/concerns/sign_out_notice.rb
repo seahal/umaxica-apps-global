@@ -5,9 +5,10 @@ module SignOutNotice
   extend ActiveSupport::Concern
 
   SIGN_OUT_NOTICE_SESSION_KEY = :sign_out_notice
-  SIGN_OUT_NOTICE_TOKEN_PARAM = :ct
+  SIGN_OUT_NOTICE_TOKEN_PARAM = :sot
   SIGN_OUT_NOTICE_TOKEN_PURPOSE = "sign_out_notice"
   SIGN_OUT_NOTICE_REPLAY_PURPOSE = :sign_out_notice
+  SIGN_OUT_NOTICE_ISSUER = "sign_out_notice"
   SIGN_OUT_NOTICE_TTL = 5.minutes
   SIGN_OUT_NOTICE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, private"
 
@@ -92,8 +93,9 @@ module SignOutNotice
 
   def issue_sign_out_notice_token!
     expires_at = SIGN_OUT_NOTICE_TTL.from_now
+    issuer = @sign_out_session_public_id.presence || SIGN_OUT_NOTICE_ISSUER
     payload = {
-      "sid" => @sign_out_session_public_id.to_s,
+      "sid" => issuer,
       "expires_at" => expires_at.iso8601,
       "access_expires_at" => @sign_out_access_expires_at&.iso8601,
       "jti" => SecureRandom.uuid,
@@ -107,14 +109,13 @@ module SignOutNotice
   end
 
   def consume_sign_out_notice_token
-    token = request&.params&.[](SIGN_OUT_NOTICE_TOKEN_PARAM)
-    return unless token.present?
+    token = sign_out_notice_request_token
+    return if token.blank?
 
     payload = sign_out_notice_verifier.verified(token.to_s, purpose: SIGN_OUT_NOTICE_TOKEN_PURPOSE)
     return unless payload.is_a?(Hash)
 
-    session_public_id = payload["sid"].to_s
-    return if session_public_id.blank?
+    session_public_id = payload["sid"].presence || SIGN_OUT_NOTICE_ISSUER
     return if respond_to?(:current_session_public_id, true) && current_session_public_id.present? &&
       current_session_public_id.to_s != session_public_id
 
@@ -153,5 +154,15 @@ module SignOutNotice
       serializer: JSON,
       url_safe: true,
     )
+  end
+
+  def sign_out_notice_request_token
+    request_query = request.respond_to?(:query_string, true) ? request.query_string.to_s : ""
+    request_params = Rack::Utils.parse_nested_query(request_query)
+
+    request_params[SIGN_OUT_NOTICE_TOKEN_PARAM.to_s].presence ||
+      request_params["ct"].presence ||
+      request&.params&.dig(SIGN_OUT_NOTICE_TOKEN_PARAM).presence ||
+      request&.params&.dig(:ct).presence
   end
 end

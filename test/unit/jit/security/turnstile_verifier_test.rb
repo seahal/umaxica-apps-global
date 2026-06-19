@@ -166,6 +166,82 @@ module Jit
         assert_not config_called, "JitSecurityTurnstileConfig should not be called when secret_key is explicit"
         mock_response.verify
       end
+
+      test "logs sanitized response details in development" do
+        JitSecurityTurnstileVerifier.test_mode = false
+
+        mock_response = Minitest::Mock.new
+        mock_response.expect(
+          :body,
+          {
+            "success" => false,
+            "error-codes" => ["timeout-or-duplicate"],
+            "hostname" => "id.umaxica.app",
+            "action" => "signup",
+            "challenge_ts" => "2026-06-19T00:00:00Z",
+            "cdata" => "opaque",
+          }.to_json,
+        )
+
+        logger = Minitest::Mock.new
+        logger.expect(:warn, nil) do |message|
+          parsed = JSON.parse(message)
+
+          assert_equal "turnstile.verify.response", parsed["event"]
+          assert_equal "visible", parsed["data"]["mode"]
+          assert_not parsed["data"]["success"]
+          assert_equal ["timeout-or-duplicate"], parsed["data"]["error_codes"]
+          assert_equal "id.umaxica.app", parsed["data"]["hostname"]
+          assert_equal "signup", parsed["data"]["action"]
+          assert_equal "2026-06-19T00:00:00Z", parsed["data"]["challenge_ts"]
+          assert parsed["data"]["cdata_present"]
+          assert parsed["data"]["secret_key_present"]
+          assert parsed["data"]["token_present"]
+        end
+
+        dev_env = ActiveSupport::StringInquirer.new("development")
+        Rails.stub(:env, dev_env) do
+          Rails.stub(:logger, logger) do
+            JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+              Net::HTTP.stub(:post_form, mock_response) do
+                result = JitSecurityTurnstileVerifier.verify(token: "tok", remote_ip: "1.2.3.4")
+
+                assert_not result["success"]
+                assert_equal ["timeout-or-duplicate"], result["error-codes"]
+              end
+            end
+          end
+        end
+
+        mock_response.verify
+        logger.verify
+      end
+
+      test "does not log response details outside development" do
+        JitSecurityTurnstileVerifier.test_mode = false
+
+        mock_response = Minitest::Mock.new
+        mock_response.expect(:body, '{"success": true}')
+
+        logger = Minitest::Mock.new
+
+        Rails.stub(:env, ActiveSupport::StringInquirer.new("test")) do
+          Rails.stub(:logger, logger) do
+            Net::HTTP.stub(:post_form, mock_response) do
+              result = JitSecurityTurnstileVerifier.verify(
+                token: "tok",
+                remote_ip: "1.2.3.4",
+                secret_key: "explicit",
+              )
+
+              assert result["success"]
+            end
+          end
+        end
+
+        mock_response.verify
+        logger.verify
+      end
     end
   end
 end

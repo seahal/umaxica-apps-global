@@ -153,6 +153,21 @@ class Sign::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     assert_includes response.body, I18n.t("sign.app.registration.email.update.invalid_code")
   end
 
+  test "update emits rejected log for blank otp" do
+    start_pending_email_flow!("log@example.com")
+    logged =
+      capture_email_log do
+        patch(
+          sign_app_sign_up_check_email_otp_url(ri: "jp"),
+          params: { user_email: { pass_code: "" } },
+          headers: { "Host" => @host },
+        )
+      end
+
+    assert_includes logged, "sign.signup.email.otp.rejected"
+    assert_includes logged, "otp_blank"
+  end
+
   private
 
   def start_pending_email_flow!(email)
@@ -175,5 +190,15 @@ class Sign::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
   def otp_code_for(user_email)
     otp_data = user_email.get_otp
     ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+  end
+
+  def capture_email_log
+    io = StringIO.new
+    original = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = original
   end
 end

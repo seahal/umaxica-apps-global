@@ -8,6 +8,7 @@ module Sign
       include ::Session
       include ::PreferenceGlobal
       include ::PreferenceAdoption
+      include ::SignSignupObservability
       include ::AuthenticationOperator
       include ::SignErrorResponses
       include ::SessionLimitGate
