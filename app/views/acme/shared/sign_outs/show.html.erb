@@ -1,15 +1,24 @@
 <% surface = controller_path.split("/").second %>
 <% root_path = public_send("acme_#{surface}_root_path", ri: params[:ri]) %>
 
-<% surface = controller_path.split("/").second %>
-<% content_for :page_title, t("sign.shared.sign_out.title") %>
+<% if @sign_out_notice.present? %>
+  <% content_for :page_title, t("sign.shared.sign_out.completed_title") %>
 
-<div>
-  <h1><%= title t("sign.shared.sign_out.title") %></h1>
-  <p><%= t("sign.shared.sign_out.confirm_description") %></p>
-  <%= button_to t("sign.shared.sign_out.button"),
-                public_send("acme_#{surface}_sign_out_path", ri: params[:ri]),
-                method: :post,
-                form: { data: { turbo: false } } %>
-  <p><%= link_to t("sign.shared.sign_out.home_link"), root_path %></p>
-</div>
+  <div>
+    <h1><%= title t("sign.shared.sign_out.completed_title") %></h1>
+    <p><%= t("sign.shared.sign_out.completed_description", expires_at: l(@sign_out_notice.fetch("access_expires_at"), format: :short)) if @sign_out_notice["access_expires_at"].present? %></p>
+    <p><%= link_to t("sign.shared.sign_out.home_link"), root_path %></p>
+  </div>
+<% else %>
+  <% content_for :page_title, t("sign.shared.sign_out.title") %>
+
+  <div>
+    <h1><%= title t("sign.shared.sign_out.title") %></h1>
+    <p><%= t("sign.shared.sign_out.confirm_description") %></p>
+    <%= button_to t("sign.shared.sign_out.button"),
+                  public_send("acme_#{surface}_sign_out_path", ri: params[:ri]),
+                  method: :post,
+                  form: { data: { turbo: false } } %>
+    <p><%= link_to t("sign.shared.sign_out.home_link"), root_path %></p>
+  </div>
+<% end %>

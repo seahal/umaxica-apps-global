@@ -11,7 +11,6 @@ module Acme
       AUTHENTICATION_MODE = :open
       declare_authentication_mode! :open
 
-      prepend_before_action :authenticate!, only: %i(show create)
       helper_method :sign_out_completed_description
 
       def show
@@ -33,6 +32,8 @@ module Acme
       private
 
       def current_session_id_token_hint
+        return if current_resource.blank? || current_session_public_id.blank?
+
         OidcIdTokenIssuer.call(
           resource: current_resource,
           client: OidcClientRegistry.find!("base-rails-rp"),

@@ -14,20 +14,23 @@ class OidcBackchannelLogoutNotifier < ApplicationService
     return 0 if sid.blank? && subject.blank?
     raise ArgumentError, "logout token requires sid" if sid.blank?
 
-    clients.sum do |client|
+    jobs = clients.flat_map do |client|
       OidcClientRegistry.backchannel_logout_uris_for(
         client_id: client.client_id,
         resource_type: resource_type,
-      ).each do |uri|
-        OidcBackchannelLogoutDeliveryJob.perform_later(
+      ).map do |uri|
+        OidcBackchannelLogoutDeliveryJob.new(
           uri,
           client.client_id,
           resource_type,
           subject,
           sid,
         )
-      end.size
+      end
     end
+
+    enqueue_jobs(jobs)
+    jobs.size
   end
 
   private
@@ -36,5 +39,14 @@ class OidcBackchannelLogoutNotifier < ApplicationService
 
   def clients
     OidcClientRegistry.logout_clients_for_resource_type(resource_type)
+  end
+
+  def enqueue_jobs(jobs)
+    return if jobs.empty?
+
+    adapter = ActiveJob::Base.queue_adapter
+    return adapter.enqueue_all(jobs) if adapter.respond_to?(:enqueue_all)
+
+    jobs.each(&:enqueue)
   end
 end

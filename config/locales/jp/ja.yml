@@ -879,6 +879,7 @@ ja:
           invalid_provider: 無効なプロバイダーが指定されました
           create:
             success: "%{provider}で登録を開始しました"
+            signup_success: "%{provider}での登録が完了しました"
             already_registered: おかえりなさい！%{provider}でログインしました
             failure: ログインに失敗しました。もう一度お試しください。
           link:
@@ -1884,7 +1885,7 @@ ja:
         confirm_description: 一度ログアウトすると、再度ログインが必要になります。
         button: ログアウトします
         success: ログアウトの予約を行いました。%{expires_at}以降には確実にアクセスが不可能となります。
-        completed_title: ログアウトの予約を行いました
+        completed_title: サインアウトしました
         completed_description: "%{expires_at}以降には確実にアクセスが不可能となります。"
         home_link: ホームへ戻る
   org_timeline_tags:

@@ -2525,9 +2525,14 @@ module AuthenticationBase
     challenge = issue_dbsc_challenge_for!(token_record)
     return if challenge.blank?
 
+    value = %((ES256 RS256);path="#{token_dbsc_path}";challenge="#{challenge}")
     response.set_header(
       AuthIoKeys::Headers::DBSC_REGISTRATION,
-      %((ES256 RS256);path="#{token_dbsc_path}";challenge="#{challenge}"),
+      value,
+    )
+    response.set_header(AuthIoKeys::Headers::SECURE_DBSC_REGISTRATION, value)
+    Rails.logger.info(
+      "[dbsc] registration header issued path=#{token_dbsc_path} challenge=#{challenge[0, 24]}",
     )
   end
 

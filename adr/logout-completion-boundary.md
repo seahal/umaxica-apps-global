@@ -11,18 +11,17 @@ the Session and Token Authority. Logout is therefore an acme-owned mutation: acm
 current session, clears auth cookies and Rails session state, records logout audit through the
 existing logout primitive, and decides the post-mutation navigation target.
 
-The user-visible post-logout screen still needs a stable place. Showing that screen from `sign/id`
-is acceptable only if it does not turn `sign/id` back into a session participant. A one-time
-post/redirect/get completion screen on `sign/id` would require `sign/id` to consume session, flash,
-or a short-lived completion token. That would make sign responsible for post-logout state and blur
-the authority boundary.
+The user-visible post-logout screen still needs a stable place. The completion result may be shown
+only once, and the result display must be consumed from a session-bound marker so a stale or replayed
+completion URL cannot keep displaying logout success.
 
 ## Decision
 
 `acme/www` owns logout completion as a mutation. `sign/id` owns only the logged-out guest entry
 screen.
 
-After a successful ordinary logout, acme redirects to a sign-hosted static guest page:
+After a successful ordinary logout, acme redirects to a sign-hosted completion page that is
+consumed once:
 
 ```text
 GET /signed-out
@@ -49,8 +48,9 @@ page that says the user is signed out and offers a link to the sign-in entry poi
 - avoid logout audit writes;
 - link to the surface-local `sign /sign/in` entry point.
 
-Reloading `/signed-out` may show the same page again. This is intentional. A reload-resistant
-one-time display is less important than keeping `sign/id` out of post-logout state consumption.
+Reloading `/signed-out` must fail closed after the completion marker has been consumed. The browser
+may revisit the URL, but the server must not re-display a successful logout result from stale or
+reused state.
 
 ## acme/www Logout Contract
 
@@ -68,12 +68,11 @@ one-time display is less important than keeping `sign/id` out of post-logout sta
 
 The old sign-side `/sign/out` path can remain as a compatibility redirect because it performs no
 logout mutation. The user-visible completion URL is no longer overloaded with the logout execution
-URL.
+URL, but it is still one-time and session-bound.
 
-Do not introduce sign-side PRG, flash-backed completion state, session-backed completion notices, or
-one-time completion tokens for ordinary logout unless a future ADR explicitly assigns that state to
-a different non-session transport that does not make `sign/id` a logout participant. Flash is in any
-case removed application-wide; see `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
+Do not introduce sign-side PRG, flash-backed completion state, or reusable completion URLs for
+ordinary logout. Flash is in any case removed application-wide; see
+`.agents/harnesses/rules/generic/no-flash-messages.mdc`.
 
 ## Related
 

@@ -11,6 +11,17 @@ class OauthCallbackStateTest < ActiveSupport::TestCase
     assert_not ClientOauthCallbackState.consume!(state: "state-one", provider: "google_app")
   end
 
+  test "oauth callback state issue rejects blank input and operator state consumes" do
+    assert_nil ClientOauthCallbackState.issue!(state: nil, provider: "google_app", intent: "login")
+    assert_nil ClientOauthCallbackState.issue!(state: "state-one", provider: nil, intent: "login")
+    assert_not ClientOauthCallbackState.consume!(state: nil, provider: "google_app")
+    assert_not ClientOauthCallbackState.consume!(state: "state-one", provider: nil)
+
+    OperatorOauthCallbackState.issue!(state: "state-two", provider: "google_app", intent: "login")
+
+    assert OperatorOauthCallbackState.consume!(state: "state-two", provider: "google_app")
+  end
+
   test "callback state store ignores unsupported org and com google providers" do
     assert_not SocialAuthCallbackStateStore.issue!(state: "state-two", provider: "google_#{"org"}", intent: "login")
     assert_not SocialAuthCallbackStateStore.consume!(state: "state-two", provider: "google_#{"org"}")

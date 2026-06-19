@@ -54,7 +54,20 @@ module SignUpExplicitStepControllerSupport
   end
 
   def render_step_gate_failure(gate)
+    return redirect_to_sign_in_sequence_after_completed_sign_up if completed_sign_up_handoff_request?(gate)
+
     render plain: gate.errors.to_sentence.presence || "invalid_sign_up_step", status: :unprocessable_content
+  end
+
+  def completed_sign_up_handoff_request?(gate)
+    gate.errors.include?("ticket is required") &&
+      Actor.authn.signed_in? &&
+      respond_to?(:current_db_sign_in_flow_for_sequence, true) &&
+      current_db_sign_in_flow_for_sequence.present?
+  end
+
+  def redirect_to_sign_in_sequence_after_completed_sign_up
+    redirect_to_jump_url(sign_in_sequence_redirect_path(pt: signed_pt_param), status: :see_other)
   end
 
   def cancel_from_explicit_step

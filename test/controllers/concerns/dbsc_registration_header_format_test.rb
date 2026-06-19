@@ -24,8 +24,10 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
     controller.send(:issue_dbsc_registration_header_for, token)
 
     registration_header = controller.response.headers[AuthIoKeys::Headers::DBSC_REGISTRATION]
+    secure_registration_header = controller.response.headers[AuthIoKeys::Headers::SECURE_DBSC_REGISTRATION]
 
     assert_predicate registration_header, :present?
+    assert_equal registration_header, secure_registration_header
     assert_includes registration_header, "(ES256 RS256);"
     assert_not_includes registration_header, '"ES256"'
     assert_not_includes registration_header, '"RS256"'
@@ -41,8 +43,10 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
     controller.send(:issue_preference_dbsc_registration_header_for, preference)
 
     registration_header = controller.response.headers[PreferenceIoKeys::Headers::DBSC_REGISTRATION]
+    secure_registration_header = controller.response.headers[PreferenceIoKeys::Headers::DBSC_SECURE_REGISTRATION]
 
     assert_predicate registration_header, :present?
+    assert_equal registration_header, secure_registration_header
     assert_includes registration_header, "(ES256 RS256);"
     assert_not_includes registration_header, '"ES256"'
     assert_not_includes registration_header, '"RS256"'

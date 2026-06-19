@@ -67,6 +67,21 @@ class RefreshTokenableTest < ActiveSupport::TestCase
     assert_equal :inactive_token, replacement_reuse.reason
   end
 
+  test "rotation releases a unique dbsc session id on the previous token" do
+    original = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      refresh_token: "first-verifier",
+    )
+    original.update!(dbsc_session_id: "session-1")
+    original_refresh_token = ClientToken.build_refresh_token(original.public_id, "first-verifier")
+
+    result = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+
+    assert_predicate result, :success?
+    assert_nil original.reload.dbsc_session_id
+  end
+
   test "expired_refresh? and active? reflect discarding time" do
     token = ClientToken.new(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     token.define_singleton_method(:discarded_at) { 1.day.from_now }

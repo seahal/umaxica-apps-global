@@ -104,11 +104,7 @@ module SignFlow
   # sibling columns. `with_cycle_lock` (FlowBase) wraps in a transaction so
   # the SELECT FOR UPDATE actually holds.
   def transition_to!(next_status, step: nil, now: Time.current)
-    if respond_to?(:with_cycle_lock)
-      with_cycle_lock { perform_transition!(next_status, step: step, now: now) }
-    else
-      perform_transition!(next_status, step: step, now: now)
-    end
+    with_cycle_lock { perform_transition!(next_status, step: step, now: now) }
   end
 
   def perform_transition!(next_status, step:, now:)

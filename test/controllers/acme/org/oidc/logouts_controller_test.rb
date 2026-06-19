@@ -83,8 +83,31 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
     assert_predicate @token.reload, :revoked?
-    assert_redirected_to acme_org_sign_out_url(host: @host, ri: "jp")
+    location = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal "/sign/out", location.path
+    assert_equal "jp", query["ri"]
+    assert_predicate query["ct"], :present?
+
+    completion_location = location.request_uri
+
+    get completion_location, headers: { "Host" => @host }
+
+    assert_response :success
+    assert_includes response.body, I18n.t("sign.shared.sign_out.completed_title")
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
+
+    get completion_location, headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "logout completion is stale", JSON.parse(response.body).fetch("error_description")
   end
 
   test "invalid id_token_hint signature does not mutate or redirect externally" do

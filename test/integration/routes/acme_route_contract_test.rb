@@ -84,6 +84,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/app/switchers", action: "show" },
+      { path: "http://#{ACME_APP_HOST}/switcher", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/switchers", action: "update" },
+      { path: "http://#{ACME_APP_HOST}/switcher", method: :patch },
+    )
+
+    assert_recognizes(
       { controller: "acme/app/auth/callbacks", action: "show" },
       { path: "http://#{ACME_APP_HOST}/auth/callback", method: :get },
     )
@@ -378,6 +388,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/com/switchers", action: "show" },
+      { path: "http://#{ACME_COM_HOST}/switcher", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/com/switchers", action: "update" },
+      { path: "http://#{ACME_COM_HOST}/switcher", method: :patch },
+    )
+
+    assert_recognizes(
       { controller: "acme/com/auth/callbacks", action: "show" },
       { path: "http://#{ACME_COM_HOST}/auth/callback", method: :get },
     )
@@ -559,6 +579,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "acme/org/selectors", action: "update" },
       { path: "http://#{ACME_ORG_HOST}/selector", method: :patch },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/switchers", action: "show" },
+      { path: "http://#{ACME_ORG_HOST}/switcher", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/switchers", action: "update" },
+      { path: "http://#{ACME_ORG_HOST}/switcher", method: :patch },
     )
 
     assert_recognizes(

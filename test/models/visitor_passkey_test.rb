@@ -111,4 +111,10 @@ class VisitorPasskeyTest < ActiveSupport::TestCase
 
     assert_equal 1, VisitorPasskey.active.count
   end
+
+  test "to_param returns the public id" do
+    passkey = VisitorPasskey.create!(@valid_params)
+
+    assert_equal passkey.public_id, passkey.to_param
+  end
 end

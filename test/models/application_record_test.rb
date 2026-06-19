@@ -85,4 +85,21 @@ class ApplicationRecordTest < ActiveSupport::TestCase
       ClientStatus.insert_missing_fixed_ids!([missing_id])
     end
   end
+
+  test "insert_missing_fixed_ids! falls back when bulk insert is unavailable" do
+    ApplicationRecord.clear_fixed_id_seed_cache!
+    max_id = ClientStatus.maximum(:id) || 0
+    missing_id = max_id + 10_003
+    prosopite = defined?(Prosopite) ? Prosopite : nil
+
+    Object.send(:remove_const, :Prosopite) if prosopite
+
+    ClientStatus.stub(:insert_all, ->(*) { raise ActiveRecord::StatementInvalid, "unsupported" }) do
+      ClientStatus.insert_missing_fixed_ids!([missing_id])
+    end
+
+    assert_predicate ClientStatus.where(id: missing_id), :exists?
+  ensure
+    Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
+  end
 end

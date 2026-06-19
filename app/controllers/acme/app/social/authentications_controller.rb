@@ -130,13 +130,11 @@ module Acme
           sign_in_result = sign_in_result_from_session_result(result, actor: commit.user)
 
           if sign_in_result.status == :success || sign_in_result.status == :session_limit_pending
-            complete_acme_social_signup_flow!(commit, sign_in_result) if commit.result["operation"].to_s == "signup"
+            signup_flow = commit.result["operation"].to_s == "signup"
+            complete_acme_social_signup_flow!(commit, sign_in_result) if signup_flow
             return redirect_to(
               acme_social_login_redirect_to(sign_in_result),
-              notice: I18n.t(
-                "sign.app.social.sessions.create.already_registered",
-                provider: SocialIdentifiable.normalize_provider(provider).humanize,
-              ),
+              notice: social_login_notice(provider, signup_flow: signup_flow),
               allow_other_host: after_login_allows_other_host?,
             )
           end
@@ -303,6 +301,21 @@ module Acme
         def social_connection_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
           public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
+        end
+
+        def social_login_notice(provider, signup_flow:)
+          normalized_provider = SocialIdentifiable.normalize_provider(provider)
+          if signup_flow
+            return I18n.t(
+              "sign.app.social.sessions.create.signup_success",
+              provider: normalized_provider.humanize,
+            )
+          end
+
+          I18n.t(
+            "sign.app.social.sessions.create.already_registered",
+            provider: normalized_provider.humanize,
+          )
         end
       end
     end

@@ -82,8 +82,52 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
     assert_predicate @token.reload, :revoked?
-    assert_redirected_to acme_app_sign_out_url(host: @host, ri: "jp")
+    location = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal "/sign/out", location.path
+    assert_equal "jp", query["ri"]
+    assert_predicate query["ct"], :present?
+
+    completion_location = location.request_uri
+
+    get completion_location, headers: { "Host" => @host }
+
+    assert_response :success
+    assert_includes response.body, I18n.t("sign.shared.sign_out.completed_title")
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
+
+    get completion_location, headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_equal "logout completion is stale", JSON.parse(response.body).fetch("error_description")
+  end
+
+  test "valid id_token_hint on post enqueues multiple backchannel deliveries without n plus one queries" do
+    client = OidcClientRegistry.find!("sign-rp")
+    uris = [
+      "https://id.app.localhost/oidc/backchannel_logout",
+      "https://id2.app.localhost/oidc/backchannel_logout",
+    ]
+
+    OidcClientRegistry.stub(:logout_clients_for_resource_type, [client]) do
+      OidcClientRegistry.stub(:backchannel_logout_uris_for, uris) do
+        assert_enqueued_jobs 2, only: OidcBackchannelLogoutDeliveryJob do
+          post acme_app_oidc_logout_url(host: @host),
+               params: { id_token_hint: id_token, ri: "jp" },
+               headers: session_headers
+        end
+      end
+    end
+
+    assert_response :see_other
+    assert_predicate @token.reload, :revoked?
   end
 
   test "invalid id_token_hint signature does not mutate or redirect externally" do

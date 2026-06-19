@@ -70,6 +70,14 @@ class SignFlowTest < ActiveSupport::TestCase
     end
   end
 
+  test "sign-in cycle defaults expose the configured ttl and expiry window" do
+    assert_equal 15.minutes, ClientSignInFlow.default_ttl
+
+    flow = ClientSignInFlow.new(cycle_attrs(ClientSignInFlow))
+
+    assert_in_delta 15.minutes, flow.default_expires_at - Time.current, 2.seconds
+  end
+
   test "sign-up cycles reject unknown statuses" do
     SIGN_UP_CLASSES.each do |cycle_class|
       cycle = build_cycle(cycle_class, status_id: 999)
@@ -188,6 +196,18 @@ class SignFlowTest < ActiveSupport::TestCase
     assert_not_empty cycle.errors[:completed_requirements]
   end
 
+  test "sign-up cycle cleanup predicates track the configured cleanup status" do
+    [ClientSignUpFlow, VisitorSignUpFlow].each do |cycle_class|
+      cycle_class.cleanup_status_class.ensure_defaults!
+      cycle = build_cycle(cycle_class, cleanup_status_id: cycle_class.cleanup_status_id_for(:pending))
+
+      assert_predicate cycle, :cleanup_pending?, cycle_class.name
+      assert_not cycle.cleanup_idle?
+      assert_not cycle.cleanup_completed?
+      assert_not cycle.cleanup_failed?
+    end
+  end
+
   test "cycles require completed_at when state is completed" do
     (SIGN_IN_CLASSES + SIGN_UP_CLASSES).each do |cycle_class|
       cycle = build_cycle(
@@ -255,6 +275,32 @@ class SignFlowTest < ActiveSupport::TestCase
 
     assert_equal ClientSignInFlowStatus::MFA_PENDING, cycle.status_id
     assert_equal "mfa", cycle.step
+  end
+
+  test "sign-in transition_to always uses the row lock path" do
+    cycle = ClientSignInFlow.create!(cycle_attrs(ClientSignInFlow))
+    called = false
+
+    cycle.define_singleton_method(:with_cycle_lock) do |&block|
+      called = true
+      block.call
+    end
+
+    cycle.transition_to!("MFA_PENDING", step: "mfa")
+
+    assert called
+    assert_equal ClientSignInFlowStatus::MFA_PENDING, cycle.status_id
+  end
+
+  test "sign-in cycles reject zero-length lifetimes" do
+    cycle = build_cycle(
+      ClientSignInFlow,
+      issued_at: Time.zone.local(2026, 6, 19, 12, 0, 0),
+      expires_at: Time.zone.local(2026, 6, 19, 12, 0, 0),
+    )
+
+    assert_not cycle.valid?
+    assert_includes cycle.errors[:expires_at], "must be after issued_at"
   end
 
   test "sign-in cycle methods advance through named transitions" do

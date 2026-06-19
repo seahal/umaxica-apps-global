@@ -35,6 +35,29 @@ class OidcBackchannelLogoutNotifierTest < ActiveSupport::TestCase
     end
   end
 
+  test "call batches all logout deliveries for the same client" do
+    sid = SecureRandom.uuid
+    client = OidcClientRegistry.find!("sign-rp")
+    uris = [
+      "https://id.app.localhost/oidc/backchannel_logout",
+      "https://id2.app.localhost/oidc/backchannel_logout",
+    ]
+
+    OidcClientRegistry.stub(:logout_clients_for_resource_type, [client]) do
+      OidcClientRegistry.stub(:backchannel_logout_uris_for, uris) do
+        assert_enqueued_jobs 2, only: OidcBackchannelLogoutDeliveryJob do
+          count = OidcBackchannelLogoutNotifier.new(
+            resource_type: "client",
+            subject: "subject-1",
+            sid: sid,
+          ).call
+
+          assert_equal 2, count
+        end
+      end
+    end
+  end
+
   test "call raises when sid is missing but subject is present" do
     assert_raises(ArgumentError, "logout token requires sid") do
       OidcBackchannelLogoutNotifier.new(

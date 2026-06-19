@@ -11,7 +11,6 @@ module Acme
       AUTHENTICATION_MODE = :open
       declare_authentication_mode! :open
 
-      before_action :authenticate!, only: %i(show create)
       helper_method :sign_out_completed_description
 
       def show

@@ -4,6 +4,10 @@
 module SignOidcLogout
   extend ActiveSupport::Concern
 
+  included do
+    after_action :sign_out_notice_cache_headers!, only: %i[show create]
+  end
+
   def show
     handle_oidc_end_session_request
   end
@@ -17,8 +21,16 @@ module SignOidcLogout
   def handle_oidc_end_session_request
     @oidc_end_session_request = OidcEndSessionRequest.call(params: params, request: request)
     return render_oidc_end_session_error(@oidc_end_session_request) if @oidc_end_session_request.error?
-    return render :show,
-                  status: :ok if request.get? || request.head? || @oidc_end_session_request.requires_confirmation?
+
+    if sign_out_completion_notice_present?
+      return render_oidc_logout_completion
+    end
+
+    if sign_out_confirmation_request?
+      return render_oidc_end_session_confirmation
+    end
+
+    return render_oidc_end_session_failure unless request.post?
 
     perform_oidc_end_session_logout(@oidc_end_session_request)
   end
@@ -32,13 +44,49 @@ module SignOidcLogout
     if result.post_logout_redirect_uri.present?
       redirect_to(post_logout_redirect_uri_with_state(result), allow_other_host: true, status: :see_other)
     else
-      redirect_to(oidc_logout_completed_path(ri: result.legacy_ri || params[:ri]), status: :see_other)
+      redirect_to(
+        oidc_logout_completed_path(ri: result.legacy_ri || params[:ri], ct: @sign_out_notice_token),
+        status: :see_other,
+      )
     end
+  end
+
+  def render_oidc_logout_completion
+    @sign_out_notice = consume_sign_out_notice
+    return render_oidc_end_session_failure unless @sign_out_notice
+
+    @sign_out_access_expires_at = @sign_out_notice["access_expires_at"]
+    render :show, status: :ok
+  end
+
+  def render_oidc_end_session_confirmation
+    render :show, status: :ok
   end
 
   def render_oidc_end_session_error(result)
     render json: { error: result.error_code, error_description: result.error_description },
            status: :bad_request
+  end
+
+  def render_oidc_end_session_failure
+    render json: { error: "unprocessable_content", error_description: "logout completion is stale" },
+           status: :unprocessable_content
+  end
+
+  def sign_out_completion_notice_present?
+    request.params[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM].present? ||
+      session.key?(SignOutNotice::SIGN_OUT_NOTICE_SESSION_KEY)
+  end
+
+  def sign_out_confirmation_request?
+    if @oidc_end_session_request.requires_confirmation?
+      return true if request.post?
+      return current_resource.present? || current_session_public_id.present?
+    end
+
+    return false unless request.get? || request.head?
+
+    current_resource.present? || current_session_public_id.present?
   end
 
   def logout_oidc_current_session!(result)

@@ -3,11 +3,13 @@
 
 module PreferenceDbscRegistrationEndpoint
   extend ActiveSupport::Concern
+  include DbscRequestLogging
 
   def create
+    log_dbsc_request_observability!
     response.set_header("Cache-Control", "no-store")
 
-    if request.headers[PreferenceIoKeys::Headers::DBSC_SESSION_ID].present?
+    if dbsc_session_id_header.present?
       handle_bound_cookie_refresh
     else
       handle_registration
@@ -24,7 +26,7 @@ module PreferenceDbscRegistrationEndpoint
   def handle_registration
     result = DbscRegistrationService.call(
       record: current_preference_record,
-      proof: request.headers[PreferenceIoKeys::Headers::DBSC_RESPONSE],
+      proof: dbsc_response_header,
       expected_audience: dbsc_url,
     )
 
@@ -49,6 +51,9 @@ module PreferenceDbscRegistrationEndpoint
           },
         ],
       }, status: :created
+      Rails.logger.info(
+        "[dbsc] registration success path=#{dbsc_url} session_id=#{result[:session_id].to_s[0, 24]}",
+      )
     else
       render json: { error: "DBSC registration failed", error_code: result[:error_code] },
              status: :unprocessable_content
@@ -59,15 +64,23 @@ module PreferenceDbscRegistrationEndpoint
     preference = current_preference_record
     return head :unauthorized if preference.blank?
 
-    session_id = request.headers[PreferenceIoKeys::Headers::DBSC_SESSION_ID]
-    proof = request.headers[PreferenceIoKeys::Headers::DBSC_RESPONSE]
+    session_id = dbsc_session_id_header
+    proof = dbsc_response_header
     parsed_session_id = DbscHeaderParser.string_value(session_id)
 
     if proof.blank?
       challenge = issue_preference_dbsc_challenge_for!(preference)
+      challenge_value = %("#{challenge}";id="#{parsed_session_id}")
       response.set_header(
         PreferenceIoKeys::Headers::DBSC_CHALLENGE,
-        %("#{challenge}";id="#{parsed_session_id}"),
+        challenge_value,
+      )
+      response.set_header(
+        PreferenceIoKeys::Headers::DBSC_SECURE_CHALLENGE,
+        challenge_value,
+      )
+      Rails.logger.info(
+        "[dbsc] challenge issued path=#{dbsc_url} session_id=#{parsed_session_id.to_s[0, 24]}",
       )
       return head :forbidden
     end
@@ -98,6 +111,18 @@ module PreferenceDbscRegistrationEndpoint
       "HttpOnly",
       "SameSite=Strict",
     ].compact.join("; ")
+  end
+
+  def dbsc_session_id_header
+    request.headers[PreferenceIoKeys::Headers::DBSC_SECURE_SESSION_ID].presence ||
+      request.headers[PreferenceIoKeys::Headers::DBSC_SESSION_ID].presence ||
+      request.headers["Sec-Secure-Session-Id"].presence
+  end
+
+  def dbsc_response_header
+    request.headers[PreferenceIoKeys::Headers::DBSC_SECURE_RESPONSE].presence ||
+      request.headers[PreferenceIoKeys::Headers::DBSC_RESPONSE].presence ||
+      request.headers["Sec-Secure-Session-Response"].presence
   end
 
   # Subclasses must implement:

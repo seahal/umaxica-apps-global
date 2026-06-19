@@ -77,6 +77,9 @@ scope module: :acme, as: :acme do
       # runs on the :private tier -- identity-authenticated but context not yet selected.
       resource :selector, only: %i(show update)
 
+      # Post-login context switcher for selected actors on the app surface.
+      resource :switcher, only: %i(show update)
+
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
       resource :welcome, only: :show, as: :welcome_entry
 
@@ -227,6 +230,9 @@ scope module: :acme, as: :acme do
       # account/organization context the principal acts in. Identity/session context
       # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
       resource :selector, only: %i(show update)
+
+      # Post-login context switcher for selected actors on the com surface.
+      resource :switcher, only: %i(show update)
 
       # Signed-in dashboard.
       resource :dashboard, only: :show
@@ -398,6 +404,9 @@ scope module: :acme, as: :acme do
       # account/organization context the principal acts in. Identity/session context
       # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
       resource :selector, only: %i(show update)
+
+      # Post-login context switcher for selected actors on the org surface.
+      resource :switcher, only: %i(show update)
 
       # Signed-in dashboard.
       resource :dashboard, only: :show

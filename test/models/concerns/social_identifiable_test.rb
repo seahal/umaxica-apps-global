@@ -50,6 +50,32 @@ class SocialIdentifiableTest < ActiveSupport::TestCase
     assert_match(/Unknown provider/, error.message)
   end
 
+  test "auth_value handles key errors and missing sources" do
+    source = Class.new do
+      def [](key)
+        raise KeyError, key.to_s
+      end
+    end.new
+
+    assert_nil DummySocial.auth_value(nil, :uid)
+    assert_nil DummySocial.auth_value(source, :uid)
+  end
+
+  test "touch_authenticated! persists the current timestamp" do
+    identity = ClientGoogleIdentity.create!(
+      user: clients(:one),
+      uid: "touch-authenticated",
+      token: "token",
+      expires_at: 123,
+    )
+
+    travel_to Time.zone.local(2026, 6, 19, 13, 0, 0) do
+      identity.touch_authenticated!
+    end
+
+    assert_equal Time.zone.local(2026, 6, 19, 13, 0, 0), identity.reload.last_authenticated_at
+  end
+
   test "find_by_uid_with_lock supports lock option" do
     identity = ClientAppleIdentity.create!(
       user: clients(:one),

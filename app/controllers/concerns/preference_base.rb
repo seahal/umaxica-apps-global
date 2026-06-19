@@ -597,9 +597,14 @@ module PreferenceBase
     challenge = issue_preference_dbsc_challenge_for!(preference)
     return if challenge.blank?
 
+    value = %((ES256 RS256);path="#{preference_dbsc_path}";challenge="#{challenge}")
     response.set_header(
       PreferenceIoKeys::Headers::DBSC_REGISTRATION,
-      %((ES256 RS256);path="#{preference_dbsc_path}";challenge="#{challenge}"),
+      value,
+    )
+    response.set_header(PreferenceIoKeys::Headers::DBSC_SECURE_REGISTRATION, value)
+    Rails.logger.info(
+      "[dbsc] registration header issued path=#{preference_dbsc_path} challenge=#{challenge[0, 24]}",
     )
   end
 

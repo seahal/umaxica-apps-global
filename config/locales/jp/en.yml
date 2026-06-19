@@ -784,6 +784,7 @@ en:
         invalid_provider: Invalid provider specified
         create:
           success: Registered with %{provider}
+          signup_success: Registration with %{provider} completed.
           already_registered: Welcome back! Signed in with %{provider}
           failure: Failed to sign in. Please try again.
         link:
@@ -1205,7 +1206,7 @@ en:
         confirm_description: Once you log out, you will need to log in again.
         button: Sign out
         success: Sign-out has been scheduled. Access will be unavailable after %{expires_at}.
-        completed_title: Sign-out has been scheduled
+        completed_title: You are signed out
         completed_description: Access will be unavailable after %{expires_at}.
         home_link: Go to home
   auth:

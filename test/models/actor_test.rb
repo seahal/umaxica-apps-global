@@ -220,6 +220,24 @@ class ActorTest < ActiveSupport::TestCase
     assert_equal user, Actor.actor
   end
 
+  test "compatibility setters update the installed context" do
+    user = Client.new(id: 8)
+
+    Actor.subject = user
+    Actor.authn = Actor::Authentication.new(login_public_id: "session-8")
+    Actor.authz = nil
+    Actor.preferences = nil
+    Actor.selection = nil
+    Actor.step_up = nil
+
+    assert_equal user, Actor.subject
+    assert_equal user, Actor.actor
+    assert_equal Actor::Authz::NULL, Actor.authz
+    assert_equal Actor::Preference::NULL, Actor.preferences
+    assert_equal Actor::SelectedContext::NULL, Actor.selection
+    assert_equal Actor::StepUp::NULL, Actor.step_up
+  end
+
   test "surface is a separate axis from tld" do
     Actor.install_context!(tld: :app, surface: :sign)
 

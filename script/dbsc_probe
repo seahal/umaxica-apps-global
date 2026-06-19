@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_url="${1:-}"
+
+if [[ -z "${base_url}" ]]; then
+  echo "usage: script/dbsc_probe BASE_URL" >&2
+  exit 1
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl is required" >&2
+  exit 1
+fi
+
+base_url="${base_url%/}"
+cookie_jar="$(mktemp)"
+trap 'rm -f "${cookie_jar}"' EXIT
+
+route_candidates=(
+  "/edge/v0/token/dbsc"
+  "/edge/v0/dbsc"
+)
+
+discover_route() {
+  for path in "${route_candidates[@]}"; do
+    code="$(curl -sS -o /dev/null -w '%{http_code}' "${base_url}${path}" || true)"
+    if [[ "${code}" != "404" && "${code}" != "000" ]]; then
+      echo "${path}"
+      return 0
+    fi
+  done
+
+  echo "${route_candidates[0]}"
+}
+
+dbsc_path="$(discover_route)"
+
+show_response_headers() {
+  local path="$1"
+  echo "== GET ${path} =="
+  curl -sS --include --cookie "${cookie_jar}" --cookie-jar "${cookie_jar}" "${base_url}${path}" \
+    | tee "${cookie_jar}.get" \
+    | awk '
+      BEGIN { print_headers = 1 }
+      print_headers { print }
+      /^$/ { print_headers = 0 }
+    '
+  echo
+}
+
+extract_csrf_token() {
+  local body_file="$1"
+  perl -ne 'if (m/<meta name="csrf-token" content="([^"]+)"/) { print "$1\n"; exit }' "${body_file}"
+}
+
+check_registration_header() {
+  local path="$1"
+  local header_dump
+  header_dump="$(curl -sS --include --cookie "${cookie_jar}" --cookie-jar "${cookie_jar}" "${base_url}${path}" | sed -n '/^$/q;p')"
+  if printf '%s\n' "${header_dump}" | grep -qi '^Secure-Session-Registration:'; then
+    echo "Secure-Session-Registration: present"
+  else
+    echo "Secure-Session-Registration: missing"
+  fi
+  if printf '%s\n' "${header_dump}" | grep -qi '^Set-Cookie: .*dbsc'; then
+    echo "Set-Cookie: dbsc cookie present"
+  else
+    echo "Set-Cookie: dbsc cookie missing"
+  fi
+}
+
+post_dummy() {
+  local label="$1"
+  local path="$2"
+  local csrf_token="${3:-}"
+  shift 3 || true
+  local -a extra_headers=("$@")
+  echo "== POST ${label} ${path} =="
+  local -a curl_args=(
+    -sS --include --cookie "${cookie_jar}" --cookie-jar "${cookie_jar}"
+    -H "Content-Type: application/json"
+  )
+  if [[ -n "${csrf_token}" ]]; then
+    curl_args+=(-H "X-CSRF-Token: ${csrf_token}" -H "Referer: ${base_url}/")
+  fi
+  curl_args+=("${extra_headers[@]}")
+  curl_args+=(-d '{}' -o /tmp/dbsc_probe_body.$$ -w 'HTTP %{http_code}\n' "${base_url}${path}")
+
+  curl "${curl_args[@]}" || true
+  cat /tmp/dbsc_probe_body.$$
+  rm -f /tmp/dbsc_probe_body.$$
+  echo
+}
+
+show_response_headers "/"
+csrf_token="$(extract_csrf_token "${cookie_jar}.get" || true)"
+rm -f "${cookie_jar}.get"
+check_registration_header "/"
+
+echo "== DBSC route =="
+echo "${dbsc_path}"
+echo
+
+echo "Note: curl can confirm the Rails HTTP contract, not whether Chromium actually used DBSC hardware-backed credentials."
+echo
+
+post_dummy "registration" "${dbsc_path}" \
+  "${csrf_token}" \
+  -H 'Secure-Session-Response: dummy.registration.jwt' \
+  -H 'Sec-Secure-Session-Response: dummy.registration.jwt' \
+  -H 'Sec-Session-Response: dummy.registration.jwt'
+
+post_dummy "refresh" "${dbsc_path}" \
+  "${csrf_token}" \
+  -H 'Sec-Secure-Session-Id: dev-dbsc-session-1' \
+  -H 'Secure-Session-Id: dev-dbsc-session-1' \
+  -H 'Sec-Session-Id: dev-dbsc-session-1' \
+  -H 'Secure-Session-Response: dummy.refresh.jwt' \
+  -H 'Sec-Secure-Session-Response: dummy.refresh.jwt' \
+  -H 'Sec-Session-Response: dummy.refresh.jwt'
+
+echo "Cookie jar: ${cookie_jar}"

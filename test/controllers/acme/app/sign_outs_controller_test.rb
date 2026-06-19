@@ -45,4 +45,17 @@ class Acme::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate query["id_token_hint"], :present?
     assert_nil query["post_logout_redirect_uri"]
   end
+
+  test "post sign out without a resolved session still redirects to oidc logout" do
+    post acme_app_sign_out_url(host: @host, ri: "jp")
+
+    assert_response :temporary_redirect
+    location = URI.parse(response.location)
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal @host, location.host
+    assert_equal "/oidc/logout", location.path
+    assert_nil query["id_token_hint"]
+    assert_nil query["post_logout_redirect_uri"]
+  end
 end

@@ -103,4 +103,46 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestC
 
     assert_not session_started
   end
+
+  test "completion uses signup notice for signup flows" do
+    redirects = []
+    @controller.define_singleton_method(:establish_signed_in_session!) do |_resource, **_kwargs|
+      { status: :success, redirect_path: "/dashboard" }
+    end
+    @controller.define_singleton_method(:complete_acme_social_signup_flow!) do |_commit, _sign_in_result|
+      true
+    end
+    @controller.define_singleton_method(:redirect_to) do |*args, **kwargs|
+      redirects << [args, kwargs]
+    end
+    @controller.define_singleton_method(:acme_social_login_redirect_to) do |_sign_in_result|
+      "/dashboard"
+    end
+
+    commit = Struct.new(:user, :result, :pt, :identity, :existing_account).new(
+      @commit_user,
+      { "operation" => "signup", "actor_ref" => "flow-1" },
+      nil,
+      Struct.new(:provider).new("apple"),
+      false,
+    )
+
+    IdentitySocialCeremonyResult.stub(
+      :decode,
+      { "surface" => "app", "provider" => "apple", "session_ref" => "session-1" },
+    ) do
+      IdentitySocialCeremonyContract.stub(
+        :decode_untrusted_routing_payload,
+        { "operation" => "signup", "session_ref" => "session-1" },
+      ) do
+        IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
+          IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
+            post :completion, params: { id: "apple", ri: "jp", social_ceremony_result: "signed-token" }
+          end
+        end
+      end
+    end
+
+    assert_equal "Appleでの登録が完了しました", redirects.last.last[:notice]
+  end
 end

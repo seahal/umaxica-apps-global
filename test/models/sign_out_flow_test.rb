@@ -72,6 +72,8 @@ class SignOutFlowTest < ActiveSupport::TestCase
     cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
 
     travel_to now do
+      assert_predicate cycle, :sign_out_requested?
+
       cycle.mark_access_discarded!
 
       assert_predicate cycle, :sign_out_access_discarded?
@@ -93,6 +95,18 @@ class SignOutFlowTest < ActiveSupport::TestCase
     end
   end
 
+  test "request_sign_out! sets the requested state from nothing" do
+    now = Time.zone.local(2026, 5, 19, 11, 0, 0)
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow).merge(status_id: ClientSignOutFlowStatus::NOTHING))
+
+    travel_to now do
+      cycle.request_sign_out!
+    end
+
+    assert_predicate cycle, :sign_out_requested?
+    assert_equal now, cycle.requested_at
+  end
+
   test "sign-out cycle methods reject reverse transitions through FlowBase" do
     cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
     cycle.mark_access_discarded!
@@ -107,6 +121,15 @@ class SignOutFlowTest < ActiveSupport::TestCase
 
     assert_match(/invalid transition/, error.message)
     assert_equal ClientSignOutFlowStatus::ACCESS_DISCARDED, cycle.reload.status_id
+  end
+
+  test "discard_sign_out! marks the cycle discarded without changing the status" do
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
+
+    cycle.discard_sign_out!
+
+    assert_predicate cycle, :lapsed?
+    assert_predicate cycle, :sign_out_requested?
   end
 
   test "sign-out cycles can fail before completion" do

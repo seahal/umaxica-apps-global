@@ -889,6 +889,23 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal expected_jkt, device_session.dpop_jkt
   end
 
+  test "log_in issues dbsc registration headers on browser success" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal :success, result[:status]
+    assert_predicate @controller.response.headers[AuthIoKeys::Headers::DBSC_REGISTRATION], :present?
+    assert_equal @controller.response.headers[AuthIoKeys::Headers::DBSC_REGISTRATION],
+                 @controller.response.headers[AuthIoKeys::Headers::SECURE_DBSC_REGISTRATION]
+  end
+
   test "log_in sets visitor token status reference ids" do
     visitor = create_verified_visitor_with_email(email_address: "visitor-login@example.com")
 

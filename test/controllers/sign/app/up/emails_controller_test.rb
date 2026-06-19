@@ -1138,6 +1138,54 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.status_id
   end
 
+  test "duplicate email signup birthdate submission continues signed-in handoff" do
+    post sign_app_sign_up_email_url(ri: "jp"),
+         params: {
+           client_email: {
+             raw_address: "email_birthdate_duplicate_#{SecureRandom.hex(4)}@example.com",
+             confirm_policy: "1",
+           },
+           "cf-turnstile-response": "test",
+         },
+         headers: default_headers
+
+    user_email = ClientEmail.order(:created_at).last
+    cycle = current_sign_up_flow(user_email)
+    pass_code = otp_code_for(user_email)
+
+    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+          params: {
+            user_email: { pass_code: pass_code },
+          },
+          headers: default_headers
+
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+
+    birthdate_params = {
+      requirement: "birthdate",
+      birthdate_year: "2000",
+      birthdate_month: "02",
+      birthdate_day: "03",
+      checkpoint_version: cycle.reload.checkpoint_version,
+    }
+
+    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+          params: birthdate_params,
+          headers: default_headers
+
+    assert_response :redirect
+    uri = URI.parse(response.location)
+    assert_equal "jump.umaxica.net", uri.host
+    assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
+
+    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+          params: birthdate_params,
+          headers: default_headers
+
+    assert_response :redirect
+    assert_not_equal "ticket is required", response.body
+  end
+
   test "email signup checkpoint cancel stops the signup path" do
     post sign_app_sign_up_email_url(ri: "jp"),
          params: {
@@ -1554,6 +1602,11 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       principal_id: user_email.user_id,
       pending_contact_type: "email",
     )
+  end
+
+  def otp_code_for(user_email)
+    otp_data = user_email.get_otp
+    ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
   end
 
   def host
