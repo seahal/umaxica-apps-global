@@ -76,8 +76,7 @@ module Sign
           end
 
           def create
-            address_params = params.permit(user_email: [:address])[:user_email] || {}
-            address = address_params[:address]
+            address = email_params(:address)[:address]
             unless cloudflare_turnstile_validation["success"] && address.present?
               @user_email = ClientEmail.new(address: address)
               return render :new, status: :unprocessable_content
@@ -117,7 +116,7 @@ module Sign
             # Record start time for timing attack mitigation
             start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-            @user_email.pass_code = update_pass_code_params[:pass_code]
+            @user_email.pass_code = email_params(:pass_code)[:pass_code]
 
             unless @user_email.valid?
               respond_to do |format|
@@ -329,8 +328,10 @@ module Sign
             end
           end
 
-          def update_pass_code_params
-            params(user_email: [:pass_code])
+          def email_params(*keys)
+            permitted_keys = keys.presence || %i(address pass_code)
+            permitted = params.permit(client_email: permitted_keys, user_email: permitted_keys)
+            permitted.fetch(:client_email, {}).presence || permitted.fetch(:user_email, {}).presence || {}
           rescue ActionController::ParameterMissing
             {}
           end

@@ -87,6 +87,31 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
+  test "create returns login cooldown message on immediate re-login" do
+    post sign_org_sign_in_secret_credential_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         }
+
+    assert_response :redirect
+
+    post sign_org_sign_in_secret_credential_url(ri: "jp"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         }
+
+    assert_response :too_many_requests
+    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+  end
+
   test "create rejects blank form" do
     post sign_org_sign_in_secret_credential_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }

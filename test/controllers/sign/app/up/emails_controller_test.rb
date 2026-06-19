@@ -89,6 +89,18 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_includes response.body, I18n.t("sign.app.authentication.email.edit.delivery_help")
   end
 
+  test "update accepts a valid otp submitted through client_email" do
+    user_email = start_sign_up_flow!("client@example.com")
+    pass_code = otp_code_for(user_email)
+
+    patch sign_app_sign_up_email_url(ri: "jp"),
+          params: { client_email: { pass_code: pass_code } },
+          headers: default_headers
+
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
+    assert_nil flash[:notice]
+  end
+
   test "i18n flash messages for email registration flow exist" do
     # Check that all required i18n keys for email registration exist
     session_expired_key = "sign.app.registration.email.edit.session_expired"
@@ -904,8 +916,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
-    assert_select "form[action='#{birthdate_path}'] input[name=_method][value=delete]"
+    cancellation_path = sign_app_sign_up_check_email_cancellation_path(ri: "jp")
+
+    assert_select "form[data-turbo=false][method=post][action='#{cancellation_path}']"
+    assert_select "form[action='#{cancellation_path}'] input[name=_method]", count: 0
     assert_select "a[href*=?]", sign_app_sign_up_path, count: 0
     assert_select "a[href*=?]", sign_app_sign_in_path, count: 0
 
@@ -1074,7 +1088,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_guard_email_path(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
     assert_equal "checkpoint", cycle.reload.step
   end
 
@@ -1100,9 +1114,8 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
-
     assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_nil flash[:notice]
 
     get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 

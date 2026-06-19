@@ -6,7 +6,6 @@
 
 permissions_policy_header = [
   "accelerometer=()",
-  "bluetooth=()",
   "camera=()",
   "geolocation=()",
   "gyroscope=()",

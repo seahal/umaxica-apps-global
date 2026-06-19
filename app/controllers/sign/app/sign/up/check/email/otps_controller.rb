@@ -84,7 +84,7 @@ module Sign
                   channel: :email,
                   subject: @sign_up_ticket,
                   destination: @user_email.address,
-                  code: params.dig("user_email", "pass_code"),
+                  code: params.dig("client_email", "pass_code") || params.dig("user_email", "pass_code"),
                   session_nonce: @sign_up_ticket.public_id,
                   request_context: request,
                 )

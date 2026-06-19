@@ -5,6 +5,7 @@ require "test_helper"
 
 class StylesheetTagsTest < ActiveSupport::TestCase
   VITE_LAYOUT_PATHS = [
+    "app/views/layouts/application.html.erb",
     "app/views/layouts/acme/app/application.html.erb",
     "app/views/layouts/acme/com/application.html.erb",
     "app/views/layouts/acme/org/application.html.erb",
@@ -13,58 +14,15 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     "app/views/layouts/sign/org/application.html.erb",
   ].freeze
 
-  test "sign layouts include sign main stylesheet" do
-    paths = [
-      "app/views/layouts/sign/app/application.html.erb",
-      "app/views/layouts/sign/com/application.html.erb",
-      "app/views/layouts/sign/org/application.html.erb",
-    ]
+  test "layouts do not use stylesheet_link_tag for web ui css" do
+    paths = VITE_LAYOUT_PATHS
 
     paths.each do |path|
       contents = Rails.root.join(path).read
 
-      assert_match(
-        /(stylesheet_link_tag\s+\"sign\/main\")|(\"sign\/main\")/, contents,
-        "missing sign/main in #{path}",
-      )
-    end
-  end
-
-  test "acme layouts include acme main stylesheet" do
-    paths = [
-      "app/views/layouts/acme/app/application.html.erb",
-      "app/views/layouts/acme/com/application.html.erb",
-      "app/views/layouts/acme/org/application.html.erb",
-    ]
-
-    paths.each do |path|
-      contents = Rails.root.join(path).read
-
-      assert_match(
-        /(stylesheet_link_tag\s+\"acme\/main\")|(\"acme\/main\")/, contents,
-        "missing acme/main in #{path}",
-      )
-    end
-  end
-
-  test "application layouts load javascript through external vite entrypoint" do
-    VITE_LAYOUT_PATHS.each do |path|
-      contents = Rails.root.join(path).read
-
-      assert_includes contents, "csp_meta_tag", "missing csp_meta_tag in #{path}"
-      assert_includes contents, 'vite_javascript_tag "application"', "missing Vite entrypoint in #{path}"
-      assert_includes contents, "nonce: true", "Vite entrypoint must carry CSP nonce in #{path}"
-      assert_includes(
-        contents,
-        '"data-turbo-eval": "false"',
-        "Vite entrypoint must not be re-evaluated by Turbo with a response-local nonce in #{path}",
-      )
-      assert_not_includes(
-        contents,
-        'vite_javascript_tag "application", nonce: true, "data-turbo-track": "reload"',
-        "Vite entrypoint nonce changes per response, so Turbo reload tracking would loop in #{path}",
-      )
-      assert_not_includes contents, "javascript_importmap_tags", "inline importmap must not be used in #{path}"
+      assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
+      assert_includes contents, "vite_client_tag", "missing Vite client in #{path}"
+      assert_includes contents, 'vite_typescript_tag "application"', "missing Vite entrypoint in #{path}"
     end
   end
 
@@ -85,6 +43,38 @@ class StylesheetTagsTest < ActiveSupport::TestCase
       "config.public_file_server.enabled = true",
       "development must serve public/vite-dev assets when Vite autoBuild emits static files",
     )
+  end
+
+  test "vite css entrypoints exist under src/styles" do
+    paths = [
+      "src/styles/application.css",
+      "src/styles/base.css",
+      "src/styles/acme.css",
+      "src/styles/sign.css",
+    ]
+
+    paths.each do |path|
+      assert_predicate Rails.root.join(path), :exist?, "#{path} must exist"
+    end
+  end
+
+  test "web ui css is no longer sourced from app/assets/stylesheets" do
+    paths = [
+      "app/assets/stylesheets/application.css",
+      "app/assets/stylesheets/acme/main.css",
+      "app/assets/stylesheets/acme/app/main.css",
+      "app/assets/stylesheets/acme/com/main.css",
+      "app/assets/stylesheets/acme/org/main.css",
+      "app/assets/stylesheets/sign/main.css",
+      "app/assets/stylesheets/sign/app/main.css",
+      "app/assets/stylesheets/sign/org/main.css",
+      "app/assets/stylesheets/tailwind.css",
+      "app/assets/builds/tailwind.css",
+    ]
+
+    paths.each do |path|
+      assert_not Rails.root.join(path).exist?, "#{path} must be removed from app/assets"
+    end
   end
 
   test "step up passkey views use vite stimulus identifier" do

@@ -100,8 +100,10 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
-    assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
-    assert_select "form[action='#{birthdate_path}'] input[name=_method][value=delete]"
+    cancellation_path = sign_com_sign_up_check_email_cancellation_path(ri: "jp")
+
+    assert_select "form[data-turbo=false][method=post][action='#{cancellation_path}']"
+    assert_select "form[action='#{cancellation_path}'] input[name=_method]", count: 0
     assert_select "a[href*=?]", sign_com_sign_up_path, count: 0
     assert_select "a[href*=?]", sign_com_sign_in_path, count: 0
 

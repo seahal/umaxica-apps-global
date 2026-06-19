@@ -1305,6 +1305,7 @@ en:
     shared:
       sign_out:
         title: Do you want to sign out?
+        confirm_description: Once you log out, you will need to log in again.
         button: Sign out
         success: Sign-out has been scheduled. Access will be unavailable after %{expires_at}.
         completed_title: Sign-out has been scheduled
@@ -3235,6 +3236,9 @@ en:
             redirect_prompt: Go to %{preference} immediately.
     sign:
       com:
+        shared:
+          sign_out:
+            confirm_description: Once you log out, you will need to log in again.
         up:
           telephones:
             edit:
@@ -3288,7 +3292,6 @@ en:
           outs:
             edit:
               confirm_label: Do you want to log out?
-              confirm_description: Once you log out, you will need to log in again.
           emails:
             index:
               verified: Verified

@@ -422,9 +422,34 @@ module SocialAuth
     policy_class.new(resource, user: resource).apply(:update?)
   end
 
+  def social_auth_request_method
+    request.request_method if request.respond_to?(:request_method)
+  rescue StandardError
+    nil
+  end
+
+  def social_auth_request_path
+    return request.path if request.respond_to?(:path)
+    return request.fullpath if request.respond_to?(:fullpath)
+
+    nil
+  rescue StandardError
+    nil
+  end
+
   def handle_social_auth_error(error)
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.error_context",
+        intent: intent,
+        provider: provider,
+        request_method: social_auth_request_method,
+        request_path: social_auth_request_path,
+      ),
+    )
 
     Rails.logger.info(
       JitLogEvent.format(

@@ -24,7 +24,6 @@ module Acme
             host: oidc_acme_host,
             ri: params[:ri],
             id_token_hint: current_session_id_token_hint,
-            post_logout_redirect_uri: acme_app_root_url(ri: params[:ri]),
           ),
           status: :temporary_redirect,
           allow_other_host: false,

@@ -58,6 +58,6 @@
 <% end %>
 
 <%= button_to t("actions.cancel"),
-              public_send(:"sign_com_sign_up_check_#{@sign_up_ticket.entry_method}_birthdate_path", ri: params[:ri], pt: signed_pt_param),
-              method: :delete,
+              public_send(:"sign_com_sign_up_check_#{@sign_up_ticket.entry_method}_cancellation_path", ri: params[:ri], pt: signed_pt_param),
+              method: :post,
               form: { data: { turbo: false } } %>

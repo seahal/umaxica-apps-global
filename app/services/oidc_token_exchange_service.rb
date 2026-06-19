@@ -61,19 +61,35 @@ class OidcTokenExchangeService < ApplicationService
     return false unless client
 
     return false if client_id.blank?
-    return authenticated_client_assertion? if client_assertion.present? || client_assertion_type.present?
-    return public_client_authenticated? if client.public_client?
 
-    OidcClientRegistry.authenticate(client_id, client_secret)
+    # Dispatch strictly on the client's registered auth method (the SSOT). A
+    # client must not be able to authenticate with a method it is not registered
+    # for: a private_key_jwt client cannot fall back to client_secret, and a
+    # secret client cannot present an assertion.
+    case client.registered_token_endpoint_auth_method
+    when "none"
+      public_client_authenticated?
+    when "private_key_jwt"
+      return false if client_secret.present?
+
+      authenticated_client_assertion?
+    else
+      # client_secret_post, or an unregistered method which is treated as a
+      # confidential secret client (never a public/assertion client).
+      return false if client_assertion.present? || client_assertion_type.present?
+
+      OidcClientRegistry.authenticate(client_id, client_secret)
+    end
   end
 
   def public_client_authenticated?
-    client_secret.blank?
+    client_secret.blank? && client_assertion.blank? && client_assertion_type.blank?
   end
 
   def authenticated_client_assertion?
     return false unless client_assertion_type == OidcClientAssertionJwt::ASSERTION_TYPE
     return false if token_endpoint_uri.blank?
+    return false if client_assertion.blank?
 
     OidcClientRegistry.authenticate_assertion(
       client_id,

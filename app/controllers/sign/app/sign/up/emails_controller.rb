@@ -162,7 +162,7 @@ module Sign
           end
 
           def validate_code_present
-            params.dig("user_email", "pass_code").present?
+            params.dig("user_email", "pass_code").present? || params.dig("client_email", "pass_code").present?
           end
 
           def render_code_required
@@ -171,7 +171,7 @@ module Sign
           end
 
           def process_verification_code
-            submitted_code = params.dig("user_email", "pass_code")
+            submitted_code = params.dig("user_email", "pass_code") || params.dig("client_email", "pass_code")
             if existing_signup_email_flow?
               handle_existing_email_verification(submitted_code)
             else
@@ -199,11 +199,10 @@ module Sign
             progress_email_flow!(:update)
             advance_sign_up_flow_after_email_otp!
             redirect_to(
-              sign_app_sign_up_guard_email_path(
+              sign_app_sign_up_check_email_birthdate_path(
                 ri: params[:ri],
-                pt: signed_pt_token(path_target_value),
+                pt: signed_pt_param,
               ),
-              notice: t("sign.app.registration.email.update.success"),
             )
           end
 
@@ -328,7 +327,9 @@ module Sign
           # the same bucket. Returns nil for blank input -- the rate_limit
           # lambda decides how to handle that case.
           def sign_up_email_digest_for_rate_limit
-            raw = params.dig(:user_email, :raw_address) ||
+            raw = params.dig(:client_email, :raw_address) ||
+              params.dig(:client_email, :address) ||
+              params.dig(:user_email, :raw_address) ||
               params.dig(:user_email, :address) ||
               params.dig(:visitor_email, :raw_address) ||
               params.dig(:visitor_email, :address)

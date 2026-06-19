@@ -71,6 +71,22 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_nil SignAppInEmailAuthenticationState.load(session)&.id
   end
 
+  test "POST create accepts the form scope used by the sign-in page" do
+    user = clients(:one)
+    email = user.client_emails.create!(address: "scope_test_#{SecureRandom.hex(4)}@example.com")
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :client_email => { address: email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+    assert_redirected_to %r{/sign/in/email/edit}
+    assert_equal email.id, SignAppInEmailAuthenticationState.load(session)&.id
+  end
+
   test "POST create responds the same for existing and missing emails" do
     user = clients(:one)
     existing_email = user.client_emails.create!(address: "enum_test@example.com")
@@ -783,6 +799,33 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
       assert_response :found
     end
+  end
+
+  test "cooldown returns login cooldown message after immediate re-login" do
+    user = clients(:one)
+    email = user.client_emails.create!(
+      address: "cooldown_login_#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           user_email: { address: email.address },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           user_email: { address: email.address },
+           "cf-turnstile-response": "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :too_many_requests
+    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
   end
 
   test "cooldown does not block different email addresses" do

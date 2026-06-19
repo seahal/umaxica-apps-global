@@ -94,12 +94,12 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/sign/outs", action: "show" },
+      { controller: "acme/app/sign_outs", action: "show" },
       { path: "http://#{ACME_APP_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/app/sign/outs", action: "create" },
+      { controller: "acme/app/sign_outs", action: "create" },
       { path: "http://#{ACME_APP_HOST}/sign/out", method: :post },
     )
 
@@ -239,11 +239,6 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "acme/app/identities", action: "show" },
       { path: "http://#{ACME_APP_HOST}/identity", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "acme/app/settings", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/settings", method: :get },
     )
 
     assert_recognizes(
@@ -393,12 +388,12 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/sign/outs", action: "show" },
+      { controller: "acme/com/sign_outs", action: "show" },
       { path: "http://#{ACME_COM_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/com/sign/outs", action: "create" },
+      { controller: "acme/com/sign_outs", action: "create" },
       { path: "http://#{ACME_COM_HOST}/sign/out", method: :post },
     )
 
@@ -495,10 +490,9 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_COM_HOST}/identity", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "acme/com/settings", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/settings", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/settings", method: :get)
+    end
   end
 
   test "acme org route contract" do
@@ -578,12 +572,12 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/org/sign/outs", action: "show" },
+      { controller: "acme/org/sign_outs", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/org/sign/outs", action: "create" },
+      { controller: "acme/org/sign_outs", action: "create" },
       { path: "http://#{ACME_ORG_HOST}/sign/out", method: :post },
     )
   end
@@ -740,43 +734,28 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_ORG_HOST}/billing", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "acme/org/settings", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/settings", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/settings", method: :get)
+    end
   end
 
-  test "acme settings secret routes use secrets resource names" do
+  test "acme settings routes are retired" do
     {
       ACME_APP_HOST => "app",
       ACME_COM_HOST => "com",
       ACME_ORG_HOST => "org",
-    }.each do |host, surface|
-      assert_recognizes(
-        { controller: "acme/#{surface}/settings/secrets", action: "index" },
-        { path: "http://#{host}/settings/secrets", method: :get },
-      )
-
-      assert_recognizes(
-        { controller: "acme/#{surface}/settings/secrets", action: "enrollment" },
-        { path: "http://#{host}/settings/secrets/enrollment", method: :post },
-      )
-
-      assert_recognizes(
-        { controller: "acme/#{surface}/settings/secrets", action: "edit", id: "secret-example" },
-        { path: "http://#{host}/settings/secrets/secret-example/edit", method: :get },
-      )
-
-      assert_recognizes(
-        { controller: "acme/#{surface}/settings/secrets", action: "destroy", id: "secret-example" },
-        { path: "http://#{host}/settings/secrets/secret-example", method: :delete },
-      )
-
-      assert_raises(ActionController::RoutingError) do
-        Rails.application.routes.recognize_path(
-          "http://#{host}/settings/secret_credentials",
-          method: :get,
-        )
+    }.each_key do |host|
+      [
+        { path: "/settings", method: :get },
+        { path: "/settings/secrets", method: :get },
+        { path: "/settings/secrets/enrollment", method: :post },
+        { path: "/settings/secrets/secret-example/edit", method: :get },
+        { path: "/settings/secrets/secret-example", method: :delete },
+        { path: "/settings/secret_credentials", method: :get },
+      ].each do |route|
+        assert_raises(ActionController::RoutingError) do
+          Rails.application.routes.recognize_path("http://#{host}#{route.fetch(:path)}", method: route.fetch(:method))
+        end
       end
     end
   end

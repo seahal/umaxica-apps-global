@@ -22,7 +22,7 @@ module Acme
             request_method: request.request_method,
             request_uri: request.original_url,
           )
-          return render json: { error: result.error }, status: :unauthorized unless result.success?
+          return render_oauth_bearer_error(result.error) unless result.success?
 
           render json: ::OidcUserInfoResponse.build(resource: result.resource, payload: result.payload)
         end

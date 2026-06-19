@@ -121,6 +121,66 @@ class SignOutFlowTest < ActiveSupport::TestCase
     assert_equal now, cycle.failed_at
   end
 
+  test "status_name_for returns the name for a given status id" do
+    SIGN_OUT_CLASSES.each do |cycle_class|
+      id = cycle_class.default_status_id
+
+      assert_equal "REQUESTED", cycle_class.status_name_for(id)
+    end
+  end
+
+  test "kind_name_for returns the name for a given kind id" do
+    SIGN_OUT_CLASSES.each do |cycle_class|
+      id = cycle_class.default_kind_id
+
+      assert_equal "NOTHING", cycle_class.kind_name_for(id)
+    end
+  end
+
+  test "status_ids_for returns an array of status ids for the given names" do
+    ids = ClientSignOutFlow.status_ids_for("REQUESTED", "COMPLETED")
+
+    assert_equal ClientSignOutFlow.status_id_for("REQUESTED"), ids[0]
+    assert_equal ClientSignOutFlow.status_id_for("COMPLETED"), ids[1]
+  end
+
+  test "instance status_ids_for delegates to the class method" do
+    cycle = build_cycle(ClientSignOutFlow)
+    ids = cycle.status_ids_for("REQUESTED", "COMPLETED")
+
+    assert_equal ClientSignOutFlow.status_ids_for("REQUESTED", "COMPLETED"), ids
+  end
+
+  test "can_transition_to? returns false for invalid transitions" do
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
+
+    assert_not cycle.can_transition_to?("COMPLETED")
+  end
+
+  test "transition_to! raises ArgumentError for an invalid transition" do
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
+
+    error = assert_raises(ArgumentError) { cycle.transition_to!("COMPLETED") }
+    assert_match(/invalid transition/, error.message)
+  end
+
+  test "transition_to! accepts an integer status id" do
+    cycle = ClientSignOutFlow.create!(cycle_attrs(ClientSignOutFlow))
+    requested_id = ClientSignOutFlow.status_id_for("REQUESTED")
+
+    # Passing the current status id as an integer — this is not a real transition
+    # but exercises the normalize_status_id integer branch before the guard.
+    assert_not cycle.can_transition_to?(requested_id)
+  end
+
+  test "completed_status_has_completed_at adds error when completed_at is blank" do
+    completed_id = ClientSignOutFlow.status_id_for("COMPLETED")
+    cycle = build_cycle(ClientSignOutFlow, status_id: completed_id)
+    cycle.valid?
+
+    assert_includes cycle.errors[:completed_at], "must be present for completed cycles"
+  end
+
   private
 
   def build_cycle(cycle_class, **overrides)

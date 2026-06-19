@@ -227,9 +227,15 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
   test "handle_social_auth_error redirects for html" do
     error = SocialAuth::BaseError.new("failed ❌", :bad_request)
-    @harness.send(:handle_social_auth_error, error)
+    logged =
+      capture_error_context_log do
+        @harness.send(:handle_social_auth_error, error)
+      end
 
     assert_response_redirected
+    assert_includes logged, "social_auth.error_context"
+    assert_includes logged, "intent"
+    assert_includes logged, "request_path"
   end
 
   test "handle_social_auth_error renders json for json" do
@@ -238,7 +244,9 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
       Struct.new(:json?).new(true)
     end
     error = SocialAuth::BaseError.new("failed ❌", :bad_request)
-    @harness.send(:handle_social_auth_error, error)
+    capture_error_context_log do
+      @harness.send(:handle_social_auth_error, error)
+    end
 
     assert_equal :bad_request, @harness.rendered[:status]
   end
@@ -264,6 +272,16 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
   # Capture what require_recent_step_up! writes to Rails.logger so the rejection
   # breakdown (M2) can be asserted without depending on log formatting internals.
   def capture_step_up_required_log
+    io = StringIO.new
+    original = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = original
+  end
+
+  def capture_error_context_log
     io = StringIO.new
     original = Rails.logger
     Rails.logger = ActiveSupport::Logger.new(io)

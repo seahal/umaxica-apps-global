@@ -235,6 +235,97 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_not_includes payload[:dbsc].keys, :registration_url
   end
 
+  test "social login success forwards slim session state into authenticated login" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    session_hash = { "legacy_anonymous_key" => "legacy-value" }
+    session_snapshots = []
+    login_resource = nil
+    login_kwargs = nil
+    user = Client.create!(status_id: ClientStatus::NOTHING)
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+    )
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google_app")
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:redirect_to) { |*args, **kwargs| session_snapshots << [:redirect_to, args, kwargs] }
+    controller.define_singleton_method(:issue_bulletin!) { false }
+    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+      "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
+    }
+    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil| "/sign/in#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:establish_signed_in_session!) do |resource, **kwargs|
+      login_resource = resource
+      login_kwargs = kwargs
+      session_snapshots << [:establish_signed_in_session, kwargs, session_hash.dup]
+      { status: :success }
+    end
+
+    controller.send(
+      :handle_login_intent,
+      user,
+      "Google",
+      false,
+      pt: "/after-social",
+    )
+
+    assert_equal user, login_resource
+    assert_equal "/after-social", login_kwargs[:pt]
+    assert_equal "jp", login_kwargs[:ri]
+    assert_equal "social", login_kwargs[:auth_method]
+    assert_equal({ auth_method: "social", provider: "google" }, login_kwargs[:audit_context])
+    assert_equal "legacy-value", session_snapshots.dig(0, 2, "legacy_anonymous_key")
+    assert_equal "legacy-value", session_hash["legacy_anonymous_key"]
+    assert session_snapshots.any? { |kind, *| kind == :establish_signed_in_session }
+  end
+
+  test "social auth intent stores only slim session keys" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    session_hash = {}
+
+    request = ActionDispatch::TestRequest.create(
+      "REQUEST_METHOD" => "GET",
+      "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+    )
+    controller.request = request
+    controller.response = ActionDispatch::TestResponse.new
+
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:issue_bulletin!) { false }
+
+    state = controller.send(
+      :prepare_social_auth_intent!,
+      "login",
+      provider: "google_app",
+      pt: "encoded-pt-that-should-not-be-stored",
+      entry: "sign_up",
+      ri: "jp",
+    )
+
+    assert_predicate state, :present?
+    assert_equal "login", session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
+    assert_equal "google_app", session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_equal "jp", session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY]
+    assert_equal "sign_up", session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY]
+    assert_nil session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
+    assert_nil session_hash[:omniauth]
+    assert_nil session_hash[:auth_hash]
+    assert_nil session_hash[:raw_info]
+    assert_nil session_hash[:access_token]
+    assert_nil session_hash[:refresh_token]
+    assert_nil session_hash[:id_token]
+
+    serialized_size = Marshal.dump(session_hash).bytesize
+
+    assert_operator serialized_size, :<, 512
+  end
+
   test "social sign up entry routes new identity to sign up guardrail without signing in" do
     ClientSignUpFlowStatus.ensure_defaults!
     ClientSignUpFlowCleanupStatus.ensure_defaults!

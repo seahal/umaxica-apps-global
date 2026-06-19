@@ -23,7 +23,6 @@ module Acme
           acme_com_oidc_logout_path(
             ri: params[:ri],
             id_token_hint: current_session_id_token_hint,
-            post_logout_redirect_uri: acme_com_root_url(ri: params[:ri]),
           ),
           status: :temporary_redirect,
           allow_other_host: false,

@@ -29,7 +29,11 @@ module RateLimit
 
     respond_to do |format|
       format.json { render json: payload, status: :too_many_requests }
-      format.html { render plain: payload.fetch(:message), status: :too_many_requests }
+      format.html do
+        render plain: payload.fetch(:message),
+               content_type: "text/plain",
+               status: :too_many_requests
+      end
     end
   end
 end

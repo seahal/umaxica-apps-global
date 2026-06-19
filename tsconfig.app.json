@@ -25,9 +25,9 @@
 
     /* Aliases */
     "paths": {
-      "@/*": ["./app/javascript/*"],
-      "~/*": ["./app/javascript/*"]
+      "@/*": ["./src/*"],
+      "~/*": ["./src/*"]
     }
   },
-  "include": ["app/javascript"]
+  "include": ["src"]
 }

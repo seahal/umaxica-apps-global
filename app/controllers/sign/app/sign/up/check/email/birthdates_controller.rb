@@ -10,7 +10,7 @@ module Sign
             class BirthdatesController < ::Sign::App::ApplicationController
               include SignUpExplicitStepControllerSupport
 
-              AUTHENTICATION_MODE = :guest
+              AUTHENTICATION_MODE = :open
               before_action :hide_sign_up_auth_navigation
 
               def show

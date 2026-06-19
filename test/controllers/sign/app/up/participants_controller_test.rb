@@ -77,6 +77,16 @@ class Sign::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::Integrat
     assert_equal "create", route[:action]
   end
 
+  test "social confirmation destroy is routed for sign up cancellation" do
+    route = Rails.application.routes.recognize_path(
+      "http://#{host}/sign/up/check/google/confirmation",
+      method: :delete,
+    )
+
+    assert_equal "sign/app/sign/up/check/google/confirmations", route[:controller]
+    assert_equal "destroy", route[:action]
+  end
+
   private
 
   def create_ticket(attrs = {})

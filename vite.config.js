@@ -1,4 +1,4 @@
-import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import inertia from "@inertiajs/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -6,27 +6,35 @@ import react from "@vitejs/plugin-react";
 import RubyPlugin from "vite-plugin-ruby";
 import { defineConfig } from "vite-plus";
 
+const repoRoot = import.meta.dirname;
+const srcRoot = fileURLToPath(new URL("./src", import.meta.url));
+const specRoot = fileURLToPath(new URL("./spec", import.meta.url));
+
 export default defineConfig({
   plugins: [RubyPlugin(), tailwindcss(), inertia(), react()],
   resolve: {
     alias: {
-      controllers: path.resolve(import.meta.dirname, "app/javascript/controllers"),
+      "@": srcRoot,
+      "@components": fileURLToPath(new URL("./src/components", import.meta.url)),
+      "@controllers": fileURLToPath(new URL("./src/controllers", import.meta.url)),
+      "@entrypoints": fileURLToPath(new URL("./src/entrypoints", import.meta.url)),
+      "@styles": fileURLToPath(new URL("./src/styles", import.meta.url)),
     },
   },
   staged: {
     "*": "vp check && vp test run --coverage",
   },
   test: {
+    globals: true,
     allowOnly: false,
     dangerouslyIgnoreUnhandledErrors: false,
     environment: "jsdom",
     passWithNoTests: false,
     retry: 0,
-    // vite-plugin-ruby sets the Vite root to app/javascript (config/vite.json
-    // sourceCodeDir), so test globs would otherwise resolve under app/javascript.
-    // Anchor the include glob to the repo root so JS tests under test/ are found.
-    root: import.meta.dirname,
-    include: [`${import.meta.dirname}/test/**/*.{test,spec}.?(c|m)[jt]s?(x)`],
+    // Anchor test discovery to the repo root so spec/ is found when Vite's
+    // source code directory differs from the test root.
+    root: repoRoot,
+    include: [`${specRoot}/**/*.{test,spec}.{ts,tsx,js,jsx}`],
     exclude: [
       "**/node_modules/**",
       "**/vendor/**",
@@ -41,18 +49,16 @@ export default defineConfig({
       provider: "v8",
       reportsDirectory: "coverage",
       reporter: ["text", "html", "lcov", "json-summary"],
-      include: ["app/javascript/**/*.{js,ts,jsx,tsx}"],
+      include: [`${srcRoot}/**/*.{js,ts,jsx,tsx}`],
       exclude: [
-        "**/*.test.{js,ts,jsx,tsx}",
-        "**/*.spec.{js,ts,jsx,tsx}",
+        `${srcRoot}/**/*.d.ts`,
+        `${srcRoot}/**/*.stories.{ts,tsx,js,jsx}`,
+        `${srcRoot}/**/__fixtures__/**`,
         "**/node_modules/**",
-        "**/vendor/**",
-        "**/.ruby-lsp/**",
-        "**/.pnpm-store/**",
-        "**/tmp/**",
         "**/dist/**",
         "**/build/**",
         "**/coverage/**",
+        "public/vite/**",
       ],
       thresholds: {
         branches: 80,

@@ -237,6 +237,25 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "proof", captured[:dpop_proof]
   end
 
+  test "acme userinfo returns bearer challenge headers on invalid token and insufficient scope" do
+    invalid_result = AuthResult.new(success: false, error: "invalid_token")
+    insufficient_result = AuthResult.new(success: false, error: "insufficient_scope")
+
+    OidcAccessTokenAuthenticator.stub(:call, ->(**) { invalid_result }) do
+      get acme_app_oauth_userinfo_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+
+      assert_response :unauthorized
+      assert_equal 'Bearer error="invalid_token"', response.headers["WWW-Authenticate"]
+    end
+
+    OidcAccessTokenAuthenticator.stub(:call, ->(**) { insufficient_result }) do
+      get acme_app_oauth_userinfo_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+
+      assert_response :forbidden
+      assert_equal 'Bearer error="insufficient_scope", scope="openid"', response.headers["WWW-Authenticate"]
+    end
+  end
+
   test "sign userinfo endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(

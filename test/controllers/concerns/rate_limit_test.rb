@@ -99,7 +99,7 @@ class RateLimitTest < ActionDispatch::IntegrationTest
     with_routing do |set|
       set.draw { get "/test_rate_limit", to: "rate_limit_dummy#index" }
 
-      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "text/html" }
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
 
       assert_response :success
 

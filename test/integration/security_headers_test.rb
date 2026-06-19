@@ -52,6 +52,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Permissions-Policy"], "geolocation=()"
     assert_includes response.headers["Permissions-Policy"], "microphone=()"
     assert_includes response.headers["Permissions-Policy"], "publickey-credentials-get=(self)"
+    assert_not_includes response.headers["Permissions-Policy"], "bluetooth"
     assert_not_includes response.headers["Permissions-Policy"], "publickey-credentials-create"
     assert_no_match(/,\s+/, response.headers["Permissions-Policy"])
   end

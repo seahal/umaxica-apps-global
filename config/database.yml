@@ -1,6 +1,6 @@
 <%
   default_host = ENV.fetch("POSTGRESQL_HOST", "localhost")
-  test_host = ENV.fetch("POSTGRESQL_TEST_HOST", "127.0.0.1")
+  test_host = ENV.fetch("POSTGRESQL_TEST_HOST", "primary.dns.podman")
 %>
 default: &default
   adapter: postgresql

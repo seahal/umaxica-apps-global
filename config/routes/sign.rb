@@ -98,13 +98,13 @@ scope module: :sign, as: :sign do
 
           namespace :check do
             namespace :apple do
-              resource :confirmation, only: %i(show update)
+              resource :confirmation, only: %i(show update destroy)
               resource :birthdate, only: %i(show update)
               resource :cancellation, only: :create # FIXME: use delete method!
             end
 
             namespace :google do
-              resource :confirmation, only: %i(show update)
+              resource :confirmation, only: %i(show update destroy)
               resource :birthdate, only: %i(show update)
               resource :cancellation, only: :create # FIXME: use delete method!
             end

@@ -153,6 +153,22 @@ module Jit
           end
         end
 
+        test "rejects reserved environment kid markers outside local environments" do
+          Rails.env.stub(:local?, false) do
+            with_registry_inputs("AUTH_JWT_ACTIVE_KID" => "development-auth-es384-a") do
+              error = assert_raises(JitSecurityJwtRegistry::ConfigurationError) { JitSecurityJwtRegistry.reload! }
+
+              assert_match(/reserved environment markers/, error.message)
+            end
+          end
+        end
+
+        test "allows reserved environment kid markers in local environments" do
+          with_registry_inputs("AUTH_JWT_ACTIVE_KID" => "development-auth-es384-a") do
+            assert_nothing_raised { JitSecurityJwtRegistry.reload! }
+          end
+        end
+
         test "does not allow insecure default kid outside local environments" do
           with_registry_inputs(
             "AUTH_JWT_ACTIVE_KID" => "default",

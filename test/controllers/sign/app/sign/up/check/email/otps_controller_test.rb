@@ -44,6 +44,17 @@ class Sign::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     assert_response :unprocessable_content
   end
 
+  test "update accepts a valid otp when submitted through the email form field" do
+    user_email = start_pending_email_flow!("valid@example.com")
+    pass_code = otp_code_for(user_email)
+
+    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+          params: { client_email: { pass_code: pass_code } },
+          headers: { "Host" => @host }
+
+    assert_response :redirect
+  end
+
   test "update rejects a valid otp for a different sign-up ticket" do
     user_email = start_pending_email_flow!("wrong-ticket@example.com")
     pass_code = otp_code_for(user_email)
@@ -114,17 +125,19 @@ class Sign::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     pass_code = otp_code_for(user_email)
 
     patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
-          params: { user_email: { pass_code: pass_code } },
+          params: { client_email: { pass_code: pass_code } },
           headers: { "Host" => @host }
 
     assert_response :redirect
 
+    # After OTP is consumed the session no longer holds a pending unverified email,
+    # so a second submission produces a session-expired error rather than invalid-code.
     patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
-          params: { user_email: { pass_code: pass_code } },
+          params: { client_email: { pass_code: pass_code } },
           headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-    assert_match(/パスコードが正しくありません/, response.body)
+    assert_includes response.body, I18n.t("sign.app.registration.email.edit.session_expired")
   end
 
   test "update rejects locked sign-up otp records" do

@@ -62,7 +62,6 @@ gem "aws-sdk-sns", require: false
 # Propshaft asset pipeline.
 gem "propshaft"
 # Tailwind CSS integration.
-gem "tailwindcss-rails"
 # HTML metadata helpers.
 gem "meta-tags"
 # OpenTelemetry SDK.

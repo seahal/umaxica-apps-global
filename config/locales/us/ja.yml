@@ -1829,6 +1829,7 @@ ja:
     shared:
       sign_out:
         title: ログアウトしますか？
+        confirm_description: 一度ログアウトすると、再度ログインが必要になります。
         button: ログアウトします
         success: ログアウトの予約を行いました。%{expires_at}以降には確実にアクセスが不可能となります。
         completed_title: ログアウトの予約を行いました
@@ -3348,6 +3349,9 @@ ja:
             redirect_prompt: "%{preference} へすぐ移動できます。"
     sign:
       com:
+        shared:
+          sign_out:
+            confirm_description: 一度ログアウトすると、再度ログインが必要になります。
         up:
           telephones:
             edit:
@@ -3401,7 +3405,6 @@ ja:
           outs:
             edit:
               confirm_label: ろぐあうとしますか？
-              confirm_description: 一度ログアウトすると、再度ログインが必要になります。
           emails:
             index:
               verified: 認証済み

@@ -122,6 +122,24 @@ class Sign::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :too_many_requests
   end
 
+  test "post create with cooldown active returns login cooldown message" do
+    visitor = create_verified_visitor_with_email(email_address: "cooldown-message@example.com")
+    email = visitor.visitor_emails.last
+
+    post sign_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :redirect
+
+    post sign_com_sign_in_email_url(ri: "jp"),
+         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
+         headers: { "Host" => @host }
+
+    assert_response :too_many_requests
+    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+  end
+
   test "email sign in locks after five invalid OTP attempts" do
     visitor = create_verified_visitor_with_email(email_address: "com-lockout@example.com")
     email = visitor.visitor_emails.last

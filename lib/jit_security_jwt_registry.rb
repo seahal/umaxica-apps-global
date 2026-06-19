@@ -40,6 +40,13 @@ module JitSecurityJwtRegistry
   DEFAULT_KID = "default"
   DEFAULT_AUTH_AUDIENCES = ["umaxica-api"].freeze
 
+  # kid substrings that mark non-production / throwaway signing material. Such a
+  # kid must never appear outside local Rails environments: it means dev/test/
+  # fixture keys (often ephemeral, auto-generated under tmp/ by the local keyset
+  # installer) are being published as if they were deployable keys.
+  RESERVED_ENV_KID_PATTERN =
+    /\b(?:development|test|local|fixture|sample|example|dummy|staging)\b/i
+
   def configure!
     records = build_issuers
     validate!(records)
@@ -205,6 +212,9 @@ module JitSecurityJwtRegistry
     raise ConfigurationError, "#{record.id} issuer is missing" if record.issuer.blank?
     raise ConfigurationError, "#{record.id} audiences are missing" if record.audiences.blank?
     raise ConfigurationError, "#{record.id} active kid is missing" if record.current_kid.blank?
+    if enforce_public_key_hygiene? && reserved_env_kid?(record.current_kid)
+      raise ConfigurationError, "#{record.id} active kid must not contain reserved environment markers"
+    end
     if insecure_default_kid?(record.current_kid)
       raise ConfigurationError,
             "#{record.id} active kid must not be #{DEFAULT_KID.inspect}"
@@ -225,6 +235,10 @@ module JitSecurityJwtRegistry
     end
 
     record.keys.each_value do |key|
+      if enforce_public_key_hygiene? && reserved_env_kid?(key.kid)
+        raise ConfigurationError, "#{record.id}:#{key.kid} must not contain reserved environment markers"
+      end
+
       validate_public_jwk!(key.public_jwk, source: "#{record.id}:#{key.kid}")
       raise ConfigurationError, "#{record.id}:#{key.kid} has invalid key state #{key.state.inspect}" unless %w(
         active grace retired revoked
@@ -278,5 +292,16 @@ module JitSecurityJwtRegistry
 
   def insecure_default_kid_allowed?(kid)
     kid.to_s == DEFAULT_KID && Rails.env.local? && ENV["JWT_ALLOW_INSECURE_DEFAULT_KID"] == "1"
+  end
+
+  # True when dev/test/fixture signing material must be rejected. Local
+  # development and test are allowed to mint local keys; every non-local Rails
+  # environment must provide deployable key identifiers.
+  def enforce_public_key_hygiene?
+    !Rails.env.local?
+  end
+
+  def reserved_env_kid?(kid)
+    RESERVED_ENV_KID_PATTERN.match?(kid.to_s)
   end
 end

@@ -11,10 +11,8 @@
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-  <%= stylesheet_link_tag "sign/main", "data-turbo-track": "reload" %>
-  <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-  <%= vite_javascript_tag "application", nonce: true, "data-turbo-eval": "false" %>
+  <%= vite_client_tag %>
+  <%= vite_typescript_tag "application", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>

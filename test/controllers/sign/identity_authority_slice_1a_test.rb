@@ -54,7 +54,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   test "acme authority routes resolve for sign out sessions and withdrawal" do
     sign_out = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/out",
-      method: :delete,
+      method: :get,
     )
     sessions = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/settings/sessions/revoke_all",
@@ -65,8 +65,8 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :patch,
     )
 
-    assert_equal "acme/app/sign/outs", sign_out.fetch(:controller)
-    assert_equal "destroy", sign_out.fetch(:action)
+    assert_equal "acme/app/sign_outs", sign_out.fetch(:controller)
+    assert_equal "show", sign_out.fetch(:action)
     assert_equal "acme/app/sign/settings/sessions", sessions.fetch(:controller)
     assert_equal "revoke_all", sessions.fetch(:action)
     assert_equal "sign/app/settings/withdrawals", withdrawal.fetch(:controller)
@@ -85,14 +85,15 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_empty offenders, "sign controllers must not own withdrawal authority routes"
   end
 
-  test "acme controllers own logout session and withdrawal mutation primitives" do
+  test "acme controllers own logout bridge session and withdrawal primitives" do
     acme_sources = [
       Rails.root.join("app/controllers/acme/app/sign_outs_controller.rb"),
       Rails.root.join("app/controllers/acme/app/sign/settings/sessions_controller.rb"),
       Rails.root.join("app/controllers/acme/app/settings/withdrawals_controller.rb"),
     ].map { |path| File.read(path) }.join("\n")
 
-    assert_includes acme_sources, "logout_current_session!"
+    assert_includes acme_sources, "OidcIdTokenIssuer.call"
+    assert_includes acme_sources, "acme_app_oidc_logout_url"
     assert_includes acme_sources, "AcmeSettingsSessionManagement"
     assert_includes acme_sources, "AcmeSettingsWithdrawalFlow"
   end
