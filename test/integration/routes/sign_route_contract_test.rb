@@ -397,6 +397,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "sign org route contract" do
     assert_recognizes(
       { controller: "sign/org/roots", action: "index" },
@@ -772,6 +773,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   test "sign remains a relying party and does not expose oauth provider endpoints" do
     [SIGN_APP_HOST, SIGN_COM_HOST, SIGN_ORG_HOST].each do |host|

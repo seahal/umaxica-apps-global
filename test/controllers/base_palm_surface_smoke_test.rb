@@ -11,7 +11,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     get "/", headers: { "Host" => host }
 
     assert_response :success
-    assert_homepage_html title: "Base App", message: "Base services are available. See /settings."
+    assert_homepage_html title: "Base App", message: I18n.t("base.app.roots.message")
 
     get "/health", headers: { "Host" => host }
 
@@ -43,7 +43,9 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
       get "/?ri=jp", headers: { "Host" => host }
 
       assert_response :success
-      assert_homepage_html title: title, message: "Base services are available. See /settings."
+      key = "base.#{title.downcase.delete(" ")}.roots.message"
+
+      assert_homepage_html title: title, message: I18n.t(key)
     end
   end
 
@@ -56,7 +58,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_homepage_html(
       title: "Palm App",
-      message: "Palm API is available for native and handheld clients. Browser access is not a product UI.",
+      message: I18n.t("palm.app.roots.message"),
     )
 
     get "/health", headers: { "Host" => host }

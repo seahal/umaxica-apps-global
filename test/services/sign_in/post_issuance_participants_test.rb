@@ -148,7 +148,7 @@ module SignIn
             end
           end
         end
-        define_method(:lock!) { }
+        define_method(:lock!) { nil }
       end
 
       assert_raises SignInSelectorParticipant::InvalidCycle do

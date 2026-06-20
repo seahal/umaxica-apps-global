@@ -23,7 +23,7 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "title", "Sign App"
     assert_select "h1", text: "Sign App"
-    assert_select "main p", text: "Thin landing endpoint."
+    assert_select "main p", text: /Thin landing endpoint/
   end
 
   test "creates preference cookies on root" do

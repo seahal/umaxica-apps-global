@@ -71,7 +71,10 @@ module Security
           pattern: "csrf null_session",
           path: "app/controllers/acme/app/oauth/protocol_controller.rb",
           line: /protect_from_forgery using: :header_or_legacy_token,.*with: :null_session/,
-          reason: "Acme OAuth token exchange is a server-to-server protocol endpoint and must not use browser session CSRF handling.",
+          reason: [
+            "Acme OAuth token exchange is a server-to-server protocol endpoint",
+            "and must not use browser session CSRF handling.",
+          ].join(" "),
         },
         {
           pattern: "csrf null_session",

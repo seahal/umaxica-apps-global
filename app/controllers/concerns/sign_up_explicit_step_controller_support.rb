@@ -67,7 +67,7 @@ module SignUpExplicitStepControllerSupport
   end
 
   def redirect_to_sign_in_sequence_after_completed_sign_up
-    redirect_to_jump_url(sign_in_sequence_redirect_path(pt: signed_pt_param), status: :see_other)
+    redirect_to_jump_url(sign_in_sequence_redirect_path(pt: sign_up_handoff_pt), status: :see_other)
   end
 
   def cancel_from_explicit_step
@@ -101,6 +101,6 @@ module SignUpExplicitStepControllerSupport
     return sign_up_restart_path unless next_step
 
     helper = SignUpStepGate::STEP_ROUTES.fetch(sign_up_surface).fetch(sign_up_family).fetch(next_step)
-    public_send(helper, ri: params[:ri], pt: signed_pt_param)
+    public_send(helper, ri: params[:ri], pt: sign_up_handoff_pt)
   end
 end

@@ -217,6 +217,98 @@ module Jit
         logger.verify
       end
 
+      test "verify_for_ceremony rejects hostname action and cdata mismatches" do
+        JitSecurityTurnstileVerifier.test_mode = false
+
+        response = {
+          "success" => true,
+          "hostname" => "id.app.localhost",
+          "action" => "social_signup_confirmation",
+          "cdata" => "ceremony-123",
+          "challenge_ts" => "2026-06-19T00:00:00Z",
+        }.to_json
+
+        mock_response = Minitest::Mock.new
+        mock_response.expect(:body, response)
+
+        JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+          Net::HTTP.stub(:post_form, mock_response) do
+            failure = JitSecurityTurnstileVerifier.verify_for_ceremony(
+              token: "tok",
+              remote_ip: "1.2.3.4",
+              ceremony_id: "ceremony-123",
+              expected_action: "social_signup_confirmation",
+              expected_hostname: "wrong.host",
+              expected_cdata: "ceremony-123",
+            )
+
+            assert_not failure["success"]
+            assert_equal "turnstile binding mismatch", failure["error"]
+          end
+        end
+
+        mock_response.verify
+      end
+
+      test "verify_for_ceremony consumes replay token once and rejects replay" do
+        JitSecurityTurnstileVerifier.test_mode = false
+
+        response = {
+          "success" => true,
+          "hostname" => "id.app.localhost",
+          "action" => "social_signup_confirmation",
+          "cdata" => "ceremony-123",
+          "challenge_ts" => "2026-06-19T00:00:00Z",
+        }.to_json
+
+        mock_response = Minitest::Mock.new
+        mock_response.expect(:body, response)
+        mock_response2 = Minitest::Mock.new
+        mock_response2.expect(:body, response)
+
+        consumed = []
+        TurnstileReplayStore.stub(:consume!, ->(**kwargs) { consumed << kwargs; true }) do
+          JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+            Net::HTTP.stub(:post_form, mock_response) do
+              ok = JitSecurityTurnstileVerifier.verify_for_ceremony(
+                token: "tok",
+                remote_ip: "1.2.3.4",
+                ceremony_id: "ceremony-123",
+                expected_action: "social_signup_confirmation",
+                expected_hostname: "id.app.localhost",
+                expected_cdata: "ceremony-123",
+              )
+
+              assert ok["success"]
+            end
+          end
+        end
+
+        assert_equal 1, consumed.length
+        assert_equal "ceremony-123", consumed.first[:ceremony_id]
+
+        TurnstileReplayStore.stub(:consume!, ->(**_) { raise ActiveRecord::RecordNotUnique }) do
+          JitSecurityTurnstileConfig.stub(:visible_secret_key, "visible-secret") do
+            Net::HTTP.stub(:post_form, mock_response2) do
+              replay = JitSecurityTurnstileVerifier.verify_for_ceremony(
+                token: "tok",
+                remote_ip: "1.2.3.4",
+                ceremony_id: "ceremony-123",
+                expected_action: "social_signup_confirmation",
+                expected_hostname: "id.app.localhost",
+                expected_cdata: "ceremony-123",
+              )
+
+              assert_not replay["success"]
+              assert_equal "turnstile replay detected", replay["error"]
+            end
+          end
+        end
+
+        mock_response.verify
+        mock_response2.verify
+      end
+
       test "does not log response details outside development" do
         JitSecurityTurnstileVerifier.test_mode = false
 

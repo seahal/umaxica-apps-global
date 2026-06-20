@@ -472,7 +472,7 @@ Metrics/PerceivedComplexity:
   Max: 18
 
 Metrics/CollectionLiteralLength:
-  LengthThreshold: 80
+  Max: 80
   Exclude:
     - "db/**/*_migrate/**/*"
     - "test/**/*"

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
+class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestCase
   tests Acme::App::Social::AuthenticationsController
 
   setup do
@@ -20,12 +20,12 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     sign_up_flow_completed = false
 
     @controller.define_singleton_method(:establish_signed_in_session!) do |_resource, **_kwargs|
-      raise "graph was not provisioned" unless graph_provisioned
+      raise RuntimeError, "graph was not provisioned" unless graph_provisioned
 
       { status: :success, redirect_path: "/dashboard" }
     end
     @controller.define_singleton_method(:complete_acme_social_signup_flow!) do |_commit, _sign_in_result|
-      raise "graph was not provisioned" unless graph_provisioned
+      raise RuntimeError, "graph was not provisioned" unless graph_provisioned
 
       sign_up_flow_completed = true
     end

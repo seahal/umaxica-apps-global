@@ -22,6 +22,7 @@ module Sign
                 return unless load_gate_context!(gate_for_update)
                 return render plain: "social_signup_confirmation_required", status: :unprocessable_content unless
                   ActiveModel::Type::Boolean.new.cast(params[:confirm_new_social_identity])
+                return render_turnstile_failure unless verify_social_signup_turnstile!
 
                 clear_current_requirement!
               end
@@ -41,6 +42,24 @@ module Sign
               def sign_up_family = "google"
 
               def sign_up_step = :confirmation
+
+              def verify_social_signup_turnstile!
+                result =
+                  JitSecurityTurnstileVerifier.verify_for_ceremony(
+                    token: request.request_parameters["cf-turnstile-response"].to_s,
+                    remote_ip: request.remote_ip,
+                    ceremony_id: @sign_up_ticket.public_id,
+                    expected_action: "social_signup_confirmation",
+                    expected_hostname: request.host,
+                    expected_cdata: @sign_up_ticket.public_id,
+                    mode: :visible,
+                  )
+                result["success"]
+              end
+
+              def render_turnstile_failure
+                render plain: I18n.t("turnstile_error"), status: :unprocessable_content
+              end
             end
           end
         end

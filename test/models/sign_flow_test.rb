@@ -529,7 +529,9 @@ class SignFlowTest < ActiveSupport::TestCase
   end
 
   def cycle_attrs(cycle_class, nonce: "nonce")
-    cycle_class.cleanup_status_class.ensure_defaults! if cycle_class < SignUpFlowTicket && cycle_class.respond_to?(:cleanup_status_class)
+    if cycle_class < SignUpFlowTicket && cycle_class.respond_to?(:cleanup_status_class)
+      cycle_class.cleanup_status_class.ensure_defaults!
+    end
 
     attrs = {
       principal_id: 123,

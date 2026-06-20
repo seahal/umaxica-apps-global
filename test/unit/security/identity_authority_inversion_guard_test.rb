@@ -62,6 +62,13 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
     assert_no_match(/\breturn_to\b/, form)
   end
 
+  test "social confirmation step includes turnstile before durable signup completion" do
+    form = file_content("app/views/sign/app/sign/up/check/social/confirmations/show.html.erb")
+
+    assert_includes form, 'render "shared/cloudflare_turnstile_visible"'
+    assert_includes form, "confirm_new_social_identity"
+  end
+
   private
 
   def assert_files_include(paths, expected)

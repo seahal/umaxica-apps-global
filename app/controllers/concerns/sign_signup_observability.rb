@@ -14,7 +14,8 @@ module SignSignupObservability
     {
       surface: sign_signup_observability_surface,
       region: params[:ri],
-      flow_id: session[:sign_up_flow_id] || (session[:app_sign_up_flow_locator].is_a?(Hash) && session[:app_sign_up_flow_locator]["public_id"]),
+      flow_id: session[:sign_up_flow_id] ||
+        (session[:app_sign_up_flow_locator].is_a?(Hash) && session[:app_sign_up_flow_locator]["public_id"]),
       request_id: sign_signup_request_id,
     }.compact
   end
@@ -48,7 +49,8 @@ module SignSignupObservability
   def sign_signup_safe_otp_state(record)
     {
       candidate_present: record.present?,
-      token_session_present: session[:user_telephone_registration].present? || session[:sign_up_email_flow_state].present?,
+      token_session_present: session[:user_telephone_registration].present? ||
+        session[:sign_up_email_flow_state].present?,
       expired: record.respond_to?(:otp_expired?) ? record.otp_expired? : nil,
     }.compact
   end

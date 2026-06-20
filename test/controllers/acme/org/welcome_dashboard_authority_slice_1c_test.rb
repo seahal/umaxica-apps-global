@@ -32,8 +32,11 @@ class Acme::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href=?]", acme_org_root_path(ri: "jp")
     assert_select "a[href=?]", acme_org_dashboard_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_account_path(ri: "jp"), text: "Account"
+    assert_select "a[href=?]", acme_org_current_organization_path(ri: "jp"), text: "Organization"
+    assert_select "a[href=?]", acme_org_current_avatar_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", acme_org_selector_path(ri: "jp")
-    assert_select "a[href=?]", edit_acme_org_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_sign_out_path(ri: "jp")
     assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signin")
     assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signup")
     assert_select "a[href=?]", acme_org_well_known_discovery_path

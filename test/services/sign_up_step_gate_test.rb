@@ -32,8 +32,8 @@ class SignUpStepGateTest < ActiveSupport::TestCase
 
   def gate_controller(session)
     Class.new do
-      define_method(:initialize) do |session|
-        @session = session
+      define_method(:initialize) do |session_arg|
+        @session = session_arg
       end
 
       define_method(:session) do

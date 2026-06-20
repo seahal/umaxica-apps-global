@@ -586,6 +586,79 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_includes logged.first, "terminal ticket cannot transition"
   end
 
+  test "pending social signup invalid transition uses a specific error message" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    cycle = ClientSignUpFlow.create!(
+      principal_id: nil,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "apple",
+      social_provider: "apple",
+    )
+    result = SignUpResult.build(
+      status: :invalid_transition,
+      ticket: cycle,
+      errors: ["invalid transition from 40 to 40"],
+    )
+
+    controller.define_singleton_method(:logger) { Rails.logger }
+
+    SignUpStateMachine.stub(:call, result) do
+      error =
+        assert_raises(SocialAuth::ProviderError) do
+          controller.send(:advance_pending_social_sign_up_flow!, cycle)
+        end
+
+      assert_equal "errors.social_auth.pending_social_signup_invalid_state", error.i18n_key
+    end
+  end
+
+  test "pending social signup at checkpoint redirects to confirmation instead of re-advancing" do
+    controller = Sign::App::Auth::OmniauthCallbacksController.new
+    cycle = ClientSignUpFlow.create!(
+      principal_id: nil,
+      status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+      step: "checkpoint",
+      nonce_digest: ClientSignUpFlow.digest_nonce("nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "apple",
+      social_provider: "apple",
+    )
+    auth = OpenStruct.new(provider: "apple", uid: "apple_uid")
+    redirects = []
+
+    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.umaxica.app")
+    controller.response = ActionDispatch::TestResponse.new
+    controller.request.env["omniauth.auth"] = auth
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
+    controller.define_singleton_method(:session) { {} }
+    controller.define_singleton_method(:sign_app_up_sequence_id) { cycle.public_id }
+    controller.define_singleton_method(:sign_app_sign_up_check_apple_confirmation_path) do |**kwargs|
+      "/sign/up/check/apple/confirmation?#{kwargs.compact.to_query}"
+    end
+    controller.define_singleton_method(:sign_up_flow_locator) do
+      locator = Minitest::Mock.new
+      locator.expect(:current, cycle)
+      locator
+    end
+    controller.define_singleton_method(:redirect_to) { |path| redirects << path }
+    controller.define_singleton_method(:store_pending_social_signup_evidence!) do |_cycle, _auth|
+      true
+    end
+    controller.define_singleton_method(:advance_pending_social_sign_up_flow!) do |_cycle|
+      raise RuntimeError, "should not advance checkpoint ticket"
+    end
+
+    controller.send(:handle_pending_social_sign_up_intent, "Apple", pt: nil)
+
+    assert_equal 1, redirects.length
+    assert_match %r{/sign/up/check/apple/confirmation}, redirects.first
+  end
+
   private
 
   def assert_grantless_established_social_login_rejected(provider:, provider_name:)

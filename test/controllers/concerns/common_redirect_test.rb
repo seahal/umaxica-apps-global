@@ -4,7 +4,7 @@
 require "test_helper"
 
 class CommonRedirectTest < ActiveSupport::TestCase
-  # normalize_host is a pure class method — no controller context required.
+  # normalize_host is a pure class method -- no controller context required.
 
   test "normalize_host returns nil for blank input" do
     assert_nil CommonRedirect.normalize_host(nil)

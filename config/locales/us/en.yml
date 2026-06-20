@@ -1512,6 +1512,8 @@ en:
       insufficient_login_methods: Please add another login method (email, passkey with verified phone, or another social account) before unlinking
       step_up_identity_mismatch: Please use the same %{provider} account that is linked to your profile
       provider_error: Error communicating with provider
+      pending_social_signup_failed: Could not complete the social sign-up confirmation. Please start over.
+      pending_social_signup_invalid_state: The social sign-up confirmation state is invalid. Please refresh and start over.
     invalid_authenticity_token: Your session has expired. Please reload the page.
     preference:
       cookie:

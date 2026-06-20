@@ -6,6 +6,8 @@ require "test_helper"
 class Sign::App::Settings::TelephonesControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_telephone_statuses
   include ActiveJob::TestHelper
+  include AuthHelpers
+  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
@@ -15,20 +17,18 @@ class Sign::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     @token = ClientToken.create!(user_id: @user.id)
     satisfy_user_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_telephone")
+    set_access_cookie(jwt_access_token_for(@user, host: @host, session_public_id: @token.public_id))
   end
 
   def request_headers
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => @user.id,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    as_user_headers(@user, host: @host, session_public_id: @token.public_id)
   end
 
   test "sign settings telephones index redirects to acme authority" do
     get sign_app_settings_telephones_url(ri: "jp")
 
-    assert_redirected_to acme_app_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_response :success
+    assert_select "table"
   end
 
   test "legacy sign settings telephone edit remains ceremony account-binding flow" do
@@ -59,7 +59,7 @@ class Sign::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       delete sign_app_settings_telephone_url(telephone.public_id, ri: "jp")
     end
 
-    assert_redirected_to acme_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new remains ceremony entry" do

@@ -48,7 +48,10 @@ module Sign
                   return render_telephone_session_expired
                 end
 
-                submitted_code = params.dig("user_telephone", "pass_code")
+                submitted_code = params.dig(
+                  "client_telephone",
+                  "pass_code",
+                ) || params.dig("user_telephone", "pass_code")
                 if submitted_code.blank?
                   @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
                   render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
@@ -104,7 +107,7 @@ module Sign
                   channel: :telephone,
                   subject: @sign_up_ticket,
                   destination: @user_telephone.number,
-                  code: params.dig("user_telephone", "pass_code"),
+                  code: params.dig("client_telephone", "pass_code") || params.dig("user_telephone", "pass_code"),
                   session_nonce: @sign_up_ticket.public_id,
                   request_context: request,
                 )

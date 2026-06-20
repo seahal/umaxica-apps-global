@@ -16,7 +16,7 @@ module Sign
         declare_authentication_mode! :open, only: %i(index destroy)
         declare_authentication_mode! :private, only: %i(new create edit)
 
-        before_action :authenticate_client!, except: %i(index destroy)
+        before_action :authenticate_client!, only: :destroy
         # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
         # Verification guards remain in place.

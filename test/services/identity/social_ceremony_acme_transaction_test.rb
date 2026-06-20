@@ -113,36 +113,42 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       issuance = issue_grant
       result_token = issue_result(issuance.grant)
 
-      assert_raises(IdentitySocialCeremonyContract::Error) do
-        IdentitySocialCeremonyFinalCommitter.call!(
-          result_token: result_token,
-          auth_hash: auth_hash,
-          actor: clients(:two),
-          session_ref: @session_ref,
-          surface: "app",
-          now: @now,
-        )
-      end
-      assert_raises(IdentitySocialCeremonyContract::Error) do
-        IdentitySocialCeremonyFinalCommitter.call!(
-          result_token: result_token,
-          auth_hash: auth_hash,
-          actor: @client,
-          session_ref: "wrong-session",
-          surface: "app",
-          now: @now,
-        )
-      end
-      wrong_auth_hash = auth_hash.merge("uid" => "different-subject")
-      assert_raises(IdentitySocialCeremonyContract::Error) do
-        IdentitySocialCeremonyFinalCommitter.call!(
-          result_token: result_token,
-          auth_hash: wrong_auth_hash,
-          actor: @client,
-          session_ref: @session_ref,
-          surface: "app",
-          now: @now,
-        )
+      assert_no_difference("ClientToken.count") do
+        assert_no_difference("VisitorToken.count") do
+          assert_no_difference("OperatorToken.count") do
+            assert_raises(IdentitySocialCeremonyContract::Error) do
+              IdentitySocialCeremonyFinalCommitter.call!(
+                result_token: result_token,
+                auth_hash: auth_hash,
+                actor: clients(:two),
+                session_ref: @session_ref,
+                surface: "app",
+                now: @now,
+              )
+            end
+            assert_raises(IdentitySocialCeremonyContract::Error) do
+              IdentitySocialCeremonyFinalCommitter.call!(
+                result_token: result_token,
+                auth_hash: auth_hash,
+                actor: @client,
+                session_ref: "wrong-session",
+                surface: "app",
+                now: @now,
+              )
+            end
+            wrong_auth_hash = auth_hash.merge("uid" => "different-subject")
+            assert_raises(IdentitySocialCeremonyContract::Error) do
+              IdentitySocialCeremonyFinalCommitter.call!(
+                result_token: result_token,
+                auth_hash: wrong_auth_hash,
+                actor: @client,
+                session_ref: @session_ref,
+                surface: "app",
+                now: @now,
+              )
+            end
+          end
+        end
       end
 
       assert_nil ClientGoogleIdentity.find_by(uid: auth_hash["uid"])

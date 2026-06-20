@@ -45,7 +45,12 @@ module SignErrorResponses
   def handle_csrf_failure
     if request.path.include?("/sign/up/telephone") || request.path.include?("/sign/up/email")
       reason = (request.headers["Origin"] == "null") ? "null_origin" : "csrf_failed"
-      event = request.path.include?("/telephone") ? "sign.signup.telephone.create.rejected" : "sign.signup.email.create.rejected"
+      event =
+        if request.path.include?("/telephone")
+          "sign.signup.telephone.create.rejected"
+        else
+          "sign.signup.email.create.rejected"
+        end
       Rails.logger.info(
         JitLogEvent.format(
           event,

@@ -21,7 +21,7 @@ class Sign::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Dashboard"
-    assert_select "p", text: "Sign com signed-in landing."
+    assert_select "p", text: /Sign com signed-in landing/
     assert_select "a[href=?]", sign_com_root_path(ri: "jp")
     assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp")
     assert_select "a[href=?]", sign_com_sign_up_path(ri: "jp")

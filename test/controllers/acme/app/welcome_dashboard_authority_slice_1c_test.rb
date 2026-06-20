@@ -33,8 +33,12 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href=?]", acme_app_root_path(ri: "jp")
     assert_select "a[href=?]", acme_app_dashboard_path(ri: "jp")
+    assert_select "a[href=?]", acme_app_accounts_path(ri: "jp"), text: "Account"
+    assert_select "a[href=?]", acme_app_organizations_path(ri: "jp"), text: "Organization"
+    assert_select "a[href=?]", acme_app_avatars_path(ri: "jp"), text: "Avatar"
+    assert_select "a[href=?]", acme_app_switcher_path(ri: "jp"), text: "Switcher"
     assert_select "a[href=?]", acme_app_selector_path(ri: "jp")
-    assert_select "a[href=?]", edit_acme_app_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", acme_app_sign_out_path(ri: "jp")
     assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signin")
     assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signup")
     assert_select "a[href=?]", acme_app_well_known_discovery_path

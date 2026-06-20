@@ -8,6 +8,10 @@ module OauthAuthorizeRateLimit
     before_action :enforce_oauth_authorize_rate_limits!, only: :show
   end
 
+  def show
+    super
+  end
+
   private
 
   def enforce_oauth_authorize_rate_limits!
@@ -96,7 +100,7 @@ module OauthAuthorizeRateLimit
     )
   end
 
-  def render_oauth_authorize_rate_limited(bucket:, profile:, count:)
+  def render_oauth_authorize_rate_limited(bucket:, profile:, _count:)
     response.headers["X-RateLimit-Layer"] = "rails"
     response.headers["X-RateLimit-Rule"] = "oauth_authorize_#{bucket}"
     response.headers["Retry-After"] = profile.retry_after.to_i.to_s

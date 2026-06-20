@@ -53,7 +53,8 @@ module SignUpSocialBirthdateSupport
   end
 
   def social_signup_candidate!
-    validate_social_signup_candidate!(IdentitySocialCeremonyCandidateStore.fetch!(social_signup_evidence.fetch("candidate_ref")))
+    candidate_ref = social_signup_evidence.fetch("candidate_ref")
+    validate_social_signup_candidate!(IdentitySocialCeremonyCandidateStore.fetch!(candidate_ref))
   end
 
   def validate_social_signup_candidate!(candidate)

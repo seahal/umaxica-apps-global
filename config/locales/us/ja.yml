@@ -379,6 +379,8 @@ ja:
       retry_later: 時間をおいて再度お試しください。
     social_auth:
       provider_error: プロバイダーとの通信中にエラーが発生しました
+      pending_social_signup_failed: ソーシャルサインアップの確認を完了できませんでした。最初からやり直してください。
+      pending_social_signup_invalid_state: ソーシャルサインアップの確認状態が不正です。ページを更新して最初からやり直してください。
       conflict: このアカウントは既に別のユーザーに紐付けられています
       unauthorized: 認証に失敗しました
       state_missing: セキュリティ状態パラメータがありません。もう一度お試しください。

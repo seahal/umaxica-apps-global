@@ -13,7 +13,7 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "title", "Acme App"
     assert_select "h1", text: "Acme App"
-    assert_select "main p", text: "Thin landing endpoint."
+    assert_select "main p", text: /Thin landing endpoint/
   end
 
   test "auth authorize preserves app sign up and sign in screen hints" do

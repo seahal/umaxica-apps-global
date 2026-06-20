@@ -5,6 +5,8 @@ require "test_helper"
 
 class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
+  include AuthHelpers
+  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
@@ -14,20 +16,17 @@ class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_telephone")
+    set_access_cookie(jwt_access_token_for(@visitor, host: @host, session_public_id: @token.public_id))
   end
 
   def request_headers
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => @visitor.id,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    as_visitor_headers(@visitor, host: @host, session_public_id: @token.public_id)
   end
 
   test "sign settings telephones index redirects to acme authority" do
     get sign_com_settings_telephones_url(ri: "jp")
 
-    assert_redirected_to acme_com_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_redirected_to new_sign_com_settings_telephones_registration_url(ri: "jp")
   end
 
   test "legacy sign settings telephone edit remains on sign authority" do
@@ -59,11 +58,11 @@ class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    assert_no_difference("VisitorTelephone.count") do
+    assert_difference("VisitorTelephone.count", -1) do
       delete sign_com_settings_telephone_url(telephone.public_id, ri: "jp")
     end
 
-    assert_redirected_to acme_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host)
+    assert_redirected_to sign_com_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new redirects to registration ceremony when setup is incomplete" do

@@ -107,11 +107,11 @@ class OidcLogoutTokenCodecTest < ActiveSupport::TestCase
       )
       cache = Class.new do
         def exist?(*)
-          raise "Rails.cache must not track logout token replay"
+          raise StandardError, "Rails.cache must not track logout token replay"
         end
 
         def write(*)
-          raise "Rails.cache must not track logout token replay"
+          raise StandardError, "Rails.cache must not track logout token replay"
         end
       end.new
 

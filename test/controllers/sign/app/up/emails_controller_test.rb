@@ -1176,7 +1176,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "jump.umaxica.net", uri.host
+    assert_equal "id.umaxica.app", uri.host
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 
     patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
@@ -1184,7 +1184,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     assert_response :redirect
-    assert_not_equal "ticket is required", response.body
+    uri = URI.parse(response.location)
+
+    assert_equal "id.umaxica.app", uri.host
+    assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
   end
 
   test "email signup checkpoint cancel stops the signup path" do

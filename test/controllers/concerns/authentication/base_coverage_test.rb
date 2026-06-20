@@ -259,9 +259,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal record, @controller.load_session_record(:email_id, AuthenticationBaseFakeModel, check_otp_expiry: true)
     assert_equal record, @controller.load_session_record(:email_id, AuthenticationBaseFakeModel, status_id: 1)
     assert_equal record, @controller.load_session_record(
-      :email_id, AuthenticationBaseFakeModel, custom: ->(candidate) {
-                                                candidate.id == 7
-                                              },
+      :email_id, AuthenticationBaseFakeModel, custom: ->(candidate) { candidate.id == 7 },
     )
 
     record.expired = true

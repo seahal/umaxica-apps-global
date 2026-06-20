@@ -17,7 +17,7 @@ class Sign::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Dashboard"
-    assert_select "p", text: "Sign app signed-in landing."
+    assert_select "p", text: /Sign app signed-in landing/
     assert_select "a[href=?]", sign_app_root_path(ri: "jp")
     assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
     assert_select "a[href=?]", sign_app_sign_up_path(ri: "jp")

@@ -163,19 +163,17 @@ scope module: :acme, as: :acme do
       # Current identity entrypoint.
       resource :identity, only: :show
 
-      # Current organization entrypoint.
-      resource :organization, only: %i(show edit update), as: :current_organization
-
-      # Current avatar entrypoint.
-      resource :avatar, only: %i(show edit update destroy)
-
-      # Current account entrypoint.
-      resource :account, only: %i(show edit update)
+      # Account / Organization / Avatar entity management (plural CRUD). Current-context
+      # display and switching is consolidated into /switcher; there are intentionally no
+      # singular current routes (/account, /organization, /avatar) on the app surface.
+      resources :accounts, only: %i(index new create show edit update)
 
       # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show new create edit update) do
+      resources :organizations, only: %i(index new create show edit update) do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
+
+      resources :avatars, only: %i(index new create show edit update)
 
       # Account and credential settings.
       namespace :sign do

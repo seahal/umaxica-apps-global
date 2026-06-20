@@ -41,7 +41,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 2. Protect user data by routing each data class to its own PostgreSQL cluster and encrypting
    sensitive columns.
 3. Deliver modern identity experiences (passkeys, OTP, OAuth, JWT) and customer-support tooling
-   while keeping UX cohesive through pnpm-managed JS tooling.
+   while keeping UX cohesive through pnpm-managed JS tooling and Vite-managed CSS.
 4. Operate reliably through strong observability (OpenTelemetry → Tempo, logs → Loki, dashboards →
    Grafana), rate limiting, and bot mitigation (Cloudflare Turnstile).
 5. Keep developer ergonomics high via Compose-based infrastructure, Foreman-managed processes, and
@@ -57,13 +57,13 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
   `allow_browser versions: :modern` guard every entry point.
 - **Observability-first**: All HTTP, Redis, and ActionMailer operations are instrumented;
   `/health` + `/v1/health` exist for every host.
-- **Composable tooling**: pnpm-managed JavaScript tooling (Biome), Tailwind CLI for CSS, Foreman +
-  Docker Compose for orchestration, GitHub Actions for CI.
+- **Composable tooling**: pnpm-managed JavaScript tooling (Biome), Vite-backed CSS entrypoints,
+  Foreman + Docker Compose for orchestration, GitHub Actions for CI.
 
 ### 2.3 Constraints
 
 - Ruby 3.4.7 / Rails 8.x
-- pnpm 11.0.8 / Node 22.13+ for JavaScript tooling (no Vite/Webpacker)
+- pnpm 11.0.8 / Node 22.13+ for JavaScript tooling (Vite-backed)
 - PostgreSQL 18 primaries/replicas per logical database
 - Valkey for caching/rate limiting
 - Cloudflare/ Fastly handle TLS and CDN duties
@@ -296,8 +296,8 @@ Sensitive columns leverage Active Record encryption.
 - **Rails vs. edge micro-apps**: consolidates duplicated auth/contact logic and simplifies
   compliance (single codebase, single observability stack).
 - **Multi-database**: isolates PII domains and supports region-specific scaling (read replicas).
-- **pnpm + Turbo**: avoids Webpacker/Vite overhead while keeping JS modern through lightweight
-  tooling.
+- **pnpm + Turbo**: keeps JS modern through lightweight tooling and aligns browser CSS with the
+  Vite-backed frontend pipeline.
 - **Compose-based infrastructure**: developers get a self-contained environment (Postgres, Valkey,
   observability) without external services.
 

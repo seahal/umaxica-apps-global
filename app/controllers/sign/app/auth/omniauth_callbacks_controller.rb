@@ -221,6 +221,10 @@ module Sign
           with_pending_social_sign_up_lock(provider, SocialAuthUidExtractor.call(auth_hash: auth)) do
             cycle = sign_up_flow_locator.current || create_pending_social_sign_up_flow!(provider, pt: pt)
             store_pending_social_signup_evidence!(cycle, auth)
+            if cycle.step == "checkpoint"
+              return redirect_pending_social_signup_confirmation(provider, pt: pt)
+            end
+
             advance_pending_social_sign_up_flow!(cycle)
           end
 
@@ -264,6 +268,16 @@ module Sign
             session[:sign_app_up_sequence_id] = cycle.public_id
             cycle
           end
+        end
+
+        def redirect_pending_social_signup_confirmation(provider, pt: nil)
+          redirect_to(
+            public_send(
+              :"sign_app_sign_up_check_#{provider}_confirmation_path",
+              ri: params[:ri].presence || current_social_auth_ri,
+              pt: pt.presence,
+            ),
+          )
         end
 
         def store_pending_social_signup_evidence!(cycle, auth)
@@ -320,7 +334,11 @@ module Sign
               social_provider: cycle.social_provider,
             ),
           )
-          raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
+          if result.status == :invalid_transition || cycle.step == "checkpoint"
+            raise SocialAuth::ProviderError.new("errors.social_auth.pending_social_signup_invalid_state")
+          end
+
+          raise SocialAuth::ProviderError.new("errors.social_auth.pending_social_signup_failed")
         end
 
         def pending_social_signup_uid_digest(provider:, uid:)

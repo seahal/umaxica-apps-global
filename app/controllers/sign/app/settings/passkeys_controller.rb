@@ -275,10 +275,6 @@ module Sign
           false
         end
 
-        def set_passkey
-          @passkey = current_client.client_passkeys.find_by!(public_id: params(:id))
-        end
-
         def credential_params
           params.fetch(:credential, {}).permit(
             :id,
@@ -336,13 +332,6 @@ module Sign
             passkey_id: passkey.id,
             redirect_url: redirect_url,
           }, status: :created
-        end
-
-        def update_params
-          key = %i(client_passkey user_passkey passkey).find { |candidate| params.key?(candidate) }
-          return {} unless key
-
-          params.fetch(key, {}).permit(:description)
         end
 
         def create_params

@@ -158,6 +158,9 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_APP_HOST}/oauth/jwks", method: :get },
     )
 
+    # Entity CRUD is plural; current-context display/switching lives at /switcher. The singular
+    # current routes (/account, /organization, /avatar) and the abandoned /current/* namespace
+    # must not resolve on the app surface.
     [
       { path: "/current/organization", method: :get },
       { path: "/current/organization/edit", method: :get },
@@ -166,6 +169,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "/current/avatar/edit", method: :get },
       { path: "/current/avatar", method: :patch },
       { path: "/current/avatar", method: :delete },
+      { path: "/account", method: :get },
+      { path: "/account/edit", method: :get },
+      { path: "/account", method: :patch },
+      { path: "/organization", method: :get },
+      { path: "/organization/edit", method: :get },
+      { path: "/organization", method: :patch },
+      { path: "/avatar", method: :get },
+      { path: "/avatar/edit", method: :get },
+      { path: "/avatar", method: :patch },
+      { path: "/avatar", method: :delete },
     ].each do |bad_route|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path(
@@ -175,21 +188,24 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    %w(show edit update destroy).each do |action|
-      action_sym = action.to_sym
-      method = (action_sym == :update) ? :patch : ((action_sym == :destroy) ? :delete : :get)
-      path = (action_sym == :edit) ? "/avatar/edit" : "/avatar"
-
+    {
+      index: { path: "/avatars", method: :get },
+      new: { path: "/avatars/new", method: :get },
+      create: { path: "/avatars", method: :post },
+      show: { path: "/avatars/example", method: :get, id: "example" },
+      edit: { path: "/avatars/example/edit", method: :get, id: "example" },
+      update: { path: "/avatars/example", method: :patch, id: "example" },
+    }.each do |action, opts|
       assert_recognizes(
-        { controller: "acme/app/avatars", action: action },
-        { path: "http://#{ACME_APP_HOST}#{path}", method: },
+        { controller: "acme/app/avatars", action: action.to_s, id: opts[:id] }.compact,
+        { path: "http://#{ACME_APP_HOST}#{opts[:path]}", method: opts[:method], id: opts[:id] }.compact,
       )
     end
 
-    assert_recognizes(
-      { controller: "acme/app/organizations", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/organization", method: :get },
-    )
+    # Avatars are not destroyable from this surface.
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/avatars/example", method: :delete)
+    end
 
     {
       index: { path: "/organizations" },
@@ -241,10 +257,19 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
 
-    assert_recognizes(
-      { controller: "acme/app/accounts", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/account", method: :get },
-    )
+    {
+      index: { path: "/accounts", method: :get },
+      new: { path: "/accounts/new", method: :get },
+      create: { path: "/accounts", method: :post },
+      show: { path: "/accounts/example", method: :get, id: "example" },
+      edit: { path: "/accounts/example/edit", method: :get, id: "example" },
+      update: { path: "/accounts/example", method: :patch, id: "example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "acme/app/accounts", action: action.to_s, id: opts[:id] }.compact,
+        { path: "http://#{ACME_APP_HOST}#{opts[:path]}", method: opts[:method], id: opts[:id] }.compact,
+      )
+    end
 
     assert_recognizes(
       { controller: "acme/app/identities", action: "show" },
@@ -316,6 +341,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "acme com route contract" do
     assert_recognizes(
       { controller: "acme/com/roots", action: "index" },
@@ -514,6 +540,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/settings", method: :get)
     end
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   test "acme org route contract" do
     assert_recognizes(
@@ -805,13 +832,8 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "http://#{ACME_APP_HOST}/accounts",
-        method: :get,
-      )
-    end
-
+    # NOTE: /accounts (plural) intentionally resolves on the app surface now (entity CRUD).
+    # It remains retired on com/org.
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{ACME_COM_HOST}/accounts",

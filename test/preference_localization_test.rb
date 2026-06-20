@@ -14,8 +14,8 @@ class PreferenceLocalizationTest < ActiveSupport::TestCase
   end
 
   teardown do
-    I18n.locale = @original_locale
-    Time.zone = @original_timezone
+    I18n.locale = @original_locale # rubocop:disable Rails/I18nLocaleAssignment
+    Time.zone = @original_timezone # rubocop:disable Rails/TimeZoneAssignment
   end
 
   test "apply_localization_preferences uses actor language and timezone" do

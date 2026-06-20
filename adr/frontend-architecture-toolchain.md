@@ -10,9 +10,9 @@ This document records the architecture for browser JavaScript and asset tooling.
   `app/javascript/entrypoints`.
 - **JavaScript layer**: Turbo, Stimulus, and React/Inertia modules are imported through npm packages
   and bundled by Vite.
-- **CSS and static assets**: Rails Tailwind CLI and Propshaft remain the default path for
-  stylesheets, images, fonts, and other Rails assets unless a feature explicitly needs Vite-managed
-  assets.
+- **CSS and static assets**: Vite-managed browser stylesheets are the default path for app UI CSS
+  while Rails continues to serve images, fonts, and other non-browser assets unless a feature
+  explicitly needs a different delivery path.
 - **Development toolchain**: pnpm and Vite Plus (`vp`) provide dependency install, linting,
   formatting, JavaScript tests, and Vite build support.
 - **Importmap**: The application no longer uses `javascript_importmap_tags`, `config/importmap.rb`,
@@ -32,11 +32,12 @@ This document records the architecture for browser JavaScript and asset tooling.
 
 ### 2. Keep Rails Asset Pipeline Where It Fits
 
-- **Benefit**: JavaScript migration does not force images, fonts, or Rails stylesheets into Vite.
+- **Benefit**: JavaScript migration does not force images, fonts, or non-CSS Rails assets into Vite.
 - **Impact**:
   - Propshaft continues to serve static assets.
-  - Tailwind CSS can continue to use `tailwindcss-rails`.
-  - Surface-specific Rails stylesheets remain addressable with `stylesheet_link_tag`.
+  - App UI stylesheets are imported from Vite entrypoints such as `src/entrypoints/application.ts`.
+  - Mailer layouts and other non-Vite delivery paths may continue to use `stylesheet_link_tag` where
+    that is still the right transport.
 
 ### 3. Rails-Oriented Frontend Complexity
 

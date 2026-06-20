@@ -56,7 +56,7 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
 
     failing_authority = Class.new(AcmeSelectorBootstrapAuthority) do
       def ensure_account!(_identity)
-        raise "boom"
+        raise StandardError, "boom"
       end
     end.new(surface: :app, principal: user)
 

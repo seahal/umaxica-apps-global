@@ -58,8 +58,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   separation (identity, universal, guest, profile, token, etc.) backed by PostgreSQL 18 (primary +
   replica).
 - **Frontend toolchain**: Vite Rails with pnpm-managed Vite Plus tooling for Turbo/Stimulus/React
-  entrypoints under `app/javascript`; CSS and static assets continue through Rails Tailwind CLI and
-  Propshaft.
+  entrypoints under `app/javascript`; browser CSS is bundled through Vite entrypoints while Rails
+  still serves non-browser static assets.
 - **Caching & session adjuncts**: Valkey (Redis-compatible) powers request rate limiting, `Memorize`
   ephemeral storage, signed preference cookies, and Rack session backing for Action Cable.
 - **Security & identity**: JWT auth cookies (ES256) via the `Authn` concern, WebAuthn passkeys,
@@ -210,8 +210,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - Multi-database config defined in `config/database.yml` requires environment variables for each
   host (e.g., `POSTGRESQL_IDENTITY_PUB`, `POSTGRESQL_ACTIVITY_PUB`/`POSTGRESQL_ACTIVITY_SUB`, and
   `POSTGRESQL_BEHAVIOR_PUB`).
-- Asset pipeline relies on Rails Tailwind CLI and pnpm-managed JS tooling; Vite is intentionally not
-  used.
+- Asset pipeline relies on Vite for browser CSS and pnpm-managed JS tooling for the app UI; Rails
+  continues to serve static non-browser assets where appropriate.
 - Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Pundit, Shrine, SolidCache,
   Fastly gem, AWS SDK.
 

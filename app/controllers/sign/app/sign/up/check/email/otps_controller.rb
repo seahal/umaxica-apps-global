@@ -117,7 +117,8 @@ module Sign
                   sign_signup_request_flags.merge(
                     step: "email_otp",
                     reason: reason,
-                    attempts_remaining: @user_email.respond_to?(:otp_attempts_remaining) ? @user_email.otp_attempts_remaining : nil,
+                    attempts_remaining: @user_email.respond_to?(:otp_attempts_remaining) ?
+                      @user_email.otp_attempts_remaining : nil,
                     **sign_signup_safe_otp_state(@user_email),
                   ).compact,
                 )

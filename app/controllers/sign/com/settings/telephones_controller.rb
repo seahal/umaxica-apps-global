@@ -16,7 +16,7 @@ module Sign
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
-        before_action :authenticate_visitor!, except: %i(index destroy)
+        before_action :authenticate_visitor!, only: :destroy
         # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
         # Verification/rate-limit guards remain in place.

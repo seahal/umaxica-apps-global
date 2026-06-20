@@ -195,11 +195,6 @@ module Sign
             host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
         end
-
-        # Compatibility entry only. acme/www owns account-facing TOTP lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
-        end
       end
     end
   end

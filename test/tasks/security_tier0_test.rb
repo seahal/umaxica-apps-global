@@ -1,0 +1,21 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+load Rails.root.join("lib/tasks/security_tier0.rake")
+
+class SecurityTier0SuspiciousUserTokenReportTest < ActiveSupport::TestCase
+  test "report is report-only and does not delete or revoke tokens" do
+    user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    assert_no_difference("ClientToken.count") do
+      result = SecurityTier0SuspiciousUserTokenReport.call
+
+      assert result[:report_only]
+      assert_operator result[:suspicious], :>=, 1
+    end
+
+    assert ClientToken.exists?(token.id)
+  end
+end

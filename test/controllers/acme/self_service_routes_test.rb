@@ -12,57 +12,12 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     @com_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
   end
 
-  test "app self service pages require authentication" do
-    assert_requires_authentication(acme_app_avatar_url(ri: "jp", host: @app_host), host: @app_host)
+  # The app surface no longer exposes singular current self-service pages (/account, /avatar,
+  # /organization). Entity CRUD lives at the plural resources and is covered by the dedicated
+  # acme/app controller tests; current-context display/switching lives at /switcher. Only the
+  # identity self-service page remains here. Org/com singular self-service pages are unchanged.
+  test "app self service identity page requires authentication" do
     assert_requires_authentication(acme_app_identity_url(ri: "jp", host: @app_host), host: @app_host)
-    assert_requires_authentication(acme_app_current_organization_url(ri: "jp", host: @app_host), host: @app_host)
-    assert_requires_authentication(acme_app_account_url(ri: "jp", host: @app_host), host: @app_host)
-  end
-
-  test "app self service pages render for signed in client" do
-    client = clients(:one)
-    client.update!(status_id: ClientStatus::ACTIVE)
-    token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    select_token!(surface: :app, principal: client, token: token)
-    headers = as_user_headers(client, host: @app_host, session_public_id: token.public_id)
-
-    assert_self_service_page(acme_app_avatar_url(ri: "jp", host: @app_host), headers: headers, title: "Avatar")
-    assert_self_service_page(acme_app_identity_url(ri: "jp", host: @app_host), headers: headers, title: "Identity")
-    assert_self_service_page(
-      acme_app_current_organization_url(ri: "jp", host: @app_host), headers: headers,
-                                                                    title: "Organization",
-    )
-    assert_self_service_page(
-      edit_acme_app_current_organization_path(ri: "jp", host: @app_host), headers: headers,
-                                                                          title: "Organization",
-    )
-    assert_self_service_page(acme_app_account_url(ri: "jp", host: @app_host), headers: headers, title: "Account")
-    assert_self_service_page(edit_acme_app_account_path(ri: "jp", host: @app_host), headers: headers, title: "Account")
-
-    post acme_app_organizations_url(ri: "jp", host: @app_host)
-
-    assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
-
-    patch acme_app_account_url(ri: "jp", host: @app_host)
-
-    assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
-
-    patch acme_app_current_organization_url(ri: "jp", host: @app_host)
-
-    assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
-
-    patch acme_app_avatar_url(ri: "jp", host: @app_host)
-
-    assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
-
-    delete acme_app_avatar_url(ri: "jp", host: @app_host)
-
-    assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
   end
 
   test "org self service pages require authentication" do

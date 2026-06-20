@@ -285,7 +285,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     IdentitySocialCeremonyCandidate.connection.select_value(
       IdentitySocialCeremonyCandidate.sanitize_sql_array(
         [
-          "SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref = ?",
+          /SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref/,
           ref,
         ],
       ),

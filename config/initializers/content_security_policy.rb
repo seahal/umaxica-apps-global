@@ -11,7 +11,7 @@ Rails.application.configure do
   boot_config = Rails.configuration.x.boot_config
   config.content_security_policy do |policy|
     # OriginValue#to_s already returns a scheme-prefixed origin (e.g. "https://www.umaxica.app").
-    # Do not prepend "https://" again — doing so produces a malformed allowlist entry like
+    # Do not prepend "https://" again -- doing so produces a malformed allowlist entry like
     # "https://https://www.umaxica.app" which silently breaks form-action enforcement.
     acme_form_hosts =
       [

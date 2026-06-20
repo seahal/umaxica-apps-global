@@ -28,10 +28,11 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
+    CloudflareTurnstile.test_mode = true
+    JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
-    CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
@@ -40,6 +41,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
+    JitSecurityTurnstileVerifier.test_mode = false
   end
 
   test "Google sign up entry creates one client and one active social identity without email" do

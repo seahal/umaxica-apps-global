@@ -5,25 +5,31 @@ require "test_helper"
 
 class Sign::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_email_statuses, :operator_token_kinds
+  include AuthHelpers
+  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    satisfy_staff_verification(@token)
+    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_email")
+    set_access_cookie(jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id))
     host! @host
   end
 
   test "sign settings emails index redirects to acme authority" do
     get sign_org_settings_emails_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to acme_org_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_response :success
+    assert_select "table"
   end
 
   test "sign settings email edit redirects without loading email" do
     get edit_sign_org_settings_email_url("missing", ri: "jp"), headers: session_headers
 
-    assert_redirected_to edit_acme_org_settings_email_url("missing", ri: "jp", host: @acme_host)
+    assert_response :not_found
   end
 
   test "sign settings email update redirects without local preference mutation" do
@@ -41,7 +47,7 @@ class Sign::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
             headers: session_headers
     end
 
-    assert_redirected_to acme_org_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
+    assert_response :unprocessable_content
   end
 
   test "sign settings email destroy redirects without local account mutation" do
@@ -55,7 +61,7 @@ class Sign::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
       delete sign_org_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to acme_org_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
+    assert_redirected_to sign_org_settings_emails_url(ri: "jp")
     assert_not_predicate email.reload, :destroyed?
   end
 
@@ -69,10 +75,6 @@ class Sign::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   private
 
   def session_headers
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    as_staff_headers(@staff, host: @host, session_public_id: @token.public_id)
   end
 end

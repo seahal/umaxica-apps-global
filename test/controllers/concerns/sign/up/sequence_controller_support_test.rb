@@ -239,7 +239,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       events << :finalize_side_effect
       :accepted
     end
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
       events << event
 
       case event
@@ -250,18 +250,18 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       when :complete
         Struct.new(:success?, :status, :next_event).new(true, :completed, nil)
       else
-        raise "unexpected event: #{event}"
+        raise StandardError, "unexpected event: #{event}"
       end
     end
     harness.define_singleton_method(:handoff_to_sign_in_flow!) do |_actor|
-      raise "graph was not provisioned" unless graph_provisioned
+      raise RuntimeError, "graph was not provisioned" unless graph_provisioned
 
       SignInResult.from_session_result(
         { status: :success, redirect_path: "/dashboard" },
         actor: sign_up_pending_actor_value,
       )
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, _json: false|
       redirect_to("/dashboard")
     end
 
@@ -299,12 +299,12 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       Struct.new(:pending_actor).new(sign_up_pending_actor_value)
     end
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
     harness.define_singleton_method(:handoff_to_sign_in_flow!) do |_actor|
-      raise "handoff should not run"
+      raise RuntimeError, "handoff should not run"
     end
 
     error = RuntimeError.new("graph boom")

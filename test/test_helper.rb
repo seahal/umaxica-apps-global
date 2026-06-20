@@ -39,11 +39,11 @@ end
 
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "support/auth_helpers"
 
 module ActiveSupport
   class TestCase
-    # parallelize(workers: (ENV["COVERAGE"] == "true") ? 1 : :number_of_processors)
-    parallelize(workers: (ENV["COVERAGE"] == "true") ? 1 : 1)
+    parallelize(workers: 1)
     fixtures :all
   end
 end

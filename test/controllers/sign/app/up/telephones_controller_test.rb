@@ -114,9 +114,16 @@ module Sign::App::Up
     end
 
     test "new page does not use sample wording in error summary" do
-      get new_sign_app_sign_up_telephone_url(ri: "jp")
+      post sign_app_sign_up_telephone_url, params: {
+        client_telephone: {
+          raw_number: "invalid-telephone",
+          confirm_policy: "1",
+          confirm_using_mfa: "1",
+        },
+        "cf-turnstile-response": "test",
+      }
 
-      assert_response :success
+      assert_response :unprocessable_content
       assert_not_includes response.body, "prohibited this sample from being saved"
       assert_includes response.body, "prohibited this telephone from being saved"
     end
@@ -274,7 +281,7 @@ module Sign::App::Up
 
       # 3. Submit OTP
       patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-        user_telephone: { pass_code: code },
+        client_telephone: { pass_code: code },
       }
 
       assert_redirected_to sign_app_sign_up_guard_telephone_url(regional_defaults)
@@ -308,7 +315,7 @@ module Sign::App::Up
 
       assert_no_difference("ClientToken.count") do
         patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-          user_telephone: { pass_code: code },
+          client_telephone: { pass_code: code },
         }
       end
 
@@ -356,7 +363,7 @@ module Sign::App::Up
       # passkey step and the durable finalizer.
       assert_no_difference("ClientToken.count") do
         patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-          user_telephone: { pass_code: code },
+          client_telephone: { pass_code: code },
         }
       end
 
@@ -393,7 +400,7 @@ module Sign::App::Up
       code = hotp.at(otp_data[:otp_counter])
 
       patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-        user_telephone: { pass_code: code },
+        client_telephone: { pass_code: code },
       }
       # Cycle abandoned here: OTP passed but passkey never completed.
 
@@ -432,7 +439,7 @@ module Sign::App::Up
       registration_telephone
 
       patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-        user_telephone: { pass_code: "" },
+        client_telephone: { pass_code: "" },
       }
 
       assert_response :unprocessable_content
@@ -455,7 +462,7 @@ module Sign::App::Up
       Prosopite.pause do
         Telephone::MAX_OTP_ATTEMPTS.times do
           patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
-            user_telephone: { pass_code: "000000" },
+            client_telephone: { pass_code: "000000" },
           }
         end
       end

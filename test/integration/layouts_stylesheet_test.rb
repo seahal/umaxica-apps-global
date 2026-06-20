@@ -58,6 +58,12 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     end
   end
 
+  test "application entrypoint imports the vite stylesheet graph" do
+    contents = Rails.root.join("src/entrypoints/application.ts").read
+
+    assert_includes contents, 'import "@styles/application.css";'
+  end
+
   test "web ui css is no longer sourced from app/assets/stylesheets" do
     paths = [
       "app/assets/stylesheets/application.css",

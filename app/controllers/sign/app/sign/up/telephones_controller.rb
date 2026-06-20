@@ -157,7 +157,7 @@ module Sign
             return render_telephone_session_expired if otp_session_expired?(registration_session)
 
             # Blank code check
-            submitted_code = params.dig("user_telephone", "pass_code")
+            submitted_code = params.dig(:client_telephone, :pass_code) || params.dig(:user_telephone, :pass_code)
             if submitted_code.blank?
               @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
               render :edit, status: :unprocessable_content
@@ -274,7 +274,7 @@ module Sign
           end
 
           def verify_submitted_telephone_code
-            submitted_code = params.dig("user_telephone", "pass_code")
+            submitted_code = params.dig(:client_telephone, :pass_code) || params.dig(:user_telephone, :pass_code)
             result = verify_otp_code(@user_telephone, submitted_code)
             return true if result[:success]
 
@@ -290,7 +290,7 @@ module Sign
           end
 
           def verify_existing_telephone_code
-            submitted_code = params.dig("user_telephone", "pass_code")
+            submitted_code = telephone_signup_params.dig(:pass_code)
             result = verify_otp_code(@user_telephone, submitted_code)
             return true if result[:success]
 

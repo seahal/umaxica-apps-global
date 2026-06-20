@@ -56,7 +56,6 @@ module SignAuthorityRedirect
     when /\ASign::App::/ then ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     when /\ASign::Com::/ then ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     when /\ASign::Org::/ then ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
-    when /\AAcme::/ then request.host
     else
       request.host
     end

@@ -561,12 +561,13 @@ module SignUpSequenceControllerSupport
     # session issuance remains delayed until checkpoint and selector pass.
     result = establish_signed_in_session!(
       actor,
-      pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
+      pt: sign_up_handoff_pt,
       ri: params[:ri],
       auth_method: sign_up_auth_method,
       audit_context: { flow: "sign_up", sign_up_flow_id: @sign_up_ticket.public_id },
       bootstrap_actor: true,
     )
+    reset_current_db_sign_in_flow_for_sequence!
     sign_in_result_from_session_result(result, actor: actor)
   end
 
@@ -592,9 +593,7 @@ module SignUpSequenceControllerSupport
     end
 
     if sign_in_result.success?
-      redirect_to_sign_in_sequence!(
-        pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence,
-      )
+      redirect_to_sign_in_sequence!(pt: sign_up_handoff_pt)
     elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
       redirect_to(sign_in_result.redirect_to)
     else
@@ -605,7 +604,7 @@ module SignUpSequenceControllerSupport
 
   def sign_up_handoff_redirect_url(sign_in_result)
     if sign_in_result.success?
-      sign_in_sequence_redirect_path(pt: signed_pt_param.presence || @sign_up_ticket.return_to.presence)
+      sign_in_sequence_redirect_path(pt: sign_up_handoff_pt)
     elsif sign_in_result.mfa_required? || sign_in_result.session_limit_pending?
       sign_in_result.redirect_to
     else
@@ -679,5 +678,16 @@ module SignUpSequenceControllerSupport
     when VisitorSignUpFlow
       VisitorTelephone
     end
+  end
+
+  def sign_up_handoff_pt
+    return @sign_up_handoff_pt if defined?(@sign_up_handoff_pt)
+    ticket_return_to = @sign_up_ticket&.return_to.presence
+    current_return_to =
+      if respond_to?(:current_db_sign_in_flow_for_sequence, true)
+        current_db_sign_in_flow_for_sequence&.return_to.presence
+      end
+
+    @sign_up_handoff_pt = path_from_signed_pt(signed_pt_param) || ticket_return_to || current_return_to
   end
 end

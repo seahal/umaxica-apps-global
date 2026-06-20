@@ -14,6 +14,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
+    CloudflareTurnstile.test_mode = true
+    JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     @callback_headers = social_callback_headers(@host)
   end
@@ -21,6 +23,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   teardown do
     OmniAuth.config.mock_auth[:google_app] = nil
     OmniAuth.config.mock_auth[:apple] = nil
+    CloudflareTurnstile.test_mode = false
+    JitSecurityTurnstileVerifier.test_mode = false
   end
 
   # ============================================================================

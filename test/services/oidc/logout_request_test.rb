@@ -65,11 +65,11 @@ class OidcLogoutRequestTest < ActiveSupport::TestCase
   test "does not use Rails cache for logout request replay tracking" do
     cache = Class.new do
       def exist?(*)
-        raise "Rails.cache must not track logout request replay"
+        raise StandardError, "Rails.cache must not track logout request replay"
       end
 
       def write(*)
-        raise "Rails.cache must not track logout request replay"
+        raise StandardError, "Rails.cache must not track logout request replay"
       end
     end.new
     token = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")

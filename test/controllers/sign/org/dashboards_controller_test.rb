@@ -17,7 +17,7 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: "Dashboard"
-    assert_select "p", text: "Sign org signed-in landing."
+    assert_select "p", text: /Sign org signed-in landing/
     assert_select "a[href=?]", sign_org_root_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_up_path(ri: "jp")

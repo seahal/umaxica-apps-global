@@ -37,15 +37,15 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
     },
   ].freeze
   SURFACE_HOME_PAGES = [
-    ["help.jp.umaxica.app", "Help App", "Help API is available. Browser article pages are served outside Rails."],
-    ["help.jp.umaxica.com", "Help Com", "Help API is available. Browser article pages are served outside Rails."],
-    ["help.jp.umaxica.org", "Help Org", "Help API is available. Browser article pages are served outside Rails."],
-    ["docs.jp.umaxica.app", "Docs App", "Docs API is available. Browser article pages are served outside Rails."],
-    ["docs.jp.umaxica.com", "Docs Com", "Docs API is available. Browser article pages are served outside Rails."],
-    ["docs.jp.umaxica.org", "Docs Org", "Docs API is available. Browser article pages are served outside Rails."],
-    ["news.jp.umaxica.app", "News App", "News API is available. Browser article pages are served outside Rails."],
-    ["news.jp.umaxica.com", "News Com", "News API is available. Browser article pages are served outside Rails."],
-    ["news.jp.umaxica.org", "News Org", "News API is available. Browser article pages are served outside Rails."],
+    ["help.jp.umaxica.app", "Help App", "help.app.roots.message"],
+    ["help.jp.umaxica.com", "Help Com", "help.com.roots.message"],
+    ["help.jp.umaxica.org", "Help Org", "help.org.roots.message"],
+    ["docs.jp.umaxica.app", "Docs App", "docs.app.roots.message"],
+    ["docs.jp.umaxica.com", "Docs Com", "docs.com.roots.message"],
+    ["docs.jp.umaxica.org", "Docs Org", "docs.org.roots.message"],
+    ["news.jp.umaxica.app", "News App", "news.app.roots.message"],
+    ["news.jp.umaxica.com", "News Com", "news.com.roots.message"],
+    ["news.jp.umaxica.org", "News Org", "news.org.roots.message"],
   ].freeze
 
   test "help docs and news app surfaces respond on their public read-only endpoints" do
@@ -89,13 +89,13 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   test "help docs and news public host families render standalone homepages" do
-    SURFACE_HOME_PAGES.each do |host, title, message|
+    SURFACE_HOME_PAGES.each do |host, title, key|
       host! host
 
       get "/?ri=jp", headers: { "Host" => host }
 
       assert_response :success, title
-      assert_homepage_html title: title, message: message
+      assert_homepage_html title: title, message: I18n.t(key)
     end
   end
 

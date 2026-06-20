@@ -227,50 +227,14 @@ module SocialAuth
     intent = current_social_auth_intent
     entry = current_social_auth_entry
     flow_id = session[SOCIAL_FLOW_ID_SESSION_KEY]
-    Rails.logger.info(
-      JitLogEvent.format(
-        "social_auth.callback.received",
-        provider: omniauth_provider,
-        surface: social_auth_observability_surface,
-        region: params[:ri],
-        flow_id: flow_id,
-        request_id: social_auth_request_id,
-        intent: intent,
-        callback_path: social_auth_request_path,
-        state_present: extract_callback_state.present?,
-        candidate_present: social_ceremony_grant_token.present?,
-        session_present: session.present?,
-      ),
-    )
+    log_social_auth_callback_received(intent, flow_id)
     authorize_social_auth_link!(social_auth_user) if intent == "link"
 
-    result =
-      if social_ceremony_grant_token.present? && social_ceremony_grant_operation == "login" &&
-          acme_social_login_completion_supported?(auth_hash)
-        process_social_ceremony_login_callback(auth_hash)
-      else
-        reject_grantless_established_social_login!(auth_hash, intent)
-        SocialAuthService.handle_callback(
-          auth_hash: auth_hash,
-          current_client: social_auth_user,
-          intent: intent,
-          sign_up_entry: intent == "login",
-        )
-      end
+    result = resolve_social_auth_callback_result(auth_hash, intent)
     result[:entry] = entry if entry.present?
 
     clear_social_auth_intent!
-    Rails.logger.info(
-      JitLogEvent.format(
-        "social_auth.callback.completed",
-        provider: omniauth_provider,
-        surface: social_auth_observability_surface,
-        region: params[:ri],
-        flow_id: flow_id,
-        request_id: social_auth_request_id,
-        intent: intent,
-      ),
-    )
+    log_social_auth_callback_completed(intent, flow_id)
     result
   end
 
@@ -467,51 +431,9 @@ module SocialAuth
   def handle_social_auth_error(error)
     intent = @social_auth_intent_snapshot || current_social_auth_intent
     provider = @social_auth_provider_snapshot || omniauth_provider
-    reason =
-      case error.respond_to?(:i18n_key) ? error.i18n_key.to_s : nil
-      when "errors.social_auth.invalid_intent", "errors.social_auth.unauthorized" then "intent_invalid"
-      when "errors.social_auth.state_expired" then "state_expired"
-      when "errors.social_auth.state_missing" then "state_invalid"
-      when "errors.social_auth.provider_error" then "provider_failed"
-      else "unexpected_error"
-      end
+    reason = classify_social_auth_error_reason(error)
 
-    Rails.logger.info(
-      JitLogEvent.format(
-        "social_auth.error_context",
-        intent: intent,
-        provider: provider,
-        request_method: social_auth_request_method,
-        request_path: social_auth_request_path,
-      ),
-    )
-
-    Rails.logger.info(
-      JitLogEvent.format(
-        "social_auth.error",
-        error_class: error.class.name,
-        error_message: error.message,
-        status_code: error.status_code,
-      ),
-    )
-    Rails.logger.info(
-      JitLogEvent.format(
-        case reason
-        when "intent_invalid" then "social_auth.intent.invalid"
-        when "state_expired" then "social_auth.state.expired"
-        when "state_invalid" then "social_auth.state.invalid"
-        when "provider_failed" then "social_auth.provider.failed"
-        else "social_auth.candidate.not_found"
-        end,
-        provider: provider,
-        surface: social_auth_observability_surface,
-        region: params[:ri],
-        flow_id: session[SOCIAL_FLOW_ID_SESSION_KEY],
-        request_id: social_auth_request_id,
-        intent: intent,
-        reason: reason,
-      ),
-    )
+    log_social_auth_error_details(error, intent, provider, reason)
 
     respond_to do |format|
       format.html do
@@ -599,7 +521,6 @@ module SocialAuth
     return sign_signup_observability_surface if respond_to?(:sign_signup_observability_surface, true)
 
     case self.class.name
-    when /\ASign::App::/ then :app
     when /\ASign::Com::/ then :com
     when /\ASign::Org::/ then :org
     else :app
@@ -629,5 +550,109 @@ module SocialAuth
 
   def social_auth_request_id
     request.respond_to?(:request_id) ? request.request_id : nil
+  end
+
+  def log_social_auth_callback_received(intent, flow_id)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.callback.received",
+        provider: omniauth_provider,
+        surface: social_auth_observability_surface,
+        region: params[:ri],
+        flow_id: flow_id,
+        request_id: social_auth_request_id,
+        intent: intent,
+        callback_path: social_auth_request_path,
+        state_present: extract_callback_state.present?,
+        candidate_present: social_ceremony_grant_token.present?,
+        session_present: session.present?,
+      ),
+    )
+  end
+
+  def log_social_auth_callback_completed(intent, flow_id)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.callback.completed",
+        provider: omniauth_provider,
+        surface: social_auth_observability_surface,
+        region: params[:ri],
+        flow_id: flow_id,
+        request_id: social_auth_request_id,
+        intent: intent,
+      ),
+    )
+  end
+
+  def resolve_social_auth_callback_result(auth_hash, intent)
+    if social_ceremony_grant_token.present? && social_ceremony_grant_operation == "login" &&
+        acme_social_login_completion_supported?(auth_hash)
+      process_social_ceremony_login_callback(auth_hash)
+    else
+      reject_grantless_established_social_login!(auth_hash, intent)
+      SocialAuthService.handle_callback(
+        auth_hash: auth_hash,
+        current_client: social_auth_user,
+        intent: intent,
+        sign_up_entry: intent == "login",
+      )
+    end
+  end
+
+  def classify_social_auth_error_reason(error)
+    case error.respond_to?(:i18n_key) ? error.i18n_key.to_s : nil
+    when "errors.social_auth.invalid_intent", "errors.social_auth.unauthorized" then "intent_invalid"
+    when "errors.social_auth.state_expired" then "state_expired"
+    when "errors.social_auth.state_missing" then "state_invalid"
+    when "errors.social_auth.provider_error" then "provider_failed"
+    else "unexpected_error"
+    end
+  end
+
+  def log_social_auth_error_details(error, intent, provider, reason)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.error_context",
+        intent: intent,
+        provider: provider,
+        request_method: social_auth_request_method,
+        request_path: social_auth_request_path,
+      ),
+    )
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.error",
+        error_class: error.class.name,
+        error_message: error.message,
+        status_code: error.status_code,
+      ),
+    )
+
+    log_social_auth_error_reason(reason, provider, intent)
+  end
+
+  def log_social_auth_error_reason(reason, provider, intent)
+    event_name =
+      case reason
+      when "intent_invalid" then "social_auth.intent.invalid"
+      when "state_expired" then "social_auth.state.expired"
+      when "state_invalid" then "social_auth.state.invalid"
+      when "provider_failed" then "social_auth.provider.failed"
+      else "social_auth.candidate.not_found"
+      end
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        event_name,
+        provider: provider,
+        surface: social_auth_observability_surface,
+        region: params[:ri],
+        flow_id: session[SOCIAL_FLOW_ID_SESSION_KEY],
+        request_id: social_auth_request_id,
+        intent: intent,
+        reason: reason,
+      ),
+    )
   end
 end
