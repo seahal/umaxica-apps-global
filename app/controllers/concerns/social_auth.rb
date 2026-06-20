@@ -5,7 +5,7 @@
 # Provides intent/state management and callback processing.
 #
 # Intent Flow:
-# 1. User submits POST /social/auth/:provider/continue?intent=link
+# 1. User submits GET /social/:provider/sign/in or /social/:provider/sign/up
 # 2. Controller calls prepare_social_auth_intent!("link")
 # 3. User is redirected to OmniAuth provider
 # 4. Provider redirects back to callback
@@ -312,9 +312,9 @@ module SocialAuth
   end
 
   def omniauth_authorize_path(provider, state: nil)
-    return "/auth/#{provider}" if state.blank?
+    return "/social/#{provider}" if state.blank?
 
-    "/auth/#{provider}?state=#{CGI.escape(state)}"
+    "/social/#{provider}?state=#{CGI.escape(state)}"
   end
 
   def social_auth_user
@@ -530,7 +530,7 @@ module SocialAuth
   def social_auth_failure_redirect_path_for_intent(intent:, provider:)
     return social_auth_failure_redirect_path unless intent == "link"
 
-    provider_from_path = request.path.to_s.split("/auth/").last&.split("/")&.first
+    provider_from_path = request.path.to_s.split("/social/").last&.split("/")&.first
     provider = provider.presence || session[SOCIAL_PROVIDER_SESSION_KEY] || params[:provider] || provider_from_path
 
     if provider.to_s == "apple"

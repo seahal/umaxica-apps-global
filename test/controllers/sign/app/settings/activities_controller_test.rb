@@ -14,10 +14,10 @@ class Sign::App::Settings::ActivitiesControllerTest < ActionDispatch::Integratio
     host! @host
   end
 
-  test "sign settings activities redirects to acme authority" do
+  test "sign settings activities renders activity log" do
     get sign_app_settings_activities_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to acme_app_settings_activities_url(ri: "jp", host: @acme_host)
+    assert_response :success
   end
 
   private

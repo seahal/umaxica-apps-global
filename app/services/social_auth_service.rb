@@ -132,7 +132,7 @@ class SocialAuthService
   end
 
   def validate_app_social_provider!(provider)
-    return if %w(google google_app apple).include?(provider.to_s)
+    return if %w(google apple).include?(provider.to_s)
 
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error")
   end

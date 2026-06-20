@@ -19,7 +19,6 @@
     <li><%= link_to "Sign-in guard", sign_org_sign_in_guard_path(ri: params[:ri]) %></li>
     <li><%= link_to "Sign-in check", sign_org_sign_in_check_path(ri: params[:ri]) %></li>
     <li><%= link_to "Sign-in challenge", sign_org_sign_in_challenge_path(ri: params[:ri]) %></li>
-    <li><%= link_to "Sign-in TOTP", new_sign_org_sign_in_challenge_totp_path(ri: params[:ri]) %></li>
     <li>Selector: handled by the sign-in guard sequence, no direct dashboard route</li>
   </ul>
 </section>

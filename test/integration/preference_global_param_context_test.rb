@@ -11,9 +11,15 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
   end
 
   DOMAINS = [
-    { name: "acme_app", host: "www.app.localhost", preference_url_method: :acme_app_preference_url },
-    { name: "acme_org", host: "www.org.localhost", preference_url_method: :acme_org_preference_url },
-    { name: "acme_com", host: "www.com.localhost", preference_url_method: :acme_com_preference_url },
+    { name: "acme_app",
+      host: ENV.fetch("ACME_SERVICE_URL", "www.umaxica.app"),
+      preference_url_method: :acme_app_preference_url, },
+    { name: "acme_org",
+      host: ENV.fetch("ACME_STAFF_URL", "www.umaxica.org"),
+      preference_url_method: :acme_org_preference_url, },
+    { name: "acme_com",
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.umaxica.com"),
+      preference_url_method: :acme_com_preference_url, },
   ].freeze
 
   # =============================================================================

@@ -89,6 +89,7 @@ scope module: :acme, as: :acme do
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion
+        post :cancellation
       end
 
       # TODO: I want to merge them, and rename them to api.
@@ -113,30 +114,21 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
+      # RP OIDC entrypoints.
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+        resource :callback, only: :show
+        resource :logout, only: %i(show create)
       end
 
       # Social authentication ceremony.
       namespace :social do
         resources :authentications,
                   only: [],
-                  path: "auth" do
+                  path: "ceremonies" do
           post :continue, on: :member
           post :completion, on: :member
         end
-      end
-
-      # OIDC end-session endpoint.
-      namespace :oidc do
-        resource :logout, only: %i(show create)
       end
 
       # OAuth/OIDC protocol endpoints.
@@ -153,8 +145,6 @@ scope module: :acme, as: :acme do
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
 
-        # OAuth JWKS endpoint.
-        resource :jwks, only: :show
       end
 
       # Canonical browser sign-out flow.
@@ -238,6 +228,7 @@ scope module: :acme, as: :acme do
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion
+        post :cancellation
       end
 
       # End-user preference settings index.
@@ -456,6 +447,7 @@ scope module: :acme, as: :acme do
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion
+        post :cancellation
       end
 
       # End-user preference settings index.

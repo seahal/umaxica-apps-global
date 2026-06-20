@@ -239,7 +239,7 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     IdentityTotpCeremonyCandidate.connection.select_value(
       IdentityTotpCeremonyCandidate.sanitize_sql_array(
         [
-          /SELECT private_key FROM identity_totp_ceremony_candidates WHERE ref/,
+          "SELECT private_key FROM identity_totp_ceremony_candidates WHERE ref = ?",
           ref,
         ],
       ),

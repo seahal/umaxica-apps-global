@@ -18,7 +18,7 @@ class SocialAuthCallbackStateStore
 
     def state_class_for(provider)
       case provider.to_s
-      when "google_app", "apple"
+      when "google", "apple"
         ClientOauthCallbackState
       end
     end

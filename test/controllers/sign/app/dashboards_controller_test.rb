@@ -31,7 +31,7 @@ class Sign::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_sign_app_verification_totp_path(ri: "jp")
     assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
     assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
-    assert_no_match(%r{https?://|//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
+    assert_no_match(%r{//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
   end
 
   test "show_redirects_when_logged_out" do

@@ -6,11 +6,15 @@ require "test_helper"
 class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
+  setup do
+    host! ENV.fetch("BASE_SERVICE_URL", "base-jp.umaxica.app")
+  end
+
   test "get sign out renders confirmation without mutation" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get base_app_sign_out_url, headers: {
+    get base_app_sign_out_url(ri: "jp"), headers: {
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -25,7 +29,7 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post base_app_sign_out_url, headers: {
+    post base_app_sign_out_url(ri: "jp"), headers: {
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -37,7 +41,7 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/oidc/logout", location.path
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal token.public_id, query["sid"]
+    assert_predicate query["id_token_hint"], :present?
     assert_equal base_app_root_url, query["post_logout_redirect_uri"]
   end
 end

@@ -3,9 +3,10 @@
 
 module Acme
   module Com
-    class VerificationsController < Acme::Com::ApplicationController
+      class VerificationsController < Acme::Com::ApplicationController
       include AcmeStepUpIntent
       include AcmeStepUpCompletion
+      include AcmeStepUpCancellation
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -30,6 +31,16 @@ module Acme
       def completion
         authorize!(current_visitor, to: :show?)
         complete_step_up_ceremony!(
+          surface: "com",
+          actor: current_visitor,
+          token: current_session_token,
+          fallback: acme_com_dashboard_path(ri: params[:ri]),
+        )
+      end
+
+      def cancellation
+        authorize!(current_visitor, to: :show?)
+        cancel_step_up_ceremony!(
           surface: "com",
           actor: current_visitor,
           token: current_session_token,

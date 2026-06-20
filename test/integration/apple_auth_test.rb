@@ -9,12 +9,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
+    JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
+    JitSecurityTurnstileVerifier.test_mode = false
   end
 
   test "first Apple login waits for confirmation before creating user" do

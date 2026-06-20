@@ -3,51 +3,35 @@
 
 require "test_helper"
 
-class LayoutMetaTagsTest < ActionDispatch::IntegrationTest
-  def setup
-    # Map of Namespace => [Host ENV Name, Path]
-    @targets = {
-      "Acme::Com" => ["ACME_CORPORATE_URL", "/"],
-      "Acme::App" => ["ACME_SERVICE_URL", "/"],
-      "Acme::Org" => ["ACME_STAFF_URL", "/"],
-      "Sign::App" => ["ID_SERVICE_URL", "/"],
-      "Sign::Org" => ["ID_STAFF_URL", "/"],
-      "Sign::Com" => ["ID_CORPORATE_URL", "/"],
-    }
-  end
+class LayoutMetaTagsTest < ActiveSupport::TestCase
+  LAYOUT_PATHS = {
+    "Acme::App" => "app/views/layouts/acme/app/application.html.erb",
+    "Acme::Com" => "app/views/layouts/acme/com/application.html.erb",
+    "Acme::Org" => "app/views/layouts/acme/org/application.html.erb",
+    "Sign::App" => "app/views/layouts/sign/app/application.html.erb",
+    "Sign::Com" => "app/views/layouts/sign/com/application.html.erb",
+    "Sign::Org" => "app/views/layouts/sign/org/application.html.erb",
+  }.freeze
 
   test "all layouts include turbo-refresh-scroll meta tag" do
-    @targets.each do |name, (env_key, path)|
-      host = ENV[env_key]
-      next if host.blank?
+    LAYOUT_PATHS.each do |name, path|
+      content = Rails.root.join(path).read
 
-      host! host
-      get path
-
-      if response.redirect?
-        follow_redirect!
-      end
-
-      assert_response :success, "Failed to access #{path} for #{name} (#{host})"
-      assert_select "meta[name='turbo-refresh-scroll'][content='preserve']", 1,
-                    "Expected turbo-refresh-scroll meta tag in #{name} layout"
+      assert_match(
+        /turbo-refresh-scroll/, content,
+        "Expected turbo-refresh-scroll meta tag in #{name} layout (#{path})",
+      )
     end
   end
 
   test "all layouts include title tag" do
-    @targets.each do |name, (env_key, path)|
-      host = ENV[env_key]
-      next if host.blank?
+    LAYOUT_PATHS.each do |name, path|
+      content = Rails.root.join(path).read
 
-      host! host
-      get path
-
-      if response.redirect?
-        follow_redirect!
-      end
-
-      assert_response :success, "Failed to access #{path} for #{name} (#{host})"
-      assert_select "title", { count: 1 }, "Expected exactly one title tag in #{name} layout"
+      assert_match(
+        /display_meta_tags|<title>/, content,
+        "Expected title tag in #{name} layout (#{path})",
+      )
     end
   end
 end

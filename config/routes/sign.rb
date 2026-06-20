@@ -170,8 +170,8 @@ scope module: :sign, as: :sign do
         end
       end
 
-      # OmniAuth callbacks.
-      namespace :auth, path: "auth" do
+      # RP OIDC entrypoints.
+      namespace :oidc do
         # RP login start: redirects to Acme /oauth/authorize.
         resource :authorization, only: :show, path: ""
 
@@ -180,26 +180,44 @@ scope module: :sign, as: :sign do
         # RP local logout: destroys only the local session.
         resource :logout, only: :create
 
-        # OmniAuth callback; keep provider path and defaults.
-        get "google_app/callback",
-            to: "omniauth_callbacks#omniauth",
-            as: :google_app_callback,
-            defaults: { provider: "google_app" }
+        # RP back-channel logout.
+        namespace :backchannel do
+          resource :logout, only: :create
+        end
+      end
 
-        # Apple callback; keep GET/POST for provider response modes.
+      # Social login callbacks and failure handling.
+      namespace :social do
+        get "google/callback",
+            to: "omniauth_callbacks#omniauth",
+            as: :google_callback,
+            defaults: { provider: "google" }
+
         match "apple/callback",
               to: "omniauth_callbacks#omniauth",
               via: %i(get post),
               as: :apple_callback,
               defaults: { provider: "apple" }
 
-        # OmniAuth failure callback.
         get "failure",
             to: "omniauth_callbacks#failure"
+
+        scope :google do
+          get "sign/in", to: "authentications#continue", as: :google_sign_in, defaults: { provider: "google", intent: "login" }
+          get "sign/up", to: "authentications#continue", as: :google_sign_up, defaults: { provider: "google", intent: "login", entry: "sign_up" }
+        end
+
+        scope :apple do
+          get "sign/in", to: "authentications#continue", as: :apple_sign_in, defaults: { provider: "apple", intent: "login" }
+          get "sign/up", to: "authentications#continue", as: :apple_sign_up, defaults: { provider: "apple", intent: "login", entry: "sign_up" }
+        end
       end
 
       # Step-up verification.
       resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
       namespace :verification do
         resource :setup, only: :new
         resource :passkey, only: %i(new create)
@@ -417,6 +435,9 @@ scope module: :sign, as: :sign do
       # Step-up verification.
       resource :verification, only: :show
       namespace :verification do
+        resource :cancellation, only: :create
+      end
+      namespace :verification do
         resource :setup, only: :new
         resource :passkey, only: %i(new create)
 
@@ -599,6 +620,9 @@ scope module: :sign, as: :sign do
 
       # Step-up verification.
       resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
       namespace :verification do
         resource :setup, only: :new
         resource :passkey, only: %i(new create)

@@ -3,11 +3,9 @@
 
 require "test_helper"
 
-class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestCase
-  tests Acme::App::Social::AuthenticationsController
-
+class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @request.host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @commit_user = Client.create!(
       status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
       visibility_id: ClientVisibility::USER,

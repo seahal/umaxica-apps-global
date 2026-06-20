@@ -5,35 +5,35 @@ require "test_helper"
 
 class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
   test "acme app root responds successfully" do
-    get "/", headers: { "Host" => "www.app.localhost" }
+    get "/", headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme app www root responds successfully with ri parameter" do
-    get "/?ri=jp", headers: { "Host" => "www.app.localhost" }
+    get "/?ri=jp", headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme com root responds successfully" do
-    get "/", headers: { "Host" => "www.com.localhost" }
+    get "/", headers: { "Host" => ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme org root responds successfully" do
-    get "/", headers: { "Host" => "www.org.localhost" }
+    get "/", headers: { "Host" => ENV.fetch("ACME_STAFF_URL", "www.org.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme org www root responds successfully with ri parameter" do
-    get "/?ri=jp", headers: { "Host" => "www.org.localhost" }
+    get "/?ri=jp", headers: { "Host" => ENV.fetch("ACME_STAFF_URL", "www.org.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
@@ -42,21 +42,21 @@ end
 
 class SurfaceHealthEndpointTest < ActionDispatch::IntegrationTest
   test "acme app health responds successfully" do
-    get "/health", headers: { "Host" => "www.app.localhost" }
+    get "/health", headers: { "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme com health responds successfully" do
-    get "/health", headers: { "Host" => "www.com.localhost" }
+    get "/health", headers: { "Host" => ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "acme org health responds successfully" do
-    get "/health", headers: { "Host" => "www.org.localhost" }
+    get "/health", headers: { "Host" => ENV.fetch("ACME_STAFF_URL", "www.org.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success

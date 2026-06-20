@@ -22,8 +22,8 @@
      elsif surface == "org"
        public_send("acme_#{surface}_avatar_path", ri: params[:ri])
      end %>
-<% authorization_sign_in_path = public_send("acme_#{surface}_auth_authorization_path", ri: params[:ri], screen_hint: "signin") %>
-<% authorization_sign_up_path = public_send("acme_#{surface}_auth_authorization_path", ri: params[:ri], screen_hint: "signup") %>
+<% authorization_sign_in_path = public_send("acme_#{surface}_oidc_authorization_path", ri: params[:ri], screen_hint: "signin") %>
+<% authorization_sign_up_path = public_send("acme_#{surface}_oidc_authorization_path", ri: params[:ri], screen_hint: "signup") %>
 <% oauth_discovery_path = public_send("acme_#{surface}_well_known_discovery_path") %>
 <% oauth_jwks_path = public_send("acme_#{surface}_well_known_jwks_path") %>
 <% oauth_userinfo_path = public_send("acme_#{surface}_oauth_userinfo_path") %>

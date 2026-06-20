@@ -32,7 +32,7 @@ scope module: :palm, as: :palm do
       resource :sitemap, only: :show, path: "sitemap.xml"
 
       # RP login start: redirects to Acme /oauth/authorize.
-      namespace :auth do
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
       end
 
@@ -52,7 +52,7 @@ scope module: :palm, as: :palm do
       end
 
       # Compatibility callbacks only; Acme owns OAuth/OIDC.
-      namespace :oauth do
+      namespace :oidc do
         # Generic native callback stub.
         resource :callback, only: :show
       end

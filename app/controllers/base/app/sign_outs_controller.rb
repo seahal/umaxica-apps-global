@@ -25,7 +25,7 @@ module Base
             post_logout_redirect_uri: base_app_root_url,
           ),
           status: :temporary_redirect,
-          allow_other_host: false,
+          allow_other_host: true,
         )
       end
 

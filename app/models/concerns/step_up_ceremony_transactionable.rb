@@ -6,7 +6,8 @@ module StepUpCeremonyTransactionable
 
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
-  STATUSES = [STATUS_PENDING, STATUS_CONSUMED].freeze
+  STATUS_CANCELED = "canceled"
+  STATUSES = [STATUS_PENDING, STATUS_CONSUMED, STATUS_CANCELED].freeze
   RETENTION_PERIOD = 7.days
 
   included do
@@ -16,6 +17,7 @@ module StepUpCeremonyTransactionable
 
     scope :expired_at, ->(time) { where(arel_table[:expires_at].lteq(time)) }
     scope :consumed, -> { where.not(consumed_at: nil).or(where(status: STATUS_CONSUMED)) }
+    scope :canceled, -> { where(status: STATUS_CANCELED) }
     scope :active_at, ->(time) {
       where(arel_table[:expires_at].gt(time)).where(consumed_at: nil, status: STATUS_PENDING)
     }
@@ -123,6 +125,19 @@ module StepUpCeremonyTransactionable
   end
 
   def consumed? = status == STATUS_CONSUMED
+  def canceled? = status == STATUS_CANCELED
+
+  def cancel!(canceled_at: Time.current)
+    self.class.connection_owner.connected_to(role: :writing) do
+      self.class.transaction do
+        locked = self.class.lock.find(id)
+        return locked if locked.canceled? || locked.consumed? || locked.expired?(now: canceled_at)
+
+        locked.update!(status: STATUS_CANCELED, updated_at: canceled_at)
+        locked
+      end
+    end
+  end
 
   def consume_result!(result_jti:, method:, aal:, verified_at:, consumed_at: Time.current)
     self.class.connection_owner.connected_to(role: :writing) do

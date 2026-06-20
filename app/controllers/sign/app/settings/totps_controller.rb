@@ -93,9 +93,7 @@ module Sign
             bootstrap_return_path(
               sign_app_settings_totps_url(
                 ri: params[:ri],
-                host: ENV.fetch(
-                  "ID_SERVICE_URL", "id.app.localhost",
-                ),
+                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
               ),
             ),
             notice: t("messages.totp_successfully_created"),
@@ -136,7 +134,7 @@ module Sign
         end
 
         def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
 
         def generate_totp_session
@@ -190,9 +188,9 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          sign_app_settings_secret_credentials_url(
+          sign_app_settings_secrets_url(
             ri: params[:ri],
-            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
           )
         end
       end

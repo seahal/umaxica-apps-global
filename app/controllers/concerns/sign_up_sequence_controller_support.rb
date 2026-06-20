@@ -682,6 +682,7 @@ module SignUpSequenceControllerSupport
 
   def sign_up_handoff_pt
     return @sign_up_handoff_pt if defined?(@sign_up_handoff_pt)
+
     ticket_return_to = @sign_up_ticket&.return_to.presence
     current_return_to =
       if respond_to?(:current_db_sign_in_flow_for_sequence, true)

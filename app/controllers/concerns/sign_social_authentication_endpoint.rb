@@ -4,7 +4,7 @@
 module SignSocialAuthenticationEndpoint
   extend ActiveSupport::Concern
 
-  SUPPORTED_PROVIDERS = %w(google_app apple).freeze
+  SUPPORTED_PROVIDERS = %w(google apple).freeze
   SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
 
   private

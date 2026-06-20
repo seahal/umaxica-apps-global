@@ -21,11 +21,11 @@
     <%= render "layouts/shared/current_banner", tld: :app, domain: :acme, region: :global %>
     <% unless logged_in? %>
       <%= link_to t("sign.app.layout.nav.sign_up"),
-                  acme_app_auth_authorization_path(ri: params[:ri], screen_hint: "signup") %>
+                  acme_app_oidc_authorization_path(ri: params[:ri], screen_hint: "signup") %>
       <%= link_to t("sign.app.layout.nav.log_in"),
-                  acme_app_auth_authorization_path(ri: params[:ri], screen_hint: "signin") %>
+                  acme_app_oidc_authorization_path(ri: params[:ri], screen_hint: "signin") %>
     <% else %>
-      <%= button_to t("sign.app.layout.nav.logout"), acme_app_auth_logout_path, method: :post %>
+      <%= button_to t("sign.app.layout.nav.logout"), acme_app_oidc_logout_path, method: :post %>
     <% end %>
   </nav>
   <div>

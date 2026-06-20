@@ -62,12 +62,10 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
+      # RP OIDC entrypoints.
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
+        resource :callback, only: :show
 
         # RP local logout: destroys only the local session.
         resource :logout, only: :create

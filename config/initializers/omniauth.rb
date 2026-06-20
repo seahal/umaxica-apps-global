@@ -11,11 +11,11 @@
 #
 # Routing (OmniAuth standard):
 # - Start:    POST /auth/:provider (CSRF protected via omniauth-rails_csrf_protection)
-# - Callback: GET /auth/google_app/callback, GET /auth/apple/callback
-# - Failure:  GET /auth/failure
+# - Callback: GET /social/google/callback, GET /social/apple/callback
+# - Failure:  GET /social/failure
 #
 # Our custom entry point:
-# - POST /social/auth/:provider/continue?intent=... -> prepares intent, redirects to /auth/:provider
+# - GET /social/:provider/sign/in and /social/:provider/sign/up -> prepares intent, redirects to provider callback
 #
 # State Parameter:
 # - SocialCallbackGuard validates callback state through CallbackStateStore for all app providers.
@@ -27,11 +27,11 @@
 # IMPORTANT: Apple Sign In Constraints
 # - Callback URL must be HTTPS with a valid domain (no localhost/IP)
 # - Local development requires a tunnel (ngrok, Cloudflare Tunnel, etc.)
-# - Register exactly: https://<your-domain>/auth/apple/callback in Apple Developer
+# - Register exactly: https://<your-domain>/social/apple/callback in Apple Developer
 # - Callback uses GET because response_mode is query.
 #
 # IMPORTANT: Google Cloud Console Setup
-# - App client: register /auth/google_app/callback
+# - App client: register /social/google/callback
 #
 # =============================================================================
 
@@ -76,14 +76,14 @@ OmniAuth.config.full_host = ->(env) { OmniAuthCallbackOrigin.call(env) }
 # =============================================================================
 # Non-App Social Login Guard
 # =============================================================================
-# Rejects /auth/... requests on non-app sign hosts to prevent social login bypass.
+# Rejects /social/... requests on non-app sign hosts to prevent social login bypass.
 class OmniAuthNonAppSocialGuard
   def initialize(app)
     @app = app
   end
 
   def call(env)
-    return @app.call(env) unless env["PATH_INFO"].start_with?("/auth/")
+    return @app.call(env) unless env["PATH_INFO"].start_with?("/social/")
 
     if blocked_host?(env)
       return [404, { "Content-Type" => "text/plain" }, ["Not Found"]]
@@ -105,7 +105,7 @@ class OmniAuthNonAppSocialGuard
 end
 
 class OmniAuthSocialOriginSanitizer
-  AUTH_PATH_PREFIXES = %w(/auth/google_app /auth/apple).freeze
+  AUTH_PATH_PREFIXES = %w(/social/google /social/apple).freeze
 
   def initialize(app)
     @app = app
@@ -132,13 +132,13 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Google OAuth2 - App (user sign-in/sign-up)
   # ---------------------------------------------------------------------------
-  # Callback: GET /auth/google_app/callback
+  # Callback: GET /social/google/callback
   provider :google_oauth2,
            google_app_client_id,
            google_app_client_secret,
            {
-             name: "google_app",
-             callback_path: "/auth/google_app/callback",
+             name: "google",
+             callback_path: "/social/google/callback",
              scope: "openid",
              access_type: "offline",
              prompt: "select_account",
@@ -147,7 +147,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Apple Sign In
   # ---------------------------------------------------------------------------
-  # Uses OIDC code flow. Callback: GET /auth/apple/callback
+  # Uses OIDC code flow. Callback: GET /social/apple/callback
   #
   # Required credentials:
   # - CLIENT_ID: Service ID (e.g., "com.example.app.web")
@@ -159,7 +159,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
            "", # Secret is derived from private key, not passed here
            {
              # OmniAuth standard callback path
-             callback_path: "/auth/apple/callback",
+             callback_path: "/social/apple/callback",
              # IMPORTANT: We authenticate by provider+uid only, NOT email
              # Empty scope means we only get the user identifier (sub claim in id_token)
              scope: "",
@@ -179,7 +179,7 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
 end
 
 # Allow both GET and POST for initiating OAuth
-# - GET: Used after our custom /social/auth/:provider/continue entry point redirects to OmniAuth
+# - GET: Used after our custom /social/:provider/sign/in entry point redirects to OmniAuth
 # - POST: Traditional form submission (CSRF protected by Rails token)
 # Callback state validation is enforced by SocialCallbackGuard and CallbackStateStore.
 OmniAuth.config.silence_get_warning = true
@@ -190,7 +190,7 @@ OmniAuth.config.after_request_phase = proc { |env| SocialCallbackGuard.capture_r
 # Failure Handling
 # =============================================================================
 # Redirect to our custom failure endpoint.
-# This uses OmniAuth standard path: /auth/failure
+# This uses OmniAuth standard path: /social/failure
 OmniAuth.config.on_failure =
   proc do |env|
     message = env["omniauth.error.type"]&.to_s || "unknown_error"
@@ -206,7 +206,7 @@ OmniAuth.config.on_failure =
     end
 
     # Build failure URL with query parameters (OmniAuth standard path)
-    failure_path = "/auth/failure?message=#{CGI.escape(message)}&strategy=#{CGI.escape(strategy)}"
+    failure_path = "/social/failure?message=#{CGI.escape(message)}&strategy=#{CGI.escape(strategy)}"
 
     Rack::Response.new(["302 Found"], 302, "Location" => failure_path).finish
   end

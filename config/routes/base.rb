@@ -38,7 +38,7 @@ scope module: :base, as: :base do
       resource :sign_out, only: %i(show create), path: "sign/out"
 
       # RP login start: redirects to Acme /oauth/authorize.
-      namespace :auth do
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
       end
 
@@ -82,7 +82,7 @@ scope module: :base, as: :base do
       resource :sign_out, only: %i(show create), path: "sign/out"
 
       # RP login start: redirects to Acme /oauth/authorize.
-      namespace :auth do
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
       end
 
@@ -126,7 +126,7 @@ scope module: :base, as: :base do
       resource :sign_out, only: %i(show create), path: "sign/out"
 
       # RP login start: redirects to Acme /oauth/authorize.
-      namespace :auth do
+      namespace :oidc do
         resource :authorization, only: :show, path: ""
       end
 

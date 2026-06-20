@@ -14,15 +14,15 @@ module SocialCallbackGuard
 
   REQUEST_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
-    "google_app" => %w(POST GET).freeze,
+    "google" => %w(POST GET).freeze,
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
-    "google_app" => %w(GET).freeze,
+    "google" => %w(GET).freeze,
   }.freeze
 
-  REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|apple)\z}.freeze
+  REQUEST_PHASE_PATH = %r{\A/social/(?<provider>google|apple)\z}.freeze
 
   module_function
 

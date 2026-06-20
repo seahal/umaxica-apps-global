@@ -20,9 +20,9 @@
     <%= render "layouts/shared/flash_messages" %>
     <%= render "layouts/shared/current_banner", tld: :com, domain: :acme, region: :global %>
     <% unless logged_in? %>
-      <%= link_to "#{t('sign.app.layout.nav.sign_up')} / #{t('sign.app.layout.nav.log_in')}", acme_com_auth_authorization_path %>
+      <%= link_to "#{t('sign.app.layout.nav.sign_up')} / #{t('sign.app.layout.nav.log_in')}", acme_com_oidc_authorization_path %>
     <% else %>
-      <%= button_to t("sign.app.layout.nav.logout"), acme_com_auth_logout_path, method: :post %>
+      <%= button_to t("sign.app.layout.nav.logout"), acme_com_oidc_logout_path, method: :post %>
     <% end %>
   </nav>
   <div>
