@@ -39,7 +39,7 @@ scope module: :base, as: :base do
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/base/app/auth/authorizations#show"
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -83,7 +83,7 @@ scope module: :base, as: :base do
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/base/com/auth/authorizations#show"
       end
 
       # Browser CSP report sink; keep configured report-uri path.
@@ -127,7 +127,7 @@ scope module: :base, as: :base do
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/base/org/auth/authorizations#show"
       end
 
       # Browser CSP report sink; keep configured report-uri path.

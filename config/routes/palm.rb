@@ -33,7 +33,7 @@ scope module: :palm, as: :palm do
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/palm/app/auth/authorizations#show"
       end
 
       # Native sign-out notice; does not clear bearer tokens from the browser.
@@ -54,7 +54,7 @@ scope module: :palm, as: :palm do
       # Compatibility callbacks only; Acme owns OAuth/OIDC.
       namespace :oidc do
         # Generic native callback stub.
-        resource :callback, only: :show
+        resource :callback, only: :show, to: "/palm/app/oauth/callbacks#show"
       end
     end
   end

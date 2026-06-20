@@ -10,7 +10,7 @@ module IdentitySocialCeremonyContract
   ALGORITHM = "ES384"
   SURFACES = %w(app).freeze
   OPERATIONS = %w(link login signup account_selection).freeze
-  PROVIDERS = %w(apple google_app).freeze
+  PROVIDERS = %w(apple google).freeze
   LEEWAY = 30
 
   SIGN_ISSUERS = {

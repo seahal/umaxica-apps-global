@@ -76,12 +76,16 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/auth",
+      "http://#{BASE_APP_HOST}/oidc/authorization",
       method: :get,
     )
 
     assert_equal "base/app/auth/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_APP_HOST}/oidc", method: :get)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/sign/out",
@@ -174,12 +178,16 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/auth",
+      "http://#{BASE_COM_HOST}/oidc/authorization",
       method: :get,
     )
 
     assert_equal "base/com/auth/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_COM_HOST}/oidc", method: :get)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/sign/out",
@@ -272,12 +280,16 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/auth",
+      "http://#{BASE_ORG_HOST}/oidc/authorization",
       method: :get,
     )
 
     assert_equal "base/org/auth/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_ORG_HOST}/oidc", method: :get)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/sign/out",

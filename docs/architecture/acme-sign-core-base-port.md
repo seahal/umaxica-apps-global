@@ -23,6 +23,17 @@ configuration, route, and audience vocabulary should use Palm.
 Acme owns `/authorize`, `/token`, JWKS, ID Token issuance, Access Token issuance, issuer identity,
 and subject identity.
 
+Protocol URL contract:
+
+- Acme OP / Authorization Server uses `/.well-known/openid-configuration`, `/.well-known/jwks.json`,
+  `/oauth/authorize`, `/oauth/token`, `/oauth/userinfo`, `/oauth/revoke`, and `/oidc/logout`.
+- First-party RP browser flows use `/oidc/authorization`, `/oidc/callback`, and
+  `/oidc/backchannel/logout` where the RP consumes Acme login state.
+- Social federation flows use `/social/:provider/sign/in`, `/social/:provider/sign/up`, and
+  `/social/:provider/callback`.
+- `google` and `apple` are canonical social provider names. `google_app` is historical only.
+- `/oauth/jwks`, `/auth/*`, `/oauth/callback`, and `/social/auth/*` are retired route families.
+
 Sign owns sign-related UI or special flows as a relying party. Sign is not an issuer.
 
 Core owns the browser-facing web experience, receives the Acme callback, and serves the browser

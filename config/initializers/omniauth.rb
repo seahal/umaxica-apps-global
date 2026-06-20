@@ -10,7 +10,7 @@
 # - Apple Sign In: Uses OIDC code flow with query response mode
 #
 # Routing (OmniAuth standard):
-# - Start:    POST /auth/:provider (CSRF protected via omniauth-rails_csrf_protection)
+# - Start:    POST /social/:provider (CSRF protected via omniauth-rails_csrf_protection)
 # - Callback: GET /social/google/callback, GET /social/apple/callback
 # - Failure:  GET /social/failure
 #
@@ -37,8 +37,8 @@
 
 # Load credentials early
 # App (user) Google credentials
-google_app_client_id = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_ID)
-google_app_client_secret = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_SECRET)
+google_client_id = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_ID)
+google_client_secret = Rails.app.creds.option(:OMNI_AUTH_GOOGLE_APP_CLIENT_SECRET)
 apple_client_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_CLIENT_ID)
 apple_team_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_TEAM_ID)
 apple_key_id = Rails.app.creds.option(:OMNI_AUTH_APPLE_KEY_ID)
@@ -134,8 +134,8 @@ Rails.application.config.middleware.use(OmniAuth::Builder) do
   # ---------------------------------------------------------------------------
   # Callback: GET /social/google/callback
   provider :google_oauth2,
-           google_app_client_id,
-           google_app_client_secret,
+           google_client_id,
+           google_client_secret,
            {
              name: "google",
              callback_path: "/social/google/callback",

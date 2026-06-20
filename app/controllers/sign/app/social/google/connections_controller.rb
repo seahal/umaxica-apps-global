@@ -27,5 +27,5 @@ class Sign::App::Social::Google::ConnectionsController < ::Sign::App::Applicatio
 
   private
 
-  def social_provider = "google_app"
+  def social_provider = "google"
 end

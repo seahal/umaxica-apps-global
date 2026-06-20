@@ -56,14 +56,19 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   end
 
   test "app social routes are provider explicit and com org social routes are absent" do
-    assert_recognizes_sign_route(:app, "/social/apple/connection", :get, "social/apple/connections", "show")
-    assert_recognizes_sign_route(:app, "/social/apple/connection", :post, "social/apple/connections", "create")
-    assert_recognizes_sign_route(:app, "/social/google/disconnection", :post, "social/google/disconnections", "create")
+    assert_recognizes_sign_route(:app, "/social/apple/sign/in", :post, "social/authentications", "continue")
+    assert_recognizes_sign_route(:app, "/social/apple/sign/up", :post, "social/authentications", "continue")
+    assert_recognizes_sign_route(:app, "/social/google/sign/in", :post, "social/authentications", "continue")
+    assert_recognizes_sign_route(:app, "/social/google/sign/up", :post, "social/authentications", "continue")
+    assert_recognizes_sign_route(:app, "/social/google/callback", :get, "auth/omniauth_callbacks", "omniauth")
+    assert_recognizes_sign_route(:app, "/social/apple/callback", :get, "auth/omniauth_callbacks", "omniauth")
+    assert_recognizes_sign_route(:app, "/social/apple/callback", :post, "auth/omniauth_callbacks", "omniauth")
+    assert_recognizes_sign_route(:app, "/social/failure", :get, "auth/omniauth_callbacks", "failure")
 
     assert_unrecognized(:app, "/social/apple/connection_attempt", :post)
     assert_unrecognized(:app, "/social/google/disconnection_attempt", :post)
-    assert_unrecognized(:app, "/social/auth/apple", :delete)
-    assert_unrecognized(:app, "/social/auth/apple/continue", :post)
+    assert_unrecognized(:app, "/social/apple/sign/in", :delete)
+    assert_unrecognized(:app, "/social/google/sign/in", :delete)
     assert_unrecognized(:com, "/social/apple/connection", :get)
     assert_unrecognized(:org, "/social/google/connection", :get)
   end

@@ -22,7 +22,7 @@ module Sign
         rescue_from SocialAuth::BaseError, with: :handle_social_auth_error
         rescue_from ActiveRecord::RecordNotUnique, with: :handle_record_not_unique
 
-        SUPPORTED_PROVIDERS = %w(google_app apple).freeze
+        SUPPORTED_PROVIDERS = %w(google apple).freeze
         SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
 
         # Public access for continue (login intent doesn't require auth)
@@ -37,7 +37,7 @@ module Sign
         # Prepares session with intent/state, then redirects to OmniAuth.
         #
         # Params:
-        #   - provider: "google_app" or "apple"
+        #   - provider: "google" or "apple"
         #   - intent: "login", "link", or "step_up" (default: "login")
         #     "login" is the internal continue flow: existing identities sign in,
         #     missing identities create a new account.

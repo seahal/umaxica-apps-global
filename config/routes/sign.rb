@@ -173,12 +173,9 @@ scope module: :sign, as: :sign do
       # RP OIDC entrypoints.
       namespace :oidc do
         # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/sign/app/auth/authorizations#show"
 
-        resource :callback, only: :show
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+        resource :callback, only: :show, to: "/sign/app/auth/callbacks#show"
 
         # RP back-channel logout.
         namespace :backchannel do
@@ -189,27 +186,31 @@ scope module: :sign, as: :sign do
       # Social login callbacks and failure handling.
       namespace :social do
         get "google/callback",
-            to: "omniauth_callbacks#omniauth",
+            to: "/sign/app/auth/omniauth_callbacks#omniauth",
             as: :google_callback,
             defaults: { provider: "google" }
 
         match "apple/callback",
-              to: "omniauth_callbacks#omniauth",
+              to: "/sign/app/auth/omniauth_callbacks#omniauth",
               via: %i(get post),
               as: :apple_callback,
               defaults: { provider: "apple" }
 
         get "failure",
-            to: "omniauth_callbacks#failure"
+            to: "/sign/app/auth/omniauth_callbacks#failure"
 
         scope :google do
-          get "sign/in", to: "authentications#continue", as: :google_sign_in, defaults: { provider: "google", intent: "login" }
-          get "sign/up", to: "authentications#continue", as: :google_sign_up, defaults: { provider: "google", intent: "login", entry: "sign_up" }
+          get "sign/in", to: "/sign/app/social/authentications#continue", as: :google_sign_in,
+                         defaults: { provider: "google", intent: "login" }
+          get "sign/up", to: "/sign/app/social/authentications#continue", as: :google_sign_up,
+                         defaults: { provider: "google", intent: "login", entry: "sign_up" }
         end
 
         scope :apple do
-          get "sign/in", to: "authentications#continue", as: :apple_sign_in, defaults: { provider: "apple", intent: "login" }
-          get "sign/up", to: "authentications#continue", as: :apple_sign_up, defaults: { provider: "apple", intent: "login", entry: "sign_up" }
+          get "sign/in", to: "/sign/app/social/authentications#continue", as: :apple_sign_in,
+                         defaults: { provider: "apple", intent: "login" }
+          get "sign/up", to: "/sign/app/social/authentications#continue", as: :apple_sign_up,
+                         defaults: { provider: "apple", intent: "login", entry: "sign_up" }
         end
       end
 
@@ -322,15 +323,12 @@ scope module: :sign, as: :sign do
         resource :out, only: :show
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth, path: "auth" do
+      # RP OIDC entrypoints.
+      namespace :oidc, path: "oidc" do
         # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/sign/com/auth/authorizations#show"
 
-        resource :callback, only: :show
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+        resource :callback, only: :show, to: "/sign/com/auth/callbacks#show"
       end
 
       # OIDC back-channel receiver.
@@ -541,15 +539,12 @@ scope module: :sign, as: :sign do
         resource :out, only: :show
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth, path: "auth" do
+      # RP OIDC entrypoints.
+      namespace :oidc, path: "oidc" do
         # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
+        resource :authorization, only: :show, to: "/sign/org/auth/authorizations#show"
 
-        resource :callback, only: :show
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+        resource :callback, only: :show, to: "/sign/org/auth/callbacks#show"
       end
 
       # OIDC back-channel receiver.

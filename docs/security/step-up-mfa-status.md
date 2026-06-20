@@ -11,6 +11,11 @@
 This document describes the current step-up gate used by the `app`, `com`, and `org` sign
 configuration surfaces.
 
+`/verification` is intentionally shared by Acme and Sign. On Acme, `/verification` is the
+authority-side request, completion, and cancellation gate. On Sign, `/verification` is the
+credential-side ceremony and cancellation surface. Passkey/WebAuthn ceremony belongs to `sign/id`,
+and cancellation closes a pending verification request without granting step-up freshness.
+
 Step-up is the product's current `AAL2` boundary. The broader AAL terminology is defined in
 `docs/security/authentication-assurance-levels.md`.
 

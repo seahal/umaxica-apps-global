@@ -64,22 +64,17 @@ scope module: :core, as: :core do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
-        resource :callback, only: :show
+        resource :authorization, only: :show, to: "/core/app/auth/authorizations#show"
+        resource :callback, only: :show, to: "/core/app/auth/callbacks#show"
 
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
-      end
-
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
-
-      # OIDC back-channel receiver.
-      namespace :oidc do
+        # RP back-channel receiver.
         namespace :backchannel do
           resource :logout, only: :create
         end
       end
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
     end
   end
 
@@ -142,26 +137,19 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
-      end
-
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
-
-      # OIDC back-channel receiver.
+      # RP OIDC entrypoints.
       namespace :oidc do
+        resource :callback, only: :show, to: "/core/com/auth/callbacks#show"
+        resource :authorization, only: :show, to: "/core/com/auth/authorizations#show"
+
+        # RP back-channel receiver.
         namespace :backchannel do
           resource :logout, only: :create
         end
       end
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
     end
   end
 
@@ -227,26 +215,19 @@ scope module: :core, as: :core do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
-      end
-
-      # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
-
-      # OIDC back-channel receiver.
+      # RP OIDC entrypoints.
       namespace :oidc do
+        resource :callback, only: :show, to: "/core/org/auth/callbacks#show"
+        resource :authorization, only: :show, to: "/core/org/auth/authorizations#show"
+
+        # RP back-channel receiver.
         namespace :backchannel do
           resource :logout, only: :create
         end
       end
+
+      # Canonical browser sign-out flow.
+      resource :sign_out, only: %i(show create), path: "sign/out"
     end
   end
 

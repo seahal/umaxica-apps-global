@@ -14,16 +14,16 @@
 </ul>
 
 <div data-test-id="registration-method">
-  <%= button_to sign_app_social_google_connection_path(ri: params[:ri], entry: "sign_up"),
-                method: :post,
+  <%= button_to sign_app_social_google_sign_up_path(ri: params[:ri], entry: "sign_up"),
+                method: :get,
                 form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.google") %>
   <% end %>
 </div>
 
 <div data-test-id="registration-method">
-  <%= button_to sign_app_social_apple_connection_path(ri: params[:ri], entry: "sign_up"),
-                method: :post,
+  <%= button_to sign_app_social_apple_sign_up_path(ri: params[:ri], entry: "sign_up"),
+                method: :get,
                 form: { data: { turbo: false } } do %>
     <%= t("sign.app.registration.new.social.buttons.apple") %>
   <% end %>

@@ -52,7 +52,7 @@ module Sign::App::Settings
 
       assert_response :success
       assert_select "form[action=?]", sign_app_social_apple_disconnection_path(ri: "jp"), count: 0
-      assert_select "form[action=?]", sign_app_social_apple_connection_path(ri: "jp", intent: "link"), count: 1
+      assert_select "form[action=?]", sign_app_social_apple_sign_in_path(ri: "jp", intent: "link"), count: 1
     end
 
     test "show posts apple unlink to sign authority" do

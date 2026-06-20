@@ -496,10 +496,10 @@ Expected state-machine path:
   - User chooses Google from the app sign-up surface.
   - The sequence starts before leaving the application for the provider.
 
-- Social start: `POST /social/auth/google_app/continue`
+- Social start: `GET /social/google/sign/up`
   - Store sign-up intent, provider, region, sanitized `rt`, and callback state in the server-side
     session.
-  - Redirect to `/auth/google_app`.
+  - Redirect to `/social/google/callback`.
   - Do not encode application routing decisions into OAuth `state`; keep OAuth `state` dedicated to
     callback integrity.
 
@@ -507,7 +507,7 @@ Expected state-machine path:
   - Google handles authentication and consent.
   - The application is outside the local sequence until the callback returns.
 
-- Social callback: `GET /auth/google_app/callback`
+- Social callback: `GET /social/google/callback`
   - Verify the social callback request.
   - Validate the stored social auth state.
   - Normalize the provider to Google.
@@ -561,10 +561,10 @@ Expected state-machine path:
   - The sequence starts before leaving the application for the provider.
   - Apple sign-up is app-only; `com` and `org` must not offer it.
 
-- Social start: `POST /social/auth/apple/continue`
+- Social start: `GET /social/apple/sign/up`
   - Store sign-up intent, provider, region, sanitized `rt`, and callback state in the server-side
     session.
-  - Redirect to `/auth/apple`.
+  - Redirect to `/social/apple/callback`.
   - Do not encode application routing decisions into OAuth `state`; keep OAuth `state` dedicated to
     callback integrity.
 
@@ -572,7 +572,7 @@ Expected state-machine path:
   - Apple handles authentication and consent.
   - The application is outside the local sequence until the callback returns.
 
-- Social callback: `POST /auth/apple/callback`
+- Social callback: `GET /social/apple/callback`
   - Verify the social callback request.
   - Validate the stored social auth state.
   - Normalize the provider to Apple.
@@ -619,10 +619,10 @@ Expected state-machine path:
 
 Current path:
 
-1. `POST /social/auth/:provider/continue` stores social intent, provider, entry, region, and
-   sanitized `rt` in session.
-2. The controller redirects to `/auth/:provider`.
-3. The provider redirects back to `/auth/:provider/callback`.
+1. `GET /social/:provider/sign/in` and `GET /social/:provider/sign/up` store social intent,
+   provider, entry, region, and sanitized `rt` in session.
+2. The controller redirects to `/social/:provider/callback`.
+3. The provider redirects back to `/social/:provider/callback`.
 4. The callback verifies the social callback request and validates social auth session state.
 5. A missing social identity creates a new `Client` with `UNVERIFIED_WITH_SIGN_UP` status defaults.
 6. The social identity is created and linked.

@@ -20,5 +20,5 @@ class Sign::App::Social::Google::DisconnectionsController < ::Sign::App::Applica
 
   private
 
-  def social_provider = "google_app"
+  def social_provider = "google"
 end

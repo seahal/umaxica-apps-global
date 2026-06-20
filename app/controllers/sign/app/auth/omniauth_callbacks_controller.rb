@@ -7,9 +7,9 @@ module Sign
       # Controller for handling OmniAuth callbacks (standard paths)
       #
       # Routes:
-      #   GET  /auth/google_app/callback -> #omniauth
-      #   POST /auth/apple/callback      -> #omniauth
-      #   GET  /auth/failure             -> #failure
+      #   GET  /social/google/callback -> #omniauth
+      #   POST /social/apple/callback  -> #omniauth
+      #   GET  /social/failure         -> #failure
       #
       # This controller handles the OmniAuth callback, validates state,
       # and delegates to SocialAuthService for user creation/linking.
@@ -640,7 +640,7 @@ module Sign
 
         def duplicate_google_callback_failure_after_success?(message, strategy)
           message.to_s == "invalid_credentials" &&
-            strategy.to_s == "google_app" &&
+            strategy.to_s == "google" &&
             logged_in?
         end
 

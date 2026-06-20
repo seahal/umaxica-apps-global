@@ -234,6 +234,43 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal first_step_up_at, token.reload.last_step_up_at
   end
 
+  test "app acme cancellation closes pending transaction and blocks completion" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    token = create_client_token!(user)
+    issuance = issue_step_up_grant!(
+      surface: "app",
+      actor_ref: user.public_id,
+      session_ref: token.public_id,
+      scope: "settings_email",
+      methods: ["passkey"],
+      return_to: acme_app_settings_emails_path(ri: "jp"),
+    )
+
+    post cancellation_acme_app_verification_url(ri: "jp", host: host),
+         headers: app_session_headers(host, token, user),
+         params: { scope: "settings_email", return_to: acme_app_settings_emails_path(ri: "jp") }
+
+    assert_response :see_other
+    assert_predicate issuance.transaction.reload, :canceled?
+    assert_nil token.reload.last_step_up_at
+
+    result = issue_step_up_result!(
+      surface: "app",
+      actor_ref: user.public_id,
+      session_ref: token.public_id,
+      transaction: issuance.transaction,
+      method: "passkey",
+    )
+
+    post completion_acme_app_verification_url(ri: "jp", host: host),
+         params: { step_up_ceremony_result: result },
+         headers: app_session_headers(host, token, user)
+
+    assert_response :bad_request
+    assert_nil token.reload.last_step_up_at
+  end
+
   test "app acme completion rejects wrong session result" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)

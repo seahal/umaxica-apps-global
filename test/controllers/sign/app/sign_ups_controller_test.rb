@@ -60,11 +60,11 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[action=?][data-turbo=?]",
-                  sign_app_social_google_connection_path(ri: "jp", entry: "sign_up"),
+                  sign_app_social_google_sign_up_path(ri: "jp", entry: "sign_up"),
                   "false",
                   count: 1
     assert_select "form[action=?][data-turbo=?]",
-                  sign_app_social_apple_connection_path(ri: "jp", entry: "sign_up"),
+                  sign_app_social_apple_sign_up_path(ri: "jp", entry: "sign_up"),
                   "false",
                   count: 1
   end

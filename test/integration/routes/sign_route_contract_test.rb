@@ -85,12 +85,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_recognizes(
       { controller: "sign/app/auth/callbacks", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/auth/callback", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/app/auth/authorizations", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/auth", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -132,6 +132,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/app/sign/in/check/cancellations", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/check/cancellation", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/verification/cancellations", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(
@@ -200,22 +205,64 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_recognizes(
       { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/auth/google_app/callback", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/auth/apple/callback", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
-      { path: "http://#{SIGN_APP_HOST}/auth/apple/callback", method: :post },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
     assert_recognizes(
       { controller: "sign/app/auth/omniauth_callbacks", action: "failure" },
-      { path: "http://#{SIGN_APP_HOST}/auth/failure", method: :get },
+      { path: "http://#{SIGN_APP_HOST}/social/failure", method: :get },
+    )
+
+    %w(/auth /auth/callback /auth/logout /auth/google_app/callback /auth/apple/callback /auth/failure
+       /social/auth/google_app/continue /social/auth/apple/continue).each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{path}", method: :get)
+      end
+    end
+
+    assert_recognizes(
+      { controller: "sign/app/social/authentications", action: "continue" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/sign/in", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/social/authentications", action: "continue" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/sign/up", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/social/authentications", action: "continue" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/sign/in", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/social/authentications", action: "continue" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/sign/up", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
     assert_recognizes(
@@ -306,12 +353,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_recognizes(
       { controller: "sign/com/auth/callbacks", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/auth/callback", method: :get },
+      { path: "http://#{SIGN_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/com/auth/authorizations", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/auth", method: :get },
+      { path: "http://#{SIGN_COM_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -352,6 +399,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/com/sign/in/check/cancellations", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/check/cancellation", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/verification/cancellations", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(
@@ -465,12 +517,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_recognizes(
       { controller: "sign/org/auth/callbacks", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/auth/callback", method: :get },
+      { path: "http://#{SIGN_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/org/auth/authorizations", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/auth", method: :get },
+      { path: "http://#{SIGN_ORG_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -521,6 +573,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/org/sign/in/check/cancellations", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check/cancellation", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/verification/cancellations", action: "create" },
+      { path: "http://#{SIGN_ORG_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(

@@ -74,6 +74,11 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/app/verifications", action: "cancellation" },
+      { path: "http://#{ACME_APP_HOST}/verification/cancellation", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "acme/app/selectors", action: "show" },
       { path: "http://#{ACME_APP_HOST}/selector", method: :get },
     )
@@ -94,13 +99,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/auth/callbacks", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/auth/callback", method: :get },
+      { controller: "acme/app/auth/callbacks", action: "show", to: "/acme/app/auth/callbacks#show" },
+      { path: "http://#{ACME_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/app/auth/authorizations", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/auth", method: :get },
+      { controller: "acme/app/auth/authorizations", action: "show", to: "/acme/app/auth/authorizations#show" },
+      { path: "http://#{ACME_APP_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -153,10 +158,16 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{ACME_APP_HOST}/oauth/revoke", method: :post },
     )
 
-    assert_recognizes(
-      { controller: "acme/app/oauth/jwks", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/oauth/jwks", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/oauth/jwks", method: :get)
+    end
+
+    %w(/auth /auth/callback /auth/logout /oauth/callback /oauth/jwks /social/auth/google_app/continue
+       /social/auth/google_app/completion).each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}#{path}", method: :get)
+      end
+    end
 
     # Entity CRUD is plural; current-context display/switching lives at /switcher. The singular
     # current routes (/account, /organization, /avatar) and the abandoned /current/* namespace
@@ -404,6 +415,11 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/com/verifications", action: "cancellation" },
+      { path: "http://#{ACME_COM_HOST}/verification/cancellation", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "acme/com/selectors", action: "show" },
       { path: "http://#{ACME_COM_HOST}/selector", method: :get },
     )
@@ -424,13 +440,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/auth/callbacks", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/auth/callback", method: :get },
+      { controller: "acme/com/auth/callbacks", action: "show", to: "/acme/com/auth/callbacks#show" },
+      { path: "http://#{ACME_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/com/auth/authorizations", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/auth", method: :get },
+      { controller: "acme/com/auth/authorizations", action: "show", to: "/acme/com/auth/authorizations#show" },
+      { path: "http://#{ACME_COM_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -483,11 +499,6 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "acme/com/oauth/revocations", action: "create" },
       { path: "http://#{ACME_COM_HOST}/oauth/revoke", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "acme/com/oauth/jwks", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/oauth/jwks", method: :get },
     )
 
     assert_recognizes(
@@ -599,6 +610,11 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/org/verifications", action: "cancellation" },
+      { path: "http://#{ACME_ORG_HOST}/verification/cancellation", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "acme/org/selectors", action: "show" },
       { path: "http://#{ACME_ORG_HOST}/selector", method: :get },
     )
@@ -619,13 +635,13 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/org/auth/callbacks", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/auth/callback", method: :get },
+      { controller: "acme/org/auth/callbacks", action: "show", to: "/acme/org/auth/callbacks#show" },
+      { path: "http://#{ACME_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/org/auth/authorizations", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/auth", method: :get },
+      { controller: "acme/org/auth/authorizations", action: "show", to: "/acme/org/auth/authorizations#show" },
+      { path: "http://#{ACME_ORG_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
@@ -680,11 +696,6 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "acme/org/oauth/revocations", action: "create" },
       { path: "http://#{ACME_ORG_HOST}/oauth/revoke", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "acme/org/oauth/jwks", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/oauth/jwks", method: :get },
     )
 
     assert_raises(ActionController::RoutingError) do

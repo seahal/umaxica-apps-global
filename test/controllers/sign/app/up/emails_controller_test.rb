@@ -662,7 +662,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Should redirect directly to the decoded pt destination
-    assert_redirected_to sign_app_sign_up_guard_email_path(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
   end
 
   # Transaction Tests for Client Creation
@@ -704,7 +704,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_sign_up_guard_email_path(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     # Verify Client count unchanged (pending user was updated, not created)
     assert_equal initial_user_count, Client.count
@@ -759,7 +759,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_sign_up_guard_email_path(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     # Sign-up completion and sign-in audit are delayed until checkpoint finalization.
     assert_equal initial_audit_count, ClientChronicle.count
@@ -796,7 +796,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_guard_email_path(ri: "jp")
+    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
     assert_equal initial_audit_count, ClientChronicle.count
   end
 
@@ -1297,10 +1297,6 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
             params: { user_email: { pass_code: pass_code } },
             headers: default_headers
-
-      assert_redirected_to sign_app_sign_up_guard_email_url(ri: "jp")
-
-      get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
 
       assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
 

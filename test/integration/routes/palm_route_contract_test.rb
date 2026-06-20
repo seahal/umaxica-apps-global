@@ -66,12 +66,16 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/auth",
+      "http://#{PALM_HOST}/oidc/authorization",
       method: :get,
     )
 
     assert_equal "palm/app/auth/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{PALM_HOST}/oauth/callback", method: :get)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{PALM_HOST}/csp-violation-report",
@@ -90,7 +94,7 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{PALM_HOST}/oauth/callback",
+      "http://#{PALM_HOST}/oidc/callback",
       method: :get,
     )
 
@@ -109,6 +113,10 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
         "http://#{PALM_HOST}/oauth/callback/android",
         method: :get,
       )
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{PALM_HOST}/oauth/callback", method: :get)
     end
   end
 end

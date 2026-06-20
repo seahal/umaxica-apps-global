@@ -116,8 +116,8 @@ scope module: :acme, as: :acme do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :authorization, only: :show, path: ""
-        resource :callback, only: :show
+        resource :authorization, only: :show, to: "/acme/app/auth/authorizations#show"
+        resource :callback, only: :show, to: "/acme/app/auth/callbacks#show"
         resource :logout, only: %i(show create)
       end
 
@@ -144,7 +144,6 @@ scope module: :acme, as: :acme do
 
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
-
       end
 
       # Canonical browser sign-out flow.
@@ -287,15 +286,10 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+      # RP OIDC entrypoints.
+      namespace :oidc do
+        resource :callback, only: :show, to: "/acme/com/auth/callbacks#show"
+        resource :authorization, only: :show, to: "/acme/com/auth/authorizations#show"
       end
 
       # OIDC end-session endpoint.
@@ -317,8 +311,6 @@ scope module: :acme, as: :acme do
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
 
-        # OAuth JWKS endpoint.
-        resource :jwks, only: :show
       end
 
       # Canonical browser sign-out flow.
@@ -506,15 +498,10 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Auth callback and RP login/logout endpoints.
-      namespace :auth do
-        resource :callback, only: :show
-
-        # RP login start: redirects to Acme /oauth/authorize.
-        resource :authorization, only: :show, path: ""
-
-        # RP local logout: destroys only the local session.
-        resource :logout, only: :create
+      # RP OIDC entrypoints.
+      namespace :oidc do
+        resource :callback, only: :show, to: "/acme/org/auth/callbacks#show"
+        resource :authorization, only: :show, to: "/acme/org/auth/authorizations#show"
       end
 
       # OIDC end-session endpoint.
@@ -536,8 +523,6 @@ scope module: :acme, as: :acme do
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
 
-        # OAuth JWKS endpoint.
-        resource :jwks, only: :show
       end
 
       # Canonical browser sign-out flow.

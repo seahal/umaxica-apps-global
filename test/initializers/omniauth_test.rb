@@ -6,7 +6,7 @@ require "test_helper"
 class OmniauthTest < ActiveSupport::TestCase
   test "callback origin uses https for configured app sign host" do
     env = Rack::MockRequest.env_for(
-      "http://id.umaxica.app/auth/google_app",
+      "http://id.umaxica.app/social/google/callback",
       "HTTP_HOST" => "id.umaxica.app",
     )
 
@@ -17,7 +17,7 @@ class OmniauthTest < ActiveSupport::TestCase
 
   test "callback origin uses https for configured org sign host" do
     env = Rack::MockRequest.env_for(
-      "http://id.umaxica.org/auth/failure",
+      "http://id.umaxica.org/social/failure",
       "HTTP_HOST" => "id.umaxica.org",
     )
 
@@ -28,7 +28,7 @@ class OmniauthTest < ActiveSupport::TestCase
 
   test "callback origin preserves request scheme for unconfigured hosts" do
     env = Rack::MockRequest.env_for(
-      "http://id.app.localhost/auth/google_app",
+      "http://id.app.localhost/social/google/callback",
       "HTTP_HOST" => "id.app.localhost",
     )
 

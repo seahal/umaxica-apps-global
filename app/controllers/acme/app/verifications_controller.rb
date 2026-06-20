@@ -3,7 +3,7 @@
 
 module Acme
   module App
-      class VerificationsController < Acme::App::ApplicationController
+    class VerificationsController < Acme::App::ApplicationController
       include AcmeStepUpIntent
       include AcmeStepUpCompletion
       include AcmeStepUpCancellation

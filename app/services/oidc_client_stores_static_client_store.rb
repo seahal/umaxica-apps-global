@@ -29,7 +29,7 @@ module OidcClientStoresStaticClientStore
         jwt_namespace: "SIGN_APP",
       },
       # Historical name: this is Acme's own browser/local-session RP client.
-      # It does not mean Base owns the Acme `/auth/callback` endpoints.
+      # It does not mean Base owns the Acme `/oidc/callback` endpoints.
       "base-rails-rp" => {
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
@@ -64,7 +64,7 @@ module OidcClientStoresStaticClientStore
         jwt_namespace: "CORE_APP",
       },
       "app-ios-rp" => {
-        redirect_uris: ["umaxica://oauth/callback"],
+        redirect_uris: ["umaxica://oidc/callback"],
         aud: "palm-api",
         resource_type: "client",
         name: "App iOS RP",
@@ -72,7 +72,7 @@ module OidcClientStoresStaticClientStore
         token_endpoint_auth_method: "none",
       },
       "app-android-rp" => {
-        redirect_uris: ["com.umaxica.app:/oauth/callback"],
+        redirect_uris: ["com.umaxica.app:/oidc/callback"],
         aud: "palm-api",
         resource_type: "client",
         name: "App Android RP",
@@ -152,7 +152,7 @@ module OidcClientStoresStaticClientStore
     host = boot_host_for(env_key, default_host)
     protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
     port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/auth/callback"]
+    ["#{protocol}://#{host}#{port_suffix}/oidc/callback"]
   end
 
   def build_post_logout_redirect_uris(env_key, default_host)

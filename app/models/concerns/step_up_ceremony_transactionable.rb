@@ -125,6 +125,7 @@ module StepUpCeremonyTransactionable
   end
 
   def consumed? = status == STATUS_CONSUMED
+
   def canceled? = status == STATUS_CANCELED
 
   def cancel!(canceled_at: Time.current)
@@ -144,6 +145,7 @@ module StepUpCeremonyTransactionable
       self.class.transaction do
         locked = self.class.lock.find(id)
         raise IdentityStepUpCeremonyContract::Error, "transaction is already consumed" if locked.consumed?
+        raise IdentityStepUpCeremonyContract::Error, "transaction is canceled" if locked.canceled?
         raise IdentityStepUpCeremonyContract::Error, "transaction is expired" if locked.expired?(now: consumed_at)
 
         locked.update!(

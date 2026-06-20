@@ -160,7 +160,7 @@ module Sign
               status: "ok",
               passkey_id: passkey.id,
               redirect_url: bootstrap_return_path(
-                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
+                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
               ),
             }, status: :created
           end
@@ -308,9 +308,8 @@ module Sign
           )
         end
 
-        # Compatibility entry only. acme/www owns account-facing passkey lifecycle.
         def redirect_to_acme_settings_authority!
-          redirect_to_sign_authority!(request.path, query: request.query_parameters)
+          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
       end
     end

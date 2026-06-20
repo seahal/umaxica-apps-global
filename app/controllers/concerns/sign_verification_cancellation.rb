@@ -5,17 +5,21 @@ module SignVerificationCancellation
   extend ActiveSupport::Concern
 
   def create
+    acme_completion_state_present = acme_step_up_completion_state?
+    csrf_token = acme_step_up_completion_csrf_token
+    scope = current_step_up_session&.scope
+    return_to = current_step_up_session&.return_to
     cancel_local_step_up_state!
 
-    if acme_step_up_completion_state?
+    if acme_completion_state_present
       render(
         "sign/shared/step_up_cancellation",
         locals: {
           cancellation_url: acme_step_up_cancellation_url_for(step_up_ceremony_surface),
-          csrf_token: acme_step_up_completion_csrf_token,
+          csrf_token: csrf_token,
           ri: params[:ri],
-          scope: current_step_up_scope,
-          return_to: current_step_up_return_to,
+          scope: scope,
+          return_to: return_to,
         },
       )
     else
@@ -33,18 +37,6 @@ module SignVerificationCancellation
     clear_step_up_state! if respond_to?(:clear_step_up_state!, true)
     destroy_current_step_up_session! if respond_to?(:destroy_current_step_up_session!, true)
     clear_acme_step_up_completion_state! if respond_to?(:clear_acme_step_up_completion_state!, true)
-  end
-
-  def current_step_up_scope
-    current_step_up_session&.scope
-  end
-
-  def current_step_up_return_to
-    current_step_up_session&.return_to
-  end
-
-  def acme_step_up_cancellation_state?
-    acme_step_up_completion_state?
   end
 
   def acme_step_up_cancellation_url_for(surface)
