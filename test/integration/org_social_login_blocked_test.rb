@@ -58,7 +58,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "app social route remains available on app host" do
     host! @service_host
 
-    post "/auth/google_app"
+    post "/auth/google"
 
     assert_not_equal 404, response.status
   end

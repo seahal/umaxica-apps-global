@@ -31,7 +31,7 @@ module Sign
             redirect_to(
               sign_com_settings_telephones_url(
                 ri: params[:ri],
-                host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
               ),
               notice: t("sign.app.registration.telephone.edit.session_expired"),
               allow_other_host: cross_host_redirect_allowed?,
@@ -132,7 +132,7 @@ module Sign
               redirect_to(
                 sign_com_settings_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                  host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                 ),
                 notice: t("sign.app.registration.telephone.update.success"),
                 allow_other_host: cross_host_redirect_allowed?,

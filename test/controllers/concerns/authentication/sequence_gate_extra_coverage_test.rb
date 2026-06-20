@@ -113,6 +113,8 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     def redirect_to(path, **kwargs) = @redirected = [path, kwargs]
 
+    def redirect_to_jump_url(url, **kwargs) = @redirected = ["jump:#{url}", kwargs]
+
     def render(**kwargs) = @rendered = kwargs
 
     def sign_in_sequence_surface = :app
@@ -192,6 +194,10 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     end
   end
 
+  class ExternalDashboardHarness < Harness
+    def after_dashboard_path = "https://www.umaxica.app/dashboard?ri=jp"
+  end
+
   class FallbackHarness < Harness
     undef_method :sign_app_sign_in_session_path
     undef_method :sign_app_selector_path
@@ -213,6 +219,31 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     fallback = FallbackHarness.new
 
     assert_equal "/selector?pt=pt%3Atarget&ri=jp", fallback.sign_in_selector_path(pt: "target")
+  end
+
+  test "redirect_to_sign_in_sequence! uses jump gateway for absolute destinations" do
+    harness = ExternalDashboardHarness.new
+    harness.define_singleton_method(:sign_in_sequence_redirect_path) do |pt: nil, default_path: after_dashboard_path|
+      _ = pt
+      _ = default_path
+      "https://www.umaxica.app/dashboard?ri=jp"
+    end
+
+    harness.redirect_to_sign_in_sequence!
+
+    assert_equal ["jump:https://www.umaxica.app/dashboard?ri=jp", {}], harness.redirected
+  end
+
+  test "redirect_to_sign_in_sequence! keeps internal paths local" do
+    @harness.define_singleton_method(:sign_in_sequence_redirect_path) do |pt: nil, default_path: after_dashboard_path|
+      _ = pt
+      _ = default_path
+      "/app/session?pt=pt%3Atarget&ri=jp"
+    end
+
+    @harness.redirect_to_sign_in_sequence!(pt: "target")
+
+    assert_equal ["/app/session?pt=pt%3Atarget&ri=jp", { allow_other_host: false }], @harness.redirected
   end
 
   test "issue_welcome_gate_and_path sets the gate and clears previous state" do

@@ -67,7 +67,7 @@ module SignUpExplicitStepControllerSupport
   end
 
   def redirect_to_sign_in_sequence_after_completed_sign_up
-    redirect_to_jump_url(sign_in_sequence_redirect_path(pt: sign_up_handoff_pt), status: :see_other)
+    redirect_to_sign_in_sequence!(pt: sign_up_handoff_pt, status: :see_other)
   end
 
   def cancel_from_explicit_step

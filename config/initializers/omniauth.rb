@@ -10,7 +10,7 @@
 # - Apple Sign In: Uses OIDC code flow with query response mode
 #
 # Routing (OmniAuth standard):
-# - Start:    POST /social/:provider (CSRF protected via omniauth-rails_csrf_protection)
+# - Start:    POST /auth/google_app, POST /auth/apple (CSRF protected via omniauth-rails_csrf_protection)
 # - Callback: GET /social/google/callback, GET /social/apple/callback
 # - Failure:  GET /social/failure
 #
@@ -105,7 +105,7 @@ class OmniAuthNonAppSocialGuard
 end
 
 class OmniAuthSocialOriginSanitizer
-  AUTH_PATH_PREFIXES = %w(/social/google /social/apple).freeze
+  AUTH_PATH_PREFIXES = %w(/auth/google_app /auth/apple).freeze
 
   def initialize(app)
     @app = app

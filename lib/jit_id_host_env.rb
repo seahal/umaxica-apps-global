@@ -11,7 +11,7 @@ module JitIdHostEnv
   end
 
   def corporate_url
-    ENV["ID_CORPORATE_URL"].presence
+    ENV["SIGN_CORPORATE_URL"].presence
   end
 
   def staff_url
@@ -21,7 +21,7 @@ module JitIdHostEnv
   def validate!
     missing_keys = []
     missing_keys << "ID_SERVICE_URL" if service_url.blank?
-    missing_keys << "ID_CORPORATE_URL" if corporate_url.blank?
+    missing_keys << "SIGN_CORPORATE_URL" if corporate_url.blank?
     missing_keys << "ID_STAFF_URL" if staff_url.blank?
     return if missing_keys.empty?
 

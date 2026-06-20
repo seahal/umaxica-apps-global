@@ -3,7 +3,7 @@
 
 module Sign
   module App
-    class SignOutsController < ::Sign::RedirectOnlyController
+    class SignOutsController < ::Sign::App::ApplicationController
       include ::AuthenticationLogoutable
 
       AUTHENTICATION_MODE = :private
@@ -22,7 +22,7 @@ module Sign
             post_logout_redirect_uri: sign_app_root_url(ri: params[:ri]),
           ),
           status: :temporary_redirect,
-          allow_other_host: false,
+          allow_other_host: true,
         )
       end
 

@@ -42,7 +42,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     cookies[:auth_refresh] = refresh_plain
 
-    get sign_app_sign_in_path, headers: { "Host" => @host }
+    get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
 
     # First response should be a redirect (ri=jp or guest_only)
     assert_response :redirect
@@ -81,7 +81,8 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies_header = "auth_refresh=#{refresh_plain}"
-    get sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+    get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+        headers: { "Cookie" => cookies_header, "Host" => @host }
 
     # First response should be a redirect
     assert_response :redirect
@@ -117,7 +118,8 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
           events << payload
         end
 
-      get sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+      get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+          headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect (auth succeeded despite audit failure)
       assert_response :redirect
@@ -145,7 +147,8 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     AuthenticationAuditWriter.stub(:write, false) do
       cookies_header = "auth_refresh=#{refresh_plain}"
-      get sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+      get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+          headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect
       assert_response :redirect

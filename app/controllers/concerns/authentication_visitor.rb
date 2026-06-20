@@ -117,7 +117,7 @@ module AuthenticationVisitor
 
   def sign_com_redirect_host
     configured_hosts =
-      %w(SIGN_CORPORATE_URL ID_CORPORATE_URL).filter_map do |key|
+      %w(SIGN_CORPORATE_URL).filter_map do |key|
         CommonRedirect.normalize_host(ENV[key])
       end
 

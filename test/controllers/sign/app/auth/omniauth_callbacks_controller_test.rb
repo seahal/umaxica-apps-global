@@ -7,15 +7,15 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "callback routes keep google GET and apple GET or POST separate" do
     host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     google_route = Rails.application.routes.recognize_path(
-      "http://#{host}/auth/google_app/callback",
+      "http://#{host}/social/google/callback",
       method: :get,
     )
     apple_route = Rails.application.routes.recognize_path(
-      "http://#{host}/auth/apple/callback",
+      "http://#{host}/social/apple/callback",
       method: :post,
     )
     apple_get_route = Rails.application.routes.recognize_path(
-      "http://#{host}/auth/apple/callback",
+      "http://#{host}/social/apple/callback",
       method: :get,
     )
 
@@ -30,7 +30,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_equal "apple", apple_get_route[:provider]
 
     assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{host}/auth/google_app/callback", method: :post)
+      Rails.application.routes.recognize_path("http://#{host}/social/google/callback", method: :post)
     end
   end
 

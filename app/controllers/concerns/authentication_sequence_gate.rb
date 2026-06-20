@@ -49,7 +49,12 @@ module AuthenticationSequenceGate
   end
 
   def redirect_to_sign_in_sequence!(pt: nil, default_path: after_dashboard_path, **redirect_options)
-    redirect_to(sign_in_sequence_redirect_path(pt: pt, default_path: default_path), **redirect_options)
+    destination = sign_in_sequence_redirect_path(pt: pt, default_path: default_path)
+    if destination.to_s.start_with?("/")
+      redirect_to(destination, allow_other_host: false, **redirect_options)
+    else
+      redirect_to_jump_url(destination, **redirect_options)
+    end
   end
 
   def after_checkpoint_sequence_path(pt: nil, default_path: after_dashboard_path, sequence_id: nil)

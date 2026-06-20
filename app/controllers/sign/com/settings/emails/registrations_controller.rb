@@ -33,7 +33,7 @@ module Sign
             redirect_to(
               sign_com_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
               ),
               notice: t("sign.app.registration.email.edit.session_expired"),
               allow_other_host: cross_host_redirect_allowed?,
@@ -122,7 +122,7 @@ module Sign
               email_registration_return_path(
                 sign_com_settings_emails_url(
                   ri: params[:ri],
-                  host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                  host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                 ),
               ),
               notice: t("sign.app.registration.email.update.success"),

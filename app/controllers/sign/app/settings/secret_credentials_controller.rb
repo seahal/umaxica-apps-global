@@ -79,8 +79,20 @@ module Sign
           redirect_to_acme_settings_authority!
         end
 
+        # DELETE /settings/secret_credentials/:id
         def destroy
-          redirect_to_acme_settings_authority!
+          secret_credential = current_client.client_secret_credentials.find_by!(public_id: params.expect(:id))
+          authorize!(secret_credential)
+          unless AuthMethodGuard.can_remove_secret_credential?(current_client, secret_credential)
+            redirect_to(
+              sign_app_settings_secret_credentials_path(ri: params[:ri]),
+              alert: t(".last_method"),
+              status: :see_other,
+            )
+            return
+          end
+          ClientSecretCredentialsDestroy.call(actor: current_client, secret_credential: secret_credential)
+          redirect_to(sign_app_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end
 
         # Reserved for future secret_credential rotation support.

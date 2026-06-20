@@ -88,7 +88,6 @@ CORE_STAFF_URL=www-jp.umaxica.org
 DOCS_CORPORATE_URL=docs.jp.umaxica.com
 DOCS_SERVICE_URL=docs.jp.umaxica.app
 DOCS_STAFF_URL=docs.jp.umaxica.org
-ID_CORPORATE_URL=id.umaxica.com
 ID_SERVICE_URL=id.umaxica.app
 ID_STAFF_URL=id.umaxica.org
 SIGN_CORPORATE_URL=id.umaxica.com

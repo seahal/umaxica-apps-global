@@ -29,11 +29,18 @@ class ClientSecretCredentialsDestroy
           context: { action: ACTION },
         )
         @secret_credential.save!
+        revoke_all_actor_tokens!
       end
     end
   end
 
   private
+
+  def revoke_all_actor_tokens!
+    return unless @actor.respond_to?(:client_tokens)
+
+    @actor.client_tokens.not_revoked.find_each(&:revoke!)
+  end
 
   def audit_class
     @audit_class ||= @actor.is_a?(Operator) ? OperatorChronicle : ClientChronicle

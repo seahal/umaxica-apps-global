@@ -44,7 +44,7 @@ module SignAuthorityRedirect
   def sign_authority_host
     case self.class.name
     when /\A(Sign::App|Acme::App)::/ then ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    when /\A(Sign::Com|Acme::Com)::/ then ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    when /\A(Sign::Com|Acme::Com)::/ then ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     when /\A(Sign::Org|Acme::Org)::/ then ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     else
       request.host

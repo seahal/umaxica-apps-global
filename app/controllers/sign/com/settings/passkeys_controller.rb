@@ -25,7 +25,7 @@ module Sign
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_com_passkey_ceremony_grant!, only: %i(new options verification)
-        before_action :set_passkey, only: []
+        before_action :set_passkey, only: %i(destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
 
         def index
@@ -122,7 +122,17 @@ module Sign
         end
 
         def destroy
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+          unless AuthMethodGuard.can_remove_passkey?(current_visitor, @passkey)
+            redirect_to(
+              sign_com_settings_passkeys_path(ri: params[:ri]),
+              alert: t("messages.cannot_delete_last_passkey"),
+              status: :see_other,
+            )
+            return
+          end
+          @passkey.destroy!
+          redirect_to(sign_com_settings_passkeys_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -193,7 +203,7 @@ module Sign
             redirect_url: bootstrap_return_path(
               sign_com_settings_passkeys_url(
                 ri: params[:ri],
-                host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
               ),
             ),
           }, status: :created
@@ -258,7 +268,7 @@ module Sign
         def recovery_passcode_setup_url
           sign_com_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+            host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
           )
         end
 

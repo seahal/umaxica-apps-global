@@ -17,7 +17,7 @@ module Sign
 
         before_action :authenticate_visitor!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: :regenerate
+        before_action :set_secret_credential, only: %i(destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: :create
         before_action :accept_com_secret_credential_ceremony_grant!, only: %i(new create)
@@ -64,7 +64,7 @@ module Sign
           redirect_to(
             sign_com_settings_secret_credentials_url(
               ri: params[:ri],
-              host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+              host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )
@@ -79,6 +79,15 @@ module Sign
         end
 
         def destroy
+          authorize!(@secret_credential)
+          unless AuthMethodGuard.can_remove_secret_credential?(current_visitor, @secret_credential)
+            redirect_to(
+              sign_com_settings_secret_credentials_path(ri: params[:ri]),
+              alert: t("sign.app.settings.secret_credentials.destroy.last_method"),
+              status: :see_other,
+            )
+            return
+          end
           redirect_to_acme_settings_authority!
         end
 

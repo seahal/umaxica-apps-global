@@ -9,7 +9,7 @@ class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   include SignRouteAliasHelper
 
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")

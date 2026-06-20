@@ -8,7 +8,7 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     cookies["csrf_token"] = csrf_token_value
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -439,7 +439,7 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   def host
-    ENV["ID_CORPORATE_URL"] || "id.com.localhost"
+    ENV["SIGN_CORPORATE_URL"] || "id.com.localhost"
   end
 
   def otp_code_for(telephone)

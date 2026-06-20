@@ -8,8 +8,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
            :client_google_identity_statuses, :client_apple_identity_statuses
 
   PROVIDERS = {
-    google_app: {
-      provider: "google_app",
+    google: {
+      provider: "google",
       normalized: "google",
       model: ClientGoogleIdentity,
       active_status: ClientGoogleIdentityStatus::ACTIVE,
@@ -37,7 +37,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
@@ -45,7 +45,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   test "Google sign up entry creates one client and one active social identity without email" do
-    assert_social_signup_contract(PROVIDERS.fetch(:google_app))
+    assert_social_signup_contract(PROVIDERS.fetch(:google))
   end
 
   test "Apple sign up entry creates one client and one active social identity without email" do
@@ -53,7 +53,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   test "Google sign in reuses existing social identity and refreshes credentials" do
-    assert_social_sign_in_contract(PROVIDERS.fetch(:google_app))
+    assert_social_sign_in_contract(PROVIDERS.fetch(:google))
   end
 
   test "Apple sign in reuses existing social identity and refreshes credentials" do
@@ -61,7 +61,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   test "Google settings link creates identity for the signed-in client only" do
-    assert_settings_link_contract(PROVIDERS.fetch(:google_app))
+    assert_settings_link_contract(PROVIDERS.fetch(:google))
   end
 
   test "Apple settings link creates identity for the signed-in client only" do
@@ -69,7 +69,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   test "Google settings link rejects replacing an existing provider with a different uid" do
-    assert_settings_replacement_rejected(PROVIDERS.fetch(:google_app))
+    assert_settings_replacement_rejected(PROVIDERS.fetch(:google))
   end
 
   test "Apple settings link rejects replacing an existing provider with a different uid" do
@@ -78,42 +78,42 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   test "Google settings unlink succeeds when Apple remains available" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "unlink_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "unlink_google")
     apple_identity = create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "backup_apple")
 
-    delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
+    delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
     assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
-    assert_not PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert_not PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
 
   test "Apple settings unlink succeeds when Google remains available" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "backup_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "backup_google")
     apple_identity = create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "unlink_apple")
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
     assert_redirected_to sign_app_settings_apple_path(ri: "jp")
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
 
   test "Apple settings link succeeds again after unlink while Google remains available" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "relink_backup_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "relink_backup_google")
     apple_identity = create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "relink_old_apple")
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
     assert_redirected_to sign_app_settings_apple_path(ri: "jp")
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
 
     new_uid = "relink_new_apple_#{SecureRandom.hex(4)}"
-    setup_mock_auth(PROVIDERS.fetch(:apple), uid: new_uid, token: "relinked_apple_token")
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
+    setup_mock_auth(PROVIDERS.fetch(:apple), uid: new_uid, token: "relinked_apple_token")
 
     # Settings link commits on Sign after the Sign-owned OAuth state and step-up checks.
     assert_no_difference("Client.count") do
@@ -132,11 +132,11 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     assert_equal user.id, relinked_identity.user_id
     assert_equal ClientAppleIdentityStatus::ACTIVE, relinked_identity.status_id
     assert_equal "relinked_apple_token", relinked_identity.token
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
   test "Google settings unlink keeps the last active login method" do
-    assert_last_social_unlink_rejected(PROVIDERS.fetch(:google_app))
+    assert_last_social_unlink_rejected(PROVIDERS.fetch(:google))
   end
 
   test "Apple settings unlink keeps the last active login method" do
@@ -145,19 +145,19 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   test "Google settings unlink redirects to verification without social unlink step-up" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "step_up_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "step_up_google")
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "step_up_backup_apple")
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     post(
-      social_disconnection_url_for(PROVIDERS.fetch(:google_app), ri: "jp", host: @host),
+      social_disconnection_url_for(PROVIDERS.fetch(:google), ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
 
     assert_response :see_other
     assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
-    assert_not PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert_not PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
   test "Google settings link rejects settings step-up scope" do
@@ -166,7 +166,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
     post(
-      social_connection_url_for(PROVIDERS.fetch(:google_app), intent: "link", ri: "jp"),
+      social_connection_url_for(PROVIDERS.fetch(:google), intent: "link", ri: "jp"),
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
     )
 
@@ -177,34 +177,34 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   test "Google settings unlink rejects passcode as the only remaining method" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "passcode_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "passcode_google")
     create_login_secret_credential(user)
 
-    delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
+    delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
   test "Google settings unlink rejects failed Turnstile before unlinking" do
     user = create_social_client
-    google_identity = create_social_identity(PROVIDERS.fetch(:google_app), user:, uid: "turnstile_google")
+    google_identity = create_social_identity(PROVIDERS.fetch(:google), user:, uid: "turnstile_google")
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "turnstile_backup_apple")
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    delete_with_verified_session(user, PROVIDERS.fetch(:google_app))
+    delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
     assert_response :see_other
     assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
-    assert PROVIDERS.fetch(:google_app).fetch(:model).exists?(google_identity.id)
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
   private
 
   def assert_social_signup_contract(config)
     uid = "#{config.fetch(:normalized)}_signup_#{SecureRandom.hex(4)}"
-    setup_mock_auth(config, uid:, token: "new_signup_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "login", entry: "sign_up", ri: "jp")
+    setup_mock_auth(config, uid:, token: "new_signup_token")
 
     assert_no_difference("Client.count") do
       assert_no_difference("#{config.fetch(:model)}.count") do
@@ -280,8 +280,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
     identity = create_social_identity(config, user:, uid:, token: "old_token")
 
-    setup_mock_auth(config, uid:, token: "fresh_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "login", ri: "jp")
+    setup_mock_auth(config, uid:, token: "fresh_token")
 
     assert_no_difference("Client.count") do
       assert_no_difference("#{config.fetch(:model)}.count") do
@@ -305,8 +305,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     uid = "#{config.fetch(:normalized)}_link_#{SecureRandom.hex(4)}"
     user = create_social_client
 
-    setup_mock_auth(config, uid:, token: "linked_token")
     grant_session = seed_app_social_link_grant_session(provider: config.fetch(:provider), user: user, ri: "jp")
+    setup_mock_auth(config, uid:, token: "linked_token")
 
     # The sign callback creates the social identity directly for settings link.
     assert_no_difference("Client.count") do
@@ -332,8 +332,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
     existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
 
-    setup_mock_auth(config, uid: "different_#{config.fetch(:normalized)}", token: "wrong_token")
     state = seed_social_auth_session(provider: config.fetch(:provider), intent: "link", user: user, ri: "jp")
+    setup_mock_auth(config, uid: "different_#{config.fetch(:normalized)}", token: "wrong_token")
 
     assert_no_difference("#{config.fetch(:model)}.count") do
       perform_social_callback(
@@ -364,10 +364,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def perform_social_callback(config, params:, headers:)
     if config.fetch(:provider) == "apple"
-      post(sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
+      post(sign_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
     else
       get(
-        sign_app_auth_google_app_callback_url(provider: config.fetch(:provider), ri: "jp"),
+        sign_app_social_google_callback_url(provider: config.fetch(:provider), ri: "jp"),
         params: params,
         headers: headers,
       )
@@ -376,17 +376,19 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   def setup_mock_auth(config, uid:, token:)
-    credentials = {
-      token: token,
-      expires_at: 1.week.from_now.to_i,
-    }
-    credentials[:refresh_token] = "refresh_#{token}" if config.fetch(:provider) == "google_app"
+    normalized = config.fetch(:normalized)
+    credentials = { token: token, expires_at: 1.week.from_now.to_i }
+    credentials[:refresh_token] = "refresh_#{token}" if normalized == "google"
 
-    OmniAuth.config.mock_auth[config.fetch(:provider).to_sym] = OmniAuth::AuthHash.new(
-      provider: config.fetch(:provider),
+    extra = {}
+    extra[:id_info] = { nonce: session[:social_auth_nonce] } if normalized == "apple"
+
+    OmniAuth.config.mock_auth[normalized.to_sym] = OmniAuth::AuthHash.new(
+      provider: normalized,
       uid: uid,
       info: {},
       credentials: credentials,
+      extra: extra,
     )
   end
 

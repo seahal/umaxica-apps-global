@@ -8,6 +8,7 @@ module SocialIdentifiable
 
   PROVIDER_MAP = {
     "google" => "google",
+    "google_app" => "google", # legacy DB value; OmniAuth provider renamed to "google"
     "apple" => "apple",
   }.freeze
 
@@ -23,7 +24,7 @@ module SocialIdentifiable
 
     def model_for_provider(provider)
       case provider.to_s
-      when "google"
+      when "google", "google_app"
         ClientGoogleIdentity
       when "apple"
         ClientAppleIdentity

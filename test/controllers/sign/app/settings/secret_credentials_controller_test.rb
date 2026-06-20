@@ -217,9 +217,9 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to acme_app_settings_secrets_url(
+    assert_redirected_to sign_app_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
@@ -312,19 +312,19 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     satisfy_user_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
-    AuthMethodGuard.stub(:last_method?, false) do
-      assert_no_difference("ClientSecretCredential.count") do
-        with_prosopite_paused do
-          delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
-                 headers: authenticated_headers
-        end
+    # User has a verified email (aal1 remains after removing secret credential), so removal is allowed.
+    assert_no_difference("ClientSecretCredential.count") do
+      with_prosopite_paused do
+        delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
+               headers: authenticated_headers
       end
     end
 
     assert_response :see_other
-    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
-    assert_nil flash[:notice]
-    assert_equal ClientSecretCredentialStatus::ACTIVE, @user_secret_credential.reload.user_identity_secret_status_id
+    assert_redirected_to sign_app_settings_secret_credentials_path(ri: "jp")
+    # Soft-delete via discard_now! sets status to deleted.
+    assert_equal ClientSecretCredentialStatus::DELETED,
+                 @user_secret_credential.reload.user_identity_secret_status_id
   end
 
   test "URL uses public_id not numeric ID" do
@@ -440,19 +440,20 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal "Test Secret", @user_secret_credential.reload.name
   end
 
-  test "destroy requires successful stealth turnstile" do
+  test "destroy soft-deletes secret credential when another aal1 method exists" do
+    # Turnstile is not checked on destroy; verify that destroy succeeds regardless.
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
+    # Count does not change because destroy uses soft-delete.
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
         delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
-               params: { "cf-turnstile-response": "bad" },
                headers: authenticated_headers
       end
     end
 
-    assert_redirected_to_acme("/settings/secrets/#{@user_secret_credential.public_id}?ri=jp")
-    assert_nil flash[:alert]
+    assert_redirected_to sign_app_settings_secret_credentials_path(ri: "jp")
+    assert_predicate @user_secret_credential.reload, :lapsed?
   end
 
   private

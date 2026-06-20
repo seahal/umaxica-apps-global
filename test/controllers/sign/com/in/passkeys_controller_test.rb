@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     CloudflareTurnstile.test_mode = true

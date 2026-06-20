@@ -16,8 +16,8 @@ class Acme::Com::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
 
   test "callback route exists" do
     assert_routing(
-      { method: :get, path: "http://#{@host}/auth/callback" },
-      { controller: "acme/com/auth/callbacks", action: "show" },
+      { method: :get, path: "http://#{@host}/oidc/callback" },
+      { controller: "acme/com/auth/callbacks", action: "show", to: "/acme/com/auth/callbacks#show" },
     )
   end
 end

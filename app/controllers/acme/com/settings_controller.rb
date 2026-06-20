@@ -13,7 +13,7 @@ module Acme
         redirect_to(
           sign_com_settings_url(
             ri: params[:ri],
-            host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+            host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
           ),
           allow_other_host: cross_host_redirect_allowed?,
           status: :see_other,

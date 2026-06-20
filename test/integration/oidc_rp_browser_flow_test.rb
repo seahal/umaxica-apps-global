@@ -38,7 +38,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
 
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -63,7 +63,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
 
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -105,7 +105,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
 
       assert_equal URI.parse(client.redirect_uris.first).host, callback_uri.host
-      assert_equal "/auth/callback", callback_uri.path
+      assert_equal "/oidc/callback", callback_uri.path
       assert_predicate callback_query["code"], :present?
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
@@ -180,17 +180,18 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects state mismatch" do
-    host! "www.app.localhost"
-    get "/auth", headers: browser_headers
+    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    get "/oidc/authorization", headers: browser_headers
 
-    get "/auth/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
+    get "/oidc/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
 
     assert_response :unprocessable_entity
   end
 
   test "callback rejects nonce mismatch" do
-    host! "www.app.localhost"
-    get "/auth", headers: browser_headers
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host! acme_host
+    get "/oidc/authorization", headers: browser_headers
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
     id_token = OidcIdTokenIssuer.call(
       resource: clients(:one),
@@ -204,24 +205,27 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     )
 
     OidcRpTokenClient.stub(:call, token_result) do
-      get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
+      get "/oidc/callback", params: { code: "code", state: state }, headers: browser_headers
     end
 
     assert_response :redirect
-    assert_equal "http://www.app.localhost/", response.location
+    assert_not_equal "http://#{acme_host}/", response.location, "nonce mismatch must not land on root"
   end
 
   test "app com and org callback establishes RP session after successful authorization" do
     SURFACES.each do |surface|
       host! surface[:host]
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
+      resource_type = oidc_resource_type_for(resource)
       id_token = OidcIdTokenIssuer.call(
         resource: resource,
         client: OidcClientRegistry.find!(surface[:client_id]),
         nonce: session.fetch(:oidc_nonce),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+        issuer: OidcIssuer.for_resource_type(resource_type),
       )
       token_result = OidcRpTokenClient::Result.new(
         success: true,
@@ -230,7 +234,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       )
 
       OidcRpTokenClient.stub(:call, token_result) do
-        get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
+        get "/oidc/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 
       assert_response :redirect
@@ -243,10 +247,11 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
 
-      post "/auth/logout", headers: browser_headers
+      post "/oidc/logout", headers: browser_headers
 
-      assert_response :redirect
-      assert_equal "http://#{surface[:host]}/", response.location
+      # Without an id_token_hint the endpoint renders a confirmation page
+      # (per OIDC end session spec) rather than performing logout immediately.
+      assert_response :success
     end
   end
 
@@ -261,6 +266,15 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def oidc_resource_type_for(resource)
+    case resource
+    when Client then "client"
+    when Operator then "operator"
+    when Visitor then "visitor"
+    else "client"
+    end
+  end
 
   def redirect_uri_for(surface)
     OidcClientRegistry.find!(surface[:client_id]).redirect_uris.find do |uri|

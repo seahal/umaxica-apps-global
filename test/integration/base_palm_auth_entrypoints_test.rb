@@ -23,7 +23,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     ].each do |surface|
       host! surface.fetch(:host)
 
-      get "/auth"
+      get "/oidc/authorization"
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -49,12 +49,12 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
 
   test "palm auth entrypoint redirects to acme authorize for the selected native client" do
     [
-      { client_id: "app-ios-rp", redirect_uri: "umaxica://oauth/callback" },
-      { client_id: "app-android-rp", redirect_uri: "com.umaxica.app:/oauth/callback" },
+      { client_id: "app-ios-rp", redirect_uri: "umaxica://oidc/callback" },
+      { client_id: "app-android-rp", redirect_uri: "com.umaxica.app:/oidc/callback" },
     ].each do |surface|
       host! PALM_HOST
 
-      get "/auth", params: { client_id: surface.fetch(:client_id) }
+      get "/oidc/authorization", params: { client_id: surface.fetch(:client_id) }
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -74,7 +74,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
   test "palm auth entrypoint rejects unknown native client ids" do
     host! PALM_HOST
 
-    get "/auth", params: { client_id: "unknown-rp" }
+    get "/oidc/authorization", params: { client_id: "unknown-rp" }
 
     assert_response :bad_request
     assert_equal "Invalid client", response.body
@@ -85,25 +85,25 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     get "/"
 
     assert_response :success
-    assert_select "a[href=?]", base_app_auth_authorization_path, text: "Sign up"
+    assert_select "a[href=?]", base_app_oidc_authorization_path, text: "Sign up"
 
     host! BASE_COM_HOST
     get "/"
 
     assert_response :success
-    assert_select "a[href=?]", base_com_auth_authorization_path, text: "Sign up"
+    assert_select "a[href=?]", base_com_oidc_authorization_path, text: "Sign up"
 
     host! BASE_ORG_HOST
     get "/"
 
     assert_response :success
-    assert_select "a[href=?]", base_org_auth_authorization_path, text: "Sign up"
+    assert_select "a[href=?]", base_org_oidc_authorization_path, text: "Sign up"
 
     host! PALM_HOST
     get "/"
 
     assert_response :success
-    assert_select "a[href=?]", palm_app_auth_authorization_path(client_id: "app-ios-rp"), text: "Sign up on iOS"
-    assert_select "a[href=?]", palm_app_auth_authorization_path(client_id: "app-android-rp"), text: "Sign up on Android"
+    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-ios-rp"), text: "Sign up on iOS"
+    assert_select "a[href=?]", palm_app_oidc_authorization_path(client_id: "app-android-rp"), text: "Sign up on Android"
   end
 end

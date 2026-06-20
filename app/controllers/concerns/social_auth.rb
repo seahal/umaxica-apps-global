@@ -73,6 +73,7 @@ module SocialAuth
     session[SOCIAL_STARTED_AT_SESSION_KEY] = Time.current.to_i
     session[SOCIAL_FLOW_ID_SESSION_KEY] = SecureRandom.hex(16)
     session[SOCIAL_PROVIDER_SESSION_KEY] = provider
+    session[:social_auth_nonce] = SecureRandom.urlsafe_base64(32) if provider.to_s == "apple"
     session[SOCIAL_ENTRY_SESSION_KEY] = entry if entry.present?
     session[SOCIAL_RI_SESSION_KEY] = ri if ri.present?
     session.delete(SOCIAL_PT_SESSION_KEY)
@@ -152,6 +153,7 @@ module SocialAuth
     session.delete(SOCIAL_ENTRY_SESSION_KEY)
     session.delete(SOCIAL_RI_SESSION_KEY)
     session.delete(SOCIAL_CEREMONY_GRANT_SESSION_KEY)
+    session.delete(:social_auth_nonce)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_STARTED_AT_SESSION_KEY)
     session.delete(SocialCallbackGuard::SOCIAL_STATE_USED_AT_SESSION_KEY)
@@ -312,9 +314,16 @@ module SocialAuth
   end
 
   def omniauth_authorize_path(provider, state: nil)
-    return "/social/#{provider}" if state.blank?
+    request_provider =
+      case SocialIdentifiable.normalize_provider(provider)
+      when "google" then "google_app"
+      when "apple" then "apple"
+      else provider.to_s
+      end
 
-    "/social/#{provider}?state=#{CGI.escape(state)}"
+    return "/auth/#{request_provider}" if state.blank?
+
+    "/auth/#{request_provider}?state=#{CGI.escape(state)}"
   end
 
   def social_auth_user

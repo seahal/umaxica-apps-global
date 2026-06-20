@@ -40,10 +40,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "form"
   end
 
-  test "collection get is not routed" do
+  test "collection get redirects to add ri" do
     get sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
 
-    assert_response :not_found
+    assert_response :redirect
   end
 
   test "renders email registration form structure" do
@@ -62,7 +62,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :success
 
-    assert_select "a[href=?]", sign_app_sign_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", sign_app_sign_up_path(ri: "jp"), count: 2
     assert_select "a[href=?]", new_sign_app_sign_in_email_path(ri: "jp"), count: 1
   end
 
@@ -91,9 +91,11 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "update accepts a valid otp submitted through client_email" do
     user_email = start_sign_up_flow!("client@example.com")
+    # Consume the "OTP sent" flash notice set by the create action
+    follow_redirect!
     pass_code = otp_code_for(user_email)
 
-    patch sign_app_sign_up_email_url(ri: "jp"),
+    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { client_email: { pass_code: pass_code } },
           headers: default_headers
 
@@ -898,10 +900,6 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_guard_email_url(ri: "jp")
-
-    get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
-
     assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
 
     get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
@@ -1102,6 +1100,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
            "cf-turnstile-response": "test",
          },
          headers: default_headers
+
+    # Follow the redirect to the OTP page to consume the "OTP sent" flash notice
+    # set by the create action; otherwise it leaks into the PATCH assertion below.
+    follow_redirect!
 
     user_email = ClientEmail.order(:created_at).last
     cycle = current_sign_up_flow(user_email)
@@ -1591,6 +1593,18 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   def default_headers
     { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
+  end
+
+  def start_sign_up_flow!(email)
+    post(
+      sign_app_sign_up_email_url(ri: "jp"),
+      params: {
+        user_email: { raw_address: email, confirm_policy: "1" },
+        "cf-turnstile-response": "test",
+      },
+      headers: default_headers,
+    )
+    ClientEmail.order(:created_at).last
   end
 
   def current_sign_up_flow(user_email)

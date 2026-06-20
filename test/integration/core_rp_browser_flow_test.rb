@@ -55,8 +55,8 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
     expectations.each do |host, controller|
       assert_routing(
-        { method: :get, path: "http://#{host}/auth/callback" },
-        { controller: controller, action: "show" },
+        { method: :get, path: "http://#{host}/oidc/callback" },
+        { controller: controller, action: "show", to: "/#{controller}#show" },
       )
     end
   end
@@ -66,7 +66,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       host! surface[:host]
       https!
 
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -92,7 +92,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       host! core_host
       https!
 
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -136,7 +136,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
 
       assert_equal URI.parse(client.redirect_uris.first).host, callback_uri.host
-      assert_equal "/auth/callback", callback_uri.path
+      assert_equal "/oidc/callback", callback_uri.path
       assert_predicate callback_query["code"], :present?
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
@@ -164,14 +164,17 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
       https!
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
+      resource_type = oidc_resource_type_for(resource)
       id_token = OidcIdTokenIssuer.call(
         resource: resource,
         client: OidcClientRegistry.find!(surface[:client_id]),
         nonce: session.fetch(:oidc_nonce),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+        issuer: OidcIssuer.for_resource_type(resource_type),
       )
       token_result = OidcRpTokenClient::Result.new(
         success: true,
@@ -180,7 +183,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       )
 
       OidcRpTokenClient.stub(:call, token_result) do
-        get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
+        get "/oidc/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 
       assert_response :redirect
@@ -193,11 +196,36 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
       https!
+      get "/oidc/authorization", headers: browser_headers
 
-      post "/auth/logout", headers: browser_headers
+      state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
+      resource = instance_exec(&surface[:resource])
+      resource_type = oidc_resource_type_for(resource)
+      id_token = OidcIdTokenIssuer.call(
+        resource: resource,
+        client: OidcClientRegistry.find!(surface[:client_id]),
+        nonce: session.fetch(:oidc_nonce),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+        issuer: OidcIssuer.for_resource_type(resource_type),
+      )
+      token_result = OidcRpTokenClient::Result.new(
+        success: true,
+        token_response: { id_token: id_token },
+        error: nil,
+      )
+      OidcRpTokenClient.stub(:call, token_result) do
+        get "/oidc/callback", params: { code: "code", state: state }, headers: browser_headers
+      end
+
+      post "/sign/out", headers: browser_headers
 
       assert_response :redirect
-      assert_equal "https://#{surface[:host]}/", response.location
+      logout_uri = URI.parse(response.location)
+      logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
+
+      assert_equal "/oidc/logout", logout_uri.path
+      assert_predicate logout_query["id_token_hint"], :present?
+      assert_includes logout_query.fetch("post_logout_redirect_uri", ""), surface[:host]
     end
   end
 
@@ -205,14 +233,17 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     SURFACES.each do |surface|
       host! surface[:host]
       https!
-      get "/auth", headers: browser_headers
+      get "/oidc/authorization", headers: browser_headers
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
+      resource_type = oidc_resource_type_for(resource)
       id_token = OidcIdTokenIssuer.call(
         resource: resource,
         client: OidcClientRegistry.find!(surface[:client_id]),
         nonce: session.fetch(:oidc_nonce),
+        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+        issuer: OidcIssuer.for_resource_type(resource_type),
       )
       token_result = OidcRpTokenClient::Result.new(
         success: true,
@@ -221,19 +252,33 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       )
 
       OidcRpTokenClient.stub(:call, token_result) do
-        get "/auth/callback", params: { code: "code", state: state }, headers: browser_headers
+        get "/oidc/callback", params: { code: "code", state: state }, headers: browser_headers
       end
 
       assert_response :redirect
 
-      post "/auth/logout", headers: browser_headers
+      post "/sign/out", headers: browser_headers
 
       assert_response :redirect
-      assert_equal "https://#{surface[:host]}/", response.location
+      logout_uri = URI.parse(response.location)
+      logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
+
+      assert_equal "/oidc/logout", logout_uri.path
+      assert_predicate logout_query["id_token_hint"], :present?
+      assert_includes logout_query.fetch("post_logout_redirect_uri", ""), surface[:host]
     end
   end
 
   private
+
+  def oidc_resource_type_for(resource)
+    case resource
+    when Client then "client"
+    when Operator then "operator"
+    when Visitor then "visitor"
+    else "client"
+    end
+  end
 
   def redirect_uri_for(surface)
     OidcClientRegistry.find!(surface[:client_id]).redirect_uris.find do |uri|

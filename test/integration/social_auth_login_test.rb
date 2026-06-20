@@ -21,7 +21,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.test_mode = false
@@ -38,7 +38,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -48,10 +48,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     user_count_before = Client.count
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
     # Callback
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -76,16 +76,16 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
     )
     setup_google_mock_auth(uid: existing_uid)
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -107,7 +107,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -115,9 +115,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     2.times { create_active_user_session_for_limit(existing_user) }
     setup_google_mock_auth(uid: existing_uid)
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -147,13 +147,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     identity = ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
     )
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: existing_uid,
       info: {},
       credentials: {
@@ -163,10 +163,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       },
     )
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
     assert_no_difference("ClientSignInFlow.count") do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
           params: { state: state },
           headers: browser_headers.merge(@callback_headers)
     end
@@ -182,7 +182,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "post", form["method"]
     assert_equal(
       completion_acme_app_social_authentication_url(
-        id: "google_app",
+        id: "google",
         host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       ),
       form["action"],
@@ -203,7 +203,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -212,14 +212,14 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     user_count_before = Client.count
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login", entry: "sign_up")
+    state = start_social_auth_flow(provider: "google", intent: "login", entry: "sign_up")
 
     sign_up_cycle = ClientSignUpFlow.order(:id).last
 
     assert_equal "google", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -246,13 +246,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    setup_apple_mock_auth(uid: existing_uid)
-
     user_count_before = Client.count
 
     state = start_social_auth_flow(provider: "apple", intent: "login")
+    setup_apple_mock_auth(uid: existing_uid)
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -275,18 +274,17 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
       expires_at: 1.week.from_now.to_i,
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
-    setup_apple_mock_auth(uid: existing_uid)
-
     user_count_before = Client.count
 
     state = start_social_auth_flow(provider: "apple", intent: "login", entry: "sign_up")
+    setup_apple_mock_auth(uid: existing_uid)
 
     sign_up_cycle = ClientSignUpFlow.order(:id).last
 
     assert_equal "apple", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -311,7 +309,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     user_count_before = Client.count
     identity_count_before = ClientGoogleIdentity.count
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
@@ -319,7 +317,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                get sign_app_auth_google_app_callback_url(ri: "jp"),
+                get sign_app_social_google_callback_url(ri: "jp"),
                     params: { state: state },
                     headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
@@ -411,9 +409,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "duplicate_callback_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -421,7 +419,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_not ClientGoogleIdentity.exists?(uid: new_uid)
 
-    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
+    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -429,9 +427,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   end
 
   test "provider failure returns to sign up when social auth started from sign up" do
-    start_social_auth_flow(provider: "google_app", intent: "login", entry: "sign_up")
+    start_social_auth_flow(provider: "google", intent: "login", entry: "sign_up")
 
-    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "google_app"),
+    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -441,7 +439,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   test "provider failure returns to sign in when social auth started from sign in" do
     start_social_auth_flow(provider: "apple", intent: "login")
 
-    get sign_app_auth_failure_url(message: "invalid_credentials", strategy: "apple"),
+    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "apple"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -450,12 +448,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
   test "Apple login with new uid waits for signup confirmation before creating user and identity" do
     new_uid = "brand_new_apple_#{SecureRandom.hex(4)}"
-    setup_apple_mock_auth(uid: new_uid)
 
     user_count_before = Client.count
     identity_count_before = ClientAppleIdentity.count
 
     state = start_social_auth_flow(provider: "apple", intent: "login")
+    setup_apple_mock_auth(uid: new_uid)
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
@@ -463,7 +461,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+                post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
                      params: { state: state },
                      headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
@@ -528,9 +526,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     new_uid = "cookie_test_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -556,7 +554,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     identity = ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -567,9 +565,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     time_before = Time.current
 
-    state = start_social_auth_flow(provider: "google_app", intent: "login")
+    state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -587,8 +585,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   # IMPORTANT: Social login authenticates by provider+uid ONLY, NOT email
   # We deliberately omit email from mock_auth to test this requirement
   def setup_google_mock_auth(uid:)
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
@@ -608,6 +606,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         token: "apple_token_#{SecureRandom.hex(8)}",
         expires_at: 1.week.from_now.to_i,
       },
+      extra: { id_info: { nonce: session[:social_auth_nonce] } },
     )
   end
 

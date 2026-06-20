@@ -28,11 +28,11 @@ mutates session, refresh, preference, dashboard, withdrawal, token, account, or 
 state from a sign-side route, that behavior is a migration gap tracked by the Identity Authority
 inversion plans, not a competing source of truth.
 
-Current browser route contract keeps Acme as the only OP/AS authority. RP browser start and
-callback routes use `/oidc/authorization` and `/oidc/callback`; Acme owns the protocol `/oauth/*`
-surface and `/oidc/logout`, while RP local sign-out remains `/sign/out`. Social login entry points
-use `/social/:provider/sign/in`, `/social/:provider/sign/up`, and `/social/:provider/callback`.
-`google` and `apple` are canonical provider names; `google_app` is retained only in historical or
+Current browser route contract keeps Acme as the only OP/AS authority. RP browser start and callback
+routes use `/oidc/authorization` and `/oidc/callback`; Acme owns the protocol `/oauth/*` surface and
+`/oidc/logout`, while RP local sign-out remains `/sign/out`. Social login entry points use
+`/social/:provider/sign/in`, `/social/:provider/sign/up`, and `/social/:provider/callback`. `google`
+and `apple` are canonical provider names; `google_app` is retained only in historical or
 compatibility data.
 
 The first implementation slice is limited to route/controller classification, acme authority entry

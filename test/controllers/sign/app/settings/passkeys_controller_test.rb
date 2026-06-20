@@ -555,11 +555,11 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       description: "Extra Passkey",
     )
 
-    assert_no_difference("ClientPasskey.count") do
+    assert_difference("ClientPasskey.count", -1) do
       delete sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
+    assert_redirected_to sign_app_settings_passkeys_path(ri: "jp")
   end
 
   test "should 404 when accessing other user's passkey" do

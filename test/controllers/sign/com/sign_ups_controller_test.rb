@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
   end
 
   test "direct entry normalizes to acme com authorization" do
@@ -100,7 +100,7 @@ class Sign::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def host
-    ENV["ID_CORPORATE_URL"] || "id.com.localhost"
+    ENV["SIGN_CORPORATE_URL"] || "id.com.localhost"
   end
 
   def with_env(values)

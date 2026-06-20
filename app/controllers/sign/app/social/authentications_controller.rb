@@ -45,7 +45,7 @@ module Sign
         # Flow:
         #   1. Validate provider
         #   2. Prepare intent in session (generates state)
-        #   3. Redirect to /auth/:provider?state=...
+        #   3. Redirect to /auth/google_app or /auth/apple with the state query param
         def continue
           provider = params[:provider]
           intent = params[:intent] || "login"

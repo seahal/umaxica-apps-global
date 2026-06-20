@@ -12,7 +12,6 @@ ENV["MAIN_SERVICE_URL"] ||= "www.umaxica.app"
 ENV["ID_STAFF_URL"] ||= "id.umaxica.org"
 ENV["SIGN_STAFF_URL"] ||= "id.umaxica.org"
 ENV["MAIN_STAFF_URL"] ||= "www.umaxica.org"
-ENV["ID_CORPORATE_URL"] ||= "id.umaxica.com"
 ENV["SIGN_CORPORATE_URL"] ||= "id.umaxica.com"
 ENV["MAIN_CORPORATE_URL"] ||= "www.umaxica.com"
 

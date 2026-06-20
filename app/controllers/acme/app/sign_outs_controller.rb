@@ -14,6 +14,8 @@ module Acme
       helper_method :sign_out_completed_description
 
       def show
+        return render_oidc_logout_completion if sign_out_completion_notice_present?
+
         render "acme/shared/sign_outs/show"
       end
 

@@ -53,7 +53,7 @@ class Sign::Com::Settings::Passkeys::OptionsController < ::Sign::Com::Applicatio
   def passkey_registration_passkeys = current_visitor.visitor_passkeys
 
   def passkey_registration_redirect_url
-    sign_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"))
+    sign_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"))
   end
 
   def recovery_passcode_requirement_actor = current_visitor
@@ -63,7 +63,7 @@ class Sign::Com::Settings::Passkeys::OptionsController < ::Sign::Com::Applicatio
   def recovery_passcode_setup_url
     sign_com_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )
   end
 end

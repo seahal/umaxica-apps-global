@@ -310,7 +310,6 @@ scope module: :acme, as: :acme do
 
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
-
       end
 
       # Canonical browser sign-out flow.
@@ -522,7 +521,6 @@ scope module: :acme, as: :acme do
 
         # OAuth revocation endpoint; keep protocol path.
         resource :revocation, only: :create, path: "revoke"
-
       end
 
       # Canonical browser sign-out flow.

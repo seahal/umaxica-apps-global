@@ -99,7 +99,7 @@ class AcmeEmailManagementAuthoritySlice1ITest < ActionDispatch::IntegrationTest
 
   test "acme com and org settings email registration intents redirect to sign ceremony with grant" do
     com_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
-    com_sign_host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    com_sign_host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "acme-com-email-intent@example.com")
     visitor_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(visitor_token, scope: "settings_email")

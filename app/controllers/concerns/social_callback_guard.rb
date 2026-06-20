@@ -15,6 +15,7 @@ module SocialCallbackGuard
   REQUEST_ALLOWED_METHODS_BY_PROVIDER = {
     "apple" => %w(POST GET).freeze,
     "google" => %w(POST GET).freeze,
+    "google_app" => %w(POST GET).freeze, # legacy request-phase path /auth/google_app; callback uses "google"
   }.freeze
 
   CALLBACK_ALLOWED_METHODS_BY_PROVIDER = {
@@ -22,7 +23,7 @@ module SocialCallbackGuard
     "google" => %w(GET).freeze,
   }.freeze
 
-  REQUEST_PHASE_PATH = %r{\A/social/(?<provider>google|apple)\z}.freeze
+  REQUEST_PHASE_PATH = %r{\A/auth/(?<provider>google_app|apple)\z}.freeze
 
   module_function
 
@@ -103,7 +104,6 @@ module SocialCallbackGuard
             SIGN_SERVICE_URL
             ID_STAFF_URL
             SIGN_STAFF_URL
-            ID_CORPORATE_URL
             SIGN_CORPORATE_URL
           ).filter_map { |key| normalize_host_port(ENV[key]) }
 

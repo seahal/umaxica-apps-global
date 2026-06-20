@@ -6,7 +6,7 @@ require "test_helper"
 class SocialAuthVerifiedProviderAssertionTest < ActiveSupport::TestCase
   FRESH_IAT = -> { Time.current.to_i }
 
-  def base_auth_hash(provider: "google", email_verified: nil)
+  def base_auth_hash(provider: "google", email_verified: nil, nonce: nil)
     {
       "provider" => provider,
       "uid" => "uid-12345",
@@ -18,6 +18,7 @@ class SocialAuthVerifiedProviderAssertionTest < ActiveSupport::TestCase
         "raw_info" => {
           "iat" => FRESH_IAT.call,
           "email_verified" => email_verified,
+          "nonce" => nonce,
         }.compact,
       },
     }
@@ -84,5 +85,27 @@ class SocialAuthVerifiedProviderAssertionTest < ActiveSupport::TestCase
     assert_raises(SocialAuth::ProviderError) do
       SocialAuthVerifiedProviderAssertion.call(auth_hash: auth, expected_provider: "google")
     end
+  end
+
+  test "nonce mismatch raises ProviderError when expected nonce is present" do
+    auth = base_auth_hash(email_verified: true, nonce: "provider-nonce")
+    assert_raises(SocialAuth::ProviderError) do
+      SocialAuthVerifiedProviderAssertion.call(
+        auth_hash: auth,
+        expected_provider: "google",
+        expected_nonce: "different-nonce",
+      )
+    end
+  end
+
+  test "matching nonce passes assertion when expected nonce is present" do
+    auth = base_auth_hash(email_verified: true, nonce: "provider-nonce")
+    result = SocialAuthVerifiedProviderAssertion.call(
+      auth_hash: auth,
+      expected_provider: "google",
+      expected_nonce: "provider-nonce",
+    )
+
+    assert_equal auth, result
   end
 end

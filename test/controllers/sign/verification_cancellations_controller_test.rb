@@ -27,7 +27,7 @@ class Sign::VerificationCancellationsControllerTest < ActionDispatch::Integratio
   end
 
   test "com cancellation clears local step-up session and renders acme cancellation handoff" do
-    host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "cancel-com-#{SecureRandom.hex(4)}@example.com")
     visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",

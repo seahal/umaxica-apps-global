@@ -5,8 +5,8 @@ require "test_helper"
 
 class Sign::Com::Settings::Mfa::ChallengesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     Prosopite.pause do
       VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
       VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)

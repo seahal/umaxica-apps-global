@@ -181,7 +181,19 @@ module Sign
 
         # DELETE /settings/passkeys/:id
         def destroy
-          redirect_to_acme_settings_authority!
+          passkey = current_client.client_passkeys.find_by!(public_id: params.expect(:id))
+          authorize!(passkey)
+
+          unless AuthMethodGuard.can_remove_passkey?(current_client, passkey)
+            redirect_last_method
+            return
+          end
+
+          passkey.destroy!
+          redirect_to(
+            sign_app_settings_passkeys_path(ri: params[:ri]),
+            status: :see_other,
+          )
         end
 
         private

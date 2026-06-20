@@ -300,6 +300,9 @@ en:
             notifiable_label: Notification emails
             notifiable_description: Receive product updates and operational notifications.
             save: Save email settings
+          destroy:
+            success: Email address deleted.
+            last_method: You must keep at least one login or recovery method.
       preferences:
         footer:
           home: HOME

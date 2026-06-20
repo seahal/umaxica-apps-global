@@ -35,7 +35,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
@@ -49,7 +49,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     ClientGoogleIdentity.create!(
       user: @user_one,
       uid: existing_uid,
-      provider: "google_app",
+      provider: "google",
       token: "token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -66,7 +66,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     # Callback should fail with conflict
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: social_auth_state_from_response },
         headers: @callback_headers.merge(as_user_headers(@user_two, host: @host))
 
@@ -95,15 +95,15 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    setup_apple_mock_auth(uid: existing_uid)
-
     # Client two starts link flow
     post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_two)
 
     assert_response :redirect
 
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    setup_apple_mock_auth(uid: existing_uid)
+
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: social_auth_state_from_response },
          headers: @callback_headers.merge(as_user_headers(@user_two, host: @host))
 
@@ -118,38 +118,43 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   end
 
   test "link Apple fails when flow context is missing" do
-    setup_apple_mock_auth(uid: "apple_state_mismatch_#{SecureRandom.hex(4)}")
+    uid = "apple_state_mismatch_#{SecureRandom.hex(4)}"
+    # No connection request — nonce: nil is correct; state guard rejects before nonce is checked.
+    setup_apple_mock_auth(uid: uid, nonce: nil)
 
     # Do not call /social/auth/:provider/continue to simulate missing link context
     # Use X-STRICT-SOCIAL-STATE to prevent test-mode state bypass
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
            .merge("X-STRICT-SOCIAL-STATE" => "1")
 
     assert_response :forbidden
 
-    identity = ClientAppleIdentity.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
+    identity = ClientAppleIdentity.find_by(uid: uid)
 
     assert_nil identity, "Identity should not be created on state mismatch"
   end
 
   test "link Apple fails when intent TTL exceeded" do
-    setup_apple_mock_auth(uid: "apple_state_expired_#{SecureRandom.hex(4)}")
+    uid = "apple_state_expired_#{SecureRandom.hex(4)}"
 
     post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
     assert_response :redirect
 
+    # Set up mock after connection POST so session nonce is available.
+    setup_apple_mock_auth(uid: uid, nonce: session[:social_auth_nonce])
+
     travel_to 6.minutes.from_now do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: social_auth_state_from_response },
            headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
 
     assert_response :forbidden
 
-    identity = ClientAppleIdentity.find_by(uid: OmniAuth.config.mock_auth[:apple].uid)
+    identity = ClientAppleIdentity.find_by(uid: uid)
 
     assert_nil identity, "Identity should not be created when intent expired"
   end
@@ -162,7 +167,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: social_link_headers(@user_one)
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
           params: { state: social_auth_state_from_response },
           headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
@@ -174,13 +179,14 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
   test "Sign-owned Apple link intent creates one social identity" do
     new_uid = "grantless_apple_#{SecureRandom.hex(4)}"
-    setup_apple_mock_auth(uid: new_uid)
 
     post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
          headers: social_link_headers(@user_one)
 
+    setup_apple_mock_auth(uid: new_uid)
+
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: social_auth_state_from_response },
            headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
     end
@@ -199,7 +205,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     existing_identity = ClientGoogleIdentity.create!(
       user: @user_one,
       uid: old_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -207,9 +213,9 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     # Re-link the same provider+uid through the Sign-owned settings ceremony.
     setup_google_mock_auth(uid: old_uid)
-    grant_session = seed_app_social_link_grant_session(provider: "google_app", user: @user_one, ri: "jp")
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_one, ri: "jp")
 
-    perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
+    perform_grant_backed_link(provider: "google", grant_session: grant_session)
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
     # Identity should still exist and remain owned by the same user.
@@ -222,10 +228,10 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     new_uid = "brand_new_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
 
-    grant_session = seed_app_social_link_grant_session(provider: "google_app", user: @user_one, ri: "jp")
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_one, ri: "jp")
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
+      perform_grant_backed_link(provider: "google", grant_session: grant_session)
     end
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
@@ -286,7 +292,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     revoked_identity = ClientGoogleIdentity.create!(
       user: @user_one,
       uid: revoked_uid,
-      provider: "google_app",
+      provider: "google",
       token: "old_token",
       expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:revoked),
@@ -296,8 +302,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: revoked_uid)
 
     # Re-link through the Sign-owned settings ceremony.
-    grant_session = seed_app_social_link_grant_session(provider: "google_app", user: @user_one, ri: "jp")
-    perform_grant_backed_link(provider: "google_app", grant_session: grant_session)
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_one, ri: "jp")
+    perform_grant_backed_link(provider: "google", grant_session: grant_session)
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
 
@@ -320,9 +326,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:revoked),
     )
 
-    setup_apple_mock_auth(uid: revoked_uid)
-
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: @user_one, ri: "jp")
+    setup_apple_mock_auth(uid: revoked_uid)
     perform_grant_backed_link(provider: "apple", grant_session: grant_session)
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
@@ -338,13 +343,13 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   def perform_grant_backed_link(provider:, grant_session:)
     if provider == "apple"
       post(
-        sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+        sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
         params: { state: grant_session.state },
         headers: @callback_headers.merge(grant_session.user_headers),
       )
     else
       get(
-        sign_app_auth_google_app_callback_url(ri: "jp"),
+        sign_app_social_google_callback_url(ri: "jp"),
         params: { state: grant_session.state },
         headers: @callback_headers.merge(grant_session.user_headers),
       )
@@ -362,8 +367,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   # IMPORTANT: Social login authenticates by provider+uid ONLY, NOT email
   # We deliberately omit email from mock_auth to test this requirement
   def setup_google_mock_auth(uid:)
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
@@ -374,7 +379,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def setup_apple_mock_auth(uid:)
+  def setup_apple_mock_auth(uid:, nonce: session[:social_auth_nonce])
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       provider: "apple",
       uid: uid,
@@ -383,6 +388,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
         token: "apple_token_#{SecureRandom.hex(8)}",
         expires_at: 1.week.from_now.to_i,
       },
+      extra: { id_info: { nonce: nonce } },
     )
   end
 

@@ -5,8 +5,8 @@ require "test_helper"
 
 class Sign::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "sessions-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+10000000991",
@@ -25,7 +25,7 @@ class Sign::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "protected settings sessions requires authentication" do
     with_env(
-      "ID_CORPORATE_URL" => "id.com.localhost",
+      "SIGN_CORPORATE_URL" => "id.com.localhost",
       "SIGN_CORPORATE_URL" => "id.umaxica.com",
       "ACME_CORPORATE_URL" => "www.umaxica.com",
     ) do

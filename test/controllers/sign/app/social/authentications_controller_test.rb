@@ -12,7 +12,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     get sign_app_social_google_sign_in_path(provider: "google", ri: "jp")
 
     assert_response :redirect
-    assert_match %r{/social/google\?state=}, response.location
+    assert_match %r{/auth/google_app\?state=}, response.location
   end
 
   test "continue stores only social ceremony transaction id in cookie session" do
@@ -33,7 +33,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     get sign_app_social_apple_sign_in_path(provider: "apple", ri: "jp")
 
     assert_response :redirect
-    assert_match %r{/social/apple\?state=}, response.location
+    assert_match %r{/auth/apple\?state=}, response.location
   end
 
   test "start path is not routable" do

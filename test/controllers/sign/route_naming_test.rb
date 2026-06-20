@@ -6,7 +6,7 @@ require "test_helper"
 class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   SURFACES = {
     app: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-    com: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+    com: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     org: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
   }.freeze
 

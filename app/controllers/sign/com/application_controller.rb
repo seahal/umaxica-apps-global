@@ -30,7 +30,7 @@ module Sign
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                             ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                            ),
                            with: :exception
 

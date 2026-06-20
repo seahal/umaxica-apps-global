@@ -29,7 +29,7 @@ class SignAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
   end
 
   test "com secret credential sign-in hits explicit rails rate limit" do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
 
     5.times do
       post sign_com_sign_in_secret_credential_url(ri: "jp"),

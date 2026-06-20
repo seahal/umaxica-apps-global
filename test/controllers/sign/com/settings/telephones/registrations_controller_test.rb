@@ -7,8 +7,8 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "registration-#{SecureRandom.hex(4)}@example.com")
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(@token)

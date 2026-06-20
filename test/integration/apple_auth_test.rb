@@ -16,11 +16,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     JitSecurityTurnstileVerifier.test_mode = false
   end
 
   test "first Apple login waits for confirmation before creating user" do
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
+    prepare_social_login(provider: "apple")
+
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
@@ -30,14 +33,13 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
           token: "apple_token",
           expires_at: 1.week.from_now.to_i,
         },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    prepare_social_login(provider: "apple")
-
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
     end
@@ -76,6 +78,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       AppPreferenceThemeOption.delete_all
     end
 
+    prepare_social_login(provider: "apple")
+
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
@@ -85,12 +89,11 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
           token: "apple_token",
           expires_at: 1.week.from_now.to_i,
         },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    prepare_social_login(provider: "apple")
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
@@ -111,6 +114,8 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       token_expires_at: 1.week.from_now.to_i,
     )
 
+    prepare_social_login(provider: "apple")
+
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
@@ -120,12 +125,11 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
           token: "new_token",
           expires_at: 1.week.from_now.to_i,
         },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    prepare_social_login(provider: "apple")
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
@@ -139,25 +143,25 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
   test "Apple login without email waits for confirmation before creating user" do
     # Requirement: Social login MUST work with provider+uid ONLY, NO email
+    prepare_social_login(provider: "apple")
+
+    uid = "apple_uid_no_email_#{SecureRandom.hex(4)}"
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
-        uid: "apple_uid_no_email_#{SecureRandom.hex(4)}",
+        uid: uid,
         info: {}, # Deliberately empty - no email provided
         credentials: {
           token: "apple_token",
           expires_at: 1.week.from_now.to_i,
         },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    prepare_social_login(provider: "apple")
-
-    uid = OmniAuth.config.mock_auth[:apple].uid
-
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
     end
@@ -190,23 +194,23 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   test "Apple login without email does not save email to ClientAppleIdentity after confirmation" do
     # Even though ClientAppleIdentity schema may have an email column (legacy),
     # we MUST NOT write to it during social login
+    prepare_social_login(provider: "apple")
+
+    uid = "apple_uid_verify_no_email_#{SecureRandom.hex(4)}"
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
         provider: "apple",
-        uid: "apple_uid_verify_no_email_#{SecureRandom.hex(4)}",
+        uid: uid,
         info: {}, # No email in auth hash
         credentials: {
           token: "apple_token",
           expires_at: 1.week.from_now.to_i,
         },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
 
-    prepare_social_login(provider: "apple")
-
-    uid = OmniAuth.config.mock_auth[:apple].uid
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
@@ -233,10 +237,14 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
   test "Google login without email waits for confirmation before creating user" do
     # Same requirement applies to Google
     OmniAuth.config.test_mode = true
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
+
+    prepare_social_login(provider: "google_app")
+
+    uid = "google_uid_no_email_#{SecureRandom.hex(4)}"
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
       {
-        provider: "google_app",
-        uid: "google_uid_no_email_#{SecureRandom.hex(4)}",
+        provider: "google",
+        uid: uid,
         info: { image: "https://example.com/image.jpg" }, # No email
         credentials: {
           token: "google_token",
@@ -246,13 +254,9 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    prepare_social_login(provider: "google_app")
-
-    uid = OmniAuth.config.mock_auth[:google_app].uid
-
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_google_app_callback_url(ri: "jp", state: @social_state),
+        get sign_app_social_google_callback_url(ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
     end

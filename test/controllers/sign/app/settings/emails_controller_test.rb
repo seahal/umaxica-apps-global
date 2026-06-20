@@ -13,21 +13,34 @@ class Sign::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
     host! @host
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
-  test "sign settings emails index redirects to acme authority" do
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
+  end
+
+  test "sign settings emails index renders email list" do
     get sign_app_settings_emails_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to acme_app_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_response :ok
   end
 
-  test "sign settings email edit redirects without loading email" do
-    get edit_sign_app_settings_email_url("missing", ri: "jp"), headers: session_headers
+  test "sign settings email edit renders form" do
+    email = ClientEmail.create!(
+      address: "sign-email-edit-form@example.com",
+      user: clients(:one),
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+    )
 
-    assert_redirected_to edit_acme_app_settings_email_url("missing", ri: "jp", host: @acme_host)
+    get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
+
+    assert_response :ok
   end
 
-  test "sign settings email update redirects without local preference mutation" do
+  test "sign settings email update mutates preferences on sign surface" do
     email = ClientEmail.create!(
       address: "sign-email-update-redirect@example.com",
       user: clients(:one),
@@ -36,28 +49,27 @@ class Sign::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
       notifiable: true,
     )
 
-    assert_no_changes -> { email.reload.attributes.slice("promotional", "notifiable") } do
-      patch sign_app_settings_email_url(email.public_id, ri: "jp"),
-            params: { user_email: { promotional: "0", notifiable: "0" } },
-            headers: session_headers
-    end
+    patch sign_app_settings_email_url(email.public_id, ri: "jp"),
+          params: { user_email: { promotional: "0", notifiable: "0" } },
+          headers: session_headers
 
-    assert_redirected_to acme_app_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
+    assert_redirected_to edit_sign_app_settings_email_path(email.public_id, ri: "jp")
+    assert_not email.reload.promotional
+    assert_not email.reload.notifiable
   end
 
-  test "sign settings email destroy redirects without local account mutation" do
+  test "sign settings email destroy removes unverified email" do
     email = ClientEmail.create!(
       address: "sign-email-destroy-redirect@example.com",
       user: clients(:one),
-      user_email_status_id: ClientEmailStatus::VERIFIED,
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_no_difference("ClientEmail.count") do
+    assert_difference("ClientEmail.count", -1) do
       delete sign_app_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to acme_app_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
-    assert_not_predicate email.reload, :destroyed?
+    assert_redirected_to sign_app_settings_emails_path(ri: "jp")
   end
 
   test "sign email registration route remains on sign ceremony surface" do

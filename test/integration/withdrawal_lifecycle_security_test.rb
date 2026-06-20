@@ -4,7 +4,7 @@ require "test_helper"
 
 class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     host! @host
     @user = create_verified_user_with_email(email_address: "withdrawal-p0-#{SecureRandom.hex(4)}@example.com")
     @user.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
@@ -15,10 +15,10 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "confirmed withdrawal revokes other sessions but preserves the continuation session" do
     freeze_time do
-      patch acme_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch sign_app_settings_withdrawal_url(ri: "jp", host: @host),
             params: { ack_schedule_purge: "1" },
             headers: headers_for(@token)
-      patch acme_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch sign_app_settings_withdrawal_url(ri: "jp", host: @host),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
     end
@@ -33,22 +33,22 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "withdrawal recovery is rejected before one hour and after purge deadline" do
     freeze_time do
-      patch acme_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch sign_app_settings_withdrawal_url(ri: "jp", host: @host),
             params: { ack_schedule_purge: "1" },
             headers: headers_for(@token)
-      patch acme_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch sign_app_settings_withdrawal_url(ri: "jp", host: @host),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
 
       travel 10.minutes
-      post acme_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+      post sign_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at
 
       @user.update_columns(deactivated_at: 31.days.ago, discarded_at: 31.days.ago, purged_at: 1.minute.ago)
       mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
-      post acme_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+      post sign_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at

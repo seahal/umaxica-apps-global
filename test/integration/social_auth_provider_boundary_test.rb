@@ -14,13 +14,13 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
   test "google callback rejects forged id_info sub when uid is absent" do
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       info: {},
       credentials: {
         token: "google-token",
@@ -33,10 +33,10 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
         },
       },
     )
-    state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
+    state = seed_social_auth_session(provider: "google", intent: "login", ri: "jp")
 
     assert_no_difference("ClientGoogleIdentity.count") do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)
     end
@@ -46,7 +46,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects auth provider that does not match the route provider" do
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
       provider: "apple",
       uid: "provider-mismatch-uid",
       info: {},
@@ -55,11 +55,11 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
         expires_at: 1.week.from_now.to_i,
       },
     )
-    state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
+    state = seed_social_auth_session(provider: "google", intent: "login", ri: "jp")
 
     assert_no_difference("ClientAppleIdentity.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_auth_google_app_callback_url(ri: "jp"),
+        get sign_app_social_google_callback_url(ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
       end
@@ -69,8 +69,8 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects stale provider assertion iat" do
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: "stale-iat-google",
       info: {},
       credentials: {
@@ -83,10 +83,36 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
         },
       },
     )
-    state = seed_social_auth_session(provider: "google_app", intent: "login", ri: "jp")
+    state = seed_social_auth_session(provider: "google", intent: "login", ri: "jp")
 
     assert_no_difference("ClientGoogleIdentity.count") do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
+          params: { state: state },
+          headers: social_callback_headers(@host)
+    end
+
+    assert_response :redirect
+  end
+
+  test "apple callback rejects missing provider nonce" do
+    OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
+      provider: "apple",
+      uid: "apple-nonce-missing",
+      info: {},
+      credentials: {
+        token: "apple-token",
+        expires_at: 1.week.from_now.to_i,
+      },
+      extra: {
+        raw_info: {
+          iat: Time.current.to_i,
+        },
+      },
+    )
+    state = seed_social_auth_session(provider: "apple", intent: "login", ri: "jp")
+
+    assert_no_difference("ClientAppleIdentity.count") do
+      get sign_app_social_apple_callback_url(ri: "jp"),
           params: { state: state },
           headers: social_callback_headers(@host)
     end

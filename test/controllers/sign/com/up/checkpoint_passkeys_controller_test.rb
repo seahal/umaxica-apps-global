@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Com::Sign::Up::CheckpointPasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     cookies["csrf_token"] = csrf_token_value
 
     CloudflareTurnstile.test_mode = true
@@ -38,8 +38,8 @@ class Sign::Com::Sign::Up::CheckpointPasskeysControllerTest < ActionDispatch::In
     allowed_origins = [
       "http://id.com.localhost",
       "http://www.example.com",
-      "http://#{ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com")}",
-      "https://#{ENV.fetch("ID_CORPORATE_URL", "id.umaxica.com")}",
+      "http://#{ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com")}",
+      "https://#{ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com")}",
     ].uniq
     Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
   end

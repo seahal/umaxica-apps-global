@@ -25,7 +25,7 @@ module Acme
               new_sign_com_settings_telephones_registration_url(
                 ri: params[:ri],
                 telephone_ceremony_grant: issuance.grant,
-                host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
               ),
               status: :see_other,
               allow_other_host: cross_host_redirect_allowed?,

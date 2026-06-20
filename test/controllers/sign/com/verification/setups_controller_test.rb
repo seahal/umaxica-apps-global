@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Com::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     host! @host
     ensure_visitor_reference_records!
     ensure_visitor_token_reference_records!

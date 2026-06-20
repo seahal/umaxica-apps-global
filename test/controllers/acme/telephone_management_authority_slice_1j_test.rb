@@ -133,7 +133,7 @@ class AcmeTelephoneManagementAuthoritySlice1JTest < ActionDispatch::IntegrationT
     assert_match(
       %r{\Ahttp://#{Regexp.escape(
         ENV.fetch(
-          "ID_CORPORATE_URL",
+          "SIGN_CORPORATE_URL",
           "id.com.localhost",
         ),
       )}/settings/telephones/registration/new}, response.location,

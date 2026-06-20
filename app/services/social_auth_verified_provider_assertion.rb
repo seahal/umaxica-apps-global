@@ -8,9 +8,10 @@ class SocialAuthVerifiedProviderAssertion
     new(...).call
   end
 
-  def initialize(auth_hash:, expected_provider:)
+  def initialize(auth_hash:, expected_provider:, expected_nonce: nil)
     @auth_hash = auth_hash
     @expected_provider = expected_provider.to_s
+    @expected_nonce = expected_nonce
   end
 
   def call
@@ -19,6 +20,7 @@ class SocialAuthVerifiedProviderAssertion
     raise SocialAuth::ProviderError.new("errors.social_auth.missing_uid") if uid.blank?
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless credentials_usable?
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless provider_claims_fresh?
+    raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless provider_nonce_valid?
     # Reject when the provider explicitly flags the email as unverified. A nil value (claim absent)
     # is allowed because uid+provider is the identity key, not email; some providers omit the claim.
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") if email_explicitly_unverified?
@@ -28,7 +30,7 @@ class SocialAuthVerifiedProviderAssertion
 
   private
 
-  attr_reader :auth_hash, :expected_provider
+  attr_reader :auth_hash, :expected_provider, :expected_nonce
 
   def provider
     auth_value(auth_hash, :provider).to_s
@@ -59,6 +61,15 @@ class SocialAuthVerifiedProviderAssertion
     false
   end
 
+  def provider_nonce_valid?
+    return true if expected_nonce.blank?
+
+    nonce = claim_value(:nonce)
+    return false if nonce.blank?
+
+    secure_compare(nonce.to_s, expected_nonce.to_s)
+  end
+
   # Returns true only when the provider explicitly sets email_verified=false.
   # A nil/absent claim is treated as "provider does not assert email status" and is allowed
   # because the identity key is uid+provider, not email.
@@ -85,5 +96,11 @@ class SocialAuthVerifiedProviderAssertion
     nil
   rescue KeyError
     nil
+  end
+
+  def secure_compare(left, right)
+    return false unless left.bytesize == right.bytesize
+
+    ActiveSupport::SecurityUtils.secure_compare(left, right)
   end
 end

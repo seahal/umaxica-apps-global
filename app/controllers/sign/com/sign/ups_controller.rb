@@ -6,7 +6,7 @@ module Sign
     module Sign
       class UpsController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :guest
-        declare_authentication_mode! :guest
+        declare_authentication_mode! :guest, no_redirect: true
         skip_before_action :set_region, raise: false
 
         def show

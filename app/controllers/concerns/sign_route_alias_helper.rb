@@ -10,7 +10,9 @@ module SignRouteAliasHelper
     helper_name = name.to_s
     return super unless helper_name.start_with?("acme_")
 
-    target_name = helper_name.sub(/\Aacme_/, "sign_")
+    target_name = helper_name
+      .sub(/\Aacme_/, "sign_")
+      .sub(/_settings_secrets(?=_(?:url|path)\z)/, "_settings_secret_credentials")
     return super unless respond_to?(target_name, true)
 
     if helper_name.end_with?("_url") && respond_to?(:acme_authority_host, true)

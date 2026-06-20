@@ -15,6 +15,9 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
 
   test "social login flow does not trigger email verification and enters guardrail" do
     OmniAuth.config.test_mode = true
+
+    state = seed_social_auth_session(provider: "apple", intent: "login", entry: "sign_up", ri: "jp")
+
     # IMPORTANT: Social login uses provider+uid ONLY, NOT email
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       {
@@ -22,15 +25,14 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
         uid: "flow_uid",
         info: {},
         credentials: { token: "token", expires_at: 1.week.from_now.to_i },
+        extra: { id_info: { nonce: session[:social_auth_nonce] } },
       },
     )
-
-    state = seed_social_auth_session(provider: "apple", intent: "login", entry: "sign_up", ri: "jp")
 
     # 1. Auth callback
     # We expect NO emails to be sent
     assert_no_emails do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: social_callback_headers(@host)
     end

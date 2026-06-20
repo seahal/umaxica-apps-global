@@ -5,8 +5,8 @@ require "test_helper"
 
 class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     Prosopite.pause do
       VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
       VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
@@ -123,7 +123,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :redirect, response.body
     assert_redirected_to acme_com_settings_secrets_url(
       ri: "jp",
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )
     assert_predicate flash[:notice], :present?
   end
@@ -208,13 +208,17 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :see_other
   end
 
-  test "removal attempt uses visitor authentication and redirects to acme without local mutation" do
+  test "removal attempt uses visitor authentication and redirects to sign authority without local mutation" do
     assert_no_changes -> { @secret_credential.reload.visitor_secret_credential_status_id } do
       post sign_com_settings_secret_credential_removal_url(@secret_credential.public_id, ri: "jp"),
            headers: request_headers
     end
 
-    assert_redirected_to_acme("/settings/secrets/#{@secret_credential.public_id}?ri=jp")
+    assert_response :see_other
+    uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"), uri.host
+    assert_equal "/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp", uri.request_uri
   end
 
   test "removal attempt rejects client authentication on com surface" do

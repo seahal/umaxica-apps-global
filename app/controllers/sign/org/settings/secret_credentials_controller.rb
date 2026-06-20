@@ -17,7 +17,7 @@ module Sign
 
         before_action :authenticate_operator!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: []
+        before_action :set_secret_credential, only: %i(destroy)
         before_action :verify_secret_credential_turnstile!, only: :create
         before_action :accept_org_secret_credential_ceremony_grant!, only: %i(new create)
 
@@ -80,7 +80,17 @@ module Sign
         end
 
         def destroy
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
+          unless AuthMethodGuard.can_remove_secret_credential?(current_operator, @secret_credential)
+            redirect_to(
+              sign_org_settings_secret_credentials_path(ri: params[:ri]),
+              alert: t(".last_method"),
+              status: :see_other,
+            )
+            return
+          end
+          OperatorSecretCredentialsDestroy.call(actor: current_operator, secret_credential: @secret_credential)
+          redirect_to(sign_org_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end
 
         private

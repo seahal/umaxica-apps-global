@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::Sign::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     cookies["csrf_token"] = csrf_token_value
   end
 

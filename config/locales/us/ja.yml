@@ -638,6 +638,9 @@ ja:
             notifiable_label: 通知メール
             notifiable_description: 製品アップデートや運用上のお知らせを受け取ります。
             save: メール設定を保存
+          destroy:
+            success: メールアドレスを削除しました。
+            last_method: 最後のログイン手段のため削除できません。
       preferences:
         footer:
           home: ホーム
@@ -1419,6 +1422,8 @@ ja:
           new:
             title: 新規シークレット
             description: 新しいシークレットを作成します。
+          destroy:
+            last_method: 最後のログイン手段のため削除できません。
         passkeys:
           new:
             page_title: パスキーを登録

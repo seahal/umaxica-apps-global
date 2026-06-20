@@ -49,6 +49,7 @@ module Sign
           SocialAuthVerifiedProviderAssertion.call(
             auth_hash: auth,
             expected_provider: params[:provider],
+            expected_nonce: session[:social_auth_nonce],
           )
 
           if SocialIdentifiable.normalize_provider(auth.provider) == "apple"

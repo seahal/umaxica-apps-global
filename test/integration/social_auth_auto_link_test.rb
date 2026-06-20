@@ -18,7 +18,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
@@ -32,11 +32,11 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     # Mock Apple auth (NO email)
     apple_uid = "apple_auto_link_#{SecureRandom.hex(4)}"
-    setup_apple_mock_auth(uid: apple_uid)
 
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
+    setup_apple_mock_auth(uid: apple_uid)
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -58,9 +58,9 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     google_uid = "google_auto_link_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: google_uid)
 
-    state = start_social_auth_flow(provider: "google_app", intent: "link", user: user)
+    state = start_social_auth_flow(provider: "google", intent: "link", user: user)
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
           params: { state: state },
           headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -80,9 +80,9 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     apple_uid = "apple_idempotent_#{SecureRandom.hex(4)}"
 
     2.times do
-      setup_apple_mock_auth(uid: apple_uid)
       state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      setup_apple_mock_auth(uid: apple_uid)
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -113,11 +113,10 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     user_b = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userB_#{SecureRandom.hex(4)}")
     ClientToken.create!(user: user_b, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    setup_apple_mock_auth(uid: apple_uid)
-
     # Callback as userB must be rejected before any reassignment.
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user_b)
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    setup_apple_mock_auth(uid: apple_uid)
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
 
@@ -137,15 +136,15 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
   test "not logged in: Apple callback creates new user (login flow, not link)" do
     apple_uid = "apple_new_user_#{SecureRandom.hex(4)}"
-    setup_apple_mock_auth(uid: apple_uid)
 
     user_count_before = Client.count
 
     # Start OAuth flow to set up session state (required by SocialCallbackGuard)
     state = start_social_auth_flow(provider: "apple", intent: "login")
+    setup_apple_mock_auth(uid: apple_uid)
 
     # Callback without login (no headers)
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
 
@@ -162,8 +161,8 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
   # IMPORTANT: Social login uses provider+uid ONLY, NOT email
   def setup_google_mock_auth(uid:)
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
@@ -183,6 +182,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
         token: "apple_token_#{SecureRandom.hex(8)}",
         expires_at: 1.week.from_now.to_i,
       },
+      extra: { id_info: { nonce: session[:social_auth_nonce] } },
     )
   end
 

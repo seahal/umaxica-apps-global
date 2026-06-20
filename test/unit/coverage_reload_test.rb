@@ -16,7 +16,7 @@ class CoverageReloadTest < ActiveSupport::TestCase
 
     with_env(
       "ID_SERVICE_URL" => "id.app.example.test",
-      "ID_CORPORATE_URL" => "id.com.example.test",
+      "SIGN_CORPORATE_URL" => "id.com.example.test",
       "ID_STAFF_URL" => "id.org.example.test",
     ) do
       assert_equal "id.app.example.test", JitIdHostEnv.service_url

@@ -27,11 +27,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(client)
 
     assert_no_difference("ClientEmail.count") do
-      delete acme_app_settings_email_url(email.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_email", host: @acme_host)
+      delete sign_app_settings_email_url(email.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_email")
     end
 
-    assert_redirected_to acme_app_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_emails_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -41,11 +41,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(client)
 
     assert_no_difference("ClientTelephone.count") do
-      delete acme_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_telephone", host: @acme_host)
+      delete sign_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_telephone")
     end
 
-    assert_redirected_to acme_app_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_telephones_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -56,11 +56,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(client)
 
     assert_no_difference("ClientPasskey.count") do
-      delete acme_app_settings_passkey_url(passkey.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_passkey", host: @acme_host)
+      delete sign_app_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_passkey")
     end
 
-    assert_redirected_to acme_app_settings_passkeys_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_passkeys_url(ri: "jp", host: @host)
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -71,11 +71,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     secret_credential = create_active_secret_credential(client)
 
     assert_no_difference("ClientSecretCredential.count") do
-      delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
-             headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
+      delete sign_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
+             headers: client_browser_headers(client, scope: "settings_secret_credential")
     end
 
-    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -86,11 +86,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     totp = create_active_totp(client)
 
     assert_no_difference("ClientTotpCredential.count") do
-      delete acme_app_settings_totp_url(totp.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_totp", host: @acme_host)
+      delete sign_app_settings_totp_url(totp.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_totp")
     end
 
-    assert_redirected_to acme_app_settings_totps_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.totps.destroy.last_method"), flash[:alert]
   end
 
@@ -102,11 +102,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     totp = create_active_totp(client)
 
     assert_difference("ClientTotpCredential.count", -1) do
-      delete acme_app_settings_totp_url(totp.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_totp", host: @acme_host)
+      delete sign_app_settings_totp_url(totp.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_totp")
     end
 
-    assert_redirected_to acme_app_settings_totps_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: @host)
   end
 
   test "email removal is allowed when aal1 aal2 and contactability remain" do
@@ -116,11 +116,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(client)
 
     assert_difference("ClientEmail.count", -1) do
-      delete acme_app_settings_email_url(email.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_email", host: @acme_host)
+      delete sign_app_settings_email_url(email.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_email")
     end
 
-    assert_redirected_to acme_app_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_emails_url(ri: "jp", host: @host)
   end
 
   test "telephone removal is allowed when contactability remains" do
@@ -129,11 +129,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_email(client, "app-removal-telephone-allowed@example.com")
 
     assert_difference("ClientTelephone.count", -1) do
-      delete acme_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_telephone", host: @acme_host)
+      delete sign_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_telephone")
     end
 
-    assert_redirected_to acme_app_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_telephones_url(ri: "jp", host: @host)
   end
 
   test "passkey removal is allowed when another aal2 method remains" do
@@ -142,11 +142,11 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(client)
 
     assert_difference("ClientPasskey.count", -1) do
-      delete acme_app_settings_passkey_url(passkey.public_id, ri: "jp", host: @acme_host),
-             headers: client_headers(client, scope: "settings_passkey", host: @acme_host)
+      delete sign_app_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+             headers: client_headers(client, scope: "settings_passkey")
     end
 
-    assert_redirected_to acme_app_settings_passkeys_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_passkeys_url(ri: "jp", host: @host)
   end
 
   test "secret_credential removal is allowed when another aal1 method remains" do
@@ -154,10 +154,10 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_email(client, "app-removal-secret_credential-allowed@example.com")
     secret_credential = create_active_secret_credential(client)
 
-    delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
-           headers: client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
+    delete sign_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
+           headers: client_browser_headers(client, scope: "settings_secret_credential")
 
-    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp", host: @host)
     # ClientSecretCredentialsDestroy soft-deletes via discard_now! -- count does not change.
     # Assert the credential is logically deleted instead.
     assert_predicate secret_credential.reload, :lapsed?
@@ -171,7 +171,7 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     secret_credential = create_active_secret_credential(client)
 
     # Create the session token first so the session limit is not exceeded by the extra token.
-    headers = client_browser_headers(client, scope: "settings_secret_credential", host: @acme_host)
+    headers = client_browser_headers(client, scope: "settings_secret_credential")
 
     # Represents an attacker's stolen session that should be cut off after credential change.
     stolen_token = ClientToken.new(
@@ -181,10 +181,10 @@ class Sign::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     stolen_token.send(:skip_session_limit_check=, true)
     stolen_token.save!
 
-    delete acme_app_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
+    delete sign_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
            headers: headers
 
-    assert_redirected_to acme_app_settings_secrets_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_app_settings_secret_credentials_url(ri: "jp", host: @host)
     assert_predicate stolen_token.reload, :revoked?
   end
 

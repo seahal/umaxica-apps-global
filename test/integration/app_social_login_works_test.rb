@@ -8,10 +8,10 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
     https!
   end
 
-  test "POST /auth/google_app on :app host redirects to Google OAuth" do
+  test "POST /auth/google on :app host redirects to Google OAuth" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    post "/auth/google_app"
+    post "/auth/google"
 
     # Should redirect to Google OAuth (302) or OmniAuth failure
     assert_response :redirect

@@ -56,7 +56,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   def with_boot_config(sign_service_host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-                       sign_corporate_host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost"),
+                       sign_corporate_host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                        sign_staff_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
     hosts = OpenStruct.new(
       acme_service: OpenStruct.new(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),

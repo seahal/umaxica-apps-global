@@ -8,7 +8,7 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   setup do
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "com-verified-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(

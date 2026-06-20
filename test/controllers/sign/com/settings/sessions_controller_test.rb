@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::Settings::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-sessions-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(

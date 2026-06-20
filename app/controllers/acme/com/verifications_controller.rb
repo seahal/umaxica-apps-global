@@ -22,7 +22,7 @@ module Acme
           allowed_scopes: StepUpScopeCatalog::COM,
           sign_url_builder: ->(**query) {
             sign_com_verification_url(
-              query.merge(host: ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")),
+              query.merge(host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")),
             )
           },
         )

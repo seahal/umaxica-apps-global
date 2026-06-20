@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
   end

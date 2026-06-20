@@ -8,22 +8,23 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
+    JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
     @callback_headers = social_callback_headers(@host)
   end
 
   teardown do
     OmniAuth.config.mock_auth[:apple] = nil
+    JitSecurityTurnstileVerifier.test_mode = false
   end
 
   test "sign up waits for confirmation before creating user and identity" do
-    setup_apple_mock_auth(uid: "apple_flow_signup")
-
     state = start_social_auth_flow(intent: "login")
+    setup_apple_mock_auth(uid: "apple_flow_signup")
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
              params: { state: state },
              headers: @callback_headers
       end
@@ -68,11 +69,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   end
 
   test "cancel after unknown Apple callback creates nothing durable" do
+    state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_cancel")
 
-    state = start_social_auth_flow(intent: "login")
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: @callback_headers
 
@@ -100,11 +100,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
+    state = start_social_auth_flow(intent: "login")
     setup_apple_mock_auth(uid: "apple_flow_existing", token: "token_new")
 
-    state = start_social_auth_flow(intent: "login")
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: @callback_headers
 
@@ -118,12 +117,12 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
   test "settings link succeeds for logged in user via Sign callback" do
     user = clients(:one)
-    setup_apple_mock_auth(uid: "apple_flow_link")
 
     grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
+    setup_apple_mock_auth(uid: "apple_flow_link")
 
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: grant_session.state },
            headers: @callback_headers.merge(grant_session.user_headers)
       submit_social_completion_if_present!
@@ -139,12 +138,12 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
   test "Sign-started link commits with a logged-in session" do
     user = clients(:one)
-    setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
     state = start_social_auth_flow(intent: "link", user: user)
+    setup_apple_mock_auth(uid: "apple_flow_link_session_only")
 
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -166,11 +165,10 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
+    state = start_social_auth_flow(intent: "link", user: other)
     setup_apple_mock_auth(uid: "apple_flow_conflict")
 
-    state = start_social_auth_flow(intent: "link", user: other)
-
-    post sign_app_auth_apple_callback_url(provider: "apple", ri: "jp"),
+    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: @callback_headers.merge(as_user_headers(other, host: @host))
 
@@ -195,6 +193,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
         token: token,
         expires_at: 1.week.from_now.to_i,
       },
+      extra: { id_info: { nonce: session[:social_auth_nonce] } },
     )
   end
 

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
     Prosopite.pause do
@@ -36,11 +36,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_telephone(visitor, "+819022220000")
 
     assert_no_difference("VisitorEmail.count") do
-      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_email", host: @acme_host)
+      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_email", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_com_settings_emails_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -50,11 +50,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_no_difference("VisitorTelephone.count") do
-      delete acme_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_telephone", host: @acme_host)
+      delete acme_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_telephone", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_com_settings_telephones_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -65,11 +65,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(visitor)
 
     assert_no_difference("VisitorPasskey.count") do
-      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_passkey", host: @acme_host)
+      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_passkey", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_passkeys_url(ri: "jp", host: @acme_host)
+    assert_redirected_to acme_com_settings_passkeys_url(ri: "jp", host: @host)
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -81,11 +81,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     assert_no_difference(
       "VisitorSecretCredential.where(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE).count",
     ) do
-      delete acme_com_settings_secret_url(secret_credential.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_secret_credential", host: @acme_host)
+      delete sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_secret_credential", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_secrets_url(ri: "jp", host: @acme_host)
+    assert_redirected_to sign_com_settings_secret_credentials_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -97,13 +97,13 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_difference("VisitorEmail.count", -1) do
-      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_email", host: @acme_host)
+      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_email", host: @host)
     end
 
     assert_difference("VisitorPasskey.count", -1) do
-      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @acme_host),
-             headers: visitor_headers(visitor, scope: "settings_passkey", host: @acme_host)
+      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+             headers: visitor_headers(visitor, scope: "settings_passkey", host: @host)
     end
   end
 

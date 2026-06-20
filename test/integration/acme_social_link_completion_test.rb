@@ -21,7 +21,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    OmniAuth.config.mock_auth[:google_app] = nil
+    OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
@@ -30,10 +30,10 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     uid = "completion_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: uid, token: "completion_token")
 
-    grant_session = seed_app_social_link_grant_session(provider: "google_app", user: user, ri: "jp")
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: user, ri: "jp")
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_auth_google_app_callback_url(ri: "jp"),
+      get sign_app_social_google_callback_url(ri: "jp"),
           params: { state: grant_session.state },
           headers: @callback_headers.merge(grant_session.user_headers)
     end
@@ -48,7 +48,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "acme completion rejects a malformed social result without committing" do
     assert_no_difference("ClientGoogleIdentity.count") do
-      post completion_acme_app_social_authentication_url(id: "google_app", ri: "jp", host: @acme_host),
+      post completion_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
            params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
            headers: social_completion_browser_headers
     end
@@ -58,7 +58,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "acme social login start delegates to sign with a login ceremony grant" do
     assert_no_difference("Client.count") do
-      post continue_acme_app_social_authentication_url(id: "google_app", ri: "jp", host: @acme_host),
+      post continue_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
            headers: { "Host" => @acme_host }
     end
 
@@ -80,7 +80,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     )
 
     assert_equal "login", grant["operation"]
-    assert_equal "google_app", grant["provider"]
+    assert_equal "google", grant["provider"]
     assert_equal "anonymous", grant["actor_ref"]
   end
 
@@ -106,8 +106,8 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   end
 
   def setup_google_mock_auth(uid:, token: "google_token")
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {

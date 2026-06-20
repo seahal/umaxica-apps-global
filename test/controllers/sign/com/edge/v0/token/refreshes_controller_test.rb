@@ -7,7 +7,7 @@ class Sign::Com::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "sign com refresh route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")}/edge/v0/token/refresh",
+        "https://#{ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")}/edge/v0/token/refresh",
         method: :post,
       )
     end

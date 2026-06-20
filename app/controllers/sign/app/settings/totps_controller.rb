@@ -112,8 +112,20 @@ module Sign
           redirect_to_acme_settings_authority!
         end
 
+        # DELETE /settings/totps/:id
         def destroy
-          redirect_to_acme_settings_authority!
+          totp = current_client.client_totp_credentials.find_by!(public_id: params.expect(:id))
+          authorize!(totp)
+          unless AuthMethodGuard.can_remove_totp?(current_client, totp)
+            redirect_to(
+              sign_app_settings_totps_path(ri: params[:ri]),
+              alert: t(".last_method"),
+              status: :see_other,
+            )
+            return
+          end
+          totp.destroy!
+          redirect_to(sign_app_settings_totps_path(ri: params[:ri]), status: :see_other)
         end
 
         private

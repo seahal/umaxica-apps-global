@@ -45,6 +45,10 @@ class AuthMethodGuard
     AuthenticationCredentialInventory.call(actor, excluding: totp, reload: true).retains_aal2?
   end
 
+  def self.can_remove_secret_credential?(actor, secret_credential)
+    AuthenticationCredentialInventory.call(actor, excluding: secret_credential, reload: true).retains_aal1?
+  end
+
   def self.verified_emails_count(actor, excluding: nil)
     if actor.respond_to?(:client_emails)
       scope = actor.client_emails.where(user_email_status_id: VERIFIED_EMAIL_STATUSES)

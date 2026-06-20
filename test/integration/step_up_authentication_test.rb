@@ -101,10 +101,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get sign_app_settings_emails_url(ri: "jp"), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/settings/emails", uri.path
+    assert_response :success
   end
 
   test "step-up satisfied on one session does not satisfy another" do

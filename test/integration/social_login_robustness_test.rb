@@ -30,7 +30,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
 
     # Try callback without starting intent (no state)
-    get sign_app_auth_google_app_callback_url(ri: "jp", state: "invalid_state"),
+    get sign_app_social_google_callback_url(ri: "jp", state: "invalid_state"),
         headers: { "Host" => @host }
 
     # Should be handled gracefully, not 500
@@ -50,7 +50,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
 
     begin
       get(
-        sign_app_auth_google_app_callback_url(ri: "jp"),
+        sign_app_social_google_callback_url(ri: "jp"),
         headers: { "Host" => @host },
       )
     ensure
@@ -68,7 +68,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     # Set link intent without authentication
     seed_social_auth_session(provider: "google_app", intent: "link", ri: "jp")
 
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: social_auth_state_from_response },
         headers: social_callback_headers(@host)
 
@@ -155,7 +155,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
 
     # Do callback - this should redirect to MFA, but the callback processing itself
     # should not fail
-    get sign_app_auth_google_app_callback_url(ri: "jp"),
+    get sign_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 

@@ -6,7 +6,7 @@ require "base64"
 
 class Sign::Com::Verification::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(
       email_address: "com-passkey-stepup-#{SecureRandom.hex(4)}@example.com",

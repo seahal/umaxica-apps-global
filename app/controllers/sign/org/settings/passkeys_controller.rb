@@ -40,7 +40,7 @@ module Sign
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_org_passkey_ceremony_grant!, only: %i(new options verification)
-        before_action :set_passkey, only: []
+        before_action :set_passkey, only: %i(destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
         # GET /settings/passkeys
         def index
@@ -193,7 +193,17 @@ module Sign
 
         # DELETE /settings/passkeys/:id
         def destroy
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+          unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
+            redirect_to(
+              sign_org_settings_passkeys_path(ri: params[:ri]),
+              alert: t("messages.cannot_delete_last_passkey"),
+              status: :see_other,
+            )
+            return
+          end
+          @passkey.destroy!
+          redirect_to(sign_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
         end
 
         private

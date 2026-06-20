@@ -230,13 +230,13 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy with public_id" do
-    assert_no_difference("ClientTotpCredential.count") do
+    assert_difference("ClientTotpCredential.count", -1) do
       with_prosopite_paused do
         delete sign_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
       end
     end
 
-    assert_redirected_to_acme("/settings/totps/#{@totp.public_id}?ri=jp")
+    assert_redirected_to sign_app_settings_totps_path(ri: "jp")
   end
 
   test "should return 404 for other user's totp" do
