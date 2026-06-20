@@ -408,9 +408,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, acme_app_settings_secrets_url(
+    assert_includes response.body, sign_app_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
     assert_empty flash.to_hash
   end

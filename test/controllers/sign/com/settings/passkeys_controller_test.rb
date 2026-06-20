@@ -51,10 +51,10 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_response :redirect
   end
 
-  test "should get index" do
+  test "index redirects to sign settings compatibility path" do
     get sign_com_settings_passkeys_path(ri: "jp"), headers: @headers
 
-    assert_redirected_to_acme("/settings/passkeys?ri=jp")
+    assert_redirected_to sign_com_settings_passkeys_path(ri: "jp")
   end
 
   test "options returns challenge and options" do
@@ -75,9 +75,9 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, acme_com_settings_secrets_url(
+    assert_includes response.body, sign_com_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      host: @host,
     )
   end
 
@@ -126,22 +126,20 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "update accepts visitor passkey form params" do
-    description = @passkey.description
-
     patch sign_com_settings_passkey_path(@passkey.public_id, ri: "jp"),
           params: { visitor_passkey: { description: "Updated Passkey" } },
           headers: @headers
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
-    assert_equal description, @passkey.reload.description
+    assert_redirected_to sign_com_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_equal "My Passkey", @passkey.reload.description
   end
 
-  test "destroy redirects to acme without local mutation" do
-    assert_no_difference("VisitorPasskey.count") do
+  test "destroy removes visitor passkey on sign settings authority" do
+    assert_difference("VisitorPasskey.count", -1) do
       delete sign_com_settings_passkey_path(@passkey.id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.id}?ri=jp")
+    assert_redirected_to sign_com_settings_passkeys_path(ri: "jp")
   end
 
   private

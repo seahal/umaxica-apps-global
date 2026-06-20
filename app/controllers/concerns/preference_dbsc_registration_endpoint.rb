@@ -4,6 +4,7 @@
 module PreferenceDbscRegistrationEndpoint
   extend ActiveSupport::Concern
   include DbscRequestLogging
+  include DbscCanonicalUrl
 
   def create
     log_dbsc_request_observability!
@@ -23,11 +24,18 @@ module PreferenceDbscRegistrationEndpoint
     preference
   end
 
+  # Canonical (context-param-free) form of the subclass-provided dbsc_url. Used as the
+  # DBSC proof audience and the advertised refresh URL so registration and refresh agree
+  # byte-for-byte regardless of per-request context params. See DbscCanonicalUrl.
+  def dbsc_endpoint_url
+    @dbsc_endpoint_url ||= dbsc_canonical_url(dbsc_url)
+  end
+
   def handle_registration
     result = DbscRegistrationService.call(
       record: current_preference_record,
       proof: dbsc_response_header,
-      expected_audience: dbsc_url,
+      expected_audience: dbsc_endpoint_url,
     )
 
     if result[:ok]
@@ -38,7 +46,7 @@ module PreferenceDbscRegistrationEndpoint
       )
       render json: {
         session_identifier: result[:session_id],
-        refresh_url: dbsc_url,
+        refresh_url: dbsc_endpoint_url,
         scope: {
           origin: request.base_url,
           include_site: false,
@@ -52,7 +60,7 @@ module PreferenceDbscRegistrationEndpoint
         ],
       }, status: :created
       Rails.logger.info(
-        "[dbsc] registration success path=#{dbsc_url} session_id=#{result[:session_id].to_s[0, 24]}",
+        "[dbsc] registration success path=#{dbsc_endpoint_url} session_id=#{result[:session_id].to_s[0, 24]}",
       )
     else
       render json: { error: "DBSC registration failed", error_code: result[:error_code] },
@@ -80,14 +88,14 @@ module PreferenceDbscRegistrationEndpoint
         challenge_value,
       )
       Rails.logger.info(
-        "[dbsc] challenge issued path=#{dbsc_url} session_id=#{parsed_session_id.to_s[0, 24]}",
+        "[dbsc] challenge issued path=#{dbsc_endpoint_url} session_id=#{parsed_session_id.to_s[0, 24]}",
       )
       return head :forbidden
     end
 
     result = DbscVerificationService.call(
       record: preference, session_id: session_id, proof: proof,
-      expected_audience: dbsc_url,
+      expected_audience: dbsc_endpoint_url,
     )
     return render json: { error: "DBSC verification failed", error_code: result[:error_code] },
                   status: :unprocessable_content unless result[:ok]

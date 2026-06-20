@@ -42,6 +42,42 @@ class Sign::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert_equal token_record.device_session.public_id, json["sid"]
   end
 
+  # DBSC registration is offered to authenticated sessions that are not yet device-bound. This is
+  # the response the `script/dbsc_probe` registration check targets, and the header Chromium reads
+  # to start a DBSC session. A non-DBSC token must therefore receive `Secure-Session-Registration`
+  # (and its legacy `Sec-Session-Registration` alias) pointing at the DBSC refresh endpoint.
+  test "GET check offers Secure-Session-Registration to a non-DBSC-bound session" do
+    token_record = ClientToken.create!(user: @user)
+    token_record.rotate_refresh_token!
+
+    assert_not token_record.binding_method_dbsc?,
+               "fresh token must not be DBSC-bound for this registration-offer assertion"
+
+    access_token = jwt_access_token_for(
+      @user,
+      host: @host,
+      session_public_id: token_record.public_id,
+      resource_type: "client",
+    )
+
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+
+    get "/edge/v0/token/check",
+        headers: { "Host" => @host, "Accept" => "application/json" },
+        as: :json
+
+    assert_response :ok
+
+    registration = response.headers[AuthIoKeys::Headers::SECURE_DBSC_REGISTRATION]
+    legacy_registration = response.headers[AuthIoKeys::Headers::DBSC_REGISTRATION]
+
+    assert_predicate registration, :present?, "expected Secure-Session-Registration on check response"
+    assert_equal registration, legacy_registration
+    assert_includes registration, "(ES256 RS256);"
+    assert_includes registration, %(path="#{sign_app_edge_v0_token_dbsc_path}")
+    assert_includes registration, "challenge="
+  end
+
   test "GET check without access token returns 401" do
     get "/edge/v0/token/check",
         headers: { "Host" => @host, "Accept" => "application/json" },

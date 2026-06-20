@@ -24,11 +24,11 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorEmail.count") do
-      delete acme_org_settings_email_url(email.public_id, ri: "jp", host: @host),
+      delete sign_org_settings_email_url(email.public_id, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_email", host: @host)
     end
 
-    assert_redirected_to acme_org_settings_emails_url(ri: "jp", host: @host)
+    assert_redirected_to sign_org_settings_emails_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.org.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -39,11 +39,11 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorTelephone.count") do
-      delete acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_telephone", host: @host)
     end
 
-    assert_redirected_to acme_org_settings_telephones_url(ri: "jp", host: @host)
+    assert_redirected_to sign_org_settings_telephones_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.org.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -54,11 +54,11 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(operator)
 
     assert_no_difference("OperatorPasskey.count") do
-      delete acme_org_settings_passkey_url(passkey, ri: "jp", host: @host),
+      delete sign_org_settings_passkey_url(passkey, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_passkey", host: @host)
     end
 
-    assert_redirected_to acme_org_settings_passkeys_url(ri: "jp", host: @host)
+    assert_redirected_to sign_org_settings_passkeys_url(ri: "jp", host: @host)
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -87,17 +87,17 @@ class Sign::Org::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_secret_credential(operator)
 
     assert_difference("OperatorEmail.count", -1) do
-      delete acme_org_settings_email_url(email.public_id, ri: "jp", host: @host),
+      delete sign_org_settings_email_url(email.public_id, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_email", host: @host)
     end
 
     assert_difference("OperatorTelephone.count", -1) do
-      delete acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_telephone", host: @host)
     end
 
     assert_difference("OperatorPasskey.count", -1) do
-      delete acme_org_settings_passkey_url(passkey, ri: "jp", host: @host),
+      delete sign_org_settings_passkey_url(passkey, ri: "jp", host: @host),
              headers: operator_headers(operator, scope: "settings_passkey", host: @host)
     end
 

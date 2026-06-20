@@ -238,11 +238,27 @@ ja:
         purged_at: 削除予定日時
       user_identity_email:
         address: メールアドレス
+      client_email:
+        address: メールアドレス
+        address_digest: メールアドレスダイジェスト
+        otp_private_key: OTP秘密鍵
+        otp_counter: OTPカウンター
+      client_telephone:
+        number: 電話番号
+        number_digest: 電話番号ダイジェスト
+        otp_private_key: OTP秘密鍵
+        otp_counter: OTPカウンター
       visitor_email:
         address: メールアドレス
+        address_digest: メールアドレスダイジェスト
+        otp_private_key: OTP秘密鍵
+        otp_counter: OTPカウンター
         status: ステータス
       visitor_telephone:
         number: 電話番号
+        number_digest: 電話番号ダイジェスト
+        otp_private_key: OTP秘密鍵
+        otp_counter: OTPカウンター
         status: ステータス
       visitor_secret_credential:
         name: 名前

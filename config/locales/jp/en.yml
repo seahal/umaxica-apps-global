@@ -1257,6 +1257,26 @@ en:
         purged_at: Purge at
       user_identity_email:
         address: Email address
+      client_email:
+        address: Email address
+        address_digest: Email address digest
+        otp_private_key: OTP private key
+        otp_counter: OTP counter
+      client_telephone:
+        number: Telephone number
+        number_digest: Telephone number digest
+        otp_private_key: OTP private key
+        otp_counter: OTP counter
+      visitor_email:
+        address: Email address
+        address_digest: Email address digest
+        otp_private_key: OTP private key
+        otp_counter: OTP counter
+      visitor_telephone:
+        number: Telephone number
+        number_digest: Telephone number digest
+        otp_private_key: OTP private key
+        otp_counter: OTP counter
       client_telephone_ceremony_transaction:
         result_jti: Result JTI
       visitor_step_up_session:

@@ -169,9 +169,9 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
           headers: request_headers,
         )
 
-        assert_redirected_to acme_com_settings_telephones_url(
+        assert_redirected_to sign_com_settings_telephones_url(
           ri: "jp",
-          host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+          host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
         )
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
         assert_equal VisitorTelephoneStatus::VERIFIED, telephone.reload.visitor_telephone_status_id

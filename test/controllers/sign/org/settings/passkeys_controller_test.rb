@@ -73,9 +73,9 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, acme_org_settings_secrets_url(
+    assert_includes response.body, sign_org_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
   end
 
@@ -186,7 +186,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
   end
 
-  test "destroy redirects to acme without local mutation" do
+  test "destroy removes operator passkey on sign settings authority" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_5",
@@ -204,11 +204,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    assert_no_difference -> { OperatorPasskey.count } do
+    assert_difference -> { OperatorPasskey.count }, -1 do
       delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
+    assert_redirected_to sign_org_settings_passkeys_path(ri: "jp")
   end
 
   test "other staff passkey lookup is not performed on sign" do
@@ -274,7 +274,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal "Old Name", passkey.reload.description
   end
 
-  test "destroy json redirects to acme without local mutation" do
+  test "destroy json removes operator passkey on sign settings authority" do
     passkey = OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test_webauthn_id_json_destroy",
@@ -292,11 +292,11 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    assert_no_difference -> { OperatorPasskey.count } do
+    assert_difference -> { OperatorPasskey.count }, -1 do
       delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{passkey.id}?ri=jp")
+    assert_redirected_to sign_org_settings_passkeys_path(ri: "jp")
   end
 
   private

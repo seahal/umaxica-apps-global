@@ -1326,6 +1326,35 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_empty emitted
   end
 
+  # Regression: the fingerprint UPDATE runs inside the transparent-refresh GET path
+  # where the default connection role is :reading. It must be wrapped in the :writing
+  # role, otherwise it raises ActiveRecord::ReadOnlyError and the fingerprint never
+  # refreshes (so ip_change_detected would re-fire every request).
+  test "detect_session_network_change! wraps the fingerprint write in the :writing role" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    device = fake_device_session(last_network_hmac: "old-network")
+    token = Struct.new(:device_session, :public_id).new(device, "tok-1")
+    resource = Struct.new(:id).new(@user.id)
+
+    roles = []
+    connected_to =
+      lambda do |role:, **_kwargs, &block|
+        roles << role
+        block.call
+      end
+
+    ActiveRecord::Base.stub(:connected_to, connected_to) do
+      OccurrenceHmac.stub(:network_hmac, ->(_ip) { "new-network" }) do
+        SignRiskEmitter.stub(:emit, ->(*) { }) do
+          @controller.detect_session_network_change!(token, resource)
+        end
+      end
+    end
+
+    assert_includes roles, :writing, "fingerprint UPDATE must run under the :writing role"
+    assert_equal "new-network", device.last_network_hmac, "stored fingerprint is refreshed"
+  end
+
   def fake_device_session(last_network_hmac:)
     Struct.new(:last_network_hmac) do
       def has_attribute?(attribute)

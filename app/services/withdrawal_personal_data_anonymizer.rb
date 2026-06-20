@@ -52,8 +52,8 @@ class WithdrawalPersonalDataAnonymizer
       email.update!(
         :address => "withdrawn-#{email.class.name.underscore.dasherize}-#{email.id}@anonymous.invalid",
         :address_digest => nil,
-        :otp_private_key => "",
-        :otp_counter => "",
+        :otp_private_key => "withdrawn",
+        :otp_counter => "0",
         :otp_attempts_count => 0,
         :otp_expires_at => -Float::INFINITY,
         :locked_at => -Float::INFINITY,
@@ -67,8 +67,8 @@ class WithdrawalPersonalDataAnonymizer
       telephone.update!(
         :number => "+100000#{telephone.id.to_s.rjust(9, "0")}",
         :number_digest => nil,
-        :otp_private_key => "",
-        :otp_counter => "",
+        :otp_private_key => "withdrawn",
+        :otp_counter => "0",
         :otp_attempts_count => 0,
         :otp_expires_at => -Float::INFINITY,
         :locked_at => -Float::INFINITY,

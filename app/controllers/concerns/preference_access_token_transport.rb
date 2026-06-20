@@ -7,14 +7,22 @@ module PreferenceAccessTokenTransport
   private
 
   def load_access_token_payload
+    # Request-local memo: the decoded payload is the canonical per-request
+    # cache. It is set here and by matching_access_token_value, and is reset to
+    # nil when invalidated (keep_loaded_access_token_payload?, preference_core
+    # reset). Once present, re-scanning cookies and re-verifying the JWT only
+    # reproduces the same payload, so short-circuit. Cookies are request input
+    # and do not change within a request.
+    return true if @preference_payload.is_a?(Hash)
+
     token = matching_access_token_value
     return false if token.blank?
 
-    payload = decode_matching_access_token(token)
-    return false if payload.blank?
-
-    @preference_payload = payload
-    true
+    # matching_access_token_value decodes the matched cookie and assigns
+    # @preference_payload for the token it returns. Re-decoding the identical
+    # token here would re-run JWT signature verification for no gain, so reuse
+    # the payload it already produced.
+    @preference_payload.is_a?(Hash)
   end
 
   def load_access_token_preference_record!

@@ -163,18 +163,6 @@ scope module: :acme, as: :acme do
       end
 
       resources :avatars, only: %i(index new create show edit update)
-
-      # Account and credential settings.
-      namespace :sign do
-        namespace :settings do
-          resources :sessions, only: %i(index destroy) do
-            collection do
-              delete :others
-              delete :revoke_all
-            end
-          end
-        end
-      end
     end
   end
 
@@ -329,17 +317,6 @@ scope module: :acme, as: :acme do
         # Keep membership URLs nested under organizations while routing to the surface-local
         # organizations/memberships controller namespace.
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
-      end
-
-      namespace :sign do
-        namespace :settings do
-          resources :sessions, only: %i(index destroy) do
-            collection do
-              delete :others
-              delete :revoke_all
-            end
-          end
-        end
       end
     end
   end
@@ -541,17 +518,6 @@ scope module: :acme, as: :acme do
       # Organizations owned or visible to the current actor.
       resources :organizations, only: %i(index show new create edit update) do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
-      end
-
-      namespace :sign do
-        namespace :settings do
-          resources :sessions, only: %i(index destroy) do
-            collection do
-              delete :others
-              delete :revoke_all
-            end
-          end
-        end
       end
     end
   end

@@ -33,7 +33,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_equal issuance.transaction.grant_jti, grant["jti"]
       assert_equal @client.public_id, grant["actor_ref"]
       assert_equal @session_ref, grant["session_ref"]
-      assert_equal "google_app", grant["provider"]
+      assert_equal "google", grant["provider"]
     end
   end
 
@@ -54,7 +54,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
           now: @now,
         )
 
-        assert_equal "google_app", commit.identity.provider
+        assert_equal "google", commit.identity.provider
         assert_equal auth_hash["uid"], commit.identity.uid
       end
 
@@ -163,7 +163,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-expired",
         operation: "link",
-        provider: "google_app",
+        provider: "google",
         expires_at: @now - 8.days,
         now: @now - 9.days,
       )
@@ -172,7 +172,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         actor_ref: @client.public_id,
         session_ref: "#{@session_ref}-old-consumed",
         operation: "link",
-        provider: "google_app",
+        provider: "google",
         expires_at: @now + 1.hour,
         now: @now - 9.days,
       )
@@ -281,7 +281,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       actor_ref: @client.public_id,
       session_ref: @session_ref,
       operation: "link",
-      provider: "google_app",
+      provider: "google",
       now: @now,
     )
   end
@@ -300,7 +300,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
 
   def auth_hash
     @auth_hash ||= {
-      "provider" => "google_app",
+      "provider" => "google",
       "uid" => "social-ceremony-#{SecureRandom.hex(6)}",
       "credentials" => {
         "token" => "provider-access-token",

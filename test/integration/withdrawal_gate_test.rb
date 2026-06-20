@@ -36,7 +36,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "deactivated user accessing normal page redirects to withdrawal status" do
-    get acme_app_sign_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+    get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
         headers: @headers
 
     assert_response :redirect
@@ -54,7 +54,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "deactivated user accessing API returns 403" do
-    get acme_app_sign_settings_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+    get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
         headers: @headers.merge("Accept" => "application/json")
 
     assert_response :forbidden

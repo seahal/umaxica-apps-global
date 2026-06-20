@@ -148,9 +148,9 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       end
     end
 
-    assert_redirected_to acme_org_settings_telephones_url(
+    assert_redirected_to sign_org_settings_telephones_url(
       ri: "jp",
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
     assert_equal OperatorTelephoneStatus::VERIFIED, tel.reload.staff_telephone_status_id
   end

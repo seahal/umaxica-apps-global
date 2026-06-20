@@ -3,8 +3,8 @@
 
 # Authorization for the com (visitor) OIDC connection listing.
 #
-# `Acme::Com::Settings::ConnectionsController` already scopes every query to
-# `current_visitor.oidc_connections`, so row-level ownership is enforced by the controller.
+# OIDC connection entrypoints scope every query to `current_visitor.oidc_connections`,
+# so row-level ownership is enforced before policy checks.
 # This policy gates the actor *type* allowed to reach a listing at all (defense in depth on the
 # com surface). `show` shares the rule because the controller exposes the same owned resource.
 class VisitorOidcConnectionPolicy < ApplicationPolicy

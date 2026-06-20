@@ -11,12 +11,13 @@ class Sign::Org::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
     @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff)
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
   end
 
-  test "show_redirects_to_acme_account_authority" do
+  test "show renders sign withdrawal entry" do
     get sign_org_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
-    assert_redirect_to_acme_withdrawal
+    assert_response :success
   end
 
   private
@@ -27,14 +28,5 @@ class Sign::Org::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
-  end
-
-  def assert_redirect_to_acme_withdrawal
-    assert_response :see_other
-    location = URI.parse(response.location)
-
-    assert_equal @acme_host, location.host
-    assert_equal "/settings/withdrawal", location.path
-    assert_equal "ri=jp", location.query
   end
 end

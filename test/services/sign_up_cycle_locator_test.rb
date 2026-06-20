@@ -22,6 +22,28 @@ class SignUpCycleLocatorTest < ActiveSupport::TestCase
     end
   end
 
+  test "issue! persists nonce while request is on a read connection" do
+    session = {}
+    cycle = ClientSignUpFlow.create!(
+      principal_id: 123,
+      status_id: ClientSignUpFlowStatus::STARTED,
+      step: "start",
+      nonce_digest: ClientSignUpFlow.digest_nonce("old-nonce"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      entry_method: "email",
+    )
+    locator = SignUpCycleLocator.new(session, surface: :app)
+
+    ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
+      locator.issue!(cycle, nonce: "fresh-nonce")
+    end
+
+    assert_equal cycle.public_id, session.dig(:app_sign_up_flow_locator, "public_id")
+    assert_equal "fresh-nonce", session.dig(:app_sign_up_flow_locator, "nonce")
+    assert cycle.reload.nonce_matches?("fresh-nonce")
+  end
+
   test "returns nil when payload is missing required keys" do
     session = { app_sign_up_flow_locator: { "public_id" => "missing-nonce" } }
     locator = SignUpCycleLocator.new(session, surface: :app)

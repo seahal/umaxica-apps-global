@@ -5,6 +5,7 @@ require "jwt"
 
 module AuthenticationBase
   extend ActiveSupport::Concern
+  include DbscCanonicalUrl
   include AuthenticationRedirects
   include AuthenticationCookieStore
   include AuthenticationJwtTokens
@@ -1071,7 +1072,17 @@ module AuthenticationBase
     return if current.blank?
 
     stored = device_session.last_network_hmac
-    device_session.update_columns(last_network_hmac: current) if stored != current
+    # This runs inside the transparent-refresh GET path, where the default connection
+    # role is :reading. Persisting the refreshed network fingerprint requires the
+    # :writing role, otherwise the UPDATE raises ActiveRecord::ReadOnlyError (caught by
+    # best_effort_refresh_side_effect, but then the fingerprint never updates and an
+    # ip_change_detected signal would re-fire on every request). Mirror the writing-role
+    # wrapping used by issue_dbsc_challenge_for! and downgrade_pending_dbsc_to_nothing!.
+    if stored != current
+      ActiveRecord::Base.connected_to(role: :writing) do
+        device_session.update_columns(last_network_hmac: current)
+      end
+    end
 
     return if stored.blank? || stored == current
 
@@ -2580,25 +2591,32 @@ module AuthenticationBase
   end
 
   def token_dbsc_path
-    case resource_type
-    when "client"
-      sign_app_edge_v0_token_dbsc_path
-    when "operator"
-      sign_org_edge_v0_token_dbsc_path
-    when "visitor"
-      sign_com_edge_v0_token_dbsc_path
-    end
+    raw =
+      case resource_type
+      when "client"
+        sign_app_edge_v0_token_dbsc_path
+      when "operator"
+        sign_org_edge_v0_token_dbsc_path
+      when "visitor"
+        sign_com_edge_v0_token_dbsc_path
+      end
+    # Canonicalize: the advertised DBSC path must not carry per-request context params.
+    dbsc_canonical_url(raw)
   end
 
   def token_dbsc_url
-    case resource_type
-    when "client"
-      sign_app_edge_v0_token_dbsc_url
-    when "operator"
-      sign_org_edge_v0_token_dbsc_url
-    when "visitor"
-      sign_com_edge_v0_token_dbsc_url
-    end
+    raw =
+      case resource_type
+      when "client"
+        sign_app_edge_v0_token_dbsc_url
+      when "operator"
+        sign_org_edge_v0_token_dbsc_url
+      when "visitor"
+        sign_com_edge_v0_token_dbsc_url
+      end
+    # Canonicalize: this URL is the DBSC proof audience and must match registration and
+    # refresh byte-for-byte, so it cannot vary with request context (ri/lx/...).
+    dbsc_canonical_url(raw)
   end
 
   def dbsc_binding_method_name(record)

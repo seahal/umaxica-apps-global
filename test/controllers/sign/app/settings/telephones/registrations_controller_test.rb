@@ -144,9 +144,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       telephone_ceremony_grant: "invalid",
     ), headers: request_headers
 
-    assert_redirected_to acme_app_settings_telephones_url(
+    assert_redirected_to sign_app_settings_telephones_url(
       ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
   end
 
@@ -273,9 +273,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
                 headers: request_headers
         end
 
-        assert_redirected_to acme_app_settings_telephones_url(
+        assert_redirected_to sign_app_settings_telephones_url(
           ri: "jp",
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
         )
         assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
         assert_equal step_up_before, @token.reload.last_step_up_at
@@ -303,9 +303,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       end
     end
 
-    assert_redirected_to acme_app_settings_telephones_url(
+    assert_redirected_to sign_app_settings_telephones_url(
       ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
     assert_equal "settings_telephone", @token.reload.last_step_up_scope
     assert_equal step_up_before, @token.reload.last_step_up_at

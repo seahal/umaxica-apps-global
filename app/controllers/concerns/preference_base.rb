@@ -20,6 +20,7 @@ require "concurrent"
 
 module PreferenceBase
   extend ActiveSupport::Concern
+  include DbscCanonicalUrl
   include RefreshTokenShared
   include PreferenceCookieWriter
   include PreferenceAccessTokenTransport
@@ -617,14 +618,18 @@ module PreferenceBase
   end
 
   def preference_dbsc_path
-    case preference_class.name
-    when "AppPreference"
-      acme_app_edge_v0_dbsc_path if respond_to?(:acme_app_edge_v0_dbsc_path)
-    when "OrgPreference"
-      acme_org_edge_v0_dbsc_path if respond_to?(:acme_org_edge_v0_dbsc_path)
-    when "ComPreference"
-      acme_com_edge_v0_dbsc_path if respond_to?(:acme_com_edge_v0_dbsc_path)
-    end
+    raw =
+      case preference_class.name
+      when "AppPreference"
+        acme_app_edge_v0_dbsc_path if respond_to?(:acme_app_edge_v0_dbsc_path)
+      when "OrgPreference"
+        acme_org_edge_v0_dbsc_path if respond_to?(:acme_org_edge_v0_dbsc_path)
+      when "ComPreference"
+        acme_com_edge_v0_dbsc_path if respond_to?(:acme_com_edge_v0_dbsc_path)
+      end
+    # Canonicalize: the advertised DBSC path must not carry per-request context params,
+    # so the browser-registered refresh path stays stable across requests.
+    dbsc_canonical_url(raw)
   end
 
   def dbsc_binding_method_name(record)

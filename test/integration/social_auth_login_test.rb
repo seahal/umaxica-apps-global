@@ -97,7 +97,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, cycle.status_id
   end
 
-  test "Google login with session limit pending redirects to acme session management" do
+  test "Google login with session limit pending redirects to sign session management" do
     existing_uid = "existing_google_session_limit_#{SecureRandom.hex(4)}"
     existing_user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -122,10 +122,10 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_sign_settings_sessions_url(
+    assert_redirected_to sign_app_settings_sessions_url(
       ri: "jp",
       host: ENV.fetch(
-        "ACME_SERVICE_URL", "www.app.localhost",
+        "ID_SERVICE_URL", "id.app.localhost",
       ),
     )
   end

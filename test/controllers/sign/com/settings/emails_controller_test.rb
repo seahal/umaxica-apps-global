@@ -13,23 +13,33 @@ class Sign::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
     host! @host
+    CloudflareTurnstile.test_mode = true
+    CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
-  test "sign settings emails index redirects to acme authority" do
+  teardown do
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
+  end
+
+  test "sign settings emails index renders sign settings authority" do
     get sign_com_settings_emails_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to acme_com_settings_emails_url(ri: "jp", host: @acme_host)
+    assert_response :success
   end
 
-  test "sign settings email edit redirects without loading email" do
-    get edit_sign_com_settings_email_url("missing", ri: "jp"), headers: session_headers
+  test "sign settings email edit loads owned email" do
+    email = @visitor.visitor_emails.first
 
-    assert_redirected_to edit_acme_com_settings_email_url("missing", ri: "jp", host: @acme_host)
+    get edit_sign_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
+
+    assert_response :success
   end
 
-  test "sign settings email update redirects without local preference mutation" do
-    visitor = create_verified_visitor_with_email(email_address: "sign-com-email-owner@example.com")
+  test "sign settings email update mutates local preference fields" do
+    visitor = @visitor
     email = VisitorEmail.create!(
       visitor: visitor,
       address: "sign-com-email-update-redirect@example.com",
@@ -39,17 +49,17 @@ class Sign::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
       notifiable: true,
     )
 
-    assert_no_changes -> { email.reload.attributes.slice("promotional", "notifiable") } do
+    assert_changes -> { email.reload.attributes.slice("promotional", "notifiable") } do
       patch sign_com_settings_email_url(email.public_id, ri: "jp"),
             params: { visitor_email: { promotional: "0", notifiable: "0" } },
             headers: session_headers
     end
 
-    assert_redirected_to acme_com_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
+    assert_redirected_to edit_sign_com_settings_email_url(email.public_id, ri: "jp")
   end
 
-  test "sign settings email destroy redirects without local account mutation" do
-    visitor = create_verified_visitor_with_email(email_address: "sign-com-email-destroy-owner@example.com")
+  test "sign settings email destroy mutates local account email" do
+    visitor = @visitor
     email = VisitorEmail.create!(
       visitor: visitor,
       address: "sign-com-email-destroy-redirect@example.com",
@@ -57,12 +67,11 @@ class Sign::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
       confirm_policy: true,
     )
 
-    assert_no_difference("VisitorEmail.count") do
+    assert_difference("VisitorEmail.count", -1) do
       delete sign_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to acme_com_settings_email_url(email.public_id, ri: "jp", host: @acme_host)
-    assert_not_predicate email.reload, :destroyed?
+    assert_redirected_to sign_com_settings_emails_url(ri: "jp")
   end
 
   test "sign email registration route remains on sign ceremony surface" do

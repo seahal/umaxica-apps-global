@@ -118,7 +118,10 @@ class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
     assert_nil target.reload.withdrawal_started_at
     assert_nil target.deactivated_at
     assert_nil target.withdrawn_at
-    assert_operator target.discarded_at, :>, Time.current
+    # Restore resets the discard sentinel to the far-future value (Float::INFINITY),
+    # which OrgOperatorLifecycleExecute uses to mark an operator active. Comparing
+    # Float::INFINITY with a TimeWithZone via :> raises, so assert the sentinel directly.
+    assert_equal Float::INFINITY, target.discarded_at
   end
 
   test "suspend fails when target would be the last active operator" do
@@ -132,7 +135,9 @@ class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
       requested_by_operator: operators(:two),
     )
 
-    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:two))
+    # Executor must differ from the requester; otherwise the self-execution guard
+    # fires before the last-active-operator check this test targets.
+    result = OrgOperatorLifecycleExecute.call(request: request, actor: operators(:sample_staff))
 
     assert_not result.success?
     assert_match(/last active operator/, result.error)

@@ -36,11 +36,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_verified_telephone(visitor, "+819022220000")
 
     assert_no_difference("VisitorEmail.count") do
-      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @host),
+      delete sign_com_settings_email_url(email.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_email", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_emails_url(ri: "jp", host: @host)
+    assert_redirected_to sign_com_settings_emails_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -50,11 +50,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_no_difference("VisitorTelephone.count") do
-      delete acme_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
+      delete sign_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_telephone", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_telephones_url(ri: "jp", host: @host)
+    assert_redirected_to sign_com_settings_telephones_url(ri: "jp", host: @host)
     assert_equal I18n.t("sign.app.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -65,11 +65,11 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     passkey = create_active_passkey(visitor)
 
     assert_no_difference("VisitorPasskey.count") do
-      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+      delete sign_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_passkey", host: @host)
     end
 
-    assert_redirected_to acme_com_settings_passkeys_url(ri: "jp", host: @host)
+    assert_redirected_to sign_com_settings_passkeys_url(ri: "jp", host: @host)
     assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
@@ -97,12 +97,12 @@ class Sign::Com::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
     create_active_passkey(visitor)
 
     assert_difference("VisitorEmail.count", -1) do
-      delete acme_com_settings_email_url(email.public_id, ri: "jp", host: @host),
+      delete sign_com_settings_email_url(email.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_email", host: @host)
     end
 
     assert_difference("VisitorPasskey.count", -1) do
-      delete acme_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
+      delete sign_com_settings_passkey_url(passkey.public_id, ri: "jp", host: @host),
              headers: visitor_headers(visitor, scope: "settings_passkey", host: @host)
     end
   end

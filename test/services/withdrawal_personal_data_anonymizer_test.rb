@@ -58,11 +58,14 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
     assert_equal [client], purge_calls
     assert_equal "withdrawn-client-email-11@anonymous.invalid", client_email.updated_attrs.fetch(:address)
     assert_nil client_email.updated_attrs.fetch(:address_digest)
-    assert_equal "", client_email.updated_attrs.fetch(:otp_private_key)
+    assert_equal "withdrawn", client_email.updated_attrs.fetch(:otp_private_key)
+    assert_equal "0", client_email.updated_attrs.fetch(:otp_counter)
     assert_equal ClientEmailStatus::SUSPENDED, client_email.updated_attrs.fetch(:user_email_status_id)
 
     assert_equal "+100000000000012", client_telephone.updated_attrs.fetch(:number)
     assert_nil client_telephone.updated_attrs.fetch(:number_digest)
+    assert_equal "withdrawn", client_telephone.updated_attrs.fetch(:otp_private_key)
+    assert_equal "0", client_telephone.updated_attrs.fetch(:otp_counter)
     assert_equal ClientTelephoneStatus::SUSPENDED,
                  client_telephone.updated_attrs.fetch(:user_identity_telephone_status_id)
 
@@ -106,9 +109,13 @@ class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
 
     assert_equal [visitor], purge_calls
     assert_equal "withdrawn-visitor-email-21@anonymous.invalid", visitor_email.updated_attrs.fetch(:address)
+    assert_equal "withdrawn", visitor_email.updated_attrs.fetch(:otp_private_key)
+    assert_equal "0", visitor_email.updated_attrs.fetch(:otp_counter)
     assert_equal VisitorEmailStatus::SUSPENDED, visitor_email.updated_attrs.fetch(:visitor_email_status_id)
 
     assert_equal "+100000000000022", visitor_telephone.updated_attrs.fetch(:number)
+    assert_equal "withdrawn", visitor_telephone.updated_attrs.fetch(:otp_private_key)
+    assert_equal "0", visitor_telephone.updated_attrs.fetch(:otp_counter)
     assert_equal VisitorTelephoneStatus::SUSPENDED, visitor_telephone.updated_attrs.fetch(:visitor_telephone_status_id)
 
     assert_equal VisitorPasskeyStatus::REVOKED, visitor_passkey.updated_attrs.fetch(:status_id)

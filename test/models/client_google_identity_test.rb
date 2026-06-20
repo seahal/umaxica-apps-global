@@ -96,7 +96,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
   test "find_or_create_from_auth_hash initializes new record" do
     auth = MockAuth.new(
       uid: "new-google-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "google@example.com"),
       credentials: OpenStruct.new(token: "google-token", expires_at: 123),
     )
@@ -105,7 +105,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     assert_predicate identity, :new_record?
     assert_equal "new-google-uid", identity.uid
-    assert_equal "google_app", identity.provider
+    assert_equal "google", identity.provider
     assert_equal "google-token", identity.token
     assert_equal 123, identity.expires_at
   end
@@ -122,7 +122,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     auth = MockAuth.new(
       uid: "existing-google-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "updated-google@example.com"),
       credentials: OpenStruct.new(token: "updated-token", expires_at: 456),
     )
@@ -147,7 +147,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     auth = MockAuth.new(
       uid: "refresh-google-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "updated-google@example.com"),
       credentials: OpenStruct.new(token: "updated-token", refresh_token: nil, expires_at: 456),
     )
@@ -170,7 +170,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     auth = MockAuth.new(
       uid: "present-refresh-google-uid",
-      provider: "google_app",
+      provider: "google",
       credentials: OpenStruct.new(token: "updated-token", refresh_token: "updated-refresh", expires_at: 456),
     )
 
@@ -182,7 +182,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
   test "extract_uid does not fall back to extra raw_info sub" do
     auth = MockAuth.new(
       uid: "",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "google@example.com"),
       credentials: OpenStruct.new(token: "google-token", expires_at: 123),
       extra: OpenStruct.new(raw_info: OpenStruct.new(sub: "fallback-sub")),
@@ -194,7 +194,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
   test "extract_uid uses uid when present" do
     auth = MockAuth.new(
       uid: "google-present-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "google@example.com"),
       credentials: OpenStruct.new(token: "google-token", expires_at: 123),
     )
@@ -205,7 +205,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
   test "extract_uid returns empty string when uid and extra are missing" do
     auth = MockAuth.new(
       uid: nil,
-      provider: "google_app",
+      provider: "google",
       credentials: OpenStruct.new(token: "google-token", expires_at: 123),
     )
 
@@ -223,7 +223,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     auth = MockAuth.new(
       uid: "update-google-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "new-google@example.com"),
       credentials: OpenStruct.new(token: "new-token", refresh_token: "new-refresh", expires_at: 456),
     )
@@ -248,7 +248,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
 
     auth = MockAuth.new(
       uid: "omit-refresh-google-uid",
-      provider: "google_app",
+      provider: "google",
       info: OpenStruct.new(email: "new-google@example.com"),
       credentials: OpenStruct.new(token: "new-token", refresh_token: nil, expires_at: 456),
     )
@@ -282,7 +282,7 @@ class ClientGoogleIdentityTest < ActiveSupport::TestCase
   end
 
   test "normalized_provider maps provider" do
-    identity = ClientGoogleIdentity.new(provider: "google_app")
+    identity = ClientGoogleIdentity.new(provider: "google")
 
     assert_equal "google", identity.normalized_provider
   end

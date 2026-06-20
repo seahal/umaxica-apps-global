@@ -18,7 +18,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(acme_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_difference -> { ClientStepUpCeremonyTransaction.count }, 1 do
       get acme_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -47,7 +47,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    return_to = acme_app_settings_emails_path(ri: "jp")
+    return_to = sign_app_settings_emails_path(ri: "jp")
     issuance = issue_step_up_grant!(
       surface: "app",
       actor_ref: user.public_id,
@@ -101,7 +101,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_app_settings_emails_path(ri: "jp"),
+      return_to: sign_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -133,7 +133,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(acme_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     get acme_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -211,7 +211,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_app_settings_emails_path(ri: "jp"),
+      return_to: sign_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -244,12 +244,12 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_app_settings_emails_path(ri: "jp"),
+      return_to: sign_app_settings_emails_path(ri: "jp"),
     )
 
     post cancellation_acme_app_verification_url(ri: "jp", host: host),
          headers: app_session_headers(host, token, user),
-         params: { scope: "settings_email", return_to: acme_app_settings_emails_path(ri: "jp") }
+         params: { scope: "settings_email", return_to: sign_app_settings_emails_path(ri: "jp") }
 
     assert_response :see_other
     assert_predicate issuance.transaction.reload, :canceled?
@@ -282,7 +282,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: other_token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_app_settings_emails_path(ri: "jp"),
+      return_to: sign_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -313,7 +313,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(acme_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     get acme_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -330,7 +330,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(acme_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get acme_app_verification_url(scope: "admin", pt: pt, ri: "jp", host: host),
@@ -344,7 +344,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(acme_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get acme_app_verification_url(scope: "settings_telephone", pt: pt, ri: "jp", host: host),
@@ -354,33 +354,11 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "acme protected app action redirects to acme verification intent instead of direct sign verification" do
-    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    user = clients(:one)
-    ClientEmail.create!(
-      user: user,
-      address: "protected-intent-#{SecureRandom.hex(4)}@example.com",
-      user_email_status_id: ClientEmailStatus::VERIFIED,
-      otp_private_key: "otp_private_key",
-      otp_counter: "0",
-    )
-    token = create_client_token!(user)
-
-    get acme_app_settings_emails_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
-
-    assert_response :found
-    uri = URI.parse(response.location)
-
-    assert_equal "/verification", uri.path
-    assert_equal host, uri.host
-    assert_equal "settings_email", Rack::Utils.parse_query(uri.query)["scope"]
-  end
-
   test "com acme verification intent creates visitor transaction" do
     host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "visitor-step-up-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    pt = signed_step_up_pt_for(acme_com_settings_emails_path(ri: "jp"), surface: "com", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_com_settings_emails_path(ri: "jp"), surface: "com", session_nonce: token.public_id)
 
     assert_difference -> { VisitorStepUpCeremonyTransaction.count }, 1 do
       get acme_com_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -404,7 +382,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_com_settings_emails_path(ri: "jp"),
+      return_to: sign_com_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "com",
@@ -426,7 +404,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     operator = operators(:one)
     token = operator_tokens(:one)
-    pt = signed_step_up_pt_for(acme_org_settings_emails_path(ri: "jp"), surface: "org", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(sign_org_settings_emails_path(ri: "jp"), surface: "org", session_nonce: token.public_id)
 
     assert_difference -> { OperatorStepUpCeremonyTransaction.count }, 1 do
       get acme_org_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -450,7 +428,7 @@ class AcmeStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: acme_org_settings_emails_path(ri: "jp"),
+      return_to: sign_org_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "org",

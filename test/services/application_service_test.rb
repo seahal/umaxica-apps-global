@@ -34,4 +34,10 @@ class ApplicationServiceTest < ActiveSupport::TestCase
       ApplicationService.new.call
     end
   end
+
+  test "#initialize accepts arbitrary arguments as a no-op default" do
+    service = ApplicationService.new(:anything, keyword: "value")
+
+    assert_instance_of ApplicationService, service
+  end
 end

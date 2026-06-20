@@ -103,9 +103,9 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
            headers: authenticated_headers
     end
 
-    assert_redirected_to acme_org_settings_secrets_url(
+    assert_redirected_to sign_org_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
@@ -123,15 +123,21 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal "Test Secret", @staff_secret_credential.name
   end
 
-  test "destroy redirects to acme without local mutation" do
-    assert_no_difference("OperatorSecretCredential.count") do
+  test "destroy soft-deletes secret credential locally" do
+    assert_difference(
+      -> { OperatorSecretCredential.where(staff_secret_status_id: OperatorSecretCredentialStatus::ACTIVE).count },
+      -1,
+    ) do
       delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
-    assert_equal OperatorSecretCredentialStatus::ACTIVE, @staff_secret_credential.reload.staff_secret_status_id
+    assert_redirected_to sign_org_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    )
+    assert_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end
 
   test "URL uses public_id not numeric ID in compatibility redirect" do
@@ -183,17 +189,23 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal "Test Secret", @staff_secret_credential.reload.name
   end
 
-  test "destroy compatibility redirects before local turnstile validation" do
+  test "destroy soft-deletes before local turnstile validation" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    assert_no_difference("OperatorSecretCredential.count") do
+    assert_difference(
+      -> { OperatorSecretCredential.where(staff_secret_status_id: OperatorSecretCredentialStatus::ACTIVE).count },
+      -1,
+    ) do
       delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
              params: { "cf-turnstile-response": "bad" },
              headers: authenticated_headers
     end
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
-    assert_not_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
+    assert_redirected_to sign_org_settings_secret_credentials_url(
+      ri: "jp",
+      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    )
+    assert_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end
 
   private

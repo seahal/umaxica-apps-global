@@ -36,7 +36,9 @@ class SignUpCycleLocator
 
   def issue!(cycle, nonce: new_nonce)
     ensure_supported_cycle!(cycle)
-    cycle.update!(nonce_digest: cycle.class.digest_nonce(nonce))
+    cycle.class.connection_class_for_self.connected_to(role: :writing) do
+      cycle.update!(nonce_digest: cycle.class.digest_nonce(nonce))
+    end
     session[session_key] = {
       "public_id" => cycle.public_id,
       "nonce" => nonce,

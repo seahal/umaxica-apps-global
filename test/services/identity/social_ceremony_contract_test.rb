@@ -61,7 +61,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
   test "candidate store is one-shot and keeps provider tokens server-side in database records" do
     travel_to(@now) do
       auth_hash = OmniAuth::AuthHash.new(
-        provider: "google_app",
+        provider: "google",
         uid: "candidate-google",
         credentials: {
           token: "candidate-access-token",
@@ -74,7 +74,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
         session_ref: "session-1",
         transaction_id: "txn-1",
         operation: "login",
-        provider: "google_app",
+        provider: "google",
         auth_hash: auth_hash,
         expires_at: @now + 5.minutes,
       )
@@ -100,7 +100,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
   test "candidate store rejects expired deleted malformed records and does not call Rails cache" do
     travel_to(@now) do
       cache = Minitest::Mock.new
-      auth_hash = OmniAuth::AuthHash.new(provider: "google_app", uid: "candidate-google")
+      auth_hash = OmniAuth::AuthHash.new(provider: "google", uid: "candidate-google")
 
       Rails.stub(:cache, cache) do
         expired = IdentitySocialCeremonyCandidateStore.store!(
@@ -109,7 +109,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           session_ref: "session-expired",
           transaction_id: "txn-expired",
           operation: "login",
-          provider: "google_app",
+          provider: "google",
           auth_hash: auth_hash,
           expires_at: @now - 1.second,
         )
@@ -119,7 +119,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           session_ref: "session-deleted",
           transaction_id: "txn-deleted",
           operation: "login",
-          provider: "google_app",
+          provider: "google",
           auth_hash: auth_hash,
           expires_at: @now + 5.minutes,
         )
@@ -133,11 +133,11 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
           session_ref: "session-malformed",
           transaction_id: "txn-malformed",
           operation: "login",
-          provider: "google_app",
-          auth_hash: { "provider" => "google_app", "uid" => "candidate-google" },
+          provider: "google",
+          auth_hash: { "provider" => "google", "uid" => "candidate-google" },
           expires_at: @now + 5.minutes,
         )
-        malformed.auth_hash = { "provider" => "google_app" }
+        malformed.auth_hash = { "provider" => "google" }
         malformed.save!(validate: false)
 
         assert_social_ceremony_error("candidate is expired") {
@@ -245,7 +245,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
       "transaction_id" => "txn-1",
       "jti" => "grant-1",
       "operation" => "link",
-      "provider" => "google_app",
+      "provider" => "google",
       "iat" => @now.to_i,
       "exp" => (@now + 10.minutes).to_i,
     }
@@ -264,7 +264,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
       "grant_jti" => "grant-1",
       "result_jti" => "result-1",
       "operation" => "link",
-      "provider" => "google_app",
+      "provider" => "google",
       "proof_method" => IdentitySocialCeremonyResult::PROOF_METHOD,
       "provider_subject_ref" => "subject-digest",
       "provider_subject_digest" => "subject-digest",
@@ -285,7 +285,7 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     IdentitySocialCeremonyCandidate.connection.select_value(
       IdentitySocialCeremonyCandidate.sanitize_sql_array(
         [
-          /SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref/,
+          "SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref = ?",
           ref,
         ],
       ),

@@ -65,6 +65,31 @@ class AnalyticsConsentGuardTest < ActiveSupport::TestCase
     assert AnalyticsConsentGuard.permit?("authentication.audit.write_failed", preference: Actor::Preference::NULL)
   end
 
+  test "pre-consent allowlist permits auth events" do
+    assert AnalyticsConsentGuardPreConsentAllowlist.allowed?("auth.login.success")
+  end
+
+  test "pre-consent allowlist permits security events" do
+    assert AnalyticsConsentGuardPreConsentAllowlist.allowed?("rate_limit.triggered")
+  end
+
+  test "pre-consent allowlist permits incident events" do
+    assert AnalyticsConsentGuardPreConsentAllowlist.allowed?("health_check.failed")
+  end
+
+  test "pre-consent allowlist permits contact events" do
+    assert AnalyticsConsentGuardPreConsentAllowlist.allowed?("contact.submission.sent")
+  end
+
+  test "pre-consent allowlist rejects non-allowed events" do
+    assert_not AnalyticsConsentGuardPreConsentAllowlist.allowed?("product.page_view")
+  end
+
+  test "pre-consent allowlist rejects nil and empty event names" do
+    assert_not AnalyticsConsentGuardPreConsentAllowlist.allowed?(nil)
+    assert_not AnalyticsConsentGuardPreConsentAllowlist.allowed?("")
+  end
+
   test "event reporter patch drops blocked events and forwards allowed events" do
     reporter_class =
       Class.new do

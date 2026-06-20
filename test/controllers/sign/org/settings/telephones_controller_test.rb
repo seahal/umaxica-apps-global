@@ -25,10 +25,10 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     }
   end
 
-  test "sign settings telephones index redirects to acme authority" do
-    get sign_org_settings_telephones_url(ri: "jp")
+  test "sign settings telephones index renders sign settings authority" do
+    get sign_org_settings_telephones_url(ri: "jp"), headers: request_headers
 
-    assert_redirected_to acme_org_settings_telephones_url(ri: "jp", host: @acme_host)
+    assert_response :success
   end
 
   test "legacy sign settings telephone edit remains ceremony account-binding flow" do
@@ -48,18 +48,24 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     )
   end
 
-  test "sign settings telephone destroy redirects without local account mutation" do
+  test "sign settings telephone destroy mutates local account telephone" do
     telephone = OperatorTelephone.create!(
       number: "+10000000000",
       staff: @staff,
       staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
-    assert_no_difference("OperatorTelephone.count") do
-      delete sign_org_settings_telephone_url(telephone.id, ri: "jp")
+    OperatorTelephone.create!(
+      number: "+10000000001",
+      staff: @staff,
+      staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
+    )
+
+    assert_difference("OperatorTelephone.count", -1) do
+      delete sign_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
     end
 
-    assert_redirected_to acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @acme_host)
+    assert_redirected_to sign_org_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new remains ceremony entry" do

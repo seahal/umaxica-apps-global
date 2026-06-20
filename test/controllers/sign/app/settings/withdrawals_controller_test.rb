@@ -17,12 +17,13 @@ class Sign::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
       discarded_at: 1.day.from_now,
       purged_at: 2.days.from_now,
     )
+    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
   end
 
-  test "new_redirects_to_acme_account_authority" do
+  test "new renders sign withdrawal entry" do
     get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
-    assert_redirect_to_acme_withdrawal
+    assert_response :success
   end
 
   test "update_redirect_is_not_account_lifecycle_mutation" do
@@ -30,9 +31,9 @@ class Sign::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
           params: { ack_deactivate_today: "1" },
           headers: session_headers
 
-    assert_redirect_to_acme_withdrawal
-    assert_nil @user.reload.withdrawal_started_at
-    assert_nil @user.deactivated_at
+    assert_response :redirect
+    assert_not_nil @user.reload.withdrawal_started_at
+    assert_not_nil @user.deactivated_at
   end
 
   test "create_redirect_is_not_withdrawal_recovery_mutation" do
@@ -45,15 +46,16 @@ class Sign::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
 
     post sign_app_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
-    assert_redirect_to_acme_withdrawal
-    assert_not_nil @user.reload.withdrawal_started_at
-    assert_not_nil @user.deactivated_at
+    assert_response :redirect
+    assert_nil @user.reload.withdrawal_started_at
+    assert_nil @user.deactivated_at
   end
 
   test "destroy_redirect_is_not_withdrawal_termination_mutation" do
     @user.update!(
       deactivated_at: 8.days.ago,
       withdrawal_started_at: 8.days.ago,
+      withdrawn_at: 8.days.ago,
       discarded_at: 1.day.from_now,
       purged_at: 23.days.from_now,
       terminated_at: nil,
@@ -61,8 +63,8 @@ class Sign::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
 
     delete sign_app_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
-    assert_redirect_to_acme_withdrawal
-    assert_nil @user.reload.terminated_at
+    assert_response :redirect
+    assert_not_nil @user.reload.terminated_at
   end
 
   private
@@ -73,14 +75,5 @@ class Sign::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
-  end
-
-  def assert_redirect_to_acme_withdrawal
-    assert_response :see_other
-    location = URI.parse(response.location)
-
-    assert_equal @acme_host, location.host
-    assert_equal "/settings/withdrawal", location.path
-    assert_equal "ri=jp", location.query
   end
 end

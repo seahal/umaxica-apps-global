@@ -354,9 +354,9 @@ module Sign
         end
 
         def recovery_passcode_setup_url
-          sign_app_settings_secrets_url(
+          sign_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
         end
       end
