@@ -59,14 +59,36 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :get },
+      { controller: "sign/app/sign/outs", action: "new" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/sign/outs", action: "edit" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
       { controller: "sign/app/sign/outs", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "sign/app/sign/outs", action: "complete" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/out", method: :delete)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/oidc/logout", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/oidc/logout", method: :post)
+    end
 
     assert_recognizes(
       { controller: "sign/app/oidc/backchannel/logouts", action: "create" },
@@ -328,12 +350,35 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "show" },
-      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :get },
+      { controller: "sign/com/sign/outs", action: "new" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/outs", action: "edit" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/outs", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/outs", action: "complete" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out/complete", method: :get },
     )
 
     assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/out", method: :post)
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/out", method: :delete)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/oidc/logout", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/oidc/logout", method: :post)
     end
 
     assert_recognizes(
@@ -492,12 +537,35 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/outs", action: "show" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :get },
+      { controller: "sign/org/sign/outs", action: "new" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/sign/outs", action: "edit" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/sign/outs", action: "create" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/org/sign/outs", action: "complete" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out/complete", method: :get },
     )
 
     assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/out", method: :post)
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/out", method: :delete)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/oidc/logout", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/oidc/logout", method: :post)
     end
 
     assert_recognizes(

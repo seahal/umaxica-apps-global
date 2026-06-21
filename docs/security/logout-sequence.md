@@ -7,71 +7,71 @@ Logout is acme/www session mutation.
 `acme/www` owns current-session logout, all-session logout, session revoke, session-management UI,
 refresh-token family mutation, device binding cleanup, step-up freshness cleanup, and logout audit.
 
-`sign/id` must not revoke sessions, rotate or revoke refresh tokens, clear acme sessions, list
-sessions, display session-management UI, or write authoritative logout state.
+`sign/id`, `core`, and `base` are relying parties. They may initiate logout and show local
+ceremony/completion UI, but they must not revoke authoritative acme session state.
 
 Logical authority moves now; physical storage may remain where it is. Existing sign-side tables,
 models, services, controllers, or namespaces do not imply sign-side authority.
 
-## Sign/ID Redirect-Only Boundary
+## User-Facing Ceremony
 
-If `/sign/out` is retained, it is redirect-only to the acme logout flow.
+The browser ceremony is surface-local and uses the same shape on every browser surface:
 
-A retained sign-side route may:
+- `GET /sign/out/new`
+- `GET /sign/out/edit`
+- `POST /sign/out`
+- `GET /sign/out/complete`
 
-- inspect request context needed to choose the acme logout entry;
-- clear ceremony-local state that belongs only to the current sign credential ceremony;
-- preserve safe navigation intent through signed redirect primitives;
-- redirect the browser to acme logout.
+`GET /sign/out/new` is a redirect-only entry point.
+`GET /sign/out/edit` is the confirmation page.
+`POST /sign/out` is the local logout action or RP launcher, depending on surface authority.
+`GET /sign/out/complete` is the friendly completion page and is safe to reload.
 
-It must not:
+`/sign/out/edit?sot=` is retired from the normal browser flow. Completion is session-bound, not URL
+token-bound.
 
-- revoke the current session;
-- revoke other sessions;
-- revoke or rotate refresh tokens;
-- clear acme session cookies as the authority;
-- update device/session rows;
-- clear step-up freshness;
-- render an authoritative signed-out result;
-- write authoritative logout or session audit.
+## Acme Local Logout
 
-## Acme Current-Session Logout
+Acme app/com/org surfaces own direct session mutation. Local logout:
 
-Current-session logout signs out one browser session. It must not revoke every active session for
-the actor unless the user selected an all-session action.
+1. resolves the current acme session;
+2. revokes the current session and current token family with the existing logout primitive;
+3. clears acme auth cookies and request-local actor state;
+4. records logout audit through the existing authority path;
+5. stores a one-time completion marker in the fresh session;
+6. redirects to the same surface's `/sign/out/complete`.
 
-The acme current-session logout flow is responsible for:
+Acme local logout must not self-redirect to `/oidc/logout` or mint `id_token_hint` for itself.
 
-1. resolving the current acme session;
-2. validating the logout request and any signed navigation target;
-3. revoking or expiring the current session record;
-4. revoking, rotating, or retiring the current refresh token family state as required by policy;
-5. clearing device binding state tied to the session, including DBSC/device binding material where
-   applicable;
-6. clearing session-bound step-up freshness;
-7. clearing acme auth cookies and request-local actor state;
-8. writing authoritative logout audit and security records;
-9. returning the signed-out response or redirecting to a validated navigation target.
+## RP Logout Launch
 
-Physical sign-out cycle tables may continue to exist during migration. They are compatibility
-storage only unless current docs and ADRs explicitly assign the state to acme.
+Sign/Core/Base browser surfaces are RPs. Their `POST /sign/out` actions:
 
-## All-Session Logout And Session Management
+1. capture the material needed for logout before any reset;
+2. clear or reset the local RP session;
+3. store an opaque state token in the fresh Rails session;
+4. redirect to the corresponding Acme surface's `GET /oidc/logout`;
+5. complete on the RP surface's `/sign/out/complete` after the Acme end-session flow returns.
 
-All-session logout, selected-session revoke, restricted-session promotion, device/session listing,
-and session-management UI are acme authority.
+The RP completion marker is session-bound and one-time. The browser may revisit completion safely,
+but the server must not re-assert a fresh logout from stale state.
 
-`sign/id` may not host session-management UI except as a redirect to acme. It may not promote a
-restricted session, revoke another session, or decide whether a session may continue.
+## Acme OIDC End-Session
 
-## Stale Sign Routes
+`GET /oidc/logout` and `POST /oidc/logout` remain Acme-only protocol endpoints. They validate the
+OIDC request, stage exact registered redirect URIs, and use the shared `/sign/out/edit`
+confirmation when user confirmation is needed.
 
-A stale `/sign/out` form submission must not pretend logout ran on sign. The safe behavior is to
-redirect to acme logout or acme sign-in handling, depending on whether an acme session is still
-present.
+`post_logout_redirect_uri` must be an exact registry match. Invalid or unregistered values must
+never be redirected to.
 
-If no acme session is present, sign may clear ceremony-local state and redirect. It must not create
-a logout cycle or write authoritative logout audit.
+## Palm Contract
+
+Palm remains a future native/app-link client. The future completion target is:
+
+`https://<palm-host>/sign/out/complete`
+
+This is documented only; runtime Palm logout is not implemented here.
 
 ## Related
 

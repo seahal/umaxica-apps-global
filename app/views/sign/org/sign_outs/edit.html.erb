@@ -1,9 +1,1 @@
-<div>
-  <h1><%= title t("sign.shared.sign_out.title") %></h1>
-  <p><%= t("views.sign.app.settings.outs.edit.confirm_description") %></p>
-  <%= button_to t("sign.shared.sign_out.button"),
-                acme_org_sign_out_url(ri: params[:ri], host: acme_authority_host),
-                method: :delete,
-                form: { data: { turbo: false } } %>
-  <p><%= link_to t("sign.app.settings.show.back"), sign_org_settings_path(ri: params[:ri]) %></p>
-</div>
+<%= render template: "sign/shared/sign_outs/edit" %>

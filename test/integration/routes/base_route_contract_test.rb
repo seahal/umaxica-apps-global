@@ -88,12 +88,20 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sign/out",
+      "http://#{BASE_APP_HOST}/sign/out/new",
       method: :get,
     )
 
     assert_equal "base/app/sign_outs", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "new", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/sign/out/edit",
+      method: :get,
+    )
+
+    assert_equal "base/app/sign_outs", recognized[:controller]
+    assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/sign/out",
@@ -102,6 +110,18 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_equal "base/app/sign_outs", recognized[:controller]
     assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_APP_HOST}/sign/out/complete",
+      method: :get,
+    )
+
+    assert_equal "base/app/sign_outs", recognized[:controller]
+    assert_equal "complete", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_APP_HOST}/sign/out", method: :delete)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/csp-violation-report",
@@ -190,12 +210,20 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/sign/out",
+      "http://#{BASE_COM_HOST}/sign/out/new",
       method: :get,
     )
 
     assert_equal "base/com/sign_outs", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "new", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/sign/out/edit",
+      method: :get,
+    )
+
+    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/sign/out",
@@ -204,6 +232,18 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_equal "base/com/sign_outs", recognized[:controller]
     assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_COM_HOST}/sign/out/complete",
+      method: :get,
+    )
+
+    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "complete", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_COM_HOST}/sign/out", method: :delete)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/csp-violation-report",
@@ -292,12 +332,20 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/sign/out",
+      "http://#{BASE_ORG_HOST}/sign/out/new",
       method: :get,
     )
 
     assert_equal "base/org/sign_outs", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "new", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/sign/out/edit",
+      method: :get,
+    )
+
+    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/sign/out",
@@ -306,6 +354,18 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_equal "base/org/sign_outs", recognized[:controller]
     assert_equal "create", recognized[:action]
+
+    recognized = Rails.application.routes.recognize_path(
+      "http://#{BASE_ORG_HOST}/sign/out/complete",
+      method: :get,
+    )
+
+    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "complete", recognized[:action]
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{BASE_ORG_HOST}/sign/out", method: :delete)
+    end
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/csp-violation-report",

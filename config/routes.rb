@@ -1,6 +1,12 @@
 # typed: false
 # frozen_string_literal: true
 
+# Define the Sign route-mapper macros (sign_routes/sign_surface/...) before the
+# surface tables consume them. Required here rather than from an initializer so
+# the macros exist regardless of initializer load order. See the file header.
+require_relative "sign_route_mapper"
+ActionDispatch::Routing::Mapper.include(SignRouteMapper)
+
 Rails.application.routes.draw do
   # Acme owns the OP/Authorization Server and durable identity/session authority.
   draw :acme

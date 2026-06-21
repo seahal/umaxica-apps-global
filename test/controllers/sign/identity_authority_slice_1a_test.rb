@@ -4,15 +4,6 @@
 require "test_helper"
 
 class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
-  test "sign out lifecycle routes are retired from sign authority" do
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/confirmation",
-        method: :get,
-      )
-    end
-  end
-
   test "sign settings sessions route uses sign authority" do
     route = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/sessions",
@@ -49,34 +40,66 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "show", sign_up.fetch(:action)
   end
 
-  test "acme authority routes resolve for sign out while settings resolve on sign" do
+  test "sign out lifecycle routes use the explicit ceremony contract" do
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/new",
+      method: :get,
+    )
+
+    assert_equal "sign/app/sign/outs", route.fetch(:controller)
+    assert_equal "new", route.fetch(:action)
+
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/edit",
+      method: :get,
+    )
+
+    assert_equal "sign/app/sign/outs", route.fetch(:controller)
+    assert_equal "edit", route.fetch(:action)
+
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out",
+      method: :post,
+    )
+
+    assert_equal "sign/app/sign/outs", route.fetch(:controller)
+    assert_equal "create", route.fetch(:action)
+
+    route = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/complete",
+      method: :get,
+    )
+
+    assert_equal "sign/app/sign/outs", route.fetch(:controller)
+    assert_equal "complete", route.fetch(:action)
+  end
+
+  test "acme authority owns logout and sign authority does not expose oidc logout" do
     sign_out = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/out",
+      "https://#{ENV.fetch("ACME_SERVICE_URL")}/sign/out/new",
+      method: :get,
+    )
+    oidc_logout = Rails.application.routes.recognize_path(
+      "https://#{ENV.fetch("ACME_SERVICE_URL")}/oidc/logout",
       method: :get,
     )
     sessions = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/sessions",
       method: :get,
     )
-    withdrawal = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/withdrawal",
-      method: :patch,
-    )
 
-    assert_equal "sign/app/sign/outs", sign_out.fetch(:controller)
-    assert_equal "show", sign_out.fetch(:action)
+    assert_equal "acme/app/sign/outs", sign_out.fetch(:controller)
+    assert_equal "new", sign_out.fetch(:action)
+    assert_equal "acme/app/oidc/logouts", oidc_logout.fetch(:controller)
+    assert_equal "show", oidc_logout.fetch(:action)
     assert_equal "sign/app/settings/sessions", sessions.fetch(:controller)
     assert_equal "index", sessions.fetch(:action)
-    assert_equal "sign/app/settings/withdrawals", withdrawal.fetch(:controller)
-    assert_equal "update", withdrawal.fetch(:action)
-  end
 
-  test "acme controllers own logout bridge primitive" do
-    acme_sources = [
-      Rails.root.join("app/controllers/acme/app/sign/outs_controller.rb"),
-    ].map { |path| File.read(path) }.join("\n")
-
-    assert_includes acme_sources, "OidcIdTokenIssuer.call"
-    assert_includes acme_sources, "acme_app_oidc_logout_url"
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oidc/logout",
+        method: :get,
+      )
+    end
   end
 end

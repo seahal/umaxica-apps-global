@@ -1381,6 +1381,35 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     assert_equal "new-network", device.last_network_hmac, "stored fingerprint is refreshed"
   end
 
+  # Stronger companion to the stub-based test above: drive the write through a
+  # real read-only connection (mirroring SignUpCycleLocatorTest) instead of
+  # stubbing connected_to. If a regression drops the :writing wrapper, this
+  # surfaces as a genuine ActiveRecord::ReadOnlyError rather than only a missing
+  # stub call, so it also guards the connection semantics, not just the API call.
+  test "detect_session_network_change! persists the fingerprint under a real read-only connection" do
+    @controller.define_singleton_method(:resource_type) { "client" }
+    refresh_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    device = ClientDeviceSession.create!(
+      user: @user,
+      current_refresh_token: refresh_token,
+      status_id: DeviceSessionable::STATUS_ACTIVE,
+      last_network_hmac: "old-network",
+    )
+    token = Struct.new(:device_session, :public_id).new(device, "tok-1")
+    resource = Struct.new(:id).new(@user.id)
+
+    OccurrenceHmac.stub(:network_hmac, ->(_ip) { "new-network" }) do
+      SignRiskEmitter.stub(:emit, ->(*) { }) do
+        ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
+          @controller.detect_session_network_change!(token, resource)
+        end
+      end
+    end
+
+    assert_equal "new-network", device.reload.last_network_hmac,
+                 "fingerprint write must succeed despite the request defaulting to the reading role"
+  end
+
   def fake_device_session(last_network_hmac:)
     Struct.new(:last_network_hmac) do
       def has_attribute?(attribute)

@@ -169,6 +169,45 @@ bin/rails test test/controllers   # サーフェス横断の回帰
   `redirect_to_jump_url`（allowlist 経由）に振り分けられる。ログの dashboard への raw
   redirect 経路は現行コードに存在しない。
 
+---
+
+## 実装結果（1〜4 の再発防止対応, 2026-06-21）
+
+ユーザー要望「1〜4 を全部しっかり」に対応。バグ自体は既に解消済みのため、内容は構造修正＋回帰テスト。
+
+### 実施した変更
+
+- **項目2（コード修正・完了）**: ルートマクロ `SignRouteMapper` を initializer から
+  `config/sign_route_mapper.rb` に分離し、`config/routes.rb` で `require_relative` +
+  `include`。initializer のアルファベット順依存（`sign_*`
+  は終盤）を排除し、ルート描画直前に必ず定義される。 `config/initializers/sign_route_mapper.rb`
+  は削除。
+  - 検証: `reload_routes!` → `ROUTES_OK`、`routing_entrypoints_test` 緑。
+- **項目1（テスト強化・完了）**: `last_network_hmac`
+  の書き込みが reading(GET) ロール下でも永続することを **実コネクション**で検証する回帰テストを
+  `base_coverage_test.rb` に追加（既存はスタブのみ）。nonce_digest 側は
+  `sign_up_cycle_locator_test.rb:25` で既出。
+  - 検証: 緑。
+
+### 検証結果（テストDB再構築 `RAILS_ENV=test db:migrate:reset` 後）
+
+- 項目1・2・4 の関連テスト: **100 runs, 0 failures, 0 errors（緑）**。
+  - 項目4（OpenRedirect）は `sequence_gate_extra_coverage_test.rb:224` が cross-host→jump
+    gateway を既に検証。
+  - 項目3（sign-out の `current_resource`）は元の NameError 自体は解消済み。
+- 注意: テストDBは初期状態で pending migrations 1918 件のドリフトがあり、`db:migrate:reset`（test
+  DB のみ）で再構築。
+
+### 項目3で表面化した既存の失敗（私の変更とは無関係・進行中リファクタ起因）
+
+`sign_outs_controller_test.rb` の2件が working-tree で RED。test と controller は同一コミット
+`d2013aa9a`、view は古い `ae902c580` で追従しておらず不整合:
+
+1. GET: `OutsController#show`
+   が空で「完了」view（フォーム無し）を描画。テストは確認 POST フォームを期待。
+2. POST: `current_session_public_id` が nil → OIDC logout URL に `sid`
+   が出ない。意図（確認フォーム UX か、テストのセッション wiring か）が不明のため未修整。要ユーザー判断。
+
 ### 残課題（任意・低優先）
 
 - **項目5（404 切り分け）**: `/edge/v0/token/dbsc` 等・`/social/google`

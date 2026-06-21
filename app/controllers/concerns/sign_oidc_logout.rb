@@ -4,6 +4,8 @@
 module SignOidcLogout
   extend ActiveSupport::Concern
 
+  OIDC_LOGOUT_REQUEST_SESSION_KEY = :oidc_logout_request
+
   included do
     after_action :sign_out_notice_cache_headers!, only: %i(show create)
   end
@@ -22,17 +24,20 @@ module SignOidcLogout
     @oidc_end_session_request = OidcEndSessionRequest.call(params: params, request: request)
     return render_oidc_end_session_error(@oidc_end_session_request) if @oidc_end_session_request.error?
 
-    if sign_out_completion_notice_present?
-      return render_oidc_logout_completion
-    end
+    if oidc_logout_pending_request_present?
+      return perform_oidc_end_session_logout(oidc_logout_pending_request) if request.post?
 
-    if sign_out_confirmation_request?
       return render_oidc_end_session_confirmation
     end
 
-    return render_oidc_end_session_failure unless request.post?
+    if @oidc_end_session_request.post_logout_redirect_uri.present?
+      store_oidc_logout_request!(@oidc_end_session_request)
+      return redirect_to(sign_out_edit_path, status: :see_other)
+    end
 
-    perform_oidc_end_session_logout(@oidc_end_session_request)
+    return render_oidc_end_session_confirmation if request.get? || request.head?
+
+    render_oidc_end_session_failure
   end
 
   def perform_oidc_end_session_logout(result)
@@ -45,7 +50,7 @@ module SignOidcLogout
       redirect_to(post_logout_redirect_uri_with_state(result), allow_other_host: true, status: :see_other)
     else
       redirect_to(
-        oidc_logout_completed_path(ri: result.legacy_ri || params[:ri], sot: @sign_out_notice_token),
+        oidc_logout_completed_path(ri: result.legacy_ri || params[:ri]),
         status: :see_other,
       )
     end
@@ -53,9 +58,6 @@ module SignOidcLogout
 
   def render_oidc_logout_completion
     @sign_out_notice = consume_sign_out_notice
-    return render_oidc_end_session_failure unless @sign_out_notice
-
-    @sign_out_access_expires_at = @sign_out_notice["access_expires_at"]
     render oidc_logout_completion_template, status: :ok
   end
 
@@ -68,34 +70,69 @@ module SignOidcLogout
   end
 
   def render_oidc_end_session_error(result)
-    render json: { error: result.error_code, error_description: result.error_description },
-           status: :bad_request
+    if request.format.json?
+      render json: { error: result.error_code, error_description: result.error_description },
+             status: :bad_request
+    else
+      render_oidc_logout_completion
+    end
   end
 
   def render_oidc_end_session_failure
-    render json: { error: "unprocessable_content", error_description: "logout completion is stale" },
-           status: :unprocessable_content
+    if request.format.json?
+      render json: { error: "unprocessable_content", error_description: "logout completion is stale" },
+             status: :unprocessable_content
+    else
+      render_oidc_logout_completion
+    end
   end
 
-  def sign_out_completion_notice_present?
-    request_token = Rack::Utils.parse_nested_query(request.query_string.to_s)
+  def oidc_logout_pending_request_present?
+    session.key?(OIDC_LOGOUT_REQUEST_SESSION_KEY)
+  end
 
-    request_token[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM.to_s].present? ||
-      request_token["ct"].present? ||
-      request.params[SignOutNotice::SIGN_OUT_NOTICE_TOKEN_PARAM].present? ||
-      request.params[:ct].present? ||
-      session.key?(SignOutNotice::SIGN_OUT_NOTICE_SESSION_KEY)
+  def oidc_logout_pending_request
+    payload = session[OIDC_LOGOUT_REQUEST_SESSION_KEY]
+    return unless payload.is_a?(Hash)
+
+    expires_at = parse_oidc_logout_request_time(payload["expires_at"])
+    return unless expires_at.present? && expires_at > Time.current
+
+    OpenStruct.new(payload.symbolize_keys)
+  end
+
+  def store_oidc_logout_request!(result)
+    session[OIDC_LOGOUT_REQUEST_SESSION_KEY] = oidc_logout_request_payload(result)
+  end
+
+  def consume_oidc_logout_request
+    result = oidc_logout_pending_request
+    return unless result
+
+    session.delete(OIDC_LOGOUT_REQUEST_SESSION_KEY)
+    result
+  end
+
+  def oidc_logout_request_payload(result)
+    {
+      "client_id" => result.client_id,
+      "subject" => result.subject,
+      "sid" => result.sid,
+      "post_logout_redirect_uri" => result.post_logout_redirect_uri,
+      "state" => result.state,
+      "ui_locales" => result.ui_locales,
+      "legacy_ri" => result.legacy_ri,
+      "expires_at" => 5.minutes.from_now.iso8601,
+    }.compact
+  end
+
+  def parse_oidc_logout_request_time(value)
+    Time.zone.iso8601(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
   end
 
   def sign_out_confirmation_request?
-    if @oidc_end_session_request.requires_confirmation?
-      return true if request.post?
-
-      return current_resource.present? || current_session_public_id.present?
-    end
-
-    return false unless request.get? || request.head?
-
     current_resource.present? || current_session_public_id.present?
   end
 
@@ -153,18 +190,18 @@ module SignOidcLogout
   end
 
   def oidc_logout_confirmation_params
-    return {} unless @oidc_end_session_request
+    return {} unless oidc_logout_pending_request_present?
 
-    params = {}
-    params[:id_token_hint] = request.params[:id_token_hint] if request.params[:id_token_hint].present?
-    params[:logout_request] = request.params[:logout_request] if request.params[:logout_request].present?
-    params[:client_id] = request.params[:client_id] if request.params[:client_id].present?
-    params[:post_logout_redirect_uri] = @oidc_end_session_request.post_logout_redirect_uri \
-      if @oidc_end_session_request.post_logout_redirect_uri.present?
-    params[:state] = @oidc_end_session_request.state if @oidc_end_session_request.state.present?
-    params[:ui_locales] = @oidc_end_session_request.ui_locales if @oidc_end_session_request.ui_locales.present?
-    params[:ri] = request.params[:ri] if request.params[:ri].present?
-    params
+    { ri: params[:ri] }.compact
+  end
+
+  def sign_out_confirmation_form_path
+    return public_send(
+      "acme_#{sign_surface_name}_oidc_logout_path",
+      **sign_out_route_params,
+    ) if oidc_logout_pending_request_present?
+
+    sign_out_post_path
   end
 
   def post_logout_redirect_uri_with_state(result)
@@ -199,5 +236,9 @@ module SignOidcLogout
     request_host == configured
   rescue URI::InvalidURIError
     request_host == configured_host.to_s
+  end
+
+  def sign_surface_name
+    controller_path.split("/").second
   end
 end

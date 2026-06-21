@@ -22,7 +22,9 @@ sign_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: %i(show create)
+      resource :out, only: %i(new edit create) do
+        get :complete, on: :collection
+      end
     end
 
     sign_rp_oidc_routes
@@ -218,7 +220,9 @@ sign_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: :show
+      resource :out, only: %i(new edit create) do
+        get :complete, on: :collection
+      end
     end
 
     sign_rp_oidc_routes
@@ -400,7 +404,9 @@ sign_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: :show
+      resource :out, only: %i(new edit create) do
+        get :complete, on: :collection
+      end
     end
 
     sign_rp_oidc_routes

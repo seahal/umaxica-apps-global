@@ -29,7 +29,7 @@
           <% unless @hide_auth_navigation || content_for?(:nav_links) %>
             <% content_for :nav_links do %>
             <% if logged_in? %>
-                <%= link_to t("sign.app.layout.nav.logout"), sign_com_sign_out_url %>
+                <%= link_to t("sign.app.layout.nav.logout"), new_sign_com_sign_out_path %>
               <% else %>
                 <%= link_to t("sign.app.layout.nav.sign_up"), sign_com_sign_up_url %>
                 <%= link_to t("sign.app.layout.nav.log_in"), sign_com_sign_in_url %>

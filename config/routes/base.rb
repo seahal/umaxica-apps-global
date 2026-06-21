@@ -35,7 +35,9 @@ scope module: :base, as: :base do
       resource :settings, only: :show
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        get :complete, on: :collection
+      end
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
@@ -79,7 +81,9 @@ scope module: :base, as: :base do
       resource :settings, only: :show
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        get :complete, on: :collection
+      end
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do
@@ -123,7 +127,9 @@ scope module: :base, as: :base do
       resource :settings, only: :show
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        get :complete, on: :collection
+      end
 
       # RP login start: redirects to Acme /oauth/authorize.
       namespace :oidc do

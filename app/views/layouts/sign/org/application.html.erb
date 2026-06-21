@@ -28,7 +28,7 @@
         <div class="flex gap-2">
           <% content_for :nav_links do %>
             <% if logged_in? %>
-              <%= link_to t("sign.org.layout.nav.logout"), sign_org_sign_out_url %>
+              <%= link_to t("sign.org.layout.nav.logout"), new_sign_org_sign_out_path %>
             <% else %>
               <%= link_to t("sign.org.layout.nav.sign_up"), sign_org_sign_up_url %>
               <%= link_to t("sign.org.layout.nav.log_in"), sign_org_sign_in_url %>

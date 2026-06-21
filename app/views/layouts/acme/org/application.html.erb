@@ -22,7 +22,7 @@
     <% unless logged_in? %>
       <%= link_to "#{t('sign.org.layout.nav.sign_up')} / #{t('sign.org.layout.nav.log_in')}", acme_org_oidc_authorization_path %>
     <% else %>
-      <%= button_to t("sign.org.layout.nav.logout"), acme_org_oidc_logout_path, method: :post %>
+      <%= link_to t("sign.org.layout.nav.logout"), new_acme_org_sign_out_path(ri: params[:ri]) %>
     <% end %>
   </nav>
   <div>

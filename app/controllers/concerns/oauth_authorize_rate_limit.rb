@@ -55,7 +55,7 @@ module OauthAuthorizeRateLimit
     render_oauth_authorize_rate_limited(
       bucket: bucket,
       profile: profile,
-      count: count,
+      _count: count,
     )
   end
 

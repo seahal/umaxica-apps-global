@@ -4,34 +4,102 @@
 module SignOutNotice
   extend ActiveSupport::Concern
 
+  included do
+    helper_method :sign_out_active_context_present?,
+                  :sign_out_confirmation_form_path,
+                  :sign_out_home_path,
+                  :sign_out_completed_description
+  end
+
   SIGN_OUT_NOTICE_SESSION_KEY = :sign_out_notice
-  SIGN_OUT_NOTICE_TOKEN_PARAM = :sot
-  SIGN_OUT_NOTICE_TOKEN_PURPOSE = "sign_out_notice"
-  SIGN_OUT_NOTICE_REPLAY_PURPOSE = :sign_out_notice
-  SIGN_OUT_NOTICE_ISSUER = "sign_out_notice"
   SIGN_OUT_NOTICE_TTL = 5.minutes
   SIGN_OUT_NOTICE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, private"
 
   private
 
-  def prepare_sign_out_completion_notice!
+  def prepare_sign_out_completion_notice!(state: nil)
     @sign_out_access_expires_at = current_sign_out_access_expires_at
     @sign_out_session_public_id = current_session_public_id if respond_to?(:current_session_public_id, true)
+    @sign_out_state = state
   end
 
   def issue_sign_out_notice!
-    @sign_out_notice_token = issue_sign_out_notice_token!
+    session[SIGN_OUT_NOTICE_SESSION_KEY] = sign_out_notice_payload
+    @sign_out_notice = sign_out_notice_from_session(session[SIGN_OUT_NOTICE_SESSION_KEY])
   end
 
   def consume_sign_out_notice
-    notice = consume_sign_out_notice_token
-    return unless notice
+    notice = session[SIGN_OUT_NOTICE_SESSION_KEY]
+    return unless notice.is_a?(Hash)
 
-    {
-      "expires_at" => notice[:expires_at],
-      "access_expires_at" => notice[:access_expires_at],
-      "session_public_id" => notice[:session_public_id],
-    }
+    parsed = sign_out_notice_from_session(notice)
+    return unless parsed
+
+    session.delete(SIGN_OUT_NOTICE_SESSION_KEY)
+    parsed
+  end
+
+  def sign_out_completion_notice_present?
+    session.key?(SIGN_OUT_NOTICE_SESSION_KEY)
+  end
+
+  def sign_out_active_context_present?
+    return true if current_resource.present? || current_session_public_id.present?
+    return true if respond_to?(:oidc_logout_pending_request_present?, true) && oidc_logout_pending_request_present?
+
+    false
+  end
+
+  def sign_out_route_helper_prefix
+    controller_path.split("/").first(2).join("_")
+  end
+
+  def sign_out_route_params
+    params.permit(:ri).to_h.symbolize_keys
+  end
+
+  def sign_out_new_path
+    public_send("new_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  end
+
+  def sign_out_new_url
+    public_send("new_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  end
+
+  def sign_out_edit_path
+    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  end
+
+  def sign_out_edit_url
+    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  end
+
+  def sign_out_post_path
+    public_send("#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  end
+
+  def sign_out_post_url
+    public_send("#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  end
+
+  def sign_out_complete_path
+    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  end
+
+  def sign_out_complete_url
+    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  end
+
+  def sign_out_home_path
+    public_send("#{sign_out_route_helper_prefix}_root_path", **sign_out_route_params)
+  end
+
+  def sign_out_home_url
+    public_send("#{sign_out_route_helper_prefix}_root_url", **sign_out_route_params)
+  end
+
+  def sign_out_confirmation_form_path
+    sign_out_post_path
   end
 
   def sign_out_notice_cache_headers!
@@ -91,38 +159,19 @@ module SignOutNotice
     nil
   end
 
-  def issue_sign_out_notice_token!
+  def sign_out_notice_payload
     expires_at = SIGN_OUT_NOTICE_TTL.from_now
-    issuer = @sign_out_session_public_id.presence || SIGN_OUT_NOTICE_ISSUER
     payload = {
-      "sid" => issuer,
+      "sid" => @sign_out_session_public_id.presence,
       "expires_at" => expires_at.iso8601,
       "access_expires_at" => @sign_out_access_expires_at&.iso8601,
-      "jti" => SecureRandom.uuid,
+      "state" => @sign_out_state,
     }
 
-    sign_out_notice_verifier.generate(
-      payload,
-      purpose: SIGN_OUT_NOTICE_TOKEN_PURPOSE,
-      expires_in: SIGN_OUT_NOTICE_TTL,
-    )
+    payload.compact
   end
 
-  def consume_sign_out_notice_token
-    token = sign_out_notice_request_token
-    return if token.blank?
-
-    payload = sign_out_notice_verifier.verified(token.to_s, purpose: SIGN_OUT_NOTICE_TOKEN_PURPOSE)
-    return unless payload.is_a?(Hash)
-
-    session_public_id = payload["sid"].presence || SIGN_OUT_NOTICE_ISSUER
-    return if respond_to?(:current_session_public_id, true) && current_session_public_id.present? &&
-      current_session_public_id.to_s != session_public_id
-
-    jti = payload["jti"].to_s
-    return if jti.blank?
-    return unless consume_sign_out_notice_jti!(session_public_id:, jti:)
-
+  def sign_out_notice_from_session(payload)
     expires_at = parse_sign_out_notice_time(payload["expires_at"])
     return if expires_at.blank? || expires_at <= Time.current
 
@@ -130,39 +179,8 @@ module SignOutNotice
     {
       expires_at: expires_at,
       access_expires_at: access_expires_at,
-      session_public_id: session_public_id,
+      session_public_id: payload["sid"].presence,
+      state: payload["state"].presence,
     }
-  rescue ActiveSupport::MessageVerifier::InvalidSignature
-    nil
-  end
-
-  def consume_sign_out_notice_jti!(session_public_id:, jti:)
-    SecurityConsumedJti.consume!(
-      purpose: SecurityConsumedJti::PURPOSES.fetch(SIGN_OUT_NOTICE_REPLAY_PURPOSE),
-      issuer: session_public_id,
-      jti: jti,
-      expires_at: SIGN_OUT_NOTICE_TTL.from_now,
-    )
-  rescue ActiveRecord::ActiveRecordError
-    false
-  end
-
-  def sign_out_notice_verifier
-    @sign_out_notice_verifier ||= ActiveSupport::MessageVerifier.new(
-      Rails.application.key_generator.generate_key("sign_out_notice", 32),
-      digest: "SHA256",
-      serializer: JSON,
-      url_safe: true,
-    )
-  end
-
-  def sign_out_notice_request_token
-    request_query = request.respond_to?(:query_string, true) ? request.query_string.to_s : ""
-    request_params = Rack::Utils.parse_nested_query(request_query)
-
-    request_params[SIGN_OUT_NOTICE_TOKEN_PARAM.to_s].presence ||
-      request_params["ct"].presence ||
-      request&.params&.dig(SIGN_OUT_NOTICE_TOKEN_PARAM).presence ||
-      request&.params&.dig(:ct).presence
   end
 end

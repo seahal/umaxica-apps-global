@@ -8,6 +8,15 @@
 # paths and the shared RP-OIDC and social wiring live here. Anything that
 # would otherwise force a `path:`, `as:`, or `to:` literal into the surface
 # body is isolated in this file.
+#
+# Loaded via `require_relative` + `include` from `config/routes.rb`, NOT as an
+# initializer. As an initializer this used to load in alphabetical order
+# (`sign_*` sorts late), so any earlier initializer that touched the route set
+# evaluated `config/routes/sign.rb` before `sign_routes` existed and crashed
+# boot with `NoMethodError: undefined method 'sign_routes'`. Requiring it from
+# routes.rb guarantees the macros are defined immediately before the surface
+# tables that use them, independent of initializer order. Lives under `config/`
+# (not `lib/`) so Zeitwerk does not also try to manage the constant.
 module SignRouteMapper
   # Wrap every Sign surface under the shared `sign` module/name scope.
   def sign_routes(&)
@@ -131,5 +140,3 @@ module SignRouteMapper
     end
   end
 end
-
-ActionDispatch::Routing::Mapper.include(SignRouteMapper)

@@ -25,6 +25,11 @@ Rails.application.configure do
         boot_config.fetch(:hosts).sign_corporate.to_s,
         boot_config.fetch(:hosts).sign_staff.to_s,
       ].uniq
+    # The jump gateway is the first-party redirect broker that validates signed `rt`
+    # tokens. Sign-flow form submissions (e.g. the sign-up birthdate checkpoint) finalize
+    # by redirecting cross-host through it. Without this origin, `form-action` blocks that
+    # redirect and the form navigation silently stalls on the submitting page.
+    jump_form_hosts = [boot_config.fetch(:jump).origin.to_s]
 
     policy.default_src(:self)
     policy.base_uri(:self)
@@ -36,6 +41,7 @@ Rails.application.configure do
       "https://appleid.apple.com",
       *acme_form_hosts,
       *sign_form_hosts,
+      *jump_form_hosts,
     )
     policy.frame_ancestors(:self)
     policy.frame_src(:self, "https://challenges.cloudflare.com")

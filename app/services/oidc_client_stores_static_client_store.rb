@@ -159,7 +159,7 @@ module OidcClientStoresStaticClientStore
     host = boot_host_for(env_key, default_host)
     protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
     port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/sign/out"]
+    ["#{protocol}://#{host}#{port_suffix}/sign/out/complete"]
   end
 
   def build_logout_uris(env_key, default_host, endpoint)

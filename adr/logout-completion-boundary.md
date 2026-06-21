@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-06-03)
+Superseded (2026-06-21). See `adr/logout-ceremony-boundary.md`.
 
 ## Context
 
@@ -17,62 +17,39 @@ replayed completion URL cannot keep displaying logout success.
 
 ## Decision
 
-`acme/www` owns logout completion as a mutation. `sign/id` owns only the logged-out guest entry
-screen.
-
-After a successful ordinary logout, acme redirects to a sign-hosted completion page that is consumed
-once:
+User-facing logout ceremony is surface-local:
 
 ```text
-GET /signed-out
+GET  /sign/out/new
+GET  /sign/out/edit
+POST /sign/out
+GET  /sign/out/complete
 ```
 
-The legacy sign URL remains a compatibility entry point only:
+`acme/www` owns direct logout mutation and the OIDC end-session endpoint. `sign/id`, `core`, and
+`base` own browser RP launchers and their own `/sign/out/complete` completion pages. Completion is
+session-bound and one-time consumed.
+
+`/sign/out/edit?sot=` is retired from the normal browser flow. The browser completion marker lives
+in the session, not the URL.
+
+`/oidc/logout` remains Acme-only. It may stage a validated OIDC request, reuse the shared
+`/sign/out/edit` confirmation, and redirect back to the exact registered `post_logout_redirect_uri`
+or a surface-local `/sign/out/complete`.
+
+Palm remains a future Universal/App Link contract only:
 
 ```text
-sign /sign/out -> acme /sign/out
+https://<palm-host>/sign/out/complete
 ```
-
-The sign completion page is not proof that logout just happened. It is a public, logged-out entry
-page that says the user is signed out and offers a link to the sign-in entry point.
-
-## sign/id Signed-Out Page Contract
-
-`sign/id` `/signed-out` must:
-
-- render without requiring an actor or current user;
-- avoid session mutation;
-- avoid refresh-token reads, writes, rotation, or revocation;
-- avoid step-up freshness reads or writes;
-- avoid acme token verification;
-- avoid logout audit writes;
-- link to the surface-local `sign /sign/in` entry point.
-
-Reloading `/signed-out` must fail closed after the completion marker has been consumed. The browser
-may revisit the URL, but the server must not re-display a successful logout result from stale or
-reused state.
-
-## acme/www Logout Contract
-
-`acme/www` `/sign/out` remains the logout mutation route. It must:
-
-- require the existing CSRF and authentication protections for mutating requests;
-- revoke only the current session for ordinary logout;
-- clear auth cookies and Rails session state through the logout primitive;
-- record the existing logout audit event;
-- redirect to the matching sign host's `/signed-out` page after successful ordinary logout;
-- avoid user-controlled completion redirects unless an existing signed return-target mechanism
-  explicitly authorizes a different destination.
 
 ## Consequences
 
-The old sign-side `/sign/out` path can remain as a compatibility redirect because it performs no
-logout mutation. The user-visible completion URL is no longer overloaded with the logout execution
-URL, but it is still one-time and session-bound.
-
-Do not introduce sign-side PRG, flash-backed completion state, or reusable completion URLs for
-ordinary logout. Flash is in any case removed application-wide; see
-`.agents/harnesses/rules/generic/no-flash-messages.mdc`.
+- Local logout on Acme is direct authority logout.
+- RP logout on Sign/Core/Base launches to Acme `/oidc/logout` after local cleanup.
+- Completion URLs are surface-local and reusable only as friendly HTML, not as proof that logout
+  just happened.
+- `DELETE /sign/out` is not part of the public contract.
 
 ## Related
 

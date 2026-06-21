@@ -67,6 +67,15 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     )
   end
 
+  test "post logout redirect uris end at sign out completion" do
+    %w(sign-rp base-rails-rp core-next-rp).each do |client_id|
+      client = OidcClientRegistry.find!(client_id)
+
+      assert client.post_logout_redirect_uris.all? { |uri| URI.parse(uri).path == "/sign/out/complete" },
+             "#{client_id} should complete at /sign/out/complete"
+    end
+  end
+
   test "sign and core clients expose registered logout receiver uris" do
     sign = OidcClientRegistry.find!("sign-rp")
     core = OidcClientRegistry.find!("core-next-rp")

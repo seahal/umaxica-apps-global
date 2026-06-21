@@ -5,41 +5,42 @@ module Core
   module Com
     class SignOutsController < Core::Com::ApplicationController
       include ::AuthenticationLogoutable
+      include ::SignOutNotice
+      include ::OidcRpLogoutLauncher
 
       AUTHENTICATION_MODE = :open
       declare_authentication_mode! :open
 
       before_action :authenticate!, only: :create
+      helper_method :sign_out_completed_description
+      helper_method :sign_out_confirmation_form_path
 
-      def show
+      after_action :sign_out_notice_cache_headers!, only: %i(edit complete)
+
+      def new
+        redirect_to(sign_out_edit_path, status: :see_other)
+      end
+
+      def edit
+        render "sign/shared/sign_outs/edit"
       end
 
       def create
-        id_token_hint = current_session_id_token_hint
-        logout_current_session!(reason: "user_logout")
-        redirect_to(
-          acme_com_oidc_logout_path(
-            ri: params[:ri],
-            id_token_hint: id_token_hint,
-            post_logout_redirect_uri: core_com_root_url,
-          ),
-          status: :temporary_redirect,
-          allow_other_host: false,
+        launch_oidc_rp_logout!(
+          client_id: "core-next-rp",
+          issuer_resource_type: "visitor",
+          token_issuer: "visitor",
         )
+      end
+
+      def complete
+        complete_oidc_rp_logout!
       end
 
       private
 
-      def current_session_id_token_hint
-        OidcIdTokenIssuer.call(
-          resource: current_resource,
-          client: OidcClientRegistry.find!("core-next-rp"),
-          nonce: "sign-out",
-          issuer: OidcIssuer.for_resource_type("visitor"),
-          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("visitor"),
-          subject: OidcSubject.for(current_resource, resource_type: "visitor"),
-          sid: current_session_public_id,
-        )
+      def sign_out_confirmation_form_path
+        sign_out_post_path
       end
     end
   end

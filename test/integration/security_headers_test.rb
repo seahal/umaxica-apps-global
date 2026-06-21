@@ -41,6 +41,10 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
                     "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
                     "https://#{ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")}"
+    # The jump gateway must be a valid form-action target: sign-flow form submissions
+    # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
+    assert_includes response.headers["Content-Security-Policy"],
+                    ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' https://challenges.cloudflare.com"
     assert_no_match(/script-src[^;]*\shttps:(?:\s|;|$)/, response.headers["Content-Security-Policy"])
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"

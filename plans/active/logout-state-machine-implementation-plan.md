@@ -1,5 +1,11 @@
 # Logout State Machine Implementation Plan
 
+> **Superseded by implementation (2026-06-21):** The browser logout ceremony now uses
+> per-surface `/sign/out/new|edit|complete` with Acme-only `/oidc/logout`, session-bound
+> completion markers, and no `/sign/out/edit?sot=` flow. Keep this file for historical context
+> only; follow `adr/logout-ceremony-boundary.md` and `docs/security/logout-sequence.md` for the
+> current contract.
+
 > **Superseded for authority ownership (2026-06-14):** Follow
 > `adr/acme-sign-core-base-port-boundary.md`, `docs/architecture/acme-sign-core-base-port.md`, and
 > `docs/security/session-token-authority.md` for current authority ownership. Acme remains the

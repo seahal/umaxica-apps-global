@@ -13,10 +13,34 @@ class Sign::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "signed-out page renders on com sign host" do
-    get sign_com_sign_out_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"))
+  test "get sign out renders confirmation and post starts RP logout" do
+    host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    visitor = create_verified_visitor_with_email(email_address: "sign-com-#{SecureRandom.hex(4)}@example.com")
+    token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(token)
+    host! host
+
+    get edit_sign_com_sign_out_url(ri: "jp", host: host), headers: {
+      "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
 
     assert_response :success
-    assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp")
+
+    post sign_com_sign_out_url(ri: "jp", host: host), headers: {
+      "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    assert_response :temporary_redirect
+    location = URI.parse(jump_rt_url_from_location(response.location))
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal acme_host, location.host
+    assert_equal "/oidc/logout", location.path
+    assert_predicate query["id_token_hint"], :present?
+    assert_equal complete_sign_com_sign_out_url(ri: "jp", host: host), query["post_logout_redirect_uri"]
+    assert_predicate query["state"], :present?
   end
 end

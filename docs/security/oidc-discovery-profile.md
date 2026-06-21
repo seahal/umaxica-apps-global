@@ -19,6 +19,10 @@ This is a deliberate private profile:
 - Relying parties in this system are first-party (Sign / Core / Base / Palm) and are configured for
   ES384, so the broad-compatibility argument for `RS256` does not apply.
 
+The logout completion URI is not part of discovery. Discovery continues to publish
+`end_session_endpoint` as `https://<acme-surface-host>/oidc/logout`; browser completion returns to
+the RP or Acme surface-local `/sign/out/complete`.
+
 If `RS256` is ever required, it must be implemented end to end (key rotation, JWKS publication, ID
 token signing selection, client-assertion verification, and tests) rather than advertised in
 metadata alone.

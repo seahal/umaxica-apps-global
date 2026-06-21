@@ -119,9 +119,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/sign/outs", action: "destroy" },
-      { path: "http://#{ACME_APP_HOST}/sign/out", method: :delete },
+      { controller: "acme/app/sign/outs", action: "create" },
+      { path: "http://#{ACME_APP_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/outs", action: "complete" },
+      { path: "http://#{ACME_APP_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/sign/out", method: :delete)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/sso/authorize", method: :get)
@@ -140,6 +149,10 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/app/oidc/logouts", action: "create" },
       { path: "http://#{ACME_APP_HOST}/oidc/logout", method: :post },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_APP_HOST}/oidc/logout", method: :delete)
+    end
   end
 
   test "acme app oauth and account routes" do
@@ -465,9 +478,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/sign/outs", action: "destroy" },
-      { path: "http://#{ACME_COM_HOST}/sign/out", method: :delete },
+      { controller: "acme/com/sign/outs", action: "create" },
+      { path: "http://#{ACME_COM_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "acme/com/sign/outs", action: "complete" },
+      { path: "http://#{ACME_COM_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/sign/out", method: :delete)
+    end
 
     [
       { path: "/sso/authorize", method: :get },
@@ -490,6 +512,10 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/com/oidc/logouts", action: "create" },
       { path: "http://#{ACME_COM_HOST}/oidc/logout", method: :post },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_COM_HOST}/oidc/logout", method: :delete)
+    end
 
     assert_recognizes(
       { controller: "acme/com/oauth/authorizations", action: "show" },
@@ -665,9 +691,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/org/sign/outs", action: "destroy" },
-      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :delete },
+      { controller: "acme/org/sign/outs", action: "create" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "acme/org/sign/outs", action: "complete" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/sign/out", method: :delete)
+    end
   end
 
   test "acme org route contract (continued)" do
@@ -692,6 +727,10 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { controller: "acme/org/oidc/logouts", action: "create" },
       { path: "http://#{ACME_ORG_HOST}/oidc/logout", method: :post },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{ACME_ORG_HOST}/oidc/logout", method: :delete)
+    end
 
     assert_recognizes(
       { controller: "acme/org/oauth/authorizations", action: "show" },

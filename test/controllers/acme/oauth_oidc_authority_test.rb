@@ -440,16 +440,10 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       },
     )
 
-    assert_response :see_other
-    assert_predicate token.reload, :revoked?
-    location = URI.parse(response.location)
-
-    assert_equal host, location.host
-    assert_equal "/sign/out/edit", location.path
-    query = Rack::Utils.parse_nested_query(location.query.to_s)
-
-    assert_equal "jp", query["ri"]
-    assert_predicate query["sot"], :present?
+    assert_response :success
+    assert_not_predicate token.reload, :revoked?
+    assert_includes response.body, I18n.t("sign.shared.sign_out.title")
+    assert_includes response.body, I18n.t("sign.shared.sign_out.confirm_description")
   end
 
   test "acme oauth authorize starts sign in ceremony on unauthenticated requests" do

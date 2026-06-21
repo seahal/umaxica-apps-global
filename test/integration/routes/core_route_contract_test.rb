@@ -114,14 +114,28 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/sign/out", method: :get },
+      { controller: "core/app/sign_outs", action: "new" },
+      { path: "http://#{CORE_APP_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/app/sign_outs", action: "edit" },
+      { path: "http://#{CORE_APP_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/app/sign_outs", action: "create" },
       { path: "http://#{CORE_APP_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "core/app/sign_outs", action: "complete" },
+      { path: "http://#{CORE_APP_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/sign/out", method: :delete)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{CORE_APP_HOST}/sso/authorize", method: :get)
@@ -247,14 +261,28 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/sign/out", method: :get },
+      { controller: "core/com/sign_outs", action: "new" },
+      { path: "http://#{CORE_COM_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/com/sign_outs", action: "edit" },
+      { path: "http://#{CORE_COM_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/com/sign_outs", action: "create" },
       { path: "http://#{CORE_COM_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "core/com/sign_outs", action: "complete" },
+      { path: "http://#{CORE_COM_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/sign/out", method: :delete)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{CORE_COM_HOST}/sso/authorize", method: :get)
@@ -385,14 +413,28 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/sign/out", method: :get },
+      { controller: "core/org/sign_outs", action: "new" },
+      { path: "http://#{CORE_ORG_HOST}/sign/out/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "core/org/sign_outs", action: "edit" },
+      { path: "http://#{CORE_ORG_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
       { controller: "core/org/sign_outs", action: "create" },
       { path: "http://#{CORE_ORG_HOST}/sign/out", method: :post },
     )
+
+    assert_recognizes(
+      { controller: "core/org/sign_outs", action: "complete" },
+      { path: "http://#{CORE_ORG_HOST}/sign/out/complete", method: :get },
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/sign/out", method: :delete)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{CORE_ORG_HOST}/sso/authorize", method: :get)

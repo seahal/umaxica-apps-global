@@ -25,7 +25,7 @@
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), sign_org_sign_out_url(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), new_sign_org_sign_out_path(ri: params[:ri]) %></li>
     <li><%= link_to t("sign.org.settings.show.withdrawal"), sign_org_settings_withdrawal_path %></li>
     <li>
       <%= link_to t("sign.org.settings.show.operator_lifecycle_requests"),
