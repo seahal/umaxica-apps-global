@@ -40,9 +40,10 @@ class Acme::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "validated logout request is staged through shared confirmation" do
-    redirect_uri = @client.post_logout_redirect_uris.find do |uri|
-      URI.parse(uri).host == ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    end
+    redirect_uri =
+      @client.post_logout_redirect_uris.find do |uri|
+        URI.parse(uri).host == ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+      end
 
     get acme_com_oidc_logout_url(host: @host),
         params: { id_token_hint: id_token, post_logout_redirect_uri: redirect_uri, state: "xyz", ri: "jp" },

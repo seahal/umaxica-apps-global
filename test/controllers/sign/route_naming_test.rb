@@ -38,7 +38,10 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
       assert_recognizes_sign_route(surface, "/sign/out/complete", :get, "sign/#{surface}/sign/outs", "complete")
       assert_recognizes_sign_route(surface, "/sign/out", :post, "sign/#{surface}/sign/outs", "create")
       assert_unrecognized(surface, "/signed-out", :get)
-      assert_recognizes_sign_route(surface, "/oidc/backchannel/logout", :post, "sign/#{surface}/oidc/backchannel/logouts", "create")
+      assert_recognizes_sign_route(
+        surface, "/oidc/backchannel/logout", :post,
+        "sign/#{surface}/oidc/backchannel/logouts", "create",
+      )
       assert_unrecognized(surface, "/oidc/frontchannel_logout", :get)
       assert_unrecognized(surface, "/oidc/logout", :get)
       assert_unrecognized(surface, "/oidc/logout", :post)
@@ -129,6 +132,7 @@ class Sign::RouteNamingTest < ActionDispatch::IntegrationTest
   def assert_recognizes_sign_route(surface, path, method, controller, action)
     host = SURFACES.fetch(surface)
     route = Rails.application.routes.recognize_path("http://#{host}#{path}", method: method)
+
     assert_equal controller, route.fetch(:controller)
     assert_equal action, route.fetch(:action)
   end

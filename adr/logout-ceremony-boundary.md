@@ -6,10 +6,10 @@ Accepted (2026-06-21)
 
 ## Context
 
-The browser logout flow needed a stable contract across Acme, Sign, Core, and Base. The old
-boundary treated completion as a separate `/signed-out` page and overloaded `/sign/out` with both
-mutation and completion concerns. That made the contract hard to reason about, especially once RP
-launcher flows and Acme OIDC end-session flows started sharing the same user-facing ceremony.
+The browser logout flow needed a stable contract across Acme, Sign, Core, and Base. The old boundary
+treated completion as a separate `/signed-out` page and overloaded `/sign/out` with both mutation
+and completion concerns. That made the contract hard to reason about, especially once RP launcher
+flows and Acme OIDC end-session flows started sharing the same user-facing ceremony.
 
 ## Decision
 
@@ -36,8 +36,8 @@ POST /oidc/logout
 ```
 
 Acme local logout uses direct authority logout. Sign/Core/Base local logout launches to Acme
-`/oidc/logout` after local cleanup and stores a session-bound completion state before redirecting
-to their own `/sign/out/complete`.
+`/oidc/logout` after local cleanup and stores a session-bound completion state before redirecting to
+their own `/sign/out/complete`.
 
 The browser completion marker is session-bound and one-time consumed. It is not carried in the URL
 and does not use `sot`.

@@ -22,8 +22,7 @@ The browser ceremony is surface-local and uses the same shape on every browser s
 - `POST /sign/out`
 - `GET /sign/out/complete`
 
-`GET /sign/out/new` is a redirect-only entry point.
-`GET /sign/out/edit` is the confirmation page.
+`GET /sign/out/new` is a redirect-only entry point. `GET /sign/out/edit` is the confirmation page.
 `POST /sign/out` is the local logout action or RP launcher, depending on surface authority.
 `GET /sign/out/complete` is the friendly completion page and is safe to reload.
 
@@ -59,8 +58,8 @@ but the server must not re-assert a fresh logout from stale state.
 ## Acme OIDC End-Session
 
 `GET /oidc/logout` and `POST /oidc/logout` remain Acme-only protocol endpoints. They validate the
-OIDC request, stage exact registered redirect URIs, and use the shared `/sign/out/edit`
-confirmation when user confirmation is needed.
+OIDC request, stage exact registered redirect URIs, and use the shared `/sign/out/edit` confirmation
+when user confirmation is needed.
 
 `post_logout_redirect_uri` must be an exact registry match. Invalid or unregistered values must
 never be redirected to.

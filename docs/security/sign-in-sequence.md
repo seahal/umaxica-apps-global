@@ -34,6 +34,12 @@ models, services, controllers, route names, or namespaces do not imply sign-side
 - commit actor/session state;
 - decide authorization for product behavior.
 
+Acme's own browser flow uses the shared browser RP client id `base-rails-rp`. The first
+`/oauth/authorize` login step establishes Acme authority for code issuance. The later
+`/oidc/callback` step validates state, PKCE, nonce, and ID token claims, then establishes the
+local product browser session on the same host. That callback is an intentional RP boundary, not a
+second authority issuer.
+
 ## Acme/WWW Responsibilities
 
 `acme/www` owns:

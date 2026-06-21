@@ -8,7 +8,7 @@ class Acme::Com::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
   end
 
-  test "returns client_id as acme_com" do
+  test "returns the shared browser RP client_id" do
     controller = Acme::Com::Auth::CallbacksController.new
 
     assert_equal "base-rails-rp", controller.send(:oidc_client_id)
