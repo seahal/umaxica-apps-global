@@ -49,7 +49,7 @@ module Sign
           SocialAuthVerifiedProviderAssertion.call(
             auth_hash: auth,
             expected_provider: params[:provider],
-            expected_nonce: session[:social_auth_nonce],
+            expected_nonce: expected_provider_nonce(auth),
           )
 
           if SocialIdentifiable.normalize_provider(auth.provider) == "apple"
@@ -156,6 +156,13 @@ module Sign
             uid: auth&.uid&.first(8),
             logged_in: logged_in?,
           )
+        end
+
+        def expected_provider_nonce(auth)
+          provider = SocialIdentifiable.normalize_provider(auth.provider)
+          return nil if provider == "apple"
+
+          session[:social_auth_nonce]
         end
 
         def handle_successful_auth(user, intent, provider_name, identity, existing_account: nil, pt: nil, entry: nil)

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
+class Sign::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   test "sign com sign-out ceremony routes are retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(

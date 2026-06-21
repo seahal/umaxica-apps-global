@@ -121,7 +121,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :redirect, response.body
-    assert_redirected_to acme_com_settings_secrets_url(
+    assert_redirected_to sign_com_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )

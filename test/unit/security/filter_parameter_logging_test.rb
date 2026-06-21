@@ -19,6 +19,8 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
       "code" => "oauth-code",
       "oauth_code" => "oauth-code-alias",
       "authorization_code" => "authorization-code",
+      "cf-turnstile-response" => "turnstile-response",
+      "turnstile_response" => "turnstile-response-alias",
       "uid" => "provider-user-id",
     )
 
@@ -27,6 +29,8 @@ class FilterParameterLoggingTest < ActiveSupport::TestCase
     assert_equal "[FILTERED]", filtered.fetch("code")
     assert_equal "[FILTERED]", filtered.fetch("oauth_code")
     assert_equal "[FILTERED]", filtered.fetch("authorization_code")
+    assert_equal "[FILTERED]", filtered.fetch("cf-turnstile-response")
+    assert_equal "[FILTERED]", filtered.fetch("turnstile_response")
     assert_equal "[FILTERED]", filtered.fetch("uid")
   end
 

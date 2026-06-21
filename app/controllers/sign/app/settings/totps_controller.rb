@@ -93,7 +93,7 @@ module Sign
             bootstrap_return_path(
               sign_app_settings_totps_url(
                 ri: params[:ri],
-                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
               ),
             ),
             notice: t("messages.totp_successfully_created"),

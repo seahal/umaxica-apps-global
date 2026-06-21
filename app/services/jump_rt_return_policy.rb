@@ -11,6 +11,9 @@ module JumpRtReturnPolicy
     "https://www-jp.umaxica.app" => %w(https://www-jp.umaxica.app),
     "https://www-jp.umaxica.com" => %w(https://www-jp.umaxica.com),
     "https://www-jp.umaxica.org" => %w(https://www-jp.umaxica.org),
+    "https://www.jp.umaxica.app" => %w(https://id.umaxica.app https://www.jp.umaxica.app),
+    "https://www.jp.umaxica.com" => %w(https://id.umaxica.com https://www.jp.umaxica.com),
+    "https://www.jp.umaxica.org" => %w(https://id.umaxica.org https://www.jp.umaxica.org),
   }.freeze
 
   def allowed_source?(destination_origin:, source:)

@@ -147,7 +147,9 @@ scope module: :acme, as: :acme do
       end
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      scope path: :sign, module: :sign do
+        resource :out, only: %i(new edit destroy), as: :sign_out
+      end
 
       # Current identity entrypoint.
       resource :identity, only: :show
@@ -301,7 +303,9 @@ scope module: :acme, as: :acme do
       end
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      scope path: :sign, module: :sign do
+        resource :out, only: %i(new edit destroy), as: :sign_out
+      end
 
       # Current identity entrypoint.
       resource :identity, only: :show
@@ -501,7 +505,9 @@ scope module: :acme, as: :acme do
       end
 
       # Canonical browser sign-out flow.
-      resource :sign_out, only: %i(show create), path: "sign/out"
+      scope path: :sign, module: :sign do
+        resource :out, only: %i(new edit destroy), as: :sign_out
+      end
 
       # Current identity entrypoint.
       resource :identity, only: :show

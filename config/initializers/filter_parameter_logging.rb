@@ -31,6 +31,8 @@ Rails.application.config.filter_parameters += %i(
   code
   oauth_code
   authorization_code
+  cf-turnstile-response
+  turnstile_response
   uid
   state
   session_id

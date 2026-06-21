@@ -143,8 +143,8 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness.send(:prepare_social_auth_intent!, "link", provider: "apple")
 
     assert_equal "link", harness.send(:current_social_auth_intent)
-    assert_equal "/auth/google_app?state=abc+123", harness.send(:omniauth_authorize_path, "google", state: "abc 123")
-    assert_equal "/auth/google_app", harness.send(:omniauth_authorize_path, "google")
+    assert_equal "/social/google?state=abc+123", harness.send(:omniauth_authorize_path, "google", state: "abc 123")
+    assert_equal "/social/google", harness.send(:omniauth_authorize_path, "google")
     assert_equal clients(:one), harness.send(:social_auth_user)
     assert_equal "/", harness.send(:social_auth_success_redirect_path)
     assert_equal "/settings/apple",

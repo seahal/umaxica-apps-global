@@ -89,7 +89,7 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal "/sign/out", location.path
+    assert_equal "/sign/out/edit", location.path
     assert_equal "jp", query["ri"]
     assert_predicate query["sot"], :present?
 
@@ -187,7 +187,7 @@ class Acme::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal URI.parse(redirect_uri).host, location.host
-    assert_equal "/sign/out", location.path
+    assert_equal "/sign/out/edit", location.path
     assert_equal "xyz", query["state"]
   end
 

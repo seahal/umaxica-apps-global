@@ -160,7 +160,7 @@ module Sign
               status: "ok",
               passkey_id: passkey.id,
               redirect_url: bootstrap_return_path(
-                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost")),
               ),
             }, status: :created
           end

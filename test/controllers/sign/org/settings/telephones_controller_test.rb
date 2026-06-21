@@ -9,7 +9,6 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     host! @host
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
@@ -43,7 +42,7 @@ class Sign::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_select(
       "form[action=?]",
-      acme_org_settings_telephone_url(telephone.id, ri: "jp", host: @acme_host),
+      sign_org_settings_telephone_path(telephone.id, ri: "jp"),
       count: 1,
     )
   end

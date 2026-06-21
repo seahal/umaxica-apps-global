@@ -5,6 +5,8 @@ module Acme
   module App
     module Oauth
       class ProtocolController < Acme::App::BareController
+        AUTHENTICATION_MODE = :open
+
         TRUSTED_BROWSER_ORIGINS = %w(
           https://www.umaxica.app
           https://sign.umaxica.app

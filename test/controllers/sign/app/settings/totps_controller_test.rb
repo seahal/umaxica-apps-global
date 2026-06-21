@@ -293,10 +293,10 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
         end
       end
 
-      assert_redirected_to acme_app_settings_totps_url(
+      assert_redirected_to sign_app_settings_totps_url(
         ri: "jp",
         host: ENV.fetch(
-          "ACME_SERVICE_URL", "www.app.localhost",
+          "ID_SERVICE_URL", "id.app.localhost",
         ),
       )
       assert_operator @token.reload.last_step_up_at, :<, step_up_before
@@ -359,7 +359,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to acme_app_settings_totps_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 
   test "should not create totp with invalid token" do
@@ -505,7 +505,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to acme_app_settings_totps_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 
   private

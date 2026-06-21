@@ -4,8 +4,10 @@
 require "test_helper"
 
 class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
+  tests Acme::App::Social::AuthenticationsController
+
   setup do
-    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @request.host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @commit_user = Client.create!(
       status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
       visibility_id: ClientVisibility::USER,
@@ -32,13 +34,13 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
       @commit_user,
       { "operation" => "signup", "actor_ref" => "flow-1" },
       nil,
-      Struct.new(:provider).new("google_app"),
+      Struct.new(:provider).new("google"),
       false,
     )
 
     IdentitySocialCeremonyResult.stub(
       :decode,
-      { "surface" => "app", "provider" => "google_app", "session_ref" => "session-1" },
+      { "surface" => "app", "provider" => "google", "session_ref" => "session-1" },
     ) do
       IdentitySocialCeremonyContract.stub(
         :decode_untrusted_routing_payload,
@@ -46,7 +48,7 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
       ) do
         IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { graph_provisioned = true }) do
-            post :completion, params: { id: "google_app", ri: "jp", social_ceremony_result: "signed-token" }
+            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
           end
         end
       end
@@ -70,14 +72,14 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
       @commit_user,
       { "operation" => "signup", "actor_ref" => "flow-1" },
       nil,
-      Struct.new(:provider).new("google_app"),
+      Struct.new(:provider).new("google"),
       false,
     )
     error = RuntimeError.new("graph boom")
 
     IdentitySocialCeremonyResult.stub(
       :decode,
-      { "surface" => "app", "provider" => "google_app", "session_ref" => "session-1" },
+      { "surface" => "app", "provider" => "google", "session_ref" => "session-1" },
     ) do
       IdentitySocialCeremonyContract.stub(
         :decode_untrusted_routing_payload,
@@ -87,10 +89,7 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
           IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { raise error }) do
             raised =
               assert_raises(RuntimeError) do
-                post(
-                  :completion,
-                  params: { id: "google_app", ri: "jp", social_ceremony_result: "signed-token" },
-                )
+                post(:completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" })
               end
 
             assert_same error, raised
@@ -115,6 +114,9 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     end
     @controller.define_singleton_method(:acme_social_login_redirect_to) do |_sign_in_result|
       "/dashboard"
+    end
+    @controller.define_singleton_method(:acme_social_login_redirect_allows_other_host?) do |_redirect_url|
+      false
     end
 
     commit = Struct.new(:user, :result, :pt, :identity, :existing_account).new(

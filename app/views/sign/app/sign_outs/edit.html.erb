@@ -5,8 +5,7 @@
   <p><%= t("views.sign.app.settings.outs.edit.confirm_description") %></p>
   <%= button_to t("sign.shared.sign_out.button"),
                 acme_app_sign_out_url(ri: params[:ri], host: acme_authority_host),
-                method: :post,
-                params: { confirm: "1" },
+                method: :delete,
                 form: { data: { turbo: false } } %>
   <p><%= link_to t("sign.app.settings.show.back"), sign_app_settings_path(ri: params[:ri]) %></p>
 </div>

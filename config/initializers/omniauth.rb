@@ -10,7 +10,7 @@
 # - Apple Sign In: Uses OIDC code flow with query response mode
 #
 # Routing (OmniAuth standard):
-# - Start:    POST /auth/google_app, POST /auth/apple (CSRF protected via omniauth-rails_csrf_protection)
+# - Start:    POST /social/google, POST /social/apple (CSRF protected via omniauth-rails_csrf_protection)
 # - Callback: GET /social/google/callback, GET /social/apple/callback
 # - Failure:  GET /social/failure
 #
@@ -72,6 +72,7 @@ module OmniAuthCallbackOrigin
 end
 
 OmniAuth.config.full_host = ->(env) { OmniAuthCallbackOrigin.call(env) }
+OmniAuth.config.path_prefix = "/social"
 
 # =============================================================================
 # Non-App Social Login Guard
@@ -97,6 +98,8 @@ class OmniAuthNonAppSocialGuard
   def blocked_host?(env)
     boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     blocked_hosts = [
+      boot_hosts.sign_corporate.host,
+      boot_hosts.sign_staff.host,
       boot_hosts.acme_corporate.host,
       boot_hosts.acme_staff.host,
     ]
@@ -105,7 +108,7 @@ class OmniAuthNonAppSocialGuard
 end
 
 class OmniAuthSocialOriginSanitizer
-  AUTH_PATH_PREFIXES = %w(/auth/google_app /auth/apple).freeze
+  AUTH_PATH_PREFIXES = %w(/social/google /social/apple).freeze
 
   def initialize(app)
     @app = app

@@ -22,12 +22,12 @@ class DefaultWebRateLimitTest < ActionDispatch::IntegrationTest
       set.draw { get "/default_web_probe", to: "default_web_rate_limit_probe#index" }
 
       300.times do
-        get "/default_web_probe", headers: { "Host" => "example.com" }
+        get "/default_web_probe", headers: { "Host" => "example.com", "Accept" => "application/json" }
 
         assert_response :success
       end
 
-      get "/default_web_probe", headers: { "Host" => "example.com" }
+      get "/default_web_probe", headers: { "Host" => "example.com", "Accept" => "application/json" }
 
       assert_response :too_many_requests
       assert_equal "rails", response.headers["X-RateLimit-Layer"]

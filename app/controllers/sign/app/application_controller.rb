@@ -17,7 +17,6 @@ module Sign
       include ::AuthenticationCredentialInventoryReader
       include ::AuthorizationClient
       include ::VerificationClient
-      include ::SignRouteAliasHelper
       include ActionPolicy::Controller
       include ::OidcSsoInitiator
       # Note: RestrictedSessionGuard is still needed to enforce session expiration

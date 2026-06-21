@@ -7,11 +7,9 @@ class Sign::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   fixtures :clients, :client_telephone_statuses
   include ActiveJob::TestHelper
   include AuthHelpers
-  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host! @host
     @user = clients(:one)
     @token = ClientToken.create!(user_id: @user.id)
@@ -43,7 +41,7 @@ class Sign::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     assert_response :success
     assert_select(
       "form[action=?]",
-      acme_app_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host),
+      sign_app_settings_telephone_path(telephone.public_id, ri: "jp"),
       count: 1,
     )
   end

@@ -6,11 +6,9 @@ require "test_helper"
 class Sign::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_email_statuses, :operator_token_kinds
   include AuthHelpers
-  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)

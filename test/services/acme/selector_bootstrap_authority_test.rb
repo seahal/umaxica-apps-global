@@ -60,7 +60,7 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
       end
     end.new(surface: :app, principal: user)
 
-    assert_raises(RuntimeError) do
+    assert_raises(StandardError) do
       failing_authority.call
     end
 

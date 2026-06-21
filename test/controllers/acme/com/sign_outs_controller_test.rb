@@ -3,18 +3,18 @@
 
 require "test_helper"
 
-class Acme::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
+class Acme::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "acme-com-sign-out-#{SecureRandom.hex(4)}@example.com")
     host! @host
   end
 
-  test "post sign out enters oidc end-session flow without unregistered redirect uri" do
+  test "delete sign out enters oidc end-session flow without unregistered redirect uri" do
     token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post acme_com_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
+    delete acme_com_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :temporary_redirect
     location = URI.parse(response.location)

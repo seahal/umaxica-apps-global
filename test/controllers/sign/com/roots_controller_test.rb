@@ -45,6 +45,6 @@ class Sign::Com::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))
 
     assert_response :redirect
-    assert_redirected_to sign_com_dashboard_url(ri: "jp")
+    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.umaxica.com"))
   end
 end

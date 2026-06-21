@@ -983,6 +983,32 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
                  "clear_previous_login_cookies! must run exactly once at the privilege transition"
   end
 
+  test "log_in preserves pending oidc rp callback state across session rotation" do
+    @session_hash[:oidc_code_verifier] = "verifier"
+    @session_hash[:oidc_state] = "state"
+    @session_hash[:oidc_nonce] = "nonce"
+    @session_hash[:oidc_pt] = "/dashboard?ri=jp"
+    @session_hash[:unrelated_pre_login_state] = "drop-me"
+
+    @controller.define_singleton_method(:reset_session) { @session_hash.clear }
+    @controller.define_singleton_method(:resource_type) { "client" }
+    @controller.define_singleton_method(:resource_foreign_key) { :user_id }
+    @controller.define_singleton_method(:resource_class) { Client }
+    @controller.define_singleton_method(:token_class) { ClientToken }
+    @controller.define_singleton_method(:token_kind_model) { ClientTokenKind }
+    @controller.define_singleton_method(:session_limit_state_for) { |_| :within_limit }
+    @controller.define_singleton_method(:record_audit) { |*| nil }
+
+    result = @controller.log_in(@user, record_login_audit: false, require_totp_check: false)
+
+    assert_equal :success, result[:status]
+    assert_equal "verifier", @session_hash[:oidc_code_verifier]
+    assert_equal "state", @session_hash[:oidc_state]
+    assert_equal "nonce", @session_hash[:oidc_nonce]
+    assert_equal "/dashboard?ri=jp", @session_hash[:oidc_pt]
+    assert_nil @session_hash[:unrelated_pre_login_state]
+  end
+
   # Regression: ordering invariant -- when log_in is called with MFA
   # *not* required (or `require_totp_check: false`), reset_session must
   # happen BEFORE create_login_token_record, so the new token is issued

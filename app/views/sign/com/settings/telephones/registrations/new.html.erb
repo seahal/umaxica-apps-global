@@ -28,7 +28,7 @@
           <%= render "shared/cloudflare_turnstile_stealth" %>
         </div>
         <div>
-          <%= link_to t("actions.cancel"), acme_com_settings_telephones_url(ri: params[:ri], host: acme_authority_host) %>
+          <%= link_to t("actions.cancel"), sign_com_settings_telephones_path(ri: params[:ri]) %>
           <%= form.submit t("actions.submit") %>
         </div>
       <% end %>

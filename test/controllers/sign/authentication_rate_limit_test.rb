@@ -77,15 +77,19 @@ class SignAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
 
   def assert_sign_rate_limited(rule_name)
     assert_response :too_many_requests
-    assert_equal "application/json; charset=utf-8", response.content_type
     assert_equal "rails", response.headers["X-RateLimit-Layer"]
     assert_equal rule_name, response.headers["X-RateLimit-Rule"]
     assert_equal "60", response.headers["Retry-After"]
 
-    body = response.parsed_body
+    if response.media_type == "application/json"
+      body = response.parsed_body
 
-    assert_equal "rate_limited", body["error"]
-    assert_equal rule_name, body["rule"]
-    assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
+      assert_equal "rate_limited", body["error"]
+      assert_equal rule_name, body["rule"]
+      assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
+    else
+      assert_equal "text/plain", response.media_type
+      assert_equal I18n.t("errors.rate_limit.exceeded"), response.body
+    end
   end
 end

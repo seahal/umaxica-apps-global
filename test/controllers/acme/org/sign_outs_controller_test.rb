@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Acme::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
+class Acme::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_token_kinds
 
   setup do
@@ -12,11 +12,11 @@ class Acme::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "post sign out enters oidc end-session flow without unregistered redirect uri" do
+  test "delete sign out enters oidc end-session flow without unregistered redirect uri" do
     token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post acme_org_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
+    delete acme_org_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :temporary_redirect
     location = URI.parse(response.location)

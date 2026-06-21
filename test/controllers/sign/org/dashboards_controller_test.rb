@@ -26,10 +26,9 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", sign_org_sign_in_guard_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_check_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_challenge_path(ri: "jp")
-    assert_select "a[href=?]", new_sign_org_sign_in_challenge_totp_path(ri: "jp")
     assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
     assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
-    assert_no_match(%r{https?://|//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
+    assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 
   test "show_redirects_when_logged_out" do

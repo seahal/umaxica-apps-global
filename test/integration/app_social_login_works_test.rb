@@ -8,31 +8,31 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
     https!
   end
 
-  test "POST /auth/google on :app host redirects to Google OAuth" do
+  test "POST /social/google on app host redirects to Google OAuth" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    post "/auth/google"
+    post "/social/google"
 
     # Should redirect to Google OAuth (302) or OmniAuth failure
     assert_response :redirect
-    assert_match %r{(google|auth/failure)}, response.location
+    assert_match %r{(google|social/failure)}, response.location
   end
 
-  test "POST /auth for org Google provider on app host is not registered" do
+  test "POST /social for org Google provider on app host is not registered" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    post "/auth/google_#{"org"}"
+    post "/social/google_#{"org"}"
 
     assert_response :not_found
   end
 
-  test "POST /auth/apple on :app host redirects to Apple Sign In" do
+  test "POST /social/apple on app host redirects to Apple Sign In" do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
-    post "/auth/apple"
+    post "/social/apple"
 
     # Should redirect to Apple (302) or OmniAuth failure
     assert_response :redirect
-    assert_match %r{(apple|auth/failure)}, response.location
+    assert_match %r{(apple|social/failure)}, response.location
   end
 end

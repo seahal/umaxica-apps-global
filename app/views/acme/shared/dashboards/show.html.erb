@@ -3,7 +3,7 @@
 <% selector_path = public_send("acme_#{surface}_selector_path", ri: params[:ri]) %>
 <% dashboard_path = public_send("acme_#{surface}_dashboard_path", ri: params[:ri]) %>
 <% switcher_path = public_send("acme_#{surface}_switcher_path", ri: params[:ri]) if surface == "app" %>
-<% sign_out_confirmation_path = public_send("acme_#{surface}_sign_out_path", ri: params[:ri]) %>
+<% sign_out_confirmation_path = public_send("new_acme_#{surface}_sign_out_path", ri: params[:ri]) %>
 <% account_path =
      if surface == "app"
        public_send("acme_#{surface}_accounts_path", ri: params[:ri])

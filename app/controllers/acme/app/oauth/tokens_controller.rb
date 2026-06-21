@@ -4,12 +4,16 @@
 module Acme
   module App
     module Oauth
-      class TokensController < Acme::App::Oauth::ProtocolController
+      class TokensController < Acme::App::BareController
         include ::RateLimit
         include AcmeOauthEndpoint
         include AcmeOauthTokenEndpoint
 
         AUTHENTICATION_MODE = :open
+
+        protect_from_forgery using: :header_or_legacy_token,
+                             trusted_origins: Acme::App::Oauth::ProtocolController::TRUSTED_BROWSER_ORIGINS,
+                             with: :null_session
 
         before_action :skip_oauth_session!
         after_action :set_oauth_cache_headers

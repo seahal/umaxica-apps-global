@@ -9,30 +9,30 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     @service_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
   end
 
-  test "POST /auth/google_app on corporate host returns 404" do
+  test "POST /social/google on corporate host returns 404" do
     host! @corporate_host
-    post "/auth/google_app"
+    post "/social/google"
 
     assert_response :not_found
   end
 
-  test "POST /auth for org Google provider on corporate host returns 404" do
+  test "POST /social for org Google provider on corporate host returns 404" do
     host! @corporate_host
-    post "/auth/google_#{"org"}"
+    post "/social/google_#{"org"}"
 
     assert_response :not_found
   end
 
-  test "POST /auth/apple on corporate host returns 404" do
+  test "POST /social/apple on corporate host returns 404" do
     host! @corporate_host
-    post "/auth/apple"
+    post "/social/apple"
 
     assert_response :not_found
   end
 
-  test "POST /auth/google on service host does not return 404" do
+  test "POST /social/google on service host does not return 404" do
     host! @service_host
-    post "/auth/google"
+    post "/social/google"
     # It should redirect to OmniAuth or fail CSRF, but NOT 404 from our guard
     assert_not_equal 404, response.status
   end
@@ -46,6 +46,8 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "/auth/google_#{"org"}"
     assert_not_includes response.body, "/auth/google_#{"com"}"
     assert_not_includes response.body, "/auth/apple"
+    assert_not_includes response.body, "/social/google"
+    assert_not_includes response.body, "/social/apple"
     # Check for i18n keys absence if they were social-specific
     assert_not_includes response.body, "Googleで続行" if I18n.locale == :ja
   end
@@ -61,7 +63,7 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "corporate guard does not open app google when legacy COM flag is on" do
     host! @corporate_host
     with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true", "COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "false") do
-      post "/auth/google_app", headers: social_callback_headers(@corporate_host)
+      post "/social/google", headers: social_callback_headers(@corporate_host)
     end
 
     assert_response :not_found

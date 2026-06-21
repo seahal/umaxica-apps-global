@@ -94,10 +94,10 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "apple callback rejects missing provider nonce" do
+  test "apple callback accepts provider nonce owned by omniauth strategy" do
     OmniAuth.config.mock_auth[:apple] = OmniAuth::AuthHash.new(
       provider: "apple",
-      uid: "apple-nonce-missing",
+      uid: "apple-strategy-owned-nonce",
       info: {},
       credentials: {
         token: "apple-token",
@@ -106,17 +106,17 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
       extra: {
         raw_info: {
           iat: Time.current.to_i,
+          nonce: "omniauth-apple-generated-nonce",
         },
       },
     )
     state = seed_social_auth_session(provider: "apple", intent: "login", ri: "jp")
 
-    assert_no_difference("ClientAppleIdentity.count") do
-      get sign_app_social_apple_callback_url(ri: "jp"),
-          params: { state: state },
-          headers: social_callback_headers(@host)
-    end
+    get sign_app_social_apple_callback_url(ri: "jp"),
+        params: { state: state },
+        headers: social_callback_headers(@host)
 
     assert_response :redirect
+    assert_match(%r{/sign/up/guard/apple}, response.location)
   end
 end

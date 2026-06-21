@@ -45,19 +45,20 @@ class Sign::App::Sign::Up::Check::Google::ConfirmationsControllerTest < ActionDi
       social_provider: "google",
     )
     controller.instance_variable_set(:@sign_up_ticket, ticket)
-    controller.define_singleton_method(:load_gate_context!) { true }
+    controller.define_singleton_method(:load_gate_context!) { |*| true }
     controller.define_singleton_method(:gate_for_update) { nil }
-    controller.define_singleton_method(:params) do
+    controller.define_singleton_method(:params) do |*|
       ActionController::Parameters.new(confirm_new_social_identity: "1", "cf-turnstile-response": "bad")
     end
     controller.define_singleton_method(:render_turnstile_failure) do
-      controller.render plain: I18n.t("turnstile_error"), status: :unprocessable_content
+      controller.response_body = I18n.t("turnstile_error")
+      controller.status = :unprocessable_content
     end
     controller.define_singleton_method(:verify_social_signup_turnstile!) { false }
 
     controller.send(:update)
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("turnstile_error")
+    assert_equal 422, controller.response.status
+    assert_includes controller.response.body, I18n.t("turnstile_error")
   end
 end

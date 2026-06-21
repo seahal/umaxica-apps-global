@@ -87,7 +87,7 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
 
-  test "create returns login cooldown message on immediate re-login" do
+  test "create redirects to dashboard on immediate re-login while already signed in" do
     post sign_org_sign_in_secret_credential_url(ri: "jp"),
          params: {
            secret_credential_login_form: {
@@ -108,8 +108,7 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_response :too_many_requests
-    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
   end
 
   test "create rejects blank form" do

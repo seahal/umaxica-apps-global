@@ -11,16 +11,15 @@
 
     <div>
       <%= button_to t("sign.app.settings.telephone.index.delete"),
-                    acme_app_settings_telephone_url(
+                    sign_app_settings_telephone_path(
                       @user_telephone.public_id,
                       ri: params[:ri],
-                      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
                     ),
                     method: :delete,
                     data: { turbo_confirm: t("sign.app.settings.telephone.index.delete_confirm") } %>
     </div>
     <div>
-      <%= link_to t("sign.app.common.cancel"), acme_app_settings_telephones_url(ri: params[:ri], host: acme_authority_host) %>
+      <%= link_to t("sign.app.common.cancel"), sign_app_settings_telephones_path(ri: params[:ri]) %>
     </div>
   </div>
 </div>

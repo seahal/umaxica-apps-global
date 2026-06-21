@@ -138,31 +138,13 @@ module Security
         },
         {
           pattern: "csrf null_session",
-          path: "app/controllers/sign/app/oidc/backchannel_logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
           path: "app/controllers/sign/com/oidc/backchannel/logouts_controller.rb",
           line: /protect_from_forgery with: :null_session/,
           reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
         },
         {
           pattern: "csrf null_session",
-          path: "app/controllers/sign/com/oidc/backchannel_logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
           path: "app/controllers/sign/org/oidc/backchannel/logouts_controller.rb",
-          line: /protect_from_forgery with: :null_session/,
-          reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
-        },
-        {
-          pattern: "csrf null_session",
-          path: "app/controllers/sign/org/oidc/backchannel_logouts_controller.rb",
           line: /protect_from_forgery with: :null_session/,
           reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
         },

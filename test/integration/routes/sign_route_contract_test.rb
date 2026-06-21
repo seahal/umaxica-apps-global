@@ -59,12 +59,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign_outs", action: "show" },
+      { controller: "sign/app/sign/outs", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/out", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign_outs", action: "create" },
+      { controller: "sign/app/sign/outs", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/out", method: :post },
     )
 
@@ -84,12 +84,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/callbacks", action: "show" },
+      { controller: "sign/app/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/authorizations", action: "show" },
+      { controller: "sign/app/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/oidc/authorization", method: :get },
     )
 
@@ -352,12 +352,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/auth/callbacks", action: "show" },
+      { controller: "sign/com/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/auth/authorizations", action: "show" },
+      { controller: "sign/com/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/oidc/authorization", method: :get },
     )
 
@@ -516,12 +516,12 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/org/auth/callbacks", action: "show" },
+      { controller: "sign/org/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/auth/authorizations", action: "show" },
+      { controller: "sign/org/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/authorization", method: :get },
     )
 

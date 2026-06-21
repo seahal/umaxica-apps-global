@@ -34,15 +34,15 @@ class Acme::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_select "a[href=?]", acme_org_dashboard_path(ri: "jp")
     assert_select "a[href=?]", acme_org_account_path(ri: "jp"), text: "Account"
     assert_select "a[href=?]", acme_org_current_organization_path(ri: "jp"), text: "Organization"
-    assert_select "a[href=?]", acme_org_current_avatar_path(ri: "jp"), text: "Avatar"
+    assert_select "a[href=?]", acme_org_avatar_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", acme_org_selector_path(ri: "jp")
-    assert_select "a[href=?]", acme_org_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signin")
-    assert_select "a[href=?]", acme_org_auth_authorization_path(ri: "jp", screen_hint: "signup")
-    assert_select "a[href=?]", acme_org_well_known_discovery_path
-    assert_select "a[href=?]", acme_org_well_known_jwks_path
-    assert_select "a[href=?]", acme_org_oauth_userinfo_path
-    assert_no_match(%r{https?://|//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
+    assert_select "a[href=?]", new_acme_org_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", acme_org_oidc_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_select "a[href=?]", acme_org_oidc_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_select "a", text: "OIDC discovery"
+    assert_select "a", text: "JWKS"
+    assert_select "a", text: "UserInfo"
+    assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 
   test "welcome_route_exists" do

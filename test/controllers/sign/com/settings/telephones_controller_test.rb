@@ -6,11 +6,9 @@ require "test_helper"
 class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
   include AuthHelpers
-  include SignRouteAliasHelper
 
   setup do
     @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
@@ -45,7 +43,7 @@ class Sign::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       assert_response :success
       assert_select(
         "form[action=?]",
-        acme_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @acme_host),
+        sign_com_settings_telephone_path(telephone.public_id, ri: "jp"),
         count: 1,
       )
     end

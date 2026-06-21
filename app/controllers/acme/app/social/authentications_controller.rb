@@ -132,10 +132,11 @@ module Acme
           if sign_in_result.status == :success || sign_in_result.status == :session_limit_pending
             signup_flow = commit.result["operation"].to_s == "signup"
             complete_acme_social_signup_flow!(commit, sign_in_result) if signup_flow
+            redirect_url = acme_social_login_redirect_to(sign_in_result)
             return redirect_to(
-              acme_social_login_redirect_to(sign_in_result),
+              redirect_url,
               notice: social_login_notice(provider, signup_flow: signup_flow),
-              allow_other_host: after_login_allows_other_host?,
+              allow_other_host: acme_social_login_redirect_allows_other_host?(redirect_url),
             )
           end
 
@@ -151,6 +152,17 @@ module Acme
           ) if sign_in_result.session_limit_pending?
 
           sign_in_result.redirect_to
+        end
+
+        def acme_social_login_redirect_allows_other_host?(redirect_url)
+          sign_session_management_url?(redirect_url) || after_login_allows_other_host?
+        end
+
+        def sign_session_management_url?(redirect_url)
+          uri = URI.parse(redirect_url.to_s)
+          uri.host == ENV.fetch("ID_SERVICE_URL", "id.app.localhost") && uri.path == "/settings/sessions"
+        rescue URI::InvalidURIError
+          false
         end
 
         def complete_social_signup!(commit, provider)

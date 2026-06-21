@@ -281,7 +281,7 @@ class IdentitySecretCredentialCeremonyAcmeTransactionTest < ActiveSupport::TestC
     IdentitySecretCredentialCeremonyCandidate.connection.select_value(
       IdentitySecretCredentialCeremonyCandidate.sanitize_sql_array(
         [
-          /SELECT password_digest FROM identity_secret_credential_ceremony_candidates WHERE ref/,
+          "SELECT password_digest FROM identity_secret_credential_ceremony_candidates WHERE ref = ?",
           ref,
         ],
       ),

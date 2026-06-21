@@ -38,13 +38,14 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_select "a[href=?]", acme_app_avatars_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", acme_app_switcher_path(ri: "jp"), text: "Switcher"
     assert_select "a[href=?]", acme_app_selector_path(ri: "jp")
-    assert_select "a[href=?]", acme_app_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signin")
-    assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signup")
-    assert_select "a[href=?]", acme_app_well_known_discovery_path
-    assert_select "a[href=?]", acme_app_well_known_jwks_path
-    assert_select "a[href=?]", acme_app_oauth_userinfo_path
-    assert_no_match(%r{https?://|//example|id\.umaxica|umaxica\.example|evil\.example}, response.body)
+    assert_select "a[href=?]", new_acme_app_sign_out_path(ri: "jp")
+    assert_select "form[action^=?]", acme_app_oidc_logout_path, count: 0
+    assert_select "a[href=?]", acme_app_oidc_authorization_path(ri: "jp", screen_hint: "signin")
+    assert_select "a[href=?]", acme_app_oidc_authorization_path(ri: "jp", screen_hint: "signup")
+    assert_select "a", text: "OIDC discovery"
+    assert_select "a", text: "JWKS"
+    assert_select "a", text: "UserInfo"
+    assert_no_match(%r{//example|umaxica\.example|evil\.example}, response.body)
   end
 
   test "shared dashboard render uses the surface-local authorization entrypoint" do
@@ -53,9 +54,9 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
     get acme_app_dashboard_url(ri: "jp"), headers: session_headers(token)
 
-    assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signin"),
+    assert_select "a[href=?]", acme_app_oidc_authorization_path(ri: "jp", screen_hint: "signin"),
                   text: "Authorize (sign in)"
-    assert_select "a[href=?]", acme_app_auth_authorization_path(ri: "jp", screen_hint: "signup"),
+    assert_select "a[href=?]", acme_app_oidc_authorization_path(ri: "jp", screen_hint: "signup"),
                   text: "Authorize (sign up)"
   end
 

@@ -445,7 +445,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     location = URI.parse(response.location)
 
     assert_equal host, location.host
-    assert_equal "/sign/out", location.path
+    assert_equal "/sign/out/edit", location.path
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal "jp", query["ri"]

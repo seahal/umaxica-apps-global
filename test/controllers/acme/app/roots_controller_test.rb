@@ -19,7 +19,7 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
   test "auth authorize preserves app sign up and sign in screen hints" do
     host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
-    get acme_app_auth_authorization_url(ri: "jp", screen_hint: "signup")
+    get acme_app_oidc_authorization_url(ri: "jp", screen_hint: "signup")
 
     assert_response :redirect
     signup_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -28,7 +28,7 @@ class Acme::App::RootsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "signup", signup_query["screen_hint"]
     assert_equal "/dashboard?ri=jp", session[:oidc_pt]
 
-    get acme_app_auth_authorization_url(ri: "jp", screen_hint: "signin")
+    get acme_app_oidc_authorization_url(ri: "jp", screen_hint: "signin")
 
     assert_response :redirect
     signin_uri = URI.parse(jump_rt_url_from_location(response.location))

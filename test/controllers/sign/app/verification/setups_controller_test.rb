@@ -5,7 +5,7 @@ require "test_helper"
 require "base64"
 
 class Sign::App::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
-  test "new shows a back link above registration methods when pt is present" do
+  test "new shows a settings back link above registration methods when pt is present" do
     host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     user = Client.create!
     headers = as_user_headers(user, host: host)
@@ -14,7 +14,7 @@ class Sign::App::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_sign_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp"), count: 0
+    assert_select "a[href=?]", sign_app_settings_path(ri: "jp"), count: 1
     assert_select "ul"
   end
 end

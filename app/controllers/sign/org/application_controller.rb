@@ -16,7 +16,6 @@ module Sign
       include ::AuthenticationCredentialInventoryReader
       include ::AuthorizationOperator
       include ::VerificationOperator
-      include ::SignRouteAliasHelper
       include ActionPolicy::Controller
       include ::OidcSsoInitiator
       include ::RestrictedSessionGuard

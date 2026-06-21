@@ -300,7 +300,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal acme_app_settings_passkeys_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+    assert_equal sign_app_settings_passkeys_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
                  response.parsed_body["redirect_url"]
   end
 

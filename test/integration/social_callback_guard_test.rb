@@ -129,7 +129,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   end
 
   test "module helpers normalize methods, hosts, and origins" do
-    assert SocialCallbackGuard.allowed_request_method?("google_app", "GET")
+    assert SocialCallbackGuard.allowed_request_method?("google", "GET")
     assert SocialCallbackGuard.allowed_callback_method?("apple", "POST")
     assert SocialCallbackGuard.allowed_callback_method?("apple", "GET")
     assert_equal "id.app.localhost", SocialCallbackGuard.normalize_host_port("https://id.app.localhost")
@@ -158,7 +158,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
   test "request phase helpers derive source, enforce state, and reject bad methods" do
     env = Rack::MockRequest.env_for(
-      "https://#{@host}/auth/google_app?foo=bar",
+      "https://#{@host}/social/google?foo=bar",
       "REQUEST_METHOD" => "GET",
       "HTTP_ORIGIN" => "https://#{@host}",
       "rack.session" => {},
@@ -169,13 +169,13 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     assert_equal :origin, source
     assert_equal "https://#{@host}", normalized
 
-    SocialCallbackGuard.ensure_state_query_param!(env, Rack::Request.new(env), "google_app")
+    SocialCallbackGuard.ensure_state_query_param!(env, Rack::Request.new(env), "google")
 
     assert_includes env["QUERY_STRING"], "state="
-    assert_equal "google_app", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
+    assert_equal "google", env["rack.session"][SocialCallbackGuard::SOCIAL_STATE_PROVIDER_SESSION_KEY]
 
     env_with_state = Rack::MockRequest.env_for(
-      "https://#{@host}/auth/google_app?state=known",
+      "https://#{@host}/social/google?state=known",
       "REQUEST_METHOD" => "GET",
       "HTTP_ORIGIN" => "https://#{@host}",
       "rack.session" => {},
@@ -186,7 +186,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
     rejected = SocialCallbackGuard.verify_request_phase!(
       Rack::MockRequest.env_for(
-        "https://#{@host}/auth/google_app",
+        "https://#{@host}/social/google",
         "REQUEST_METHOD" => "DELETE",
         "HTTP_ORIGIN" => "https://#{@host}",
         "rack.session" => {},

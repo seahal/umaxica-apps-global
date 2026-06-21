@@ -56,11 +56,15 @@ module SignOidcLogout
     return render_oidc_end_session_failure unless @sign_out_notice
 
     @sign_out_access_expires_at = @sign_out_notice["access_expires_at"]
-    render :show, status: :ok
+    render oidc_logout_completion_template, status: :ok
   end
 
   def render_oidc_end_session_confirmation
     render :show, status: :ok
+  end
+
+  def oidc_logout_completion_template
+    :show
   end
 
   def render_oidc_end_session_error(result)

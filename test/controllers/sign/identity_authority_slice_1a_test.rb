@@ -63,7 +63,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :patch,
     )
 
-    assert_equal "acme/app/sign_outs", sign_out.fetch(:controller)
+    assert_equal "sign/app/sign/outs", sign_out.fetch(:controller)
     assert_equal "show", sign_out.fetch(:action)
     assert_equal "sign/app/settings/sessions", sessions.fetch(:controller)
     assert_equal "index", sessions.fetch(:action)
@@ -73,7 +73,7 @@ class Sign::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "acme controllers own logout bridge primitive" do
     acme_sources = [
-      Rails.root.join("app/controllers/acme/app/sign_outs_controller.rb"),
+      Rails.root.join("app/controllers/acme/app/sign/outs_controller.rb"),
     ].map { |path| File.read(path) }.join("\n")
 
     assert_includes acme_sources, "OidcIdTokenIssuer.call"

@@ -40,7 +40,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
         headers: @headers
 
     assert_response :redirect
-    assert_redirected_to "/settings/withdrawal"
+    assert_redirected_to edit_sign_app_settings_withdrawal_path(ri: "jp")
   end
 
   test "deactivated user can access allowlisted pages" do

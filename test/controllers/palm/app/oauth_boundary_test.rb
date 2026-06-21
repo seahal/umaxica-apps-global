@@ -8,12 +8,12 @@ module Palm
     class OauthBoundaryTest < ActiveSupport::TestCase
       fixtures_none!
 
-      test "palm app exposes only the generic reserved callback stub and no issuer endpoints" do
+      test "palm app exposes only the generic reserved oidc callback stub and no issuer endpoints" do
         host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
         assert_equal(
           "palm/app/oauth/callbacks#show",
-          route_to("https://#{host}/oauth/callback", method: :get),
+          route_to("https://#{host}/oidc/callback", method: :get),
         )
 
         source = Rails.root.join("config/routes/palm.rb").read

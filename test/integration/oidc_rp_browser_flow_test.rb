@@ -238,7 +238,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :redirect
-      assert_equal "http://#{surface[:host]}/", response.location
+      expected_location =
+        if surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+          "http://#{surface[:host]}/dashboard"
+        else
+          "http://#{surface[:host]}/oidc/authorization"
+        end
+
+      assert_equal expected_location, response.location
       assert_response_has_auth_cookie if surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     end
   end

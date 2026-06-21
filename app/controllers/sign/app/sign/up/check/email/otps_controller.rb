@@ -39,7 +39,7 @@ module Sign
 
                 @user_email = current_registration_email
                 return redirect_invalid_session unless valid_email_session?
-                return render_code_required unless validate_code_present
+                return render_blank_code_rejection unless validate_code_present
 
                 result = verify_otp_ceremony!
                 log_email_otp_rejection(result) unless result.success?
@@ -122,6 +122,18 @@ module Sign
                     **sign_signup_safe_otp_state(@user_email),
                   ).compact,
                 )
+              end
+
+              def render_blank_code_rejection
+                log_email_otp_rejection(
+                  SignOtpCeremony::Result.new(
+                    success?: false,
+                    status: :blank_code,
+                    record: @user_email,
+                    error: :blank_code,
+                  ),
+                )
+                render_code_required
               end
 
               def redirect_invalid_session

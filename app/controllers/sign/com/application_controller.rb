@@ -16,7 +16,6 @@ module Sign
       include ::AuthenticationCredentialInventoryReader
       include ::AuthorizationVisitor
       include ::VerificationVisitor
-      include ::SignRouteAliasHelper
       include ActionPolicy::Controller
       include ::OidcSsoInitiator
       include ::RestrictedSessionGuard
@@ -161,7 +160,7 @@ module Sign
       def telephone_registration_allowed_path?
         allowed = [
           "sign/com/settings/telephones/registrations",
-          "sign/com/sign_outs",
+          "sign/com/sign/outs",
         ]
         allowed.include?(controller_path)
       end

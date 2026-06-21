@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
+class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_statuses, :client_token_kinds
 
   test "get sign out renders confirmation without mutation" do

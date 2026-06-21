@@ -12,7 +12,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_not_nil client
     assert_equal "base-rails-rp", client.client_id
     assert_equal "base-rails-rp", client.aud
-    assert client.redirect_uris.any? { |uri| uri.end_with?("/auth/callback") }
+    assert client.redirect_uris.any? { |uri| uri.end_with?("/oidc/callback") }
   end
 
   test "find returns nil for unknown client" do

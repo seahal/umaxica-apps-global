@@ -2,9 +2,10 @@
 # frozen_string_literal: true
 
 module Sign
-  module Org
-    module Auth
-      class AuthorizationsController < ::Sign::Org::ApplicationController
+  module Com
+    module Oidc
+      # RP login start: redirects to the Acme Authorization Server.
+      class AuthorizationsController < ::Sign::Com::ApplicationController
         AUTHENTICATION_MODE = :open
 
         skip_before_action :set_region, raise: false

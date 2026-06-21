@@ -12,7 +12,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "app Google provider request on staff host returns 404" do
     host! @staff_host
 
-    post "/auth/google_app"
+    post "/social/google"
 
     assert_response :not_found
   end
@@ -20,7 +20,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "staff Google provider request on staff host returns 404" do
     host! @staff_host
 
-    post "/auth/google_#{"org"}"
+    post "/social/google_#{"org"}"
 
     assert_response :not_found
   end
@@ -28,7 +28,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "Apple provider request on staff host returns 404" do
     host! @staff_host
 
-    post "/auth/apple"
+    post "/social/apple"
 
     assert_response :not_found
   end
@@ -43,13 +43,15 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "/auth/google_#{"org"}"
     assert_not_includes response.body, "/auth/google_#{"com"}"
     assert_not_includes response.body, "/auth/apple"
+    assert_not_includes response.body, "/social/google"
+    assert_not_includes response.body, "/social/apple"
   end
 
   test "legacy staff Google flag does not enable social auth" do
     host! @staff_host
 
     with_env("ORG_#{"GOOGLE"}_SIGNIN_ENABLED" => "true", "ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      post "/auth/google_#{"org"}"
+      post "/social/google_#{"org"}"
     end
 
     assert_response :not_found
@@ -58,7 +60,7 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   test "app social route remains available on app host" do
     host! @service_host
 
-    post "/auth/google"
+    post "/social/google"
 
     assert_not_equal 404, response.status
   end

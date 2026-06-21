@@ -5,15 +5,14 @@
 <p><%= @staff_telephone.number %></p>
 
 <%= button_to t("sign.org.settings.telephone.index.delete"),
-              acme_org_settings_telephone_url(
+              sign_org_settings_telephone_path(
                 @staff_telephone.id,
                 ri: params[:ri],
-                host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
               ),
               method: :delete,
               data: { turbo_confirm: t("sign.org.settings.telephone.index.delete_confirm") } %>
 
 <div>
   <%= link_to t("sign.common.cancel"),
-              acme_org_settings_telephones_url(ri: params[:ri], host: acme_authority_host) %>
+              sign_org_settings_telephones_path(ri: params[:ri]) %>
 </div>

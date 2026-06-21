@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Acme::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
+class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
@@ -11,11 +11,25 @@ class Acme::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "get sign out renders confirmation without mutation" do
+  test "new sign out redirects to confirmation without mutation" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get acme_app_sign_out_url(host: @host, ri: "us"), headers: {
+    get new_acme_app_sign_out_url(host: @host, ri: "us"), headers: {
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    assert_response :see_other
+    assert_equal edit_acme_app_sign_out_url(host: @host, ri: "us"), response.location
+    assert_predicate token.reload, :currently_usable?
+  end
+
+  test "edit sign out renders confirmation without mutation" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    get edit_acme_app_sign_out_url(host: @host, ri: "us"), headers: {
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -23,15 +37,16 @@ class Acme::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "p", text: I18n.t("sign.shared.sign_out.confirm_description")
     assert_select "form[action=?][method=?]", acme_app_sign_out_path(ri: "us"), "post"
+    assert_select "input[name=?][value=?]", "_method", "delete"
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out enters oidc end-session flow" do
+  test "delete sign out enters oidc end-session flow" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post acme_app_sign_out_url(host: @host, ri: "jp"), headers: {
+    delete acme_app_sign_out_url(host: @host, ri: "jp"), headers: {
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -46,8 +61,8 @@ class Acme::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_nil query["post_logout_redirect_uri"]
   end
 
-  test "post sign out without a resolved session still redirects to oidc logout" do
-    post acme_app_sign_out_url(host: @host, ri: "jp")
+  test "delete sign out without a resolved session still redirects to oidc logout" do
+    delete acme_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :temporary_redirect
     location = URI.parse(response.location)

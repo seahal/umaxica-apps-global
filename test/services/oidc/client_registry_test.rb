@@ -23,7 +23,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_equal "Core Next RP", client.name
     assert_includes client.domains, ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app")
     assert_kind_of Array, client.redirect_uris
-    assert client.redirect_uris.any? { |uri| uri.include?("/auth/callback") }
+    assert client.redirect_uris.any? { |uri| uri.include?("/oidc/callback") }
   end
 
   test "find returns nil for unknown client_id" do
@@ -272,7 +272,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       redirect_uri = URI.parse(client.redirect_uris.fetch(0))
 
       assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is not regional"
-      assert_equal "/auth/callback", redirect_uri.path
+      assert_equal "/oidc/callback", redirect_uri.path
       assert_equal expected[:aud], client.aud
       assert_equal expected[:resource_type], client.resource_type
       assert_includes client.domains, expected[:host]
@@ -293,7 +293,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
       redirect_uri = URI.parse(client.redirect_uris.fetch(0))
 
       assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is cross-surface"
-      assert_equal "/auth/callback", redirect_uri.path
+      assert_equal "/oidc/callback", redirect_uri.path
       assert_equal expected[:aud], client.aud
       assert_equal expected[:resource_type], client.resource_type
       assert_includes client.domains, expected[:host]

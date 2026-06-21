@@ -3,7 +3,8 @@
 
 module Sign
   module Com
-    module Auth
+    module Oidc
+      # RP callback: completes the Acme OIDC session and provisions identity.
       class CallbacksController < ::Sign::Com::ApplicationController
         include ::OidcCallback
         include ::OidcRpIdentityProvisioning

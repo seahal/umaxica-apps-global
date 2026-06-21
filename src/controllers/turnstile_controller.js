@@ -4,6 +4,8 @@ export default class extends Controller {
   static targets = ["container", "response"];
 
   static values = {
+    action: String,
+    cdata: String,
     mode: { type: String, default: "render" },
   };
 
@@ -58,7 +60,7 @@ export default class extends Controller {
   };
 
   challengeOptions() {
-    return {
+    const options = {
       sitekey: this.containerTarget.dataset.sitekey,
       callback: (token) => {
         this.responseTarget.value = token;
@@ -88,6 +90,19 @@ export default class extends Controller {
         this.dispatchTurnstileEvent("unsupported");
       },
     };
+
+    if (this.hasActionValue) {
+      options.action = this.actionValue;
+    } else if (this.containerTarget.dataset.action) {
+      options.action = this.containerTarget.dataset.action;
+    }
+    if (this.hasCdataValue) {
+      options.cData = this.cdataValue;
+    } else if (this.containerTarget.dataset.cdata) {
+      options.cData = this.containerTarget.dataset.cdata;
+    }
+
+    return options;
   }
 
   dispatchTurnstileEvent(name, detail = {}) {

@@ -169,6 +169,32 @@ describe("TurnstileController", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  test("challenge options include ceremony binding values when present", () => {
+    const c = createController();
+    c.hasActionValue = true;
+    c.actionValue = "social_signup_confirmation";
+    c.hasCdataValue = true;
+    c.cdataValue = "cycle-public-id";
+
+    const options = c.challengeOptions();
+
+    expect(options.action).toBe("social_signup_confirmation");
+    expect(options.cData).toBe("cycle-public-id");
+  });
+
+  test("challenge options can read ceremony binding values from the widget element", () => {
+    const c = createController();
+    c.hasActionValue = false;
+    c.hasCdataValue = false;
+    c.containerTarget.dataset.action = "social_signup_confirmation";
+    c.containerTarget.dataset.cdata = "cycle-public-id";
+
+    const options = c.challengeOptions();
+
+    expect(options.action).toBe("social_signup_confirmation");
+    expect(options.cData).toBe("cycle-public-id");
+  });
+
   test("scheduleChallenge executes stealth turnstile", () => {
     const c = createController();
     c.modeValue = "execute";

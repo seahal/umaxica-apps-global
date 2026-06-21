@@ -316,14 +316,14 @@ module SocialAuth
   def omniauth_authorize_path(provider, state: nil)
     request_provider =
       case SocialIdentifiable.normalize_provider(provider)
-      when "google" then "google_app"
+      when "google" then "google"
       when "apple" then "apple"
       else provider.to_s
       end
 
-    return "/auth/#{request_provider}" if state.blank?
+    return "/social/#{request_provider}" if state.blank?
 
-    "/auth/#{request_provider}?state=#{CGI.escape(state)}"
+    "/social/#{request_provider}?state=#{CGI.escape(state)}"
   end
 
   def social_auth_user

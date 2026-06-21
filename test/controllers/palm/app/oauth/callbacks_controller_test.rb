@@ -15,7 +15,7 @@ module Palm
         test "reserved callback stub returns static no-store response without authentication" do
           host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
-          get palm_app_oauth_callback_url(host: host)
+          get palm_app_oidc_callback_url(host: host)
 
           assert_response :ok
           assert_equal "text/plain", response.media_type

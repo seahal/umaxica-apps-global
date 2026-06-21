@@ -208,8 +208,8 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     controller.define_singleton_method(:edit_sign_com_settings_telephones_registration_path) { |ri: nil|
       "/settings/telephones/registration/edit?ri=#{ri}"
     }
-    controller.define_singleton_method(:acme_com_settings_telephones_url) { |ri: nil, host: nil|
-      host ||= ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    controller.define_singleton_method(:sign_com_settings_telephones_url) { |ri: nil, host: nil|
+      host ||= ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
       "http://#{host}/settings/telephones?ri=#{ri}"
     }
     controller.define_singleton_method(:sign_com_settings_telephones_path) { |ri: nil|

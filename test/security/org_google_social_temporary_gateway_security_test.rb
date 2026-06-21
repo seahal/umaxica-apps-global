@@ -41,7 +41,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
 
   test "org routes expose local sign in and passkey verification only" do
     source = read("config/routes/sign.rb")
-    org_block = surface_block(source, "scope module: :org")
+    org_block = surface_block(source, "sign_surface :org")
 
     assert_match(/resource :passkey, only: :new/, org_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, org_block)
@@ -60,7 +60,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
 
   test "com routes expose no social provider callback" do
     source = read("config/routes/sign.rb")
-    com_block = surface_block(source, "scope module: :com", "# Staff auth management")
+    com_block = surface_block(source, "sign_surface :com", "# Staff credential gateway host")
 
     assert_match(/resource :email, only: %i\(new create edit update\)/, com_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, com_block)
@@ -68,12 +68,10 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "app routes and omniauth config keep app social providers" do
-    routes = surface_block(read("config/routes/sign.rb"), "scope module: :app", "# Corporate id service")
+    routes = surface_block(read("config/routes/sign.rb"), "sign_surface :app", "# Corporate credential gateway host")
     omniauth = read("config/initializers/omniauth.rb")
 
-    assert_match(/namespace :social/, routes)
-    assert_match(/namespace :auth, path: "auth"/, routes)
-    assert_match(/google_app/, routes)
+    assert_match(/sign_app_social_routes/, routes)
     assert_match(/apple/, routes)
     assert_match(/google_app/, omniauth)
     assert_match(/apple/, omniauth)

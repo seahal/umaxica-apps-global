@@ -4,6 +4,10 @@
 require "test_helper"
 
 class OmniauthTest < ActiveSupport::TestCase
+  test "omniauth request phase uses social path prefix" do
+    assert_equal "/social", OmniAuth.config.path_prefix
+  end
+
   test "callback origin uses https for configured app sign host" do
     env = Rack::MockRequest.env_for(
       "http://id.umaxica.app/social/google/callback",

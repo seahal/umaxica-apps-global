@@ -109,13 +109,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/app/sign_outs", action: "show" },
-      { path: "http://#{ACME_APP_HOST}/sign/out", method: :get },
+      { controller: "acme/app/sign/outs", action: "new" },
+      { path: "http://#{ACME_APP_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/app/sign_outs", action: "create" },
-      { path: "http://#{ACME_APP_HOST}/sign/out", method: :post },
+      { controller: "acme/app/sign/outs", action: "edit" },
+      { path: "http://#{ACME_APP_HOST}/sign/out/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/outs", action: "destroy" },
+      { path: "http://#{ACME_APP_HOST}/sign/out", method: :delete },
     )
 
     assert_raises(ActionController::RoutingError) do
@@ -450,13 +455,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/com/sign_outs", action: "show" },
-      { path: "http://#{ACME_COM_HOST}/sign/out", method: :get },
+      { controller: "acme/com/sign/outs", action: "new" },
+      { path: "http://#{ACME_COM_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/com/sign_outs", action: "create" },
-      { path: "http://#{ACME_COM_HOST}/sign/out", method: :post },
+      { controller: "acme/com/sign/outs", action: "edit" },
+      { path: "http://#{ACME_COM_HOST}/sign/out/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/com/sign/outs", action: "destroy" },
+      { path: "http://#{ACME_COM_HOST}/sign/out", method: :delete },
     )
 
     [
@@ -645,13 +655,18 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "acme/org/sign_outs", action: "show" },
-      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :get },
+      { controller: "acme/org/sign/outs", action: "new" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "acme/org/sign_outs", action: "create" },
-      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :post },
+      { controller: "acme/org/sign/outs", action: "edit" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/org/sign/outs", action: "destroy" },
+      { path: "http://#{ACME_ORG_HOST}/sign/out", method: :delete },
     )
   end
 

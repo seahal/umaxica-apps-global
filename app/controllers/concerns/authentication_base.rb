@@ -80,6 +80,12 @@ module AuthenticationBase
   ACCESS_COOKIE_KEY = AuthenticationCookieName.access
   REFRESH_COOKIE_KEY = AuthenticationCookieName.refresh
   DBSC_COOKIE_KEY = AuthenticationCookieName.dbsc
+  OIDC_RP_SESSION_KEYS = %i(
+    oidc_code_verifier
+    oidc_state
+    oidc_nonce
+    oidc_pt
+  ).freeze
 
   # AuthenticationToken TTLs
   ACCESS_TOKEN_TTL = SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
@@ -349,8 +355,11 @@ module AuthenticationBase
       return totp_result if totp_result
     end
 
+    oidc_rp_session_state = preserved_oidc_rp_session_state
+
     # Rotate session id and clear prior auth cookies at this chokepoint.
     reset_session
+    restore_oidc_rp_session_state!(oidc_rp_session_state)
     clear_previous_login_cookies!
 
     # Serialize session-limit decision and token creation per actor. Without
@@ -436,6 +445,18 @@ module AuthenticationBase
     cookies.delete(ACCESS_COOKIE_KEY, cookie_deletion_options)
     cookies.delete(REFRESH_COOKIE_KEY, cookie_deletion_options)
     clear_dbsc_cookie!
+  end
+
+  def preserved_oidc_rp_session_state
+    OIDC_RP_SESSION_KEYS.index_with do |key|
+      session[key]
+    end.compact
+  end
+
+  def restore_oidc_rp_session_state!(state)
+    state.each do |key, value|
+      session[key] = value
+    end
   end
 
   def session_limit_hard_reject_result(resource)

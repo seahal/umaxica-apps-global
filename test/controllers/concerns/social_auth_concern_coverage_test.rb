@@ -20,7 +20,7 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
 
       def @request_obj.format = Struct.new(:json?).new(false)
 
-      def @request_obj.path = "/auth/google_app"
+      def @request_obj.path = "/social/google"
 
       def @request_obj.env = {}
 
