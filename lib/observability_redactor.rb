@@ -24,6 +24,12 @@ module ObservabilityRedactor
     dpop dpop-proof
   ).freeze
   NON_SENSITIVE_KEYS = %w(event_uuid).freeze
+  SAFE_OBSERVABILITY_KEY_PATTERN = /
+    \A
+    (?:.*_)?
+    (?:digest(?:12)?|length|parts)
+    \z
+  /ix.freeze
 
   def scrub(value)
     case value
@@ -53,6 +59,7 @@ module ObservabilityRedactor
   def sensitive_key?(key)
     normalized = key.to_s.tr("-", "_").downcase
     return false if NON_SENSITIVE_KEYS.include?(normalized)
+    return false if SAFE_OBSERVABILITY_KEY_PATTERN.match?(normalized)
 
     SENSITIVE_KEY_PATTERN.match?(normalized) || SENSITIVE_HEADER_KEYS.include?(normalized)
   end

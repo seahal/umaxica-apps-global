@@ -19,6 +19,18 @@ class SignUpStepGateTest < ActiveSupport::TestCase
     end
   end
 
+  test "for_show prefers the controller ticket fallback when the locator is empty" do
+    session = {}
+    cycle = fake_cycle(public_id: "seq-456")
+    controller = gate_controller(session)
+    controller.define_singleton_method(:current_sign_up_flow_ticket) { cycle }
+
+    gate = SignUpStepGate.for_show(controller: controller, surface: :app, family: "google", step: :confirmation)
+
+    assert_predicate gate, :success?
+    assert_equal cycle, gate.ticket
+  end
+
   test "for_show still requires a ticket when neither locator nor sequence id is present" do
     controller = gate_controller({})
 

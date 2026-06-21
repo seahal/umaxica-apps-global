@@ -1,7 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-require "test_helper"
+require "prism"
+require_relative "../../test_helper"
 
 class RateLimitDummyController < ApplicationController
   include ::RateLimit
@@ -103,7 +104,7 @@ class RateLimitTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "text/html" }
+      get "/test_rate_limit", headers: { "Host" => "example.com", "Accept" => "application/json" }
 
       assert_response :too_many_requests
       assert_equal "application/json; charset=utf-8", response.content_type
@@ -218,6 +219,12 @@ class RateLimitTest < ActionDispatch::IntegrationTest
     assert_empty violations
   end
 
+  test "production rate limit declarations explicitly declare a store" do
+    offenders = production_rate_limit_store_offenders
+
+    assert_empty offenders, "production rate_limit declarations missing explicit store:\n#{offenders.join("\n")}"
+  end
+
   test "rate limit redis url has no localhost fallback" do
     config_content =
       Rails.root.glob("config/environments/*.rb").map(&:read).join("\n")
@@ -229,5 +236,44 @@ class RateLimitTest < ActionDispatch::IntegrationTest
 
   def clear_rate_limit_store
     Rails.configuration.x.rate_limit.fetch(:store).clear
+  end
+
+  def production_rate_limit_store_offenders
+    Rails.root.glob("app/**/*.rb").flat_map do |path|
+      rate_limit_call_sources(path).filter_map do |call|
+        next if call.fetch(:source).match?(/\bstore\s*:/)
+
+        "#{path.relative_path_from(Rails.root)}:#{call.fetch(:line)}"
+      end
+    end
+  end
+
+  def rate_limit_call_sources(path)
+    parse_result = Prism.parse_file(path.to_s)
+
+    assert_predicate parse_result, :success?, "failed to parse #{path.relative_path_from(Rails.root)}"
+
+    calls = []
+
+    walk_prism(parse_result.value) do |node|
+      next unless node.is_a?(Prism::CallNode)
+      next unless node.name == :rate_limit
+      next unless node.receiver.nil?
+
+      source = node.location.slice
+      next unless source.match?(/\bto\s*:/)
+      next unless source.match?(/\bwithin\s*:/)
+
+      calls << { line: node.location.start_line, source: source }
+    end
+
+    calls
+  end
+
+  def walk_prism(node, &)
+    return unless node
+
+    yield node
+    node.child_nodes.each { |child| walk_prism(child, &) if child }
   end
 end

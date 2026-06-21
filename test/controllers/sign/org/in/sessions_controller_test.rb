@@ -481,7 +481,7 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "restricted session at 14 minutes is still accessible (boundary: within TTL)" do
     token = create_restricted_session(@staff, discarded_at: 15.minutes.from_now)
-    headers = as_staff_headers_with_token(@staff, token, host: @host)
+    headers = as_staff_headers_with_token(@staff, token, host: @host, expires_at: 30.minutes.from_now)
 
     travel 14.minutes do
       get sign_org_sign_in_session_url(ri: "jp"), headers: headers
@@ -558,10 +558,11 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     token
   end
 
-  def as_staff_headers_with_token(staff, token, host:)
+  def as_staff_headers_with_token(staff, token, host:, expires_at: 30.minutes.from_now)
     access_token = AuthenticationToken.encode(
       staff, host: host, session_public_id: token.public_id,
              resource_type: "operator",
+             expires_at: expires_at,
     )
     browser_headers.merge(
       "Host" => host,

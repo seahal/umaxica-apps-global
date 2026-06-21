@@ -37,14 +37,17 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "PageHeader on sub-pages points back to settings" do
     sign_head = as_user_headers(@user, host: @host)
     pages = [
-      [sign_app_settings_passkeys_url(ri: "jp", host: @sign_host),
-       acme_session_headers(scope: "settings_passkey", host: @sign_host),],
-      [
-        sign_app_settings_secrets_url(ri: "jp", host: @sign_host),
-        acme_session_headers(scope: "settings_secret_credential", host: @sign_host),
-      ],
-      [sign_app_settings_mfa_challenge_path(ri: "jp"), sign_head],
-      [sign_app_settings_google_path(ri: "jp"), sign_head],
+      {
+        path: sign_app_settings_passkeys_url(ri: "jp", host: @sign_host),
+        headers: sign_head,
+        follow_headers: acme_session_headers(scope: "settings_passkey", host: @acme_host),
+      },
+      {
+        path: sign_app_settings_secrets_url(ri: "jp", host: @sign_host),
+        headers: sign_head,
+      },
+      { path: sign_app_settings_mfa_challenge_path(ri: "jp"), headers: sign_head },
+      { path: sign_app_settings_google_path(ri: "jp"), headers: sign_head },
     ]
 
     Prosopite.pause do
@@ -57,11 +60,11 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       assert_equal @acme_host, location.host
       assert_equal "/settings/totps", location.path
 
-      pages.each do |path, head|
-        get path, headers: head
-        follow_cross_host_redirect!(head) if response.redirect?
+      pages.each do |page|
+        get page.fetch(:path), headers: page.fetch(:headers)
+        follow_cross_host_redirect!(page.fetch(:follow_headers, page.fetch(:headers))) if response.redirect?
 
-        assert_response :success, "Failed to load #{path}"
+        assert_response :success, "Failed to load #{page.fetch(:path)}"
       end
     end
   end

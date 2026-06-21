@@ -313,7 +313,7 @@ module Sign
               return ClientEmail.find_by(id: session_existing_email_id)
             end
 
-            cycle = sign_up_flow_locator.current
+            cycle = current_sign_up_flow_ticket
             return unless cycle&.pending_contact_type == "email"
 
             ClientEmail.find_by(id: cycle.pending_contact_id)

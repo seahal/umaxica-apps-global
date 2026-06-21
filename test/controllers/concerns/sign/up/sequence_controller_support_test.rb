@@ -9,7 +9,8 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
     attr_accessor :params_hash, :session_hash, :rendered, :redirected, :performed_value,
                   :allowed_value, :sign_up_surface_value, :sign_up_ticket_record_class_value,
-                  :sign_up_session_state_value, :sign_up_flow_locator_value, :sign_up_policy_context_value,
+                  :sign_up_ticket_class_value, :sign_up_session_state_value, :sign_up_flow_locator_value,
+                  :sign_up_policy_context_value,
                   :sign_up_requirement_context_value, :sign_up_pending_actor_value, :sign_up_actor_authentication_value,
                   :sign_up_missing_requirements_value
 
@@ -61,6 +62,14 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
     def sign_up_flow_locator
       @sign_up_flow_locator_value || Struct.new(:current).new(nil)
+    end
+
+    def sign_up_ticket_class
+      sign_up_ticket_class_value || ClientSignUpFlow
+    end
+
+    def sign_up_sequence_session_key
+      :sign_app_up_sequence_id
     end
 
     def sign_up_policy_context
@@ -119,15 +128,24 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       false
     end
 
-    flow = Struct.new(:current).new(:ticket)
     harness.sign_up_session_state_value = state
-    harness.sign_up_flow_locator_value = flow
+    harness.sign_up_flow_locator_value = Struct.new(:current).new(nil)
+    harness.sign_up_ticket_class_value =
+      Class.new do
+        class << self
+          def find_by(public_id:)
+            (public_id == "ticket-123") ? :ticket : nil
+          end
+        end
+      end
+    harness.session[:sign_app_up_sequence_id] = "ticket-123"
 
     harness.send(:load_sign_up_ticket)
 
     assert_equal :ticket, harness.instance_variable_get(:@sign_up_ticket)
 
     harness.sign_up_flow_locator_value = Struct.new(:current).new(nil)
+    harness.session[:sign_app_up_sequence_id] = nil
     harness.send(:load_sign_up_ticket)
 
     assert_equal :not_found, harness.rendered.last[:status]

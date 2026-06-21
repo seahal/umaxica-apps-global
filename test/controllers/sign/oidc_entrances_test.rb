@@ -115,7 +115,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
 
       assert_equal URI.parse(client.redirect_uris.first).host, callback_uri.host
-      assert_equal "/auth/callback", callback_uri.path
+      assert_equal "/oidc/callback", callback_uri.path
       assert_predicate callback_query["code"], :present?
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 

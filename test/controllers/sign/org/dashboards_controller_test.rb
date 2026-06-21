@@ -22,7 +22,7 @@ class Sign::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", sign_org_sign_in_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_up_path(ri: "jp")
     assert_select "a[href=?]", sign_org_settings_path(ri: "jp")
-    assert_select "a[href=?]", sign_org_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", new_sign_org_sign_out_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_guard_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_check_path(ri: "jp")
     assert_select "a[href=?]", sign_org_sign_in_challenge_path(ri: "jp")

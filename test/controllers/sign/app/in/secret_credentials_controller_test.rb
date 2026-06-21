@@ -619,6 +619,7 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { params_hash }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
+    controller.define_singleton_method(:redirect_to_jump_url) { |url, **kwargs| redirects << [url, kwargs] }
     controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
       redirects << [pt || default_path, {}]
     }

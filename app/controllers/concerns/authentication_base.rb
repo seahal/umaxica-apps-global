@@ -97,6 +97,7 @@ module AuthenticationBase
   LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown")
 
   class LoginCooldownError < StandardError; end
+  class ConcurrentSessionLimitExceededError < StandardError; end
 
   # Prevents rapid re-login by enforcing a 30-second cooldown between sessions.
   LOGIN_COOLDOWN_ENABLED = Concurrent::AtomicReference.new(true)
@@ -346,7 +347,7 @@ module AuthenticationBase
     return { status: :access_locked } if administratively_locked_resource?(resource)
     return { status: :login_forbidden } unless resource.login_allowed?
 
-    check_login_cooldown!(resource)
+    check_login_cooldown!(resource, bootstrap_actor: bootstrap_actor)
 
     # MFA gate must run BEFORE session rotation. Returns early if required;
     # actual transition happens on MFA completion.
@@ -413,6 +414,11 @@ module AuthenticationBase
       record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
       login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
     end
+
+    # The exact client token session-limit validation becomes a controlled
+    # domain failure so callers can render the existing overflow UX.
+  rescue ConcurrentSessionLimitExceededError
+    session_limit_hard_reject_result(resource)
   end
 
   # Serialize the count-then-create critical section in `log_in` for a
@@ -1926,6 +1932,10 @@ module AuthenticationBase
 
       token_class.create!(token_attributes)
     end
+  rescue ActiveRecord::RecordInvalid => e
+    raise ConcurrentSessionLimitExceededError, e.message if concurrent_session_limit_validation_error?(e)
+
+    raise
   end
 
   # LEGACY here means "no DBSC binding". Non-DBSC sessions are ordinary
@@ -2320,7 +2330,7 @@ module AuthenticationBase
                                             audit_context:, bootstrap_actor:)
     return { status: :login_forbidden } unless resource.login_allowed?
 
-    check_login_cooldown!(resource)
+    check_login_cooldown!(resource, bootstrap_actor: bootstrap_actor)
     session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
     return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
 
@@ -2346,8 +2356,14 @@ module AuthenticationBase
     result.merge(redirect_path: sign_in_sequence_redirect_path(pt: pt))
   end
 
-  def check_login_cooldown!(resource)
+  def check_login_cooldown!(resource, bootstrap_actor: false)
     return unless AuthenticationBase.login_cooldown_enabled
+    # Bootstrap handoffs (sign-up completion, OIDC authorization resume) issue a
+    # token within seconds of the one minted moments earlier in the same flow.
+    # That fresh token is not a rapid re-login attempt, so skip the cooldown gate
+    # for the same reason the session-limit gate is skipped for bootstrap logins.
+    # Without this, the sign-up -> OIDC resume handoff fails with 429.
+    return if bootstrap_actor
 
     fk =
       if resource.is_a?(::Client)
@@ -2450,6 +2466,14 @@ module AuthenticationBase
     elsif resource.is_a?(::Visitor)
       session[:pending_login_visitor_id] = resource.id
     end
+  end
+
+  def concurrent_session_limit_validation_error?(exception)
+    record = exception.record
+    return false unless record.is_a?(token_class)
+    return false unless record.errors.respond_to?(:of_kind?)
+
+    record.errors.size == 1 && record.errors.of_kind?(:base, :too_many)
   end
 
   # ======================================================================

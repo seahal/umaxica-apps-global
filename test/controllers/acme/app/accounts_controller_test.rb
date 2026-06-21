@@ -59,6 +59,34 @@ class Acme::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "create account redirects" do
+    bootstrap_and_select!(@user, @token)
+
+    post acme_app_accounts_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
+
+    assert_response :see_other
+    assert_redirected_to acme_app_accounts_url(ri: "jp", host: @host)
+  end
+
+  test "edit account form renders" do
+    result = bootstrap_and_select!(@user, @token)
+
+    get edit_acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
+        headers: as_user_headers(@user, host: @host)
+
+    assert_response :success
+  end
+
+  test "update account redirects" do
+    result = bootstrap_and_select!(@user, @token)
+
+    patch acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
+          headers: as_user_headers(@user, host: @host)
+
+    assert_response :see_other
+    assert_redirected_to acme_app_account_url(result.account.public_id, ri: "jp", host: @host)
+  end
+
   test "cannot show another client's account" do
     bootstrap_and_select!(@user, @token)
     other_account = bootstrap_other_client.account

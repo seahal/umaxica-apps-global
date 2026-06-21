@@ -62,7 +62,7 @@ module Sign
 
           def after_email_registration_verified_path
             email_registration_return_path(
-              "https://#{oidc_acme_host}/settings/emails?ri=#{params[:ri]}",
+              "https://#{oidc_acme_host}/preference?ri=#{params[:ri]}",
             )
           end
 

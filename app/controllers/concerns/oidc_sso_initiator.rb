@@ -31,7 +31,7 @@ module OidcSsoInitiator
 
   private
 
-  def initiate_oidc_session!(pt: request.original_url, screen_hint: nil)
+  def initiate_oidc_session!(pt: "/", screen_hint: nil)
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
     state = SecureRandom.urlsafe_base64(32)

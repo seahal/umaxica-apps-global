@@ -18,7 +18,7 @@ module Sign
             @invitation_code = params[:invitation_code].to_s
 
             unless cloudflare_turnstile_validation["success"]
-              flash.now[:alert] = t(".turnstile_failed")
+              @form_error = t(".turnstile_failed")
               render :new, status: :unprocessable_content
               return
             end
@@ -26,12 +26,9 @@ module Sign
             result = ::OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation_code)
 
             if result.success?
-              redirect_to(
-                sign_org_sign_in_path,
-                notice: t(".success", public_id: result.operator.public_id),
-              )
+              redirect_to(sign_org_sign_in_path)
             else
-              flash.now[:alert] = result.error
+              @form_error = result.error
               render :new, status: :unprocessable_content
             end
           end

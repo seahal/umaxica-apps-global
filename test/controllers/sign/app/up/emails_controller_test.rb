@@ -78,6 +78,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
          },
          headers: default_headers
 
+    sequence_id = session[:sign_app_up_sequence_id]
+    session.delete(:app_sign_up_flow_locator)
+    session[:sign_app_up_sequence_id] = sequence_id
+
     get sign_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success

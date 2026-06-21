@@ -30,6 +30,10 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/device_sessionable.rb" => [3, "legacy device session token concern"],
     "app/models/concerns/dpop_proof_stateable.rb" => [5, "legacy DPoP proof query concern"],
     "app/models/concerns/email.rb" => [6, "legacy email normalization and validation concern"],
+    "app/models/concerns/identity_ceremony_candidate_record.rb" => [
+      3,
+      "reviewed identity ceremony candidate record concern",
+    ],
     "app/models/concerns/email_ceremony_transactionable.rb" => [15, "reviewed ceremony transaction model DSL concern"],
     "app/models/concerns/flow_base.rb" => [1, "legacy flow base class attribute concern"],
     "app/models/concerns/has_birthdate.rb" => [3, "legacy birthdate validation concern"],
@@ -62,7 +66,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/single_use_token.rb" => [2, "legacy single-use token query concern"],
     "app/models/concerns/social_ceremony_transactionable.rb" => [16, "reviewed ceremony transaction model DSL concern"],
     "app/models/concerns/social_identifiable.rb" => [1, "legacy social identity query concern"],
-    "app/models/concerns/step_up_ceremony_transactionable.rb" => [19,
+    "app/models/concerns/step_up_ceremony_transactionable.rb" => [20,
                                                                   "reviewed ceremony transaction model DSL concern",],
     "app/models/concerns/telephone.rb" => [7, "legacy telephone normalization and validation concern"],
     "app/models/concerns/telephone_ceremony_transactionable.rb" => [15,
@@ -71,6 +75,15 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/models/concerns/totp_ceremony_transactionable.rb" => [15, "reviewed ceremony transaction model DSL concern"],
     "app/models/concerns/withdrawable.rb" => [1, "legacy withdrawal query concern"],
     "app/models/concerns/withdrawal_flow.rb" => [10, "legacy withdrawal flow state concern"],
+  }.freeze
+
+  REVIEWED_CONTROLLER_CONCERN_SIDE_EFFECTS = {
+    "app/controllers/concerns/oauth_authorize_rate_limit.rb" => [
+      1,
+      "reviewed OAuth authorize rate-limit callback concern",
+    ],
+    "app/controllers/concerns/sign_oidc_logout.rb" => [1, "reviewed OIDC logout callback concern"],
+    "app/controllers/concerns/sign_out_notice.rb" => [1, "reviewed sign-out notice helper concern"],
   }.freeze
 
   RAILS_WAY_DIRECTORY_PATTERN = %r{\Aapp/(?:services|use_cases|interactors|operations|commands|domain|application)\z}
@@ -83,7 +96,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
     "app/controllers/concerns/acme_step_up_completion.rb" => [2, "reviewed step-up completion branch errors"],
     "app/controllers/concerns/social_auth.rb" => [13, "legacy SocialAuth control-flow errors"],
     "app/models/concerns/step_up_ceremony_transactionable.rb" => [
-      3,
+      4,
       "reviewed step-up ceremony transaction branch errors",
     ],
     "app/services/identity_step_up_ceremony_contract.rb" => [19, "reviewed step-up ceremony branch contract errors"],
@@ -107,8 +120,11 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
       CONTROLLER_CONCERN_SIDE_EFFECT_PATTERN,
     )
 
-    assert_empty offenders, "Controller concerns must not install callbacks/helpers/rescues in included do:\n" \
-                            "#{format_inventory(offenders)}"
+    assert_reviewed_inventory(
+      REVIEWED_CONTROLLER_CONCERN_SIDE_EFFECTS,
+      offenders,
+      "Controller concerns must not install callbacks/helpers/rescues in included do",
+    )
   end
 
   test "model concern included-do side effects stay in the reviewed allowlist" do

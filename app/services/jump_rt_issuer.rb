@@ -110,16 +110,23 @@ class JumpRtIssuer
   end
 
   def default_ttl
-    Rails.configuration.x.boot_config.fetch(:jump).ttl_seconds.seconds
+    boot_jump_config.ttl_seconds.seconds
   end
 
   def jump_audience
-    Rails.configuration.x.boot_config.fetch(:jump).audience
+    boot_jump_config.audience
   end
 
   def local_http_allowed?(uri)
     return false unless Rails.env.local?
 
     uri.scheme == "http" && (uri.host == "localhost" || uri.host.end_with?(".localhost"))
+  end
+
+  def boot_jump_config
+    config = Rails.configuration.x.boot_config
+    return config.fetch(:jump) if config.respond_to?(:fetch)
+
+    config.jump
   end
 end

@@ -57,7 +57,10 @@ The accepted `app` Sign Up routes are:
 
 Google and Apple are separate Sign Up routes even though they share social-auth infrastructure,
 because their callback methods and provider constraints differ. Google returns through
-`GET /auth/google_app/callback`; Apple returns through `POST /auth/apple/callback`.
+`GET /social/google/callback`; Apple returns through `POST /social/apple/callback`.
+
+The public route vocabulary is frozen. This ADR only documents the authority boundary and handoff
+behavior; it does not justify changing the accepted `/sign/up/*` or `/social/*` paths.
 
 The accepted target `com` Sign Up routes are:
 

@@ -21,7 +21,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_equal "sign/app/auth/omniauth_callbacks", google_route[:controller]
     assert_equal "omniauth", google_route[:action]
-    assert_equal "google_app", google_route[:provider]
+    assert_equal "google", google_route[:provider]
     assert_equal "sign/app/auth/omniauth_callbacks", apple_route[:controller]
     assert_equal "omniauth", apple_route[:action]
     assert_equal "apple", apple_route[:provider]
@@ -52,6 +52,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "apple") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:redirect_to_jump_url) { |url, **kwargs| redirects << [[url], kwargs] }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| safe_redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
@@ -68,6 +69,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_check_path) do |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:social_auth_success_redirect_path) { "/settings" }
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
     controller.define_singleton_method(:logged_in?) { @logged_in_for_test }
@@ -81,14 +83,10 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_match "/settings", redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
-    controller.send(:redirect_for_existing_account, "Apple")
-
-    assert_match "/dashboard", redirects.last.first.first
+    assert_equal "/dashboard", controller.send(:redirect_for_existing_account, "Apple")
 
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
-    controller.send(:redirect_for_new_account, "Apple")
-
-    assert_match "/dashboard", redirects.last.first.first
+    assert_equal "/dashboard", controller.send(:redirect_for_new_account, "Apple")
 
     controller.instance_variable_set(:@login_result_for_test, { status: :success, restricted: true })
     controller.send(:handle_login_intent, user, "Apple", false)
@@ -167,14 +165,15 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "REQUEST_METHOD" => "GET",
       "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
-    request.env["omniauth.auth"] = OpenStruct.new(provider: "google_app")
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
 
     session_hash = {}
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
@@ -188,18 +187,17 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     user = Client.create!(status_id: ClientStatus::NOTHING)
     return_to = "/after-social"
-    controller.send(:handle_login_intent, user, "Google", false, pt: return_to)
+    assert_equal "/dashboard", controller.send(:handle_login_intent, user, "Google", false, pt: return_to)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)
 
     assert_equal return_to, kwargs[:pt]
     assert_equal "social", kwargs[:auth_method]
     assert_equal({ auth_method: "social", provider: "google" }, kwargs[:audit_context])
-    assert_match "/dashboard", redirects.last.first.first
   end
 
   test "grantless established google login does not create sign session" do
-    assert_grantless_established_social_login_rejected(provider: "google_app", provider_name: "Google")
+    assert_grantless_established_social_login_rejected(provider: "google", provider_name: "Google")
   end
 
   test "grantless established apple login does not create sign session" do
@@ -247,15 +245,16 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "REQUEST_METHOD" => "GET",
       "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
-    request.env["omniauth.auth"] = OpenStruct.new(provider: "google_app")
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
 
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs|
       session_snapshots << [:redirect_to, args, kwargs]
     }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
@@ -268,7 +267,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       { status: :success }
     end
 
-    controller.send(
+    assert_equal "/dashboard", controller.send(
       :handle_login_intent,
       user,
       "Google",
@@ -298,13 +297,13 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.response = ActionDispatch::TestResponse.new
 
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:issue_bulletin!) { false }
 
     state = controller.send(
       :prepare_social_auth_intent!,
       "login",
-      provider: "google_app",
+      provider: "google",
       pt: "encoded-pt-that-should-not-be-stored",
       entry: "sign_up",
       ri: "jp",
@@ -312,7 +311,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     assert_predicate state, :present?
     assert_equal "login", session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
-    assert_equal "google_app", session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_equal "google", session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
     assert_equal "jp", session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY]
     assert_equal "sign_up", session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY]
     assert_nil session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
@@ -335,7 +334,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-guardrail",
-      provider: "google_app",
+      provider: "google",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -359,13 +358,13 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "REQUEST_METHOD" => "GET",
       "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
-    request.env["omniauth.auth"] = OpenStruct.new(provider: "google_app")
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
 
     session_hash = {}
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:sign_app_sign_up_guard_path) { |ri: nil, pt: nil|
       "/sign/up/guard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
@@ -384,6 +383,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     )
 
     assert_match %r{/sign/up/guard/google\?(pt=encoded-pt&ri=jp|ri=jp&pt=encoded-pt)}, redirects.last.first.first
+
     assert_equal user.id, cycle.reload.principal_id
     assert_equal "social_identity", cycle.pending_contact_type
     assert_equal identity.id, cycle.pending_contact_id
@@ -397,7 +397,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-return-to",
-      provider: "google_app",
+      provider: "google",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -434,18 +434,19 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
       "REQUEST_METHOD" => "GET",
       "HTTP_HOST" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
-    request.env["omniauth.auth"] = OpenStruct.new(provider: "google_app")
+    request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
 
     session_hash = {}
     controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:sign_app_sign_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
@@ -455,7 +456,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signup-existing",
-      provider: "google_app",
+      provider: "google",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
@@ -480,12 +481,12 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     identity = ClientGoogleIdentity.create!(
       user: user,
       uid: "social-signin-keep-existing",
-      provider: "google_app",
+      provider: "google",
       token: "token",
       token_expires_at: 1.week.from_now.to_i,
       user_google_identity_status: client_google_identity_statuses(:active),
     )
-    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google_app") }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
@@ -680,6 +681,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")

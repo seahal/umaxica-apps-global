@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
-ENV["RAILS_ENV"] ||= "test"
+require "active_support/core_ext/object/blank"
+
+if ENV["RAILS_ENV"].present? && ENV["RAILS_ENV"] != "test"
+  abort(
+    "Refusing to run tests outside RAILS_ENV=test " \
+    "(got #{ENV["RAILS_ENV"].inspect}).",
+  )
+end
+
+ENV["RAILS_ENV"] = "test"
 
 # Enable YJIT before Rails boots.
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
@@ -38,6 +47,11 @@ if ENV["COVERAGE"] == "true"
 end
 
 require_relative "../config/environment"
+
+unless Rails.env.test?
+  abort("Refusing to run tests outside RAILS_ENV=test (got #{Rails.env}).")
+end
+
 require "rails/test_help"
 require_relative "support/auth_helpers"
 

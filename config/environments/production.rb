@@ -82,8 +82,16 @@ Rails.application.configure do
   config.sandbox_by_default = true
 
   config.cache_store = :solid_cache_store
+  rate_limit_namespace = [
+    "rate_limit",
+    Rails.env,
+    ENV["RATE_LIMIT_NAMESPACE_SUFFIX"].presence,
+  ].compact.join(":")
   config.x.rate_limit.store =
-    ActiveSupport::Cache::RedisCacheStore.new(url: ENV.fetch("RATE_LIMIT_REDIS_URL"), namespace: "rate_limit")
+    ActiveSupport::Cache::RedisCacheStore.new(
+      url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
+      namespace: rate_limit_namespace,
+    )
   config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.

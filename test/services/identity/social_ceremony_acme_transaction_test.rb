@@ -74,6 +74,113 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
+  test "signup result commits a new client even when another provider shares the same email" do
+    travel_to @now do
+      existing_user = Client.create!(
+        status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
+        visibility_id: ClientVisibility::USER,
+        birthdate: "2000-01-01",
+      )
+      ClientEmailStatus.ensure_defaults!
+      ClientEmail.create!(
+        user: existing_user,
+        address: "shared-email@example.com",
+        address_digest: Digest::SHA256.hexdigest("shared-email@example.com"),
+        user_email_status_id: ClientEmailStatus::VERIFIED,
+        public_id: SecureRandom.alphanumeric(21),
+      )
+      ClientAppleIdentity.create!(
+        user: existing_user,
+        uid: "apple-shared-email-uid",
+        provider: "apple",
+        token: "apple-token",
+        expires_at: 1.week.from_now.to_i,
+        user_apple_identity_status: ClientAppleIdentityStatus.find_by!(id: ClientAppleIdentityStatus::ACTIVE),
+      )
+
+      signup_auth_hash = {
+        "provider" => "google",
+        "uid" => "google-signup-shared-email-#{SecureRandom.hex(6)}",
+        "credentials" => {
+          "token" => "signup-provider-access-token",
+          "refresh_token" => "signup-provider-refresh-token",
+          "expires_at" => 1.hour.from_now.to_i,
+        },
+        "info" => {
+          "email" => "shared-email@example.com",
+        },
+        "extra" => {
+          "raw_info" => {
+            "email_verified" => true,
+          },
+        },
+      }
+      issuance = issue_signup_grant
+      result_token = issue_signup_result(issuance.grant, auth_hash: signup_auth_hash, birthdate: "2000-02-03")
+
+      assert_difference -> { Client.count }, 1 do
+        commit = IdentitySocialCeremonyFinalCommitter.call!(
+          result_token: result_token,
+        auth_hash: nil,
+        actor: nil,
+        session_ref: @session_ref,
+        surface: "app",
+        ip_address: "127.0.0.1",
+        user_agent: "Rails test",
+        now: @now,
+      )
+
+        assert_equal "google", commit.identity.provider
+        assert_equal signup_auth_hash["uid"], commit.identity.uid
+        assert_not_equal existing_user.id, commit.user.id
+        assert_equal 1, existing_user.client_emails.count
+        assert_equal "shared-email@example.com", existing_user.client_emails.first.address
+      end
+    end
+  end
+
+  test "signup result rejects a provider uid already linked to another client" do
+    travel_to @now do
+      owner = Client.create!(
+        status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
+        visibility_id: ClientVisibility::USER,
+        birthdate: "2000-01-01",
+      )
+      ClientGoogleIdentity.create!(
+        user: owner,
+        uid: "google-conflict-uid",
+        provider: "google",
+        token: "existing-token",
+        expires_at: 1.day.from_now.to_i,
+        user_google_identity_status: ClientGoogleIdentityStatus.find_by!(id: ClientGoogleIdentityStatus::ACTIVE),
+      )
+
+      issuance = issue_signup_grant
+      result_token = issue_signup_result(
+        issuance.grant,
+        auth_hash: auth_hash.merge("uid" => "google-conflict-uid"),
+        birthdate: "2000-02-03",
+      )
+
+      error =
+        assert_raises(SocialAuth::ProviderError) do
+          IdentitySocialCeremonyFinalCommitter.call!(
+            result_token: result_token,
+            auth_hash: nil,
+            actor: nil,
+            session_ref: @session_ref,
+            surface: "app",
+            ip_address: "127.0.0.1",
+            user_agent: "Rails test",
+            now: @now,
+          )
+        end
+
+      assert_equal "errors.social_auth.identity_conflict", error.i18n_key
+      assert_equal 1, ClientGoogleIdentity.where(uid: "google-conflict-uid").count
+    end
+  end
+
   test "result payload and transaction table do not expose provider tokens" do
     travel_to @now do
       issuance = issue_grant
@@ -286,6 +393,17 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     )
   end
 
+  def issue_signup_grant
+    IdentitySocialCeremonyGrantIssuer.issue!(
+      surface: "app",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "signup",
+      provider: "google",
+      now: @now,
+    )
+  end
+
   def issue_result(grant_token)
     IdentitySocialCeremonyResultIssuer.issue!(
       grant_token: grant_token,
@@ -294,6 +412,19 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       actor_ref: @client.public_id,
       session_ref: @session_ref,
       operation: "link",
+      now: @now,
+    )
+  end
+
+  def issue_signup_result(grant_token, auth_hash:, birthdate:)
+    IdentitySocialCeremonyResultIssuer.issue!(
+      grant_token: grant_token,
+      auth_hash: auth_hash,
+      surface: "app",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "signup",
+      birthdate: birthdate,
       now: @now,
     )
   end

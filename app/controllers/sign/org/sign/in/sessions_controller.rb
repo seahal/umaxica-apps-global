@@ -139,6 +139,12 @@ class Sign::Org::Sign::In::SessionsController < ::Sign::Org::ApplicationControll
     )
   end
 
+  def authentication_credentials_invalid?
+    return false if action_name == "show" && current_session_restricted?
+
+    super
+  end
+
   def redirect_to_return_path(notice:)
     return_path = retrieve_pt || session_limit_pt
     consume_session_limit_gate!

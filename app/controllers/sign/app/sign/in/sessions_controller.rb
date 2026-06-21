@@ -28,6 +28,7 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
 
   # For show/update/destroy, user must be logged in (even if restricted)
   before_action :require_authentication_or_gate
+  prepend_before_action :render_expired_restricted_session_locked, only: :show
 
   # Display active and restricted sessions for the user
   def show
@@ -107,6 +108,18 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
   end
 
   private
+
+  def render_expired_restricted_session_locked
+    return unless restricted_session_expired?
+
+    render plain: RestrictedSessionGuard::BLOCKED_MESSAGE, status: :locked
+  end
+
+  def authentication_credentials_invalid?
+    return false if action_name == "show" && current_session_restricted?
+
+    super
+  end
 
   def require_authentication_or_gate
     return if current_session_restricted? || restricted_session_expired?

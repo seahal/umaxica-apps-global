@@ -111,6 +111,10 @@ module Acme
                 bootstrap_actor: true,
               )
             end
+          return render_session_limit_hard_reject(
+            message: login_result[:message],
+            http_status: login_result[:http_status],
+          ) if login_result[:status] == :session_limit_hard_reject
           return render(
             json: { error: "invalid_request", error_description: "login_failed" },
             status: :bad_request,

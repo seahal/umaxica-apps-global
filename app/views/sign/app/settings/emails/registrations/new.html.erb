@@ -1,7 +1,7 @@
 <% content_for :page_title, t("sign.app.settings.email.new.page_title") %>
 
 <% acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") %>
-<%= link_to t('sign.app.settings.show.back'), "https://#{acme_host}/settings/emails?ri=#{params[:ri]}" %>
+<%= link_to t('sign.app.settings.show.back'), "https://#{acme_host}/preference?ri=#{params[:ri]}" %>
 
 <h1><%= t("sign.app.settings.email.new.page_title") %></h1>
 
@@ -43,6 +43,6 @@
     <%= form.submit %>
   </div>
   <div>
-    <%= link_to t("actions.cancel"), "https://#{acme_host}/settings/emails?ri=#{params[:ri]}" %>
+    <%= link_to t("actions.cancel"), "https://#{acme_host}/preference?ri=#{params[:ri]}" %>
   </div>
 <% end %>

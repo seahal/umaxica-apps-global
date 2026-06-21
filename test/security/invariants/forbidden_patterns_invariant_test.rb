@@ -61,6 +61,18 @@ module Security
           reason: "OIDC logout must redirect to the RP post-logout URI after state validation.",
         },
         {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/concerns/oidc_callback.rb",
+          line: /redirect_to\(sign_in_url_with_pt\(nil\), alert: I18n\.t\("errors\.messages\.login_required"\), allow_other_host: true\)/,
+          reason: "OIDC callback failure must send the browser back to the sign-in surface through the reviewed RP redirect.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/concerns/oidc_rp_logout_launcher.rb",
+          line: /allow_other_host: true,/,
+          reason: "OIDC RP logout must hand the browser to Acme for the reviewed end-session flow.",
+        },
+        {
           pattern: "csrf bypass",
           path: "app/controllers/concerns/csp_violation_report.rb",
           line: /skip_forgery_protection\(only: :create\)/,
@@ -70,11 +82,17 @@ module Security
         {
           pattern: "csrf null_session",
           path: "app/controllers/acme/app/oauth/protocol_controller.rb",
-          line: /protect_from_forgery using: :header_or_legacy_token,.*with: :null_session/,
+          line: /with: :null_session/,
           reason: [
             "Acme OAuth token exchange is a server-to-server protocol endpoint",
             "and must not use browser session CSRF handling.",
           ].join(" "),
+        },
+        {
+          pattern: "csrf null_session",
+          path: "app/controllers/acme/app/oauth/tokens_controller.rb",
+          line: /with: :null_session/,
+          reason: "Acme OAuth token exchange is a server-to-server protocol endpoint and does not use browser session CSRF.",
         },
         {
           pattern: "csrf null_session",
@@ -147,6 +165,36 @@ module Security
           path: "app/controllers/sign/org/oidc/backchannel/logouts_controller.rb",
           line: /protect_from_forgery with: :null_session/,
           reason: "OIDC backchannel logout is a server-to-server callback and does not use browser session CSRF.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/base/app/auth/authorizations_controller.rb",
+          line: /redirect_to\(url, allow_other_host: true\)/,
+          reason: "Base app authorization starts the reviewed jump gateway handoff.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/base/com/auth/authorizations_controller.rb",
+          line: /redirect_to\(url, allow_other_host: true\)/,
+          reason: "Base com authorization starts the reviewed jump gateway handoff.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/base/org/auth/authorizations_controller.rb",
+          line: /redirect_to\(url, allow_other_host: true\)/,
+          reason: "Base org authorization starts the reviewed jump gateway handoff.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/palm/app/auth/authorizations_controller.rb",
+          line: /redirect_to\(url, allow_other_host: true\)/,
+          reason: "Palm app authorization starts the reviewed jump gateway handoff.",
+        },
+        {
+          pattern: "cross-host redirect escape hatch",
+          path: "app/controllers/sign/app/sign/ins_controller.rb",
+          line: /redirect_to\(result\.resume_url, allow_other_host: true\)/,
+          reason: "Sign-in completion returns through the reviewed RP resume URL.",
         },
       ].freeze
 

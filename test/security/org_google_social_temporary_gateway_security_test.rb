@@ -73,7 +73,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
 
     assert_match(/sign_app_social_routes/, routes)
     assert_match(/apple/, routes)
-    assert_match(/google_app/, omniauth)
+    assert_match(/google/, omniauth)
     assert_match(/apple/, omniauth)
   end
 

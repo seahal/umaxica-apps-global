@@ -6,7 +6,14 @@ module CspViolationReport
 
   class_methods do
     def protect_csp_violation_report_intake
-      rate_limit(to: 120, within: 1.minute, only: :create) if respond_to?(:rate_limit)
+      if respond_to?(:rate_limit)
+        rate_limit(
+          to: 120,
+          within: 1.minute,
+          only: :create,
+          store: Rails.configuration.x.rate_limit.fetch(:store),
+        )
+      end
       rescue_from(ActionController::TooManyRequests, with: :ignore_rate_limited_csp_report)
     end
   end

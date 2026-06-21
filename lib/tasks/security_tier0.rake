@@ -23,6 +23,7 @@ class SecurityTier0SuspiciousUserTokenReport
   end
 
   def call
+    suspicious_user_ids, status_by_user_id = suspicious_user_ids_and_statuses
     candidates = suspicious_tokens
 
     candidates.each do |token|
@@ -31,7 +32,7 @@ class SecurityTier0SuspiciousUserTokenReport
           "security.suspicious_user_token.report_only",
           token_id: token.id,
           user_id: token.user_id,
-          status_id: token.user.status_id,
+          status_id: status_by_user_id[token.user_id],
           created_at: token.created_at,
         ),
       )
@@ -47,10 +48,15 @@ class SecurityTier0SuspiciousUserTokenReport
   private
 
   def suspicious_tokens
-    ClientToken
-      .includes(:user)
-      .joins(:user)
-      .where(clients: { status_id: [ClientStatus::NOTHING, ClientStatus::UNVERIFIED_WITH_SIGN_UP] })
-      .order(created_at: :desc)
+    ClientToken.where(user_id: suspicious_user_ids_and_statuses.first).order(created_at: :desc)
+  end
+
+  def suspicious_user_ids_and_statuses
+    @suspicious_user_ids_and_statuses ||=
+      begin
+        rows = Client.where(status_id: [ClientStatus::NOTHING, ClientStatus::UNVERIFIED_WITH_SIGN_UP])
+          .pluck(:id, :status_id)
+        [rows.map(&:first), rows.to_h]
+      end
   end
 end

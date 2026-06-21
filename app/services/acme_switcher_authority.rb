@@ -55,12 +55,14 @@ class AcmeSwitcherAuthority
 
   def available_accounts
     result = selectable_candidates.map { |candidate| candidate.fetch(:account) }
-    result.uniq!(&:id)
+    result.uniq!
+    result
   end
 
   def available_organizations
     result = selectable_candidates.map { |candidate| candidate.fetch(:collective) }
-    result.uniq!(&:id)
+    result.uniq!
+    result
   end
 
   def available_avatars

@@ -44,7 +44,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     assert_response :success
     assert_select "input[name='cf-turnstile-response']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
-    assert_select "a[href=?]", "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/settings/emails?ri=jp"
+    assert_select "a[href=?]", "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     assert_select "input[type=checkbox][name='user_email[promotional]']", count: 1
     assert_select "input[type=checkbox][name='user_email[notifiable]']", count: 1
   end
@@ -228,7 +228,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
             headers: request_headers
     end
 
-    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/settings/emails?ri=jp"
+    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_equal @user.id, user_email.user_id
     assert_not_nil @token.reload.last_step_up_at
@@ -273,7 +273,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to "https://www.umaxica.app/settings/emails?ri=jp"
+    assert_redirected_to "https://www.umaxica.app/preference?ri=jp"
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_predicate issuance.transaction.reload, :consumed?
   end
@@ -345,17 +345,17 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
-    assert_redirected_to "https://#{acme_host}/settings/emails?ri=jp"
+    assert_redirected_to "https://#{acme_host}/preference?ri=jp"
     assert_equal "settings_email", bootstrap_token.reload.last_step_up_scope
 
-    get "https://#{acme_host}/settings/emails?ri=jp",
+    get "https://#{acme_host}/preference?ri=jp",
         headers: bootstrap_headers.merge("Host" => acme_host)
 
     assert_response :success
   end
 
   test "update returns to acme email management after verifying OTP" do
-    return_to = "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/settings/emails?ri=jp"
+    return_to = "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     pt = Base64.urlsafe_encode64(return_to)
 
     setup_email_ceremony_grant(params: { pt: pt })
@@ -388,7 +388,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/settings/emails?ri=jp"
+    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
   end
 

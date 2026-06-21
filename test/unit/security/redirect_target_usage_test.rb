@@ -15,6 +15,7 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
     app/controllers/base/org/auth/authorizations_controller.rb
     app/controllers/concerns/common_redirect.rb
     app/controllers/concerns/oidc_callback.rb
+    app/controllers/concerns/oidc_rp_logout_launcher.rb
     app/controllers/concerns/sign_oidc_logout.rb
     app/controllers/core/app/sign_outs_controller.rb
     app/controllers/palm/app/auth/authorizations_controller.rb

@@ -177,7 +177,7 @@ module Sign
 
           case intent
           when "link"
-            handle_link_intent(provider_name)
+            return handle_link_intent(provider_name)
           when "login"
             if user.blank? && identity.blank?
               handle_pending_social_sign_up_intent(provider_name, pt: pt)
@@ -185,12 +185,12 @@ module Sign
             end
 
             if social_sign_up_required?(user, existing_account)
-              handle_social_sign_up_intent(user, provider_name, identity, pt: pt)
+              return handle_social_sign_up_intent(user, provider_name, identity, pt: pt)
             else
-              handle_login_intent(user, provider_name, existing_account, pt: pt)
+              return handle_login_intent(user, provider_name, existing_account, pt: pt)
             end
           else
-            handle_login_intent(user, provider_name, existing_account, pt: pt)
+            return handle_login_intent(user, provider_name, existing_account, pt: pt)
           end
         end
 
@@ -208,7 +208,7 @@ module Sign
             bind_social_sign_up_flow!(cycle, user, identity)
           end
 
-          redirect_to(
+          return redirect_to(
             public_send(
               :"sign_app_sign_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
               ri: params[:ri].presence || current_social_auth_ri,
@@ -236,7 +236,7 @@ module Sign
             advance_pending_social_sign_up_flow!(cycle)
           end
 
-          redirect_to(
+          return redirect_to(
             public_send(
               :"sign_app_sign_up_guard_#{provider}_path",
               ri: params[:ri].presence || current_social_auth_ri,
@@ -424,7 +424,7 @@ module Sign
             provider: provider_name,
             default: "%{provider} linked",
           )
-          redirect_to(
+          return redirect_to(
             sign_app_settings_path,
             notice: I18n.t(
               "sign.app.social.sessions.link.success",
@@ -473,7 +473,7 @@ module Sign
               message: "Redirecting after login",
             ),
           )
-          redirect_after_login(provider_name, existing_account, pt: pt)
+          return redirect_after_login(provider_name, existing_account, pt: pt)
         end
 
         def reject_established_social_login_session_creation!(provider_name)
@@ -491,14 +491,14 @@ module Sign
 
         def redirect_after_login(provider_name, existing_account, pt: nil)
           if existing_account
-            redirect_for_existing_account(provider_name, pt: pt)
+            return redirect_for_existing_account(provider_name, pt: pt)
           else
-            redirect_for_new_account(provider_name, pt: pt)
+            return redirect_for_new_account(provider_name, pt: pt)
           end
         end
 
         def redirect_for_existing_account(provider_name, pt: nil)
-          redirect_to_sign_in_sequence!(
+          return redirect_to_sign_in_sequence!(
             pt: pt,
             notice: I18n.t(
               "sign.app.social.sessions.create.already_registered",
@@ -508,7 +508,7 @@ module Sign
         end
 
         def redirect_for_new_account(provider_name, pt: nil)
-          redirect_to_sign_in_sequence!(
+          return redirect_to_sign_in_sequence!(
             pt: pt,
             notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )

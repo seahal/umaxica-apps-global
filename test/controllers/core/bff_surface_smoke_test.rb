@@ -4,25 +4,24 @@
 require "test_helper"
 
 class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
+  fixtures :clients, :client_token_kinds
+
   SURFACES = [
     {
       host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
-      auth_callback_path: "/auth/callback",
-      auth_logout_path: "/auth/logout",
+      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
     {
       host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
-      auth_callback_path: "/auth/callback",
-      auth_logout_path: "/auth/logout",
+      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
     {
       host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
-      auth_callback_path: "/auth/callback",
-      auth_logout_path: "/auth/logout",
+      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
@@ -33,14 +32,21 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
       host = surface.fetch(:host)
       host! host
 
-      get "https://#{host}#{surface.fetch(:auth_callback_path)}"
+      get "https://#{host}/oidc/callback"
 
       assert_response :unprocessable_content
 
-      post "https://#{host}#{surface.fetch(:auth_logout_path)}"
+      user = clients(:one)
+      token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+      cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-      assert_response :see_other
-      assert_match(%r{\Ahttps?://#{Regexp.escape(host)}/\z}, response.headers["Location"])
+      post "https://#{host}/sign/out", params: { ri: "jp" }, headers: {
+        "X-TEST-CURRENT-USER" => user.id.to_s,
+        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      }
+
+      assert_response :redirect
+      assert_predicate response.location, :present?
 
       post "https://#{host}#{surface.fetch(:backchannel_logout_path)}",
            params: { logout_token: "invalid" }
@@ -54,6 +60,19 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
       assert_response :service_unavailable
       assert_equal "service_unavailable", response.parsed_body.fetch("error").fetch("code")
+    end
+  end
+
+  private
+
+  def complete_core_sign_out_url_for(host)
+    case host
+    when ENV.fetch("CORE_SERVICE_URL", "core.app.localhost")
+      complete_core_app_sign_out_url(ri: "jp", host: host)
+    when ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost")
+      complete_core_com_sign_out_url(ri: "jp", host: host)
+    else
+      complete_core_org_sign_out_url(ri: "jp", host: host)
     end
   end
 end

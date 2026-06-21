@@ -45,5 +45,6 @@ class OperatorWorkspaceAccount < OrgRpRecord
                              inverse_of: :operator_workspace_account
   has_many :operators,
            through: :staff_operators,
-           source: :staff
+           source: :staff,
+           disable_joins: true
 end

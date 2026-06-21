@@ -40,7 +40,7 @@ class Sign::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
 
     assert_redirected_to sign_org_sign_in_path(ri: "jp")
     assert_predicate @invitation.reload, :consumed?
-    assert_match(/operator ID/i, flash[:notice])
+    assert_nil flash[:notice]
   end
 
   test "create renders new for invalid invitation" do
@@ -50,6 +50,8 @@ class Sign::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
     end
 
     assert_response :unprocessable_content
+    assert_select "[role=alert]", count: 1
+    assert_nil flash[:alert]
   end
 
   test "create rejects failed turnstile before accepting invitation" do
@@ -62,5 +64,7 @@ class Sign::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
 
     assert_response :unprocessable_content
     assert_not_predicate @invitation.reload, :consumed?
+    assert_select "[role=alert]", count: 1
+    assert_nil flash[:alert]
   end
 end

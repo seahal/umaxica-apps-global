@@ -552,8 +552,11 @@ issue a session.
 Existing route intent:
 
 - app sign-up page starts Google or Apple through existing social auth infrastructure;
-- Google callback: `GET /auth/google_app/callback`;
-- Apple callback: `POST /auth/apple/callback`.
+- Google callback: `GET /social/google/callback`;
+- Apple callback: `POST /social/apple/callback`.
+
+The public route vocabulary is frozen. This plan tracks authority ownership and state-machine
+implementation, not route renaming.
 
 Target event mapping:
 

@@ -118,8 +118,8 @@ draw :help / :docs / :news  # 公開・読み取り専用コンテンツ
 | sso logout       | `POST /sso/logout`                                            | `sso/logouts#create`               | **acme・core**       | internal       | -               |
 | oidc logout      | `GET /oidc/logout`                                            | `oidc/logouts#show`                | acme                 | public         | OP(end_session) |
 | rp callback      | `GET /auth/callback`                                          | `auth/callbacks#show`              | **acme・sign・core** | public         | RP              |
-| omniauth(google) | `GET /auth/google_app/callback`                               | `auth/omniauth_callbacks#omniauth` | sign(app のみ)       | public         | RP(social)      |
-| omniauth(apple)  | `GET/POST /auth/apple/callback`                               | `auth/omniauth_callbacks#omniauth` | sign(app のみ)       | public         | RP(social)      |
+| omniauth(google) | `GET /social/google/callback`                                 | `auth/omniauth_callbacks#omniauth` | sign(app のみ)       | public         | RP(social)      |
+| omniauth(apple)  | `GET/POST /social/apple/callback`                             | `auth/omniauth_callbacks#omniauth` | sign(app のみ)       | public         | RP(social)      |
 | omniauth failure | `GET /auth/failure`                                           | `auth/omniauth_callbacks#failure`  | sign(app のみ)       | public         | RP(social)      |
 | native oauth cb  | `GET /oauth/callback{,/ios,/android}`                         | `oauth/callbacks#show`             | palm(app のみ)       | public         | RP? スタブ疑い  |
 | token refresh    | `POST /api/v0/token/refresh`                                  | `api/v0/tokens#refresh`            | core                 | internal       | -               |

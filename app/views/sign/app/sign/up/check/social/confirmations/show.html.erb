@@ -7,11 +7,7 @@
 <p><%= t("sign.app.registration.checkpoint.show.social.cancel_if_wrong") %></p>
 
 <%= form_with url: request.path, method: :patch, local: true, data: { turbo: false } do %>
-  <%= render(
-        "shared/cloudflare_turnstile_visible",
-        turnstile_action: "social_signup_confirmation",
-        turnstile_cdata: @sign_up_ticket.public_id,
-      ) %>
+  <%= render "shared/cloudflare_turnstile_visible", turnstile_action: "social_signup_confirmation", turnstile_cdata: @sign_up_ticket.public_id %>
   <% if signed_pt_param.present? %>
     <%= hidden_field_tag :pt, signed_pt_param %>
   <% end %>

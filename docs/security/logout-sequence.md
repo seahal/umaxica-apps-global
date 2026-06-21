@@ -29,6 +29,39 @@ The browser ceremony is surface-local and uses the same shape on every browser s
 `/sign/out/edit?sot=` is retired from the normal browser flow. Completion is session-bound, not URL
 token-bound.
 
+## Unauthenticated Access Is Intentional — Do Not "Fix" It
+
+This is a recurring misread, so it is recorded here on purpose: **the logout ceremony endpoints are
+reachable without a signed-in session, and that is correct, not a vulnerability.** Do not add an
+authentication requirement to these endpoints to "protect" them.
+
+The safety comes from separating two concerns:
+
+1. **Reachability** is `:open`. The browser logout controllers declare
+   `declare_authentication_mode! :open` (e.g. `Sign::App::Sign::OutsController`). This only governs
+   whether the _page_ can be rendered, not whether logout _logic_ runs.
+2. **Execution** is guarded by the current session. The actual mutation path
+   (`OidcRpLogoutLauncher#launch_oidc_rp_logout!`, and the Acme local-logout action) returns early
+   with `current_resource.blank? || current_session_public_id.blank?` and only renders the
+   completion page. No session is revoked, no token family is mutated, and no `id_token_hint` is
+   minted when there is no session.
+
+Therefore an unauthenticated visitor to `GET /sign/out/edit` sees only the static "already signed
+out" branch (`sign_out_active_context_present?` is false), and an unauthenticated `POST /sign/out`
+is a no-op that renders completion. There is nothing for an unauthenticated caller to "use" — the
+feature has no effect without an authoritative session.
+
+Reachability must stay open because authenticated-only routing would break legitimate flows:
+
+- logout confirmation after the session has already expired (TTL lapse mid-flow);
+- the OIDC end-session confirmation, where `/sign/out/edit` is shared with the Acme IdP and session
+  state is not stable across the RP↔IdP round trip (see "Acme OIDC End-Session" below);
+- idempotent revisits of `/sign/out/complete` (reload, back button, bookmark), which must stay safe.
+
+Summary: **reachability = `:open`; execution = `current_resource` guard.** Both layers must remain.
+Removing the guard would be the real bug; removing the openness would break expired-session and OIDC
+logout flows.
+
 ## Acme Local Logout
 
 Acme app/com/org surfaces own direct session mutation. Local logout:

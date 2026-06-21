@@ -193,6 +193,39 @@ class ClientTokenTest < ActiveSupport::TestCase
                     "exceeds maximum concurrent sessions per user (#{ClientToken::MAX_TOTAL_SESSIONS_PER_USER})"
   end
 
+  test "enforces maximum concurrent sessions per user ignores expired revoked discarded and rotated rows" do
+    user = Client.create!
+    token_kind = ClientTokenKind.find(ClientTokenKind::BROWSER_WEB)
+    active_status = ClientTokenStatus.find(ClientTokenStatus::ACTIVE)
+    expired_status = ClientTokenStatus.find(ClientTokenStatus::EXPIRED)
+    revoked_status = ClientTokenStatus.find(ClientTokenStatus::REVOKED)
+    binding_method = ClientTokenBindingMethod.find(ClientTokenBindingMethod::NOTHING)
+    dbsc_status = ClientTokenDbscStatus.find(ClientTokenDbscStatus::NOTHING)
+
+    base_attrs = {
+      user: user,
+      user_token_kind: token_kind,
+      user_token_binding_method: binding_method,
+      user_token_dbsc_status: dbsc_status,
+    }
+
+    2.times do
+      ClientToken.create!(base_attrs.merge(user_token_status: active_status))
+    end
+
+    ClientToken.create!(base_attrs.merge(user_token_status: expired_status))
+    ClientToken.create!(base_attrs.merge(user_token_status: revoked_status))
+    ClientToken.create!(base_attrs.merge(user_token_status: active_status, discarded_at: 1.minute.ago))
+    ClientToken.create!(base_attrs.merge(user_token_status: active_status, rotated_at: Time.current))
+
+    extra_token = ClientToken.new(base_attrs.merge(user_token_status: active_status))
+
+    assert_predicate extra_token, :valid?
+    assert_difference -> { ClientToken.where(user_id: user.id).count }, 1 do
+      extra_token.save!
+    end
+  end
+
   test "refresh token digest updates and authenticates" do
     @token.destroy
     token = ClientToken.create!(user: @user)

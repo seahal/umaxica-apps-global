@@ -34,17 +34,15 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
   test "base public host family renders standalone homepages" do
     [
-      [ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"), "Base App"],
-      [ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"), "Base Com"],
-      [ENV.fetch("BASE_STAFF_URL", "base.org.localhost"), "Base Org"],
-    ].each do |host, title|
+      [ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"), "Base App", "base.app.roots.message"],
+      [ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"), "Base Com", "base.com.roots.message"],
+      [ENV.fetch("BASE_STAFF_URL", "base.org.localhost"), "Base Org", "base.org.roots.message"],
+    ].each do |host, title, key|
       host! host
 
       get "/?ri=jp", headers: { "Host" => host }
 
       assert_response :success
-      key = "base.#{title.downcase.delete(" ")}.roots.message"
-
       assert_homepage_html title: title, message: I18n.t(key)
     end
   end

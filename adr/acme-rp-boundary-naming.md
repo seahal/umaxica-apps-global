@@ -49,9 +49,9 @@ The accepted naming rules are:
 - DNS terminology remains `acme` when it specifically means an apex domain or apex-scoped cookie
   domain.
 
-The `base-rails-rp` client id remains the shared browser RP client for Acme's local browser flow
-and the Base launcher surfaces. The historical name is preserved because the client is still
-registered and used, but it does not mean Base owns Acme's `/oidc/callback` route family.
+The `base-rails-rp` client id remains the shared browser RP client for Acme's local browser flow and
+the Base launcher surfaces. The historical name is preserved because the client is still registered
+and used, but it does not mean Base owns Acme's `/oidc/callback` route family.
 
 The previous structural grammar:
 
@@ -82,8 +82,8 @@ is replaced by:
   this rename.
 - Documentation must keep DNS apex-domain usage unchanged. In particular, `apex-scoped` cookie
   domain language remains correct when it describes `.example.com` style domain scope.
-- `base-rails-rp` remains a live client id and should not be treated as dead code while Acme app
-  and Base launcher flows still depend on it.
+- `base-rails-rp` remains a live client id and should not be treated as dead code while Acme app and
+  Base launcher flows still depend on it.
 
 ## Migration Notes
 

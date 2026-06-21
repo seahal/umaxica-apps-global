@@ -129,6 +129,159 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # Regression guard for the sign-up -> OIDC authorization resume handoff.
+  # The handoff mints a BROWSER_WEB token within seconds of the token issued
+  # while completing sign-up, so the login cooldown gate would fire a 429 unless
+  # resume_authorization! drives log_in with bootstrap_actor: true. This test
+  # fails if that wiring is removed (or if check_login_cooldown! stops honoring
+  # bootstrap_actor), even though the underlying unit test on the gate passes.
+  test "acme app authorization resume bypasses login cooldown for the sign-up handoff" do
+    with_acme_oidc_client_key do
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      host! acme_host
+
+      get "/oidc/authorization", headers: browser_headers
+
+      assert_response :redirect
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+
+      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+
+      assert_response :redirect
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
+      sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
+
+      result =
+        OidcAuthorizationTransactionService.register_result!(
+          surface: "app",
+          login_challenge: sign_query.fetch("login_challenge"),
+          actor: clients(:one),
+          session_ref: "acme-cooldown-handoff-session",
+          auth_method: "email",
+        )
+
+      # Simulate the token freshly minted while completing sign-up, so the
+      # cooldown gate would reject a non-bootstrap login.
+      OrgTicketRecord.connected_to(role: :writing) do
+        ClientToken.create!(user: clients(:one), user_token_status_id: ClientTokenStatus::ACTIVE)
+      end
+
+      AuthenticationBase.login_cooldown_enabled = true
+      begin
+        host!(acme_host)
+        get(URI.parse(result.resume_url).request_uri, headers: browser_headers)
+      ensure
+        AuthenticationBase.login_cooldown_enabled = false
+      end
+
+      assert_not_equal 429, response.status,
+                       "sign-up -> OIDC resume handoff must not be rejected by the login cooldown gate"
+      assert_response :redirect
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal "/oidc/callback", callback_uri.path
+      assert_predicate callback_query["code"], :present?
+    end
+  end
+
+  test "acme app authorization resume renders session limit hard reject when three usable tokens already exist" do
+    with_acme_oidc_client_key do
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      user = clients(:one)
+      ClientToken.where(user_id: user.id).delete_all
+
+      3.times do
+        ClientToken.create!(
+          user: user,
+          user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+          user_token_status_id: ClientTokenStatus::ACTIVE,
+        )
+      end
+
+      host! acme_host
+      get "/oidc/authorization", headers: browser_headers
+
+      assert_response :redirect
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+
+      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+
+      assert_response :redirect
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
+      sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
+
+      issuance =
+        OidcAuthorizationTransactionService.register_result!(
+          surface: "app",
+          login_challenge: sign_query.fetch("login_challenge"),
+          actor: user,
+          session_ref: "acme-session-limit-session",
+          auth_method: "passkey",
+        )
+
+      assert_no_difference -> { ClientToken.where(user_id: user.id).count } do
+        get URI.parse(issuance.resume_url).request_uri, headers: browser_headers
+      end
+
+      assert_response :forbidden
+      assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, response.body
+      assert_not_predicate issuance.transaction.reload, :consumed?
+    end
+  end
+
+  test "acme app authorization resume succeeds with two usable tokens and consumes the transaction once" do
+    with_acme_oidc_client_key do
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      user = clients(:one)
+      ClientToken.where(user_id: user.id).delete_all
+
+      2.times do
+        ClientToken.create!(
+          user: user,
+          user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+          user_token_status_id: ClientTokenStatus::ACTIVE,
+        )
+      end
+
+      host! acme_host
+      get "/oidc/authorization", headers: browser_headers
+
+      assert_response :redirect
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+
+      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+
+      assert_response :redirect
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
+      sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
+
+      issuance =
+        OidcAuthorizationTransactionService.register_result!(
+          surface: "app",
+          login_challenge: sign_query.fetch("login_challenge"),
+          actor: user,
+          session_ref: "acme-session-limit-success",
+          auth_method: "passkey",
+        )
+
+      assert_difference -> { ClientToken.where(user_id: user.id).count }, 1 do
+        get URI.parse(issuance.resume_url).request_uri, headers: browser_headers
+      end
+
+      assert_response :redirect
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal "/oidc/callback", callback_uri.path
+      assert_predicate callback_query["code"], :present?
+      assert_predicate issuance.transaction.reload, :consumed?
+    end
+  end
+
   test "app com and org authorization endpoints are exposed at Acme oauth authorize" do
     SURFACES.each do |surface|
       open_session do |session|

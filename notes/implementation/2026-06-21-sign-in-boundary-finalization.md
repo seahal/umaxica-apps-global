@@ -2,8 +2,8 @@
 
 ## Context
 
-- Task: lock the accepted sign-in routing contract, harden the Acme ↔ Sign boundary, and resolve
-  the Acme app `base-rails-rp` self-RP ambiguity without reintroducing `/auth/*`.
+- Task: lock the accepted sign-in routing contract, harden the Acme ↔ Sign boundary, and resolve the
+  Acme app `base-rails-rp` self-RP ambiguity without reintroducing `/auth/*`.
 - Date: 2026-06-21.
 - Existing worktree state: preserved unrelated dirty files in `adr/logout-ceremony-boundary.md`,
   `docs/identity/authority-boundary.md`, `docs/security/logout-sequence.md`,
@@ -26,8 +26,8 @@
 
 ## Implementation Changes
 
-- Updated the Acme callback controller comments to describe `base-rails-rp` as the shared browser
-  RP client instead of a Base-owned route.
+- Updated the Acme callback controller comments to describe `base-rails-rp` as the shared browser RP
+  client instead of a Base-owned route.
 - Renamed the Acme callback controller tests so they describe the shared browser RP client id
   accurately.
 - Updated the authority-boundary, sign-in-sequence, and Acme RP boundary naming docs to explain the

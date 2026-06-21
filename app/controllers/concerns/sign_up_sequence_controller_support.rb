@@ -19,7 +19,7 @@ module SignUpSequenceControllerSupport
   def load_sign_up_ticket
     return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
 
-    @sign_up_ticket = sign_up_flow_locator.current
+    @sign_up_ticket = current_sign_up_flow_ticket
     return if @sign_up_ticket
 
     render plain: I18n.t("errors.messages.not_found", default: "Not found"), status: :not_found
@@ -28,7 +28,7 @@ module SignUpSequenceControllerSupport
   def load_sign_up_checkpoint_ticket
     return render_sign_up_age_restricted if sign_up_session_state.age_restricted?
 
-    @sign_up_ticket = sign_up_flow_locator.current
+    @sign_up_ticket = current_sign_up_flow_ticket
     return if @sign_up_ticket
 
     sign_up_session_state.clear_all!
@@ -401,6 +401,26 @@ module SignUpSequenceControllerSupport
 
   def sign_up_flow_locator
     SignUpCycleLocator.new(session, surface: sign_up_surface, cycle_class: sign_up_ticket_class)
+  end
+
+  def current_sign_up_flow_ticket
+    sign_up_flow_locator.current || sign_up_ticket_from_sequence_id
+  end
+
+  def sign_up_ticket_from_sequence_id
+    public_id = sign_up_ticket_public_id
+    return if public_id.blank?
+
+    ticket = sign_up_ticket_class.find_by(public_id: public_id)
+    return unless ticket
+    return if ticket.expired? || (ticket.respond_to?(:lapsed?) && ticket.lapsed?)
+    return if ticket.respond_to?(:sign_up_terminal?) && ticket.sign_up_terminal?
+
+    ticket
+  end
+
+  def sign_up_ticket_public_id
+    session[sign_up_sequence_session_key].presence
   end
 
   def sign_up_pending_actor

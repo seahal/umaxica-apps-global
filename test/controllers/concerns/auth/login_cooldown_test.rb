@@ -88,6 +88,19 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     end
   end
 
+  test "check_login_cooldown! does not raise for bootstrap_actor even within 30 seconds" do
+    # Sign-up completion and OIDC authorization resume mint a token within
+    # seconds of the prior one in the same flow; that handoff passes
+    # bootstrap_actor: true and must not be rejected with a cooldown 429.
+    OrgTicketRecord.connected_to(role: :writing) do
+      ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    end
+
+    assert_nothing_raised do
+      @harness.send(:check_login_cooldown!, @user, bootstrap_actor: true)
+    end
+  end
+
   test "check_login_cooldown! raises at exactly 30 seconds boundary" do
     OrgTicketRecord.connected_to(role: :writing) do
       ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
