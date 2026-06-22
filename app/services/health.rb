@@ -157,10 +157,19 @@ module Health
       attr_reader :record_class, :deadline
 
       def check_roles
-        ROLES.each do |role|
-          record_class.connected_to(role: role) do
-            record_class.with_connection { |connection| connection.execute(SQL) }
+        operation =
+          lambda do
+            ROLES.each do |role|
+              record_class.connected_to(role: role) do
+                record_class.with_connection { |connection| connection.execute(SQL) }
+              end
+            end
           end
+
+        if defined?(Prosopite)
+          Prosopite.pause(&operation)
+        else
+          operation.call
         end
       end
 

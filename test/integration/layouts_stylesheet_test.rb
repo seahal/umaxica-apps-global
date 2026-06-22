@@ -12,6 +12,7 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     "app/views/layouts/sign/app/application.html.erb",
     "app/views/layouts/sign/com/application.html.erb",
     "app/views/layouts/sign/org/application.html.erb",
+    "app/views/core/dev/roots/index.html.erb",
   ].freeze
 
   test "layouts do not use stylesheet_link_tag for web ui css" do
@@ -21,7 +22,9 @@ class StylesheetTagsTest < ActiveSupport::TestCase
       contents = Rails.root.join(path).read
 
       assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
+      assert_includes contents, "csp_meta_tag", "missing CSP nonce meta tag in #{path}"
       assert_includes contents, "vite_client_tag", "missing Vite client in #{path}"
+      assert_includes contents, "vite_react_refresh_tag", "missing React refresh preamble in #{path}"
       assert_includes contents, 'vite_typescript_tag "application"', "missing Vite entrypoint in #{path}"
     end
   end

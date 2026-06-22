@@ -278,6 +278,8 @@ ja:
         sign_count: 使用回数
       client_telephone_ceremony_transaction:
         result_jti: 結果JTI
+      client_email_ceremony_transaction:
+        operation: 操作
       visitor_step_up_session:
         visitor_token_id: ビジタートークンID
       operator_step_up_session:

@@ -395,7 +395,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         if surface[:host] == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
           "http://#{surface[:host]}/dashboard"
         else
-          "http://#{surface[:host]}/oidc/authorization"
+          "http://#{surface[:host]}/"
         end
 
       assert_equal expected_location, response.location

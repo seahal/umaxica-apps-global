@@ -10,6 +10,7 @@ module Base
       include ::OidcRpLogoutLauncher
 
       AUTHENTICATION_MODE = :open
+      skip_before_action :transparent_refresh_access_token, raise: false
 
       before_action :authenticate!, only: :create
       helper_method :sign_out_completed_description

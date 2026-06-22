@@ -435,6 +435,32 @@ module MissingHelpers
         "Sec-Fetch-Site" => "same-site",
       },
     )
+    cookies.to_hash.each_key { |key| cookies.delete(key) }
+  end
+
+  def submit_email_signup_completion_if_present!
+    return unless response.media_type == "text/html"
+    return unless response.body.include?("email-signup-completion-form")
+
+    form = Nokogiri::HTML(response.body).at_css("form#email-signup-completion-form")
+    raise StandardError, "email signup completion form missing" unless form
+
+    params = {}
+    form.css("input").each do |input|
+      name = input["name"]
+      params[name] = input["value"] if name.present?
+    end
+
+    post(
+      form["action"],
+      params: params,
+      headers: {
+        "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        "Origin" => "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}",
+        "Sec-Fetch-Site" => "same-site",
+      },
+    )
+    cookies.to_hash.each_key { |key| cookies.delete(key) }
   end
 
   def submit_step_up_completion_if_present!(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), headers: {})

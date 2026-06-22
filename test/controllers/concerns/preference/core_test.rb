@@ -246,6 +246,35 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     assert_equal original_public_id, preference.reload.public_id
   end
 
+  test "with_dual_write_transaction rolls back both databases when the block raises" do
+    token, resource, controller = build_cross_db_dual_write_pair
+
+    error =
+      assert_raises(StandardError) do
+        controller.send(:with_dual_write_transaction, resource) do
+          token.update!(jti: "should-roll-back")
+          resource.update!(language: "en")
+          raise StandardError, "boom"
+        end
+      end
+
+    assert_equal "boom", error.message
+    assert_nil token.reload.jti, "token (source) write must roll back when the mirror block fails"
+    assert_equal "ja", resource.reload.language, "resource (mirror) write must roll back too"
+  end
+
+  test "with_dual_write_transaction commits both databases when the block succeeds" do
+    token, resource, controller = build_cross_db_dual_write_pair
+
+    controller.send(:with_dual_write_transaction, resource) do
+      token.update!(jti: "committed-token")
+      resource.update!(language: "en")
+    end
+
+    assert_equal "committed-token", token.reload.jti
+    assert_equal "en", resource.reload.language
+  end
+
   test "preference_write_resource_preference! returns existing resource preference per surface" \
        "and falls back to creation" do
     user_pref = Object.new
@@ -459,5 +488,31 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     assert_nil @controller.instance_variable_get(:@preferences)
     assert_nil @controller.instance_variable_get(:@preference_payload)
     assert_nil @controller.instance_variable_get(:@refresh_token_value)
+  end
+
+  private
+
+  # Builds a token-side (ComPreference / com_setting) and resource-side
+  # (VisitorPreference / com_principal) record so the cross-database dual-write
+  # transaction is exercised against two genuinely different connection owners.
+  def build_cross_db_dual_write_pair
+    Prosopite.pause do
+      [1, 2, 3].each { |id| VisitorStatus.find_or_create_by!(id: id) }
+      [0, 1, 2, 3].each { |id| VisitorVisibility.find_or_create_by!(id: id) }
+    end
+
+    token = ComPreference.create!(
+      status_id: ComPreferenceStatus::NOTHING,
+      binding_method_id: ComPreferenceBindingMethod::NOTHING,
+      dbsc_status_id: ComPreferenceDbscStatus::NOTHING,
+      discarded_at: 20.years.from_now,
+      purged_at: 20.years.from_now,
+    )
+    resource = VisitorPreference.create!(visitor: Visitor.create!)
+
+    controller = PreferenceCoreHarness.new
+    controller.define_singleton_method(:preference_class) { ComPreference }
+
+    [token, resource, controller]
   end
 end

@@ -118,7 +118,7 @@ class AuthenticationLogoutCurrentSession
     end
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed, ActiveRecord::StatementInvalid,
          ActiveRecord::ConnectionNotDefined => e
-    Rails.logger.info(
+    Rails.logger.warn(
       JitLogEvent.format(
         "auth.logout_current_session.device_session_failed",
         reason: reason,
@@ -130,7 +130,11 @@ class AuthenticationLogoutCurrentSession
         error_message: e.message,
       ),
     )
-    true
+    # Never let a device-session revoke failure leave the current session
+    # usable: revoke the session token directly so sign-out still takes effect.
+    # The caller skips the token revoke when a device session is present, so
+    # without this the session would silently survive sign-out.
+    revoke_token!(token_record)
   end
 
   def revoke_token!(token_record)

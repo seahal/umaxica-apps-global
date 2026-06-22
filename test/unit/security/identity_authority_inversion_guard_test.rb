@@ -62,6 +62,17 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
     assert_no_match(/\breturn_to\b/, form)
   end
 
+  test "sign email signup completion form transports only the auto-submit post target" do
+    form = file_content("app/views/sign/shared/email_signup_completion.html.erb")
+
+    assert_includes form, "form_with url: completion_url, method: :post"
+    assert_includes form, "email-signup-completion-form"
+    assert_includes form, "hidden_field_tag :authenticity_token, form_authenticity_token"
+    assert_no_match(/\baccess_token\b/, form)
+    assert_no_match(/\brefresh_token\b/, form)
+    assert_no_match(/\bsocial_ceremony_result\b/, form)
+  end
+
   test "social confirmation step includes turnstile before durable signup completion" do
     form = file_content("app/views/sign/app/sign/up/check/social/confirmations/show.html.erb")
 

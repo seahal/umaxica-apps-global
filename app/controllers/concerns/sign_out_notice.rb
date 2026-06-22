@@ -45,7 +45,9 @@ module SignOutNotice
 
   def sign_out_active_context_present?
     return true if current_resource.present? || current_session_public_id.present?
+    return true if respond_to?(:safe_current_session_for_logout, true) && safe_current_session_for_logout.present?
     return true if respond_to?(:oidc_logout_pending_request_present?, true) && oidc_logout_pending_request_present?
+    return true if respond_to?(:params, true) && params[:logout_challenge].present?
 
     false
   end

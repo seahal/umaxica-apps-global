@@ -486,7 +486,7 @@ sign_routes do
 
       namespace :passkeys do
         resource :options, only: :create
-        resource :verification, only: :create
+        resource :verification, only: :create # TODO: check this statement!
       end
 
       namespace :mfa do

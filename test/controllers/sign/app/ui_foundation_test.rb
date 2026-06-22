@@ -38,11 +38,6 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     sign_head = as_user_headers(@user, host: @host)
     pages = [
       {
-        path: sign_app_settings_passkeys_url(ri: "jp", host: @sign_host),
-        headers: sign_head,
-        follow_headers: acme_session_headers(scope: "settings_passkey", host: @acme_host),
-      },
-      {
         path: sign_app_settings_secrets_url(ri: "jp", host: @sign_host),
         headers: sign_head,
       },

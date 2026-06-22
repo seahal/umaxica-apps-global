@@ -33,7 +33,7 @@ Rails.application.configure do
 
     policy.default_src(:self)
     policy.base_uri(:self)
-    policy.connect_src(:self, :https)
+    policy.connect_src(:self, :https, :ws, :wss)
     policy.font_src(:self, :https, :data)
     policy.form_action(
       :self,

@@ -32,7 +32,11 @@ Rails.application.configure do
     config.action_controller.perform_caching = false
   end
 
-  config.cache_store = :solid_cache_store
+  # SolidCache is intentionally disabled in development. A persistent,
+  # database-backed cache is too easily repurposed as an ad-hoc durable data
+  # store, so the cache is turned off entirely here (matching test). Re-enable
+  # :solid_cache_store deliberately if persistent caching is actually needed.
+  config.cache_store = :null_store
   rate_limit_namespace = [
     "rate_limit",
     Rails.env,
@@ -43,7 +47,8 @@ Rails.application.configure do
       url: ENV.fetch("RATE_LIMIT_REDIS_URL"),
       namespace: rate_limit_namespace,
     )
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
+  # SolidCache shard wiring intentionally left disconnected while :memory_store
+  # is the development cache. See the cache_store note above.
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   # config.active_storage.service = :local

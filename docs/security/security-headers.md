@@ -16,6 +16,7 @@ security headers.
 ## Implementation Notes
 
 - CSP is configured in `config/initializers/content_security_policy.rb`.
+- Development CSP allows `ws:` / `wss:` in `connect-src` so Vite dev-server HMR can open its websocket.
 - `form-action` stays same-origin except for the Google and Apple OAuth endpoints used by app social
   sign-in/sign-up and the configured acme app/com/org hosts used by sign-issued ceremony completion
   forms. Browsers enforce `form-action` across those OAuth and ceremony-post navigations.

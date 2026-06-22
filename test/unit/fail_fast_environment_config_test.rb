@@ -16,8 +16,8 @@ class FailFastEnvironmentConfigTest < ActiveSupport::TestCase
     assert_no_match(/enable_seqscan=off/, ENV.fetch("PGOPTIONS", ""))
   end
 
-  test "fixtures verify foreign key integrity" do
-    assert_predicate ActiveRecord, :verify_foreign_keys_for_fixtures
+  test "fixtures do not run foreign key validation in test" do
+    assert_not_predicate ActiveRecord, :verify_foreign_keys_for_fixtures
   end
 
   test "trusted proxies config parses valid cidr entries" do

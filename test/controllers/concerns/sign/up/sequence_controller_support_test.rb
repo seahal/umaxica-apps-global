@@ -132,9 +132,18 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
     harness.sign_up_flow_locator_value = Struct.new(:current).new(nil)
     harness.sign_up_ticket_class_value =
       Class.new do
+        Ticket =
+          Struct.new(:public_id) do
+            def expired? = false
+
+            def lapsed? = false
+
+            def sign_up_terminal? = false
+          end
+
         class << self
           def find_by(public_id:)
-            (public_id == "ticket-123") ? :ticket : nil
+            (public_id == "ticket-123") ? Ticket.new(public_id) : nil
           end
         end
       end
@@ -142,7 +151,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
     harness.send(:load_sign_up_ticket)
 
-    assert_equal :ticket, harness.instance_variable_get(:@sign_up_ticket)
+    assert_equal "ticket-123", harness.instance_variable_get(:@sign_up_ticket).public_id
 
     harness.sign_up_flow_locator_value = Struct.new(:current).new(nil)
     harness.session[:sign_app_up_sequence_id] = nil

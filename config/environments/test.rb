@@ -29,10 +29,12 @@ Rails.application.configure do
   # Show full error reports.
   config.consider_all_requests_local = true
 
-  # Cache store for test environment
+  # Cache store for test environment. SolidCache is intentionally disabled here:
+  # the cache must not double as a persistent, database-backed store in tests.
   config.cache_store = :null_store
   config.x.rate_limit.store = ActiveSupport::Cache::MemoryStore.new
-  config.solid_cache.connects_to = { shards: { cache: { writing: :cache, reading: :cache_replica } } }
+  # SolidCache shard wiring intentionally left disconnected while :null_store is
+  # the test cache.
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -70,7 +72,6 @@ Rails.application.configure do
   # Disallow deprecated .connection usage (must use .with_connection for multi-DB)
   config.active_record.permanent_connection_checkout = :deprecated
   config.active_record.async_query_executor = nil
-
   # Raise on SQL warnings from PostgreSQL.
   config.active_record.db_warnings_action = :raise
   config.active_record.dump_schema_after_migration = false
@@ -104,6 +105,10 @@ Rails.application.configure do
   end
 
   config.after_initialize do
+    # Rails' fixture FK validation deadlocks under this multi-DB test suite; the
+    # database constraints still enforce integrity when fixtures are loaded.
+    ActiveRecord.verify_foreign_keys_for_fixtures = false
+
     require Rails.root.join("test/support/missing_helpers")
     ActiveSupport.on_load(:active_support_test_case) do
       include MissingHelpers

@@ -90,7 +90,7 @@ module Sign
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
-              render plain: t("sign.app.authentication.email.create.cooldown"), status: :too_many_requests
+              render plain: t("errors.messages.login_cooldown"), status: :too_many_requests
               return
             end
 

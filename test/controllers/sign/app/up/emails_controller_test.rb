@@ -8,6 +8,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   setup do
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    reset_cookie_jar!
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
     CloudflareTurnstile.test_mode = true
@@ -18,6 +19,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
     Rails.configuration.x.rate_limit.fetch(:store).clear
+    reset_cookie_jar!
   end
 
   test "should get new" do
@@ -940,7 +942,17 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
+    assert_response :success
+    assert_includes response.body, "email-signup-completion-form"
+
+    submit_email_signup_completion_if_present!
+
     assert_response :redirect
+    uri = URI.parse(response.location)
+
+    assert_equal "jump.umaxica.net", uri.host
+    assert_equal acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+                 jump_rt_url_from_location(response.location)
 
     user = user_email.reload.user
 
@@ -1138,13 +1150,18 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
+    assert_response :success
+    assert_includes response.body, "email-signup-completion-form"
+
+    submit_email_signup_completion_if_present!
+
     assert_response :redirect
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.status_id
   end
 
-  test "duplicate email signup birthdate submission continues signed-in handoff" do
+  test "duplicate email signup birthdate submission renders acme completion and completes there" do
     post sign_app_sign_up_email_url(ri: "jp"),
          params: {
            client_email: {
@@ -1179,20 +1196,25 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           params: birthdate_params,
           headers: default_headers
 
+    assert_response :success
+    assert_includes response.body, "email-signup-completion-form"
+
+    submit_email_signup_completion_if_present!
+
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "id.umaxica.app", uri.host
+    assert_equal "jump.umaxica.net", uri.host
+    assert_equal acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+                 jump_rt_url_from_location(response.location)
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 
     patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: birthdate_params,
           headers: default_headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "id.umaxica.app", uri.host
+    assert_response :unprocessable_content
+    assert_includes response.body, "ticket is required"
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
   end
 
@@ -1277,6 +1299,11 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
             checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: default_headers
+
+    assert_response :success
+    assert_includes response.body, "email-signup-completion-form"
+
+    submit_email_signup_completion_if_present!
 
     assert_response :redirect
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
@@ -1597,6 +1624,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   def default_headers
     { "Host" => host, "HTTPS" => "on", "X-CSRF-Token" => csrf_token_value }
+  end
+
+  def reset_cookie_jar!
+    cookies.to_hash.each_key { |key| cookies.delete(key) }
   end
 
   def start_sign_up_flow!(email)

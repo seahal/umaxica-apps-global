@@ -97,6 +97,7 @@ module AuthenticationBase
   LOGIN_COOLDOWN_MESSAGE = I18n.t("errors.messages.login_cooldown")
 
   class LoginCooldownError < StandardError; end
+
   class ConcurrentSessionLimitExceededError < StandardError; end
 
   # Prevents rapid re-login by enforcing a 30-second cooldown between sessions.

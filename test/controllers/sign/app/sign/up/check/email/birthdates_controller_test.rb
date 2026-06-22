@@ -21,13 +21,11 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
-  # Regression: the birthdate checkpoint is the last sign-up requirement. Clearing it
-  # finalizes the flow and hands off to the sign-in sequence, which lives on a different
-  # host and is reached cross-host through the jump gateway. Previously this redirect was
-  # blocked by the CSP `form-action` allowlist (jump origin missing), so the form
-  # submission stalled and the user looped on the birthdate page. The update must finalize
-  # and redirect (not 500, not re-render birthdate).
-  test "clearing the birthdate finalizes the flow and redirects to the sign-in handoff" do
+  # Regression: email sign-up must complete on the Acme host, not by finishing
+  # the login boundary on Sign and then trying to carry that host-only session
+  # across subdomains. Clearing the birthdate should emit an Acme completion
+  # form so the durable login happens where the dashboard lives.
+  test "clearing the birthdate renders an acme completion form" do
     advance_to_birthdate_checkpoint!("birthdate-finalize@example.com")
     flow = ClientSignUpFlow.order(:created_at).last
 
@@ -41,13 +39,14 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           },
           headers: { "Host" => @host }
 
-    assert_response :redirect
-    # Must not bounce back to the birthdate checkpoint.
-    assert_no_match %r{/sign/up/check/email/birthdate}, response.location.to_s
+    assert_response :success
+    assert_includes response.body, "email-signup-completion-form"
 
-    # Resubmitting after the handoff has completed (sign-up ticket gone, sign-in flow
-    # present) is the path that previously raised OpenRedirectError -> 500. It must now
-    # converge to a single safe redirect, never a 500 and never a birthdate re-loop.
+    submit_email_signup_completion_if_present!
+
+    assert_response :redirect
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+
     patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
@@ -58,8 +57,8 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           },
           headers: { "Host" => @host }
 
-    assert_response :redirect
-    assert_no_match %r{/sign/up/check/email/birthdate}, response.location.to_s
+    assert_response :unprocessable_content
+    assert_includes response.body, "ticket is required"
   end
 
   test "update without a sign-up ticket does not raise an unsafe cross-host redirect" do

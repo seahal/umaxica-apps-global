@@ -45,6 +45,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],
                     ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
+    assert_includes response.headers["Content-Security-Policy"], "connect-src 'self' https: ws: wss:"
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' https://challenges.cloudflare.com"
     assert_no_match(/script-src[^;]*\shttps:(?:\s|;|$)/, response.headers["Content-Security-Policy"])
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"

@@ -95,7 +95,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         provider: "apple",
         token: "apple-token",
         expires_at: 1.week.from_now.to_i,
-        user_apple_identity_status: ClientAppleIdentityStatus.find_by!(id: ClientAppleIdentityStatus::ACTIVE),
+        user_apple_identity_status: ClientAppleIdentityStatus.find(ClientAppleIdentityStatus::ACTIVE),
       )
 
       signup_auth_hash = {
@@ -121,14 +121,14 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
       assert_difference -> { Client.count }, 1 do
         commit = IdentitySocialCeremonyFinalCommitter.call!(
           result_token: result_token,
-        auth_hash: nil,
-        actor: nil,
-        session_ref: @session_ref,
-        surface: "app",
-        ip_address: "127.0.0.1",
-        user_agent: "Rails test",
-        now: @now,
-      )
+          auth_hash: nil,
+          actor: nil,
+          session_ref: @session_ref,
+          surface: "app",
+          ip_address: "127.0.0.1",
+          user_agent: "Rails test",
+          now: @now,
+        )
 
         assert_equal "google", commit.identity.provider
         assert_equal signup_auth_hash["uid"], commit.identity.uid
@@ -152,7 +152,7 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
         provider: "google",
         token: "existing-token",
         expires_at: 1.day.from_now.to_i,
-        user_google_identity_status: ClientGoogleIdentityStatus.find_by!(id: ClientGoogleIdentityStatus::ACTIVE),
+        user_google_identity_status: ClientGoogleIdentityStatus.find(ClientGoogleIdentityStatus::ACTIVE),
       )
 
       issuance = issue_signup_grant

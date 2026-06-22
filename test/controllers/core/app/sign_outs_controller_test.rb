@@ -34,18 +34,17 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    assert_response :temporary_redirect
+    assert_response :see_other
     location = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path
-    assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_core_app_sign_out_url(ri: "jp"), query["post_logout_redirect_uri"]
-    assert_predicate query["state"], :present?
+    assert_predicate query["logout_challenge"], :present?
+    assert_equal "jp", query["ri"]
   end
 
-  test "complete sign out consumes the state and renders completion" do
+  test "post sign out can render the acme relay" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -55,10 +54,10 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    state = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)["state"]
-    get complete_core_app_sign_out_url(ri: "jp", state: state)
+    challenge = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)["logout_challenge"]
+    get acme_app_oidc_logout_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), ri: "jp", logout_challenge: challenge)
 
     assert_response :success
-    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+    assert_select "form[action*=?][method=?]", acme_app_oidc_logout_path, "post"
   end
 end

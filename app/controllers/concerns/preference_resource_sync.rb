@@ -25,12 +25,17 @@ module PreferenceResourceSync
   rescue PreferenceBase::ResolutionError
     raise
   rescue StandardError => e
-    Rails.logger.info(
+    # Surface mirror-sync failures instead of swallowing them. A failed resource
+    # write leaves the token (source) and resource (mirror) out of sync, so the
+    # caller must treat the whole preference operation as failed rather than
+    # silently logging and returning success.
+    Rails.logger.warn(
       JitLogEvent.format(
         "preference.sync_to_resource.error", error: e.class.name,
                                              message: e.message,
       ),
     )
+    raise PreferenceOperationError
   end
 
   def sync_resource_preference_children!(resource_pref)
@@ -217,6 +222,34 @@ module PreferenceResourceSync
     model_class.ancestors.find do |ancestor|
       ancestor.is_a?(Class) && ancestor < ActiveRecord::Base && ancestor.abstract_class?
     end || ActiveRecord::Base
+  end
+
+  # Best-effort atomic boundary for the dual write that spans two databases:
+  # the token side (source of truth, e.g. AppPreference on app_setting) and the
+  # resource side (mirror, e.g. ClientPreference on app_principal). A genuine
+  # two-phase commit is not available across these connections, so the token
+  # (source) transaction is the OUTER boundary and the resource (mirror)
+  # transaction is INNER. Any error raised inside the block rolls back both
+  # sides, which covers every in-request failure path (validation, foreign key,
+  # authorization). The only irreducible gap is a process crash in the narrow
+  # window between the inner (resource) commit and the outer (token) commit; in
+  # that case the mirror is briefly ahead and the next login-time sync re-aligns
+  # it back to the source. Callers must keep the source write textually first so
+  # the write order matches this commit ordering.
+  def with_dual_write_transaction(resource_pref)
+    token_owner = preference_connection_owner
+    return yield if token_owner.blank?
+
+    resource_owner = resource_pref.present? ? preference_connection_class(resource_pref.class) : nil
+    return token_owner.transaction { yield } if resource_owner.blank? || resource_owner == token_owner
+
+    token_owner.transaction do
+      resource_owner.connected_to(role: :writing) do
+        resource_owner.transaction do
+          yield
+        end
+      end
+    end
   end
 
   def sync_direct_resource_preference!(resource_pref)

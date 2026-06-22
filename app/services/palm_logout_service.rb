@@ -1,0 +1,119 @@
+# typed: false
+# frozen_string_literal: true
+
+class PalmLogoutService < ApplicationService
+  Result =
+    Data.define(:success, :logout_url, :state, :expires_at, :transaction, :resource, :token, :error,
+                :error_description) do
+      def success? = success
+    end
+
+  def self.call(...) = new(...).call
+
+  def initialize(request:, ri: nil)
+    super()
+    @request = request
+    @ri = ri
+  end
+
+  def call
+    authentication_result = authenticate_current_token
+    return failure(authentication_result[:error], authentication_result[:error_description]) unless authentication_result[:success]
+
+    resource = authentication_result[:resource]
+    token = authentication_result[:token]
+    state = SecureRandom.urlsafe_base64(24)
+
+    transaction_result = AcmeLogoutTransactionService.issue!(
+      origin_surface: "palm",
+      initiating_client_id: AuthorizationTokenClaims.client_id(authentication_result[:payload]).presence || "app-ios-rp",
+      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "palm"),
+      actor_ref: resource.public_id,
+      session_ref: token.public_id,
+      callback_state: state,
+    )
+    return failure(transaction_result.error, transaction_result.error_description) unless transaction_result.success?
+
+    transaction = transaction_result.transaction
+
+    AuthenticationLogoutCurrentSession.call(
+      current: Actor,
+      resource: resource,
+      token: token,
+      token_class: ClientToken,
+      session_public_id: token.public_id,
+      reason: "user_logout",
+    )
+
+    Result.new(
+      success: true,
+      logout_url: acme_oidc_logout_url(logout_challenge: transaction.logout_challenge),
+      state: state,
+      expires_at: transaction.expires_at,
+      transaction: transaction,
+      resource: resource,
+      token: token,
+      error: nil,
+      error_description: nil,
+    )
+  end
+
+  private
+
+  attr_reader :request, :ri
+
+  def authenticate_current_token
+    auth_result = PalmAccessTokenAuthenticator.call(
+      access_token: authorization_access_token,
+      host: request.host,
+      authorization_scheme: authorization_scheme,
+    )
+    return { success: false, error: auth_result.error, error_description: "authentication failed" } unless auth_result.success?
+
+    token = ClientToken.find_by(
+      oidc_sid: auth_result.payload["sid"].to_s,
+      oidc_jti: auth_result.payload["jti"].to_s,
+      oidc_client_id: AuthorizationTokenClaims.client_id(auth_result.payload).to_s,
+    )
+    return { success: false, error: "invalid_token", error_description: "logout token not found", payload: auth_result.payload } if token.blank?
+    return { success: false, error: "invalid_token", error_description: "logout token is not active", payload: auth_result.payload } unless token.active?
+
+    {
+      success: true,
+      payload: auth_result.payload,
+      resource: auth_result.resource,
+      token: token,
+    }
+  end
+
+  def authorization_access_token
+    AuthAuthorizationHeader.access_token(request)
+  end
+
+  def authorization_scheme
+    request.authorization.to_s.split(/\s+/, 2).first
+  end
+
+  def acme_oidc_logout_url(**query)
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    Rails.application.routes.url_helpers.acme_app_oidc_logout_url(
+      host: host,
+      ri: ri || RequestContextContract.default_region,
+      **query,
+    )
+  end
+
+  def failure(error, error_description)
+    Result.new(
+      success: false,
+      logout_url: nil,
+      state: nil,
+      expires_at: nil,
+      transaction: nil,
+      resource: nil,
+      token: nil,
+      error: error,
+      error_description: error_description,
+    )
+  end
+end

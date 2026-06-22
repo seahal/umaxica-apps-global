@@ -64,7 +64,7 @@ module AuthenticationLogoutable
   end
 
   def safe_current_session_for_logout
-    current_session if respond_to?(:current_session, true)
+    current_session || session_token_from_refresh_cookie_for_logout
   rescue StandardError => e
     raise_logout_resolution_error!(:current_session, e)
   end
@@ -76,9 +76,30 @@ module AuthenticationLogoutable
   end
 
   def safe_current_session_public_id_for_logout
-    current_session_public_id if respond_to?(:current_session_public_id, true)
+    session_token = safe_current_session_for_logout
+    return session_token.public_id if session_token.respond_to?(:public_id) && session_token.public_id.present?
+
+    return current_session_public_id if respond_to?(:current_session_public_id, true)
+
+    current_session_public_id_from_refresh_cookie_for_logout
   rescue StandardError => e
     raise_logout_resolution_error!(:current_session_public_id, e)
+  end
+
+  def session_token_from_refresh_cookie_for_logout
+    return nil unless respond_to?(:cookies, true)
+    return nil unless respond_to?(:token_class, true)
+    return nil unless respond_to?(:find_refresh_token_record, true)
+
+    refresh_plain = cookies[AuthenticationBase::REFRESH_COOKIE_KEY].to_s
+    refresh_public_id, = token_class.parse_refresh_token(refresh_plain)
+    find_refresh_token_record(refresh_public_id)
+  rescue StandardError
+    nil
+  end
+
+  def current_session_public_id_from_refresh_cookie_for_logout
+    session_token_from_refresh_cookie_for_logout&.public_id
   end
 
   def raise_logout_resolution_error!(component, exception)

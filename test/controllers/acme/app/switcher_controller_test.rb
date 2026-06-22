@@ -18,19 +18,31 @@ class Acme::App::SwitcherControllerTest < ActionDispatch::IntegrationTest
 
   test "authenticated identity can access switcher show" do
     select_token!
-    get acme_app_switcher_url(host: @host), headers: as_user_headers(@user, host: @host), as: :json
+    get acme_app_switcher_url(host: @host), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    ), as: :json
 
     assert_response :success
-    assert_equal "stub", response.parsed_body.fetch("status")
+    assert_equal "ok", response.parsed_body.fetch("status")
     assert_predicate @token.reload, :selected_actor_context?
   end
 
   test "authenticated identity can access switcher update" do
     select_token!
-    patch acme_app_switcher_url(host: @host), headers: as_user_headers(@user, host: @host), as: :json
+    candidate = AcmeSwitcherAuthority.new(
+      surface: :app, principal: @user,
+      session: @token,
+    ).send(:selectable_candidates).first
+    patch acme_app_switcher_url(host: @host), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    ), params: candidate.fetch(:public), as: :json
 
     assert_response :success
-    assert_equal "stub", response.parsed_body.fetch("status")
+    assert_equal "switched", response.parsed_body.fetch("status")
     assert_predicate @token.reload, :selected_actor_context?
   end
 

@@ -26,7 +26,8 @@
     /* Aliases */
     "paths": {
       "@/*": ["./src/*"],
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "react-aria-components": ["./src/vendor/react-aria-components.tsx"]
     }
   },
   "include": ["src"]

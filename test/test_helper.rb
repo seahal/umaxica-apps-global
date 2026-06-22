@@ -55,6 +55,10 @@ end
 require "rails/test_help"
 require_relative "support/auth_helpers"
 
+# Rails' fixture FK validation deadlocks in this multi-DB test suite. The DB
+# constraints still enforce integrity when fixtures are loaded.
+ActiveRecord.verify_foreign_keys_for_fixtures = false
+
 module ActiveSupport
   class TestCase
     parallelize(workers: 1)

@@ -83,9 +83,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     assert_match "/settings", redirects.last.first.first
 
     controller.instance_variable_set(:@issue_bulletin_for_test, true)
+
     assert_equal "/dashboard", controller.send(:redirect_for_existing_account, "Apple")
 
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
+
     assert_equal "/dashboard", controller.send(:redirect_for_new_account, "Apple")
 
     controller.instance_variable_set(:@login_result_for_test, { status: :success, restricted: true })
@@ -187,6 +189,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
 
     user = Client.create!(status_id: ClientStatus::NOTHING)
     return_to = "/after-social"
+
     assert_equal "/dashboard", controller.send(:handle_login_intent, user, "Google", false, pt: return_to)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)

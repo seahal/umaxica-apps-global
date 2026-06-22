@@ -19,7 +19,7 @@ module PreferenceCore
     with_preference_connection(:writing) do
       @preference_region = load_or_refresh_preference_child("Region", option_id: nil)
 
-      update_preference_child_with_resource_first!(
+      update_preference_child_dual_write!(
         @preference_region,
         sanitize_option_id(preference_region_params, option_type: :region),
         option_type: :region,
@@ -38,7 +38,7 @@ module PreferenceCore
     with_preference_connection(:writing) do
       @preference_language = load_or_refresh_preference_child("Language", option_id: nil)
 
-      update_preference_child_with_resource_first!(
+      update_preference_child_dual_write!(
         @preference_language,
         sanitize_option_id(preference_language_params, option_type: :language),
         option_type: :language,
@@ -73,7 +73,7 @@ module PreferenceCore
       @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
 
       begin
-        update_preference_child_with_resource_first!(
+        update_preference_child_dual_write!(
           @preference_timezone,
           sanitize_option_id(preference_timezone_params, option_type: :timezone),
           option_type: :timezone,
@@ -107,7 +107,7 @@ module PreferenceCore
     with_preference_connection(:writing) do
       @preference_theme = load_or_refresh_preference_child("Theme", option_id: nil)
 
-      update_preference_child_with_resource_first!(
+      update_preference_child_dual_write!(
         @preference_theme,
         sanitize_option_id(preference_theme_params, option_type: :theme),
         option_type: :theme,
@@ -138,7 +138,7 @@ module PreferenceCore
       ensure_model_defaults!(PreferenceClassRegistry.option_class(preference_prefix, type))
       @preference_option = load_or_refresh_preference_child(preference_child_class_suffix(type), option_id: nil)
 
-      update_preference_child_with_resource_first!(
+      update_preference_child_dual_write!(
         @preference_option,
         sanitize_option_id(selectable_preference_params(type), option_type: type),
         option_type: type,
@@ -190,7 +190,7 @@ module PreferenceCore
 
       update_params = build_cookie_update_params(@preference_cookie, preference_cookie_params)
 
-      update_preference_cookie_with_resource_first!(
+      update_preference_cookie_dual_write!(
         @preference_cookie,
         update_params,
         audit_event: "UPDATE_PREFERENCE_COOKIE",
@@ -247,22 +247,28 @@ module PreferenceCore
     sync_to_resource_preference! if sync_resource
   end
 
-  def update_preference_child_with_resource_first!(child, attributes, option_type:, audit_event:)
+  def update_preference_child_dual_write!(child, attributes, option_type:, audit_event:)
     raise PreferenceOperationError if child.blank? || attributes.blank?
 
     p_hash = attributes.to_h.with_indifferent_access
     resource_pref = preference_write_resource_preference!
     authorize_resource_preference_write!(resource_pref)
-    write_resource_preference_option!(
-      resource_pref, option_type,
-      p_hash[PreferenceIoKeys::Params::OPTION_ID],
-    ) if resource_pref
 
-    update_preference_child_with_audit(child, p_hash, audit_event)
-    # Record that this field was set on purpose so localization can let the saved
-    # value win over dynamic region seeding (?ri). Must run before the token is
-    # reissued so the explicit list rides along in the preference payload.
-    mark_preference_field_explicit!(option_type)
+    # Source (token) first, mirror (resource) second, both inside one cross-DB
+    # boundary so a failure on either side rolls the whole change back instead
+    # of leaving the two databases out of sync.
+    with_dual_write_transaction(resource_pref) do
+      update_preference_child_with_audit(child, p_hash, audit_event)
+      # Record that this field was set on purpose so localization can let the saved
+      # value win over dynamic region seeding (?ri). Must run before the token is
+      # reissued so the explicit list rides along in the preference payload.
+      mark_preference_field_explicit!(option_type)
+      write_resource_preference_option!(
+        resource_pref, option_type,
+        p_hash[PreferenceIoKeys::Params::OPTION_ID],
+      ) if resource_pref
+    end
+
     reload_preferences_and_reissue_token!(sync_resource: false)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
     record_preference_write_error("preference.write.option_error", e, target: option_type)
@@ -280,15 +286,21 @@ module PreferenceCore
     end
   end
 
-  def update_preference_cookie_with_resource_first!(cookie, attributes, audit_event:)
+  def update_preference_cookie_dual_write!(cookie, attributes, audit_event:)
     raise PreferenceOperationError if cookie.blank? || attributes.blank?
 
     p_hash = attributes.to_h.with_indifferent_access
     resource_pref = preference_write_resource_preference!
     authorize_resource_preference_write!(resource_pref)
-    write_resource_preference_cookie!(resource_pref, p_hash) if resource_pref
 
-    update_preference_child_with_audit(cookie, p_hash, audit_event)
+    # Source (token) first, mirror (resource) second, both inside one cross-DB
+    # boundary so a failure on either side rolls the whole change back instead
+    # of leaving the two databases out of sync.
+    with_dual_write_transaction(resource_pref) do
+      update_preference_child_with_audit(cookie, p_hash, audit_event)
+      write_resource_preference_cookie!(resource_pref, p_hash) if resource_pref
+    end
+
     reload_preferences_and_reissue_token!(sync_resource: false)
   rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
     record_preference_write_error("preference.write.cookie_error", e, target: :cookie)
@@ -510,15 +522,26 @@ module PreferenceCore
   def reset_preference_to_defaults!
     return if @preferences.blank?
 
-    reset_resource_preference_to_defaults!
-    reset_app_org_preference_to_defaults!(@preferences)
+    resource_pref = preference_write_resource_preference!
+    authorize_resource_preference_write!(resource_pref)
 
-    create_audit_log(
-      event_id: preference_audit_event_class::RESET_BY_USER_DECISION,
-      context: { preference_reset: true, reset_to_defaults: true },
-    )
+    # Same dual-write contract as the option/cookie writes: source (token) first,
+    # mirror (resource) second, both inside one cross-DB boundary so a failure
+    # rolls back the whole reset instead of leaving the databases out of sync.
+    with_dual_write_transaction(resource_pref) do
+      reset_app_org_preference_to_defaults!(@preferences)
+      reset_resource_preference_defaults_for_write!(resource_pref) if resource_pref
+
+      create_audit_log(
+        event_id: preference_audit_event_class::RESET_BY_USER_DECISION,
+        context: { preference_reset: true, reset_to_defaults: true },
+      )
+    end
 
     reload_preferences_and_reissue_token!(sync_resource: false)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
+    record_preference_write_error("preference.reset.error", e, target: :reset)
+    raise PreferenceOperationError
   end
 
   private
@@ -575,17 +598,6 @@ module PreferenceCore
       # so dynamic region seeding (?ri) applies again until the user sets a value.
       preference.clear_explicit_fields! if preference.respond_to?(:clear_explicit_fields!)
     end
-  end
-
-  def reset_resource_preference_to_defaults!
-    resource_pref = preference_write_resource_preference!
-    return if resource_pref.blank?
-
-    authorize_resource_preference_write!(resource_pref)
-    reset_resource_preference_defaults_for_write!(resource_pref)
-  rescue StandardError => e
-    record_preference_write_error("preference.reset_resource.error", e, target: :reset)
-    raise PreferenceOperationError
   end
 
   def reset_preference_state

@@ -7,7 +7,7 @@ module Core
       AUTHENTICATION_MODE = :deny_all
 
       def index
-        render plain: "Core::Dev::Roots#index"
+        render template: "core/dev/roots/index", layout: false
       end
     end
   end

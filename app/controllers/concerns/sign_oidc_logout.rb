@@ -21,6 +21,8 @@ module SignOidcLogout
   private
 
   def handle_oidc_end_session_request
+    return handle_logout_challenge_request if logout_challenge.present?
+
     @oidc_end_session_request = OidcEndSessionRequest.call(params: params, request: request)
     return render_oidc_end_session_error(@oidc_end_session_request) if @oidc_end_session_request.error?
 
@@ -40,6 +42,48 @@ module SignOidcLogout
     render_oidc_end_session_failure
   end
 
+  def handle_logout_challenge_request
+    @logout_transaction = logout_transaction_for_challenge
+    return render_oidc_logout_completion if @logout_transaction.blank? || @logout_transaction.expired?
+
+    return render_oidc_end_session_confirmation if request.get? || request.head?
+
+    if @logout_transaction.expected_finalization?
+      AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
+      return redirect_to_jump_url(
+        oidc_logout_completion_redirect_url(@logout_transaction),
+        status: :see_other,
+      )
+    end
+
+    prepare_sign_out_completion_notice!
+    logout_current_session!(reason: "user_logout")
+    issue_sign_out_notice!
+
+    advance_result = AcmeLogoutTransactionService.advance!(
+      logout_challenge: @logout_transaction.logout_challenge,
+      step: "acme_cleared",
+    )
+    transaction = advance_result.transaction || @logout_transaction
+
+    if transaction.origin_surface == "sign"
+      AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
+      redirect_to_jump_url(oidc_logout_completion_redirect_url(transaction), status: :see_other)
+    else
+      redirect_to_jump_url(
+        public_send(
+          "edit_sign_#{sign_surface_name}_sign_out_url",
+          host: sign_service_host,
+          ri: params[:ri],
+          logout_challenge: transaction.logout_challenge,
+        ),
+        status: :see_other,
+      )
+    end
+  rescue ActiveRecord::RecordNotFound, ArgumentError
+    render_oidc_logout_completion
+  end
+
   def perform_oidc_end_session_logout(result)
     prepare_sign_out_completion_notice!
     logout_oidc_current_session!(result)
@@ -47,7 +91,7 @@ module SignOidcLogout
     notify_oidc_rps_of_logout(result)
 
     if result.post_logout_redirect_uri.present?
-      redirect_to(post_logout_redirect_uri_with_state(result), allow_other_host: true, status: :see_other)
+      redirect_to_jump_url(post_logout_redirect_uri_with_state(result), status: :see_other)
     else
       redirect_to(
         oidc_logout_completed_path(ri: result.legacy_ri || params[:ri]),
@@ -59,6 +103,19 @@ module SignOidcLogout
   def render_oidc_logout_completion
     @sign_out_notice = consume_sign_out_notice
     render oidc_logout_completion_template, status: :ok
+  end
+
+  def oidc_logout_completion_redirect_url(transaction)
+    return transaction.completion_url unless transaction.origin_surface == "palm"
+
+    uri = URI.parse(transaction.completion_url)
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+    query["logout_challenge"] = transaction.logout_challenge
+    query["state"] = transaction.callback_state if transaction.callback_state.present?
+    uri.query = query.to_query
+    uri.to_s
+  rescue URI::InvalidURIError
+    transaction.completion_url
   end
 
   def render_oidc_end_session_confirmation
@@ -88,10 +145,12 @@ module SignOidcLogout
   end
 
   def oidc_logout_pending_request_present?
-    session.key?(OIDC_LOGOUT_REQUEST_SESSION_KEY)
+    logout_challenge.present? || session.key?(OIDC_LOGOUT_REQUEST_SESSION_KEY)
   end
 
   def oidc_logout_pending_request
+    return OpenStruct.new(logout_challenge: logout_challenge) if logout_challenge.present?
+
     payload = session[OIDC_LOGOUT_REQUEST_SESSION_KEY]
     return unless payload.is_a?(Hash)
 
@@ -199,6 +258,7 @@ module SignOidcLogout
     return public_send(
       "acme_#{sign_surface_name}_oidc_logout_path",
       **sign_out_route_params,
+      logout_challenge: logout_challenge,
     ) if oidc_logout_pending_request_present?
 
     sign_out_post_path
@@ -240,5 +300,28 @@ module SignOidcLogout
 
   def sign_surface_name
     controller_path.split("/").second
+  end
+
+  def logout_challenge
+    params[:logout_challenge].presence
+  end
+
+  def logout_transaction_for_challenge
+    return if logout_challenge.blank?
+
+    AcmeLogoutTransactionService.find_by_logout_challenge!(logout_challenge)
+  end
+
+  def sign_service_host
+    case sign_surface_name
+    when "app"
+      ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    when "com"
+      ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    when "org"
+      ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
+    else
+      ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    end
   end
 end

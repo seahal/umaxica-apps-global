@@ -328,6 +328,18 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_empty response.parsed_body["dependencies"]
   end
 
+  test "readiness does not raise prosopite n plus one errors" do
+    host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+
+    assert_health_request_has_no_prosopite_n_plus_one("/health/readiness")
+  end
+
+  test "health snapshot does not raise prosopite n plus one errors" do
+    host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+
+    assert_health_request_has_no_prosopite_n_plus_one("/health")
+  end
+
   test "startup remains dependency light" do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
 
@@ -497,5 +509,24 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
+  end
+
+  def assert_health_request_has_no_prosopite_n_plus_one(path)
+    Prosopite.pause do
+      assert_nothing_raised do
+        Prosopite.scan do
+          get(path)
+        end
+      end
+    end
+
+    assert_includes [200, 503], response.status
+    assert_predicate response.media_type, :present?
+
+    Prosopite.pause do
+      Prosopite.tc[:prosopite_query_counter] = Hash.new(0)
+      Prosopite.tc[:prosopite_query_holder] = Hash.new { |h, k| h[k] = [] }
+      Prosopite.tc[:prosopite_query_caller] = {}
+    end
   end
 end

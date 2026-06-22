@@ -1383,6 +1383,8 @@ en:
         otp_counter: OTP counter
       client_telephone_ceremony_transaction:
         result_jti: Result JTI
+      client_email_ceremony_transaction:
+        operation: Operation
       visitor_step_up_session:
         visitor_token_id: Visitor token ID
       operator_step_up_session:

@@ -23,7 +23,7 @@ class SecurityTier0SuspiciousUserTokenReport
   end
 
   def call
-    suspicious_user_ids, status_by_user_id = suspicious_user_ids_and_statuses
+    _, status_by_user_id = suspicious_user_ids_and_statuses
     candidates = suspicious_tokens
 
     candidates.each do |token|

@@ -18,6 +18,9 @@ export default defineConfig({
       "@components": fileURLToPath(new URL("./src/components", import.meta.url)),
       "@controllers": fileURLToPath(new URL("./src/controllers", import.meta.url)),
       "@entrypoints": fileURLToPath(new URL("./src/entrypoints", import.meta.url)),
+      "react-aria-components": fileURLToPath(
+        new URL("./src/vendor/react-aria-components.tsx", import.meta.url),
+      ),
       "@styles": fileURLToPath(new URL("./src/styles", import.meta.url)),
     },
   },

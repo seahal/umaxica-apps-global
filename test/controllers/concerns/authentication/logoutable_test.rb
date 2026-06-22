@@ -164,6 +164,26 @@ module Authentication
                  "Multi-device logout requires an explicit endpoint."
     end
 
+    test "logout resolution can fall back to a refresh cookie record" do
+      token = Token.new
+      harness = Harness.new
+      harness.cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = "refresh-session"
+      harness.define_singleton_method(:current_session) { nil }
+      harness.define_singleton_method(:current_session_public_id) { nil }
+      harness.define_singleton_method(:find_refresh_token_record) { |refresh_public_id|
+        (refresh_public_id == "refresh-session") ? token : nil
+      }
+      harness.define_singleton_method(:token_class) do
+        Class.new do
+          def self.parse_refresh_token(refresh_plain)
+            ["refresh-session", refresh_plain]
+          end
+        end
+      end
+
+      assert_equal token, harness.send(:session_token_from_refresh_cookie_for_logout)
+    end
+
     test "logout_current_session clears cookies and session even if revoke raises" do
       harness = Harness.new
 

@@ -36,6 +36,10 @@ class ClientDeviceSession < AppTicketRecord
   include DeviceSessionable
 
   belongs_to :user, class_name: "Client", inverse_of: :client_device_sessions
-  belongs_to :current_refresh_token, class_name: "ClientToken"
+  # Nullable in the schema and legitimately blank for fallback (non-DBSC)
+  # sessions and before the first refresh rotation. Marking it required made
+  # `revoke!` (an `update!`) fail validation on such sessions, so sign-out could
+  # not revoke them -- the session stayed usable. Revocation must always succeed.
+  belongs_to :current_refresh_token, class_name: "ClientToken", optional: true
   has_many :client_tokens, foreign_key: :device_session_id, dependent: :nullify, inverse_of: :device_session
 end

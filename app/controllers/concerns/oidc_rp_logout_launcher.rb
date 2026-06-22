@@ -7,28 +7,27 @@ module OidcRpLogoutLauncher
   private
 
   def launch_oidc_rp_logout!(client_id:, issuer_resource_type:, token_issuer:)
-    return render_oidc_rp_logout_unavailable if current_resource.blank? || current_session_public_id.blank?
-
-    id_token_hint = oidc_rp_logout_id_token_hint(
-      client_id: client_id,
-      issuer_resource_type: issuer_resource_type,
-      token_issuer: token_issuer,
+    transaction_result = AcmeLogoutTransactionService.issue!(
+      origin_surface: logout_origin_surface,
+      initiating_client_id: client_id,
+      completion_url: sign_out_complete_url,
+      actor_ref: current_resource.try(:public_id),
+      session_ref: safe_current_session_public_id_for_logout,
+      callback_state: nil,
     )
-    return render_oidc_rp_logout_unavailable if id_token_hint.blank?
+    return render_oidc_rp_logout_unavailable unless transaction_result.success?
 
-    state = SecureRandom.urlsafe_base64(32)
-    prepare_sign_out_completion_notice!(state: state)
+    transaction = transaction_result.transaction
     logout_current_session!(reason: "user_logout")
     issue_sign_out_notice!
-    redirect_to(
+    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+
+    redirect_to_jump_url(
       acme_oidc_logout_url(
         ri: params[:ri],
-        id_token_hint: id_token_hint,
-        post_logout_redirect_uri: sign_out_complete_url,
-        state: state,
+        logout_challenge: transaction.logout_challenge,
       ),
-      status: :temporary_redirect,
-      allow_other_host: true,
+      status: :see_other,
     )
   end
 
@@ -57,7 +56,7 @@ module OidcRpLogoutLauncher
       issuer: OidcIssuer.for_resource_type(issuer_resource_type),
       jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(issuer_resource_type),
       subject: OidcSubject.for(current_resource, resource_type: token_issuer),
-      sid: current_session_public_id,
+      sid: safe_current_session_public_id_for_logout,
     )
   end
 
@@ -94,5 +93,9 @@ module OidcRpLogoutLauncher
 
   def sign_surface_name
     controller_path.split("/").second
+  end
+
+  def logout_origin_surface
+    controller_path.split("/").first
   end
 end

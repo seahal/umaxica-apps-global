@@ -313,6 +313,12 @@ module Sign
               return ClientEmail.find_by(id: session_existing_email_id)
             end
 
+            # Resolve the pending email through the same ticket lookup the step
+            # gate uses (`current_sign_up_flow_ticket`), which falls back to the
+            # sequence id when the locator session payload is absent or its nonce
+            # no longer matches. Using the bare locator here diverged from the
+            # gate's ticket resolution and left the email unresolved -- the OTP
+            # step then rejected a valid flow as an expired session.
             cycle = current_sign_up_flow_ticket
             return unless cycle&.pending_contact_type == "email"
 

@@ -177,7 +177,7 @@ module Sign
 
           case intent
           when "link"
-            return handle_link_intent(provider_name)
+            handle_link_intent(provider_name)
           when "login"
             if user.blank? && identity.blank?
               handle_pending_social_sign_up_intent(provider_name, pt: pt)
@@ -186,11 +186,12 @@ module Sign
 
             if social_sign_up_required?(user, existing_account)
               return handle_social_sign_up_intent(user, provider_name, identity, pt: pt)
-            else
-              return handle_login_intent(user, provider_name, existing_account, pt: pt)
             end
+
+            handle_login_intent(user, provider_name, existing_account, pt: pt)
+
           else
-            return handle_login_intent(user, provider_name, existing_account, pt: pt)
+            handle_login_intent(user, provider_name, existing_account, pt: pt)
           end
         end
 
@@ -208,7 +209,7 @@ module Sign
             bind_social_sign_up_flow!(cycle, user, identity)
           end
 
-          return redirect_to(
+          redirect_to(
             public_send(
               :"sign_app_sign_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
               ri: params[:ri].presence || current_social_auth_ri,
@@ -236,7 +237,7 @@ module Sign
             advance_pending_social_sign_up_flow!(cycle)
           end
 
-          return redirect_to(
+          redirect_to(
             public_send(
               :"sign_app_sign_up_guard_#{provider}_path",
               ri: params[:ri].presence || current_social_auth_ri,
@@ -424,7 +425,7 @@ module Sign
             provider: provider_name,
             default: "%{provider} linked",
           )
-          return redirect_to(
+          redirect_to(
             sign_app_settings_path,
             notice: I18n.t(
               "sign.app.social.sessions.link.success",
@@ -473,7 +474,7 @@ module Sign
               message: "Redirecting after login",
             ),
           )
-          return redirect_after_login(provider_name, existing_account, pt: pt)
+          redirect_after_login(provider_name, existing_account, pt: pt)
         end
 
         def reject_established_social_login_session_creation!(provider_name)
@@ -490,15 +491,13 @@ module Sign
         end
 
         def redirect_after_login(provider_name, existing_account, pt: nil)
-          if existing_account
-            return redirect_for_existing_account(provider_name, pt: pt)
-          else
-            return redirect_for_new_account(provider_name, pt: pt)
-          end
+          return redirect_for_existing_account(provider_name, pt: pt) if existing_account
+
+          redirect_for_new_account(provider_name, pt: pt)
         end
 
         def redirect_for_existing_account(provider_name, pt: nil)
-          return redirect_to_sign_in_sequence!(
+          redirect_to_sign_in_sequence!(
             pt: pt,
             notice: I18n.t(
               "sign.app.social.sessions.create.already_registered",
@@ -508,7 +507,7 @@ module Sign
         end
 
         def redirect_for_new_account(provider_name, pt: nil)
-          return redirect_to_sign_in_sequence!(
+          redirect_to_sign_in_sequence!(
             pt: pt,
             notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )

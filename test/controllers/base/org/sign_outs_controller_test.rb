@@ -35,7 +35,7 @@ class Base::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :temporary_redirect
-    location = URI.parse(response.location)
+    location = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), location.host
@@ -55,7 +55,7 @@ class Base::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    state = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)["state"]
+    state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query.to_s)["state"]
     get complete_base_org_sign_out_url(ri: "jp", state: state)
 
     assert_response :success

@@ -153,6 +153,31 @@ class Sign::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     assert_includes response.body, I18n.t("sign.app.registration.email.update.invalid_code")
   end
 
+  # Regression: the OTP step must resolve the pending email even when the
+  # locator session payload no longer matches the ticket nonce (e.g. the cycle
+  # was re-issued out of band). The step gate already falls back to the sequence
+  # id to find the ticket; contact resolution has to use the same fallback or a
+  # valid email sign-up is rejected as an expired session. google/apple flows do
+  # not hit this email contact lookup, which is why only email broke.
+  test "update accepts a valid otp when the locator nonce no longer matches the ticket" do
+    user_email = start_pending_email_flow!("nonce-drift@example.com")
+    pass_code = otp_code_for(user_email)
+
+    cycle = ClientSignUpFlow.find_by!(
+      pending_contact_type: "email",
+      pending_contact_id: user_email.id,
+    )
+    # Drift the stored nonce so the locator session payload (still in the cookie)
+    # can no longer match; only the sequence-id fallback can recover the ticket.
+    cycle.update!(nonce_digest: ClientSignUpFlow.digest_nonce("out-of-band-nonce"))
+
+    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+          params: { client_email: { pass_code: pass_code } },
+          headers: { "Host" => @host }
+
+    assert_response :redirect
+  end
+
   test "update emits rejected log for blank otp" do
     start_pending_email_flow!("log@example.com")
     logged =

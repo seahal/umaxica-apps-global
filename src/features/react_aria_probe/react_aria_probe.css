@@ -1,0 +1,141 @@
+[data-react-component="ReactAriaProbe"] {
+  display: block;
+}
+
+.react-aria-probe {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 2rem;
+  color: #d6e3e3;
+  background:
+    radial-gradient(circle at top, rgba(88, 120, 120, 0.28), transparent 42%),
+    linear-gradient(180deg, #081113 0%, #0d1819 100%);
+}
+
+.react-aria-probe *,
+.react-aria-probe *::before,
+.react-aria-probe *::after {
+  box-sizing: border-box;
+}
+
+.react-aria-probe__shell {
+  width: min(100%, 44rem);
+  margin: 0 auto;
+  padding: 2rem;
+  border: 1px solid rgba(214, 227, 227, 0.12);
+  border-radius: 1.5rem;
+  background: rgba(9, 18, 20, 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.24);
+}
+
+.react-aria-probe__eyebrow {
+  margin: 0 0 0.75rem;
+  color: #8fa8a8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.react-aria-probe__title {
+  margin: 0;
+  color: #f4fbfb;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.react-aria-probe__copy {
+  margin: 1rem 0 0;
+  max-width: 34rem;
+  color: #b8caca;
+  font-size: 1rem;
+}
+
+.react-aria-probe__stack {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+}
+
+.react-aria-probe__field {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid rgba(143, 168, 168, 0.18);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.react-aria-probe__field[data-invalid] {
+  border-color: rgba(255, 138, 128, 0.7);
+  background: rgba(255, 138, 128, 0.06);
+}
+
+.react-aria-probe__label {
+  color: #edf6f6;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.react-aria-probe__input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(143, 168, 168, 0.24);
+  border-radius: 0.875rem;
+  color: #f4fbfb;
+  background: rgba(4, 9, 10, 0.96);
+}
+
+.react-aria-probe__input:focus {
+  outline: 2px solid rgba(107, 198, 196, 0.42);
+  outline-offset: 2px;
+}
+
+.react-aria-probe__hint {
+  margin: 0;
+  color: #ffbdb6;
+  font-size: 0.875rem;
+}
+
+.react-aria-probe__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.react-aria-probe__button {
+  min-width: 8.5rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(143, 168, 168, 0.28);
+  border-radius: 999px;
+  color: #051012;
+  font-weight: 700;
+  background: #9ef0eb;
+}
+
+.react-aria-probe__button[data-pressed] {
+  transform: translateY(1px);
+  background: #68d7d0;
+}
+
+.react-aria-probe__button[data-focus-visible] {
+  outline: 2px solid #f4fbfb;
+  outline-offset: 2px;
+}
+
+.react-aria-probe__button[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .react-aria-probe {
+    padding: 1rem;
+  }
+
+  .react-aria-probe__shell {
+    padding: 1.25rem;
+  }
+}

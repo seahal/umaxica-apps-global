@@ -74,6 +74,7 @@ class ClientChronicleEventTest < ActiveSupport::TestCase
   end
 
   test "ensure_defaults! creates records" do
+    ClientChronicle.delete_all
     ClientChronicleEvent.delete_all
     assert_difference("ClientChronicleEvent.count", 32) do
       ClientChronicleEvent.ensure_defaults!

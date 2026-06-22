@@ -57,6 +57,13 @@ class Sign::App::Sign::Up::EmailsControllerCoverageTest < ActiveSupport::TestCas
       @sign_up_flow_locator ||= FakeFlow.new(current_flow, false)
     end
 
+    # Mirror the real sequence-support concern: contact resolution goes through
+    # the ticket lookup, which prefers the locator and falls back to the
+    # sequence id. The harness exercises the locator branch.
+    def current_sign_up_flow_ticket
+      sign_up_flow_locator.current
+    end
+
     def reset_email_flow!
       @reset_email_flow = true
     end

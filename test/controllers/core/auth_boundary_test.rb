@@ -6,24 +6,25 @@ require "test_helper"
 class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
+  BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = [
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
+      host: BOOT_HOSTS.core_service.host,
       controller: "core/app/auth/callbacks",
       sign_out_controller: "core/app/sign_outs",
-      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      acme_host: BOOT_HOSTS.acme_service.host,
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
+      host: BOOT_HOSTS.core_corporate.host,
       controller: "core/com/auth/callbacks",
       sign_out_controller: "core/com/sign_outs",
-      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      acme_host: BOOT_HOSTS.acme_corporate.host,
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
+      host: BOOT_HOSTS.core_staff.host,
       controller: "core/org/auth/callbacks",
       sign_out_controller: "core/org/sign_outs",
-      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      acme_host: BOOT_HOSTS.acme_staff.host,
     },
   ].freeze
 
@@ -69,7 +70,7 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
       token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
       cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-      post "https://#{host}/sign/out", params: { ri: "jp" }, headers: {
+      post "http://#{host}/sign/out", params: { ri: "jp" }, headers: {
         "X-TEST-CURRENT-USER" => user.id.to_s,
         "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
       }

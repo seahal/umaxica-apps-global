@@ -12,6 +12,7 @@ module Acme
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
+        skip_before_action :transparent_refresh_access_token, raise: false
         helper_method :oidc_logout_confirmation_params
         helper_method :sign_out_completed_description
 

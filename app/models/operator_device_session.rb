@@ -36,7 +36,10 @@ class OperatorDeviceSession < OrgTicketRecord
   include DeviceSessionable
 
   belongs_to :staff, class_name: "Operator", inverse_of: :operator_device_sessions
-  belongs_to :current_refresh_token, class_name: "OperatorToken"
+  # Nullable in the schema and legitimately blank for fallback (non-DBSC)
+  # sessions and before the first refresh rotation; requiring it made `revoke!`
+  # fail validation, so sign-out could not revoke such sessions.
+  belongs_to :current_refresh_token, class_name: "OperatorToken", optional: true
   has_many :staff_tokens, class_name: "OperatorToken", foreign_key: :device_session_id,
                           dependent: :nullify, inverse_of: :device_session
 end
