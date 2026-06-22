@@ -57,6 +57,9 @@ module OidcRpIdentityProvisioning
       existing = rp_identity_class.find_by(claims)
       return existing if existing
 
+      existing = rp_identity_class.find_by(source_record_id: actor.id)
+      return existing if existing
+
       rp_identity_class.create!(
         **claims,
         source_record_id: actor.id,

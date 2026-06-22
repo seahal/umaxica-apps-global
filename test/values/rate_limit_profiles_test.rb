@@ -43,4 +43,31 @@ class RateLimitProfilesTest < ActiveSupport::TestCase
       assert_equal 10.minutes, profile_set.client_redirect_host.within
     end
   end
+
+  test "page view get profile has expected limits" do
+    profile = RateLimitProfiles.page_view_get
+
+    assert_equal 120, profile.to
+    assert_equal 1.minute, profile.within
+    assert_equal 60, profile.retry_after
+  end
+
+  test "token endpoint profile has expected limits" do
+    profile = RateLimitProfiles.token_endpoint
+
+    assert_equal 30, profile.to
+    assert_equal 1.minute, profile.within
+    assert_equal 60, profile.retry_after
+  end
+
+  test "email address submit is tighter in production" do
+    Rails.env
+    Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      profile = RateLimitProfiles.email_address_submit
+
+      assert_equal 10, profile.to
+      assert_equal 10.minutes, profile.within
+      assert_equal 600, profile.retry_after
+    end
+  end
 end

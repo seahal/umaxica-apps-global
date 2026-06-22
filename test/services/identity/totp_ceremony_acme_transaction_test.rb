@@ -199,6 +199,76 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
+  test "active_at scope returns only non-expired pending transactions" do
+    travel_to @now do
+      active = issue_grant.transaction
+      expired = IdentityTotpCeremonyReplayStore.for("app").create_transaction!(
+        surface: "app",
+        actor_ref: @client.public_id,
+        session_ref: "#{@session_ref}-scope-expired",
+        operation: "registration",
+        expires_at: @now - 1.hour,
+        now: @now - 2.hours,
+      )
+
+      active_at = ClientTotpCeremonyTransaction.active_at(@now)
+
+      assert_includes active_at, active
+      assert_not_includes active_at, expired
+    end
+  end
+
+  test "consume_result raises when result_jti collides with an existing consumed transaction" do
+    travel_to @now do
+      first = issue_grant.transaction
+      first.consume_result!(result_jti: "totp-colliding", consumed_at: @now)
+
+      second = IdentityTotpCeremonyReplayStore.for("app").create_transaction!(
+        surface: "app",
+        actor_ref: @client.public_id,
+        session_ref: "#{@session_ref}-dup-second",
+        operation: "registration",
+        expires_at: @now + 1.hour,
+        now: @now,
+      )
+
+      assert_raises(IdentityTotpCeremonyContract::Error) do
+        second.consume_result!(result_jti: "totp-colliding", consumed_at: @now)
+      end
+    end
+  end
+
+  test "surface validation rejects surface that does not match ceremony surface" do
+    txn = ClientTotpCeremonyTransaction.new(
+      surface: "com",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "registration",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :surface
+  end
+
+  test "consumed transaction without result_jti is invalid" do
+    txn = ClientTotpCeremonyTransaction.new(
+      surface: "app",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "registration",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+      status: TotpCeremonyTransactionable::STATUS_CONSUMED,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :result_jti
+  end
+
   private
 
   def issue_grant

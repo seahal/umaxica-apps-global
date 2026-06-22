@@ -97,6 +97,24 @@ class SignRefreshTokenServiceTest < ActiveSupport::TestCase
     assert_equal :inactive_token, rotated_result.reason
   end
 
+  test "reuse detection revokes the token family while the request is readonly" do
+    user = create_verified_user_with_email(email_address: "refresh-reuse-readonly-#{SecureRandom.hex(4)}@example.com")
+    token = ClientToken.create!(user: user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
+    initial_refresh = token.rotate_refresh_token!
+
+    rotated = SignRefreshTokenService.call(refresh_token: initial_refresh)
+
+    AppTicketRecord.connected_to(role: :reading, prevent_writes: true) do
+      reuse_result = SignRefreshTokenService.call(refresh_token: initial_refresh)
+
+      assert_not reuse_result.success?
+      assert_equal :refresh_token_reuse_detected, reuse_result.reason
+    end
+
+    assert_operator token.reload.discarded_at, :<=, Time.current
+    assert_operator rotated.fetch(:token).reload.discarded_at, :<=, Time.current
+  end
+
   test "revoked tokens stay invalid without marking compromise" do
     token = ClientToken.create!(
       user: create_verified_user_with_email(email_address: "refresh-revoked-#{SecureRandom.hex(4)}@example.com"),

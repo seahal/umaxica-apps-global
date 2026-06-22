@@ -435,7 +435,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     test "#{domain[:name]} domain resets preferences" do
       host!(domain[:host])
-      pref, = assert_preference_created(domain)
+      pref, old_token, cookie_name = assert_preference_created(domain)
 
       get public_send("edit_acme_#{domain[:name]}_preference_reset_url", default_state)
 
@@ -447,23 +447,24 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       )
 
       assert_response :see_other
-      assert_equal public_send("acme_#{domain[:name]}_preference_url", ri: "jp"), response.location
+      assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
 
       assert_equal I18n.t("acme." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
 
       pref.reload
 
-      # Reset to defaults keeps the preference active (status stays NOTHING)
-      assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.discarded_at
+      assert_equal preference_status_class(domain)::DELETED, pref.status_id
+      assert_operator pref.discarded_at, :<=, Time.current
+      assert_not_equal old_token, cookies[cookie_name]
+      assert_not_equal pref.id, find_preference_by_refresh_token(domain, cookies[cookie_name]).id
     end
 
-    test "#{domain[:name]} domain reset edit and destroy do not change preference count" do
+    test "#{domain[:name]} domain reset edit and destroy rebootstrap preference state" do
       host!(domain[:host])
       pref, = assert_preference_created(domain)
       state = default_state.merge(ri: "us")
 
-      assert_no_difference -> { domain[:preference_model].count } do
+      assert_difference -> { domain[:preference_model].count }, 1 do
         get public_send("edit_acme_#{domain[:name]}_preference_reset_url", state)
 
         assert_response :success
@@ -474,16 +475,16 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         )
 
         assert_response :see_other
-        assert_equal public_send("acme_#{domain[:name]}_preference_url", ri: "us"), response.location
+        assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
       end
 
       pref.reload
 
-      assert_includes [0, 2], pref.status_id
-      assert_not_nil pref.discarded_at
+      assert_equal preference_status_class(domain)::DELETED, pref.status_id
+      assert_operator pref.discarded_at, :<=, Time.current
     end
 
-    test "#{domain[:name]} domain keeps same preference after reset" do
+    test "#{domain[:name]} domain creates a fresh preference after reset" do
       host!(domain[:host])
       pref, _token, cookie_name = assert_preference_created(domain)
 
@@ -492,18 +493,19 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         params: { confirm_reset: "1" },
       )
 
-      get public_send("acme_#{domain[:name]}_preference_url", ri: "jp")
+      new_pref = find_preference_by_refresh_token(domain, cookies[cookie_name])
 
-      assert_response :success
+      assert_not_nil new_pref
+      assert_not_equal pref.id, new_pref.id
 
-      # Reset to defaults keeps the same preference record and cookie
-      current_token = cookies[cookie_name]
+      get public_send("acme_#{domain[:name]}_preference_url")
 
-      assert_not_nil current_token
+      assert_response :redirect
+      assert_equal public_send("acme_#{domain[:name]}_preference_url", ri: "jp"), response.location
 
       pref.reload
 
-      assert_includes [0, 2], pref.status_id
+      assert_equal preference_status_class(domain)::DELETED, pref.status_id
     end
 
     test "#{domain[:name]} domain surfaces localized timezone errors" do
@@ -703,14 +705,13 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       )
 
       assert_response :see_other
-      assert_equal public_send("acme_#{domain[:name]}_preference_url", ri: "jp"), response.location
+      assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
 
-      # Verify database changes; preference stays active after reset to defaults.
+      # Verify database changes; the old preference is retired and a fresh one is issued.
       pref.reload
       final_audit_count = audit_class.where(subject_id: pref.id).count
 
-      # After reset, status should be a valid state (0 or 2)
-      assert_includes [0, 2], pref.status_id, "Status should be NOTHING after reset to defaults"
+      assert_equal preference_status_class(domain)::DELETED, pref.status_id
       assert_operator final_audit_count, :>, initial_audit_count,
                       "Audit log should be created"
 
@@ -721,9 +722,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       assert_predicate reset_audit, :exists?
     end
 
-    test "#{domain[:name]} domain reset destroy keeps preference cookies" do
+    test "#{domain[:name]} domain reset destroy replaces preference cookies and clears request context" do
       host!(domain[:host])
-      _pref, _token, cookie_name = assert_preference_created(domain)
+      _pref, old_token, cookie_name = assert_preference_created(domain)
 
       cookies[PreferenceBase::THEME_COOKIE_KEY] = "dr"
       cookies[PreferenceBase::LANGUAGE_COOKIE_KEY] = "en"
@@ -734,9 +735,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         params: { confirm_reset: "1" },
       )
 
-      # Reset to defaults keeps cookies intact (values are reset in DB, not deleted)
-      assert_not_nil cookies[cookie_name],
-                     "Preference refresh cookie should be kept after reset"
+      assert_not_nil cookies[cookie_name], "Preference refresh cookie should be reissued after reset"
+      assert_not_equal old_token, cookies[cookie_name]
+      assert_not_equal "dr", cookies[PreferenceBase::THEME_COOKIE_KEY]
+      assert_not_equal "en", cookies[PreferenceBase::LANGUAGE_COOKIE_KEY]
+      assert_not_equal "etc/utc", cookies[PreferenceBase::TIMEZONE_COOKIE_KEY]
     end
 
     test "#{domain[:name]} domain reset destroy fails without confirmation" do
@@ -797,6 +800,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     PreferenceCookieName.access(production: false, surface: domain[:name].to_sym)
   end
 
+  def preference_status_class(domain)
+    "#{domain[:preference_model].name}Status".constantize
+  end
+
   def default_state
     { ri: "jp" }
   end
@@ -828,6 +835,15 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     assert_not_nil pref
     [pref, token, cookie_name]
+  end
+
+  def find_preference_by_refresh_token(domain, token)
+    token_digest = refresh_token_digest_for(token)
+    return if token_digest.blank?
+
+    domain[:preference_model].superclass.connected_to(role: :writing) do
+      domain[:preference_model].find_by(token_digest: token_digest)
+    end
   end
 
   def refresh_token_digest_for(token)

@@ -117,11 +117,34 @@ module Jit
           assert JitSecurityJwtRegistry.public_key_for("surface:SIGN_APP", ENV.fetch("JWT_SIGN_APP_ACTIVE_KID"))
         end
 
+        test "partial oidc client env is repaired from local store as one matching set" do
+          JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
+          original_private_key = ENV.fetch("OIDC_CLIENT_ACME_APP_PRIVATE_KEY")
+          original_public_keyset = ENV.fetch("OIDC_CLIENT_ACME_APP_PUBLIC_KEYSET")
+
+          ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = nil
+
+          JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
+
+          assert_equal original_private_key, ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"]
+          assert_equal original_public_keyset, ENV["OIDC_CLIENT_ACME_APP_PUBLIC_KEYSET"]
+          JitSecurityJwtRegistry.reload!
+
+          assert JitSecurityJwtRegistry.private_key_for("oidc_client:ACME_APP")
+          assert JitSecurityJwtRegistry.public_key_for(
+            "oidc_client:ACME_APP",
+            ENV.fetch("OIDC_CLIENT_ACME_APP_ACTIVE_KID"),
+          )
+        end
+
         test "install writes all local issuers to ignored tmp store" do
           JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
 
           store = JSON.parse(File.read(@store_path))
-          expected_keys = %w(AUTH PREFERENCE) + JitSecurityJwtRegistry::SURFACE_NAMESPACES.map { |namespace| "JWT_#{namespace}" }
+          expected_keys =
+            %w(AUTH PREFERENCE) +
+            JitSecurityJwtRegistry::SURFACE_NAMESPACES.map { |namespace| "JWT_#{namespace}" } +
+            JitSecurityJwtRegistry::OIDC_CLIENT_NAMESPACES.map { |namespace| "OIDC_CLIENT_#{namespace}" }
 
           assert_equal expected_keys.sort, store.keys.sort
           assert_equal 0o600, File.stat(@store_path).mode & 0o777
@@ -137,6 +160,9 @@ module Jit
           ]
           JitSecurityJwtRegistry::SURFACE_NAMESPACES.each do |namespace|
             public_keysets << JSON.parse(store.fetch("JWT_#{namespace}").fetch("public_keyset"))
+          end
+          JitSecurityJwtRegistry::OIDC_CLIENT_NAMESPACES.each do |namespace|
+            public_keysets << JSON.parse(store.fetch("OIDC_CLIENT_#{namespace}").fetch("public_keyset"))
           end
 
           public_keysets.each do |keyset|
@@ -220,6 +246,11 @@ module Jit
             keys << "JWT_#{namespace}_ACTIVE_KID"
             keys << "JWT_#{namespace}_PRIVATE_KEY"
             keys << "JWT_#{namespace}_PUBLIC_KEYSET"
+          end
+          JitSecurityJwtRegistry::OIDC_CLIENT_NAMESPACES.each do |namespace|
+            keys << "OIDC_CLIENT_#{namespace}_ACTIVE_KID"
+            keys << "OIDC_CLIENT_#{namespace}_PRIVATE_KEY"
+            keys << "OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET"
           end
           keys
         end

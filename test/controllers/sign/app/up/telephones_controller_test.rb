@@ -128,7 +128,7 @@ module Sign::App::Up
       assert_includes response.body, "prohibited this telephone from being saved"
     end
 
-    test "create with existing telephone still redirects and does not create a new record" do
+    test "create with existing telephone still redirects without sending or creating records" do
       user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
       existing_telephone = ClientTelephone.create!(
         user: user,
@@ -138,7 +138,7 @@ module Sign::App::Up
         confirm_using_mfa: "1",
       )
 
-      assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+      assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
         assert_no_difference("Client.count") do
           assert_no_difference("ClientTelephone.count") do
             post sign_app_sign_up_telephone_url, params: {
@@ -156,6 +156,12 @@ module Sign::App::Up
       assert_redirected_to sign_app_sign_up_check_telephone_otp_url
       assert_equal I18n.t("sign.app.registration.telephone.create.verification_code_sent"), flash[:notice]
       assert_nil flash[:alert]
+
+      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+            params: { user_telephone: { pass_code: "000000" } }
+
+      assert_response :unprocessable_content
+      assert_includes response.body, I18n.t("sign.app.registration.telephone.update.invalid_code")
     end
 
     test "create shows identical user-facing response for existing and new telephones" do

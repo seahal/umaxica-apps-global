@@ -67,6 +67,42 @@ class Sign::App::Sign::In::SessionsControllerExtraTest < ActionDispatch::Integra
     assert_not_nil active.discarded_at
   end
 
+  test "pending cycle promotion consumes legacy gate but preserves pending actor id" do
+    controller = Sign::App::Sign::In::SessionsController.new
+    session_hash = {
+      pending_login_user_id: @user.id,
+      SessionLimitGate::GATE_SESSION_KEY => {
+        "nonce" => "legacy",
+        "issued_at" => Time.current.to_i,
+        "pt" => "/dashboard",
+        "flow" => "in.email.session",
+      },
+    }
+    redirects = []
+
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) do
+      ActionController::Parameters.new(revoke_refs: ["selected"], ri: "jp")
+    end
+    controller.define_singleton_method(:resolve_current_client) { @resolved_client }
+    controller.define_singleton_method(:revoke_sessions_by_refs) { |_client, _refs| true }
+    controller.define_singleton_method(:pending_session_limit_cycle?) { true }
+    controller.define_singleton_method(:current_session_restricted?) { false }
+    controller.define_singleton_method(:can_promote_session?) { |_client| true }
+    controller.define_singleton_method(:promote_current_session_limit_cycle!) { |_client| true }
+    controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
+    controller.define_singleton_method(:retrieve_pt) { nil }
+    controller.define_singleton_method(:session_limit_pt) { "/dashboard" }
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**kwargs| redirects << kwargs }
+    controller.instance_variable_set(:@resolved_client, @user)
+
+    controller.update
+
+    assert_equal [{ pt: "/dashboard", notice: I18n.t("sign.app.in.session.promoted") }], redirects
+    assert_nil session_hash[SessionLimitGate::GATE_SESSION_KEY]
+    assert_equal @user.id, session_hash[:pending_login_user_id]
+  end
+
   private
 
   def create_restricted_session(user)

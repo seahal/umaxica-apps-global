@@ -35,6 +35,13 @@ module JitSecurityJwtLocalKeysetInstaller
         kid: "#{Rails.env}-#{namespace.downcase.tr("_", "-")}-es384-a",
       )
     end
+    JitSecurityJwtRegistry::OIDC_CLIENT_NAMESPACES.each do |namespace|
+      changed |= install_oidc_client_issuer!(
+        store,
+        namespace: namespace,
+        kid: "#{Rails.env}-oidc-client-#{namespace.downcase.tr("_", "-")}-es384-a",
+      )
+    end
 
     write_store(store_path, store) if changed
     true
@@ -68,6 +75,28 @@ module JitSecurityJwtLocalKeysetInstaller
     return false if complete_env?(active_name, private_name, public_name)
 
     store_key = "JWT_#{namespace}"
+    env_values =
+      if store.key?(store_key)
+        store.fetch(store_key)
+      else
+        warn_local_keyset_regenerated(issuer: store_key, kid: kid)
+        surface_issuer_env(kid)
+      end
+    store[store_key] = env_values
+
+    ENV[active_name] = env_values.fetch("active_kid")
+    ENV[private_name] = env_values.fetch("private_key")
+    ENV[public_name] = env_values.fetch("public_keyset")
+    true
+  end
+
+  def install_oidc_client_issuer!(store, namespace:, kid:)
+    active_name = "OIDC_CLIENT_#{namespace}_ACTIVE_KID"
+    private_name = "OIDC_CLIENT_#{namespace}_PRIVATE_KEY"
+    public_name = "OIDC_CLIENT_#{namespace}_PUBLIC_KEYSET"
+    return false if complete_env?(active_name, private_name, public_name)
+
+    store_key = "OIDC_CLIENT_#{namespace}"
     env_values =
       if store.key?(store_key)
         store.fetch(store_key)

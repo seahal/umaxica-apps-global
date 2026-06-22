@@ -544,6 +544,31 @@ module PreferenceCore
     raise PreferenceOperationError
   end
 
+  def reset_preference_by_rebootstrap!
+    return if @preferences.blank?
+
+    old_preference = @preferences
+    resource_pref = existing_resource_preference_for_reset
+    authorize_resource_preference_write!(resource_pref)
+
+    create_audit_log(
+      event_id: preference_audit_event_class::RESET_BY_USER_DECISION,
+      context: { preference_reset: true, rebootstrap: true },
+    )
+
+    retire_preference_for_reset!(old_preference)
+    destroy_resource_preference_for_reset!(resource_pref)
+    clear_preference_auth_cookies!
+    clear_preference_context_cookies!
+    reset_preference_state
+
+    @preferences = create_new_preference_record!(params_hash: {})
+    issue_access_token_from(@preferences)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
+    record_preference_write_error("preference.reset.error", e, target: :reset)
+    raise PreferenceOperationError
+  end
+
   private
 
   def find_preference_for_delete
@@ -600,10 +625,85 @@ module PreferenceCore
     end
   end
 
+  def existing_resource_preference_for_reset
+    return unless respond_to?(:current_resource, true)
+
+    resource = preference_current_resource
+    return if resource.blank?
+
+    case preference_class.name
+    when "AppPreference" then resource.user_preference
+    when "OrgPreference" then resource.staff_preference
+    when "ComPreference" then resource.visitor_preference
+    end
+  end
+
+  def retire_preference_for_reset!(preference)
+    now = Time.current
+    with_preference_connection(:writing) do
+      preference.update!(
+        discarded_at: [preference.created_at, now].compact.max,
+        purged_at: now + PreferenceBase::REFRESH_TOKEN_TTL,
+        status_id: preference_status_class::DELETED,
+        token_digest: nil,
+        jti: JitSecurityJwtJtiGenerator.generate,
+        dbsc_session_id: nil,
+      )
+    end
+  end
+
+  def destroy_resource_preference_for_reset!(resource_pref)
+    return if resource_pref.blank?
+
+    preference_connection_class(resource_pref.class).connected_to(role: :writing) do
+      resource_pref.destroy!
+    end
+    reset_current_resource_preference_association(resource_pref)
+  end
+
+  def reset_current_resource_preference_association(resource_pref)
+    return unless respond_to?(:current_resource, true)
+
+    resource = preference_current_resource
+    return if resource.blank?
+
+    association_name =
+      case resource_pref
+      when ClientPreference then :user_preference
+      when OperatorPreference then :staff_preference
+      when VisitorPreference then :visitor_preference
+      end
+    resource.association(association_name).reset if association_name && resource.respond_to?(association_name)
+  end
+
+  def clear_preference_context_cookies!
+    preference_context_cookie_names.each do |cookie_name|
+      cookies.delete(cookie_name, **preference_cookie_deletion_options)
+    end
+  end
+
+  def preference_context_cookie_names
+    [
+      PreferenceIoKeys::Cookies::LANGUAGE,
+      PreferenceIoKeys::Cookies::THEME,
+      PreferenceIoKeys::Cookies::TIMEZONE,
+      PreferenceIoKeys::Cookies::CURRENCY,
+      PreferenceIoKeys::Cookies::DATE_FORMAT,
+      PreferenceIoKeys::Cookies::TIME_FORMAT,
+      PreferenceIoKeys::Cookies::MOTION,
+      PreferenceIoKeys::Cookies::DENSITY,
+      PreferenceIoKeys::Cookies::PAGE_SIZE,
+      PreferenceIoKeys::Cookies::CONSENTED,
+      PreferenceIoKeys::Params::RI.to_s,
+    ].uniq
+  end
+
   def reset_preference_state
     @preferences = nil
     @preference_payload = nil
     @refresh_token_value = nil
+    @refresh_presented_digest = nil
+    @refresh_public_id = nil
   end
 
   def safe_return_to_path

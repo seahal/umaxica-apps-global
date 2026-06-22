@@ -19,6 +19,7 @@ module Sign
           SESSION_KEY = :sign_com_up_email_flow_state
           EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_visitor_email_id
           EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_visitor_email_skip_otp
+          DUMMY_EXISTING_EMAIL_SESSION_KEY = :sign_com_up_dummy_existing_visitor_email
 
           before_action :enforce_email_flow!
 
@@ -125,7 +126,7 @@ module Sign
               return
             end
 
-            bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow?
+            bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow? || dummy_existing_email_flow?
             progress_email_flow!(:create)
             flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
             redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
@@ -188,6 +189,7 @@ module Sign
             session[SESSION_KEY] = "init"
             session.delete(EXISTING_EMAIL_SESSION_KEY)
             session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
+            session.delete(DUMMY_EXISTING_EMAIL_SESSION_KEY)
             sign_up_flow_locator.clear!
           end
 
@@ -209,6 +211,7 @@ module Sign
           end
 
           def valid_email_session?
+            return dummy_existing_email_session_valid? if dummy_existing_email_flow?
             return false if @user_email.blank?
 
             if existing_signup_email_flow?
@@ -224,6 +227,17 @@ module Sign
 
           def existing_signup_email_flow?
             session_existing_email_id.present?
+          end
+
+          def dummy_existing_email_flow?
+            session[DUMMY_EXISTING_EMAIL_SESSION_KEY].present?
+          end
+
+          def dummy_existing_email_session_valid?
+            payload = session[DUMMY_EXISTING_EMAIL_SESSION_KEY]
+            return false unless payload.is_a?(Hash) && payload["dummy"] == true
+
+            payload["expires_at"].to_i > Time.current.to_i
           end
 
           def session_existing_email_id
@@ -259,9 +273,13 @@ module Sign
               if existing_email &&
                   existing_email.visitor_email_status_id != VisitorEmailStatus::UNVERIFIED_WITH_SIGN_UP &&
                   (uniqueness_only || @user_email.errors.empty?)
-                @user_email = existing_email
-                session[EXISTING_EMAIL_SESSION_KEY] = @user_email.id
-                session[EXISTING_EMAIL_SKIP_OTP_SESSION_KEY] = true
+                cleanup_pending_visitor_signup!
+                @user_email.errors.clear
+                session[DUMMY_EXISTING_EMAIL_SESSION_KEY] = {
+                  "existing" => true,
+                  "dummy" => true,
+                  "expires_at" => CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i,
+                }
                 next true
               end
 
@@ -318,6 +336,12 @@ module Sign
           end
 
           def handle_existing_email_verification(submitted_code)
+            if dummy_existing_email_flow?
+              @user_email = VisitorEmail.new(pass_code: submitted_code)
+              @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
+              return false
+            end
+
             if existing_signup_skip_otp?
               reset_email_flow!
               redirect_to(
@@ -405,6 +429,8 @@ module Sign
           end
 
           def current_registration_email
+            return VisitorEmail.new if dummy_existing_email_flow?
+
             if existing_signup_email_flow?
               return VisitorEmail.find_by(id: session_existing_email_id)
             end

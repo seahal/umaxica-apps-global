@@ -10,7 +10,7 @@ module Core
         skip_before_action :set_region, raise: false
 
         def show
-          url = initiate_oidc_session!
+          url = initiate_oidc_session!(screen_hint: "signup")
           redirect_to_oidc_authorization_url(url)
         end
       end

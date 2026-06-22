@@ -21,7 +21,10 @@ class OidcRpTokenClient < ApplicationService
 
   def call
     uri = URI.parse(token_url)
-    response = Net::HTTP.post_form(uri, request_params)
+    params = request_params
+    return params if params.is_a?(Result)
+
+    response = Net::HTTP.post_form(uri, params)
     body = JSON.parse(response.body.presence || "{}").with_indifferent_access
     return Result.new(success: true, token_response: body, error: nil) if response.is_a?(Net::HTTPSuccess)
 
@@ -42,14 +45,17 @@ class OidcRpTokenClient < ApplicationService
       client_id: client_id,
       code_verifier: code_verifier,
     }
-    assertion = OidcClientAssertionJwt.issue(client_id: client_id, token_url: token_url)
-    if assertion.present?
-      params.merge(
+    client = OidcClientRegistry.find(client_id)
+    if client&.private_key_jwt_client?
+      assertion = OidcClientAssertionJwt.issue(client_id: client_id, token_url: token_url)
+      return Result.new(success: false, token_response: nil, error: "client_assertion_unavailable") if assertion.blank?
+
+      return params.merge(
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: assertion,
       )
-    else
-      params.merge(client_secret: client_secret)
     end
+
+    params.merge(client_secret: client_secret)
   end
 end

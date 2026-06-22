@@ -38,11 +38,12 @@ routes use `/oidc/authorization` and `/oidc/callback`; Acme owns the protocol `/
 `/social/:provider/sign/up`, and `/social/:provider/callback`. `google` and `apple` are canonical
 provider names; `google_app` is retained only in historical or compatibility data.
 
-Acme's local browser flow uses the shared browser RP client id `base-rails-rp` on each Acme surface.
-That client id is also used by the Base launcher surfaces, but the callback endpoint is still owned
-by Acme. The `/oauth/authorize` login step establishes Acme authority for code issuance, while
-`/oidc/callback` validates state, PKCE, nonce, and ID token claims before establishing the local
-product browser session. The callback is not a second authority issuer.
+Acme's local browser flow and Base Rails surfaces use the shared browser RP client id
+`base-rails-rp`. Callback ownership is host-local: Acme hosts use Acme `/oidc/callback` endpoints,
+and Base hosts use Base `/oidc/callback` endpoints. The `/oauth/authorize` login step establishes
+Acme authority for code issuance, while each RP callback validates state, PKCE, nonce, and ID token
+claims before establishing that host's local product browser session. The callback is not a second
+authority issuer.
 
 The first implementation slice is limited to route/controller classification, acme authority entry
 points, and sign-to-acme redirects or delegates for authority surfaces. It does not physically move

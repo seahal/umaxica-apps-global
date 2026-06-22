@@ -100,6 +100,24 @@ class IdentityTotpCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "validate_timestamp rejects non-integer iat" do
+    assert_totp_ceremony_error("iat must be an integer timestamp") do
+      IdentityTotpCeremonyContract.validate_timestamp!({ "iat" => "not-a-number" }, "iat")
+    end
+  end
+
+  test "validate_future_timestamp rejects non-integer exp" do
+    assert_totp_ceremony_error("exp must be an integer timestamp") do
+      IdentityTotpCeremonyContract.validate_future_timestamp!({ "exp" => "bad" }, "exp", now: @now)
+    end
+  end
+
+  test "decode_unverified_payload rejects invalid tokens" do
+    assert_totp_ceremony_error("token is invalid") do
+      IdentityTotpCeremonyContract.decode_unverified_payload("not.a.jwt")
+    end
+  end
+
   private
 
   def acme_issuer_id = IdentityTotpCeremonyContract.acme_issuer_id("app")

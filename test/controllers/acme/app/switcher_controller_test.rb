@@ -46,6 +46,48 @@ class Acme::App::SwitcherControllerTest < ActionDispatch::IntegrationTest
     assert_predicate @token.reload, :selected_actor_context?
   end
 
+  test "switcher update follows html redirect on success" do
+    select_token!
+    candidate = AcmeSwitcherAuthority.new(
+      surface: :app, principal: @user,
+      session: @token,
+    ).send(:selectable_candidates).first
+
+    patch acme_app_switcher_url(host: @host, ri: "jp"), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    ), params: candidate.fetch(:public)
+
+    assert_redirected_to acme_app_dashboard_path(ri: "jp")
+    assert_predicate @token.reload, :selected_actor_context?
+  end
+
+  test "switcher update renders invalid switch error as json" do
+    select_token!
+
+    patch acme_app_switcher_url(host: @host), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    ), params: { account_public_id: "unknown-account" }, as: :json
+
+    assert_response :unprocessable_content
+    assert_equal "invalid_switch", response.parsed_body.fetch("status")
+  end
+
+  test "switcher update renders invalid switch error as html" do
+    select_token!
+
+    patch acme_app_switcher_url(host: @host, ri: "jp"), headers: as_user_headers(
+      @user,
+      host: @host,
+      session_public_id: @token.public_id,
+    ), params: { account_public_id: "unknown-account" }
+
+    assert_response :unprocessable_content
+  end
+
   private
 
   def select_token!

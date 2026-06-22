@@ -22,4 +22,16 @@ class Acme::Org::SelectorControllerTest < ActionDispatch::IntegrationTest
     assert_predicate @token.reload, :selected_actor_context?
     assert_nil @token.selected_avatar_public_id if @token.respond_to?(:selected_avatar_public_id)
   end
+
+  test "selector update renders invalid selection error as json" do
+    AcmeSelectorAuthority.stub(:select, ->(*) { raise AcmeSelectorAuthority::InvalidSelection, "bad" }) do
+      patch acme_org_selector_url(host: @host),
+            params: { account_public_id: "invalid" },
+            headers: as_staff_headers(@operator, host: @host, session_public_id: @token.public_id),
+            as: :json
+    end
+
+    assert_response :unprocessable_content
+    assert_equal "invalid_selection", response.parsed_body.fetch("status")
+  end
 end

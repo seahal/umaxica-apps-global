@@ -14,6 +14,13 @@ module Sign
               skip_before_action :enforce_email_flow!
 
               def show
+                if dummy_existing_email_flow?
+                  @user_email = ClientEmail.new
+                  return render "sign/app/sign/up/emails/edit" if valid_email_session?
+
+                  return redirect_invalid_session
+                end
+
                 return unless load_gate_context!(gate_for_show)
 
                 @user_email = current_registration_email
@@ -35,6 +42,15 @@ module Sign
               end
 
               def update
+                if dummy_existing_email_flow?
+                  @user_email = ClientEmail.new
+                  return redirect_invalid_session unless valid_email_session?
+                  return render_blank_code_rejection unless validate_code_present
+
+                  @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
+                  return render "sign/app/sign/up/emails/edit", status: :unprocessable_content
+                end
+
                 return unless load_gate_context!(gate_for_update)
 
                 @user_email = current_registration_email

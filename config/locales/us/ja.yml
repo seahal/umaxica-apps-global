@@ -241,6 +241,12 @@ ja:
         purged_at: 削除予定日時
       user_identity_email:
         address: メールアドレス
+      client_identity:
+        source_record_id: ソースレコードID
+      operator_identity:
+        source_record_id: ソースレコードID
+      visitor_identity:
+        source_record_id: ソースレコードID
       client_email:
         address: メールアドレス
         address_digest: メールアドレスダイジェスト

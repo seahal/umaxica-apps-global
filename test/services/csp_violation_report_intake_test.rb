@@ -220,6 +220,46 @@ class CspViolationReportIntakeTest < ActiveSupport::TestCase
     end
   end
 
+  test "invalid uri in blocked-uri falls back to string splitting and invalid origin" do
+    _result, events =
+      capture_events do
+        CspViolationReportIntake.call(
+          raw_body: {
+            "csp-report" => {
+              "blocked-uri" => "http://[",
+              "effective-directive" => "script-src",
+            },
+          }.to_json,
+          host: "app.example.test",
+        )
+      end
+
+    payload = events.fetch(0).fetch(1)
+
+    assert_equal "http://[", payload.fetch(:blocked_uri)
+    assert_equal "application", payload.fetch(:category)
+    assert_equal "application:script-src:invalid", payload.fetch(:aggregation_key)
+  end
+
+  test "invalid uri that starts with extension scheme prefix is classified as browser extension" do
+    _result, events =
+      capture_events do
+        CspViolationReportIntake.call(
+          raw_body: {
+            "csp-report" => {
+              "blocked-uri" => "chrome-extension://[invalid",
+              "effective-directive" => "script-src",
+            },
+          }.to_json,
+          host: "app.example.test",
+        )
+      end
+
+    payload = events.fetch(0).fetch(1)
+
+    assert_equal "browser_extension", payload.fetch(:category)
+  end
+
   private
 
   def capture_events

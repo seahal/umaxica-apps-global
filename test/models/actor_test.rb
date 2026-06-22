@@ -288,4 +288,42 @@ class ActorTest < ActiveSupport::TestCase
     assert_same ActorValuesContext, Actor::Context
     assert_instance_of Actor::Context, Actor.current
   end
+
+  test "coerce returns an ActorValuesContext as-is" do
+    context = ActorValuesContext.empty.with(actor_type: :client, tld: :app, surface: :sign)
+
+    assert_same context, ActorValuesContext.coerce(context)
+  end
+
+  test "coerce converts nil to the empty context" do
+    result = ActorValuesContext.coerce(nil)
+
+    assert_equal ActorValuesContext.empty, result
+    assert_predicate result, :unauthenticated?
+  end
+
+  test "coerce merges a hash onto the empty baseline" do
+    result = ActorValuesContext.coerce(actor_type: :client, tld: :app, surface: :sign)
+
+    assert_equal :client, result.actor_type
+    assert_equal :app, result.tld
+    assert_equal :sign, result.surface
+  end
+
+  test "coerce merges a to_h-able object onto the empty baseline" do
+    obj = Struct.new(:actor_type, :tld, :surface, :transport, :channel).new(:visitor, :com, :acme, :cookie, :browser)
+
+    result = ActorValuesContext.coerce(obj)
+
+    assert_equal :visitor, result.actor_type
+    assert_equal :com, result.tld
+    assert_equal :acme, result.surface
+    assert_predicate result, :cookie?
+    assert_predicate result, :browser?
+  end
+
+  test "coerce raises ArgumentError for objects that do not respond to to_h" do
+    assert_raises(ArgumentError) { ActorValuesContext.coerce(42) }
+    assert_raises(ArgumentError) { ActorValuesContext.coerce("string") }
+  end
 end

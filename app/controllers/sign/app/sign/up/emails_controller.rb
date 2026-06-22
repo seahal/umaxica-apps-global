@@ -129,7 +129,7 @@ module Sign
               return
             end
 
-            bind_sign_up_flow_to_email!(@user_email)
+            bind_sign_up_flow_to_email!(@user_email) unless dummy_existing_email_flow?
             progress_email_flow!(:create)
             redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
             flash[:notice] = redirect_params.delete(:notice)
@@ -231,6 +231,7 @@ module Sign
           end
 
           def valid_email_session?
+            return dummy_existing_email_session_valid? if dummy_existing_email_flow?
             return false if @user_email.blank?
 
             if existing_signup_email_flow?
@@ -248,6 +249,17 @@ module Sign
             session_existing_email_id.present?
           end
 
+          def dummy_existing_email_flow?
+            session[SignEmailRegistrable::DUMMY_EXISTING_EMAIL_SESSION_KEY].present?
+          end
+
+          def dummy_existing_email_session_valid?
+            payload = session[SignEmailRegistrable::DUMMY_EXISTING_EMAIL_SESSION_KEY]
+            return false unless payload.is_a?(Hash) && payload["dummy"] == true
+
+            payload["expires_at"].to_i > Time.current.to_i
+          end
+
           def session_existing_email_id
             session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
           end
@@ -257,6 +269,12 @@ module Sign
           end
 
           def handle_existing_email_verification(submitted_code)
+            if dummy_existing_email_flow?
+              @user_email = ClientEmail.new(pass_code: submitted_code)
+              @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
+              return false
+            end
+
             if existing_signup_skip_otp?
               reset_email_flow!
               redirect_to(
@@ -311,6 +329,8 @@ module Sign
           end
 
           def current_registration_email
+            return ClientEmail.new if dummy_existing_email_flow?
+
             if existing_signup_email_flow?
               return ClientEmail.find_by(id: session_existing_email_id)
             end

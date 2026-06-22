@@ -27,6 +27,7 @@ module SignEmailRegistrable
   SESSION_KEY = :sign_up_email_flow_state
   EXISTING_EMAIL_SESSION_KEY = :sign_up_existing_email_id
   EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_up_existing_email_skip_otp
+  DUMMY_EXISTING_EMAIL_SESSION_KEY = :sign_up_dummy_existing_email
 
   private
 
@@ -61,6 +62,7 @@ module SignEmailRegistrable
     session[SESSION_KEY] = STATE_INIT
     session.delete(EXISTING_EMAIL_SESSION_KEY)
     session.delete(EXISTING_EMAIL_SKIP_OTP_SESSION_KEY)
+    session.delete(DUMMY_EXISTING_EMAIL_SESSION_KEY)
   end
 
   def redirect_flow_violation
@@ -105,6 +107,14 @@ module SignEmailRegistrable
         uniqueness_only = email_uniqueness_only_error?(@user_email)
         has_errors = @user_email.errors.details.except(:user, :user_id).any?
 
+        if allow_existing && existing_email && !pending_email_status?(existing_email) &&
+            (uniqueness_only || !has_errors)
+          cleanup_pending_signup!
+          session[DUMMY_EXISTING_EMAIL_SESSION_KEY] = dummy_existing_email_session_payload
+          @user_email.errors.clear
+          next :dummy_existing
+        end
+
         if has_errors
           next false unless allow_existing && uniqueness_only &&
             pending_email_status?(existing_email)
@@ -134,6 +144,7 @@ module SignEmailRegistrable
       end
 
     return :cooldown if cooldown_active
+    return true if result == :dummy_existing
     return result if result == false || result == :cooldown
     return false unless result == :ok
 
@@ -263,6 +274,14 @@ module SignEmailRegistrable
       verification_token: token,
       public_id: @user_email.public_id,
     ).create.deliver_later
+  end
+
+  def dummy_existing_email_session_payload
+    {
+      "existing" => true,
+      "dummy" => true,
+      "expires_at" => CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i,
+    }
   end
 
   def email_uniqueness_only_error?(user_email)

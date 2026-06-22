@@ -76,6 +76,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal "/oauth/authorize", uri.path
       assert_equal surface[:client_id], query["client_id"]
       assert_equal redirect_uri_for(surface), query["redirect_uri"]
+      assert_equal "signup", query["screen_hint"]
       assert_equal "S256", query["code_challenge_method"]
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
@@ -110,7 +111,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       assert_equal sign_host, sign_uri.host
-      assert_equal "/sign/in", sign_uri.path
+      assert_equal "/sign/up", sign_uri.path
       assert_predicate sign_query["login_challenge"], :present?
 
       host! sign_host

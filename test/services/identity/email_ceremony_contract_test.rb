@@ -95,6 +95,40 @@ class IdentityEmailCeremonyContractTest < ActiveSupport::TestCase
     end
   end
 
+  test "validate_timestamp rejects non-integer iat" do
+    assert_email_ceremony_error("iat must be an integer timestamp") do
+      IdentityEmailCeremonyContract.validate_timestamp!({ "iat" => "not-a-number" }, "iat")
+    end
+  end
+
+  test "validate_future_timestamp rejects non-integer exp" do
+    assert_email_ceremony_error("exp must be an integer timestamp") do
+      IdentityEmailCeremonyContract.validate_future_timestamp!({ "exp" => "bad" }, "exp", now: @now)
+    end
+  end
+
+  test "validate_return_to rejects absolute urls and protocol-relative urls" do
+    assert_email_ceremony_error("return_to must be relative navigation metadata") do
+      IdentityEmailCeremonyContract.validate_return_to!("return_to" => "https://evil.example")
+    end
+
+    assert_email_ceremony_error("return_to must be relative navigation metadata") do
+      IdentityEmailCeremonyContract.validate_return_to!("return_to" => "//evil.example")
+    end
+  end
+
+  test "validate_return_to accepts blank and relative paths" do
+    assert_nil IdentityEmailCeremonyContract.validate_return_to!("return_to" => nil)
+    assert_nil IdentityEmailCeremonyContract.validate_return_to!("return_to" => "")
+    assert_nil IdentityEmailCeremonyContract.validate_return_to!("return_to" => "/settings/emails")
+  end
+
+  test "decode_unverified_payload rejects invalid tokens" do
+    assert_email_ceremony_error("token is invalid") do
+      IdentityEmailCeremonyContract.decode_unverified_payload("not.a.jwt")
+    end
+  end
+
   private
 
   def acme_issuer_id = IdentityEmailCeremonyContract.acme_issuer_id("app")

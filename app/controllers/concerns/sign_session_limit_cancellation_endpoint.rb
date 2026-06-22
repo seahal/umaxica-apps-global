@@ -22,12 +22,25 @@ module SignSessionLimitCancellationEndpoint
     actor = resolve_session_limit_cancellation_actor
     return redirect_to_session_limit_login unless actor
 
-    AuthenticationLogoutCurrentSession.call(
-      resource: actor,
-      token: current_session,
-      reason: "session_limit_cancelled",
-    ) if current_session&.restricted?
-    current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
+    cycle = current_db_sign_in_flow_for_sequence
+    if cycle&.sign_in_session_limit_pending?
+      begin
+        SignInSessionLimitManager.new(
+          cycle: cycle,
+          actor: actor,
+          token: current_session,
+        ).cancel!
+      rescue SignInSessionLimitManager::Error
+        return redirect_to_session_limit_login
+      end
+    elsif current_session&.restricted?
+      AuthenticationLogoutCurrentSession.call(
+        resource: actor,
+        token: current_session,
+        reason: "session_limit_cancelled",
+      )
+    end
+
     consume_session_limit_gate!
     session.delete(session_limit_pending_actor_session_key)
     log_out

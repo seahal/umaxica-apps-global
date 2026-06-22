@@ -93,8 +93,8 @@ module PreferenceSignScreenActions
       return
     end
 
-    reset_preference_to_defaults!
-    redirect_to(preference_index_path, notice: preference_reset_destroyed_notice, status: :see_other)
+    reset_preference_by_rebootstrap!
+    redirect_to(preference_index_path_without_context, notice: preference_reset_destroyed_notice, status: :see_other)
   end
 
   def edit_selectable_preference_screen(screen)
@@ -120,5 +120,9 @@ module PreferenceSignScreenActions
 
   def preference_index_path
     preference_index_url
+  end
+
+  def preference_index_path_without_context
+    preference_index_url(PreferenceGlobal::PARAM_CONTEXT_KEYS.index_with { nil })
   end
 end

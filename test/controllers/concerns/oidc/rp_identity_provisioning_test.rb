@@ -62,6 +62,31 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     assert_predicate CoreAppClientBridge.find_by!(client_id: client.id), :core?
   end
 
+  test "app callback provisioning reuses selector identity for the same client" do
+    client = clients(:two)
+    ClientIdentity.where(source_record_id: client.id).delete_all
+    existing = ClientIdentity.create!(
+      issuer: "acme-selector-bootstrap",
+      subject: "selector-bootstrap-subject",
+      audience: "acme",
+      source_record_id: client.id,
+      status_id: ClientIdentityState::ACTIVE,
+    )
+    controller = Acme::App::Auth::CallbacksController.new
+
+    actor = controller.send(
+      :provision_rp_account_from_id_token!, {
+        "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
+        "sub" => OidcSubject.for(client, resource_type: "client"),
+        "aud" => "base-rails-rp",
+      },
+    )
+
+    assert_equal client, actor
+    assert_equal 1, ClientIdentity.where(source_record_id: client.id).count
+    assert_equal existing.id, ClientIdentity.find_by!(source_record_id: client.id).id
+  end
+
   test "acme com callback provisioning records visitor identity without a core bridge" do
     visitor = Visitor.create!
     VisitorIdentity.where(source_record_id: visitor.id).delete_all

@@ -6,7 +6,7 @@ module Email::Org
     include PromotionalEmailUnsubscribeHeaders
     include SafePromotionalCtaUrl
 
-    default from: ENV.fetch("SMTP_FROM_ADDRESS_ORG", "from@umaxica.org")
+    default from: Rails.app.creds.option(:smtp_from_address_org, default: "from@umaxica.org")
     layout "mailer/org/mailer"
   end
 end

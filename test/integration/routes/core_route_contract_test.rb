@@ -12,6 +12,14 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
   CORE_NET_HOST = ENV.fetch("CORE_NETWORK_URL", "core.net.localhost")
   CORE_DEV_HOST = ENV.fetch("CORE_DEVELOPER_URL", "core.dev.localhost")
 
+  test "core surfaces do not expose dashboards" do
+    [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST, CORE_NET_HOST, CORE_DEV_HOST].each do |host|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/dashboard", method: :get)
+      end
+    end
+  end
+
   test "core app route contract" do
     assert_recognizes(
       { controller: "core/app/roots", action: "index" },

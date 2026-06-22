@@ -23,6 +23,38 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     assert_nil OidcClientAssertionJwt.issue(client_id: "missing_client", token_url: "https://id.example/token")
   end
 
+  test "issue refreshes local key material once when the registry is missing a client assertion key" do
+    token_url = "https://id.umaxica.app/oauth/token"
+    key = OpenSSL::PKey::EC.generate("secp384r1")
+    previous = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
+    installed = false
+
+    with_env(
+      "OIDC_CLIENT_ACME_APP_ACTIVE_KID" => nil,
+      "OIDC_CLIENT_ACME_APP_PRIVATE_KEY" => nil,
+      "OIDC_CLIENT_ACME_APP_PUBLIC_KEYSET" => nil,
+    ) do
+      JitSecurityJwtRegistry.reload!
+      assert_nil JitSecurityJwtRegistry.private_key_for("oidc_client:ACME_APP")
+
+      installer = lambda do |**|
+        installed = true
+        ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = "acme-app-oidc-recovered"
+        ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
+        true
+      end
+
+      JitSecurityJwtLocalKeysetInstaller.stub(:install!, installer) do
+        assertion = OidcClientAssertionJwt.issue(client_id: "base-rails-rp", token_url: token_url)
+
+        assert installed
+        assert_predicate assertion, :present?
+      end
+    ensure
+      JitSecurityJwtRegistry.instance_variable_set(:@issuers, previous)
+    end
+  end
+
   test "valid? rejects an assertion with the wrong audience" do
     token_url = "https://id.umaxica.app/oauth/token"
 

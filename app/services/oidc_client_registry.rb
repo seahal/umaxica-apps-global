@@ -8,6 +8,8 @@ module OidcClientRegistry
 
   class InvalidRedirectUri < StandardError; end
 
+  class ClientAuthenticationConfigurationError < StandardError; end
+
   DEFAULT_ALLOWED_SCOPES = %w(openid profile email).freeze
   PALM_ALLOWED_SCOPES = (DEFAULT_ALLOWED_SCOPES + %w(palm.read)).freeze
 
@@ -119,6 +121,23 @@ module OidcClientRegistry
 
   def client_ids
     clients.keys
+  end
+
+  def validate_private_key_jwt_configuration!
+    missing =
+      client_ids.filter_map do |client_id|
+        client = find(client_id)
+        next unless client&.private_key_jwt_client?
+        next if client.jwt_namespace.present? &&
+          JitSecurityJwtRegistry.private_key_for("oidc_client:#{client.jwt_namespace}").present?
+
+        "#{client.client_id}(#{client.jwt_namespace.presence || "missing_namespace"})"
+      end
+
+    return true if missing.empty?
+
+    raise ClientAuthenticationConfigurationError,
+          "private_key_jwt OIDC clients are missing signing keys: #{missing.join(", ")}"
   end
 
   def audiences_for_resource_type(resource_type)

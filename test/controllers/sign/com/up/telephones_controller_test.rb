@@ -183,7 +183,7 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert_response :unprocessable_content
   end
 
-  test "existing telephone redirects to sign in without sign up cycle" do
+  test "existing telephone shows otp page without sending or creating sign up cycle" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
     existing_telephone = VisitorTelephone.create!(
       visitor: visitor,
@@ -193,7 +193,7 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
+    assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
       assert_no_difference("VisitorTelephone.count") do
         post sign_com_sign_up_telephone_url(ri: "jp"),
              params: {
@@ -210,25 +210,14 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
 
     assert_response :redirect
     assert_nil session[:com_sign_up_flow_locator]
-    job_args = enqueued_jobs.last[:args].first
-    body = OutboundSensitivePayload.decrypt_sms_body(job_args.fetch("encrypted_body"))
-    sent_code = body[/\d{6}/]
-
-    assert_equal "Verification code", job_args.fetch("title")
-    assert_match(/\A\d{6}\z/, sent_code)
-    assert_not_includes job_args.fetch("title"), sent_code
-    assert_not_includes job_args.inspect, sent_code
-
-    code = otp_code_for(existing_telephone.reload)
-
     assert_no_difference("ClientChronicle.count") do
       patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-            params: { visitor_telephone: { pass_code: code } },
+            params: { visitor_telephone: { pass_code: "000000" } },
             headers: default_headers
     end
 
     assert_response :unprocessable_content
-    assert_equal "ticket is required", response.body
+    assert_includes response.body, I18n.t("sign.app.registration.telephone.update.invalid_code")
     assert_predicate session[:visitor_telephone_registration], :present?
     assert_nil session[:com_sign_up_flow_locator]
     assert_equal VisitorTelephoneStatus::VERIFIED, existing_telephone.reload.visitor_telephone_status_id

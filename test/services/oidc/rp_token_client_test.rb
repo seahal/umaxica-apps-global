@@ -4,6 +4,14 @@
 require "test_helper"
 
 class OidcRpTokenClientTest < ActiveSupport::TestCase
+  setup do
+    @original_issuers = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
+  end
+
+  teardown do
+    JitSecurityJwtRegistry.instance_variable_set(:@issuers, @original_issuers)
+  end
+
   test "uses private_key_jwt when a client assertion key is configured" do
     captured = nil
     response = Net::HTTPOK.new("1.1", "200", "OK")
@@ -35,22 +43,47 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
     assert_not captured.key?(:client_secret)
   end
 
+  test "private_key_jwt clients fail locally instead of falling back to client_secret" do
+    net_http_called = false
+
+    OidcClientAssertionJwt.stub(:issue, nil) do
+      Net::HTTP.stub(
+        :post_form, ->(*) {
+          net_http_called = true
+          flunk("private_key_jwt client must not exchange with client_secret when assertion key is missing")
+        },
+      ) do
+        result = OidcRpTokenClient.call(
+          token_url: "https://id.umaxica.app/oauth/token",
+          client_id: "base-rails-rp",
+          client_secret: "fallback-secret",
+          code: "code",
+          redirect_uri: "https://www.umaxica.app/auth/callback",
+          code_verifier: "verifier",
+        )
+
+        assert_not_predicate result, :success?
+        assert_equal "client_assertion_unavailable", result.error
+      end
+    end
+
+    assert_not net_http_called
+  end
+
   private
 
-  def with_oidc_client_key(namespace)
-    key = OpenSSL::PKey::EC.generate("secp384r1")
-    kid = "#{namespace.downcase.tr("_", "-")}-oidc-test"
+  def with_oidc_client_key(namespace, active_kid: "#{namespace.downcase.tr("_", "-")}-oidc-test",
+                           private_key: OpenSSL::PKey::EC.generate("secp384r1"))
     env = {
-      "OIDC_CLIENT_#{namespace}_ACTIVE_KID" => kid,
-      "OIDC_CLIENT_#{namespace}_PRIVATE_KEY" => Base64.strict_encode64(key.to_der),
+      "OIDC_CLIENT_#{namespace}_ACTIVE_KID" => active_kid,
+      "OIDC_CLIENT_#{namespace}_PRIVATE_KEY" => private_key ? Base64.strict_encode64(private_key.to_der) : nil,
     }
-    previous = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
 
     with_env(env) do
       JitSecurityJwtRegistry.reload!
       yield
     ensure
-      JitSecurityJwtRegistry.instance_variable_set(:@issuers, previous)
+      JitSecurityJwtRegistry.instance_variable_set(:@issuers, @original_issuers)
     end
   end
 

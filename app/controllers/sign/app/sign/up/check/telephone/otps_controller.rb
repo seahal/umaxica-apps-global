@@ -13,6 +13,13 @@ module Sign
               AUTHENTICATION_MODE = :guest
 
               def show
+                if dummy_existing_telephone_flow?
+                  @user_telephone = ClientTelephone.new
+                  return render "sign/app/sign/up/telephones/edit" if valid_telephone_session?
+
+                  return render_telephone_session_expired
+                end
+
                 return unless load_gate_context!(gate_for_show)
 
                 @user_telephone = current_registration_telephone
@@ -22,6 +29,14 @@ module Sign
               end
 
               def create
+                if dummy_existing_telephone_flow?
+                  return render_otp_resend_too_soon if otp_resend_rate_limited?
+
+                  perform_dummy_otp_generation
+                  session[:user_telephone_otp_last_sent_at] = Time.current.to_i
+                  return redirect_to(sign_app_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
+                end
+
                 return unless load_gate_context!(gate_for_create)
 
                 @user_telephone = current_registration_telephone
@@ -40,6 +55,23 @@ module Sign
               end
 
               def update
+                if dummy_existing_telephone_flow?
+                  @user_telephone = ClientTelephone.new
+                  return render_telephone_session_expired unless valid_registration_session?(session[:user_telephone_registration])
+
+                  submitted_code = params.dig(
+                    "client_telephone",
+                    "pass_code",
+                  ) || params.dig("user_telephone", "pass_code")
+                  if submitted_code.blank?
+                    @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
+                    return render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
+                  end
+
+                  @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
+                  return render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
+                end
+
                 return unless load_gate_context!(gate_for_update)
 
                 @user_telephone = current_registration_telephone

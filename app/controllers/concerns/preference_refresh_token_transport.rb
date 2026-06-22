@@ -110,7 +110,7 @@ module PreferenceRefreshTokenTransport
     nil
   end
 
-  def create_new_preference_record!
+  def create_new_preference_record!(params_hash: nil)
     expires_at = refresh_token_expiry
     generated_token = nil
 
@@ -129,15 +129,7 @@ module PreferenceRefreshTokenTransport
             generated_token, verifier = generate_refresh_token(public_id: @preferences.public_id)
             @preferences.update!(token_digest: digest_refresh_token(verifier))
 
-            create_preference_options(
-              @preferences,
-              params.slice(
-                PreferenceIoKeys::Params::RI,
-                PreferenceIoKeys::Params::LX,
-                PreferenceIoKeys::Params::TZ,
-                PreferenceIoKeys::Params::CT,
-              ),
-            )
+            create_preference_options(@preferences, preference_creation_context_params(params_hash))
 
             create_audit_log(
               event_id: "CREATE_NEW_PREFERENCE_TOKEN",
@@ -167,6 +159,16 @@ module PreferenceRefreshTokenTransport
     issue_preference_dbsc_registration_header_for(@preferences)
 
     @preferences
+  end
+
+  def preference_creation_context_params(params_hash)
+    source = params_hash || params
+    source.slice(
+      PreferenceIoKeys::Params::RI,
+      PreferenceIoKeys::Params::LX,
+      PreferenceIoKeys::Params::TZ,
+      PreferenceIoKeys::Params::CT,
+    )
   end
 
   def refresh_refresh_token_lifetime(preference)

@@ -96,15 +96,13 @@
     </div>
   <% end %>
 
-  <% if current_session_restricted? %>
-    <%= button_to t("sign.app.in.session.cancel_logout"),
-                  sign_app_sign_in_session_path,
-                  method: :delete,
-                  form: {
-                    data: {
-                      turbo: false,
-                      turbo_confirm: t("sign.app.in.session.cancel_logout_confirm"),
-                    },
-                  } %>
-  <% end %>
+  <%= button_to t("sign.app.in.session.cancel_logout"),
+                sign_app_sign_in_session_cancellation_path,
+                method: :post,
+                form: {
+                  data: {
+                    turbo: false,
+                    turbo_confirm: t("sign.app.in.session.cancel_logout_confirm"),
+                  },
+                } %>
 </div>

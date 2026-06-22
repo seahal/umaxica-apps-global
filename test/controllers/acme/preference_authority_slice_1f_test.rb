@@ -162,7 +162,7 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     assert_equal "dr", user.user_preference.reload.theme
   end
 
-  test "acme preference reset remains destructive and resets app user preference" do
+  test "acme preference reset remains destructive and removes app user preference" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host! host
     user = clients(:one)
@@ -174,7 +174,7 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
            headers: session_headers(host, token, user)
 
     assert_redirected_to acme_app_preference_url(host: host)
-    assert_equal "sy", user.user_preference.reload.theme
+    assert_nil user.reload.user_preference
   end
 
   private

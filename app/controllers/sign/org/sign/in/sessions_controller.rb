@@ -60,7 +60,6 @@ class Sign::Org::Sign::In::SessionsController < ::Sign::Org::ApplicationControll
     if (pending_session_limit_cycle? || current_session_restricted?) && can_promote_session?(@current_operator)
       if pending_session_limit_cycle? && promote_current_session_limit_cycle!(@current_operator)
         consume_session_limit_gate!
-        session.delete(:pending_login_staff_id)
         return redirect_to_sign_in_sequence!(
           pt: retrieve_pt.presence || session_limit_pt,
           notice: I18n.t("session_limit.promoted"),

@@ -90,9 +90,10 @@ registration.
 - If that unverified record is outside the overwrite window, the pending record and its pending
   account may be replaced and a fresh OTP may be issued.
 - A completed or otherwise already-registered identifier, including `VERIFIED` and
-  `VERIFIED_WITH_SIGN_UP`, must not enter the sign-up verification flow and must not receive a new
-  sign-up OTP. The sign-up create request should fail with validation errors rather than
-  overwriting, reusing, or redirecting through the pending sign-up flow.
+  `VERIFIED_WITH_SIGN_UP`, must not receive a new sign-up OTP and must not create or reuse sign-up
+  account artifacts. The sign-up create response must remain indistinguishable from a normal valid
+  submission by redirecting to the OTP entry step with the same visible copy. Submitted OTPs for that
+  dummy flow must fail with the normal invalid-code feedback.
 
 ## 4. Sign-in Requirements
 

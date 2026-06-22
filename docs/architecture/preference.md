@@ -198,6 +198,14 @@ Examples:
 - `/preference?ri=jp&ct=purple&tz=Mars/Base` redirects to `/preference?ri=jp`.
 - `/preference` redirects to the same route with a valid `ri`, but does not add `lx`, `ct`, or `tz`.
 
+## Preference Reset
+
+Preference reset is a fresh-visit rebootstrap, not an in-place defaults update. A successful reset
+retires the current shared surface preference, clears preference auth and request-context cookies,
+creates a new shared preference through the normal new-visitor bootstrap path, and redirects to the
+same-surface `/preference` without request-context query parameters. The following GET then uses the
+normal required-`ri` lifecycle to add the default region context.
+
 ## Runtime Read Contract
 
 Preference data flows in one direction for Rails runtime reads:

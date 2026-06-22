@@ -338,7 +338,7 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_nil session[:com_sign_up_flow_locator]
   end
 
-  test "update for existing email flow redirects to sign in without otp" do
+  test "update for existing email dummy flow returns generic invalid code" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
     existing_email = VisitorEmail.create!(
       visitor: visitor,
@@ -364,7 +364,7 @@ class Sign::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     assert_response :unprocessable_content
-    assert_equal "ticket is required", response.body
+    assert_includes response.body, I18n.t("sign.app.registration.email.update.invalid_code")
     assert_nil session[:com_sign_up_flow_locator]
   end
 

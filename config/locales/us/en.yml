@@ -1361,6 +1361,12 @@ en:
         purged_at: Purge at
       user_identity_email:
         address: Email address
+      client_identity:
+        source_record_id: Source record ID
+      operator_identity:
+        source_record_id: Source record ID
+      visitor_identity:
+        source_record_id: Source record ID
       client_email:
         address: Email address
         address_digest: Email address digest

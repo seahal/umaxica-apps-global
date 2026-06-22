@@ -15,6 +15,10 @@ end
 
 JitSecurityJwtRegistry.configure!
 
+Rails.application.config.after_initialize do
+  OidcClientRegistry.validate_private_key_jwt_configuration!
+end
+
 module JwtConfig
   def self.private_key
     JitSecurityJwtKeyring.private_key_for_active

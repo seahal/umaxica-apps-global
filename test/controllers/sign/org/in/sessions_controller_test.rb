@@ -66,6 +66,8 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_select "input[type=radio][name=ref]"
     assert_select "input[type=checkbox][name='revoke_session_ids[]']", false
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
+    assert_select "form[data-turbo=false][method=post][action=?]",
+                  sign_org_sign_in_session_cancellation_path(ri: "jp")
     rendered_ref = css_select("input[type=radio][name=ref]").first["value"]
 
     assert_equal active_token, OperatorToken.find_from_signed_ref(rendered_ref)

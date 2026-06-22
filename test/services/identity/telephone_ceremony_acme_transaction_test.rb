@@ -255,6 +255,22 @@ class IdentityTelephoneCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_empty VisitorTelephoneCeremonyTransaction.column_names & forbidden_columns
   end
 
+  test "consumed transaction without result_jti is invalid" do
+    txn = ClientTelephoneCeremonyTransaction.new(
+      surface: "app",
+      actor_ref: "actor-validation",
+      session_ref: "session-validation",
+      operation: "registration",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+      status: TelephoneCeremonyTransactionable::STATUS_CONSUMED,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :result_jti
+  end
+
   test "telephone ceremony transaction scopes classify active expired consumed and purgeable rows" do
     active = create_app_transaction("scope-active", expires_at: @now + 10.minutes)
     expired_recent = create_app_transaction("scope-expired-recent", expires_at: @now - 1.hour)

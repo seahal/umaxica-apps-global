@@ -97,18 +97,20 @@ class AcmeRefreshTokenService
   # every token in the same refresh token family. This is logged without
   # the raw refresh verifier to avoid exposing secret_credentials.
   def handle_refresh_token_reuse(token)
-    family_scope = refresh_token_family_scope(token)
-    now = Time.current
-    # rubocop:disable Rails/SkipsModelValidations
-    family_scope.update_all(discarded_at: now)
-    # rubocop:enable Rails/SkipsModelValidations
+    with_token_writing_connection(token) do
+      family_scope = refresh_token_family_scope(token)
+      now = Time.current
+      # rubocop:disable Rails/SkipsModelValidations
+      family_scope.update_all(discarded_at: now)
+      # rubocop:enable Rails/SkipsModelValidations
 
-    actor_key = actor_identifier_column(token) || :user_id
-    SignRiskEmitter.emit(
-      "refresh_reuse_detected",
-      actor_key => actor_identifier(token),
-      :user_token_id => token.public_id,
-    )
+      actor_key = actor_identifier_column(token) || :user_id
+      SignRiskEmitter.emit(
+        "refresh_reuse_detected",
+        actor_key => actor_identifier(token),
+        :user_token_id => token.public_id,
+      )
+    end
 
     Rails.logger.info(
       JitLogEvent.format(
@@ -126,6 +128,19 @@ class AcmeRefreshTokenService
     return token.class.where(id: token.id) if family_id.blank?
 
     token.class.where(refresh_token_family_id: family_id)
+  end
+
+  def with_token_writing_connection(token, &block)
+    owner = connection_owner_for(token.class)
+    return yield if owner.blank?
+
+    owner.connected_to(role: :writing, &block)
+  end
+
+  def connection_owner_for(klass)
+    owner = klass
+    owner = owner.superclass until owner.connection_class? || owner == ApplicationRecord
+    owner
   end
 
   def actor_identifier_column(token)

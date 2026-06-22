@@ -149,6 +149,9 @@ Sign configuration decisions:
 Session and token decisions:
 
 - `adr/acme-session-and-token-authority.md`
+- `adr/social-login-cooldown-and-one-shot-completion.md` — accepted decision that repeated social
+  login completion inside the 30-second login cooldown is a valid Acme-side cooldown rejection, and
+  consumed social ceremony results must fail closed on retry.
 - `adr/token-lifetime-policy-by-surface.md` — per-surface access/refresh token lifetimes (`app` vs
   `org`); implementation tracked in
   `plans/backlog/token-lifetime-policy-by-surface-implementation.md`.

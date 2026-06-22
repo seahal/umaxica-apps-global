@@ -77,6 +77,7 @@ ja:
     client_tokens: トークン
     cooldown_until: クールダウン終了日時
     capability_id: ケイパビリティID
+    source_record_id: ソースレコードID
     code: コード
     code_challenge: コードチャレンジ
     code_challenge_method: コードチャレンジ方式
@@ -238,6 +239,12 @@ ja:
         purged_at: 削除予定日時
       user_identity_email:
         address: メールアドレス
+      client_identity:
+        source_record_id: ソースレコードID
+      operator_identity:
+        source_record_id: ソースレコードID
+      visitor_identity:
+        source_record_id: ソースレコードID
       client_email:
         address: メールアドレス
         address_digest: メールアドレスダイジェスト

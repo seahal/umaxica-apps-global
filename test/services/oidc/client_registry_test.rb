@@ -233,6 +233,24 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
+  test "private_key_jwt configuration validation requires oidc client signing keys" do
+    JitSecurityJwtRegistry.stub(:private_key_for, nil) do
+      error = assert_raises(OidcClientRegistry::ClientAuthenticationConfigurationError) do
+        OidcClientRegistry.validate_private_key_jwt_configuration!
+      end
+
+      assert_includes error.message, "base-rails-rp(ACME_APP)"
+      assert_includes error.message, "sign-rp(SIGN_APP)"
+      assert_includes error.message, "core-next-rp(CORE_APP)"
+    end
+  end
+
+  test "private_key_jwt configuration validation passes when signing keys exist" do
+    JitSecurityJwtRegistry.stub(:private_key_for, OpenSSL::PKey::EC.generate("secp384r1")) do
+      assert OidcClientRegistry.validate_private_key_jwt_configuration!
+    end
+  end
+
   test "docs app has no registered auth method and remains confidential" do
     client = OidcClientRegistry.find!("docs_app")
 
@@ -288,25 +306,21 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
-  test "base rails client is registered to same surface redirect hosts" do
-    expectations = {
-      "base-rails-rp" => {
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        aud: "base-rails-rp",
-        resource_type: "client",
-      },
-    }
+  test "base rails client is registered to acme and base redirect hosts" do
+    client = OidcClientRegistry.find!("base-rails-rp")
+    redirect_hosts = client.redirect_uris.map { |uri| URI.parse(uri).host }
 
-    expectations.each do |client_id, expected|
-      client = OidcClientRegistry.find!(client_id)
-      redirect_uri = URI.parse(client.redirect_uris.fetch(0))
-
-      assert_equal expected[:host], redirect_uri.host, "#{client_id} redirect host is cross-surface"
-      assert_equal "/oidc/callback", redirect_uri.path
-      assert_equal expected[:aud], client.aud
-      assert_equal expected[:resource_type], client.resource_type
-      assert_includes client.domains, expected[:host]
+    [
+      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+    ].each do |host|
+      assert_includes redirect_hosts, host
+      assert_includes client.domains, host
     end
+
+    assert client.redirect_uris.all? { |uri| URI.parse(uri).path == "/oidc/callback" }
+    assert_equal "base-rails-rp", client.aud
+    assert_equal "client", client.resource_type
   end
 
   private

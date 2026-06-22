@@ -390,15 +390,27 @@ module AuthenticationSequenceGate
     @current_db_sign_in_flow_for_sequence ||=
       begin
         token = respond_to?(:current_session, true) ? current_session : nil
+        actor = current_resource || pending_sign_in_flow_actor
         SignInCycleLocator.new(
           session,
           surface: sign_in_sequence_surface,
-          actor: current_resource,
+          actor: actor,
           token: token,
         ).current
       end
   rescue ArgumentError
     nil
+  end
+
+  def pending_sign_in_flow_actor
+    case sign_in_sequence_surface
+    when :app
+      Client.find_by(id: session[:pending_login_user_id])
+    when :com
+      Visitor.find_by(id: session[:pending_login_visitor_id])
+    when :org
+      Operator.find_by(id: session[:pending_login_staff_id])
+    end
   end
 
   def with_sign_in_flow_writing(cycle, &)

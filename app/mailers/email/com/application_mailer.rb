@@ -6,7 +6,7 @@ module Email::Com
     include PromotionalEmailUnsubscribeHeaders
     include SafePromotionalCtaUrl
 
-    default from: ENV.fetch("SMTP_FROM_ADDRESS_COM", "from@umaxica.com")
+    default from: Rails.app.creds.option(:smtp_from_address_com, default: "from@umaxica.com")
     layout "mailer/com/mailer"
   end
 end

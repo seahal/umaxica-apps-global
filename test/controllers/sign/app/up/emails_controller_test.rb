@@ -221,7 +221,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_includes response.body, I18n.t("sign.app.registration.email.create.turnstile_validation_failed")
   end
 
-  test "create with existing verified email is rejected and does not create a new record" do
+  test "create with existing verified email shows otp page without sending or creating records" do
     user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
     existing_email = ClientEmail.create!(
       user: user,
@@ -246,13 +246,18 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       end
     end
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
-    assert_includes response.body, ClientEmail.human_attribute_name(:address)
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
     assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
+
+    follow_redirect!
+    assert_response :success
+    assert_includes response.body, I18n.t("sign.app.registration.email.create.verification_code_sent")
+    assert_not_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_not_includes response.body, I18n.t("errors.messages.taken")
   end
 
-  test "create with existing verified-with-sign-up email is rejected" do
+  test "create with existing verified-with-sign-up email shows otp page without sending" do
     existing_user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
     ClientEmail.create!(
       user: existing_user,
@@ -277,8 +282,8 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       end
     end
 
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
     assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
@@ -346,7 +351,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
            headers: default_headers
     end
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_equal before_otp_last_sent_at, existing_email.reload.otp_last_sent_at
     assert_equal before_otp_counter, existing_email.otp_counter
     assert_equal before_otp_attempts_count, existing_email.otp_attempts_count
@@ -1554,7 +1559,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
   end
 
-  test "existing registered emails are rejected instead of entering cooldown" do
+  test "existing registered emails show otp page instead of entering cooldown" do
     user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
     ClientEmail.create!(
       user: user,
@@ -1563,7 +1568,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    # First attempt with existing email -- no OTP sent, rejected as already registered.
+    # First attempt with existing email -- no OTP sent, same user-facing OTP page.
     assert_enqueued_emails 0 do
       post sign_app_sign_up_email_url(ri: "jp"),
            params: {
@@ -1576,9 +1581,10 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
            headers: default_headers
     end
 
-    assert_response :unprocessable_content
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
 
-    # Second attempt immediately -- same rejection, not an overwrite-window cooldown.
+    # Second attempt immediately -- same generic response, not an overwrite-window cooldown.
     assert_enqueued_emails 0 do
       post sign_app_sign_up_email_url(ri: "jp"),
            params: {
@@ -1591,7 +1597,8 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
            headers: default_headers
     end
 
-    assert_response :unprocessable_content
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
   end
 
   test "otp_resend_too_soon i18n key exists in both locales" do

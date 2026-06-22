@@ -21,17 +21,19 @@ class AuthenticationLogoutCurrentSession
     token_record = resolved_token
     return true if recent_completed_sign_out_flow?(token_record)
 
-    cycle = begin_sign_out_flow(token_record)
-    begin
-      cycle&.mark_access_discarded!
-      revoke_device_session!(token_record)
-      revoke_token!(token_record) unless device_session_cascade_handles_token?(token_record)
-      cycle&.mark_logically_revoked!
-      cycle&.await_sign_out_expiry!
-      cycle&.complete_sign_out!
-    rescue StandardError
-      fail_sign_out_flow(cycle)
-      raise
+    with_token_writing_connection(token_record) do
+      cycle = begin_sign_out_flow(token_record)
+      begin
+        cycle&.mark_access_discarded!
+        revoke_device_session!(token_record)
+        revoke_token!(token_record) unless device_session_cascade_handles_token?(token_record)
+        cycle&.mark_logically_revoked!
+        cycle&.await_sign_out_expiry!
+        cycle&.complete_sign_out!
+      rescue StandardError
+        fail_sign_out_flow(cycle)
+        raise
+      end
     end
     true
   end
@@ -90,6 +92,21 @@ class AuthenticationLogoutCurrentSession
     klass.active.find_by(public_id: session_public_id)
   rescue ActiveRecord::StatementInvalid, ActiveRecord::ConnectionNotDefined
     nil
+  end
+
+  def with_token_writing_connection(token_record, &block)
+    owner = connection_owner_for(token_record&.class || token_class)
+    return yield if owner.blank?
+
+    owner.connected_to(role: :writing, &block)
+  end
+
+  def connection_owner_for(klass)
+    return unless klass.respond_to?(:connection_class?)
+
+    owner = klass
+    owner = owner.superclass until owner.connection_class? || owner == ApplicationRecord
+    owner
   end
 
   def device_session_class

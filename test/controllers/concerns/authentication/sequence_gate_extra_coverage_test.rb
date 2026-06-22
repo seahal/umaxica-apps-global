@@ -203,6 +203,16 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     undef_method :sign_app_selector_path
   end
 
+  class LocatorHarness < Harness
+    attr_accessor :surface
+
+    def sign_in_sequence_surface = surface
+
+    def current_db_sign_in_flow_for_sequence
+      AuthenticationSequenceGate.instance_method(:current_db_sign_in_flow_for_sequence).bind(self).call
+    end
+  end
+
   setup do
     @harness = Harness.new
   end
@@ -370,6 +380,26 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     @harness.define_singleton_method(:current_session) { raise ArgumentError }
 
     assert_nil @harness.send(:current_db_sign_in_flow_for_sequence)
+  end
+
+  test "current_db_sign_in_flow_for_sequence resolves pending actors before token issuance" do
+    [
+      [:app, Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE),
+       ClientSignInFlow, :pending_login_user_id],
+      [:com, Visitor.create!(public_id: "v_#{SecureRandom.hex(6)}", status_id: VisitorStatus::ACTIVE),
+       VisitorSignInFlow, :pending_login_visitor_id],
+      [:org, Operator.create!(status_id: OperatorStatus::ACTIVE),
+       OperatorSignInFlow, :pending_login_staff_id],
+    ].each do |surface, actor, cycle_class, pending_key|
+      harness = LocatorHarness.new
+      harness.surface = surface
+      cycle = create_session_limit_cycle(cycle_class, actor)
+
+      SignInCycleLocator.new(harness.session, surface: surface, actor: actor).issue!(cycle, nonce: "pending-#{surface}")
+      harness.session[pending_key] = actor.id
+
+      assert_equal cycle, harness.send(:current_db_sign_in_flow_for_sequence)
+    end
   end
 
   test "continue_checkpoint_sequence_without_content! advances a checkpoint cycle" do
@@ -559,5 +589,20 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     assert_predicate cycle, :completed
     assert_equal({ token: nil }, cycle.updates.first.slice(:token))
     assert_predicate cycle.updates.first[:session_issued_at], :present?
+  end
+
+  private
+
+  def create_session_limit_cycle(cycle_class, actor)
+    cycle_class.create!(
+      principal_id: actor.id,
+      status_id: cycle_class.status_id_for("SESSION_LIMIT_PENDING"),
+      state: "SESSION_LIMIT_PENDING",
+      step: "session_limit",
+      return_to: "/dashboard",
+      nonce_digest: cycle_class.digest_nonce("unused"),
+      issued_at: Time.current,
+      expires_at: 15.minutes.from_now,
+    )
   end
 end

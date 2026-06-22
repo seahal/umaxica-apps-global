@@ -8,6 +8,12 @@ class PalmRouteContractTest < ActionDispatch::IntegrationTest
 
   PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
 
+  test "palm does not expose a dashboard" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{PALM_HOST}/dashboard", method: :get)
+    end
+  end
+
   test "palm route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{PALM_HOST}/",

@@ -178,6 +178,61 @@ class IdentityEmailCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_empty OperatorEmailCeremonyTransaction.column_names & forbidden_columns
   end
 
+  test "active_at scope returns only non-expired pending transactions" do
+    active = create_transaction("scope-active", expires_at: 1.hour.from_now)
+    expired = create_transaction("scope-expired", expires_at: 1.hour.ago)
+    consumed = create_transaction("scope-consumed", expires_at: 1.hour.from_now)
+    consumed.update!(status: EmailCeremonyTransactionable::STATUS_CONSUMED, result_jti: "r", consumed_at: Time.current)
+
+    active_at = ClientEmailCeremonyTransaction.active_at(Time.current)
+
+    assert_includes active_at, active
+    assert_not_includes active_at, expired
+    assert_not_includes active_at, consumed.reload
+  end
+
+  test "consume_result raises when result_jti collides with an existing consumed transaction" do
+    first = create_transaction("dup-first", expires_at: 1.hour.from_now)
+    first.consume_result!(result_jti: "colliding-result", consumed_at: Time.current)
+
+    second = create_transaction("dup-second", expires_at: 1.hour.from_now)
+
+    assert_raises(IdentityEmailCeremonyContract::Error) do
+      second.consume_result!(result_jti: "colliding-result", consumed_at: Time.current)
+    end
+  end
+
+  test "surface validation rejects surface that does not match transaction class ceremony surface" do
+    txn = ClientEmailCeremonyTransaction.new(
+      surface: "com",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "registration",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :surface
+  end
+
+  test "consumed transaction without result_jti is invalid" do
+    txn = ClientEmailCeremonyTransaction.new(
+      surface: "app",
+      actor_ref: @client.public_id,
+      session_ref: @session_ref,
+      operation: "registration",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+      status: EmailCeremonyTransactionable::STATUS_CONSUMED,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :result_jti
+  end
+
   private
 
   def create_unverified_client_email!(address)

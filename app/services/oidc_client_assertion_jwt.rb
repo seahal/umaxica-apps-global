@@ -23,6 +23,18 @@ module OidcClientAssertionJwt
   end
 
   def issue(client_id:, token_url:, now: Time.current, jti: SecureRandom.uuid)
+    issue_with_configured_key(client_id: client_id, token_url: token_url, now: now, jti: jti)
+  rescue JitSecurityJwtRegistry::ConfigurationError
+    return nil unless refresh_local_key_material!(client_id: client_id)
+
+    begin
+      issue_with_configured_key(client_id: client_id, token_url: token_url, now: now, jti: jti)
+    rescue JitSecurityJwtRegistry::ConfigurationError
+      nil
+    end
+  end
+
+  def issue_with_configured_key(client_id:, token_url:, now:, jti:)
     namespace = OidcClientRegistry.jwt_namespace_for(client_id)
     return nil if namespace.blank?
 
@@ -38,8 +50,6 @@ module OidcClientAssertionJwt
     }
 
     JitSecurityJwtKeyring.encode(payload, issuer_id: issuer_id)
-  rescue JitSecurityJwtRegistry::ConfigurationError
-    nil
   end
 
   def valid?(client_id:, assertion:, token_url:, now: Time.current, replay_store: self.replay_store)
@@ -110,5 +120,17 @@ module OidcClientAssertionJwt
     "oidc:client_assertion:#{namespace}:#{client_id}:jti:#{jti}"
   end
 
-  private_class_method :consume_jti?, :replay_cache_key
+  def refresh_local_key_material!(client_id:)
+    return false unless Rails.env.local?
+    return false unless defined?(JitSecurityJwtLocalKeysetInstaller)
+
+    namespace = OidcClientRegistry.jwt_namespace_for(client_id)
+    return false if namespace.blank?
+
+    JitSecurityJwtLocalKeysetInstaller.install!
+    JitSecurityJwtRegistry.reload!
+    JitSecurityJwtRegistry.private_key_for("oidc_client:#{namespace}").present?
+  end
+
+  private_class_method :issue_with_configured_key, :consume_jti?, :replay_cache_key, :refresh_local_key_material!
 end

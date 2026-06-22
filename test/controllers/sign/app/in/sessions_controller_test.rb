@@ -66,6 +66,8 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_select "input[type=radio][name=ref]"
     assert_select "input[type=checkbox][name='revoke_refs[]']", false
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
+    assert_select "form[data-turbo=false][method=post][action=?]",
+                  sign_app_sign_in_session_cancellation_path(ri: "jp")
   end
 
   test "show counts only usable active sessions" do

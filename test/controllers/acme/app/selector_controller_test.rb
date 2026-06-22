@@ -61,4 +61,16 @@ class Acme::App::SelectorControllerTest < ActionDispatch::IntegrationTest
     assert_equal "selected", response.parsed_body.fetch("status")
     assert_equal candidate[:public][:account_public_id], @token.reload.selected_account_public_id
   end
+
+  test "selector update renders invalid selection error as json" do
+    AcmeSelectorAuthority.stub(:select, ->(*) { raise AcmeSelectorAuthority::InvalidSelection, "bad" }) do
+      patch acme_app_selector_url(host: @host),
+            params: { account_public_id: "invalid" },
+            headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id),
+            as: :json
+    end
+
+    assert_response :unprocessable_content
+    assert_equal "invalid_selection", response.parsed_body.fetch("status")
+  end
 end

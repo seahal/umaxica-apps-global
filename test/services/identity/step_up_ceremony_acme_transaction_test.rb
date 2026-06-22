@@ -146,6 +146,48 @@ class IdentityStepUpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_empty OperatorStepUpCeremonyTransaction.column_names & forbidden_columns
   end
 
+  test "consume_result raises when result_jti collides with an existing consumed transaction" do
+    travel_to @now do
+      first = issue_transaction!(transaction_id: "collide-first").transaction
+      first.consume_result!(
+        result_jti: "step-up-colliding",
+        method: "totp",
+        aal: "aal2",
+        verified_at: @now,
+        consumed_at: @now,
+      )
+
+      second = create_transaction!("collide-second", expires_at: @now + 1.hour)
+
+      assert_step_up_error("result_jti has already been consumed") do
+        second.consume_result!(
+          result_jti: "step-up-colliding",
+          method: "totp",
+          aal: "aal2",
+          verified_at: @now,
+          consumed_at: @now,
+        )
+      end
+    end
+  end
+
+  test "surface validation rejects surface that does not match ceremony surface" do
+    txn = ClientStepUpCeremonyTransaction.new(
+      surface: "com",
+      actor_ref: @client.public_id,
+      session_ref: @token.public_id,
+      required_scope: "settings_email",
+      required_aal: "aal2",
+      allowed_methods: "totp,passkey",
+      transaction_id: SecureRandom.uuid,
+      grant_jti: SecureRandom.uuid,
+      expires_at: 10.minutes.from_now,
+    )
+
+    assert_not txn.valid?
+    assert_includes txn.errors.attribute_names, :surface
+  end
+
   private
 
   def issue_transaction!(transaction_id: nil, expires_at: nil)

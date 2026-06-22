@@ -28,4 +28,14 @@ class Acme::App::FullAccessGateTest < ActionDispatch::IntegrationTest
 
     assert_response :success
   end
+
+  test "dashboard requests selection as json when context is missing" do
+    get acme_app_dashboard_url(host: @host, ri: "jp"), headers: as_user_headers(
+      @user,
+      host: @host,
+    ), as: :json
+
+    assert_response :forbidden
+    assert_equal "selection_required", response.parsed_body.fetch("status")
+  end
 end

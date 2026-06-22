@@ -224,6 +224,7 @@ module Sign
           private
 
           def valid_telephone_session?
+            return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?
             return false unless @user_telephone.present? && !@user_telephone.otp_expired?
 
             if existing_signup_telephone_flow?(session[:user_telephone_registration])
@@ -259,6 +260,8 @@ module Sign
           end
 
           def valid_registration_session?(registration_session)
+            return dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
+
             session_public_id = session_public_id_from_registration(registration_session)
             registration_session.present? &&
               session_public_id.to_s == @user_telephone.public_id.to_s
@@ -269,6 +272,8 @@ module Sign
           end
 
           def otp_session_expired?(registration_session)
+            return !dummy_existing_telephone_session_valid? if dummy_existing_telephone_flow?(registration_session)
+
             @user_telephone.otp_expired? ||
               registration_session["expires_at"].to_i <= Time.current.to_i
           end
@@ -334,6 +339,7 @@ module Sign
           end
 
           def load_registration_telephone(registration_session)
+            return nil if dummy_existing_telephone_flow?(registration_session)
             return nil if registration_session.blank?
 
             public_id = registration_session[:public_id] || registration_session["public_id"]
@@ -341,7 +347,7 @@ module Sign
           end
 
           def resend_redirect_path
-            if @user_telephone
+            if @user_telephone || dummy_existing_telephone_flow?
               sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
             else
               new_sign_app_sign_up_telephone_path(ri: params[:ri])
@@ -367,21 +373,26 @@ module Sign
             registration_session&.dig(:existing) == true || registration_session&.dig("existing") == true
           end
 
+          def dummy_existing_telephone_flow?(registration_session = session[:user_telephone_registration])
+            registration_session&.dig(:dummy) == true || registration_session&.dig("dummy") == true
+          end
+
+          def dummy_existing_telephone_session_valid?
+            registration_session = session[:user_telephone_registration]
+            return false unless dummy_existing_telephone_flow?(registration_session)
+
+            registration_session["expires_at"].to_i > Time.current.to_i
+          end
+
           def dispatch_existing_telephone_verification!(existing_telephone)
             sign_up_flow_locator.clear!
-            @user_telephone = existing_telephone
-            otp_code = generate_otp_for(@user_telephone)
-            @user_telephone.update!(otp_last_sent_at: Time.current) if @user_telephone.respond_to?(:otp_last_sent_at=)
+            @user_telephone = ClientTelephone.new
 
             session[:user_telephone_registration] = {
-              public_id: @user_telephone.public_id,
-              confirm_policy: boolean_value(@user_telephone.confirm_policy),
-              confirm_using_mfa: boolean_value(@user_telephone.confirm_using_mfa),
-              expires_at: @user_telephone.otp_expires_at.to_i,
+              expires_at: CommonOtp::OTP_EXPIRATION_MINUTES.minutes.from_now.to_i,
               existing: true,
+              dummy: true,
             }
-
-            SignTelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
 
             redirect_to(
               sign_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
@@ -496,6 +507,8 @@ module Sign
           end
 
           def current_registration_telephone
+            return ClientTelephone.new if dummy_existing_telephone_flow?
+
             public_id = session_public_id_from_registration
             return if public_id.blank?
 
