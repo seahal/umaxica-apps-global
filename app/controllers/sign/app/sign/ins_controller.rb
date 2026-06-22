@@ -10,7 +10,7 @@ module Sign
         skip_before_action :set_region, raise: false
 
         def show
-          return reject_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
+          return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
           return normalize_to_acme_authorize! if params[:login_challenge].blank?
 
           transaction = load_sign_in_authorization_transaction!
@@ -31,8 +31,8 @@ module Sign
           redirect_to_oidc_authorization_url(url)
         end
 
-        def reject_logged_in_direct_entry!
-          render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden
+        def redirect_logged_in_direct_entry!
+          redirect_to(sign_app_dashboard_path(ri: params[:ri]))
         end
 
         def redirect_signed_in_authorization_transaction!(transaction)

@@ -35,7 +35,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :see_other
-    location = URI.parse(response.location)
+    location = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
@@ -54,8 +54,11 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    challenge = Rack::Utils.parse_nested_query(URI.parse(response.location).query.to_s)["logout_challenge"]
-    get acme_app_oidc_logout_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), ri: "jp", logout_challenge: challenge)
+    challenge = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query.to_s)["logout_challenge"]
+    get acme_app_oidc_logout_url(
+      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), ri: "jp",
+      logout_challenge: challenge,
+    )
 
     assert_response :success
     assert_select "form[action*=?][method=?]", acme_app_oidc_logout_path, "post"

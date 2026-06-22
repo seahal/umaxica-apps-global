@@ -69,7 +69,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_check_path) do |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
-    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    sign_in_sequence_redirects = []
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
     controller.define_singleton_method(:social_auth_success_redirect_path) { "/settings" }
     controller.define_singleton_method(:issue_bulletin!) { @issue_bulletin_for_test }
     controller.define_singleton_method(:logged_in?) { @logged_in_for_test }
@@ -89,6 +93,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.instance_variable_set(:@issue_bulletin_for_test, false)
 
     assert_equal "/dashboard", controller.send(:redirect_for_new_account, "Apple")
+    assert_equal({ pt: nil }, sign_in_sequence_redirects.last)
 
     controller.instance_variable_set(:@login_result_for_test, { status: :success, restricted: true })
     controller.send(:handle_login_intent, user, "Apple", false)
@@ -175,7 +180,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    sign_in_sequence_redirects = []
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
     controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
@@ -191,6 +200,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     return_to = "/after-social"
 
     assert_equal "/dashboard", controller.send(:handle_login_intent, user, "Google", false, pt: return_to)
+    assert_equal({ pt: return_to }, sign_in_sequence_redirects.last)
 
     kwargs = controller.instance_variable_get(:@complete_sign_in_kwargs_for_test)
 
@@ -449,7 +459,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    sign_in_sequence_redirects = []
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
     controller.define_singleton_method(:sign_app_sign_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
@@ -684,7 +698,11 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
+    sign_in_sequence_redirects = []
+    controller.define_singleton_method(:redirect_to_sign_in_sequence!) do |**kwargs|
+      sign_in_sequence_redirects << kwargs
+      "/dashboard"
+    end
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
 
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-02-03")

@@ -46,7 +46,10 @@ module SignOidcLogout
     @logout_transaction = logout_transaction_for_challenge
     return render_oidc_logout_completion if @logout_transaction.blank? || @logout_transaction.expired?
 
-    return render_oidc_end_session_confirmation if request.get? || request.head?
+    # Coordination hop: the user already confirmed sign-out on the origin surface.
+    # `logout_challenge` is a single-use, unguessable token bound to that intent, so
+    # GETs from the in-flight transaction auto-advance without a second confirmation.
+    return render_oidc_logout_completion if request.head?
 
     if @logout_transaction.expected_finalization?
       AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
@@ -76,6 +79,7 @@ module SignOidcLogout
           host: sign_service_host,
           ri: params[:ri],
           logout_challenge: transaction.logout_challenge,
+          protocol: "https",
         ),
         status: :see_other,
       )
@@ -110,6 +114,7 @@ module SignOidcLogout
 
     uri = URI.parse(transaction.completion_url)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
+    uri.scheme = "https"
     query["logout_challenge"] = transaction.logout_challenge
     query["state"] = transaction.callback_state if transaction.callback_state.present?
     uri.query = query.to_query
@@ -309,7 +314,7 @@ module SignOidcLogout
   def logout_transaction_for_challenge
     return if logout_challenge.blank?
 
-    AcmeLogoutTransactionService.find_by_logout_challenge!(logout_challenge)
+    AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
   end
 
   def sign_service_host

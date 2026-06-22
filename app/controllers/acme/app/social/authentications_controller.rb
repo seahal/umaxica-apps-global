@@ -135,7 +135,6 @@ module Acme
             redirect_url = acme_social_login_redirect_to(sign_in_result)
             return redirect_to(
               redirect_url,
-              notice: social_login_notice(provider, signup_flow: signup_flow),
               allow_other_host: acme_social_login_redirect_allows_other_host?(redirect_url),
             )
           end
@@ -318,21 +317,6 @@ module Acme
         def social_connection_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
           public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
-        end
-
-        def social_login_notice(provider, signup_flow:)
-          normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          if signup_flow
-            return I18n.t(
-              "sign.app.social.sessions.create.signup_success",
-              provider: normalized_provider.humanize,
-            )
-          end
-
-          I18n.t(
-            "sign.app.social.sessions.create.already_registered",
-            provider: normalized_provider.humanize,
-          )
         end
       end
     end

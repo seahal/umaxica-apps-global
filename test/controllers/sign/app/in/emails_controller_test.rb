@@ -357,7 +357,7 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :too_many_requests
-    assert_includes @response.body, I18n.t("sign.app.authentication.email.create.cooldown")
+    assert_includes @response.body, I18n.t("errors.messages.login_cooldown")
     assert_equal initial_sent_at, test_email.reload.otp_last_sent_at
   end
 

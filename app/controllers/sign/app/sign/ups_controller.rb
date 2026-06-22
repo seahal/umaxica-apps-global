@@ -5,12 +5,16 @@ module Sign
   module App
     module Sign
       class UpsController < ::Sign::App::ApplicationController
-        AUTHENTICATION_MODE = :guest
-        declare_authentication_mode! :guest, no_redirect: true
+        # Use :open instead of :guest so already-authenticated users reach the
+        # action body and get redirected to their dashboard (see
+        # `redirect_logged_in_direct_entry!`) instead of receiving a 403 from
+        # the guest enforcement. Matches the sibling InsController policy.
+        AUTHENTICATION_MODE = :open
+        declare_authentication_mode! :open
         skip_before_action :set_region, raise: false
 
         def show
-          return reject_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
+          return redirect_logged_in_direct_entry! if logged_in? && params[:login_challenge].blank?
           return normalize_to_acme_authorize! if params[:login_challenge].blank?
 
           transaction =
@@ -34,8 +38,12 @@ module Sign
 
         private
 
-        def reject_logged_in_direct_entry!
-          render plain: I18n.t("errors.messages.already_authenticated"), status: :forbidden
+        # Logged-in users hitting /sign/up directly are sent to their post-auth
+        # landing instead of receiving a 403. The 403 surfaced as a hard error
+        # in the cross-host redirect chain when the SSO handshake briefly
+        # revisited this endpoint.
+        def redirect_logged_in_direct_entry!
+          redirect_to(sign_app_dashboard_path(ri: params[:ri]))
         end
 
         def normalize_to_acme_authorize!

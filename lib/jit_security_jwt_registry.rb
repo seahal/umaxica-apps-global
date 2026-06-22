@@ -17,11 +17,13 @@ module JitSecurityJwtRegistry
     SIGN_APP SIGN_COM SIGN_ORG
     ACME_APP ACME_COM ACME_ORG
     CORE_APP CORE_COM CORE_ORG
+    BASE_APP BASE_COM BASE_ORG
   ).freeze
   OIDC_CLIENT_NAMESPACES = %w(
     SIGN_APP SIGN_COM SIGN_ORG
     ACME_APP ACME_COM ACME_ORG
     CORE_APP CORE_COM CORE_ORG
+    BASE_APP BASE_COM BASE_ORG
   ).freeze
   SURFACE_ISSUER_ORIGINS = {
     "SIGN_APP" => "https://id.umaxica.app",
@@ -33,6 +35,9 @@ module JitSecurityJwtRegistry
     "CORE_APP" => "https://www-jp.umaxica.app",
     "CORE_COM" => "https://www-jp.umaxica.com",
     "CORE_ORG" => "https://www-jp.umaxica.org",
+    "BASE_APP" => "https://base.app.localhost",
+    "BASE_COM" => "https://base.com.localhost",
+    "BASE_ORG" => "https://base.org.localhost",
   }.freeze
 
   ConfigurationError = Class.new(StandardError)

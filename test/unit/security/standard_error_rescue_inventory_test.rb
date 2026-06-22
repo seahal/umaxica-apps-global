@@ -12,7 +12,7 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       classification: "auth boundary; each rescue logs and re-raises ActorSupport::ResolutionError",
     },
     "app/controllers/concerns/authentication_logoutable.rb" => {
-      count: 4,
+      count: 5,
       classification: "logout boundary; each rescue logs and re-raises after session cleanup",
     },
     "app/controllers/concerns/social_callback_guard.rb" => {
@@ -40,7 +40,7 @@ class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
       classification: "preference token/cookie degradation; auth state must not depend on this",
     },
     "app/controllers/concerns/preference_core.rb" => {
-      count: 2,
+      count: 1,
       classification: "preference persistence side effect; resolution errors are re-raised separately",
     },
     "app/controllers/concerns/preference_resource_sync.rb" => {

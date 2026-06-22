@@ -21,11 +21,8 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
-  # Regression: email sign-up must complete on the Acme host, not by finishing
-  # the login boundary on Sign and then trying to carry that host-only session
-  # across subdomains. Clearing the birthdate should emit an Acme completion
-  # form so the durable login happens where the dashboard lives.
-  test "clearing the birthdate renders an acme completion form" do
+  # Regression: email sign-up hands off to the sign-in checkpoint on Sign.
+  test "clearing the birthdate completes the sign-up on sign" do
     advance_to_birthdate_checkpoint!("birthdate-finalize@example.com")
     flow = ClientSignUpFlow.order(:created_at).last
 
@@ -39,13 +36,8 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           },
           headers: { "Host" => @host }
 
-    assert_response :success
-    assert_includes response.body, "email-signup-completion-form"
-
-    submit_email_signup_completion_if_present!
-
     assert_response :redirect
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
 
     patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
@@ -57,8 +49,8 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           },
           headers: { "Host" => @host }
 
-    assert_response :unprocessable_content
-    assert_includes response.body, "ticket is required"
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
   end
 
   test "update without a sign-up ticket does not raise an unsafe cross-host redirect" do

@@ -72,14 +72,27 @@ module FlowBase
   # unprotected. Wrap in `self.class.transaction` so the lock is real whether
   # or not the caller already opened a transaction (Rails treats nested
   # `transaction` as a join, not a SAVEPOINT, unless `requires_new: true`).
+  #
+  # When a controller wraps the whole finalize sequence in `with_cycle_lock`
+  # and the inner state-machine evaluation re-enters `with_cycle_lock` on the
+  # same instance, the row is already locked for the outermost transaction.
+  # Re-issuing SELECT ... FOR UPDATE is semantically redundant and only adds
+  # round-trips, so the inner re-entry yields without re-locking.
   def with_cycle_lock
     raise ArgumentError, "block required" unless block_given?
     raise FlowInvalidTransition, "cycle must be persisted" unless persisted?
 
+    return yield if @_in_cycle_lock
+
     self.class.connection_class_for_self.connected_to(role: :writing) do
       self.class.transaction do
         lock!
-        yield
+        @_in_cycle_lock = true
+        begin
+          yield
+        ensure
+          @_in_cycle_lock = false
+        end
       end
     end
   end

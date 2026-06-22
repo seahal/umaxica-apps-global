@@ -19,9 +19,9 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     assert_predicate token.reload, :revoked?
-    location = URI.parse(response.location)
+    location = URI.parse(jump_rt_url_from_location(response.location))
 
-    assert_equal "/sign/out/complete", location.path
+    assert_equal "/sign/out/edit", location.path
   end
 
   private

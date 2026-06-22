@@ -30,7 +30,7 @@ class Acme::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_predicate token.reload, :revoked?
 
-    follow_redirect!
+    get jump_rt_url_from_location(response.location)
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")

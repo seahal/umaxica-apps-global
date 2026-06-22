@@ -64,7 +64,6 @@ sign_routes do
     namespace :sign do
       # Sign-up ceremony.
       namespace :up do
-        get :email, to: "emails#new", as: nil # FIXME: compat alias for /sign/up/email; remove once callers use /sign/up/email/new
         resource :email, only: %i(new create)
         resource :telephone, only: %i(new create)
 

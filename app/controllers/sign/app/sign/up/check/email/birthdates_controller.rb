@@ -48,44 +48,6 @@ module Sign
 
                 render "sign/app/sign/up/checkpoints/show", status: :ok
               end
-
-              def finalize_sign_up_from_checkpoint!(json: false)
-                return super if json
-
-                render(
-                  "sign/shared/email_signup_completion",
-                  locals: {
-                    completion_url: completion_acme_app_sign_up_email_url(
-                      ri: params[:ri],
-                      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-                    ),
-                    completion_token: email_signup_completion_token!,
-                    completion_actor_token: email_signup_completion_actor_token!,
-                    completion_email_token: email_signup_completion_email_token!,
-                    pt: signed_pt_param,
-                    ri: params[:ri],
-                  },
-                  layout: false,
-                )
-              end
-
-              def email_signup_completion_token!
-                @sign_up_ticket.signed_id(purpose: :email_signup_completion, expires_in: 15.minutes)
-              end
-
-              def email_signup_completion_actor_token!
-                actor = Client.find_by(id: @sign_up_ticket.principal_id)
-                raise IdentityCeremonyContract::Error, "email actor is required" unless actor
-
-                actor.signed_id(purpose: :email_signup_completion, expires_in: 15.minutes)
-              end
-
-              def email_signup_completion_email_token!
-                email = ClientEmail.find_by(id: @sign_up_ticket.pending_contact_id)
-                raise IdentityCeremonyContract::Error, "email candidate is required" unless email
-
-                email.signed_id(purpose: :email_signup_completion, expires_in: 15.minutes)
-              end
             end
           end
         end

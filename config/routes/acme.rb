@@ -86,15 +86,6 @@ scope module: :acme, as: :acme do
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
-      # Sign-up completion boundary for email sign-up handoff.
-      namespace :sign do
-        namespace :up do
-          resource :email, only: [] do
-            post :completion
-          end
-        end
-      end
-
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion

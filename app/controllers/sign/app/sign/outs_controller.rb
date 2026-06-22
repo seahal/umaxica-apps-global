@@ -22,6 +22,8 @@ module Sign
         end
 
         def edit
+          return continue_acme_coordinated_logout if params[:logout_challenge].present?
+
           render "sign/shared/sign_outs/edit"
         end
 
@@ -46,7 +48,7 @@ module Sign
         end
 
         def continue_acme_coordinated_logout
-          transaction = AcmeLogoutTransactionService.find_by_logout_challenge!(params.expect(:logout_challenge))
+          transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
           return render_oidc_rp_logout_completion if transaction.expired?
 
           logout_current_session!(reason: "user_logout")
@@ -58,7 +60,10 @@ module Sign
           )
 
           redirect_to_jump_url(
-            acme_oidc_logout_url(logout_challenge: transaction.logout_challenge),
+            acme_oidc_logout_url(
+              logout_challenge: transaction.logout_challenge,
+              protocol: "https",
+            ),
             status: :see_other,
           )
         rescue ActiveRecord::RecordNotFound

@@ -90,7 +90,7 @@ module Sign
             end
 
             if sign_in_email_cooldown_active?(normalized_address)
-              render plain: t("errors.messages.login_cooldown"), status: :too_many_requests
+              render plain: sign_in_email_cooldown_message(normalized_address), status: :too_many_requests
               return
             end
 
@@ -221,6 +221,13 @@ module Sign
             return nil if email.blank? || email.otp_expired?
 
             email
+          end
+
+          def sign_in_email_cooldown_message(normalized_address)
+            existing_email = find_email_with_timing_protection(normalized_address)
+            return t("errors.messages.login_cooldown") if existing_email&.user&.login_allowed?
+
+            t("sign.app.authentication.email.create.cooldown")
           end
 
           def redirect_to_email_session_expired

@@ -65,3 +65,46 @@ module ActiveSupport
     fixtures :all
   end
 end
+
+module ReferenceDefaultsRestorer
+  REFERENCE_DEFAULT_MODELS = [
+    AppPreferenceBindingMethod,
+    AppPreferenceDbscStatus,
+    AppPreferenceStatus,
+    ComPreferenceBindingMethod,
+    ComPreferenceDbscStatus,
+    ComPreferenceStatus,
+    ClientMfaLevel,
+    ClientMfaStatus,
+    ClientStatus,
+    ClientVisibility,
+    ClientTokenBindingMethod,
+    ClientTokenDbscStatus,
+    ClientTokenKind,
+    ClientTokenStatus,
+    OperatorMfaLevel,
+    OperatorMfaStatus,
+    VisitorMfaLevel,
+    VisitorMfaStatus,
+    OrgPreferenceBindingMethod,
+    OrgPreferenceDbscStatus,
+    OrgPreferenceStatus,
+  ].freeze
+
+  def self.restore_reference_defaults!
+    REFERENCE_DEFAULT_MODELS.each do |model|
+      model.ensure_defaults! if model.respond_to?(:ensure_defaults!)
+    end
+  end
+
+  delegate :restore_reference_defaults!, to: :ReferenceDefaultsRestorer
+
+  def after_teardown
+    super
+  ensure
+    restore_reference_defaults!
+  end
+end
+
+ActiveSupport.on_load(:active_support_test_case) { prepend ReferenceDefaultsRestorer }
+ReferenceDefaultsRestorer.restore_reference_defaults!

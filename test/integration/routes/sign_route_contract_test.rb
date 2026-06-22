@@ -120,10 +120,9 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "sign/app/sign/up/emails", action: "new" },
-      { path: "http://#{SIGN_APP_HOST}/sign/up/email", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/up/email", method: :get)
+    end
 
     assert_recognizes(
       { controller: "sign/app/sign/ins", action: "show" },

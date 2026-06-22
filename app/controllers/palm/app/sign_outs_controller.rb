@@ -24,7 +24,8 @@ module Palm
         response.set_header("Cache-Control", "no-store")
         response.set_header("Referrer-Policy", "no-referrer")
         result = PalmLogoutService.call(request: request, ri: params[:ri])
-        return render json: { error: result.error, error_description: result.error_description }, status: :unauthorized unless result.success?
+        return render json: { error: result.error, error_description: result.error_description },
+                      status: :unauthorized unless result.success?
 
         render json: {
           logout_url: result.logout_url,
@@ -38,7 +39,7 @@ module Palm
       def logout_transaction
         return if params[:logout_challenge].blank?
 
-        AcmeLogoutTransactionService.find_by_logout_challenge!(params[:logout_challenge])
+        AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
       rescue ActiveRecord::RecordNotFound
         nil
       end

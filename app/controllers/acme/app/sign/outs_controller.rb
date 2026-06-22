@@ -31,10 +31,15 @@ module Acme
           transaction_result = AcmeLogoutTransactionService.issue!(
             origin_surface: "acme",
             initiating_client_id: "acme-rp",
-            completion_url: sign_out_complete_url,
+            completion_url: AcmeLogoutTransactionService.completion_url_for(
+              origin_surface: "acme",
+              ri: params[:ri],
+              surface: sign_surface_name,
+            ),
             actor_ref: current_resource.try(:public_id),
             session_ref: safe_current_session_public_id_for_logout,
             callback_state: nil,
+            surface: sign_surface_name,
           )
           return render_oidc_logout_completion unless transaction_result.success?
 
@@ -49,6 +54,7 @@ module Acme
               host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
               ri: params[:ri],
               logout_challenge: transaction.logout_challenge,
+              protocol: "https",
             ),
             status: :see_other,
           )

@@ -33,14 +33,15 @@ class Sign::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    assert_response :temporary_redirect
+    assert_response :see_other
     location = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal acme_host, location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_sign_org_sign_out_url(ri: "jp", host: host), query["post_logout_redirect_uri"]
+    assert_equal complete_sign_org_sign_out_url(ri: "jp", host: host, protocol: "https"),
+                 query["post_logout_redirect_uri"]
     assert_predicate query["state"], :present?
   end
 end

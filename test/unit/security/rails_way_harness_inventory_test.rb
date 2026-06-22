@@ -16,6 +16,10 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
 
   REVIEWED_MODEL_CONCERN_SIDE_EFFECTS = {
     "app/models/concerns/account.rb" => [1, "legacy ActiveRecord validation concern; move deliberately"],
+    "app/models/concerns/acme_logout_transactionable.rb" => [
+      7,
+      "reviewed sign-out transaction concern",
+    ],
     "app/models/concerns/actor_lifecycle_consistency.rb" => [2, "legacy Actor lifecycle invariant concern"],
     "app/models/concerns/administrative_access_lockable.rb" => [
       4,

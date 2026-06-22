@@ -57,47 +57,47 @@ module SignOutNotice
   end
 
   def sign_out_route_params
-    params.permit(:ri).to_h.symbolize_keys
+    params.permit(:ri, :logout_challenge).to_h.symbolize_keys
   end
 
-  def sign_out_new_path
-    public_send("new_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  def sign_out_new_path(**options)
+    public_send("new_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_new_url
-    public_send("new_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  def sign_out_new_url(**options)
+    public_send("new_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_edit_path
-    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  def sign_out_edit_path(**options)
+    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_edit_url
-    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  def sign_out_edit_url(**options)
+    public_send("edit_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_post_path
-    public_send("#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  def sign_out_post_path(**options)
+    public_send("#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_post_url
-    public_send("#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  def sign_out_post_url(**options)
+    public_send("#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_complete_path
-    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params)
+  def sign_out_complete_path(**options)
+    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_complete_url
-    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params)
+  def sign_out_complete_url(**options)
+    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_home_path
-    public_send("#{sign_out_route_helper_prefix}_root_path", **sign_out_route_params)
+  def sign_out_home_path(**options)
+    public_send("#{sign_out_route_helper_prefix}_root_path", **sign_out_route_params, **options.compact)
   end
 
-  def sign_out_home_url
-    public_send("#{sign_out_route_helper_prefix}_root_url", **sign_out_route_params)
+  def sign_out_home_url(**options)
+    public_send("#{sign_out_route_helper_prefix}_root_url", **sign_out_route_params, **options.compact)
   end
 
   def sign_out_confirmation_form_path

@@ -14,6 +14,7 @@ module JumpRtSurface
       when /\ASign::/ then "SIGN"
       when /\AAcme::/ then "ACME"
       when /\ACore::/ then "CORE"
+      when /\ABase::/ then "BASE"
       end
     surface =
       case controller_class_name.to_s

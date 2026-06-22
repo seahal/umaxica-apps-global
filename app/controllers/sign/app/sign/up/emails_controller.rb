@@ -12,6 +12,7 @@ module Sign
           include SignEmailRegistrable
 
           AUTHENTICATION_MODE = :guest
+          REGISTRATION_EMAIL_PERMITTED_KEYS = %i(raw_address address confirm_policy promotional notifiable).freeze
           before_action :enforce_email_flow!
 
           declare_authentication_mode! :guest, status: :unauthorized,
@@ -222,10 +223,11 @@ module Sign
           end
 
           def registration_email_params
-            params.permit(
-              client_email: %i(raw_address address confirm_policy promotional notifiable),
-              user_email: %i(raw_address address confirm_policy promotional notifiable),
-            )[:client_email] || params[:user_email]
+            scope = params[:client_email] || params[:user_email]
+            return nil if scope.blank?
+            return scope.permit(REGISTRATION_EMAIL_PERMITTED_KEYS) if scope.is_a?(ActionController::Parameters)
+
+            ActionController::Parameters.new(scope).permit(REGISTRATION_EMAIL_PERMITTED_KEYS)
           end
 
           def valid_email_session?

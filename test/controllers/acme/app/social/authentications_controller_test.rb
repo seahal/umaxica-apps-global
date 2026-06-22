@@ -101,7 +101,7 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestC
     assert_not session_started
   end
 
-  test "completion uses signup notice for signup flows" do
+  test "completion redirects without notice for signup flows" do
     redirects = []
     @controller.define_singleton_method(:establish_signed_in_session!) do |_resource, **_kwargs|
       { status: :success, redirect_path: "/dashboard" }
@@ -143,6 +143,6 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestC
       end
     end
 
-    assert_equal "Appleでの登録が完了しました", redirects.last.last[:notice]
+    assert_equal({ allow_other_host: false }, redirects.last.last)
   end
 end

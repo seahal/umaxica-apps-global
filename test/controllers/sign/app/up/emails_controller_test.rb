@@ -35,15 +35,17 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"
   end
 
-  test "direct email entry route renders the sign up form" do
-    get "/sign/up/email?ri=jp", headers: default_headers
-
-    assert_response :success
-    assert_select "form"
+  test "direct email entry route no longer exists" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/sign/up/email",
+        method: :get,
+      )
+    end
   end
 
   test "collection get redirects to add ri" do
-    get sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
+    get new_sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
 
     assert_response :redirect
   end
@@ -942,17 +944,11 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    assert_response :success
-    assert_includes response.body, "email-signup-completion-form"
-
-    submit_email_signup_completion_if_present!
-
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "jump.umaxica.net", uri.host
-    assert_equal acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
-                 jump_rt_url_from_location(response.location)
+    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
 
     user = user_email.reload.user
 
@@ -1150,11 +1146,6 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    assert_response :success
-    assert_includes response.body, "email-signup-completion-form"
-
-    submit_email_signup_completion_if_present!
-
     assert_response :redirect
     assert_equal "2000-02-03", user_email.user.reload.birthdate
     assert cycle.reload.requirement_cleared?(:birthdate)
@@ -1196,25 +1187,18 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           params: birthdate_params,
           headers: default_headers
 
-    assert_response :success
-    assert_includes response.body, "email-signup-completion-form"
-
-    submit_email_signup_completion_if_present!
-
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "jump.umaxica.net", uri.host
-    assert_equal acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
-                 jump_rt_url_from_location(response.location)
+    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 
     patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: birthdate_params,
           headers: default_headers
 
-    assert_response :unprocessable_content
-    assert_includes response.body, "ticket is required"
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
   end
 
@@ -1299,11 +1283,6 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
             checkpoint_version: cycle.reload.checkpoint_version,
           },
           headers: default_headers
-
-    assert_response :success
-    assert_includes response.body, "email-signup-completion-form"
-
-    submit_email_signup_completion_if_present!
 
     assert_response :redirect
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id

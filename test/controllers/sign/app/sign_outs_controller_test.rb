@@ -26,9 +26,10 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
     post sign_app_sign_out_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
-         headers: as_user_headers(
-           user, host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-                 session_public_id: token.public_id,
+         headers: browser_headers.merge(
+           "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+           "X-TEST-CURRENT-USER" => user.id.to_s,
+           "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
          )
 
     assert_response :see_other
@@ -42,29 +43,21 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
   end
 
-  test "post sign out can render the acme relay" do
+  test "coordination hops on the acme relay auto-advance without a second confirmation" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
     post sign_app_sign_out_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
-         headers: as_user_headers(
-           user, host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-                 session_public_id: token.public_id,
+         headers: browser_headers.merge(
+           "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+           "X-TEST-CURRENT-USER" => user.id.to_s,
+           "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
          )
 
     logout_challenge = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query.to_s)["logout_challenge"]
 
     get acme_app_oidc_logout_url(
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      ri: "jp",
-      logout_challenge: logout_challenge,
-    )
-
-    assert_response :success
-    assert_select "form[action*=?][method=?]", acme_app_oidc_logout_path, "post"
-
-    post acme_app_oidc_logout_url(
       host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       ri: "jp",
       logout_challenge: logout_challenge,
@@ -95,7 +88,10 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
          )
 
     assert_response :see_other
-    assert_match %r{\Ahttp://#{Regexp.escape(ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))}/oidc/logout\?logout_challenge=},
-                 response.location
+    logout_uri = URI.parse(jump_rt_url_from_location(response.location))
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), logout_uri.host
+    assert_equal "/oidc/logout", logout_uri.path
+    assert_predicate Rack::Utils.parse_nested_query(logout_uri.query.to_s)["logout_challenge"], :present?
   end
 end

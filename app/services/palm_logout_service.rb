@@ -3,8 +3,10 @@
 
 class PalmLogoutService < ApplicationService
   Result =
-    Data.define(:success, :logout_url, :state, :expires_at, :transaction, :resource, :token, :error,
-                :error_description) do
+    Data.define(
+      :success, :logout_url, :state, :expires_at, :transaction, :resource, :token, :error,
+      :error_description,
+    ) do
       def success? = success
     end
 
@@ -18,7 +20,10 @@ class PalmLogoutService < ApplicationService
 
   def call
     authentication_result = authenticate_current_token
-    return failure(authentication_result[:error], authentication_result[:error_description]) unless authentication_result[:success]
+    return failure(
+      authentication_result[:error],
+      authentication_result[:error_description],
+    ) unless authentication_result[:success]
 
     resource = authentication_result[:resource]
     token = authentication_result[:token]
@@ -68,15 +73,23 @@ class PalmLogoutService < ApplicationService
       host: request.host,
       authorization_scheme: authorization_scheme,
     )
-    return { success: false, error: auth_result.error, error_description: "authentication failed" } unless auth_result.success?
+    return { success: false,
+             error: auth_result.error,
+             error_description: "authentication failed", } unless auth_result.success?
 
     token = ClientToken.find_by(
       oidc_sid: auth_result.payload["sid"].to_s,
       oidc_jti: auth_result.payload["jti"].to_s,
       oidc_client_id: AuthorizationTokenClaims.client_id(auth_result.payload).to_s,
     )
-    return { success: false, error: "invalid_token", error_description: "logout token not found", payload: auth_result.payload } if token.blank?
-    return { success: false, error: "invalid_token", error_description: "logout token is not active", payload: auth_result.payload } unless token.active?
+    return { success: false,
+             error: "invalid_token",
+             error_description: "logout token not found",
+             payload: auth_result.payload, } if token.blank?
+    return { success: false,
+             error: "invalid_token",
+             error_description: "logout token is not active",
+             payload: auth_result.payload, } unless token.active?
 
     {
       success: true,

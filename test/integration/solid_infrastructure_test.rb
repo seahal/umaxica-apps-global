@@ -4,12 +4,9 @@
 require "test_helper"
 
 class SolidInfrastructureTest < ActiveSupport::TestCase
-  test "test environment uses null cache store with solid cache replica configuration" do
+  test "test environment uses null cache store and leaves solid cache disconnected" do
     assert_instance_of ActiveSupport::Cache::NullStore, Rails.cache
-    assert_equal(
-      { shards: { cache: { writing: :cache, reading: :cache_replica } } },
-      SolidCache.configuration.connects_to,
-    )
+    assert_nil SolidCache.configuration.connects_to
   end
 
   test "null cache reads are safe inside reading role" do

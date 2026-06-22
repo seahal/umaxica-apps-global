@@ -10,14 +10,21 @@ module OidcRpLogoutLauncher
     transaction_result = AcmeLogoutTransactionService.issue!(
       origin_surface: logout_origin_surface,
       initiating_client_id: client_id,
-      completion_url: sign_out_complete_url,
+      completion_url: AcmeLogoutTransactionService.completion_url_for(
+        origin_surface: logout_origin_surface,
+        ri: params[:ri],
+        surface: logout_surface_name,
+      ),
       actor_ref: current_resource.try(:public_id),
       session_ref: safe_current_session_public_id_for_logout,
       callback_state: nil,
+      surface: logout_surface_name,
     )
     return render_oidc_rp_logout_unavailable unless transaction_result.success?
 
     transaction = transaction_result.transaction
+    state = SecureRandom.hex(16)
+    prepare_sign_out_completion_notice!(state: state)
     logout_current_session!(reason: "user_logout")
     issue_sign_out_notice!
     AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
@@ -25,7 +32,19 @@ module OidcRpLogoutLauncher
     redirect_to_jump_url(
       acme_oidc_logout_url(
         ri: params[:ri],
+        id_token_hint: oidc_rp_logout_id_token_hint(
+          client_id: client_id,
+          issuer_resource_type: issuer_resource_type,
+          token_issuer: token_issuer,
+        ),
+        post_logout_redirect_uri: AcmeLogoutTransactionService.completion_url_for(
+          origin_surface: logout_origin_surface,
+          ri: params[:ri],
+          surface: logout_surface_name,
+        ),
+        state: state,
         logout_challenge: transaction.logout_challenge,
+        protocol: "https",
       ),
       status: :see_other,
     )
@@ -97,5 +116,9 @@ module OidcRpLogoutLauncher
 
   def logout_origin_surface
     controller_path.split("/").first
+  end
+
+  def logout_surface_name
+    controller_path.split("/").second
   end
 end

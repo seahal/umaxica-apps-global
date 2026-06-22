@@ -251,6 +251,12 @@ module MissingHelpers
       "JWT_CORE_ORG_PRIVATE_KEY" => jump_rt_key,
       "JWT_CORE_COM_ACTIVE_KID" => "core-com-test",
       "JWT_CORE_COM_PRIVATE_KEY" => jump_rt_key,
+      "JWT_BASE_APP_ACTIVE_KID" => "base-app-test",
+      "JWT_BASE_APP_PRIVATE_KEY" => jump_rt_key,
+      "JWT_BASE_ORG_ACTIVE_KID" => "base-org-test",
+      "JWT_BASE_ORG_PRIVATE_KEY" => jump_rt_key,
+      "JWT_BASE_COM_ACTIVE_KID" => "base-com-test",
+      "JWT_BASE_COM_PRIVATE_KEY" => jump_rt_key,
     }
 
     env.each do |key, value|
@@ -419,31 +425,6 @@ module MissingHelpers
 
     form = Nokogiri::HTML(response.body).at_css("form#social-completion-form")
     raise StandardError, "social completion form missing" unless form
-
-    params = {}
-    form.css("input").each do |input|
-      name = input["name"]
-      params[name] = input["value"] if name.present?
-    end
-
-    post(
-      form["action"],
-      params: params,
-      headers: {
-        "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        "Origin" => "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}",
-        "Sec-Fetch-Site" => "same-site",
-      },
-    )
-    cookies.to_hash.each_key { |key| cookies.delete(key) }
-  end
-
-  def submit_email_signup_completion_if_present!
-    return unless response.media_type == "text/html"
-    return unless response.body.include?("email-signup-completion-form")
-
-    form = Nokogiri::HTML(response.body).at_css("form#email-signup-completion-form")
-    raise StandardError, "email signup completion form missing" unless form
 
     params = {}
     form.css("input").each do |input|
@@ -1062,6 +1043,23 @@ if defined?(ActiveSupport::TestCase)
     Rails.configuration.x.rate_limit.fetch(:store).clear
     AuthenticationBase.login_cooldown_enabled = false if defined?(AuthenticationBase)
     [
+      AppPreferenceBindingMethod,
+      AppPreferenceDbscStatus,
+      AppPreferenceStatus,
+      ComPreferenceBindingMethod,
+      ComPreferenceDbscStatus,
+      ComPreferenceStatus,
+      ClientMfaLevel,
+      ClientMfaStatus,
+      ClientStatus,
+      ClientVisibility,
+      OperatorMfaLevel,
+      OperatorMfaStatus,
+      OrgPreferenceBindingMethod,
+      OrgPreferenceDbscStatus,
+      OrgPreferenceStatus,
+      VisitorMfaLevel,
+      VisitorMfaStatus,
       ClientTokenBindingMethod,
       ClientTokenDbscStatus,
       ClientTokenKind,

@@ -195,7 +195,7 @@ module Sign
           end
         end
 
-        def handle_social_sign_up_intent(user, provider_name, identity, pt: nil)
+        def handle_social_sign_up_intent(user, _provider_name, identity, pt: nil)
           # Two callbacks for the same social identity (provider + uid) can
           # arrive simultaneously (e.g. user double-clicks the consent button
           # or replays a stale tab). Without serialization, both pass the
@@ -215,7 +215,6 @@ module Sign
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
-            notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )
         end
 
@@ -223,7 +222,7 @@ module Sign
           !existing_account
         end
 
-        def handle_pending_social_sign_up_intent(provider_name, pt: nil)
+        def handle_pending_social_sign_up_intent(_provider_name, pt: nil)
           auth = request.env["omniauth.auth"]
           provider = SocialIdentifiable.normalize_provider(auth.provider)
 
@@ -243,7 +242,6 @@ module Sign
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
-            notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
           )
         end
 
@@ -496,21 +494,12 @@ module Sign
           redirect_for_new_account(provider_name, pt: pt)
         end
 
-        def redirect_for_existing_account(provider_name, pt: nil)
-          redirect_to_sign_in_sequence!(
-            pt: pt,
-            notice: I18n.t(
-              "sign.app.social.sessions.create.already_registered",
-              provider: provider_name,
-            ),
-          )
+        def redirect_for_existing_account(_provider_name, pt: nil)
+          redirect_to_sign_in_sequence!(pt: pt)
         end
 
-        def redirect_for_new_account(provider_name, pt: nil)
-          redirect_to_sign_in_sequence!(
-            pt: pt,
-            notice: I18n.t("sign.app.social.sessions.create.success", provider: provider_name),
-          )
+        def redirect_for_new_account(_provider_name, pt: nil)
+          redirect_to_sign_in_sequence!(pt: pt)
         end
 
         def sign_in(user, pt: nil)

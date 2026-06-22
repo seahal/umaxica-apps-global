@@ -91,6 +91,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     submit_social_completion_if_present!
 
     assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    follow_redirect!
+
+    assert_nil flash[:notice]
 
     cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
 

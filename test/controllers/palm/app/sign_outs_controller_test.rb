@@ -92,6 +92,7 @@ module Palm
 
         assert_response :see_other
         sign_uri = URI.parse(jump_rt_url_from_location(response.location))
+
         assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_uri.host
         assert_equal "/sign/out/edit", sign_uri.path
 
@@ -112,6 +113,7 @@ module Palm
 
         assert_response :see_other
         acme_finalize_uri = URI.parse(jump_rt_url_from_location(response.location))
+
         assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), acme_finalize_uri.host
         assert_equal "/oidc/logout", acme_finalize_uri.path
 
