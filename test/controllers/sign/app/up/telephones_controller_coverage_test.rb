@@ -207,7 +207,7 @@ class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
     assert pending_user.destroyed
   end
 
-  test "dispatch_existing_telephone_verification! writes registration state and sends otp" do
+  test "dispatch_existing_telephone_verification! writes dummy registration state without sending otp" do
     telephone = FakeTelephone.new(
       "tel-2",
       ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
@@ -231,8 +231,10 @@ class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
       @controller.send(:dispatch_existing_telephone_verification!, telephone)
     end
 
-    assert_equal [telephone, "123456"], delivered
-    assert_predicate @controller.session[:user_telephone_registration], :present?
+    assert_nil delivered
+    registration_session = @controller.session[:user_telephone_registration]
+    assert_equal true, registration_session[:existing] || registration_session["existing"]
+    assert_equal true, registration_session[:dummy] || registration_session["dummy"]
     assert @controller.instance_variable_get(:@sign_up_flow_locator).cleared
   end
 

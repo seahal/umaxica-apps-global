@@ -48,4 +48,24 @@ class ObservabilitySpanScrubberTest < ActiveSupport::TestCase
 
     assert_equal integer_value, ObservabilitySpanScrubber.scrub_attribute("foo", integer_value)
   end
+
+  test "scrub_attribute scrubs nested sensitive values under a non-sensitive key" do
+    span = MutableSpan.new("details" => "https://example.com/path?jwt=secret")
+
+    _ = ObservabilitySpanScrubber.scrub(span)
+
+    assert_equal "https://example.com/path", span.attributes["details"]
+  end
+
+  test "scrub_attribute scrubs Hash and Array values under a non-sensitive key" do
+    span = MutableSpan.new(
+      "payload" => { "token" => "secret" },
+      "entries" => ["https://example.com/x?code=abc"],
+    )
+
+    _ = ObservabilitySpanScrubber.scrub(span)
+
+    assert_equal ObservabilityRedactor::REDACTED, span.attributes["payload"]["token"]
+    assert_equal "https://example.com/x", span.attributes["entries"].first
+  end
 end

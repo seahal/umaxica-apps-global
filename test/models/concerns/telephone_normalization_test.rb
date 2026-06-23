@@ -166,6 +166,13 @@ class TelephoneNormalizationTest < ActiveSupport::TestCase
     assert_equal "+861012345678", TelephoneNormalization.normalize_to_e164("+86 10 1234 5678") # China
   end
 
+  test "normalize_to_e164 preserves international prefix numbers without a domestic zero" do
+    # "+1" country code has no domestic 0 to strip after the 00 prefix conversion,
+    # exercising the remove_domestic_zero_after_country_code fallback return.
+    assert_equal "+15551234567", TelephoneNormalization.normalize_to_e164("0015551234567")
+    assert_equal "+15551234567", TelephoneNormalization.normalize_to_e164("01015551234567")
+  end
+
   test "normalize_telephone_field installs callbacks and validations" do
     klass =
       Class.new do

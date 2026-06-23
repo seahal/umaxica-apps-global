@@ -109,4 +109,21 @@ class OrgInvitationServiceTest < ActiveSupport::TestCase
 
     assert_not result.success?
   end
+
+  test "consume fails when consume! returns false due to a race condition" do
+    invitation = OrganizationInvitation.create!(
+      organization_id: @organization.id,
+      email: "invitee@example.com",
+      invited_by: @staff,
+    )
+
+    OrganizationInvitation.stub(:find_valid, invitation) do
+      invitation.stub(:consume!, false) do
+        result = OrgInvitationService.consume(code: invitation.code)
+
+        assert_not result.success?
+        assert_equal "Failed to consume invitation", result.error
+      end
+    end
+  end
 end

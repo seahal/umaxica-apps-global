@@ -38,7 +38,6 @@ end
 - **ブロック内で raise されれば両側がロールバック**する。バリデーション/FK/認可などリクエスト内で起きる現実的な失敗はこれで全て all-or-nothing になる。
 - 残る非アトミック窓は「inner(resource)コミット後〜outer(token)コミット前のプロセスクラッシュ」のみ。この稀な窓では mirror が先行コミットされ source が失われるが、次回ログイン時の sync で source 基準に再整合される(`Preference::Adoption`
   経由)。
-
   - トレードオフ: 「外=token
     / 内=resource」を選んだのは、**よくある in-block 失敗の完全アトミック性**を優先したため。逆ネスト(外=resource
     / 内=token)にすると稀なクラッシュ窓でsource が生き残る代わりに、in-block 失敗で token だけ確定する部分書き込みが起きる。前者を採用。

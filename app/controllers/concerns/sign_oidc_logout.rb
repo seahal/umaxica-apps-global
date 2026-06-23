@@ -44,23 +44,59 @@ module SignOidcLogout
 
   def handle_logout_challenge_request
     @logout_transaction = logout_transaction_for_challenge
-    return render_oidc_logout_completion if @logout_transaction.blank? || @logout_transaction.expired?
+    return reject_oidc_logout_challenge!("not_found") if @logout_transaction.blank?
+    return reject_oidc_logout_challenge!("expired") if @logout_transaction.expired?
 
-    # Coordination hop: the user already confirmed sign-out on the origin surface.
-    # `logout_challenge` is a single-use, unguessable token bound to that intent, so
-    # GETs from the in-flight transaction auto-advance without a second confirmation.
-    return render_oidc_logout_completion if request.head?
+    unless request.post?
+      warn_sign_out_event(
+        "auth.sign_out.legacy_handoff.used",
+        transaction: @logout_transaction,
+        auto_handoff: true,
+        user_confirmation_required: false,
+        cleanup_performed: false,
+        result: "rejected",
+        reason: "get_handoff_retired",
+      )
+      return reject_oidc_logout_challenge!("get_handoff_retired")
+    end
 
     if @logout_transaction.expected_finalization?
-      AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
+      finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
+      return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
+
+      log_sign_out_event(
+        "auth.sign_out.transaction.finalized",
+        transaction: finalize_result.transaction,
+        step_after: "finalized",
+        auto_handoff: true,
+        user_confirmation_required: false,
+        cleanup_performed: false,
+        redirect_target_surface: finalize_result.transaction.origin_surface,
+        result: "finalized",
+      )
       return redirect_to_jump_url(
-        oidc_logout_completion_redirect_url(@logout_transaction),
+        oidc_logout_completion_redirect_url(finalize_result.transaction),
         status: :see_other,
       )
     end
 
     prepare_sign_out_completion_notice!
+    log_sign_out_event(
+      "auth.sign_out.step.started",
+      transaction: @logout_transaction,
+      auto_handoff: true,
+      user_confirmation_required: false,
+      result: "started",
+    )
     logout_current_session!(reason: "user_logout")
+    log_sign_out_event(
+      "auth.sign_out.step.cleaned",
+      transaction: @logout_transaction,
+      auto_handoff: true,
+      user_confirmation_required: false,
+      cleanup_performed: true,
+      result: "cleaned",
+    )
     issue_sign_out_notice!
 
     advance_result = AcmeLogoutTransactionService.advance!(
@@ -68,24 +104,58 @@ module SignOidcLogout
       step: "acme_cleared",
     )
     transaction = advance_result.transaction || @logout_transaction
+    return reject_oidc_logout_challenge!(advance_result.error || "invalid_request") unless advance_result.success?
+    log_sign_out_event(
+      "auth.sign_out.step.advanced",
+      transaction: transaction,
+      step_after: transaction.expected_step,
+      auto_handoff: true,
+      user_confirmation_required: false,
+      cleanup_performed: true,
+      result: "advanced",
+    )
 
     if transaction.origin_surface == "sign"
-      AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
-      redirect_to_jump_url(oidc_logout_completion_redirect_url(transaction), status: :see_other)
+      finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
+      return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
+
+      log_sign_out_event(
+        "auth.sign_out.transaction.finalized",
+        transaction: finalize_result.transaction,
+        step_after: "finalized",
+        auto_handoff: true,
+        user_confirmation_required: false,
+        cleanup_performed: true,
+        redirect_target_surface: "sign",
+        result: "finalized",
+      )
+      redirect_to_jump_url(oidc_logout_completion_redirect_url(finalize_result.transaction), status: :see_other)
     else
-      redirect_to_jump_url(
-        public_send(
-          "edit_sign_#{sign_surface_name}_sign_out_url",
+      render_cross_origin_sign_out_handoff(
+        target_url: public_send(
+          "sign_#{sign_surface_name}_sign_out_url",
           host: sign_service_host,
-          ri: params[:ri],
-          logout_challenge: transaction.logout_challenge,
           protocol: "https",
         ),
-        status: :see_other,
+        transaction: transaction,
       )
     end
   rescue ActiveRecord::RecordNotFound, ArgumentError
-    render_oidc_logout_completion
+    reject_oidc_logout_challenge!("not_found")
+  end
+
+  def reject_oidc_logout_challenge!(reason)
+    warn_sign_out_event(
+      "auth.sign_out.challenge.rejected",
+      transaction: @logout_transaction,
+      challenge_valid: false,
+      auto_handoff: true,
+      user_confirmation_required: false,
+      cleanup_performed: false,
+      result: "rejected",
+      reason: reason,
+    )
+    render "sign/shared/sign_outs/unavailable", status: :unprocessable_content
   end
 
   def perform_oidc_end_session_logout(result)
@@ -153,8 +223,14 @@ module SignOidcLogout
     logout_challenge.present? || session.key?(OIDC_LOGOUT_REQUEST_SESSION_KEY)
   end
 
+  OidcLogoutPendingRequest = Struct.new(
+    :client_id, :subject, :sid, :post_logout_redirect_uri, :state, :ui_locales, :legacy_ri, :logout_challenge,
+    :expires_at,
+    keyword_init: true,
+  )
+
   def oidc_logout_pending_request
-    return OpenStruct.new(logout_challenge: logout_challenge) if logout_challenge.present?
+    return OidcLogoutPendingRequest.new(logout_challenge: logout_challenge) if logout_challenge.present?
 
     payload = session[OIDC_LOGOUT_REQUEST_SESSION_KEY]
     return unless payload.is_a?(Hash)
@@ -162,7 +238,7 @@ module SignOidcLogout
     expires_at = parse_oidc_logout_request_time(payload["expires_at"])
     return unless expires_at.present? && expires_at > Time.current
 
-    OpenStruct.new(payload.symbolize_keys)
+    OidcLogoutPendingRequest.new(**payload.symbolize_keys)
   end
 
   def store_oidc_logout_request!(result)
@@ -325,8 +401,6 @@ module SignOidcLogout
       ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     when "org"
       ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
-    else
-      ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
     end
   end
 end

@@ -1863,9 +1863,15 @@ ja:
         title: ログアウトしますか？
         confirm_description: 一度ログアウトすると、再度ログインが必要になります。
         button: ログアウトします
+        handoff_title: サインアウト処理を続行しています
+        handoff_description: この画面は自動的に進みます。
+        handoff_button: サインアウト処理を続行
         success: ログアウトの予約を行いました。%{expires_at}以降には確実にアクセスが不可能となります。
         completed_title: サインアウトしました
         completed_description: "%{expires_at}以降には確実にアクセスが不可能となります。"
+        unavailable_title: サインアウトは完了していません
+        unavailable_description: 現在のセッションがまだ有効な可能性があります。もう一度サインアウトしてください。
+        retry_button: もう一度サインアウトする
         home_link: ホームへ戻る
   org_timeline_tags:
     "%{id}": org_timeline_tag_%{id}

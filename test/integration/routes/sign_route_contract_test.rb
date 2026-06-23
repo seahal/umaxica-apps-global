@@ -17,6 +17,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal expected.fetch(:action), route.fetch(:action)
   end
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "sign app route contract" do
     assert_recognizes(
       { controller: "sign/app/roots", action: "index" },
@@ -202,6 +203,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   test "sign app-only route contract" do
     assert_recognizes(
@@ -307,6 +309,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
   end
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "sign com route contract" do
     assert_recognizes(
       { controller: "sign/com/roots", action: "index" },
@@ -492,6 +495,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   # rubocop:disable Minitest/MultipleAssertions
   test "sign org route contract" do

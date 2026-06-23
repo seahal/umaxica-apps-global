@@ -94,11 +94,11 @@ class AuthenticationLogoutCurrentSession
     nil
   end
 
-  def with_token_writing_connection(token_record, &block)
+  def with_token_writing_connection(token_record, &)
     owner = connection_owner_for(token_record&.class || token_class)
     return yield if owner.blank?
 
-    owner.connected_to(role: :writing, &block)
+    owner.connected_to(role: :writing, &)
   end
 
   def connection_owner_for(klass)

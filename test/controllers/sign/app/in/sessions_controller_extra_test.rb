@@ -70,7 +70,7 @@ class Sign::App::Sign::In::SessionsControllerExtraTest < ActionDispatch::Integra
   test "pending cycle promotion consumes legacy gate but preserves pending actor id" do
     controller = Sign::App::Sign::In::SessionsController.new
     session_hash = {
-      pending_login_user_id: @user.id,
+      :pending_login_user_id => @user.id,
       SessionLimitGate::GATE_SESSION_KEY => {
         "nonce" => "legacy",
         "issued_at" => Time.current.to_i,

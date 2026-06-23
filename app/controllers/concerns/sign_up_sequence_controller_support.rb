@@ -419,10 +419,6 @@ module SignUpSequenceControllerSupport
     ticket
   end
 
-  def sign_up_ticket_public_id
-    session[sign_up_sequence_session_key].presence
-  end
-
   def sign_up_pending_actor
     return if @sign_up_ticket&.principal_id.blank?
 

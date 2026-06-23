@@ -34,17 +34,84 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    assert_response :see_other
-    location = URI.parse(jump_rt_url_from_location(response.location))
+    assert_response :success
+    location = URI.parse(handoff_form["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path
-    assert_predicate query["logout_challenge"], :present?
-    assert_equal "jp", query["ri"]
+    assert_predicate handoff_input_value("logout_challenge"), :present?
+    assert_equal "jp", handoff_input_value("ri")
+    assert_predicate token.reload, :revoked?
   end
 
-  test "post sign out can render the acme relay" do
+  test "post sign out accepts us region" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+
+    post base_app_sign_out_url(ri: "us"), headers: {
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    assert_response :success
+    location = URI.parse(handoff_form["action"])
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal "/oidc/logout", location.path
+    assert_equal "us", handoff_input_value("ri")
+    assert_includes query.fetch("post_logout_redirect_uri"), "ri=us"
+    assert_predicate handoff_input_value("logout_challenge"), :present?
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "post sign out canonicalizes unsupported region to default" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+
+    post base_app_sign_out_url(ri: "xx"), headers: {
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+
+    assert_response :success
+    location = URI.parse(handoff_form["action"])
+    query = Rack::Utils.parse_nested_query(location.query.to_s)
+
+    assert_equal RequestContextContract.default_region, handoff_input_value("ri")
+    assert_includes query.fetch("post_logout_redirect_uri"), "ri=#{RequestContextContract.default_region}"
+    assert_predicate token.reload, :revoked?
+  end
+
+  test "transaction issuance failure does not render success completion" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    rejected = AcmeLogoutTransactionService::Result.new(
+      transaction: nil,
+      status: :rejected,
+      error: "invalid_request",
+      error_description: "completion destination is not allowlisted",
+    )
+
+    AcmeLogoutTransactionService.stub(:issue!, rejected) do
+      post base_app_sign_out_url(ri: "us"), headers: {
+        "X-TEST-CURRENT-USER" => user.id.to_s,
+        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      }
+    end
+
+    assert_response :unprocessable_content
+    assert_predicate token.reload, :currently_usable?
+    assert_not_includes response.body, I18n.t("sign.shared.sign_out.completed_title")
+    assert_includes response.body, I18n.t("sign.shared.sign_out.unavailable_title")
+    assert_select "form[action*=?][method=?]", base_app_sign_out_path, "post"
+  end
+
+  test "post sign out relay advances to sign coordination hop" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
@@ -54,13 +121,34 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    challenge = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query.to_s)["logout_challenge"]
-    get acme_app_oidc_logout_url(
+    challenge = handoff_input_value("logout_challenge")
+
+    post acme_app_oidc_logout_url(
       host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), ri: "jp",
       logout_challenge: challenge,
-    )
+    ), headers: {
+      "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      "Origin" => "https://#{ENV.fetch("BASE_SERVICE_URL", "base-jp.umaxica.app")}",
+      "Sec-Fetch-Site" => "same-site",
+    }
 
     assert_response :success
-    assert_select "form[action*=?][method=?]", acme_app_oidc_logout_path, "post"
+    location = URI.parse(handoff_form["action"])
+
+    assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
+    assert_equal "/sign/out", location.path
+    assert_equal challenge, handoff_input_value("logout_challenge")
+    assert_equal "jp", handoff_input_value("ri")
+  end
+
+  private
+
+  def handoff_form
+    assert_select "form#sign-out-handoff-form[method=post][data-turbo=false]", 1
+    css_select("form#sign-out-handoff-form").first
+  end
+
+  def handoff_input_value(name)
+    css_select(%(form#sign-out-handoff-form input[name="#{name}"])).first&.[]("value")
   end
 end

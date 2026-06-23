@@ -55,22 +55,7 @@ module Sign
               end
 
               def update
-                if dummy_existing_telephone_flow?
-                  @user_telephone = ClientTelephone.new
-                  return render_telephone_session_expired unless valid_registration_session?(session[:user_telephone_registration])
-
-                  submitted_code = params.dig(
-                    "client_telephone",
-                    "pass_code",
-                  ) || params.dig("user_telephone", "pass_code")
-                  if submitted_code.blank?
-                    @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-                    return render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
-                  end
-
-                  @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-                  return render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
-                end
+                return handle_dummy_existing_telephone_flow if dummy_existing_telephone_flow?
 
                 return unless load_gate_context!(gate_for_update)
 
@@ -149,6 +134,25 @@ module Sign
                 if result.status == :rate_limited
                   @user_telephone.errors.add(:base, t("sign.app.registration.email.create.otp_resend_too_soon"))
                   return render "sign/app/sign/up/telephones/edit", status: :too_many_requests
+                end
+
+                @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
+                render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
+              end
+
+              def handle_dummy_existing_telephone_flow
+                @user_telephone = ClientTelephone.new
+                unless valid_registration_session?(session[:user_telephone_registration])
+                  return render_telephone_session_expired
+                end
+
+                submitted_code = params.dig(
+                  "client_telephone",
+                  "pass_code",
+                ) || params.dig("user_telephone", "pass_code")
+                if submitted_code.blank?
+                  @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
+                  return render "sign/app/sign/up/telephones/edit", status: :unprocessable_content
                 end
 
                 @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))

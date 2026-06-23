@@ -20,13 +20,13 @@ export function parseReactIslandProps(value: string | null | undefined): ReactCo
   }
 
   try {
-    const parsed = JSON.parse(value);
+    const parsed: Record<string, unknown> = JSON.parse(value);
 
     if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
       return {};
     }
 
-    return parsed as ReactComponentProps;
+    return parsed;
   } catch {
     return {};
   }

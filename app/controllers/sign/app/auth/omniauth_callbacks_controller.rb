@@ -52,24 +52,7 @@ module Sign
             expected_nonce: expected_provider_nonce(auth),
           )
 
-          if SocialIdentifiable.normalize_provider(auth.provider) == "apple"
-            Rails.logger.info(
-              JitLogEvent.format(
-                "social_auth.apple.form_post.received",
-                surface: :app,
-                region: params[:ri],
-                flow_id: session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY],
-                request_id: request.request_id,
-                callback_path: request.path,
-                origin_present: request.headers["Origin"].present?,
-                origin_null: request.headers["Origin"] == "null",
-                state_present: params[:state].present?,
-                id_token_present: params[:id_token].present?,
-                user_payload_present: params[:user].present?,
-                candidate_present: session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY].present?,
-              ),
-            )
-          end
+          log_apple_form_post_callback_if_needed(auth)
 
           intent = current_social_auth_intent
           Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.processing_callback", intent: intent))
@@ -149,6 +132,27 @@ module Sign
 
         def social_omniauth_callback_requires_writing_role?
           true
+        end
+
+        def log_apple_form_post_callback_if_needed(auth)
+          return unless SocialIdentifiable.normalize_provider(auth.provider) == "apple"
+
+          Rails.logger.info(
+            JitLogEvent.format(
+              "social_auth.apple.form_post.received",
+              surface: :app,
+              region: params[:ri],
+              flow_id: session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY],
+              request_id: request.request_id,
+              callback_path: request.path,
+              origin_present: request.headers["Origin"].present?,
+              origin_null: request.headers["Origin"] == "null",
+              state_present: params[:state].present?,
+              id_token_present: params[:id_token].present?,
+              user_payload_present: params[:user].present?,
+              candidate_present: session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY].present?,
+            ),
+          )
         end
 
         def social_omniauth_callback_received_payload(auth)

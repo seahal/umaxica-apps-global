@@ -350,76 +350,29 @@ module AuthenticationBase
 
     check_login_cooldown!(resource, bootstrap_actor: bootstrap_actor)
 
-    # MFA gate must run BEFORE session rotation. Returns early if required;
-    # actual transition happens on MFA completion.
-    if require_totp_check
-      totp_result = check_totp_requirement(resource)
-      return totp_result if totp_result
-    end
+    totp_result = check_totp_requirement_before_session_rotation(require_totp_check, resource)
+    return totp_result if totp_result
 
     oidc_rp_session_state = preserved_oidc_rp_session_state
 
-    # Rotate session id and clear prior auth cookies at this chokepoint.
     reset_session
     restore_oidc_rp_session_state!(oidc_rp_session_state)
     clear_previous_login_cookies!
 
-    # Serialize session-limit decision and token creation per actor. Without
-    # this, concurrent log_in calls for the same actor each see the same
-    # active-token count and can both bypass MAX_SESSIONS, leaving more
-    # active tokens than the policy allows.
     with_actor_session_lock(resource) do
-      # Sign-up handoff must always issue an active token. If a rare data
-      # condition (e.g. an orphan social_identity that resolves to a
-      # session-saturated actor) made `session_limit_state_for` return
-      # :issue_restricted or :hard_reject for a freshly minted actor,
-      # the user would land on /sign/in/session immediately after
-      # finishing registration -- a UX break with no upside. Skip the
-      # gate entirely when the caller asserts this is a bootstrap login.
-      session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
-      next session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
-
-      is_restricted = session_limit_state == :issue_restricted
-      store_pending_login_resource(resource) if is_restricted
-
-      kind_id = resolve_token_kind_id(token_kind_id)
-      dpop_result = validate_login_dpop_proof
-      next dpop_result unless dpop_result[:status] == :success
-
-      token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
-      token_record = create_login_token_record(
-        resource, kind_id, token_status_id: token_status_id,
-                           dpop_jkt: dpop_result[:jkt],
+      issue_login_tokens_within_lock(
+        resource, record_login_audit: record_login_audit, token_kind_id: token_kind_id,
+                  audit_context: audit_context, bootstrap_actor: bootstrap_actor,
       )
-      device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
-      restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
-      refresh_plain = rotate_login_refresh_token!(token_record, restricted_expires_at)
-      update_device_session_refresh_state!(device_session, token_record)
-      notify_restricted_session_issued(resource, token_record, restricted_expires_at) if is_restricted
-
-      adopt_preference_for!(resource) if respond_to?(:adopt_preference_for!, true)
-      now = Time.current
-      access_expires_at = access_token_expires_at_for(token_record, now: now)
-      access_token = encode_login_access_token(
-        resource, token_record, token_kind_id: token_kind_id,
-                                dpop_jkt: dpop_result[:jkt], access_expires_at: access_expires_at,
-      )
-      set_login_auth_cookies(token_record, access_token, refresh_plain, access_expires_at)
-      issue_dbsc_registration_header_for(token_record)
-      @current_resource = resource
-      @current_session = token_record
-      @current_session_public_id = token_session_public_id(token_record)
-      populate_current_attributes!(resource, nil)
-      @_current_resource_resolved = true
-      emit_session_issued(resource, token_record, token_kind_id, restricted: is_restricted)
-      record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
-      login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
     end
-
-    # The exact client token session-limit validation becomes a controlled
-    # domain failure so callers can render the existing overflow UX.
   rescue ConcurrentSessionLimitExceededError
     session_limit_hard_reject_result(resource)
+  end
+
+  def check_totp_requirement_before_session_rotation(require_totp_check, resource)
+    return unless require_totp_check
+
+    check_totp_requirement(resource)
   end
 
   # Serialize the count-then-create critical section in `log_in` for a
@@ -500,6 +453,63 @@ module AuthenticationBase
     token_record_connection_owner(token_record.class).connected_to(role: :writing) do
       token_record.rotate_refresh_token!(discarded_at: restricted_expires_at)
     end
+  end
+
+  def issue_login_tokens_within_lock(resource, record_login_audit:, token_kind_id:, audit_context:, bootstrap_actor:)
+    # Sign-up handoff must always issue an active token. If a rare data
+    # condition (e.g. an orphan social_identity that resolves to a
+    # session-saturated actor) made `session_limit_state_for` return
+    # :issue_restricted or :hard_reject for a freshly minted actor,
+    # the user would land on /sign/in/session immediately after
+    # finishing registration -- a UX break with no upside. Skip the
+    # gate entirely when the caller asserts this is a bootstrap login.
+    session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
+    return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
+
+    is_restricted = session_limit_state == :issue_restricted
+    store_pending_login_resource(resource) if is_restricted
+
+    dpop_result = validate_login_dpop_proof
+    return { status: dpop_result[:status], error: dpop_result[:error] } unless dpop_result[:status] == :success
+
+    now = Time.current
+    resolved_token_kind_id = resolve_token_kind_id(token_kind_id)
+    token_status_id = is_restricted ? token_class::STATUS_RESTRICTED : token_class::STATUS_ACTIVE
+    token_record = create_login_token_record(
+      resource,
+      resolved_token_kind_id,
+      token_status_id: token_status_id,
+      dpop_jkt: dpop_result[:jkt],
+    )
+    device_session = ensure_device_session_for!(resource, token_record, dpop_jkt: dpop_result[:jkt])
+    restricted_expires_at = is_restricted ? restricted_session_expires_at : nil
+    refresh_plain = rotate_login_refresh_token!(token_record, restricted_expires_at)
+    update_device_session_refresh_state!(device_session, token_record)
+    notify_restricted_session_issued(resource, token_record, restricted_expires_at) if is_restricted
+
+    adopt_preference_for!(resource) if respond_to?(:adopt_preference_for!, true)
+
+    access_expires_at = access_token_expires_at_for(token_record, now: now)
+    access_token = encode_login_access_token(
+      resource,
+      token_record,
+      token_kind_id: token_kind_id,
+      dpop_jkt: dpop_result[:jkt],
+      access_expires_at: access_expires_at,
+    )
+
+    @current_resource = resource
+    @current_session = token_record
+    @current_session_public_id = token_session_public_id(token_record)
+
+    set_login_auth_cookies(token_record, access_token, refresh_plain, access_expires_at)
+    issue_dbsc_registration_header_for(token_record)
+    populate_current_attributes!(resource, nil)
+    @_current_resource_resolved = true
+    emit_session_issued(resource, token_record, token_kind_id, restricted: is_restricted)
+    record_audit(AUDIT_EVENTS[:logged_in], resource: resource, context: audit_context) if record_login_audit
+
+    login_result(token_record, access_token, refresh_plain, access_expires_at, now, restricted: is_restricted)
   end
 
   def notify_restricted_session_issued(resource, token_record, restricted_expires_at)

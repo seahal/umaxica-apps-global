@@ -348,7 +348,7 @@ module Sign
 
           def sign_in_email_cooldown_message(normalized_address)
             existing_email = find_email_with_timing_protection(normalized_address)
-            return t("errors.messages.login_cooldown") if existing_email&.user&.login_allowed?
+            return t("errors.messages.login_cooldown") if existing_email&.visitor&.login_allowed?
 
             t("sign.app.authentication.email.create.cooldown")
           end

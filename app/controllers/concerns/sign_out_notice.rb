@@ -14,6 +14,7 @@ module SignOutNotice
   SIGN_OUT_NOTICE_SESSION_KEY = :sign_out_notice
   SIGN_OUT_NOTICE_TTL = 5.minutes
   SIGN_OUT_NOTICE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, private"
+  SIGN_OUT_REFERRER_POLICY = "no-referrer"
 
   private
 
@@ -108,6 +109,129 @@ module SignOutNotice
     response.headers["Cache-Control"] = SIGN_OUT_NOTICE_CACHE_CONTROL
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
+    response.headers["Referrer-Policy"] = SIGN_OUT_REFERRER_POLICY
+  end
+
+  def render_sign_out_confirmation(template)
+    log_sign_out_event(
+      "auth.sign_out.confirmation.rendered",
+      user_confirmation_required: true,
+      auto_handoff: false,
+      cleanup_performed: false,
+      result: "rendered",
+    )
+    render template
+  end
+
+  def render_sign_out_handoff(template)
+    sign_out_notice_cache_headers!
+    log_sign_out_event(
+      "auth.sign_out.cross_origin_handoff.rendered",
+      user_confirmation_required: false,
+      auto_handoff: true,
+      cleanup_performed: false,
+      result: "rendered",
+    )
+    render template, layout: false
+  end
+
+  def render_cross_origin_sign_out_handoff(target_url:, transaction:)
+    @sign_out_handoff_url = target_url
+    @logout_transaction = transaction
+
+    render_sign_out_handoff "sign/shared/sign_outs/handoff"
+  end
+
+  def verify_coordinated_sign_out_post!(trusted_origins:)
+    return unless request.post? && params[:logout_challenge].present?
+
+    sec_fetch_site = request.headers["Sec-Fetch-Site"].to_s.downcase.presence
+    origin = request.origin.to_s.presence
+
+    trusted_origin_match = origin.present? && trusted_origins.include?(origin)
+    allowed_fetch_site = %w[same-origin same-site].include?(sec_fetch_site)
+    allowed_origin = origin.blank? || trusted_origin_match
+
+    unless allowed_fetch_site && allowed_origin
+      warn_sign_out_event(
+        "auth.sign_out.fetch_metadata.rejected",
+        sec_fetch_site: sec_fetch_site,
+        origin_host: origin_host_for_sign_out_log(origin),
+        trusted_origin_match: trusted_origin_match,
+        result: "rejected",
+        reason: fetch_metadata_rejection_reason(sec_fetch_site, allowed_origin),
+      )
+      render "sign/shared/sign_outs/unavailable", status: :forbidden, layout: false
+    end
+
+    log_sign_out_event(
+      "auth.sign_out.fetch_metadata.accepted",
+      sec_fetch_site: sec_fetch_site,
+      origin_host: origin_host_for_sign_out_log(origin),
+      trusted_origin_match: trusted_origin_match,
+      result: "accepted",
+    )
+  end
+
+  def log_sign_out_event(event_name, transaction: nil, **payload)
+    Rails.logger.info(JitLogEvent.format(event_name, sign_out_log_payload(transaction: transaction, **payload)))
+  end
+
+  def warn_sign_out_event(event_name, transaction: nil, **payload)
+    Rails.logger.warn(JitLogEvent.format(event_name, sign_out_log_payload(transaction: transaction, **payload)))
+  end
+
+  def sign_out_log_payload(transaction: nil, **payload)
+    transaction ||= @logout_transaction if defined?(@logout_transaction)
+    {
+      request_id: request.request_id,
+      transaction_public_id: transaction&.public_id,
+      origin_surface: transaction&.origin_surface || logout_origin_surface_for_logs,
+      current_surface: logout_origin_surface_for_logs,
+      next_surface: sign_out_next_surface_for_logs(transaction),
+      region: params[:ri].presence,
+      step_before: transaction&.expected_step,
+      step_after: payload.delete(:step_after),
+      challenge_present: params[:logout_challenge].present?,
+      challenge_valid: payload.delete(:challenge_valid),
+      sec_fetch_site: payload.delete(:sec_fetch_site),
+      origin_host: payload.delete(:origin_host),
+      trusted_origin_match: payload.delete(:trusted_origin_match),
+      user_confirmation_required: payload.delete(:user_confirmation_required),
+      auto_handoff: payload.delete(:auto_handoff),
+      cleanup_performed: payload.delete(:cleanup_performed),
+      redirect_target_surface: payload.delete(:redirect_target_surface),
+      result: payload.delete(:result),
+      reason: payload.delete(:reason),
+    }.merge(payload).compact
+  end
+
+  def logout_origin_surface_for_logs
+    controller_path.split("/").first
+  end
+
+  def sign_out_next_surface_for_logs(transaction)
+    return unless transaction
+
+    case transaction.expected_step
+    when AcmeLogoutTransaction::STEP_ACME_CLEARED then "acme"
+    when AcmeLogoutTransaction::STEP_SIGN_CLEARED then "sign"
+    when AcmeLogoutTransaction::STEP_FINALIZED then transaction.origin_surface
+    end
+  end
+
+  def origin_host_for_sign_out_log(origin)
+    URI.parse(origin).host if origin.present?
+  rescue URI::InvalidURIError
+    "invalid"
+  end
+
+  def fetch_metadata_rejection_reason(sec_fetch_site, allowed_origin)
+    return "missing_sec_fetch_site" if sec_fetch_site.blank?
+    return "invalid_sec_fetch_site" unless %w[same-origin same-site].include?(sec_fetch_site)
+    return "untrusted_origin" unless allowed_origin
+
+    "invalid_request"
   end
 
   def sign_out_completed_description

@@ -108,6 +108,27 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
   end
 
+  test "server-side Turnstile verifier failure rejects secret credential login" do
+    calls = []
+    verifier = lambda do |token:, remote_ip:, mode:, **|
+      calls << { token: token, remote_ip: remote_ip, mode: mode }
+      { "success" => false }
+    end
+
+    CloudflareTurnstile.test_mode = false
+    JitSecurityTurnstileVerifier.stub(:verify, verifier) do
+      post sign_app_sign_in_secret_credential_url(ri: "jp"),
+           params: login_params(identifier: @raw_email, secret_credential_value: "not-checked"),
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_entity
+    assert_equal [{ token: "test_token", remote_ip: "127.0.0.1", mode: :visible }], calls
+    assert_includes response.body, I18n.t("sign.app.authentication.secret_credential.create.invalid")
+  ensure
+    CloudflareTurnstile.test_mode = true
+  end
+
   test "email and matching permanent secret_credential logs in successfully" do
     _secret_credential, raw_secret_credential = issue_secret_credential!(
       kind: ClientSecretCredentialKind::PERMANENT,

@@ -118,12 +118,12 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "メールで登録する"
   end
 
-  test "rejects direct entry when logged in" do
+  test "logged in direct entry redirects to dashboard" do
     user = clients(:one)
     get sign_app_sign_up_url(format: :html, ri: "jp"), headers: as_user_headers(user, host: host)
 
-    assert_response :forbidden
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_response :redirect
+    assert_redirected_to sign_app_dashboard_url(ri: "jp", host: host)
   end
 
   test "checkpoint without active registration redirects to sign up start" do

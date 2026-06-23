@@ -55,7 +55,7 @@ class SignInSessionCancellationsControllerTest < ActiveSupport::TestCase
     cycle.update!(token: token)
 
     session_hash = {
-      pending_login_user_id: actor.id,
+      :pending_login_user_id => actor.id,
       SessionLimitGate::GATE_SESSION_KEY => {
         "nonce" => "legacy",
         "issued_at" => Time.current.to_i,

@@ -92,8 +92,8 @@ registration.
 - A completed or otherwise already-registered identifier, including `VERIFIED` and
   `VERIFIED_WITH_SIGN_UP`, must not receive a new sign-up OTP and must not create or reuse sign-up
   account artifacts. The sign-up create response must remain indistinguishable from a normal valid
-  submission by redirecting to the OTP entry step with the same visible copy. Submitted OTPs for that
-  dummy flow must fail with the normal invalid-code feedback.
+  submission by redirecting to the OTP entry step with the same visible copy. Submitted OTPs for
+  that dummy flow must fail with the normal invalid-code feedback.
 
 ## 4. Sign-in Requirements
 

@@ -245,7 +245,7 @@ module Sign
             VisitorTelephone.find_by(number_digest: @visitor_telephone.number_digest)
           end
 
-          def dispatch_existing_telephone_verification!(existing_telephone)
+          def dispatch_existing_telephone_verification!(_existing_telephone)
             sign_up_flow_locator.clear!
             @visitor_telephone = VisitorTelephone.new
 

@@ -93,63 +93,63 @@ module SignEmailRegistrable
   end
 
   def create_and_send_verified_email!(allow_existing)
-    cooldown_active = false
-    otp_number = nil
-
     result =
       SignUpEmailPendingGuard.with_lock(
         address_digest: @user_email.address_digest,
         model_class: ClientEmail,
       ) do
-        existing_email =
-          allow_existing ?
-                   ClientEmail.find_by(address_digest: @user_email.address_digest) : nil
-        uniqueness_only = email_uniqueness_only_error?(@user_email)
-        has_errors = @user_email.errors.details.except(:user, :user_id).any?
-
-        if allow_existing && existing_email && !pending_email_status?(existing_email) &&
-            (uniqueness_only || !has_errors)
-          cleanup_pending_signup!
-          session[DUMMY_EXISTING_EMAIL_SESSION_KEY] = dummy_existing_email_session_payload
-          @user_email.errors.clear
-          next :dummy_existing
-        end
-
-        if has_errors
-          next false unless allow_existing && uniqueness_only &&
-            pending_email_status?(existing_email)
-        end
-
-        if pending_email_status?(existing_email) &&
-            existing_email.reregistration_window_active?
-          next :cooldown
-        end
-
-        if pending_email_status?(existing_email)
-          locked = ClientEmail.lock.find_by(id: existing_email.id)
-          if locked&.reregistration_window_active?
-            cooldown_active = true
-            next nil
-          end
-        end
-
-        cleanup_pending_signup!
-        remove_existing_unverified_emails!
-        create_pending_user!
-
-        otp_number = generate_otp_attributes(@user_email)
-        @user_email.otp_last_sent_at = Time.current
-        @user_email.save!
-        :ok
+        process_email_registration_under_lock(allow_existing)
       end
 
-    return :cooldown if cooldown_active
-    return true if result == :dummy_existing
-    return result if result == false || result == :cooldown
-    return false unless result == :ok
+    return :cooldown if result[:cooldown]
+    return true if result[:status] == :dummy_existing
+    return result[:status] if result[:status] == false || result[:status] == :cooldown
+    return false unless result[:status] == :ok
 
-    send_verification_email(otp_number)
+    send_verification_email(result[:otp_number])
     true
+  end
+
+  def process_email_registration_under_lock(allow_existing)
+    existing_email =
+      allow_existing ?
+               ClientEmail.find_by(address_digest: @user_email.address_digest) : nil
+    uniqueness_only = email_uniqueness_only_error?(@user_email)
+    has_errors = @user_email.errors.details.except(:user, :user_id).any?
+
+    if allow_existing && existing_email && !pending_email_status?(existing_email) &&
+        (uniqueness_only || !has_errors)
+      cleanup_pending_signup!
+      session[DUMMY_EXISTING_EMAIL_SESSION_KEY] = dummy_existing_email_session_payload
+      @user_email.errors.clear
+      return { status: :dummy_existing }
+    end
+
+    if has_errors
+      return { status: false } unless allow_existing && uniqueness_only &&
+        pending_email_status?(existing_email)
+    end
+
+    if pending_email_status?(existing_email) &&
+        existing_email.reregistration_window_active?
+      return { status: :cooldown }
+    end
+
+    if pending_email_status?(existing_email)
+      locked = ClientEmail.lock.find_by(id: existing_email.id)
+      if locked&.reregistration_window_active?
+        return { status: nil, cooldown: true }
+      end
+    end
+
+    cleanup_pending_signup!
+    remove_existing_unverified_emails!
+    create_pending_user!
+
+    otp_number = generate_otp_attributes(@user_email)
+    @user_email.otp_last_sent_at = Time.current
+    @user_email.save!
+    { status: :ok, otp_number: otp_number }
   end
 
   def complete_email_verification!(id, submitted_code, token = nil, commit_verified_status: true)

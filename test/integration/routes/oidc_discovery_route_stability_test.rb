@@ -5,7 +5,7 @@ require "test_helper"
 
 # Guards that every path advertised in the OIDC discovery document resolves in
 # the Rails router for the corresponding surface host.  A route rename that
-# updates acme.rb but not OidcIssuer — or vice versa — will fail here before
+# updates acme.rb but not OidcIssuer - or vice versa - will fail here before
 # any RP ever tries to use the stale URL.
 #
 # This test is the bridge between:

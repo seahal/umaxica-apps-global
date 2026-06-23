@@ -31,7 +31,8 @@ class PalmLogoutService < ApplicationService
 
     transaction_result = AcmeLogoutTransactionService.issue!(
       origin_surface: "palm",
-      initiating_client_id: AuthorizationTokenClaims.client_id(authentication_result[:payload]).presence || "app-ios-rp",
+      initiating_client_id: AuthorizationTokenClaims.client_id(authentication_result[:payload]).presence ||
+        "app-ios-rp",
       completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "palm"),
       actor_ref: resource.public_id,
       session_ref: token.public_id,
@@ -48,6 +49,11 @@ class PalmLogoutService < ApplicationService
       token_class: ClientToken,
       session_public_id: token.public_id,
       reason: "user_logout",
+    )
+    revoke_refresh_token_family!(token)
+    AcmeLogoutTransactionService.advance!(
+      logout_challenge: transaction.logout_challenge,
+      step: AcmeLogoutTransaction::STEP_ORIGIN_CLEARED,
     )
 
     Result.new(
@@ -114,6 +120,26 @@ class PalmLogoutService < ApplicationService
       ri: ri || RequestContextContract.default_region,
       **query,
     )
+  end
+
+  def revoke_refresh_token_family!(token)
+    family_id = token.refresh_token_family_id.to_s
+    now = Time.current
+
+    ClientToken.transaction do
+      token.lock!
+      scope =
+        if family_id.present?
+          ClientToken.where(refresh_token_family_id: family_id)
+        else
+          ClientToken.where(id: token.id)
+        end
+
+      # rubocop:disable Rails/SkipsModelValidations
+      scope.update_all(discarded_at: now, updated_at: now)
+      ClientDeviceSession.where(refresh_token_family_id: family_id).update_all(revoked_at: now, updated_at: now) if family_id.present?
+      # rubocop:enable Rails/SkipsModelValidations
+    end
   end
 
   def failure(error, error_description)

@@ -119,7 +119,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
   test "link Apple fails when flow context is missing" do
     uid = "apple_state_mismatch_#{SecureRandom.hex(4)}"
-    # No connection request — nonce: nil is correct; state guard rejects before nonce is checked.
+    # No connection request - nonce: nil is correct; state guard rejects before nonce is checked.
     setup_apple_mock_auth(uid: uid, nonce: nil)
 
     # Do not call /social/auth/:provider/continue to simulate missing link context

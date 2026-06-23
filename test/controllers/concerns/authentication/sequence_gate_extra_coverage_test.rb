@@ -385,11 +385,11 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
   test "current_db_sign_in_flow_for_sequence resolves pending actors before token issuance" do
     [
       [:app, Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE),
-       ClientSignInFlow, :pending_login_user_id],
+       ClientSignInFlow, :pending_login_user_id,],
       [:com, Visitor.create!(public_id: "v_#{SecureRandom.hex(6)}", status_id: VisitorStatus::ACTIVE),
-       VisitorSignInFlow, :pending_login_visitor_id],
+       VisitorSignInFlow, :pending_login_visitor_id,],
       [:org, Operator.create!(status_id: OperatorStatus::ACTIVE),
-       OperatorSignInFlow, :pending_login_staff_id],
+       OperatorSignInFlow, :pending_login_staff_id,],
     ].each do |surface, actor, cycle_class, pending_key|
       harness = LocatorHarness.new
       harness.surface = surface

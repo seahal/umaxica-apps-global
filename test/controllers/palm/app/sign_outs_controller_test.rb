@@ -41,6 +41,10 @@ module Palm
       test "post sign out revokes the current bearer token and returns opaque browser launch data" do
         native_client = clients(:one)
         native_token = create_client_token(native_client)
+        same_family_token = create_client_token(native_client, family_id: native_token.refresh_token_family_id)
+        same_family_refresh = same_family_token.rotate_refresh_token!
+        unrelated_token = create_client_token(native_client)
+        unrelated_refresh = unrelated_token.rotate_refresh_token!
         access_token = encode_palm_access_token(native_client, native_token)
 
         post palm_app_sign_out_url,
@@ -53,6 +57,10 @@ module Palm
         assert_predicate payload["state"], :present?
         assert_predicate payload["expires_at"], :present?
         assert_predicate native_token.reload, :revoked?
+        assert_predicate native_token.device_session.reload, :revoked?
+        assert_not AcmeRefreshTokenService.call(refresh_token: same_family_refresh).success?
+        assert AcmeRefreshTokenService.call(refresh_token: unrelated_refresh).success?
+        assert_not_predicate unrelated_token.device_session.reload, :revoked?
 
         logout_uri = URI.parse(payload["logout_url"])
         query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
@@ -64,83 +72,70 @@ module Palm
         assert_nil query["session_ref"]
 
         browser_token = create_client_token(native_client)
-        acme_headers = as_user_headers(
-          native_client,
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-          session_public_id: browser_token.public_id,
-        )
-        sign_headers = as_user_headers(
-          native_client,
-          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-          session_public_id: browser_token.public_id,
-        )
-
-        get acme_app_oidc_logout_url(
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-          ri: "jp",
-          logout_challenge: query["logout_challenge"],
-        ), headers: acme_headers
-
-        assert_response :success
-        assert_select "form[action*=?][method=?]", acme_app_oidc_logout_path, "post"
-
         post acme_app_oidc_logout_url(
           host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
-        ), headers: acme_headers
-
-        assert_response :see_other
-        sign_uri = URI.parse(jump_rt_url_from_location(response.location))
-
-        assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_uri.host
-        assert_equal "/sign/out/edit", sign_uri.path
-
-        get edit_sign_app_sign_out_url(
-          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
-          ri: "jp",
-          logout_challenge: query["logout_challenge"],
-        ), headers: sign_headers
+        ), headers: as_user_headers(
+          native_client,
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          session_public_id: browser_token.public_id,
+          headers: {
+            "Origin" => "https://#{PALM_HOST}",
+            "Sec-Fetch-Site" => "same-site",
+          },
+        )
 
         assert_response :success
-        assert_select "form[action*=?][method=?]", sign_app_sign_out_path, "post"
+        sign_form = css_select("form#sign-out-handoff-form").first
+        sign_uri = URI.parse(sign_form["action"])
+
+        assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_uri.host
+        assert_equal "/sign/out", sign_uri.path
 
         post sign_app_sign_out_url(
           host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
-        ), headers: sign_headers
-
-        assert_response :see_other
-        acme_finalize_uri = URI.parse(jump_rt_url_from_location(response.location))
-
-        assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), acme_finalize_uri.host
-        assert_equal "/oidc/logout", acme_finalize_uri.path
-
-        post acme_app_oidc_logout_url(
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-          ri: "jp",
-          logout_challenge: query["logout_challenge"],
-        ), headers: acme_headers
+        ), headers: as_user_headers(
+          native_client,
+          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+          session_public_id: browser_token.public_id,
+          headers: {
+            "Origin" => "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}",
+            "Sec-Fetch-Site" => "same-site",
+          },
+        )
 
         assert_response :see_other
         finalize_uri = URI.parse(jump_rt_url_from_location(response.location))
         finalize_query = Rack::Utils.parse_nested_query(finalize_uri.query.to_s)
 
-        assert_equal "/sign/out/edit", finalize_uri.path
-        assert_predicate finalize_query["logout_challenge"], :present?
+        assert_equal PALM_HOST, finalize_uri.host
+        assert_equal "/sign/out", finalize_uri.path
+        assert_equal query["logout_challenge"], finalize_query["logout_challenge"]
+        assert_equal payload["state"], finalize_query["state"]
+
+        get jump_rt_url_from_location(response.location)
+
+        assert_response :success
+        assert_select "h1", text: "Signed out"
       end
 
       private
 
-      def create_client_token(client)
-        ClientToken.create!(
+      def create_client_token(client, family_id: nil)
+        token = ClientToken.new(
           user: client,
           user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+          refresh_token_family_id: family_id,
           oidc_sid: SecureRandom.uuid,
           oidc_jti: SecureRandom.uuid,
           oidc_client_id: "app-ios-rp",
         )
+        token.send(:skip_session_limit_check=, true)
+        token.save!
+        token
       end
 
       def encode_palm_access_token(client, token)

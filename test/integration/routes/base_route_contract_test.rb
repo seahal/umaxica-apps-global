@@ -10,6 +10,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
   BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
   BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "base app route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/",
@@ -147,7 +148,9 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "base/app/csp_violation_reports", recognized[:controller]
     assert_equal "create", recognized[:action]
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "base com route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/",
@@ -285,7 +288,9 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "base/com/csp_violation_reports", recognized[:controller]
     assert_equal "create", recognized[:action]
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
+  # rubocop:disable Minitest/MultipleAssertions
   test "base org route contract" do
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/",
@@ -423,6 +428,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "base/org/csp_violation_reports", recognized[:controller]
     assert_equal "create", recognized[:action]
   end
+  # rubocop:enable Minitest/MultipleAssertions
 
   test "base remains a rails control-plane surface without provider endpoints" do
     [BASE_APP_HOST, BASE_COM_HOST, BASE_ORG_HOST].each do |host|

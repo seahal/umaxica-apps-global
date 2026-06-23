@@ -126,8 +126,8 @@ module Sign
 
         get sign_app_sign_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
-        assert_response :forbidden
-        assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+        assert_response :redirect
+        assert_redirected_to sign_app_dashboard_url(ri: "jp", host: @host)
       end
 
       test "logged in entry with login challenge resumes acme authorization" do

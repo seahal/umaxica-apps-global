@@ -44,6 +44,32 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
   end
 
+  test "create executes server-side visible Turnstile verification" do
+    calls = []
+    verifier = lambda do |token:, remote_ip:, mode:, **|
+      calls << { token: token, remote_ip: remote_ip, mode: mode }
+      { "success" => false }
+    end
+
+    CloudflareTurnstile.test_mode = false
+    JitSecurityTurnstileVerifier.stub(:verify, verifier) do
+      post sign_app_sign_up_email_url(ri: "jp"),
+           params: {
+             user_email: {
+               raw_address: "turnstile-signup-#{SecureRandom.hex(4)}@example.com",
+               confirm_policy: "1",
+             },
+             "cf-turnstile-response": "signup-token",
+           },
+           headers: default_headers
+    end
+
+    assert_response :unprocessable_content
+    assert_equal [{ token: "signup-token", remote_ip: "127.0.0.1", mode: :visible }], calls
+  ensure
+    CloudflareTurnstile.test_mode = true
+  end
+
   test "collection get redirects to add ri" do
     get new_sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
 
@@ -251,6 +277,7 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
 
     follow_redirect!
+
     assert_response :success
     assert_includes response.body, I18n.t("sign.app.registration.email.create.verification_code_sent")
     assert_not_includes response.body, I18n.t("sign.app.registration.email.new.error_summary")

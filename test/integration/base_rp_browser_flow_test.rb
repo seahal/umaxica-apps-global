@@ -73,7 +73,6 @@ class BaseRpBrowserFlowTest < ActionDispatch::IntegrationTest
     when Client then "client"
     when Operator then "operator"
     when Visitor then "visitor"
-    else "client"
     end
   end
 end

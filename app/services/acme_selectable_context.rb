@@ -61,16 +61,22 @@ module AcmeSelectableContext
     raise InvalidSelection, "session_required" if session.blank?
 
     public_ids = candidate.fetch(:public)
-    attributes = {
-      selected_account_public_id: public_ids[:account_public_id],
-      selected_collective_public_id: public_ids[:organization_public_id],
-      selected_collective_unit_public_id: public_ids[:organization_unit_public_id],
-      selected_at: Time.current,
-    }
-    attributes[:selected_avatar_public_id] =
-      public_ids[:avatar_public_id] if session.respond_to?(:selected_avatar_public_id=)
+    connection_owner(session.class).connected_to(role: :writing) do
+      session.with_lock do
+        raise InvalidSelection, "invalid_selection" unless candidate_still_authorized?(public_ids)
 
-    connection_owner(session.class).connected_to(role: :writing) { session.update!(attributes) }
+        attributes = {
+          selected_account_public_id: public_ids[:account_public_id],
+          selected_collective_public_id: public_ids[:organization_public_id],
+          selected_collective_unit_public_id: public_ids[:organization_unit_public_id],
+          selected_at: Time.current,
+        }
+        attributes[:selected_avatar_public_id] =
+          public_ids[:avatar_public_id] if session.respond_to?(:selected_avatar_public_id=)
+
+        session.update!(attributes)
+      end
+    end
   end
 
   # Flattened, view-friendly serialization of candidates for JSON responses.
@@ -122,6 +128,35 @@ module AcmeSelectableContext
         avatar_public_id: avatar&.public_id,
       },
     }
+  end
+
+  def candidate_still_authorized?(public_ids)
+    account = nil
+    connection_owner(config.account_class).connected_to(role: :writing) do
+      account = config.account_class.lock.find_by(public_id: public_ids[:account_public_id])
+    end
+    return false unless account
+
+    membership = nil
+    connection_owner(config.membership_class).connected_to(role: :writing) do
+      membership = account.current_memberships.lock.find do |candidate_membership|
+        candidate_membership.active? &&
+          candidate_membership.collective.public_id == public_ids[:organization_public_id] &&
+          candidate_membership.collective_unit.public_id == public_ids[:organization_unit_public_id]
+      end
+    end
+    return false unless membership
+    return true unless config.requires_avatar
+
+    connection_owner(Avatar).connected_to(role: :writing) do
+      Avatar
+        .joins(:avatar_assignments)
+        .lock
+        .where(public_id: public_ids[:avatar_public_id])
+        .where(owner_organization_id: public_ids[:organization_public_id])
+        .where(avatar_assignments: { user_id: principal.id })
+        .exists?
+    end
   end
 
   def connection_owner(klass)

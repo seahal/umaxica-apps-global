@@ -235,9 +235,10 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
   test "private_key_jwt configuration validation requires oidc client signing keys" do
     JitSecurityJwtRegistry.stub(:private_key_for, nil) do
-      error = assert_raises(OidcClientRegistry::ClientAuthenticationConfigurationError) do
-        OidcClientRegistry.validate_private_key_jwt_configuration!
-      end
+      error =
+        assert_raises(OidcClientRegistry::ClientAuthenticationConfigurationError) do
+          OidcClientRegistry.validate_private_key_jwt_configuration!
+        end
 
       assert_includes error.message, "base-rails-rp(ACME_APP)"
       assert_includes error.message, "sign-rp(SIGN_APP)"

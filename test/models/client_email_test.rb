@@ -47,14 +47,30 @@ require "test_helper"
 
 class ClientEmailTest < ActiveSupport::TestCase
   fixtures :clients, :client_statuses, :client_email_statuses
+  uses_transaction \
+    :test_concurrent_creates_for_same_normalized_address_commit_at_most_one_active_email,
+    :test_concurrent_creates_for_case_and_whitespace_equivalent_address_commit_at_most_one_active_email,
+    :test_active_delete_transaction_versus_same_address_create_keeps_active_email_invariant,
+    :test_rolled_back_concurrent_email_conflict_leaves_one_active_email,
+    :test_concurrent_email_create_while_competing_insert_rolls_back_does_not_commit_duplicates
 
   setup do
+    ClientEmail.delete_all
     @user = clients(:none_user)
+    @identifier_race_digests = []
+    @identifier_race_client_ids = []
     @valid_attributes = {
       address: "test@example.com",
       confirm_policy: true,
       user: @user,
     }.freeze
+  end
+
+  teardown do
+    next if @identifier_race_digests.blank?
+
+    ClientEmail.where(address_digest: @identifier_race_digests).delete_all
+    Client.where(id: @identifier_race_client_ids).delete_all if @identifier_race_client_ids.present?
   end
 
   test "should inherit from AppPrincipalRecord" do
@@ -288,5 +304,197 @@ class ClientEmailTest < ActiveSupport::TestCase
       assert_equal 1, user_email.otp_attempts_count
       assert_not user_email.locked?
     end
+  end
+
+  test "concurrent creates for same normalized address commit at most one active email" do
+    address = "email-race-#{SecureRandom.hex(4)}@example.com"
+    results = create_emails_concurrently(address, address)
+
+    assert_identifier_race_protected(results, IdentifierBlindIndex.bidx_for_email(address))
+  end
+
+  test "concurrent creates for case and whitespace equivalent address commit at most one active email" do
+    local = "email-equivalent-#{SecureRandom.hex(4)}"
+    first = "  #{local}@EXAMPLE.COM  "
+    second = "#{local}@example.com"
+    results = create_emails_concurrently(first, second)
+
+    assert_identifier_race_protected(results, IdentifierBlindIndex.bidx_for_email(second))
+  end
+
+  test "active delete transaction versus same address create keeps active email invariant" do
+    address = "email-delete-race-#{SecureRandom.hex(4)}@example.com"
+    track_email_race_address(address)
+    existing = ClientEmail.create!(@valid_attributes.merge(address: address))
+
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+    updater =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientEmail.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ClientEmail.transaction do
+            locked = ClientEmail.lock.find(existing.id)
+            ready << true
+            release.pop
+            locked.update!(user_email_status_id: ClientEmailStatus::DELETED, discarded_at: Time.current)
+          end
+          results << { status: :deleted }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+    creator =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientEmail.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ready.pop
+          release << true
+          create_email_record(address)
+          results << { status: :created }
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::LockWaitTimeout => e
+          results << { status: :conflict, error: "#{e.class}: #{e.message}" }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+
+    [updater, creator].each(&:join)
+    race_results = 2.times.map { results.pop }
+
+    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert_operator active_email_digest_count(address), :<=, 1
+  end
+
+  test "rolled back concurrent email conflict leaves one active email" do
+    address = "email-rollback-race-#{SecureRandom.hex(4)}@example.com"
+    digest = IdentifierBlindIndex.bidx_for_email(address)
+    track_email_race_address(address)
+
+    ClientEmail.transaction do
+      create_email_record(address)
+      assert_equal 1, ClientEmail.where(address_digest: digest).count
+      raise ActiveRecord::Rollback
+    end
+
+    assert_nothing_raised do
+      create_email_record(address)
+    end
+
+    assert_operator ClientEmail.where(address_digest: digest).where.not(user_email_status_id: ClientEmailStatus::DELETED).count,
+                    :<=,
+                    1
+  end
+
+  test "concurrent email create while competing insert rolls back does not commit duplicates" do
+    address = "email-rollback-concurrent-#{SecureRandom.hex(4)}@example.com"
+    digest = IdentifierBlindIndex.bidx_for_email(address)
+    track_email_race_address(address)
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+
+    holder = Thread.new do # rubocop:disable ThreadSafety/NewThread
+      ClientEmail.connection_pool.with_connection do |connection|
+        configure_identifier_race_connection!(connection)
+        ClientEmail.transaction do
+          create_email_record(address)
+          ready << true
+          release.pop
+          raise ActiveRecord::Rollback
+        end
+        results << { status: :rolled_back }
+      rescue StandardError => e
+        results << { status: :error, error: "#{e.class}: #{e.message}" }
+      end
+    end
+    releaser = Thread.new do # rubocop:disable ThreadSafety/NewThread
+      ready.pop
+      release << true
+      results << { status: :released }
+    rescue StandardError => e
+      results << { status: :error, error: "#{e.class}: #{e.message}" }
+    end
+
+    [holder, releaser].each(&:join)
+    race_results = 2.times.map { results.pop }
+
+    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert_nothing_raised do
+      create_email_record(address)
+    end
+    assert_operator ClientEmail.where(address_digest: digest).where.not(user_email_status_id: ClientEmailStatus::DELETED).count,
+                    :<=,
+                    1
+  end
+
+  private
+
+  def create_emails_concurrently(first_address, second_address)
+    track_email_race_address(first_address)
+    track_email_race_address(second_address)
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+
+    [first_address, second_address].map do |address|
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientEmail.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ready << true
+          release.pop
+          record = create_email_record(address)
+          results << { status: :created, id: record.id }
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::LockWaitTimeout => e
+          results << { status: :conflict, error: "#{e.class}: #{e.message}" }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+    end.tap do |threads|
+      2.times { ready.pop }
+      2.times { release << true }
+      threads.each(&:join)
+    end
+
+    2.times.map { results.pop }
+  end
+
+  def create_email_record(address)
+    client = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @identifier_race_client_ids << client.id
+
+    ClientEmail.create!(
+      raw_address: address,
+      confirm_policy: true,
+      user: client,
+    )
+  end
+
+  def track_email_race_address(address)
+    @identifier_race_digests << IdentifierBlindIndex.bidx_for_email(address)
+    @identifier_race_digests.uniq!
+  end
+
+  def configure_identifier_race_connection!(connection)
+    connection.execute("SET lock_timeout = '2000ms'")
+  end
+
+  def assert_identifier_race_protected(results, digest)
+    assert_equal 2, results.size
+    assert results.none? { |result| result[:status] == :error }, results.inspect
+    assert_equal 1, results.count { |result| result[:status] == :created }, results.inspect
+    assert_equal 1, results.count { |result| result[:status] == :conflict }, results.inspect
+    assert_operator ClientEmail.where(address_digest: digest).where.not(user_email_status_id: ClientEmailStatus::DELETED).count,
+                    :<=,
+                    1
+  end
+
+  def active_email_digest_count(address)
+    ClientEmail
+      .where(address_digest: IdentifierBlindIndex.bidx_for_email(address))
+      .where.not(user_email_status_id: ClientEmailStatus::DELETED)
+      .count
   end
 end

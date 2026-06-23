@@ -131,6 +131,10 @@ scope module: :acme, as: :acme do
         end
       end
 
+      resource :session_limit_resolution,
+               only: %i(show update destroy),
+               path: "session-limit-resolution"
+
       # OAuth/OIDC protocol endpoints.
       namespace :oauth do
         # OAuth authorization endpoint; keep protocol path.

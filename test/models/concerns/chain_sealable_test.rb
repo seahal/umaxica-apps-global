@@ -112,4 +112,58 @@ class ChainSealableTest < ActiveSupport::TestCase
   ensure
     TestRecord.chain_seal_key_provider(lambda { |_record| { kid: "concern-kid", private_key: @private_key } })
   end
+
+  test "chain_seal_key_provider accepts a block that receives the record" do
+    TestRecord.chain_seal_key_provider do |record|
+      { kid: "block-kid-#{record.event}", private_key: @private_key }
+    end
+    record = TestRecord.new(event: "auth.sign_in.succeeded", metadata: { "a" => 1 })
+    seal = record.build_chain_seal!
+
+    assert_equal "block-kid-auth.sign_in.succeeded", ChainSeal.parse(seal.compact).kid
+    assert ChainSeal.verify(
+      compact: seal.compact,
+      payload: record.audit_payload,
+      public_key: @private_key.public_key,
+    )
+  ensure
+    TestRecord.chain_seal_key_provider(lambda { |_record| { kid: "concern-kid", private_key: @private_key } })
+  end
+
+  test "build_chain_seal raises when the configured payload method is missing" do
+    klass =
+      Class.new do
+        include ActiveModel::Model
+        include ChainSealable
+
+        chain_seal_payload_method :missing_payload
+      end
+    klass.chain_seal_key_provider({ kid: "static-kid", private_key: @private_key })
+
+    assert_raises(ChainSeal::FormatError) { klass.new.build_chain_seal! }
+  end
+
+  test "build_chain_seal returns the seal without storing when the column writer is absent" do
+    klass =
+      Class.new do
+        include ActiveModel::Model
+        include ChainSealable
+
+        attr_accessor :event
+
+        chain_seal_column :seal_value
+        chain_seal_payload_method :audit_payload
+
+        def audit_payload
+          { "event" => event }
+        end
+      end
+    klass.chain_seal_key_provider({ kid: "static-kid", private_key: @private_key })
+    record = klass.new(event: "test.event")
+
+    seal = record.build_chain_seal!
+
+    assert seal
+    assert_not_respond_to record, :seal_value=
+  end
 end

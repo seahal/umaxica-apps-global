@@ -285,7 +285,9 @@ class IdentitySocialCeremonyContractTest < ActiveSupport::TestCase
     IdentitySocialCeremonyCandidate.connection.select_value(
       IdentitySocialCeremonyCandidate.sanitize_sql_array(
         [
+          # rubocop:disable I18n/RailsI18n/DecorateString
           "SELECT auth_hash FROM identity_social_ceremony_candidates WHERE ref = ?",
+          # rubocop:enable I18n/RailsI18n/DecorateString
           ref,
         ],
       ),

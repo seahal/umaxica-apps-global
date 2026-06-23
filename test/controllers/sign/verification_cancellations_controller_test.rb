@@ -16,7 +16,12 @@ class Sign::VerificationCancellationsControllerTest < ActionDispatch::Integratio
       actor: user, token: token, scope: "settings_email", return_to: return_to, surface: "app",
     )
 
-    get sign_app_verification_url(scope: "settings_email", pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: token.public_id), ri: "jp", step_up_ceremony_grant: grant),
+    get sign_app_verification_url(
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: token.public_id),
+      ri: "jp",
+      step_up_ceremony_grant: grant,
+    ),
         headers: headers
 
     post sign_app_verification_cancellation_url(ri: "jp"), headers: headers
@@ -40,7 +45,12 @@ class Sign::VerificationCancellationsControllerTest < ActionDispatch::Integratio
       actor: visitor, token: token, scope: "settings_email", return_to: return_to, surface: "com",
     )
 
-    get sign_com_verification_url(scope: "settings_email", pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: token.public_id), ri: "jp", step_up_ceremony_grant: grant),
+    get sign_com_verification_url(
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: token.public_id),
+      ri: "jp",
+      step_up_ceremony_grant: grant,
+    ),
         headers: headers
 
     post sign_com_verification_cancellation_url(ri: "jp"), headers: headers
@@ -60,7 +70,12 @@ class Sign::VerificationCancellationsControllerTest < ActionDispatch::Integratio
       actor: staff, token: token, scope: "settings_email", return_to: return_to, surface: "org",
     )
 
-    get sign_org_verification_url(scope: "settings_email", pt: signed_step_up_pt_for(return_to, surface: "org", session_nonce: token.public_id), ri: "jp", step_up_ceremony_grant: grant),
+    get sign_org_verification_url(
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "org", session_nonce: token.public_id),
+      ri: "jp",
+      step_up_ceremony_grant: grant,
+    ),
         headers: headers
 
     post sign_org_verification_cancellation_url(ri: "jp"), headers: headers

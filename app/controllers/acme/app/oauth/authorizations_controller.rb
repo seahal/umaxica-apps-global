@@ -111,10 +111,7 @@ module Acme
                 bootstrap_actor: true,
               )
             end
-          return render_session_limit_hard_reject(
-            message: login_result[:message],
-            http_status: login_result[:http_status],
-          ) if login_result[:status] == :session_limit_hard_reject
+          return redirect_to_session_limit_resolution!(resource, transaction) if login_result[:status] == :session_limit_hard_reject
           return render(
             json: { error: "invalid_request", error_description: "login_failed" },
             status: :bad_request,
@@ -122,6 +119,22 @@ module Acme
 
           transaction.consume!
           issue_authorization_code!(resource, params_hash: transaction.authorize_params)
+        end
+
+        def redirect_to_session_limit_resolution!(resource, transaction)
+          issuance =
+            ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+              actor: resource,
+              oidc_transaction: transaction,
+              audit_context: {
+                client_id: transaction.client_id,
+                intent: transaction.intent,
+              },
+            )
+          redirect_to(
+            acme_app_session_limit_resolution_path(resolution_challenge: issuance.challenge),
+            status: :see_other,
+          )
         end
 
         def authorization_intent

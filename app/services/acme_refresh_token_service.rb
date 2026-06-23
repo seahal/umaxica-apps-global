@@ -130,11 +130,11 @@ class AcmeRefreshTokenService
     token.class.where(refresh_token_family_id: family_id)
   end
 
-  def with_token_writing_connection(token, &block)
+  def with_token_writing_connection(token, &)
     owner = connection_owner_for(token.class)
     return yield if owner.blank?
 
-    owner.connected_to(role: :writing, &block)
+    owner.connected_to(role: :writing, &)
   end
 
   def connection_owner_for(klass)

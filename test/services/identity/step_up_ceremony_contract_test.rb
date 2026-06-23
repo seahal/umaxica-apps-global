@@ -155,7 +155,10 @@ class IdentityStepUpCeremonyContractTest < ActiveSupport::TestCase
       end.join(".")
       error =
         assert_raises(IdentityStepUpCeremonyContract::Error) do
-          IdentityStepUpCeremonyGrant.decode(tampered, issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id("app"), now: @now)
+          IdentityStepUpCeremonyGrant.decode(
+            tampered, issuer_id: IdentityStepUpCeremonyContract.acme_issuer_id("app"),
+                      now: @now,
+          )
         end
       assert_includes error.message, "token verification failed"
     end

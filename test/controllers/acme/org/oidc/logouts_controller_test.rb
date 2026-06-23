@@ -55,7 +55,7 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
         headers: session_headers
 
     assert_response :see_other
-    assert_equal "/sign/out/edit", URI.parse(response.location).path
+    assert_equal "/sign/out/edit", URI.parse(jump_rt_url_from_location(response.location)).path
 
     follow_redirect!
 
@@ -66,7 +66,7 @@ class Acme::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_predicate @token.reload, :revoked?
 
-    location = URI.parse(response.location)
+    location = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal URI.parse(redirect_uri).host, location.host

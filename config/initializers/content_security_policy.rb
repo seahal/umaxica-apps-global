@@ -34,6 +34,9 @@ Rails.application.configure do
     policy.default_src(:self)
     policy.base_uri(:self)
     policy.connect_src(:self, :https, :ws, :wss)
+    # Allow @vite/client to hot reload changes in development
+#    policy.connect_src *policy.connect_src, "ws://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
+
     policy.font_src(:self, :https, :data)
     policy.form_action(
       :self,
@@ -49,8 +52,17 @@ Rails.application.configure do
     policy.manifest_src(:self)
     policy.object_src(:none)
     policy.script_src(:self, "https://challenges.cloudflare.com")
+    # Allow @vite/client to hot reload javascript changes in development
+#    policy.script_src *policy.script_src, :unsafe_eval, "http://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
+
+    # You may need to enable this in production as well depending on your setup.
+#    policy.script_src *policy.script_src, :blob if Rails.env.test?
+
     policy.script_src_elem(:self, "https://challenges.cloudflare.com", "https://static.cloudflareinsights.com")
     policy.style_src(:self, :https)
+    # Allow @vite/client to hot reload style changes in development
+#    policy.style_src *policy.style_src, :unsafe_inline if Rails.env.development?
+
     policy.style_src_elem(:self, :https)
     policy.worker_src(:none)
 

@@ -221,7 +221,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       post "/sign/out", headers: browser_headers
 
       assert_response :redirect
-      logout_uri = URI.parse(response.location)
+      logout_uri = URI.parse(jump_rt_url_from_location(response.location))
       logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
       assert_equal "/oidc/logout", logout_uri.path
@@ -261,7 +261,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       post "/sign/out", headers: browser_headers
 
       assert_response :redirect
-      logout_uri = URI.parse(response.location)
+      logout_uri = URI.parse(jump_rt_url_from_location(response.location))
       logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
       assert_equal "/oidc/logout", logout_uri.path
@@ -277,7 +277,6 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     when Client then "client"
     when Operator then "operator"
     when Visitor then "visitor"
-    else "client"
     end
   end
 

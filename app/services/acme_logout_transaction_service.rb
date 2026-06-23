@@ -8,8 +8,15 @@ class AcmeLogoutTransactionService < ApplicationService
     end
 
   def self.issue!(origin_surface:, initiating_client_id:, completion_url:, actor_ref: nil, session_ref: nil,
-                  callback_state: nil, now: Time.current, expires_in: 10.minutes, surface: "app")
-    unless allowed_completion_url?(origin_surface: origin_surface, completion_url: completion_url, surface: surface)
+                  callback_state: nil, now: Time.current, expires_in: 10.minutes, surface: "app",
+                  ri: RequestContextContract.default_region)
+    region = RequestContextContract.normalize_region(ri)
+    unless allowed_completion_url?(
+      origin_surface: origin_surface,
+      completion_url: completion_url,
+      surface: surface,
+      ri: region,
+    )
       return Result.new(
         transaction: nil,
         status: :rejected,
@@ -71,13 +78,15 @@ class AcmeLogoutTransactionService < ApplicationService
     Result.new(transaction: transaction, status: :rejected, error: "invalid_request", error_description: e.message)
   end
 
-  def self.allowed_completion_url?(origin_surface:, completion_url:, surface: "app")
-    expected = completion_url_for(origin_surface: origin_surface, surface: surface)
+  def self.allowed_completion_url?(origin_surface:, completion_url:, surface: "app",
+                                   ri: RequestContextContract.default_region)
+    expected = completion_url_for(origin_surface: origin_surface, surface: surface, ri: ri)
     expected == completion_url.to_s
   end
 
   def self.completion_url_for(origin_surface:, ri: RequestContextContract.default_region, surface: "app")
     host = completion_host_for(origin_surface: origin_surface, surface: surface)
+    region = RequestContextContract.normalize_region(ri)
 
     helper = Rails.application.routes.url_helpers
     surface_name = surface.to_s
@@ -85,28 +94,28 @@ class AcmeLogoutTransactionService < ApplicationService
     when "sign"
       helper.public_send(
         complete_sign_out_helper_name(surface_name),
-        ri: ri,
+        ri: region,
         host: host,
         protocol: http_or_https(host),
       )
     when "acme"
       helper.public_send(
         complete_acme_out_helper_name(surface_name),
-        ri: ri,
+        ri: region,
         host: host,
         protocol: http_or_https(host),
       )
     when "core"
       helper.public_send(
         complete_core_out_helper_name(surface_name),
-        ri: ri,
+        ri: region,
         host: host,
         protocol: http_or_https(host),
       )
     when "base"
       helper.public_send(
         complete_base_out_helper_name(surface_name),
-        ri: ri,
+        ri: region,
         host: host,
         protocol: http_or_https(host),
       )

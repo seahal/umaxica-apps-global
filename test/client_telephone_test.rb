@@ -42,15 +42,31 @@ require "test_helper"
 class ClientTelephoneTest < ActiveSupport::TestCase
   fixtures_only :clients, :client_statuses, :client_visibilities, :client_mfa_levels,
                 :client_mfa_statuses, :client_telephone_statuses
+  uses_transaction \
+    :test_concurrent_creates_for_same_normalized_number_commit_at_most_one_active_telephone,
+    :test_concurrent_creates_for_equivalent_formatted_number_commit_at_most_one_active_telephone,
+    :test_active_delete_transaction_versus_same_number_create_keeps_active_telephone_invariant,
+    :test_rolled_back_concurrent_telephone_conflict_leaves_one_active_telephone,
+    :test_concurrent_telephone_create_while_competing_insert_rolls_back_does_not_commit_duplicates
 
   setup do
+    ClientTelephone.delete_all
     @user = clients(:none_user)
+    @identifier_race_digests = []
+    @identifier_race_client_ids = []
     @valid_attributes = {
       raw_number: "+1234567890",
       confirm_policy: true,
       confirm_using_mfa: true,
       user: @user,
     }.freeze
+  end
+
+  teardown do
+    next if @identifier_race_digests.blank?
+
+    ClientTelephone.where(number_digest: @identifier_race_digests).delete_all
+    Client.where(id: @identifier_race_client_ids).delete_all if @identifier_race_client_ids.present?
   end
 
   # Basic model structure tests
@@ -398,5 +414,210 @@ class ClientTelephoneTest < ActiveSupport::TestCase
       assert_equal 1, user_telephone.otp_attempts_count
       assert_not user_telephone.locked?
     end
+  end
+
+  test "concurrent creates for same normalized number commit at most one active telephone" do
+    number = "+1555#{SecureRandom.random_number(10_000_000).to_s.rjust(7, "0")}"
+    results = create_telephones_concurrently(number, number)
+
+    assert_identifier_race_protected(results, IdentifierBlindIndex.bidx_for_telephone(number))
+  end
+
+  test "concurrent creates for equivalent formatted number commit at most one active telephone" do
+    suffix = SecureRandom.random_number(10_000).to_s.rjust(4, "0")
+    formatted = "+1 (555) 777-#{suffix}"
+    normalized = "+1555777#{suffix}"
+    results = create_telephones_concurrently(formatted, normalized)
+
+    assert_identifier_race_protected(results, IdentifierBlindIndex.bidx_for_telephone(normalized))
+  end
+
+  test "active delete transaction versus same number create keeps active telephone invariant" do
+    number = "+1555888#{SecureRandom.random_number(10_000).to_s.rjust(4, "0")}"
+    track_telephone_race_number(number)
+    existing = ClientTelephone.create!(@valid_attributes.merge(raw_number: number))
+
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+    updater =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientTelephone.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ClientTelephone.transaction do
+            locked = ClientTelephone.lock.find(existing.id)
+            ready << true
+            release.pop
+            locked.update!(
+              user_telephone_status_id: ClientTelephoneStatus::DELETED,
+              discarded_at: Time.current,
+            )
+          end
+          results << { status: :deleted }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+    creator =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientTelephone.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ready.pop
+          release << true
+          create_telephone_record(number)
+          results << { status: :created }
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::LockWaitTimeout => e
+          results << { status: :conflict, error: "#{e.class}: #{e.message}" }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+
+    [updater, creator].each(&:join)
+    race_results = 2.times.map { results.pop }
+
+    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert_operator active_telephone_digest_count(number), :<=, 1
+  end
+
+  test "rolled back concurrent telephone conflict leaves one active telephone" do
+    number = "+1555999#{SecureRandom.random_number(10_000).to_s.rjust(4, "0")}"
+    digest = IdentifierBlindIndex.bidx_for_telephone(number)
+    track_telephone_race_number(number)
+
+    ClientTelephone.transaction do
+      create_telephone_record(number)
+      assert_equal 1, ClientTelephone.where(number_digest: digest).count
+      raise ActiveRecord::Rollback
+    end
+
+    assert_nothing_raised do
+      create_telephone_record(number)
+    end
+
+    assert_operator ClientTelephone
+      .where(number_digest: digest)
+      .where.not(user_telephone_status_id: ClientTelephoneStatus::DELETED)
+      .count,
+                    :<=,
+                    1
+  end
+
+  test "concurrent telephone create while competing insert rolls back does not commit duplicates" do
+    number = "+1555666#{SecureRandom.random_number(10_000).to_s.rjust(4, "0")}"
+    digest = IdentifierBlindIndex.bidx_for_telephone(number)
+    track_telephone_race_number(number)
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+
+    holder = Thread.new do # rubocop:disable ThreadSafety/NewThread
+      ClientTelephone.connection_pool.with_connection do |connection|
+        configure_identifier_race_connection!(connection)
+        ClientTelephone.transaction do
+          create_telephone_record(number)
+          ready << true
+          release.pop
+          raise ActiveRecord::Rollback
+        end
+        results << { status: :rolled_back }
+      rescue StandardError => e
+        results << { status: :error, error: "#{e.class}: #{e.message}" }
+      end
+    end
+    releaser = Thread.new do # rubocop:disable ThreadSafety/NewThread
+      ready.pop
+      release << true
+      results << { status: :released }
+    rescue StandardError => e
+      results << { status: :error, error: "#{e.class}: #{e.message}" }
+    end
+
+    [holder, releaser].each(&:join)
+    race_results = 2.times.map { results.pop }
+
+    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert_nothing_raised do
+      create_telephone_record(number)
+    end
+    assert_operator ClientTelephone
+      .where(number_digest: digest)
+      .where.not(user_telephone_status_id: ClientTelephoneStatus::DELETED)
+      .count,
+                    :<=,
+                    1
+  end
+
+  private
+
+  def create_telephones_concurrently(first_number, second_number)
+    track_telephone_race_number(first_number)
+    track_telephone_race_number(second_number)
+    ready = Queue.new
+    release = Queue.new
+    results = Queue.new
+
+    [first_number, second_number].map do |number|
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientTelephone.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ready << true
+          release.pop
+          record = create_telephone_record(number)
+          results << { status: :created, id: record.id }
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::LockWaitTimeout => e
+          results << { status: :conflict, error: "#{e.class}: #{e.message}" }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
+        end
+      end
+    end.tap do |threads|
+      2.times { ready.pop }
+      2.times { release << true }
+      threads.each(&:join)
+    end
+
+    2.times.map { results.pop }
+  end
+
+  def create_telephone_record(number)
+    client = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @identifier_race_client_ids << client.id
+
+    ClientTelephone.create!(
+      raw_number: number,
+      confirm_policy: true,
+      confirm_using_mfa: true,
+      user: client,
+    )
+  end
+
+  def track_telephone_race_number(number)
+    @identifier_race_digests << IdentifierBlindIndex.bidx_for_telephone(number)
+    @identifier_race_digests.uniq!
+  end
+
+  def configure_identifier_race_connection!(connection)
+    connection.execute("SET lock_timeout = '2000ms'")
+  end
+
+  def assert_identifier_race_protected(results, digest)
+    assert_equal 2, results.size
+    assert results.none? { |result| result[:status] == :error }, results.inspect
+    assert_equal 1, results.count { |result| result[:status] == :created }, results.inspect
+    assert_equal 1, results.count { |result| result[:status] == :conflict }, results.inspect
+    assert_operator ClientTelephone
+      .where(number_digest: digest)
+      .where.not(user_telephone_status_id: ClientTelephoneStatus::DELETED)
+      .count,
+                    :<=,
+                    1
+  end
+
+  def active_telephone_digest_count(number)
+    ClientTelephone
+      .where(number_digest: IdentifierBlindIndex.bidx_for_telephone(number))
+      .where.not(user_telephone_status_id: ClientTelephoneStatus::DELETED)
+      .count
   end
 end

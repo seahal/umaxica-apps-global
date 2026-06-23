@@ -59,6 +59,21 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :currently_usable?
   end
 
+  test "edit sign out rejects an invalid coordination challenge without mutation" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+
+    get edit_acme_app_sign_out_url(host: @host, ri: "us", logout_challenge: "invalid-challenge"),
+        headers: {
+          "X-TEST-CURRENT-USER" => user.id.to_s,
+          "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+        }
+
+    assert_response :unprocessable_content
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.unavailable_title")
+    assert_predicate token.reload, :currently_usable?
+  end
+
   test "post sign out starts the coordinated acme -> sign -> acme circuit" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -71,34 +86,27 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
            "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
          )
 
-    assert_response :see_other
+    assert_response :success
     assert_predicate token.reload, :revoked?
 
-    sign_edit_uri = URI.parse(jump_rt_url_from_location(response.location))
-    sign_challenge = Rack::Utils.parse_nested_query(sign_edit_uri.query.to_s)["logout_challenge"]
+    sign_handoff = handoff_form
+    sign_challenge = handoff_input_value("logout_challenge")
 
-    assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_edit_uri.host
-    assert_equal "/sign/out/edit", sign_edit_uri.path
+    assert_equal sign_app_sign_out_url(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), protocol: "https"),
+                 sign_handoff["action"]
+    assert_predicate sign_challenge, :present?
 
-    get edit_sign_app_sign_out_url(
+    post sign_app_sign_out_url(
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
       ri: "jp",
       logout_challenge: sign_challenge,
     ), headers: browser_headers.merge(
       "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+      "Origin" => "https://#{@host}",
+      "Sec-Fetch-Site" => "same-site",
       "X-TEST-CURRENT-USER" => user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     )
-
-    assert_response :see_other
-    acme_logout_uri = URI.parse(jump_rt_url_from_location(response.location))
-    acme_challenge = Rack::Utils.parse_nested_query(acme_logout_uri.query.to_s)["logout_challenge"]
-
-    assert_equal @host, acme_logout_uri.host
-    assert_equal "/oidc/logout", acme_logout_uri.path
-
-    get acme_app_oidc_logout_url(host: @host, ri: "jp", logout_challenge: acme_challenge),
-        headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
     assert_equal complete_acme_app_sign_out_url(ri: "jp", host: @host, protocol: "https"),
@@ -117,7 +125,7 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     post acme_app_sign_out_url(host: @host, ri: "jp"), headers: browser_headers.merge("Host" => @host)
 
-    assert_response :see_other
+    assert_response :success
     assert_predicate token.reload, :revoked?
   end
 
@@ -126,5 +134,31 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+  end
+
+  private
+
+  def assert_sign_out_handoff_markup(action_path:)
+    assert_select "form#sign-out-handoff-form[method=post][data-turbo=false]", 1
+    form = css_select("form#sign-out-handoff-form").first
+    assert_equal action_path, form["action"]
+    assert_select "form#sign-out-handoff-form input[name=authenticity_token]", 0
+    assert_select "form#sign-out-handoff-form noscript input[type=submit][value=?]",
+                  I18n.t("sign.shared.sign_out.handoff_button"),
+                  0
+    assert_select "noscript button[form=sign-out-handoff-form][type=submit]", 1
+    script = css_select("script").find { |node| node.text.include?('document.getElementById("sign-out-handoff-form")') }
+    assert script, "missing sign-out handoff auto-submit script"
+    assert_predicate script["nonce"], :present?
+    assert_includes script.text, "requestSubmit"
+  end
+
+  def handoff_form
+    assert_select "form#sign-out-handoff-form[method=post][data-turbo=false]", 1
+    css_select("form#sign-out-handoff-form").first
+  end
+
+  def handoff_input_value(name)
+    css_select(%(form#sign-out-handoff-form input[name="#{name}"])).first&.[]("value")
   end
 end

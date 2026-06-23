@@ -21,7 +21,7 @@ module Acme
 
         private
 
-        def oidc_logout_completed_path(ri:, sot: nil)
+        def oidc_logout_completed_path(ri:, _sot: nil)
           complete_acme_com_sign_out_path(ri: ri)
         end
       end

@@ -7,7 +7,9 @@ class Base::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
-    @visitor = create_verified_visitor_with_email(email_address: "base-com-dashboard-#{SecureRandom.hex(4)}@example.com")
+    @visitor = create_verified_visitor_with_email(
+      email_address: "base-com-dashboard-#{SecureRandom.hex(4)}@example.com",
+    )
   end
 
   test "renders dashboard for signed-in visitor" do

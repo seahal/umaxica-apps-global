@@ -269,6 +269,16 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     assert_includes txn.errors.attribute_names, :result_jti
   end
 
+  test "candidate store consume marks candidate as consumed and returns candidate value" do
+    travel_to @now do
+      candidate = store_candidate(expires_at: @now + 5.minutes)
+      consumed = IdentityTotpCeremonyCandidateStore.consume!(candidate.ref)
+
+      assert_equal candidate.ref, consumed.ref
+      assert_not_nil IdentityTotpCeremonyCandidate.find_by!(ref: candidate.ref).consumed_at
+    end
+  end
+
   private
 
   def issue_grant
@@ -309,7 +319,9 @@ class IdentityTotpCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     IdentityTotpCeremonyCandidate.connection.select_value(
       IdentityTotpCeremonyCandidate.sanitize_sql_array(
         [
+          # rubocop:disable I18n/RailsI18n/DecorateString
           "SELECT private_key FROM identity_totp_ceremony_candidates WHERE ref = ?",
+          # rubocop:enable I18n/RailsI18n/DecorateString
           ref,
         ],
       ),

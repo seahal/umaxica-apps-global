@@ -384,7 +384,7 @@ module Sign
             registration_session["expires_at"].to_i > Time.current.to_i
           end
 
-          def dispatch_existing_telephone_verification!(existing_telephone)
+          def dispatch_existing_telephone_verification!(_existing_telephone)
             sign_up_flow_locator.clear!
             @user_telephone = ClientTelephone.new
 

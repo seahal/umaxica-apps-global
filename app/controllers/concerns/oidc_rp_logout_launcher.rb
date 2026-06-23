@@ -4,49 +4,81 @@
 module OidcRpLogoutLauncher
   extend ActiveSupport::Concern
 
+  included do
+    prepend_before_action :normalize_rp_logout_region!, only: :create
+  end
+
   private
 
   def launch_oidc_rp_logout!(client_id:, issuer_resource_type:, token_issuer:)
-    transaction_result = AcmeLogoutTransactionService.issue!(
+    completion_region = rp_logout_region
+    transaction_options = {
       origin_surface: logout_origin_surface,
       initiating_client_id: client_id,
       completion_url: AcmeLogoutTransactionService.completion_url_for(
         origin_surface: logout_origin_surface,
-        ri: params[:ri],
+        ri: completion_region,
         surface: logout_surface_name,
       ),
       actor_ref: current_resource.try(:public_id),
       session_ref: safe_current_session_public_id_for_logout,
       callback_state: nil,
       surface: logout_surface_name,
-    )
+    }
+    transaction_options[:ri] = completion_region if logout_surface_name == "app"
+
+    transaction_result = AcmeLogoutTransactionService.issue!(**transaction_options)
     return render_oidc_rp_logout_unavailable unless transaction_result.success?
 
     transaction = transaction_result.transaction
+    log_sign_out_event(
+      "auth.sign_out.transaction.issued",
+      transaction: transaction,
+      user_confirmation_required: true,
+      auto_handoff: false,
+      cleanup_performed: false,
+      result: "issued",
+    )
     state = SecureRandom.hex(16)
+    id_token_hint = oidc_rp_logout_id_token_hint(
+      client_id: client_id,
+      issuer_resource_type: issuer_resource_type,
+      token_issuer: token_issuer,
+    )
     prepare_sign_out_completion_notice!(state: state)
+    log_sign_out_event("auth.sign_out.step.started", transaction: transaction, result: "started")
     logout_current_session!(reason: "user_logout")
+    log_sign_out_event(
+      "auth.sign_out.step.cleaned",
+      transaction: transaction,
+      cleanup_performed: true,
+      result: "cleaned",
+    )
     issue_sign_out_notice!
     AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    log_sign_out_event(
+      "auth.sign_out.step.advanced",
+      transaction: transaction.reload,
+      step_after: transaction.expected_step,
+      cleanup_performed: true,
+      redirect_target_surface: "acme",
+      result: "advanced",
+    )
 
-    redirect_to_jump_url(
-      acme_oidc_logout_url(
-        ri: params[:ri],
-        id_token_hint: oidc_rp_logout_id_token_hint(
-          client_id: client_id,
-          issuer_resource_type: issuer_resource_type,
-          token_issuer: token_issuer,
-        ),
+    render_cross_origin_sign_out_handoff(
+      target_url: acme_oidc_logout_url(
+        ri: completion_region,
+        id_token_hint: id_token_hint,
         post_logout_redirect_uri: AcmeLogoutTransactionService.completion_url_for(
           origin_surface: logout_origin_surface,
-          ri: params[:ri],
+          ri: completion_region,
           surface: logout_surface_name,
         ),
         state: state,
         logout_challenge: transaction.logout_challenge,
         protocol: "https",
       ),
-      status: :see_other,
+      transaction: transaction,
     )
   end
 
@@ -80,10 +112,11 @@ module OidcRpLogoutLauncher
   end
 
   def acme_oidc_logout_url(**query)
+    region = RequestContextContract.normalize_region(query.delete(:ri).presence || rp_logout_region)
     public_send(
       "acme_#{sign_surface_name}_oidc_logout_url",
       host: oidc_acme_host,
-      ri: params[:ri],
+      ri: region,
       **query,
     )
   end
@@ -96,18 +129,28 @@ module OidcRpLogoutLauncher
       ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     when "org"
       ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
-    else
-      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     end
   end
 
   def render_oidc_rp_logout_unavailable
-    render_oidc_rp_logout_completion
+    return render_oidc_rp_logout_completion unless logout_surface_name == "app"
+
+    render "sign/shared/sign_outs/unavailable", status: :unprocessable_content
   end
 
   def render_oidc_rp_logout_completion
     @sign_out_notice = consume_sign_out_notice
     render "sign/shared/sign_outs/complete", status: :ok
+  end
+
+  def rp_logout_region
+    RequestContextContract.normalize_region(params[:ri])
+  end
+
+  def normalize_rp_logout_region!
+    return unless logout_surface_name == "app"
+
+    params[:ri] = rp_logout_region
   end
 
   def sign_surface_name

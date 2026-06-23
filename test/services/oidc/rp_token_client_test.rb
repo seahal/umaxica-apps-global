@@ -50,6 +50,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
       Net::HTTP.stub(
         :post_form, ->(*) {
           net_http_called = true
+
           flunk("private_key_jwt client must not exchange with client_secret when assertion key is missing")
         },
       ) do

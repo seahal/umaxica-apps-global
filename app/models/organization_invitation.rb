@@ -56,9 +56,12 @@ class OrganizationInvitation < OrgTicketRecord
   end
 
   def consume!
-    return false unless active?
+    self.class.transaction do
+      lock!
+      return false unless active?
 
-    update!(consumed_at: Time.current)
+      update!(consumed_at: Time.current)
+    end
   end
 
   class << self

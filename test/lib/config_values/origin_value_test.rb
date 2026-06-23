@@ -15,4 +15,21 @@ class ConfigValuesOriginValueTest < ActiveSupport::TestCase
     assert_nothing_raised { ConfigValues.build("http://localhost:3000", allow_localhost: true) }
     assert_raises(ArgumentError) { ConfigValues.build("http://example.com", allow_localhost: true) }
   end
+
+  test "rejects fragment and non-root paths" do
+    assert_raises(ArgumentError) { ConfigValues.build("https://example.com#frag") }
+    assert_raises(ArgumentError) { ConfigValues.build("https://example.com/path") }
+  end
+
+  test "rejects unparseable URI with invalid origin" do
+    assert_raises(ArgumentError) { ConfigValues.build("https://[invalid-bracket") }
+    assert_raises(ArgumentError) { ConfigValues.build("https://example.com:port") }
+  end
+
+  test "normalizes trailing path and downcases host" do
+    value = ConfigValues.build("https://EXAMPLE.com/", allow_localhost: false)
+
+    assert_equal "https://example.com", value.to_s
+    assert_equal "example.com", value.host
+  end
 end

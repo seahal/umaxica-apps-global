@@ -24,7 +24,7 @@ class Acme::Org::AvatarsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "full login can show, edit, update and destroy own org avatar" do
-    result = bootstrap_and_select!(@operator, @token)
+    bootstrap_and_select!(@operator, @token)
 
     get acme_org_avatar_url(ri: "jp", host: @host),
         headers: as_staff_headers(@operator, host: @host)

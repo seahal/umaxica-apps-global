@@ -108,4 +108,54 @@ class ChainSealTest < ActiveSupport::TestCase
       ChainSeal.seal(payload: @payload, kid: "kid", private_key: wrong_key)
     end
   end
+
+  test "verify accepts an EC::Point as the public key" do
+    seal = ChainSeal.seal(payload: @payload, kid: "point-kid", private_key: @private_key)
+    public_key = @private_key.public_key
+    point = public_key.is_a?(OpenSSL::PKey::EC::Point) ? public_key : public_key.public_key
+
+    assert_instance_of OpenSSL::PKey::EC::Point, point
+    assert ChainSeal.verify(compact: seal.compact, payload: @payload, public_key: point)
+  end
+
+  test "verify rejects an EC::Point from a mismatched key" do
+    seal = ChainSeal.seal(payload: @payload, kid: "point-kid", private_key: @private_key)
+    other_key = OpenSSL::PKey::EC.generate(ChainSeal::ES384_CURVE)
+    other_public = other_key.public_key
+    other_point = other_public.is_a?(OpenSSL::PKey::EC::Point) ? other_public : other_public.public_key
+
+    assert_raises(ChainSeal::VerificationError) do
+      ChainSeal.verify(compact: seal.compact, payload: @payload, public_key: other_point)
+    end
+  end
+
+  test "create_public_key_from_point rejects a non P-384 point" do
+    wrong_key = OpenSSL::PKey::EC.generate("prime256v1")
+    wrong_public = wrong_key.public_key
+    wrong_point = wrong_public.is_a?(OpenSSL::PKey::EC::Point) ? wrong_public : wrong_public.public_key
+    seal = ChainSeal.seal(payload: @payload, kid: "point-kid", private_key: @private_key)
+
+    assert_raises(ChainSeal::FormatError) do
+      ChainSeal.verify(compact: seal.compact, payload: @payload, public_key: wrong_point)
+    end
+  end
+
+  test "canonicalize raises FormatError for a non-canonicalizable payload" do
+    assert_raises(ChainSeal::FormatError) do
+      ChainSeal.canonicalize(Float::NAN)
+    end
+  end
+
+  test "seal raises FormatError when payload cannot be canonicalized" do
+    assert_raises(ChainSeal::FormatError) do
+      ChainSeal.seal(payload: { "x" => Float::NAN }, kid: "kid", private_key: @private_key)
+    end
+  end
+
+  test "to_h exposes the compact field hash directly" do
+    seal = ChainSeal.seal(payload: @payload, kid: "to_h-kid", private_key: @private_key)
+
+    assert_equal seal.as_json, seal.to_h
+    assert_equal "to_h-kid", seal.to_h.fetch(:kid)
+  end
 end

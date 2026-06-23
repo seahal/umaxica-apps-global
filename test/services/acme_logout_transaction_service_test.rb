@@ -23,6 +23,53 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
     assert_equal completion_url, result.transaction.completion_url
   end
 
+  test "issue! accepts canonical jp completion url" do
+    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "core", ri: "jp")
+
+    result =
+      AcmeLogoutTransactionService.issue!(
+        origin_surface: "core",
+        initiating_client_id: "core-next-rp",
+        completion_url: completion_url,
+        ri: "jp",
+      )
+
+    assert_predicate result, :success?
+    assert_equal completion_url, result.transaction.completion_url
+    assert_includes result.transaction.completion_url, "ri=jp"
+  end
+
+  test "issue! accepts canonical us completion url" do
+    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "core", ri: "us")
+
+    result =
+      AcmeLogoutTransactionService.issue!(
+        origin_surface: "core",
+        initiating_client_id: "core-next-rp",
+        completion_url: completion_url,
+        ri: "us",
+      )
+
+    assert_predicate result, :success?
+    assert_equal completion_url, result.transaction.completion_url
+    assert_includes result.transaction.completion_url, "ri=us"
+  end
+
+  test "issue! does not compare us completion url against jp expected url" do
+    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "base", ri: "us")
+
+    result =
+      AcmeLogoutTransactionService.issue!(
+        origin_surface: "base",
+        initiating_client_id: "base-rails-rp",
+        completion_url: completion_url,
+        ri: "us",
+      )
+
+    assert_predicate result, :success?
+    assert_equal completion_url, result.transaction.completion_url
+  end
+
   test "advance! rejects wrong step and tampered challenges safely" do
     completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "sign")
     transaction =
@@ -74,6 +121,23 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
         origin_surface: "sign",
         initiating_client_id: "sign-rp",
         completion_url: "https://attacker.example/signed-out",
+      )
+
+    assert_equal :rejected, result.status
+    assert_equal "invalid_request", result.error
+  end
+
+  test "issue! rejects unsupported or unregistered completion url" do
+    completion_url = AcmeLogoutTransactionService
+      .completion_url_for(origin_surface: "sign", ri: "jp")
+      .sub("ri=jp", "ri=xx")
+
+    result =
+      AcmeLogoutTransactionService.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: completion_url,
+        ri: "xx",
       )
 
     assert_equal :rejected, result.status

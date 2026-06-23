@@ -1311,10 +1311,16 @@ en:
         title: Do you want to sign out?
         confirm_description: Once you log out, you will need to log in again.
         button: Sign out
+        handoff_title: Continuing sign-out
+        handoff_description: This screen will continue automatically.
+        handoff_button: Continue sign-out
         already_signed_out: You are already signed out.
         success: Sign-out has been scheduled. Access will be unavailable after %{expires_at}.
         completed_title: You are signed out
         completed_description: Access will be unavailable after %{expires_at}.
+        unavailable_title: Sign-out was not completed
+        unavailable_description: Your current session may still be active. Please try signing out again.
+        retry_button: Try signing out again
         home_link: Go to home
   auth:
     unauthorized: You are not authorized to access this page.

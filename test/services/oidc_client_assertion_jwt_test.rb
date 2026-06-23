@@ -35,14 +35,16 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
       "OIDC_CLIENT_ACME_APP_PUBLIC_KEYSET" => nil,
     ) do
       JitSecurityJwtRegistry.reload!
+
       assert_nil JitSecurityJwtRegistry.private_key_for("oidc_client:ACME_APP")
 
-      installer = lambda do |**|
-        installed = true
-        ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = "acme-app-oidc-recovered"
-        ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
-        true
-      end
+      installer =
+        lambda do |**|
+          installed = true
+          ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = "acme-app-oidc-recovered"
+          ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
+          true
+        end
 
       JitSecurityJwtLocalKeysetInstaller.stub(:install!, installer) do
         assertion = OidcClientAssertionJwt.issue(client_id: "base-rails-rp", token_url: token_url)

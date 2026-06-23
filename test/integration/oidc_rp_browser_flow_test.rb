@@ -186,7 +186,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app authorization resume renders session limit hard reject when three usable tokens already exist" do
+  test "acme app authorization resume opens session-limit resolution when three usable tokens already exist" do
     with_acme_oidc_client_key do
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       user = clients(:one)
@@ -226,10 +226,118 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         get URI.parse(issuance.resume_url).request_uri, headers: browser_headers
       end
 
-      assert_response :forbidden
-      assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, response.body
+      assert_response :see_other
+      resolution_uri = URI.parse(response.location)
+      resolution_query = Rack::Utils.parse_nested_query(resolution_uri.query.to_s)
+      assert_equal "/session-limit-resolution", resolution_uri.path
+      assert_predicate resolution_query["resolution_challenge"], :present?
+      assert_not_includes resolution_uri.query.to_s, user.id.to_s
+      assert_not_predicate issuance.transaction.reload, :consumed?
+
+      resolution = ClientSessionLimitResolutionTransaction.find_active_by_challenge(
+        resolution_query.fetch("resolution_challenge"),
+      )
+      assert_equal "Client", resolution.actor_type
+      assert_equal user.public_id, resolution.actor_ref
+      assert_equal issuance.transaction.id, resolution.oidc_authorization_transaction_id
+
+      get response.location, headers: browser_headers
+
+      assert_response :success
+      assert_select "h1", "Session limit"
+      assert_select "input[name=session_ref]", count: 3
       assert_not_predicate issuance.transaction.reload, :consumed?
     end
+  end
+
+  test "acme app session-limit resolution revokes one session and resumes authorization" do
+    with_acme_oidc_client_key do
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      user = clients(:one)
+      ClientToken.where(user_id: user.id).delete_all
+
+      tokens =
+        3.times.map do
+          ClientToken.create!(
+            user: user,
+            user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+            user_token_status_id: ClientTokenStatus::ACTIVE,
+          )
+        end
+      issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+      resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+        actor: user,
+        oidc_transaction: issuance.transaction,
+      )
+      selected = tokens.first
+
+      assert_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count }, 0 do
+        host! acme_host
+        patch acme_app_session_limit_resolution_path,
+              params: {
+                resolution_challenge: resolution.challenge,
+                session_ref: SessionLimitResolutionTokenRef.issue(selected),
+              },
+              headers: browser_headers
+      end
+
+      assert_predicate selected.reload, :revoked?
+      assert_response :redirect
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal "/oidc/callback", callback_uri.path
+      assert_predicate callback_query["code"], :present?
+      assert_predicate issuance.transaction.reload, :consumed?
+      assert_predicate resolution.transaction.reload, :resolved?
+      assert_not_nil resolution.transaction.finalized_at
+      assert_equal 3, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+    end
+  end
+
+  test "acme app session-limit resolution rejects another actor session" do
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    other = clients(:two)
+    ClientToken.where(user_id: [user.id, other.id]).delete_all
+    own_token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    other_token = ClientToken.create!(user: other, user_token_status_id: ClientTokenStatus::ACTIVE)
+    issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+    resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+      actor: user,
+      oidc_transaction: issuance.transaction,
+    )
+
+    host! acme_host
+    patch acme_app_session_limit_resolution_path,
+          params: {
+            resolution_challenge: resolution.challenge,
+            session_ref: SessionLimitResolutionTokenRef.issue(other_token),
+          },
+          headers: browser_headers
+
+    assert_response :unprocessable_content
+    assert_not other_token.reload.revoked?
+    assert_not own_token.reload.revoked?
+    assert_not_predicate issuance.transaction.reload, :consumed?
+  end
+
+  test "acme app session-limit resolution rejects tampered challenge without revoking" do
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
+    token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+
+    host! acme_host
+    patch acme_app_session_limit_resolution_path,
+          params: {
+            resolution_challenge: "tampered",
+            session_ref: SessionLimitResolutionTokenRef.issue(token),
+          },
+          headers: browser_headers
+
+    assert_response :gone
+    assert_not token.reload.revoked?
   end
 
   test "acme app authorization resume succeeds with two usable tokens and consumes the transaction once" do
@@ -432,7 +540,6 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     when Client then "client"
     when Operator then "operator"
     when Visitor then "visitor"
-    else "client"
     end
   end
 
@@ -451,6 +558,31 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
     VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
     Visitor.create!
+  end
+
+  def issue_authenticated_app_oidc_transaction(user, auth_method:)
+    OidcAuthorizationTransactionService.issue!(
+      surface: "app",
+      intent: "sign_in",
+      params: {
+        response_type: "code",
+        client_id: "base-rails-rp",
+        redirect_uri: redirect_uri_for(SURFACES.first),
+        scope: "openid profile",
+        state: SecureRandom.hex(16),
+        nonce: SecureRandom.hex(16),
+        code_challenge: SecureRandom.urlsafe_base64(32),
+        code_challenge_method: "S256",
+      },
+    ).transaction.then do |transaction|
+      OidcAuthorizationTransactionService.register_result!(
+        surface: "app",
+        login_challenge: transaction.login_challenge,
+        actor: user,
+        session_ref: SecureRandom.hex(16),
+        auth_method: auth_method,
+      )
+    end
   end
 
   def assert_response_has_auth_cookie

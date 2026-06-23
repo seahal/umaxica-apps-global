@@ -63,8 +63,10 @@ module Security
         {
           pattern: "cross-host redirect escape hatch",
           path: "app/controllers/concerns/oidc_callback.rb",
-          line: /redirect_to\(sign_in_url_with_pt\(nil\), alert: I18n\.t\("errors\.messages\.login_required"\), allow_other_host: true\)/,
-          reason: "OIDC callback failure must send the browser back to the sign-in surface through the reviewed RP redirect.",
+          line: /redirect_to\(sign_in_url_with_pt\(nil\), alert: I18n\.t\("errors\.messages\.login_required"\),
+                \s*allow_other_host: true\)/,
+          reason: "OIDC callback failure must send the browser back to the sign-in surface " \
+                  "through the reviewed RP redirect.",
         },
         {
           pattern: "cross-host redirect escape hatch",
@@ -92,7 +94,8 @@ module Security
           pattern: "csrf null_session",
           path: "app/controllers/acme/app/oauth/tokens_controller.rb",
           line: /with: :null_session/,
-          reason: "Acme OAuth token exchange is a server-to-server protocol endpoint and does not use browser session CSRF.",
+          reason: "Acme OAuth token exchange is a server-to-server protocol endpoint " \
+                  "and does not use browser session CSRF.",
         },
         {
           pattern: "csrf null_session",
