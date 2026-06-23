@@ -331,6 +331,73 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_match %r{/settings}, response.location
   end
 
+  test "update promotes pending email OIDC sign-in cycle and signs in Sign while preserving callback capacity" do
+    CloudflareTurnstile.test_mode = true
+    first_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    first_active.rotate_refresh_token!
+    second_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    second_active.rotate_refresh_token!
+    email = @user.client_emails.create!(address: "cycle_limit_#{SecureRandom.hex(4)}@example.com")
+    login_challenge = issue_login_challenge
+
+    get(sign_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host })
+
+    assert_response :success
+
+    post(
+      sign_app_sign_in_email_url(ri: "jp"),
+      params: {
+        :client_email => { address: email.address },
+        "cf-turnstile-response" => "test_token",
+      },
+      headers: { "Host" => @host },
+    )
+
+    assert_predicate response, :redirect?, response.body
+
+    pass_code = store_otp_and_return_code(email)
+    patch(
+      sign_app_sign_in_email_url(ri: "jp"),
+      params: { client_email: { pass_code: pass_code } },
+      headers: { "Host" => @host },
+    )
+
+    assert_response :redirect
+    assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
+
+    cycle = ClientSignInFlow.where(principal_id: @user.id).recent_first.first
+
+    assert_predicate cycle, :sign_in_session_limit_pending?
+
+    assert_no_difference -> { ClientToken.not_revoked.where(user_id: @user.id, rotated_at: nil).count } do
+      patch(
+        sign_app_sign_in_session_url(ri: "jp"),
+        params: { revoke_refs: [first_active.signed_ref] },
+        headers: browser_headers.merge("Host" => @host),
+      )
+    end
+
+    assert_response :redirect
+    assert_match %r{/oauth/authorize\?login_challenge=#{Regexp.escape(login_challenge)}}, response.location
+    assert_includes response.headers["Set-Cookie"].to_s, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
+    assert_nil session[:oidc_authorization_login_challenge]
+
+    cycle.reload
+    issued_session = ClientToken.find(cycle.token_id)
+    transaction = ClientOidcAuthorizationTransaction.find_by!(login_challenge: login_challenge)
+
+    assert_predicate cycle, :sign_in_dashboard_pending?
+    assert_predicate issued_session, :active?
+    assert_predicate transaction, :authenticated?
+    assert_equal @user.public_id, transaction.actor_ref
+    assert_equal issued_session.public_id, transaction.session_ref
+    assert_equal "email", transaction.auth_method
+    assert_equal 2, ClientToken.not_revoked.where(user_id: @user.id, rotated_at: nil).count
+  ensure
+    CloudflareTurnstile.test_mode = false
+    CloudflareTurnstile.test_validation_response = nil
+  end
+
   test "update with pt param redirects to the requested path" do
     active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     active_token.rotate_refresh_token!
@@ -587,6 +654,31 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     )
     token.rotate_refresh_token!
     token
+  end
+
+  def issue_login_challenge
+    OidcAuthorizationTransactionService.issue!(
+      surface: "app",
+      intent: "sign_in",
+      params: {
+        response_type: "code",
+        client_id: "core-next-rp",
+        redirect_uri: OidcClientRegistry.find!("core-next-rp").redirect_uris.first,
+        code_challenge: "challenge",
+        code_challenge_method: "S256",
+        state: SecureRandom.urlsafe_base64(16),
+        nonce: SecureRandom.urlsafe_base64(16),
+        scope: "openid profile",
+      },
+    ).transaction.login_challenge
+  end
+
+  def store_otp_and_return_code(email)
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
+    email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+    pass_code
   end
 
   def as_user_headers_with_token(user, token, host:, expires_at: 30.minutes.from_now)

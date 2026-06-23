@@ -51,7 +51,40 @@ module OidcSsoInitiator
   end
 
   def redirect_to_oidc_authorization_url(url, **)
+    return redirect_to(url, allow_other_host: true, **) if same_site_oidc_authorization_url?(url)
+
     redirect_to_jump_url(url, preserve_query_keys: ["redirect_uri"], **)
+  end
+
+  def same_site_oidc_authorization_url?(url)
+    uri = URI.parse(url.to_s)
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    return false unless uri.is_a?(URI::HTTP)
+    return false unless uri.path == "/oauth/authorize"
+    return false unless CommonRedirect.normalize_host(uri.host) == CommonRedirect.normalize_host(oidc_acme_host)
+    return false unless oidc_same_site_host?(request.host, uri.host)
+    return false unless query["client_id"].to_s == oidc_client_id.to_s
+    return false unless defined?(OidcClientRegistry)
+    return false unless OidcClientRegistry.valid_redirect_uri?(query["client_id"], query["redirect_uri"])
+
+    true
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def oidc_same_site_host?(source_host, target_host)
+    oidc_site_key(source_host) == oidc_site_key(target_host)
+  end
+
+  def oidc_site_key(host)
+    normalized = CommonRedirect.normalize_host(host)
+    return if normalized.blank?
+
+    labels = normalized.split(".")
+    return normalized if labels.one?
+
+    labels.last(2).join(".")
   end
 
   def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)

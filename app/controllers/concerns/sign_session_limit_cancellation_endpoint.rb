@@ -43,8 +43,12 @@ module SignSessionLimitCancellationEndpoint
 
     consume_session_limit_gate!
     session.delete(session_limit_pending_actor_session_key)
+    # Capture sign-in path before log_out resets the session so that
+    # subclass overrides (e.g. app surface) can read session state such as
+    # the pending OIDC login_challenge and include it in the redirect path.
+    sign_in_path = session_limit_sign_in_path
     log_out
-    redirect_to(session_limit_sign_in_path)
+    redirect_to(sign_in_path)
   end
 
   def pending_session_limit_cycle?

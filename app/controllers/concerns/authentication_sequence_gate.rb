@@ -111,6 +111,10 @@ module AuthenticationSequenceGate
 
         cycle.reload.update!(changes)
       end
+      if session[:oidc_authorization_login_challenge].present?
+        redirect_to(after_login_path, allow_other_host: after_login_allows_other_host?)
+        return
+      end
       redirect_to(
         issue_welcome_gate_and_path(pt: cycle.return_to, sequence_id: cycle.public_id),
         allow_other_host: after_login_allows_other_host?,
@@ -539,10 +543,95 @@ module AuthenticationSequenceGate
       token: current_session,
     ).promote!
     cycle = result.cycle.reload
+
+    session_result = log_in(
+      actor,
+      record_login_audit: true,
+      token_kind_id: "BROWSER_WEB",
+      require_totp_check: false,
+      audit_context: { auth_method: "session_limit_promotion" },
+      bootstrap_actor: true,
+    )
+    return false unless session_result[:status] == :success && current_session
+
+    issued_session = current_session
+    with_sign_in_flow_writing(cycle) do
+      changes = { token: issued_session }
+      changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
+      cycle.reload.update!(changes)
+    end
+
     if cycle.sign_in_guardrail_pending?
       SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
     end
+    sign_in_flow_locator_for(actor: actor, token: issued_session).issue!(cycle.reload)
+    reset_current_db_sign_in_flow_for_sequence!
     true
+  end
+
+  def promote_current_session_limit_cycle_for_oidc_handoff!(actor, auth_method:)
+    cycle = current_db_sign_in_flow_for_sequence
+    challenge = session[:oidc_authorization_login_challenge]
+    return nil unless cycle&.sign_in_session_limit_pending?
+    return nil if challenge.blank?
+
+    result = SignInSessionLimitManager.new(
+      cycle: cycle,
+      actor: actor,
+      token: current_session,
+    ).promote!
+    cycle = result.cycle.reload
+
+    if cycle.sign_in_guardrail_pending?
+      guardrail_result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      return nil if guardrail_result.blocking?
+    end
+
+    cycle.reload
+    if cycle.sign_in_checkpoint_pending?
+      checkpoint_result =
+        with_sign_in_flow_writing(cycle) do
+          sign_in_checkpoint_participant(cycle).advance_if_clear!
+        end
+      return nil if checkpoint_result.blocking?
+    end
+
+    session_result = log_in(
+      actor,
+      record_login_audit: true,
+      token_kind_id: "BROWSER_WEB",
+      require_totp_check: false,
+      audit_context: { auth_method: "oidc_session_limit_promotion" },
+      bootstrap_actor: true,
+    )
+    return nil unless session_result[:status] == :success && current_session
+
+    issued_session = current_session
+    with_sign_in_flow_writing(cycle) do
+      changes = {
+        status_id: cycle.status_id_for("DASHBOARD_PENDING"),
+        state: "DASHBOARD_PENDING",
+        step: "dashboard",
+        token: issued_session,
+      }
+      changes[:session_issued_at] = Time.current if cycle.has_attribute?(:session_issued_at)
+      cycle.reload.update!(changes)
+    end
+
+    issuance =
+      OidcAuthorizationTransactionService.register_result!(
+        surface: sign_in_sequence_surface.to_s,
+        login_challenge: challenge,
+        actor: actor,
+        session_ref: issued_session.public_id,
+        auth_method: auth_method,
+        acr: "aal1",
+      )
+
+    session.delete(:oidc_authorization_login_challenge)
+    sign_in_flow_locator_for(actor: actor, token: issued_session).issue!(cycle.reload)
+    reset_current_db_sign_in_flow_for_sequence!
+    issuance.resume_url
   end
 
   def issue_active_session_for_selector!(cycle)

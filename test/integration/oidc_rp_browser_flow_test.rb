@@ -322,6 +322,111 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "app email sign-in session-limit handoff signs in Sign and leaves capacity for RP callback session" do
+    with_acme_oidc_client_key do
+      CloudflareTurnstile.test_mode = true
+      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+      user = clients(:one)
+      ClientToken.where(user_id: user.id).delete_all
+      email = user.client_emails.create!(address: "oidc_email_limit_#{SecureRandom.hex(4)}@example.com")
+
+      first_active = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+      first_active.rotate_refresh_token!
+      second_active = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+      second_active.rotate_refresh_token!
+
+      host! acme_host
+      get "/oidc/authorization", headers: browser_headers
+
+      assert_response :redirect
+      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
+
+      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+
+      assert_response :redirect
+      sign_uri = URI.parse(jump_rt_url_from_location(response.location))
+      sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
+
+      host! sign_host
+      get sign_uri.request_uri, headers: browser_headers
+
+      assert_response :success
+
+      post(
+        sign_app_sign_in_email_path(ri: "jp"),
+        params: {
+          client_email: { address: email.address },
+          "cf-turnstile-response" => "test_token",
+        },
+        headers: browser_headers,
+      )
+
+      assert_response :redirect
+
+      pass_code = store_email_otp_and_return_code(email)
+      patch(
+        sign_app_sign_in_email_path(ri: "jp"),
+        params: { client_email: { pass_code: pass_code } },
+        headers: browser_headers,
+      )
+
+      assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
+
+      assert_no_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count } do
+        patch(
+          sign_app_sign_in_session_path(ri: "jp"),
+          params: { revoke_refs: [first_active.signed_ref] },
+          headers: browser_headers,
+        )
+      end
+
+      assert_response :redirect
+      resume_uri = URI.parse(response.location)
+      resume_query = Rack::Utils.parse_nested_query(resume_uri.query.to_s)
+
+      assert_equal acme_host, resume_uri.host
+      assert_equal "/oauth/authorize", resume_uri.path
+      assert_equal sign_query.fetch("login_challenge"), resume_query.fetch("login_challenge")
+
+      transaction = ClientOidcAuthorizationTransaction.find_by!(
+        login_challenge: sign_query.fetch("login_challenge"),
+      )
+
+      assert_predicate transaction, :authenticated?
+      sign_session = ClientToken.find_by!(public_id: transaction.session_ref)
+      assert_predicate sign_session, :active?
+      assert_equal user.id, sign_session.user_id
+      assert_equal 2, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+
+      host! acme_host
+      get resume_uri.request_uri, headers: browser_headers
+
+      assert_response :redirect
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal "/oidc/callback", callback_uri.path
+      assert_predicate callback_query["code"], :present?
+      assert_predicate transaction.reload, :consumed?
+
+      get callback_uri.request_uri, headers: browser_headers
+
+      assert_response :redirect
+      assert_equal 3, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+
+      host! sign_host
+      get sign_app_dashboard_path(ri: "jp"), headers: browser_headers
+
+      assert_response :success
+      assert_select "h1", "Dashboard"
+    ensure
+      CloudflareTurnstile.test_mode = false
+      CloudflareTurnstile.test_validation_response = nil
+    end
+  end
+
   test "acme app session-limit resolution rejects another actor session" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
@@ -677,6 +782,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         auth_method: auth_method,
       )
     end
+  end
+
+  def store_email_otp_and_return_code(email)
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
+    email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+    pass_code
   end
 
   def assert_response_has_auth_cookie

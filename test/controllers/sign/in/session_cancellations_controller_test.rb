@@ -43,6 +43,71 @@ class SignInSessionCancellationsControllerTest < ActiveSupport::TestCase
     )
   end
 
+  test "app cancellation with pending OIDC login_challenge includes it in redirect path" do
+    actor = Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE)
+    cycle = create_session_limit_cycle(ClientSignInFlow, actor)
+    challenge = "test_login_challenge_abc"
+
+    session_hash = {
+      :pending_login_user_id => actor.id,
+      :oidc_authorization_login_challenge => challenge,
+      SessionLimitGate::GATE_SESSION_KEY => {
+        "nonce" => "legacy",
+        "issued_at" => Time.current.to_i,
+        "pt" => "/dashboard",
+        "flow" => "in.session",
+      },
+    }
+    redirects = []
+    controller = Sign::App::Sign::In::Session::CancellationsController.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
+    controller.define_singleton_method(:current_resource) { nil }
+    controller.define_singleton_method(:current_session) { nil }
+    controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
+    controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
+    controller.define_singleton_method(:log_out) { }
+    controller.define_singleton_method(:redirect_to) { |path| redirects << path }
+    controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
+    controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }
+
+    controller.create
+
+    assert_includes redirects.first, "login_challenge=#{challenge}"
+    assert_includes redirects.first, "ri=jp"
+  end
+
+  test "app cancellation without pending OIDC login_challenge redirects to plain sign-in path" do
+    actor = Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE)
+    cycle = create_session_limit_cycle(ClientSignInFlow, actor)
+
+    session_hash = {
+      :pending_login_user_id => actor.id,
+      SessionLimitGate::GATE_SESSION_KEY => {
+        "nonce" => "legacy",
+        "issued_at" => Time.current.to_i,
+        "pt" => "/dashboard",
+        "flow" => "in.session",
+      },
+    }
+    redirects = []
+    controller = Sign::App::Sign::In::Session::CancellationsController.new
+    controller.define_singleton_method(:session) { session_hash }
+    controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
+    controller.define_singleton_method(:current_resource) { nil }
+    controller.define_singleton_method(:current_session) { nil }
+    controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
+    controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
+    controller.define_singleton_method(:log_out) { }
+    controller.define_singleton_method(:redirect_to) { |path| redirects << path }
+    controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
+    controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }
+
+    controller.create
+
+    assert_equal ["/sign/in?ri=jp"], redirects
+  end
+
   test "cancellation with mismatched bound token does not mutate the DB cycle or token" do
     actor = Client.create!(public_id: "u_#{SecureRandom.hex(6)}", status_id: ClientStatus::ACTIVE)
     token = ClientToken.create!(

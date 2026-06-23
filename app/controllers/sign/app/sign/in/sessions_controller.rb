@@ -59,6 +59,15 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
 
     # Check if we can promote restricted session to active
     if (pending_session_limit_cycle? || current_session_restricted?) && can_promote_session?(@current_client)
+      if pending_oidc_session_limit_cycle?
+        resume_url = promote_current_session_limit_cycle_for_oidc_handoff!(@current_client, auth_method: "email")
+        if resume_url.present?
+          consume_session_limit_gate!
+          session.delete(:pending_login_user_id)
+          return redirect_to(resume_url, allow_other_host: true)
+        end
+      end
+
       if pending_session_limit_cycle? && promote_current_session_limit_cycle!(@current_client)
         consume_session_limit_gate!
         return redirect_to_sign_in_sequence!(
@@ -146,6 +155,10 @@ class Sign::App::Sign::In::SessionsController < ::Sign::App::ApplicationControll
 
   def pending_session_limit_cycle?
     current_db_sign_in_flow_for_sequence&.sign_in_session_limit_pending?
+  end
+
+  def pending_oidc_session_limit_cycle?
+    pending_session_limit_cycle? && session[:oidc_authorization_login_challenge].present?
   end
 
   def redirect_to_login

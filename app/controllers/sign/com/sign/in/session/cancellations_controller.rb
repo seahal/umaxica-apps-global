@@ -17,5 +17,12 @@ class Sign::Com::Sign::In::Session::CancellationsController < ::Sign::Com::Appli
 
   def session_limit_actor_class = Visitor
 
-  def session_limit_sign_in_path = sign_com_sign_in_path(ri: params[:ri])
+  def session_limit_sign_in_path
+    challenge = session[:oidc_authorization_login_challenge]
+    if challenge.present?
+      sign_com_sign_in_path(ri: params[:ri], login_challenge: challenge)
+    else
+      sign_com_sign_in_path(ri: params[:ri])
+    end
+  end
 end

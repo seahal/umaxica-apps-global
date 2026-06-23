@@ -24,15 +24,15 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 
   def oidc_sign_host
-    "id.app.localhost"
+    "id.umaxica.app"
   end
 
   def oidc_acme_host
-    "www.app.localhost"
+    "www.umaxica.app"
   end
 
   def oidc_callback_url
-    "http://www.example.com/auth/callback"
+    "https://www.umaxica.app/oidc/callback"
   end
 
   def jump_rt_issuer_namespace
@@ -53,19 +53,39 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "authenticate! redirects unauthenticated html requests to oidc authorize url" do
-    get "/oidc/sso"
+    get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
 
     assert_response :redirect
-    location = jump_rt_url_from_location(response.location)
+    location = response.location
 
-    assert_match %r{\Ahttp://www\.app\.localhost/oauth/authorize\?}, location
+    assert_match %r{\Ahttps://www\.umaxica\.app/oauth/authorize\?}, location
     authorize_params = Rack::Utils.parse_nested_query(URI.parse(location).query)
 
     assert_equal "base-rails-rp", authorize_params.fetch("client_id")
-    assert_equal "http://www.example.com/auth/callback", authorize_params.fetch("redirect_uri")
+    assert_equal "https://www.umaxica.app/oidc/callback", authorize_params.fetch("redirect_uri")
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]
+  end
+
+  test "authenticate! keeps using jump for cross-site oidc authorize urls" do
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.com" }
+    OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
+      "https://www.umaxica.com/oidc/callback"
+    end
+
+    get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
+
+    assert_response :redirect
+    assert_equal "jump.umaxica.net", URI.parse(response.location).host
+    location = jump_rt_url_from_location(response.location)
+
+    assert_match %r{\Ahttps://www\.umaxica\.com/oauth/authorize\?}, location
+  ensure
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.app" }
+    OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
+      "https://www.umaxica.app/oidc/callback"
+    end
   end
 
   test "safe_oidc_pt strips foreign hosts" do

@@ -85,6 +85,7 @@ module AuthenticationBase
     oidc_state
     oidc_nonce
     oidc_pt
+    oidc_authorization_login_challenge
   ).freeze
 
   # AuthenticationToken TTLs
