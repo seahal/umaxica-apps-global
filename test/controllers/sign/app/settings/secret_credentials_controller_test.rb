@@ -104,7 +104,8 @@ class Sign::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :success
-    assert_select "form[action=?][method=?]", sign_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp"), "post" do
+    assert_select "form[action=?][method=?]",
+                  sign_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp"), "post" do
       assert_select "input[name=?][value=?]", "_method", "delete"
     end
   end

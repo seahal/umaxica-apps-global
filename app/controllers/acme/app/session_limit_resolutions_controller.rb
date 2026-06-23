@@ -38,7 +38,7 @@ module Acme
           return render :show, status: :unprocessable_content
         end
 
-        resume_login_after_resolution
+        resume_authorization_after_resolution
       end
 
       def destroy
@@ -92,28 +92,7 @@ module Acme
         end
       end
 
-      def resume_login_after_resolution
-        login_result =
-          ActiveRecord::Base.connected_to(role: :writing) do
-            log_in(
-              @actor,
-              record_login_audit: false,
-              token_kind_id: "BROWSER_WEB",
-              require_totp_check: false,
-              audit_context: { oidc_client_id: @oidc_transaction.client_id },
-              bootstrap_actor: true,
-            )
-          end
-
-        if login_result[:status] == :session_limit_hard_reject
-          @form_notice = "Session capacity changed while signing in. Revoke another session to continue."
-          load_session_inventory
-          return render :show, status: :conflict
-        end
-
-        return render plain: "Sign-in could not be completed.",
-                      status: :unprocessable_content unless login_result[:status] == :success
-
+      def resume_authorization_after_resolution
         @oidc_transaction.consume!
         @resolution.finalize!
         issue_authorization_code!

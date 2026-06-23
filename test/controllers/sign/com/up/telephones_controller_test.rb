@@ -50,7 +50,7 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
-    assert_redirected_to acme_com_dashboard_url(ri: "jp", host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+    assert_redirected_to sign_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))
   end
 
   test "create rejects when visitor is already logged in" do

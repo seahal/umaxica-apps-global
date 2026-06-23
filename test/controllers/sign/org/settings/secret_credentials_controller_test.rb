@@ -216,5 +216,4 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   def secret_credential_ceremony_grant
     signed_secret_credential_ceremony_grant_for(surface: "org", actor: @staff, token: @token)
   end
-
 end

@@ -11,7 +11,7 @@ module Sign
         include ::SignAuthorityRedirect
 
         AUTHENTICATION_MODE = :private
-        before_action :authenticate_client!
+        before_action :authenticate_operator!
 
         def create
           redirect_to_sign_authority!(canonical_resource_path, query: request.query_parameters)

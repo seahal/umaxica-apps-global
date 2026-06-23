@@ -220,8 +220,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       post "/sign/out", headers: browser_headers
 
-      assert_response :redirect
-      logout_uri = URI.parse(jump_rt_url_from_location(response.location))
+      assert_response :success
+      assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
+      logout_uri = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
       logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
       assert_equal "/oidc/logout", logout_uri.path
@@ -260,8 +261,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       post "/sign/out", headers: browser_headers
 
-      assert_response :redirect
-      logout_uri = URI.parse(jump_rt_url_from_location(response.location))
+      assert_response :success
+      assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
+      logout_uri = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
       logout_query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
       assert_equal "/oidc/logout", logout_uri.path

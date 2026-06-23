@@ -86,6 +86,7 @@ class RailsWayHarnessInventoryTest < ActiveSupport::TestCase
       1,
       "reviewed OAuth authorize rate-limit callback concern",
     ],
+    "app/controllers/concerns/oidc_rp_logout_launcher.rb" => [1, "reviewed RP logout handoff callback concern"],
     "app/controllers/concerns/sign_oidc_logout.rb" => [1, "reviewed OIDC logout callback concern"],
     "app/controllers/concerns/sign_out_notice.rb" => [1, "reviewed sign-out notice helper concern"],
   }.freeze

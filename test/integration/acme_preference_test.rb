@@ -580,6 +580,19 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
                     public_send("edit_acme_#{domain[:name]}_preference_language_path", state)
     end
 
+    if domain[:name] == "app"
+      test "app domain currency edit renders localized currency names with code suffixes" do
+        host!(domain[:host])
+        state = { ri: "jp", lx: "ja" }
+
+        get edit_acme_app_preference_currency_url(state)
+
+        assert_response :success
+        assert_select "select[name='preference_currency[option_id]'] option", text: "米国ドル (USD)"
+        assert_select "select[name='preference_currency[option_id]'] option", text: "日本円 (JPY)"
+      end
+    end
+
     test "#{domain[:name]} domain updates extended preference options" do
       host!(domain[:host])
       pref, = assert_preference_created(domain)

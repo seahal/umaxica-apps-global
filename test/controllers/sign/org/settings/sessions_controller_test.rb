@@ -58,5 +58,4 @@ class Sign::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
       "X-TEST-SESSION-PUBLIC-ID" => @current_token.public_id,
     }
   end
-
 end

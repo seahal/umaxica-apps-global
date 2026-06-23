@@ -145,4 +145,72 @@ class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
     assert_equal({ allow_other_host: false }, redirects.last.last)
   end
+
+  test "completion renders terminal failure for sign in result failures" do
+    @controller.define_singleton_method(:establish_signed_in_session!) do |_resource, **_kwargs|
+      { status: :login_forbidden, message: "login blocked" }
+    end
+
+    commit = Struct.new(:user, :result, :pt, :identity, :existing_account).new(
+      @commit_user,
+      { "operation" => "login" },
+      nil,
+      Struct.new(:provider).new("google"),
+      true,
+    )
+
+    IdentitySocialCeremonyResult.stub(
+      :decode,
+      { "surface" => "app", "provider" => "google", "session_ref" => "session-1" },
+    ) do
+      IdentitySocialCeremonyContract.stub(
+        :decode_untrusted_routing_payload,
+        { "operation" => "login", "session_ref" => "session-1" },
+      ) do
+        IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
+          IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
+            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+          end
+        end
+      end
+    end
+
+    assert_response :forbidden
+    assert_nil response.location
+    assert_equal "login blocked", response.body
+  end
+
+  test "completion cooldown is not converted to a fresh sign in redirect" do
+    @controller.define_singleton_method(:establish_signed_in_session!) do |_resource, **_kwargs|
+      raise AuthenticationBase::LoginCooldownError
+    end
+
+    commit = Struct.new(:user, :result, :pt, :identity, :existing_account).new(
+      @commit_user,
+      { "operation" => "login" },
+      nil,
+      Struct.new(:provider).new("google"),
+      true,
+    )
+
+    IdentitySocialCeremonyResult.stub(
+      :decode,
+      { "surface" => "app", "provider" => "google", "session_ref" => "session-1" },
+    ) do
+      IdentitySocialCeremonyContract.stub(
+        :decode_untrusted_routing_payload,
+        { "operation" => "login", "session_ref" => "session-1" },
+      ) do
+        IdentitySocialCeremonyFinalCommitter.stub(:call!, commit) do
+          IdentityGraphProvisioner.stub(:call!, ->(*_args, **_kwargs) { true }) do
+            post :completion, params: { id: "google", ri: "jp", social_ceremony_result: "signed-token" }
+          end
+        end
+      end
+    end
+
+    assert_response :too_many_requests
+    assert_nil response.location
+    assert_includes response.body, I18n.t("errors.messages.login_cooldown")
+  end
 end

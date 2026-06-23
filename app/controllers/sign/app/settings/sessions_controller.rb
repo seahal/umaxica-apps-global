@@ -21,7 +21,10 @@ module Sign
         end
 
         def destroy
-          return redirect_to(sign_app_settings_sessions_path(ri: params[:ri]), status: :see_other) if current_session_record?(@session)
+          return redirect_to(
+            sign_app_settings_sessions_path(ri: params[:ri]),
+            status: :see_other,
+          ) if current_session_record?(@session)
 
           @session.revoke!
           redirect_to(sign_app_settings_sessions_path(ri: params[:ri]), status: :see_other)

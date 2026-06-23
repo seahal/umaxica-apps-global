@@ -26,16 +26,7 @@ module Sign
           def new
             @user_telephone = ClientTelephone.new
             reset_registration_session!
-            return if accept_telephone_ceremony_grant!(surface: "app")
-
-            redirect_to(
-              sign_app_settings_telephones_url(
-                ri: params[:ri],
-                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-              ),
-              notice: t("sign.app.registration.telephone.edit.session_expired"),
-              allow_other_host: cross_host_redirect_allowed?,
-            )
+            accept_telephone_ceremony_grant!(surface: "app")
           end
 
           def edit

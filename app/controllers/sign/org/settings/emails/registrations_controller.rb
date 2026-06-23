@@ -25,16 +25,7 @@ module Sign
           def new
             @staff_email = OperatorEmail.new
             reset_registration_session!
-            return if accept_email_ceremony_grant!(surface: "org")
-
-            redirect_to(
-              sign_org_settings_emails_url(
-                ri: params[:ri],
-                host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
-              ),
-              notice: t("sign.org.registration.email.edit.session_expired"),
-              allow_other_host: cross_host_redirect_allowed?,
-            )
+            accept_email_ceremony_grant!(surface: "org")
           end
 
           def edit

@@ -48,12 +48,16 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "acme completion rejects a malformed social result without committing" do
     assert_no_difference("ClientGoogleIdentity.count") do
-      post completion_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
-           params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
-           headers: social_completion_browser_headers
+      assert_no_difference("ClientOidcAuthorizationTransaction.count") do
+        post completion_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
+             params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
+             headers: social_completion_browser_headers
+      end
     end
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    assert_response :unprocessable_content
+    assert_nil response.location
+    assert_includes response.body, I18n.t("sign.app.social.sessions.create.failure")
   end
 
   test "acme social login start delegates to sign with a login ceremony grant" do

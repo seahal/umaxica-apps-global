@@ -256,19 +256,8 @@ module Sign
         end
 
         def accept_app_passkey_ceremony_grant!
-          return true if accept_passkey_ceremony_grant!(surface: "app")
-
-          respond_to do |format|
-            format.html do
-              redirect_to(
-                sign_app_settings_passkeys_path(ri: params[:ri]),
-                alert: I18n.t("errors.messages.invalid"),
-                status: :see_other,
-              )
-            end
-            format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
-          end
-          false
+          accept_passkey_ceremony_grant!(surface: "app")
+          true
         end
 
         def credential_params

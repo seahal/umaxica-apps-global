@@ -138,16 +138,14 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
-  test "new rejects invalid telephone ceremony grant without starting sign authority" do
+  test "new ignores invalid telephone ceremony grant for signed-in settings entry" do
     get new_sign_app_settings_telephones_registration_url(
       ri: "jp",
       telephone_ceremony_grant: "invalid",
     ), headers: request_headers
 
-    assert_redirected_to sign_app_settings_telephones_url(
-      ri: "jp",
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-    )
+    assert_response :success
+    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
   end
 
   test "create rejects when turnstile fails" do

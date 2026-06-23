@@ -281,5 +281,4 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   def secret_credential_ceremony_grant
     signed_secret_credential_ceremony_grant_for(surface: "com", actor: @visitor, token: @token)
   end
-
 end

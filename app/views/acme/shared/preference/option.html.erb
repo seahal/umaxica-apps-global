@@ -36,11 +36,12 @@
                          translation_key =
                            if option_type == :timezone
                              "acme.#{surface}.preference.locale.edit.timezone_options.#{option_key}"
+                           elsif option_type == :region
+                             "acme.#{surface}.preferences.regions.select_region_selector.#{option_name.upcase}"
                            else
                              "acme.#{surface}.preference.#{screen}.options.#{option_key}"
                            end
-                         [t(translation_key,
-                            default: default_label), option.id]
+                         [t(translation_key, default: default_label), option.id]
                        },
                        model.option_id,
                      ),

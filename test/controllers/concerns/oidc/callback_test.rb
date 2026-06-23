@@ -139,9 +139,10 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     event = logged.find { |entry| entry[:event] == "oidc.rp.callback.invalid_state" }
+
     assert_equal "OIDC state mismatch", event.dig(:data, :reason)
-    assert_equal true, event.dig(:data, :code_param_present)
-    assert_equal true, event.dig(:data, :state_param_present)
+    assert event.dig(:data, :grant_present)
+    assert event.dig(:data, :csrf_present)
   end
 
   test "show raises unexpected provisioning errors" do

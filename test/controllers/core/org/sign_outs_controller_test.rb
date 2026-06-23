@@ -40,8 +40,9 @@ class Core::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    assert_response :see_other
-    location = URI.parse(jump_rt_url_from_location(response.location))
+    assert_response :success
+    assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
+    location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), location.host

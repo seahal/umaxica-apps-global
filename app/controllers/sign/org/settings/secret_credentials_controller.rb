@@ -78,7 +78,10 @@ module Sign
         def update
           authorize!(@secret_credential)
 
-          if disabling_secret_credential? && AuthMethodGuard.last_method?(current_operator, excluding: @secret_credential)
+          if disabling_secret_credential? && AuthMethodGuard.last_method?(
+            current_operator,
+            excluding: @secret_credential,
+          )
             redirect_to(
               sign_org_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
               status: :see_other,
@@ -139,14 +142,8 @@ module Sign
         end
 
         def accept_org_secret_credential_ceremony_grant!
-          return true if accept_secret_credential_ceremony_grant!(surface: "org")
-
-          redirect_to(
-            sign_org_settings_secret_credentials_path(ri: params[:ri]),
-            alert: I18n.t("errors.messages.invalid"),
-            status: :see_other,
-          )
-          false
+          accept_secret_credential_ceremony_grant!(surface: "org")
+          true
         end
 
         def verification_required_action?
@@ -156,7 +153,6 @@ module Sign
         def verification_scope
           "settings_secret_credential"
         end
-
       end
     end
   end

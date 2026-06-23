@@ -88,7 +88,7 @@ module OidcCallback
       ),
     )
     clear_oidc_session_state!
-    redirect_to(sign_in_url_with_pt(nil), alert: I18n.t("errors.messages.login_required"), allow_other_host: true)
+    redirect_to(sign_in_url_with_pt(nil), allow_other_host: true)
   end
 
   def log_invalid_callback_state!(reason)
@@ -98,8 +98,8 @@ module OidcCallback
         reason: reason,
         client_id: oidc_client_id,
         host: request.host,
-        code_param_present: params[:code].present?,
-        state_param_present: params[:state].present?,
+        grant_present: params[:code].present?,
+        csrf_present: params[:state].present?,
       ),
     )
   end

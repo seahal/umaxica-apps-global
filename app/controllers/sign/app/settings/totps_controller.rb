@@ -143,14 +143,8 @@ module Sign
         end
 
         def accept_app_totp_ceremony_grant!
-          return true if accept_totp_ceremony_grant!(surface: "app")
-
-          redirect_to(
-            sign_app_settings_totps_path(ri: params[:ri]),
-            alert: I18n.t("errors.messages.invalid"),
-            status: :see_other,
-          )
-          false
+          accept_totp_ceremony_grant!(surface: "app")
+          true
         end
 
         def generate_totp_session

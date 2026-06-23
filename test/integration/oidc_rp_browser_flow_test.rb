@@ -259,6 +259,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "acme app session-limit resolution revokes one session and resumes authorization" do
     with_acme_oidc_client_key do
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      client = OidcClientRegistry.find!("base-rails-rp")
+      code_verifier = SecureRandom.urlsafe_base64(48)
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
 
@@ -270,14 +272,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
             user_token_status_id: ClientTokenStatus::ACTIVE,
           )
         end
-      issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+      issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email", code_verifier: code_verifier)
       resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
         actor: user,
         oidc_transaction: issuance.transaction,
       )
       selected = tokens.first
 
-      assert_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count }, 0 do
+      assert_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count }, -1 do
         host! acme_host
         patch acme_app_session_limit_resolution_path,
               params: {
@@ -297,6 +299,25 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_predicate issuance.transaction.reload, :consumed?
       assert_predicate resolution.transaction.reload, :resolved?
       assert_not_nil resolution.transaction.finalized_at
+      assert_equal 2, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+
+      token_url = acme_app_oauth_token_url(host: acme_host)
+      client_assertion = OidcClientAssertionJwt.issue(client_id: "base-rails-rp", token_url: token_url)
+      post token_url,
+           params: {
+             grant_type: "authorization_code",
+             code: callback_query.fetch("code"),
+             redirect_uri: client.redirect_uris.first,
+             client_id: "base-rails-rp",
+             code_verifier: code_verifier,
+             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+             client_assertion: client_assertion,
+           },
+           headers: browser_headers
+
+      assert_response :ok
+      assert_predicate response.parsed_body["id_token"], :present?
+      assert_predicate response.parsed_body["access_token"], :present?
       assert_equal 3, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
     end
   end
@@ -626,7 +647,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     Visitor.create!
   end
 
-  def issue_authenticated_app_oidc_transaction(user, auth_method:)
+  def issue_authenticated_app_oidc_transaction(user, auth_method:, code_verifier: nil)
+    code_challenge =
+      if code_verifier.present?
+        Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier), padding: false)
+      else
+        SecureRandom.urlsafe_base64(32)
+      end
+
     OidcAuthorizationTransactionService.issue!(
       surface: "app",
       intent: "sign_in",
@@ -637,7 +665,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         scope: "openid profile",
         state: SecureRandom.hex(16),
         nonce: SecureRandom.hex(16),
-        code_challenge: SecureRandom.urlsafe_base64(32),
+        code_challenge: code_challenge,
         code_challenge_method: "S256",
       },
     ).transaction.then do |transaction|

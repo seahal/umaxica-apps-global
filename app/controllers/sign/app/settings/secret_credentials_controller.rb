@@ -169,14 +169,8 @@ module Sign
         end
 
         def accept_app_secret_credential_ceremony_grant!
-          return true if accept_secret_credential_ceremony_grant!(surface: "app")
-
-          redirect_to(
-            sign_app_settings_secret_credentials_path(ri: params[:ri]),
-            alert: I18n.t("errors.messages.invalid"),
-            status: :see_other,
-          )
-          false
+          accept_secret_credential_ceremony_grant!(surface: "app")
+          true
         end
 
         def verification_required_action?
@@ -186,7 +180,6 @@ module Sign
         def verification_scope
           "settings_secret_credential"
         end
-
       end
     end
   end

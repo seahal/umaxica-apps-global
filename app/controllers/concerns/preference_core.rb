@@ -800,6 +800,8 @@ module PreferenceCore
   def preference_option_label(type, value)
     key = "acme.#{preference_surface_key}.preference.#{type}.options.#{value}"
     default = value.to_s.tr("_", " ").titleize
-    I18n.t(key, default: default)
+    label = I18n.t(key, default: default)
+    label = "#{label} (#{value.to_s.upcase})" if type.to_sym == :currency
+    label
   end
 end

@@ -11,12 +11,10 @@ module Sign
         include ::VerificationVisitor
 
         AUTHENTICATION_MODE = :private
-        declare_authentication_mode! :open, only: %i(index destroy)
-        declare_authentication_mode! :private, only: %i(new create edit)
 
         TELEPHONE_VERIFICATION_RATE_LIMIT = 5
         TELEPHONE_VERIFICATION_RATE_WINDOW = 60
-        before_action :authenticate_visitor!, only: :destroy
+        before_action :authenticate_visitor!
         # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find_by! is owner-scoped, so a non-owner gets 404 first).
         # Verification/rate-limit guards remain in place.

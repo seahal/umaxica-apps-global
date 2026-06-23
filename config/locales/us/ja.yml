@@ -2252,8 +2252,8 @@ ja:
           select_region_selector:
             USA: US
             JAPAN: JP
-            US: US
-            JP: JP
+            US: 英語
+            JP: 日本語
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語
@@ -2298,6 +2298,14 @@ ja:
           options:
             ja: 日本語
             en: 英語
+        currency:
+          edit:
+            heading: 通貨設定
+            description: 表示に使う通貨を選択します。
+            option_label: 通貨
+          options:
+            usd: 米国ドル
+            jpy: 日本円
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -2333,8 +2341,8 @@ ja:
             description: 表示に使う通貨を選択します。
             option_label: 通貨
           options:
-            usd: 米ドル (USD)
-            jpy: 日本円 (JPY)
+            usd: 米国ドル
+            jpy: 日本円
         date_format:
           edit:
             heading: 日付形式
@@ -2388,8 +2396,8 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US
-            JP: JP
+            US: 英語
+            JP: 日本語
             USA: US
             JAPAN: JP
           language_section: 言語設定
@@ -2468,8 +2476,8 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US
-            JP: JP
+            US: 英語
+            JP: 日本語
             USA: US
             JAPAN: JP
           language_section: 言語設定
@@ -2597,8 +2605,8 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: US
-            JP: JP
+            US: 英語
+            JP: 日本語
             USA: US
             JAPAN: JP
           language_section: 言語設定
@@ -2659,6 +2667,14 @@ ja:
           options:
             ja: 日本語
             en: 英語
+        currency:
+          edit:
+            heading: 通貨設定
+            description: 表示に使う通貨を選択します。
+            option_label: 通貨
+          options:
+            usd: 米国ドル
+            jpy: 日本円
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -3083,8 +3099,8 @@ ja:
           select_region_selector:
             USA: US
             JAPAN: JP
-            US: US
-            JP: JP
+            US: 英語
+            JP: 日本語
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語

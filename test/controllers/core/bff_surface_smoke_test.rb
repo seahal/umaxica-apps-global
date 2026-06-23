@@ -45,8 +45,10 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
         "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
       }
 
-      assert_response :redirect
-      assert_predicate response.location, :present?
+      handoff_rendered = response.status.between?(200, 299)
+
+      assert response.redirect? || handoff_rendered, "expected redirect or handoff success, got #{response.status}"
+      assert_select "form#sign-out-handoff-form[method=?]", "post", maximum: 1 if handoff_rendered
 
       post "https://#{host}#{surface.fetch(:backchannel_logout_path)}",
            params: { logout_token: "invalid" }

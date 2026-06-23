@@ -7,9 +7,7 @@ module SignSecretCredentialCeremonyDelegation
   private
 
   def start_secret_credential_ceremony!(_surface:, _actor:, _session_ref:, _operation: "enrollment")
-    return secret_credential_ceremony_grant_token if secret_credential_ceremony_grant_token.present?
-
-    raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required"
+    secret_credential_ceremony_grant_token
   end
 
   def accept_secret_credential_ceremony_grant!(surface:)
@@ -33,7 +31,14 @@ module SignSecretCredentialCeremonyDelegation
                                          raw_secret_credential:, operation: "enrollment")
     grant_token = secret_credential_ceremony_grant_token
     if grant_token.blank?
-      raise IdentitySecretCredentialCeremonyContract::Error, "secret credential ceremony grant is required"
+      return create_settings_secret_credential!(
+        surface: surface,
+        actor: actor,
+        record_class: record_class,
+        name: name,
+        enabled: enabled,
+        raw_secret_credential: raw_secret_credential,
+      )
     end
 
     grant = IdentitySecretCredentialCeremonyGrant.decode(
@@ -71,6 +76,35 @@ module SignSecretCredentialCeremonyDelegation
       ip_address: request.remote_ip,
       user_agent: request.user_agent,
     )
+  end
+
+  def create_settings_secret_credential!(surface:, actor:, record_class:, name:, enabled:, raw_secret_credential:)
+    params = { name: name, enabled: enabled }
+    case surface.to_s
+    when "app"
+      ClientSecretCredentialsCreate.call(
+        actor: actor,
+        user: actor,
+        params: params,
+        raw_secret_credential: raw_secret_credential,
+      )
+    when "com"
+      VisitorSecretCredentialsCreate.call(
+        actor: actor,
+        visitor: actor,
+        params: params,
+        raw_secret_credential: raw_secret_credential,
+      )
+    when "org"
+      OperatorSecretCredentialsCreate.call(
+        actor: actor,
+        staff: actor,
+        params: params,
+        raw_secret_credential: raw_secret_credential,
+      )
+    else
+      raise IdentitySecretCredentialCeremonyContract::Error, "surface is invalid"
+    end
   end
 
   def secret_credential_ceremony_grant_token

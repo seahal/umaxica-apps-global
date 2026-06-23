@@ -82,7 +82,7 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_redirected_to sign_org_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
 
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
@@ -108,7 +108,7 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to acme_org_dashboard_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_redirected_to sign_org_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
   end
 
   test "create rejects blank form" do

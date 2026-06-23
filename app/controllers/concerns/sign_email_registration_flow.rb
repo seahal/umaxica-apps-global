@@ -7,16 +7,7 @@ module SignEmailRegistrationFlow
   def new
     @user_email = ClientEmail.new
     reset_email_registration_flow!
-    return if respond_to?(:accept_email_ceremony_grant!, true) && accept_email_ceremony_grant!(surface: "app")
-
-    redirect_to(
-      sign_app_settings_emails_url(
-        ri: params[:ri],
-        host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-      ),
-      notice: t("sign.app.registration.email.edit.session_expired"),
-      allow_other_host: cross_host_redirect_allowed?,
-    )
+    accept_email_ceremony_grant!(surface: "app") if respond_to?(:accept_email_ceremony_grant!, true)
   end
 
   def edit

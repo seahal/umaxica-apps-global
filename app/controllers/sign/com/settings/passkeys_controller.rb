@@ -167,19 +167,8 @@ module Sign
         end
 
         def accept_com_passkey_ceremony_grant!
-          return true if accept_passkey_ceremony_grant!(surface: "com")
-
-          respond_to do |format|
-            format.html do
-              redirect_to(
-                sign_com_settings_passkeys_path(ri: params[:ri]),
-                alert: I18n.t("errors.messages.invalid"),
-                status: :see_other,
-              )
-            end
-            format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
-          end
-          false
+          accept_passkey_ceremony_grant!(surface: "com")
+          true
         end
 
         def set_passkey
@@ -274,7 +263,6 @@ module Sign
             host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
           )
         end
-
       end
     end
   end

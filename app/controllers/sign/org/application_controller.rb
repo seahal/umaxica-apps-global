@@ -82,11 +82,11 @@ module Sign
 
       private
 
-      # Post-session landing belongs to acme/www.
+      # Direct Sign entrypoints keep signed-in operators on the credential host.
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        acme_org_dashboard_url(ri: params[:ri], host: acme_authority_host)
+        sign_org_dashboard_path(ri: params[:ri])
       end
 
       def after_login_allows_other_host?

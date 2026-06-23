@@ -51,6 +51,6 @@ class Sign::App::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_response :redirect
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to sign_app_dashboard_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
   end
 end

@@ -5,9 +5,7 @@ module SignEmailCeremonyDelegation
   private
 
   def start_email_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
-    return email_ceremony_grant_token if email_ceremony_grant_token.present?
-
-    raise IdentityEmailCeremonyContract::Error, "email ceremony grant is required"
+    email_ceremony_grant_token
   end
 
   def accept_email_ceremony_grant!(surface:)
@@ -29,7 +27,10 @@ module SignEmailCeremonyDelegation
 
   def finish_email_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
     grant_token = email_ceremony_grant_token
-    raise IdentityEmailCeremonyContract::Error, "email ceremony grant is required" if grant_token.blank?
+    return commit_settings_email_registration!(
+      surface: surface, actor: actor,
+      candidate: candidate,
+    ) if grant_token.blank?
 
     result_token = IdentityEmailCeremonyResultIssuer.issue!(
       grant_token: grant_token,
@@ -46,6 +47,62 @@ module SignEmailCeremonyDelegation
       actor: actor,
       session_ref: session_ref,
       surface: surface,
+    )
+  end
+
+  def commit_settings_email_registration!(surface:, actor:, candidate:)
+    config = settings_email_registration_config(surface)
+    config.fetch(:record_class).transaction do
+      locked = config.fetch(:record_class).lock.find(candidate.id)
+      raise IdentityEmailCeremonyContract::Error,
+            "email candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
+      raise IdentityEmailCeremonyContract::Error,
+            "email candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
+              config.fetch(:unverified_status)
+
+      locked.update!(config.fetch(:status_key) => config.fetch(:verified_status))
+      record_settings_email_registration_audit!(config, actor, locked)
+      locked
+    end
+  end
+
+  def settings_email_registration_config(surface)
+    {
+      "app" => {
+        record_class: ClientEmail,
+        owner_key: :user_id,
+        status_key: :user_email_status_id,
+        unverified_status: ClientEmailStatus::UNVERIFIED,
+        verified_status: ClientEmailStatus::VERIFIED,
+        audit_event_id: ClientChronicleEvent::EMAIL_REGISTERED,
+      },
+      "com" => {
+        record_class: VisitorEmail,
+        owner_key: :visitor_id,
+        status_key: :visitor_email_status_id,
+        unverified_status: VisitorEmailStatus::UNVERIFIED,
+        verified_status: VisitorEmailStatus::VERIFIED,
+      },
+      "org" => {
+        record_class: OperatorEmail,
+        owner_key: :staff_id,
+        status_key: :staff_email_status_id,
+        unverified_status: OperatorEmailStatus::UNVERIFIED,
+        verified_status: OperatorEmailStatus::VERIFIED,
+      },
+    }.fetch(surface.to_s) { raise IdentityEmailCeremonyContract::Error, "surface is invalid" }
+  end
+
+  def record_settings_email_registration_audit!(config, actor, email)
+    return if config[:audit_event_id].blank?
+
+    IdentityAudit.record!(
+      actor: actor,
+      event_id: config.fetch(:audit_event_id),
+      action: "email.register",
+      subject: email,
+      ip_address: request.remote_ip,
+      user_agent: request.user_agent,
     )
   end
 

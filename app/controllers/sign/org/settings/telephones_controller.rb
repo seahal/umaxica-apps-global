@@ -11,10 +11,8 @@ module Sign
         include ::VerificationOperator
 
         AUTHENTICATION_MODE = :private
-        declare_authentication_mode! :open, only: %i(index destroy)
-        declare_authentication_mode! :private, only: %i(new create edit)
 
-        before_action :authenticate_operator!, except: %i(index destroy)
+        before_action :authenticate_operator!
         # Object-level authorization (ActionPolicy): new/create gate the actor type; edit
         # authorize the owned record (find is owner-scoped, so a non-owner gets 404 first).
         # Verification guards remain in place.

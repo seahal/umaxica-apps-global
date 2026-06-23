@@ -145,7 +145,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
 
         class << self
           def find_by(public_id:)
-            (public_id == "ticket-123") ? Ticket.new(public_id) : nil
+            (public_id == "ticket-123") ? const_get(:Ticket).new(public_id) : nil
           end
         end
       end
@@ -268,7 +268,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       events << :finalize_side_effect
       :accepted
     end
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
 
       case event
@@ -290,7 +290,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
         actor: sign_up_pending_actor_value,
       )
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, _json: false|
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
       redirect_to("/dashboard")
     end
 
@@ -328,7 +328,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       Struct.new(:pending_actor).new(sign_up_pending_actor_value)
     end
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end

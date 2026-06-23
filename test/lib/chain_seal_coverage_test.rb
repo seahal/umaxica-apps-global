@@ -42,4 +42,24 @@ class ChainSealCoverageTest < ActiveSupport::TestCase
       ChainSeal.parse(seal.compact.sub(seal.signature, "bad"))
     end
   end
+
+  test "verify accepts a non-Point OpenSSL::PKey::EC public key via validate_public_key!" do
+    seal = ChainSeal.seal(payload: @payload, kid: "ec-kid", private_key: @private_key)
+    public_ec = OpenSSL::PKey::EC.new(@private_key.public_to_der)
+
+    assert_instance_of OpenSSL::PKey::EC, public_ec
+    assert_not_predicate public_ec, :private?
+    assert_not public_ec.is_a?(OpenSSL::PKey::EC::Point)
+
+    assert ChainSeal.verify(compact: seal.compact, payload: @payload, public_key: public_ec)
+  end
+
+  test "verify rejects a non-EC public key with FormatError" do
+    seal = ChainSeal.seal(payload: @payload, kid: "kid-1", private_key: @private_key)
+    rsa = OpenSSL::PKey::RSA.generate(1024)
+
+    assert_raises(ChainSeal::FormatError) do
+      ChainSeal.verify(compact: seal.compact, payload: @payload, public_key: rsa)
+    end
+  end
 end

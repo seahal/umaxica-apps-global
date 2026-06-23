@@ -21,15 +21,8 @@ class Sign::Org::Settings::Passkeys::VerificationsController < ::Sign::Org::Appl
   private
 
   def accept_org_passkey_ceremony_grant!
-    return true if accept_passkey_ceremony_grant!(surface: "org")
-
-    respond_to do |format|
-      format.html do
-        redirect_to(sign_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
-      end
-      format.json { render json: { error: I18n.t("errors.messages.invalid") }, status: :bad_request }
-    end
-    false
+    accept_passkey_ceremony_grant!(surface: "org")
+    true
   end
 
   def passkey_registration_actor = current_operator

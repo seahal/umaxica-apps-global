@@ -39,12 +39,12 @@ class Acme::Org::AvatarsControllerTest < ActionDispatch::IntegrationTest
     patch acme_org_avatar_url(ri: "jp", host: @host),
           headers: as_staff_headers(@operator, host: @host)
 
-    assert_response :see_other
+    assert_response :redirect
 
     delete acme_org_avatar_url(ri: "jp", host: @host),
            headers: as_staff_headers(@operator, host: @host)
 
-    assert_response :see_other
+    assert_response :redirect
   end
 
   private

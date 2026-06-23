@@ -203,7 +203,7 @@ module SignOutNotice
     return @coordinated_sign_out_challenge_transaction if defined?(@coordinated_sign_out_challenge_transaction)
 
     @coordinated_sign_out_challenge_transaction =
-      AcmeLogoutTransactionService.find_by!(logout_challenge: params[:logout_challenge])
+      AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
   rescue ActiveRecord::RecordNotFound, ArgumentError, ActionController::BadRequest
     @coordinated_sign_out_challenge_transaction = nil
   end

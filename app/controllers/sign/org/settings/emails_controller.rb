@@ -37,11 +37,10 @@ module Sign
           if @staff_email.update(email_preference_params)
             redirect_to(
               edit_sign_org_settings_email_path(@staff_email.public_id, ri: params[:ri]),
-              notice: t("sign.org.settings.email.update.success"),
               status: :see_other,
             )
           else
-            flash.now[:alert] = t("sign.org.settings.email.update.failure")
+            @staff_email.errors.add(:base, t("sign.org.settings.email.update.failure"))
             render(:edit, status: :unprocessable_content)
           end
         end

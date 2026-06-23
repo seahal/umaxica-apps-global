@@ -138,7 +138,7 @@ module Sign
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        acme_com_dashboard_url(ri: params[:ri], host: acme_authority_host)
+        sign_com_dashboard_path(ri: params[:ri])
       end
 
       def after_login_allows_other_host?

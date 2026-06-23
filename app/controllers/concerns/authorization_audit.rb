@@ -18,7 +18,7 @@ module AuthorizationAudit
     respond_to do |format|
       format.html do
         flash[:alert] = I18n.t("errors.messages.not_authorized")
-        safe_redirect_back_or_to(root_path)
+        safe_redirect_back_or_to(authorization_failure_fallback_path)
       end
       format.json do
         render json: { error: "Unauthorized" }, status: :forbidden
@@ -44,6 +44,12 @@ module AuthorizationAudit
                                             message: e.message,
       ),
     )
+  end
+
+  def authorization_failure_fallback_path
+    return root_path if respond_to?(:root_path)
+
+    "/"
   end
 
   def build_log_data(actor, exception)

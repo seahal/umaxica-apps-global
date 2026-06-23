@@ -60,17 +60,9 @@ module Acme
 
           complete_social_login!(commit, provider)
         rescue IdentitySocialCeremonyContract::Error, ActionController::ParameterMissing, ActiveRecord::RecordNotFound
-          redirect_to(
-            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
-            allow_other_host: cross_host_redirect_allowed?,
-          )
+          render_social_completion_failure
         rescue SocialAuth::BaseError => e
-          redirect_to(
-            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-            alert: I18n.t(e.message),
-            allow_other_host: cross_host_redirect_allowed?,
-          )
+          render_social_completion_failure(message: I18n.t(e.message))
         end
 
         private
@@ -101,7 +93,6 @@ module Acme
         def reject_social_link_completion!(provider)
           redirect_to(
             sign_social_settings_url_for(provider),
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
             allow_other_host: cross_host_redirect_allowed?,
             status: :see_other,
           )
@@ -175,24 +166,26 @@ module Acme
               pt: signed_pt_token(commit.pt),
               host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
             ),
-            notice: I18n.t(
-              "sign.app.social.sessions.create.success",
-              provider: normalized_provider.humanize,
-            ),
             allow_other_host: cross_host_redirect_allowed?,
           )
         end
 
         def handle_social_login_failure!(sign_in_result)
           if sign_in_result.status == :mfa_required
-            return redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.mfa.required"))
+            return redirect_to(sign_in_result.redirect_to)
           end
 
-          redirect_to(
-            sign_app_sign_in_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
-            allow_other_host: cross_host_redirect_allowed?,
+          render_social_completion_failure(
+            message: sign_in_result.message.presence || I18n.t("sign.app.social.sessions.create.failure"),
+            status: sign_in_result.response_status,
           )
+        end
+
+        def render_social_completion_failure(
+          message: I18n.t("sign.app.social.sessions.create.failure"),
+          status: :unprocessable_content
+        )
+          render plain: message, status: status
         end
 
         def social_sign_up_required?(commit)

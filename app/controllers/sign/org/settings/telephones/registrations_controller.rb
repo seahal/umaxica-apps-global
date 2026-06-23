@@ -24,16 +24,7 @@ module Sign
           def new
             @staff_telephone = OperatorTelephone.new
             reset_registration_session!
-            return if accept_telephone_ceremony_grant!(surface: "org")
-
-            redirect_to(
-              sign_org_settings_telephones_url(
-                ri: params[:ri],
-                host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
-              ),
-              notice: t("sign.org.registration.telephone.edit.session_expired"),
-              allow_other_host: cross_host_redirect_allowed?,
-            )
+            accept_telephone_ceremony_grant!(surface: "org")
           end
 
           def edit

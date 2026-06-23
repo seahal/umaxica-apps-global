@@ -191,6 +191,29 @@ class HealthTest < ActiveSupport::TestCase
     assert_equal "Dependency unavailable", result.message
   end
 
+  test "database check runs the probe directly when Prosopite is unavailable" do
+    prosopite = defined?(Prosopite) ? Prosopite : nil
+    Object.send(:remove_const, :Prosopite) if prosopite
+
+    fake_connection = Object.new
+    fake_connection.define_singleton_method(:execute) { |_| 1 }
+    record_class = Class.new
+    record_class.define_singleton_method(:connected_to) do |**, &block|
+      block.call
+    end
+    record_class.define_singleton_method(:with_connection) do |&block|
+      block.call(fake_connection)
+    end
+
+    result = Health::Checks::Database.new(record_class: record_class, deadline: 1.0).call
+
+    assert_predicate result, :ok?
+    assert_equal :database, result.kind
+    assert_equal :ok, result.status
+  ensure
+    Object.const_set(:Prosopite, prosopite) if prosopite && !defined?(Prosopite)
+  end
+
   test "startup uses only the boot check" do
     result = Health::StartupCheck.call(profile: Health::Profiles::SignApp)
 

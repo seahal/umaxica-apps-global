@@ -28,16 +28,7 @@ module Sign
           def new
             @user_email = VisitorEmail.new
             reset_email_registration_flow!
-            return if accept_email_ceremony_grant!(surface: "com")
-
-            redirect_to(
-              sign_com_settings_emails_url(
-                ri: params[:ri],
-                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-              ),
-              notice: t("sign.app.registration.email.edit.session_expired"),
-              allow_other_host: cross_host_redirect_allowed?,
-            )
+            accept_email_ceremony_grant!(surface: "com")
           end
 
           def edit
