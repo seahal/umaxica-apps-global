@@ -139,11 +139,12 @@ module AcmeSelectableContext
 
     membership = nil
     connection_owner(config.membership_class).connected_to(role: :writing) do
-      membership = account.current_memberships.lock.find do |candidate_membership|
-        candidate_membership.active? &&
-          candidate_membership.collective.public_id == public_ids[:organization_public_id] &&
-          candidate_membership.collective_unit.public_id == public_ids[:organization_unit_public_id]
-      end
+      membership =
+        account.current_memberships.lock.find do |candidate_membership|
+          candidate_membership.active? &&
+            candidate_membership.collective.public_id == public_ids[:organization_public_id] &&
+            candidate_membership.collective_unit.public_id == public_ids[:organization_unit_public_id]
+        end
     end
     return false unless membership
     return true unless config.requires_avatar
@@ -154,8 +155,7 @@ module AcmeSelectableContext
         .lock
         .where(public_id: public_ids[:avatar_public_id])
         .where(owner_organization_id: public_ids[:organization_public_id])
-        .where(avatar_assignments: { user_id: principal.id })
-        .exists?
+        .exists?(avatar_assignments: { user_id: principal.id })
     end
   end
 

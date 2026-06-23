@@ -24,11 +24,12 @@ module Sign
         before_action :accept_app_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
-          redirect_to_acme_settings_authority!
+          @secret_credentials = current_client.client_secret_credentials.order(created_at: :asc)
         end
 
         def show
-          redirect_to_acme_settings_authority!
+          set_secret_credential
+          authorize!(@secret_credential)
         end
 
         def new
@@ -44,7 +45,8 @@ module Sign
         end
 
         def edit
-          redirect_to_acme_settings_authority!
+          set_secret_credential
+          authorize!(@secret_credential)
         end
 
         def create
@@ -76,7 +78,31 @@ module Sign
         end
 
         def update
-          redirect_to_acme_settings_authority!
+          set_secret_credential
+          authorize!(@secret_credential)
+
+          if disabling_secret_credential? && AuthMethodGuard.last_method?(current_client, excluding: @secret_credential)
+            redirect_to(
+              sign_app_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+              status: :see_other,
+            )
+            return
+          end
+
+          result = ClientSecretCredentialsUpdate.call(
+            actor: current_client,
+            secret_credential: @secret_credential,
+            params: secret_credential_params,
+          )
+
+          if result.secret_credential.errors.empty?
+            redirect_to(
+              sign_app_settings_secret_credential_path(result.secret_credential.public_id, ri: params[:ri]),
+              status: :see_other,
+            )
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         # DELETE /settings/secret_credentials/:id
@@ -108,7 +134,7 @@ module Sign
         private
 
         def set_secret_credential
-          @secret_credential = current_client.client_secret_credentials.find_by!(public_id: params(:id))
+          @secret_credential = current_client.client_secret_credentials.find_by!(public_id: params.expect(:id))
         end
 
         def secret_credential_params
@@ -161,14 +187,6 @@ module Sign
           "settings_secret_credential"
         end
 
-        # Compatibility entry only. sign/id owns account-facing secret credential lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
-        end
-
-        def acme_settings_authority_path
-          request.path.sub(%r{\A/settings/secret_credentials}, "/settings/secrets")
-        end
       end
     end
   end

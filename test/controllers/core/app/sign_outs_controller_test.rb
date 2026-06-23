@@ -36,7 +36,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     location = URI.parse(handoff_form["action"])
-    query = Rack::Utils.parse_nested_query(location.query.to_s)
+    Rack::Utils.parse_nested_query(location.query.to_s)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path

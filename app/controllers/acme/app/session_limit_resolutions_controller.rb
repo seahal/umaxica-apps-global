@@ -111,7 +111,8 @@ module Acme
           return render :show, status: :conflict
         end
 
-        return render plain: "Sign-in could not be completed.", status: :unprocessable_content unless login_result[:status] == :success
+        return render plain: "Sign-in could not be completed.",
+                      status: :unprocessable_content unless login_result[:status] == :success
 
         @oidc_transaction.consume!
         @resolution.finalize!

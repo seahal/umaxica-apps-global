@@ -105,6 +105,7 @@ module SignOidcLogout
     )
     transaction = advance_result.transaction || @logout_transaction
     return reject_oidc_logout_challenge!(advance_result.error || "invalid_request") unless advance_result.success?
+
     log_sign_out_event(
       "auth.sign_out.step.advanced",
       transaction: transaction,

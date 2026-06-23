@@ -139,7 +139,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
       app_preference_theme: FakeAssociation.new(nil, FakeOption.new("dark")),
       app_preference_currency: FakeAssociation.new(nil, FakeOption.new("JPY")),
       app_preference_date_format: FakeAssociation.new(nil, FakeOption.new("iso")),
-      app_preference_time_format: FakeAssociation.new(nil, FakeOption.new("hour_24")),
+      app_preference_time_format: FakeAssociation.new(nil, FakeOption.new("24")),
       app_preference_motion: FakeAssociation.new(nil, FakeOption.new("standard")),
       app_preference_density: FakeAssociation.new(nil, FakeOption.new("compact")),
       app_preference_page_size: FakeAssociation.new(nil, FakeOption.new("50")),
@@ -154,7 +154,7 @@ class PreferenceCoreTest < ActiveSupport::TestCase
         theme: "dr",
         currency: "jpy",
         date_format: "iso",
-        time_format: "hour_24",
+        time_format: "24",
         motion: "standard",
         density: "compact",
         page_size: "50",
@@ -244,6 +244,47 @@ class PreferenceCoreTest < ActiveSupport::TestCase
     @controller.send(:sync_direct_resource_preference!, resource_pref)
 
     assert_equal original_public_id, preference.reload.public_id
+  end
+
+  test "reset destroy removes app resource preference without duplicate association queries" do
+    preference = client_preferences(:one)
+    theme_id = preference.user_preference_theme.id
+
+    assert_nothing_raised do
+      Prosopite.scan do
+        @controller.send(:destroy_resource_preference_for_reset!, preference)
+      end
+    end
+
+    assert_nil ClientPreference.find_by(id: preference.id)
+    assert_nil ClientPreferenceTheme.find_by(id: theme_id)
+  end
+
+  test "reset destroy removes org resource preference children" do
+    preference = operator_preferences(:one)
+    theme_id = preference.staff_preference_theme.id
+
+    @controller.send(:destroy_resource_preference_for_reset!, preference)
+
+    assert_nil OperatorPreference.find_by(id: preference.id)
+    assert_nil OperatorPreferenceTheme.find_by(id: theme_id)
+  end
+
+  test "reset destroy removes com resource preference children" do
+    Prosopite.pause do
+      VisitorMfaLevel.ensure_defaults!
+      VisitorMfaStatus.ensure_defaults!
+      VisitorStatus.ensure_defaults!
+      VisitorVisibility.ensure_defaults!
+      VisitorPreferenceThemeOption.ensure_defaults!
+    end
+    preference = VisitorPreference.create!(visitor: Visitor.create!)
+    theme = VisitorPreferenceTheme.create!(preference: preference)
+
+    @controller.send(:destroy_resource_preference_for_reset!, preference)
+
+    assert_nil VisitorPreference.find_by(id: preference.id)
+    assert_nil VisitorPreferenceTheme.find_by(id: theme.id)
   end
 
   test "with_dual_write_transaction rolls back both databases when the block raises" do

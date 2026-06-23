@@ -26,8 +26,8 @@
 
   <div>
     <div>
-      <%= link_to t('actions.edit'), edit_sign_org_settings_passkey_path(@passkey) %>
-      <%= form_with url: sign_org_settings_passkey_path(@passkey),
+      <%= link_to t('actions.edit'), edit_sign_org_settings_passkey_path(@passkey, ri: params[:ri]) %>
+      <%= form_with url: sign_org_settings_passkey_path(@passkey, ri: params[:ri]),
                     method: :delete,
                     data: { turbo_confirm: t('messages.confirm_destroy') } do |form| %>
         <%= render "shared/cloudflare_turnstile_stealth" %>

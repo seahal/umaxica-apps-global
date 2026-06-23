@@ -87,10 +87,10 @@ class ActorSupportOverlayLanguageTest < ActiveSupport::TestCase
       theme: "sy",
       currency: "jpy",
       date_format: "iso",
-      time_format: "hour_24",
+      time_format: "24",
       motion: "standard",
       density: "standard",
-      page_size: "20",
+      page_size: "infinity",
     )
 
     overlaid = @harness.overlay_preference(preference)

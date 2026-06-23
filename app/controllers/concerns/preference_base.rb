@@ -690,10 +690,10 @@ module PreferenceBase
     {
       "cu" => option_id_to_preference_value(option_ids[:currency], option_prefix, :currency) || "jpy",
       "df" => option_id_to_preference_value(option_ids[:date_format], option_prefix, :date_format) || "iso",
-      "tf" => option_id_to_preference_value(option_ids[:time_format], option_prefix, :time_format) || "hour_24",
+      "tf" => option_id_to_preference_value(option_ids[:time_format], option_prefix, :time_format) || "24",
       "mo" => option_id_to_preference_value(option_ids[:motion], option_prefix, :motion) || "standard",
       "dn" => option_id_to_preference_value(option_ids[:density], option_prefix, :density) || "standard",
-      "ps" => option_id_to_preference_value(option_ids[:page_size], option_prefix, :page_size) || "20",
+      "ps" => option_id_to_preference_value(option_ids[:page_size], option_prefix, :page_size) || "infinity",
     }
   end
 

@@ -291,7 +291,7 @@ module PreferenceClassRegistry
     when :date_format then option::ISO
     when :time_format then option::HOUR_24
     when :motion, :density then option::STANDARD
-    when :page_size then option::PER_20
+    when :page_size then option::PER_INFINITY
     when :adult_content_gate then option::NOTHING
     end
   end

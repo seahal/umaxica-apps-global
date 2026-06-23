@@ -51,10 +51,11 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_response :redirect
   end
 
-  test "index redirects to sign settings compatibility path" do
+  test "index renders sign settings passkeys" do
     get sign_com_settings_passkeys_path(ri: "jp"), headers: @headers
 
-    assert_redirected_to sign_com_settings_passkeys_path(ri: "jp")
+    assert_response :success
+    assert_includes response.body, @passkey.description
   end
 
   test "options returns challenge and options" do
@@ -131,12 +132,12 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           headers: @headers
 
     assert_redirected_to sign_com_settings_passkey_path(@passkey.public_id, ri: "jp")
-    assert_equal "My Passkey", @passkey.reload.description
+    assert_equal "Updated Passkey", @passkey.reload.description
   end
 
   test "destroy removes visitor passkey on sign settings authority" do
     assert_difference("VisitorPasskey.count", -1) do
-      delete sign_com_settings_passkey_path(@passkey.id, ri: "jp"), headers: @headers
+      delete sign_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_redirected_to sign_com_settings_passkeys_path(ri: "jp")
@@ -146,14 +147,6 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   def passkey_ceremony_grant
     signed_passkey_ceremony_grant_for(surface: "com", actor: @visitor, token: @token)
-  end
-
-  def assert_redirected_to_acme(path)
-    assert_response :see_other
-    uri = URI.parse(response.location)
-
-    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
-    assert_equal path, uri.request_uri
   end
 
   def create_visitor_recovery_passcode!(visitor, name:, last_used_at: nil)

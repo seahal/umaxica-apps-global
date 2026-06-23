@@ -1,7 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
-<meta name="referrer" content="no-referrer">
 <form id="sign-out-handoff-form"
       method="post"
       action="<%= @sign_out_handoff_url || sign_out_confirmation_form_path %>"
@@ -24,14 +23,3 @@
     <%= t("sign.shared.sign_out.handoff_button") %>
   </button>
 </noscript>
-
-<script nonce="<%= content_security_policy_nonce %>">
-  (function () {
-    const signOutHandoffForm = document.getElementById("sign-out-handoff-form");
-    if (signOutHandoffForm.requestSubmit) {
-      signOutHandoffForm.requestSubmit();
-    } else {
-      signOutHandoffForm.submit();
-    }
-  })();
-</script>

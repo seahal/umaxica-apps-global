@@ -75,7 +75,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/totps?ri=jp")
+    assert_response :ok
+    assert_select "table"
   end
 
   test "index stays accessible when no totp is registered" do
@@ -99,7 +100,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
-    assert_redirected_to_acme("/settings/totps?ri=jp")
+    assert_response :ok
+    assert_includes response.body, I18n.t("messages.no_totp_found")
   end
 
   test "index requires step up when multi factor status is active even without totp" do
@@ -128,7 +130,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
-    assert_redirected_to_acme("/settings/totps?ri=jp")
+    assert_response :ok
     assert_equal ClientMfaStatus::ACTIVE, user.reload.mfa_status_id
   end
 
@@ -137,7 +139,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/totps?ri=jp")
+    assert_response :ok
+    assert_select "a[href=?]", new_sign_app_settings_totp_path(ri: "jp")
   end
 
   test "should get new" do
@@ -213,7 +216,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get edit_sign_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/totps/#{@totp.public_id}/edit?ri=jp")
+    assert_response :ok
+    assert_select "form[action=?]", sign_app_settings_totp_path(@totp.public_id, ri: "jp")
     assert_equal @totp.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -225,8 +229,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
             headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/totps/#{@totp.public_id}?ri=jp")
-    assert_equal "Main TOTP", @totp.reload.title
+    assert_redirected_to sign_app_settings_totp_path(@totp.public_id, ri: "jp")
+    assert_equal "Updated TOTP", @totp.reload.title
   end
 
   test "should destroy with public_id" do
@@ -253,7 +257,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get edit_sign_app_settings_totp_url(other_totp.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/totps/#{other_totp.public_id}/edit?ri=jp")
+    assert_response :not_found
   end
 
   test "should create totp with valid token" do
@@ -458,7 +462,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
-    assert_redirected_to_acme("/settings/totps?ri=jp")
+    assert_response :ok
   end
 
   test "initial setup user can create first totp without step-up" do
@@ -509,14 +513,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-  def assert_redirected_to_acme(path)
-    assert_response :see_other
-    uri = URI.parse(response.location)
-
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
-    assert_equal path, uri.request_uri
-  end
 
   private
 

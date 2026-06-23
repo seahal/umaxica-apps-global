@@ -23,8 +23,8 @@ class OperatorPreferenceTimeFormatOption < OrgPrincipalRecord
 
   def name
     case id
-    when 1 then "hour_24"
-    when 2 then "hour_12"
+    when 1 then "24"
+    when 2 then "12"
     end
   end
 

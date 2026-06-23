@@ -17,16 +17,16 @@ module Sign
 
         before_action :authenticate_operator!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: %i(destroy)
+        before_action :set_secret_credential, only: %i(show edit update destroy)
         before_action :verify_secret_credential_turnstile!, only: :create
         before_action :accept_org_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
-          redirect_to_acme_settings_authority!
+          @secret_credentials = current_operator.staff_secret_credentials.order(created_at: :asc)
         end
 
         def show
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
         end
 
         def new
@@ -42,7 +42,7 @@ module Sign
         end
 
         def edit
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
         end
 
         def create
@@ -76,7 +76,25 @@ module Sign
         end
 
         def update
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
+
+          if disabling_secret_credential? && AuthMethodGuard.last_method?(current_operator, excluding: @secret_credential)
+            redirect_to(
+              sign_org_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+              status: :see_other,
+            )
+            return
+          end
+
+          result = OperatorSecretCredentialsUpdate.call(
+            actor: current_operator,
+            secret_credential: @secret_credential,
+            params: secret_credential_params,
+          )
+          redirect_to(
+            sign_org_settings_secret_credential_path(result.secret_credential.public_id, ri: params[:ri]),
+            status: :see_other,
+          )
         end
 
         def destroy
@@ -96,7 +114,7 @@ module Sign
         private
 
         def set_secret_credential
-          @secret_credential = current_operator.staff_secret_credentials.find_by!(public_id: params(:id))
+          @secret_credential = current_operator.staff_secret_credentials.find_by!(public_id: params.expect(:id))
         end
 
         def secret_credential_params
@@ -139,14 +157,6 @@ module Sign
           "settings_secret_credential"
         end
 
-        # Compatibility entry only. sign/id owns account-facing secret credential lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
-        end
-
-        def acme_settings_authority_path
-          request.path.sub(%r{\A/settings/secret_credentials}, "/settings/secrets")
-        end
       end
     end
   end

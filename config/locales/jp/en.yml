@@ -1663,8 +1663,8 @@ en:
             description: Choose the currency used for regional display.
             option_label: Currency
           options:
-            usd: USD
-            jpy: JPY
+            usd: US Dollar (USD)
+            jpy: Japanese Yen (JPY)
         date_format:
           edit:
             heading: Date Format
@@ -1682,11 +1682,16 @@ en:
           options:
             hour_24: 24-hour
             hour_12: 12-hour
+            "24": 24-hour
+            "12": 12-hour
         language:
           edit:
             heading: Language Settings
             description: Change the display language for the organization console.
             language_label: Language
+          options:
+            ja: Japanese
+            en: English
       settings:
         title: Settings
         description: Review and adjust your organization settings.
@@ -1761,6 +1766,9 @@ en:
             heading: Language Settings
             description: Change the display language for the application.
             language_label: Language
+          options:
+            ja: Japanese
+            en: English
         motion:
           edit:
             heading: Motion Settings
@@ -1787,7 +1795,7 @@ en:
             '20': 20 items
             '50': 50 items
             '100': 100 items
-            infinity: Infinite items
+            infinity: Unlimited
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -1877,6 +1885,9 @@ en:
             description: Change the display language for the corporate site.
             language_label: Language
             h1: Language Select
+          options:
+            ja: Japanese
+            en: English
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -2177,6 +2188,9 @@ en:
             heading: Language Settings
             description: Change the display language for the application.
             language_label: Language
+          options:
+            ja: Japanese
+            en: English
         motion:
           edit:
             heading: Motion Settings
@@ -2203,7 +2217,7 @@ en:
             '20': 20 items
             '50': 50 items
             '100': 100 items
-            infinity: Infinite items
+            infinity: Unlimited
     com:
       preferences:
         footer:

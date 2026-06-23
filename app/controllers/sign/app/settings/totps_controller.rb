@@ -24,7 +24,7 @@ module Sign
         before_action :accept_app_totp_ceremony_grant!, only: %i(new create)
 
         def index
-          redirect_to_acme_settings_authority!
+          @totps = current_client.client_totp_credentials.order(created_at: :asc)
         end
 
         def new
@@ -39,7 +39,8 @@ module Sign
         end
 
         def edit
-          redirect_to_acme_settings_authority!
+          find_totp
+          authorize!(@totp)
         end
 
         def create
@@ -109,7 +110,14 @@ module Sign
         end
 
         def update
-          redirect_to_acme_settings_authority!
+          find_totp
+          authorize!(@totp)
+
+          if @totp.update(update_params)
+            redirect_to(sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]), status: :see_other)
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         # DELETE /settings/totps/:id
@@ -131,7 +139,7 @@ module Sign
         private
 
         def find_totp
-          current_client.client_totp_credentials.find_by!(public_id: params(:id))
+          @totp = current_client.client_totp_credentials.find_by!(public_id: params.expect(:id))
         end
 
         def accept_app_totp_ceremony_grant!
@@ -143,10 +151,6 @@ module Sign
             status: :see_other,
           )
           false
-        end
-
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
         end
 
         def generate_totp_session

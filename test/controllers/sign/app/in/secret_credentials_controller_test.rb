@@ -110,16 +110,19 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "server-side Turnstile verifier failure rejects secret credential login" do
     calls = []
-    verifier = lambda do |token:, remote_ip:, mode:, **|
-      calls << { token: token, remote_ip: remote_ip, mode: mode }
-      { "success" => false }
-    end
+    verifier =
+      lambda do |token:, remote_ip:, mode:, **|
+        calls << { token: token, remote_ip: remote_ip, mode: mode }
+        { "success" => false }
+      end
 
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
-      post sign_app_sign_in_secret_credential_url(ri: "jp"),
-           params: login_params(identifier: @raw_email, secret_credential_value: "not-checked"),
-           headers: default_headers
+      post(
+        sign_app_sign_in_secret_credential_url(ri: "jp"),
+        params: login_params(identifier: @raw_email, secret_credential_value: "not-checked"),
+        headers: default_headers,
+      )
     end
 
     assert_response :unprocessable_entity

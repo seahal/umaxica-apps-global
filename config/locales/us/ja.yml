@@ -2295,6 +2295,9 @@ ja:
             heading: 言語設定
             description: 組織コンソールの表示言語を変更します。
             language_label: 言語
+          options:
+            ja: 日本語
+            en: 英語
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -2306,7 +2309,7 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: English
+              en: 英語
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:
@@ -2330,8 +2333,8 @@ ja:
             description: 表示に使う通貨を選択します。
             option_label: 通貨
           options:
-            usd: USD
-            jpy: JPY
+            usd: 米ドル (USD)
+            jpy: 日本円 (JPY)
         date_format:
           edit:
             heading: 日付形式
@@ -2349,6 +2352,8 @@ ja:
           options:
             hour_24: 24時間表記
             hour_12: 12時間表記
+            "24": 24時間表記
+            "12": 12時間表記
         theme:
           edit:
             title: テーマ設定（ライト／ダークの切り替え）
@@ -2516,6 +2521,9 @@ ja:
             description: コーポレート画面の表示言語を変更します。
             language_label: 言語
             h1: 言語選択
+          options:
+            ja: 日本語
+            en: 英語
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -2527,7 +2535,7 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: English
+              en: 英語
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:
@@ -2648,6 +2656,9 @@ ja:
             heading: 言語設定
             description: アプリケーションの表示言語を変更します。
             language_label: 言語
+          options:
+            ja: 日本語
+            en: 英語
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -2659,7 +2670,7 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: English
+              en: 英語
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:

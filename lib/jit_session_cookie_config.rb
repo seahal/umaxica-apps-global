@@ -26,6 +26,23 @@ module JitSessionCookieConfig
     force_secure ? "__Host-session" : "session"
   end
 
+  def session_options(force_secure:, partitioned: partitioned?)
+    options = {
+      expire_after: 14.days,
+      key: cookie_key(force_secure: force_secure),
+      secure: force_secure,
+      httponly: true,
+      same_site: :lax,
+      partitioned: partitioned,
+    }
+
+    unless force_secure
+      options[:domain] = ->(request) { CoreCookieDomain.for(surface: :app, request_host: request.host) }
+    end
+
+    options
+  end
+
   def partitioned?(rails_env: Rails.env)
     rails_env.production?
   end

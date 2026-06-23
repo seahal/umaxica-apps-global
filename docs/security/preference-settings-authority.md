@@ -2,13 +2,12 @@
 
 ## Authority
 
-`acme/www` owns preference writes, account-local configuration state, dashboards, and
-session-management UI.
+`acme/www` owns preference writes, account lifecycle, withdrawal, and dashboards.
 
-`sign/id` owns the settings shell that lives on the identity host, but it must not own preference
-writes, account lifecycle, withdrawal, or session-management UI. Credential enrollment screens may
-remain on `sign/id` only when they are credential ceremonies delegated by acme or allowed by a
-current ADR.
+`sign/id` owns the settings shell that lives on the identity host, account-local credential
+configuration, and session-management UI. It must not own preference writes, account lifecycle, or
+withdrawal. Credential enrollment screens may remain on `sign/id` when they are credential ceremonies
+or account-local credential settings.
 
 ## Physical Storage
 

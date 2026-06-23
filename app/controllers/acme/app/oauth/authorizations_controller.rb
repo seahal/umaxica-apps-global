@@ -111,7 +111,10 @@ module Acme
                 bootstrap_actor: true,
               )
             end
-          return redirect_to_session_limit_resolution!(resource, transaction) if login_result[:status] == :session_limit_hard_reject
+          return redirect_to_session_limit_resolution!(
+            resource,
+            transaction,
+          ) if login_result[:status] == :session_limit_hard_reject
           return render(
             json: { error: "invalid_request", error_description: "login_failed" },
             status: :bad_request,

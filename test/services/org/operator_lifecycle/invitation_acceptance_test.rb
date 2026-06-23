@@ -96,8 +96,10 @@ class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
 
     assert_equal 1, OrganizationInvitation.where(id: invitation.id).where.not(consumed_at: nil).count
     email_scope = OperatorEmail.where(address_digest: IdentifierBlindIndex.bidx_for_email(invitation.email))
+
     assert_equal 1, email_scope.count
     operator_ids = email_scope.pluck(:staff_id)
+
     assert_equal 1, Operator.where(id: operator_ids).count
     assert_equal 1, OperatorAccount.where(staff_id: operator_ids).count
     assert_equal 1, OperatorIdentity.where(source_record_id: operator_ids).count

@@ -145,7 +145,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Reduced motion", I18n.t("acme.app.preference.motion.options.reduced")
       assert_equal "Compact density", I18n.t("acme.app.preference.density.options.compact")
       assert_equal "50 items", I18n.t("acme.app.preference.page_size.options.50")
-      assert_equal "Infinite items", I18n.t("acme.app.preference.page_size.options.infinity")
+      assert_equal "Unlimited", I18n.t("acme.app.preference.page_size.options.infinity")
     end
 
     I18n.with_locale(:ja) do
@@ -225,8 +225,8 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "通貨設定", I18n.t("acme.org.preference.currency.edit.heading")
       assert_equal "表示に使う通貨を選択します。", I18n.t("acme.org.preference.currency.edit.description")
       assert_equal "通貨", I18n.t("acme.org.preference.currency.edit.option_label")
-      assert_equal "USD", I18n.t("acme.org.preference.currency.options.usd")
-      assert_equal "JPY", I18n.t("acme.org.preference.currency.options.jpy")
+      assert_equal "米ドル (USD)", I18n.t("acme.org.preference.currency.options.usd")
+      assert_equal "日本円 (JPY)", I18n.t("acme.org.preference.currency.options.jpy")
 
       assert_equal "日付形式", I18n.t("acme.org.preference.date_format.edit.heading")
       assert_equal "表示する日付形式を選択します。", I18n.t("acme.org.preference.date_format.edit.description")

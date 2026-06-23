@@ -233,8 +233,9 @@ class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
 
     assert_nil delivered
     registration_session = @controller.session[:user_telephone_registration]
-    assert_equal true, registration_session[:existing] || registration_session["existing"]
-    assert_equal true, registration_session[:dummy] || registration_session["dummy"]
+
+    assert registration_session[:existing] || registration_session["existing"]
+    assert registration_session[:dummy] || registration_session["dummy"]
     assert @controller.instance_variable_get(:@sign_up_flow_locator).cleared
   end
 

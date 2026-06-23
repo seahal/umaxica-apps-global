@@ -33,6 +33,9 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
          )
 
     assert_response :success
+    assert_equal SignOutNotice::SIGN_OUT_HANDOFF_REFERRER_POLICY, response.headers["Referrer-Policy"]
+    assert_select %(meta[name="referrer"][content="no-referrer"]), 0
+    assert_equal 1, css_select("script").count { |node| node.text.include?("requestSubmit") }
     location = URI.parse(handoff_form["action"])
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
@@ -364,6 +367,42 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "origin_cleared", transaction.reload.completed_steps.last
   end
 
+  test "coordination post accepts null origin when the logout challenge is valid" do
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    transaction = AcmeLogoutTransactionService.issue!(
+      origin_surface: "acme",
+      initiating_client_id: "acme-app",
+      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      actor_ref: user.public_id,
+      session_ref: token.public_id,
+    ).transaction
+    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+
+    post sign_app_sign_out_url(
+      host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+      ri: "jp",
+      logout_challenge: transaction.logout_challenge,
+    ),
+         headers: browser_headers.merge(
+           "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+           "Origin" => "null",
+           "Sec-Fetch-Site" => "same-site",
+           "X-TEST-CURRENT-USER" => user.id.to_s,
+           "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+         )
+
+    assert_response :see_other
+    location = URI.parse(jump_rt_url_from_location(response.location))
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal "/sign/out/complete", location.path
+    assert_predicate token.reload, :revoked?
+    assert_predicate token.device_session.reload, :revoked?
+    assert_equal "finalized", transaction.reload.completed_steps.last
+  end
+
   test "coordination post rejects untrusted same-site origin before cleanup" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -417,14 +456,23 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   def assert_sign_out_handoff_markup(action_path:)
     assert_select "form#sign-out-handoff-form[method=post][data-turbo=false]", 1
     form = css_select("form#sign-out-handoff-form").first
+
     assert_equal action_path, form["action"]
+    assert_equal SignOutNotice::SIGN_OUT_HANDOFF_REFERRER_POLICY, response.headers["Referrer-Policy"]
+    assert_select %(meta[name="referrer"][content="no-referrer"]), 0
     assert_select "form#sign-out-handoff-form input[name=authenticity_token]", 0
     assert_select "form#sign-out-handoff-form noscript input[type=submit][value=?]",
                   I18n.t("sign.shared.sign_out.handoff_button"),
                   0
     assert_select "noscript button[form=sign-out-handoff-form][type=submit]", 1
-    script = css_select("script").find { |node| node.text.include?('document.getElementById("sign-out-handoff-form")') }
+    scripts =
+      css_select("script").select { |node|
+        node.text.include?('document.getElementById("sign-out-handoff-form")')
+      }
+    script = scripts.first
+
     assert script, "missing sign-out handoff auto-submit script"
+    assert_equal 1, scripts.size
     assert_predicate script["nonce"], :present?
     assert_includes script.text, "requestSubmit"
   end

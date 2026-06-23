@@ -229,6 +229,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :see_other
       resolution_uri = URI.parse(response.location)
       resolution_query = Rack::Utils.parse_nested_query(resolution_uri.query.to_s)
+
       assert_equal "/session-limit-resolution", resolution_uri.path
       assert_predicate resolution_query["resolution_challenge"], :present?
       assert_not_includes resolution_uri.query.to_s, user.id.to_s
@@ -237,11 +238,16 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       resolution = ClientSessionLimitResolutionTransaction.find_active_by_challenge(
         resolution_query.fetch("resolution_challenge"),
       )
+
       assert_equal "Client", resolution.actor_type
       assert_equal user.public_id, resolution.actor_ref
       assert_equal issuance.transaction.id, resolution.oidc_authorization_transaction_id
 
-      get response.location, headers: browser_headers
+      host! acme_host
+      get URI.parse(response.location).request_uri, headers: browser_headers
+      if response.redirect?
+        get URI.parse(response.location).request_uri, headers: browser_headers
+      end
 
       assert_response :success
       assert_select "h1", "Session limit"
@@ -322,6 +328,44 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     assert_not_predicate issuance.transaction.reload, :consumed?
   end
 
+  test "acme app session-limit resolution stays on page when capacity is still full after revoke" do
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
+    token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+    resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+      actor: user,
+      oidc_transaction: issuance.transaction,
+    )
+    controller_class = Acme::App::SessionLimitResolutionsController
+    original_method = controller_class.instance_method(:hard_reject_still_applies?)
+    controller_class.define_method(:hard_reject_still_applies?) { true }
+    controller_class.send(:private, :hard_reject_still_applies?)
+
+    host!(acme_host)
+    assert_no_difference -> { ClientToken.where(user_id: user.id).count } do
+      patch(
+        acme_app_session_limit_resolution_path,
+        params: {
+          resolution_challenge: resolution.challenge,
+          session_ref: SessionLimitResolutionTokenRef.issue(token),
+        },
+        headers: browser_headers,
+      )
+    end
+
+    assert_response :unprocessable_content
+    assert_includes response.body, "Session capacity is still full"
+    assert_predicate token.reload, :revoked?
+    assert_not_predicate issuance.transaction.reload, :consumed?
+  ensure
+    if original_method
+      controller_class.define_method(:hard_reject_still_applies?, original_method)
+      controller_class.send(:private, :hard_reject_still_applies?)
+    end
+  end
+
   test "acme app session-limit resolution rejects tampered challenge without revoking" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
@@ -338,6 +382,28 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :gone
     assert_not token.reload.revoked?
+  end
+
+  test "acme app session-limit resolution cancel does not issue login or consume oidc transaction" do
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
+    issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+    resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+      actor: user,
+      oidc_transaction: issuance.transaction,
+    )
+
+    host! acme_host
+    assert_no_difference -> { ClientToken.where(user_id: user.id).count } do
+      delete acme_app_session_limit_resolution_path,
+             params: { resolution_challenge: resolution.challenge },
+             headers: browser_headers
+    end
+
+    assert_response :see_other
+    assert_predicate resolution.transaction.reload, :cancelled?
+    assert_not_predicate issuance.transaction.reload, :consumed?
   end
 
   test "acme app authorization resume succeeds with two usable tokens and consumes the transaction once" do

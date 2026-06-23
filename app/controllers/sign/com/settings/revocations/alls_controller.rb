@@ -2,17 +2,12 @@
 # frozen_string_literal: true
 
 class Sign::Com::Settings::Revocations::AllsController < ::Sign::Com::ApplicationController
-  include ::SignAcmeAuthorityRedirect
-
   AUTHENTICATION_MODE = :private
 
   before_action :authenticate_visitor!
 
-  def create = redirect_to_acme_sessions!
-
-  private
-
-  def redirect_to_acme_sessions!
-    redirect_to_acme_authority!("/sign/settings/sessions")
+  def create
+    current_visitor.visitor_tokens.session_inventory.find_each(&:revoke!)
+    redirect_to(sign_com_sign_out_path(ri: params[:ri]), status: :see_other)
   end
 end

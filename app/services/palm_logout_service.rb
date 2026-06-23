@@ -137,7 +137,10 @@ class PalmLogoutService < ApplicationService
 
       # rubocop:disable Rails/SkipsModelValidations
       scope.update_all(discarded_at: now, updated_at: now)
-      ClientDeviceSession.where(refresh_token_family_id: family_id).update_all(revoked_at: now, updated_at: now) if family_id.present?
+      ClientDeviceSession.where(refresh_token_family_id: family_id).update_all(
+        revoked_at: now,
+        updated_at: now,
+      ) if family_id.present?
       # rubocop:enable Rails/SkipsModelValidations
     end
   end

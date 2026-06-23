@@ -23,8 +23,7 @@ class ClientSessionLimitResolutionTransaction < AppTicketRecord
   scope :active_at, ->(time) { where(arel_table[:expires_at].gt(time)) }
   scope :open_status, -> { where(status: [STATUS_PENDING, STATUS_SESSION_SELECTED]) }
 
-  validates :challenge_digest, :actor_type, :actor_ref, :oidc_authorization_transaction_id,
-            :status, :expires_at, presence: true
+  validates :challenge_digest, :actor_type, :actor_ref, :status, :expires_at, presence: true
   validates :challenge_digest, uniqueness: true
   validates :actor_type, inclusion: { in: ["Client"] }
   validates :status, inclusion: { in: STATUSES }

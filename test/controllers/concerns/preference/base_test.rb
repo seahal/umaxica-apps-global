@@ -1083,7 +1083,7 @@ module Preference
           theme: "dr",
           currency: "usd",
           date_format: "slash",
-          time_format: "hour_12",
+          time_format: "12",
           motion: "reduced",
           density: "compact",
           page_size: "50",
@@ -1097,7 +1097,7 @@ module Preference
       assert_equal "Etc/UTC", cookies[PreferenceIoKeys::Cookies::TIMEZONE]
       assert_equal "usd", cookies[PreferenceIoKeys::Cookies::CURRENCY]
       assert_equal "slash", cookies[PreferenceIoKeys::Cookies::DATE_FORMAT]
-      assert_equal "hour_12", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
+      assert_equal "12", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
       assert_equal "reduced", cookies[PreferenceIoKeys::Cookies::MOTION]
       assert_equal "compact", cookies[PreferenceIoKeys::Cookies::DENSITY]
       assert_equal "50", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
@@ -1114,10 +1114,10 @@ module Preference
           "tz" => "Asia/Tokyo",
           "cu" => "jpy",
           "df" => "iso",
-          "tf" => "hour_24",
+          "tf" => "24",
           "mo" => "standard",
           "dn" => "standard",
-          "ps" => "20",
+          "ps" => "infinity",
           "ri" => "jp",
           "lx" => "ja",
         },
@@ -1128,10 +1128,10 @@ module Preference
       assert_equal "Asia/Tokyo", cookies[PreferenceIoKeys::Cookies::TIMEZONE]
       assert_equal "jpy", cookies[PreferenceIoKeys::Cookies::CURRENCY]
       assert_equal "iso", cookies[PreferenceIoKeys::Cookies::DATE_FORMAT]
-      assert_equal "hour_24", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
+      assert_equal "24", cookies[PreferenceIoKeys::Cookies::TIME_FORMAT]
       assert_equal "standard", cookies[PreferenceIoKeys::Cookies::MOTION]
       assert_equal "standard", cookies[PreferenceIoKeys::Cookies::DENSITY]
-      assert_equal "20", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
+      assert_equal "infinity", cookies[PreferenceIoKeys::Cookies::PAGE_SIZE]
       assert_nil cookies["ri"]
       assert_nil cookies["lx"]
     end

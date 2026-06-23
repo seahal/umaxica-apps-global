@@ -273,6 +273,28 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       assert_not_equal english_title, japanese_title
     end
 
+    test "#{domain[:name]} domain language edit ignores lx overlay so page matches the selected option" do
+      host!(domain[:host])
+
+      assert_preference_created(domain)
+
+      # Saved language is the default (ja). Open the language settings screen with
+      # a transient ?lx=en overlay. The page must render in the *saved* language so
+      # the displayed language matches the option pre-selected in the form, instead
+      # of showing an English page with the Japanese option selected.
+      get public_send("edit_acme_#{domain[:name]}_preference_language_url", default_state.merge(lx: "en"))
+
+      assert_response :success
+      assert_equal :ja, I18n.locale
+
+      # The selector's selected option is the saved language option (JA = 1).
+      option_class = PreferenceClassRegistry.option_class(domain[:name].camelize, :language)
+
+      assert_select "select[name=?] option[selected][value=?]",
+                    "preference_language[option_id]",
+                    option_class::JA.to_s
+    end
+
     test "#{domain[:name]} domain falls back to Japanese when lx invalid" do
       host!(domain[:host])
 
@@ -336,10 +358,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       get public_send("edit_acme_#{domain[:name]}_preference_language_url", default_state)
 
-      # Acme renders the abbreviated locale codes for the language options.
+      # Acme renders language option names in the current page locale.
       assert_select "select[name='preference_language[option_id]']" do
-        assert_select "option[value='1']", text: "Ja"
-        assert_select "option[value='2']", text: "En"
+        assert_select "option[value='1']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.ja")
+        assert_select "option[value='2']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.en")
       end
     end
 
@@ -566,7 +588,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         [
           [:currency, :preference_currency, :currency, "usd", 1],
           [:calendar, :preference_date_format, :date_format, "uk", 2],
-          [:clock, :preference_time_format, :time_format, "hour_12", 2],
+          [:clock, :preference_time_format, :time_format, "2", 2],
           [:motion, :preference_motion, :motion, "reduced", 2],
           [:density, :preference_density, :density, "compact", 2],
           [:pagination, :preference_page_size, :page_size, "50", 3],

@@ -11,11 +11,5 @@ force_secure = JitSessionCookieConfig.force_secure?(
 
 Rails.application.config.session_store(
   :cookie_store,
-  expire_after: 14.days,
-  key: JitSessionCookieConfig.cookie_key(force_secure: force_secure),
-  secure: force_secure,
-  httponly: true,
-  same_site: :lax,
-  domain: ->(request) { CoreCookieDomain.for(surface: :app, request_host: request.host) },
-  partitioned: JitSessionCookieConfig.partitioned?,
+  **JitSessionCookieConfig.session_options(force_secure: force_secure),
 )

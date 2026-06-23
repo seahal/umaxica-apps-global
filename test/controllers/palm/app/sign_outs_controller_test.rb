@@ -59,7 +59,7 @@ module Palm
         assert_predicate native_token.reload, :revoked?
         assert_predicate native_token.device_session.reload, :revoked?
         assert_not AcmeRefreshTokenService.call(refresh_token: same_family_refresh).success?
-        assert AcmeRefreshTokenService.call(refresh_token: unrelated_refresh).success?
+        assert_predicate AcmeRefreshTokenService.call(refresh_token: unrelated_refresh), :success?
         assert_not_predicate unrelated_token.device_session.reload, :revoked?
 
         logout_uri = URI.parse(payload["logout_url"])

@@ -40,16 +40,16 @@ module Sign
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_org_passkey_ceremony_grant!, only: %i(new options verification)
-        before_action :set_passkey, only: %i(destroy)
+        before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
         # GET /settings/passkeys
         def index
-          redirect_to_acme_settings_authority!
+          @passkeys = current_operator.staff_passkeys.order(created_at: :asc)
         end
 
         # GET /settings/passkeys/:id
         def show
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         # GET /settings/passkeys/new
@@ -60,7 +60,7 @@ module Sign
 
         # GET /settings/passkeys/:id/edit
         def edit
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         # POST /settings/passkeys
@@ -188,7 +188,13 @@ module Sign
 
         # PATCH/PUT /settings/passkeys/:id
         def update
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+
+          if @passkey.update(update_params)
+            redirect_to(sign_org_settings_passkey_path(@passkey, ri: params[:ri]), status: :see_other)
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         # DELETE /settings/passkeys/:id
@@ -248,7 +254,7 @@ module Sign
         end
 
         def set_passkey
-          @passkey = current_operator.staff_passkeys.find(params(:id))
+          @passkey = current_operator.staff_passkeys.find(params.expect(:id))
         end
 
         def credential_params
@@ -318,9 +324,6 @@ module Sign
           )
         end
 
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
-        end
       end
     end
   end

@@ -424,10 +424,10 @@ class ActorSupportTest < ActiveSupport::TestCase
     assert_equal "sy", preference.theme
     assert_equal "jpy", preference.currency
     assert_equal "iso", preference.date_format
-    assert_equal "hour_24", preference.time_format
+    assert_equal "24", preference.time_format
     assert_equal "standard", preference.motion
     assert_equal "standard", preference.density
-    assert_equal "20", preference.page_size
+    assert_equal "infinity", preference.page_size
     assert_equal Actor::Preference::NULL_COOKIE, preference.cookie
   end
 

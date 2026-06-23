@@ -299,6 +299,34 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     assert_equal AuthenticationBase::SESSION_LIMIT_HARD_REJECT_MESSAGE, result[:message]
   end
 
+  test "create_login_token_record converts only exact concurrent session validation failures" do
+    @harness.define_singleton_method(:resource_type) { "client" }
+    resource = Client.new(id: 123)
+    concurrent_record = ClientToken.new(user_id: resource.id)
+    concurrent_record.errors.add(
+      :base,
+      :too_many,
+      message: "exceeds maximum concurrent sessions per user (#{ClientToken::MAX_TOTAL_SESSIONS_PER_USER})",
+    )
+    concurrent_error = ActiveRecord::RecordInvalid.new(concurrent_record)
+
+    ClientToken.stub(:create!, ->(*) { raise concurrent_error }) do
+      assert_raises(AuthenticationBase::ConcurrentSessionLimitExceededError) do
+        @harness.send(:create_login_token_record, resource, "BROWSER_WEB")
+      end
+    end
+
+    unrelated_record = ClientToken.new(user_id: resource.id)
+    unrelated_record.errors.add(:public_id, :blank)
+    unrelated_error = ActiveRecord::RecordInvalid.new(unrelated_record)
+
+    ClientToken.stub(:create!, ->(*) { raise unrelated_error }) do
+      assert_raises(ActiveRecord::RecordInvalid) do
+        @harness.send(:create_login_token_record, resource, "BROWSER_WEB")
+      end
+    end
+  end
+
   test "validate_login_dpop_proof returns success when proof is blank" do
     @harness.request.headers["DPoP"] = nil
 

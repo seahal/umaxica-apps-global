@@ -54,8 +54,7 @@
           <td><%= l(session.discarded_at, format: :short) %></td>
           <td>
             <% unless current_session %>
-              <%= button_to 'Revoke', sign_org_settings_session_path(session.public_id),
-                            method: :delete,
+              <%= button_to 'Revoke', sign_org_settings_session_revocation_path(session.public_id),
                             data: { confirm: 'Revoke this session?' } %>
             <% end %>
           </td>

@@ -87,6 +87,9 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
          )
 
     assert_response :success
+    assert_equal SignOutNotice::SIGN_OUT_HANDOFF_REFERRER_POLICY, response.headers["Referrer-Policy"]
+    assert_select %(meta[name="referrer"][content="no-referrer"]), 0
+    assert_equal 1, css_select("script").count { |node| node.text.include?("requestSubmit") }
     assert_predicate token.reload, :revoked?
 
     sign_handoff = handoff_form
@@ -141,14 +144,23 @@ class Acme::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   def assert_sign_out_handoff_markup(action_path:)
     assert_select "form#sign-out-handoff-form[method=post][data-turbo=false]", 1
     form = css_select("form#sign-out-handoff-form").first
+
     assert_equal action_path, form["action"]
+    assert_equal SignOutNotice::SIGN_OUT_HANDOFF_REFERRER_POLICY, response.headers["Referrer-Policy"]
+    assert_select %(meta[name="referrer"][content="no-referrer"]), 0
     assert_select "form#sign-out-handoff-form input[name=authenticity_token]", 0
     assert_select "form#sign-out-handoff-form noscript input[type=submit][value=?]",
                   I18n.t("sign.shared.sign_out.handoff_button"),
                   0
     assert_select "noscript button[form=sign-out-handoff-form][type=submit]", 1
-    script = css_select("script").find { |node| node.text.include?('document.getElementById("sign-out-handoff-form")') }
+    scripts =
+      css_select("script").select { |node|
+        node.text.include?('document.getElementById("sign-out-handoff-form")')
+      }
+    script = scripts.first
+
     assert script, "missing sign-out handoff auto-submit script"
+    assert_equal 1, scripts.size
     assert_predicate script["nonce"], :present?
     assert_includes script.text, "requestSubmit"
   end

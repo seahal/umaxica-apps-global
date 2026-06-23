@@ -25,15 +25,15 @@ module Sign
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :accept_com_passkey_ceremony_grant!, only: %i(new options verification)
-        before_action :set_passkey, only: %i(destroy)
+        before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
 
         def index
-          redirect_to_acme_settings_authority!
+          @passkeys = current_visitor.visitor_passkeys.order(created_at: :asc)
         end
 
         def show
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         def new
@@ -42,7 +42,7 @@ module Sign
         end
 
         def edit
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
         end
 
         def create
@@ -118,7 +118,13 @@ module Sign
         end
 
         def update
-          redirect_to_acme_settings_authority!
+          authorize!(@passkey)
+
+          if @passkey.update(update_params)
+            redirect_to(sign_com_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         def destroy
@@ -177,10 +183,7 @@ module Sign
         end
 
         def set_passkey
-          passkey_id = params(:id)
-          @passkey = current_visitor.visitor_passkeys.find_by(public_id: passkey_id)
-          @passkey ||= current_visitor.visitor_passkeys.find(passkey_id) if passkey_id.to_s.match?(/\A\d+\z/)
-          raise ActiveRecord::RecordNotFound unless @passkey
+          @passkey = current_visitor.visitor_passkeys.find_by!(public_id: params.expect(:id))
         end
 
         def perform_webauthn_registration!(challenge_id)
@@ -272,10 +275,6 @@ module Sign
           )
         end
 
-        # Compatibility entry only. acme/www owns account-facing passkey lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_sign_authority!(request.path, query: request.query_parameters)
-        end
       end
     end
   end

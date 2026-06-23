@@ -46,22 +46,25 @@ class Sign::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "create executes server-side visible Turnstile verification" do
     calls = []
-    verifier = lambda do |token:, remote_ip:, mode:, **|
-      calls << { token: token, remote_ip: remote_ip, mode: mode }
-      { "success" => false }
-    end
+    verifier =
+      lambda do |token:, remote_ip:, mode:, **|
+        calls << { token: token, remote_ip: remote_ip, mode: mode }
+        { "success" => false }
+      end
 
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
-      post sign_app_sign_up_email_url(ri: "jp"),
-           params: {
-             user_email: {
-               raw_address: "turnstile-signup-#{SecureRandom.hex(4)}@example.com",
-               confirm_policy: "1",
-             },
-             "cf-turnstile-response": "signup-token",
-           },
-           headers: default_headers
+      post(
+        sign_app_sign_up_email_url(ri: "jp"),
+        params: {
+          user_email: {
+            raw_address: "turnstile-signup-#{SecureRandom.hex(4)}@example.com",
+            confirm_policy: "1",
+          },
+          "cf-turnstile-response": "signup-token",
+        },
+        headers: default_headers,
+      )
     end
 
     assert_response :unprocessable_content

@@ -16,10 +16,10 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "sy", pref.theme
     assert_equal "jpy", pref.currency
     assert_equal "iso", pref.date_format
-    assert_equal "hour_24", pref.time_format
+    assert_equal "24", pref.time_format
     assert_equal "standard", pref.motion
     assert_equal "standard", pref.density
-    assert_equal "20", pref.page_size
+    assert_equal "infinity", pref.page_size
     assert_equal :ja, pref.locale
     assert_predicate pref, :system_theme?
     assert_not pref.dark_mode?
@@ -45,7 +45,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
       theme: "dr",
       currency: "usd",
       date_format: "mdy",
-      time_format: "hour_12",
+      time_format: "12",
       motion: "reduced",
       density: "compact",
       page_size: "50",
@@ -57,7 +57,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "America/New_York", pref.timezone
     assert_equal "usd", pref.currency
     assert_equal "mdy", pref.date_format
-    assert_equal "hour_12", pref.time_format
+    assert_equal "12", pref.time_format
     assert_equal "reduced", pref.motion
     assert_equal "compact", pref.density
     assert_equal "50", pref.page_size
@@ -117,10 +117,10 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "li", h[:theme]
     assert_equal "jpy", h[:currency]
     assert_equal "iso", h[:date_format]
-    assert_equal "hour_24", h[:time_format]
+    assert_equal "24", h[:time_format]
     assert_equal "standard", h[:motion]
     assert_equal "standard", h[:density]
-    assert_equal "20", h[:page_size]
+    assert_equal "infinity", h[:page_size]
     assert_not h[:consented]
   end
 
@@ -161,7 +161,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
       "ct" => "dr",
       "cu" => "usd",
       "df" => "mdy",
-      "tf" => "hour_12",
+      "tf" => "12",
       "mo" => "reduced",
       "dn" => "compact",
       "ps" => "infinity",
@@ -175,7 +175,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "dr", pref.theme
     assert_equal "usd", pref.currency
     assert_equal "mdy", pref.date_format
-    assert_equal "hour_12", pref.time_format
+    assert_equal "12", pref.time_format
     assert_equal "reduced", pref.motion
     assert_equal "compact", pref.density
     assert_equal "infinity", pref.page_size
@@ -235,7 +235,7 @@ class Actor::PreferenceTest < ActiveSupport::TestCase
     assert_equal "Asia/Tokyo", pref.timezone
     assert_equal "sy", pref.theme
     assert_equal "jpy", pref.currency
-    assert_equal "20", pref.page_size
+    assert_equal "infinity", pref.page_size
   end
 
   test "from_jwt with cookie parameter" do

@@ -374,6 +374,7 @@ class ClientEmailTest < ActiveSupport::TestCase
 
     ClientEmail.transaction do
       create_email_record(address)
+
       assert_equal 1, ClientEmail.where(address_digest: digest).count
       raise ActiveRecord::Rollback
     end
@@ -395,27 +396,29 @@ class ClientEmailTest < ActiveSupport::TestCase
     release = Queue.new
     results = Queue.new
 
-    holder = Thread.new do # rubocop:disable ThreadSafety/NewThread
-      ClientEmail.connection_pool.with_connection do |connection|
-        configure_identifier_race_connection!(connection)
-        ClientEmail.transaction do
-          create_email_record(address)
-          ready << true
-          release.pop
-          raise ActiveRecord::Rollback
+    holder =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientEmail.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ClientEmail.transaction do
+            create_email_record(address)
+            ready << true
+            release.pop
+            raise ActiveRecord::Rollback
+          end
+          results << { status: :rolled_back }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
         end
-        results << { status: :rolled_back }
+      end
+    releaser =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ready.pop
+        release << true
+        results << { status: :released }
       rescue StandardError => e
         results << { status: :error, error: "#{e.class}: #{e.message}" }
       end
-    end
-    releaser = Thread.new do # rubocop:disable ThreadSafety/NewThread
-      ready.pop
-      release << true
-      results << { status: :released }
-    rescue StandardError => e
-      results << { status: :error, error: "#{e.class}: #{e.message}" }
-    end
 
     [holder, releaser].each(&:join)
     race_results = 2.times.map { results.pop }

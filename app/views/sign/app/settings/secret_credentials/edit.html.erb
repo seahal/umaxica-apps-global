@@ -12,7 +12,7 @@
       </div>
     </div>
     <div>
-      <%= form_with(model: @secret_credential, url: sign_app_settings_secret_credential_path(@secret_credential, ri: params[:ri]), method: :patch) do |form| %>
+      <%= form_with(model: @secret_credential, url: sign_app_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]), method: :patch) do |form| %>
         <div>
           <% if @secret_credential.errors.any? %>
             <div>

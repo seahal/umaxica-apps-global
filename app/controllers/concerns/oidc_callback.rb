@@ -28,7 +28,8 @@ module OidcCallback
     bind_oidc_rp_logout_session!(id_token_result.payload)
 
     redirect_to(consume_oidc_pt, allow_other_host: false)
-  rescue InvalidCallbackState
+  rescue InvalidCallbackState => e
+    log_invalid_callback_state!(e.message)
     clear_oidc_session_state!
     render plain: I18n.t("errors.messages.login_required"), status: :unprocessable_content
   end
@@ -88,6 +89,19 @@ module OidcCallback
     )
     clear_oidc_session_state!
     redirect_to(sign_in_url_with_pt(nil), alert: I18n.t("errors.messages.login_required"), allow_other_host: true)
+  end
+
+  def log_invalid_callback_state!(reason)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "oidc.rp.callback.invalid_state",
+        reason: reason,
+        client_id: oidc_client_id,
+        host: request.host,
+        code_param_present: params[:code].present?,
+        state_param_present: params[:state].present?,
+      ),
+    )
   end
 
   def clear_oidc_session_state!

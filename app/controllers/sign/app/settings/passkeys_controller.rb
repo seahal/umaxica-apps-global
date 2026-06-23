@@ -39,12 +39,13 @@ module Sign
 
         # GET /settings/passkeys
         def index
-          redirect_to_acme_settings_authority!
+          @passkeys = current_client.client_passkeys.order(created_at: :asc)
         end
 
         # GET /settings/passkeys/:id
         def show
-          redirect_to_acme_settings_authority!
+          set_passkey
+          authorize!(@passkey)
         end
 
         # GET /settings/passkeys/new
@@ -55,7 +56,8 @@ module Sign
 
         # GET /settings/passkeys/:id/edit
         def edit
-          redirect_to_acme_settings_authority!
+          set_passkey
+          authorize!(@passkey)
         end
 
         # POST /settings/passkeys
@@ -176,7 +178,14 @@ module Sign
 
         # PATCH/PUT /settings/passkeys/:id
         def update
-          redirect_to_acme_settings_authority!
+          set_passkey
+          authorize!(@passkey)
+
+          if @passkey.update(update_params)
+            redirect_to(sign_app_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
+          else
+            render :edit, status: :unprocessable_content
+          end
         end
 
         # DELETE /settings/passkeys/:id
@@ -198,12 +207,8 @@ module Sign
 
         private
 
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(request.path, query: request.query_parameters)
-        end
-
         def set_passkey
-          @passkey = current_client.client_passkeys.find_by!(public_id: params(:id))
+          @passkey = current_client.client_passkeys.find_by!(public_id: params.expect(:id))
         end
 
         def update_params

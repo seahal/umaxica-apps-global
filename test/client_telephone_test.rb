@@ -487,6 +487,7 @@ class ClientTelephoneTest < ActiveSupport::TestCase
 
     ClientTelephone.transaction do
       create_telephone_record(number)
+
       assert_equal 1, ClientTelephone.where(number_digest: digest).count
       raise ActiveRecord::Rollback
     end
@@ -511,27 +512,29 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     release = Queue.new
     results = Queue.new
 
-    holder = Thread.new do # rubocop:disable ThreadSafety/NewThread
-      ClientTelephone.connection_pool.with_connection do |connection|
-        configure_identifier_race_connection!(connection)
-        ClientTelephone.transaction do
-          create_telephone_record(number)
-          ready << true
-          release.pop
-          raise ActiveRecord::Rollback
+    holder =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ClientTelephone.connection_pool.with_connection do |connection|
+          configure_identifier_race_connection!(connection)
+          ClientTelephone.transaction do
+            create_telephone_record(number)
+            ready << true
+            release.pop
+            raise ActiveRecord::Rollback
+          end
+          results << { status: :rolled_back }
+        rescue StandardError => e
+          results << { status: :error, error: "#{e.class}: #{e.message}" }
         end
-        results << { status: :rolled_back }
+      end
+    releaser =
+      Thread.new do # rubocop:disable ThreadSafety/NewThread
+        ready.pop
+        release << true
+        results << { status: :released }
       rescue StandardError => e
         results << { status: :error, error: "#{e.class}: #{e.message}" }
       end
-    end
-    releaser = Thread.new do # rubocop:disable ThreadSafety/NewThread
-      ready.pop
-      release << true
-      results << { status: :released }
-    rescue StandardError => e
-      results << { status: :error, error: "#{e.class}: #{e.message}" }
-    end
 
     [holder, releaser].each(&:join)
     race_results = 2.times.map { results.pop }

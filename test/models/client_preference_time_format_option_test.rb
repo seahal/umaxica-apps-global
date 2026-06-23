@@ -11,16 +11,16 @@
 require "test_helper"
 
 class ClientPreferenceTimeFormatOptionTest < ActiveSupport::TestCase
-  test "name returns hour_24 for HOUR_24 id" do
+  test "name returns 24 for HOUR_24 id" do
     option = ClientPreferenceTimeFormatOption.new(id: ClientPreferenceTimeFormatOption::HOUR_24)
 
-    assert_equal "hour_24", option.name
+    assert_equal "24", option.name
   end
 
-  test "name returns hour_12 for HOUR_12 id" do
+  test "name returns 12 for HOUR_12 id" do
     option = ClientPreferenceTimeFormatOption.new(id: ClientPreferenceTimeFormatOption::HOUR_12)
 
-    assert_equal "hour_12", option.name
+    assert_equal "12", option.name
   end
 
   test "name returns nil for NOTHING id" do

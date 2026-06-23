@@ -17,17 +17,17 @@ module Sign
 
         before_action :authenticate_visitor!
         before_action :set_no_store_for_secret_credential_pages
-        before_action :set_secret_credential, only: %i(destroy regenerate)
+        before_action :set_secret_credential, only: %i(show edit update destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: :create
         before_action :accept_com_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
-          redirect_to_acme_settings_authority!
+          @secret_credentials = current_visitor.visitor_secret_credentials.order(created_at: :asc)
         end
 
         def show
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
         end
 
         def new
@@ -43,7 +43,7 @@ module Sign
         end
 
         def edit
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
         end
 
         def create
@@ -75,7 +75,22 @@ module Sign
         end
 
         def update
-          redirect_to_acme_settings_authority!
+          authorize!(@secret_credential)
+
+          if disabling_secret_credential?(secret_credential_params) &&
+              AuthMethodGuard.last_method?(current_visitor, excluding: @secret_credential)
+            redirect_to(
+              sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+              status: :see_other,
+            )
+            return
+          end
+
+          apply_secret_credential_update!
+          redirect_to(
+            sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+            status: :see_other,
+          )
         end
 
         def destroy
@@ -88,7 +103,10 @@ module Sign
             )
             return
           end
-          redirect_to_acme_settings_authority!
+          @secret_credential.discard_now!(purge_after: 1.day)
+          @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(:deleted)
+          @secret_credential.save!
+          redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end
 
         def regenerate
@@ -103,7 +121,7 @@ module Sign
         private
 
         def set_secret_credential
-          @secret_credential = current_visitor.visitor_secret_credentials.find_by!(public_id: params(:id))
+          @secret_credential = current_visitor.visitor_secret_credentials.find_by!(public_id: params.expect(:id))
         end
 
         def secret_credential_params
@@ -116,6 +134,16 @@ module Sign
 
         def disabling_secret_credential?(params)
           params.key?(:enabled) && !ActiveModel::Type::Boolean.new.cast(params[:enabled])
+        end
+
+        def apply_secret_credential_update!
+          attrs = secret_credential_params
+          @secret_credential.name = attrs[:name].to_s.strip if attrs[:name].present?
+          if attrs.key?(:enabled)
+            status = ActiveModel::Type::Boolean.new.cast(attrs[:enabled]) ? :active : :revoked
+            @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(status)
+          end
+          @secret_credential.save!
         end
 
         def ensure_verified_recovery_identity_for_registration!
@@ -156,14 +184,6 @@ module Sign
           "settings_secret_credential"
         end
 
-        # Compatibility entry only. sign/id owns account-facing secret credential lifecycle.
-        def redirect_to_acme_settings_authority!
-          redirect_to_acme_authority!(acme_settings_authority_path, query: request.query_parameters)
-        end
-
-        def acme_settings_authority_path
-          request.path.sub(%r{\A/settings/secret_credentials}, "/settings/secrets")
-        end
       end
     end
   end

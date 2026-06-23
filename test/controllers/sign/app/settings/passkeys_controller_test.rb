@@ -379,7 +379,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys?ri=jp")
+    assert_response :ok
+    assert_select "table"
   end
 
   test "should show up link on index page" do
@@ -387,7 +388,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys?ri=jp")
+    assert_response :ok
+    assert_select "a[href=?]", new_sign_app_settings_passkey_path(ri: "jp")
   end
 
   test "should get new" do
@@ -459,7 +461,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
+    assert_response :ok
+    assert_includes response.body, I18n.t("defaults.never")
   end
 
   test "show renders back link before passkey details" do
@@ -467,7 +470,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
+    assert_response :ok
+    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
   end
 
   test "new allows bootstrap passkey registration with two recovery passcodes" do
@@ -524,7 +528,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}/edit?ri=jp")
+    assert_response :ok
+    assert_select "form[action=?]", sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
     assert_equal @passkey.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
@@ -534,7 +539,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}/edit?ri=jp")
+    assert_response :ok
+    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
   end
 
   test "should update description with public_id" do
@@ -542,8 +548,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
           params: { client_passkey: { description: "Updated" } },
           headers: @headers
 
-    assert_redirected_to_acme("/settings/passkeys/#{@passkey.public_id}?ri=jp")
-    assert_equal "My Passkey", @passkey.reload.description
+    assert_redirected_to sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_equal "Updated", @passkey.reload.description
   end
 
   test "should destroy with public_id" do
@@ -576,7 +582,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get edit_sign_app_settings_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys/#{other_passkey.public_id}/edit?ri=jp")
+    assert_response :not_found
   end
 
   test "index uses public_id in edit link" do
@@ -584,21 +590,14 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to_acme("/settings/passkeys?ri=jp")
+    assert_response :ok
+    assert_select "a[href=?]", edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
   end
 
   private
 
   def passkey_ceremony_grant(actor: @user, token: @token)
     signed_passkey_ceremony_grant_for(surface: "app", actor: actor, token: token)
-  end
-
-  def assert_redirected_to_acme(path)
-    assert_response :see_other
-    uri = URI.parse(response.location)
-
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
-    assert_equal path, uri.request_uri
   end
 
   def with_prosopite_paused

@@ -16,12 +16,12 @@
 #  functional      :boolean          default(FALSE), not null
 #  language        :string           default("ja"), not null
 #  motion          :string           default("standard"), not null
-#  page_size       :string           default("20"), not null
+#  page_size       :string           default("infinity"), not null
 #  performant      :boolean          default(FALSE), not null
 #  region          :string           default("jp"), not null
 #  targetable      :boolean          default(FALSE), not null
 #  theme           :string           default("sy"), not null
-#  time_format     :string           default("hour_24"), not null
+#  time_format     :string           default("24"), not null
 #  timezone        :string           default("Asia/Tokyo"), not null
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null

@@ -124,12 +124,24 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
 
   test "show rejects mismatched state before token exchange" do
     get "/oidc/callback/session", params: { state: "expected" }
+    logged = []
 
     OidcRpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for state mismatch") }) do
-      get "/oidc/callback", params: { code: "abc", state: "wrong" }
+      Rails.logger.stub(
+        :info, ->(message = nil, &block) {
+                 message = block.call if message.nil? && block
+                 logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
+               },
+      ) do
+        get "/oidc/callback", params: { code: "abc", state: "wrong" }
+      end
     end
 
     assert_response :unprocessable_content
+    event = logged.find { |entry| entry[:event] == "oidc.rp.callback.invalid_state" }
+    assert_equal "OIDC state mismatch", event.dig(:data, :reason)
+    assert_equal true, event.dig(:data, :code_param_present)
+    assert_equal true, event.dig(:data, :state_param_present)
   end
 
   test "show raises unexpected provisioning errors" do

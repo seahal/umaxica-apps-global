@@ -15,6 +15,7 @@ module SignOutNotice
   SIGN_OUT_NOTICE_TTL = 5.minutes
   SIGN_OUT_NOTICE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, private"
   SIGN_OUT_REFERRER_POLICY = "no-referrer"
+  SIGN_OUT_HANDOFF_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
   private
 
@@ -112,6 +113,11 @@ module SignOutNotice
     response.headers["Referrer-Policy"] = SIGN_OUT_REFERRER_POLICY
   end
 
+  def sign_out_handoff_cache_headers!
+    sign_out_notice_cache_headers!
+    response.headers["Referrer-Policy"] = SIGN_OUT_HANDOFF_REFERRER_POLICY
+  end
+
   def render_sign_out_confirmation(template)
     log_sign_out_event(
       "auth.sign_out.confirmation.rendered",
@@ -124,7 +130,7 @@ module SignOutNotice
   end
 
   def render_sign_out_handoff(template)
-    sign_out_notice_cache_headers!
+    sign_out_handoff_cache_headers!
     log_sign_out_event(
       "auth.sign_out.cross_origin_handoff.rendered",
       user_confirmation_required: false,
@@ -139,7 +145,15 @@ module SignOutNotice
     @sign_out_handoff_url = target_url
     @logout_transaction = transaction
 
-    render_sign_out_handoff "sign/shared/sign_outs/handoff"
+    render_sign_out_handoff("sign/shared/sign_outs/handoff")
+  end
+
+  # Cross-host sign-out cleanup cannot carry a same-origin Rails CSRF token after
+  # one surface has already cleared its own session. The one-shot logout challenge
+  # is the proof for these coordination posts; fetch metadata is still checked
+  # separately before any local cleanup runs.
+  def verified_request?
+    coordinated_sign_out_challenge_verifies_request? || super
   end
 
   def verify_coordinated_sign_out_post!(trusted_origins:)
@@ -149,8 +163,9 @@ module SignOutNotice
     origin = request.origin.to_s.presence
 
     trusted_origin_match = origin.present? && trusted_origins.include?(origin)
-    allowed_fetch_site = %w[same-origin same-site].include?(sec_fetch_site)
-    allowed_origin = origin.blank? || trusted_origin_match
+    challenge_verified = coordinated_sign_out_challenge_verifies_request?
+    allowed_fetch_site = %w(same-origin same-site).include?(sec_fetch_site)
+    allowed_origin = origin.blank? || trusted_origin_match || (origin == "null" && challenge_verified)
 
     unless allowed_fetch_site && allowed_origin
       warn_sign_out_event(
@@ -171,6 +186,26 @@ module SignOutNotice
       trusted_origin_match: trusted_origin_match,
       result: "accepted",
     )
+  end
+
+  def coordinated_sign_out_challenge_verifies_request?
+    return false unless request.post? && params[:logout_challenge].present?
+
+    transaction = coordinated_sign_out_challenge_transaction
+    return false unless transaction
+    return false if transaction.expired?
+    return false if transaction.finalized? || transaction.failed?
+
+    transaction.expected_step.present?
+  end
+
+  def coordinated_sign_out_challenge_transaction
+    return @coordinated_sign_out_challenge_transaction if defined?(@coordinated_sign_out_challenge_transaction)
+
+    @coordinated_sign_out_challenge_transaction =
+      AcmeLogoutTransactionService.find_by!(logout_challenge: params[:logout_challenge])
+  rescue ActiveRecord::RecordNotFound, ArgumentError, ActionController::BadRequest
+    @coordinated_sign_out_challenge_transaction = nil
   end
 
   def log_sign_out_event(event_name, transaction: nil, **payload)
@@ -228,7 +263,7 @@ module SignOutNotice
 
   def fetch_metadata_rejection_reason(sec_fetch_site, allowed_origin)
     return "missing_sec_fetch_site" if sec_fetch_site.blank?
-    return "invalid_sec_fetch_site" unless %w[same-origin same-site].include?(sec_fetch_site)
+    return "invalid_sec_fetch_site" unless %w(same-origin same-site).include?(sec_fetch_site)
     return "untrusted_origin" unless allowed_origin
 
     "invalid_request"

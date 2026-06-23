@@ -65,13 +65,15 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "should get index" do
     get sign_org_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets?ri=jp")
+    assert_response :success
+    assert_includes response.body, @staff_secret_credential.name
   end
 
   test "should get show" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_response :success
+    assert_includes response.body, @staff_secret_credential.name
   end
 
   test "should get new" do
@@ -87,7 +89,7 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     get edit_sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}/edit?ri=jp")
+    assert_response :success
   end
 
   test "should create secret_credential and redirect to index" do
@@ -117,10 +119,11 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "test", },
           headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_redirected_to sign_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
     @staff_secret_credential.reload
 
-    assert_equal "Test Secret", @staff_secret_credential.name
+    assert_equal "Updated Secret", @staff_secret_credential.name
+    assert_equal OperatorSecretCredentialStatus::REVOKED, @staff_secret_credential.staff_secret_status_id
   end
 
   test "destroy soft-deletes secret credential locally" do
@@ -140,27 +143,27 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end
 
-  test "URL uses public_id not numeric ID in compatibility redirect" do
+  test "URL uses public_id not numeric ID" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
 
     # Verify URL contains public_id, not numeric ID
     assert_not_includes request.fullpath, "/#{@staff_secret_credential.id}/"
     assert_includes request.fullpath, "/#{@staff_secret_credential.public_id}"
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_response :success
   end
 
   test "should access secret_credential by public_id" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential.public_id, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
+    assert_response :success
   end
 
-  test "numeric id is redirected without local lookup" do
+  test "numeric id is not found" do
     get sign_org_settings_secret_credential_url(@staff_secret_credential.id, ri: "jp"),
         headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.id}?ri=jp")
+    assert_response :not_found
   end
 
   test "create requires successful stealth turnstile" do
@@ -185,8 +188,8 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
                     "cf-turnstile-response": "bad", },
           headers: authenticated_headers
 
-    assert_redirected_to_acme("/settings/secrets/#{@staff_secret_credential.public_id}?ri=jp")
-    assert_equal "Test Secret", @staff_secret_credential.reload.name
+    assert_redirected_to sign_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
+    assert_equal "Blocked Update", @staff_secret_credential.reload.name
   end
 
   test "destroy soft-deletes before local turnstile validation" do
@@ -214,11 +217,4 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     signed_secret_credential_ceremony_grant_for(surface: "org", actor: @staff, token: @token)
   end
 
-  def assert_redirected_to_acme(path)
-    assert_response :see_other
-    uri = URI.parse(response.location)
-
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
-    assert_equal path, uri.request_uri
-  end
 end

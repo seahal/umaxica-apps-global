@@ -32,6 +32,27 @@ module PreferenceCore
     with_preference_connection(:writing) do
       @preference_language = load_or_refresh_preference_child("Language", option_id: nil)
     end
+
+    pin_locale_to_saved_language(@preference_language)
+  end
+
+  # Render the language settings screen in the user's *saved* language so the
+  # page text matches the option pre-selected in the form. The selector reflects
+  # the persisted DB/JWT value (@preference_language.option_id), but the page
+  # locale is otherwise resolved by ActorSupport#overlay_language, which lets a
+  # transient ?lx=/?ri= request param win over the saved value. Without this pin
+  # the page renders in the overlay locale while the selector shows the saved one
+  # (e.g. an English page with 日本語 selected). On the settings screen the saved
+  # value is the source of truth, so align the display to it.
+  def pin_locale_to_saved_language(language_preference)
+    option_id = language_preference&.option_id
+    return if option_id.blank?
+
+    locale = option_id_to_language(option_id, preference_prefix)
+    return if locale.blank?
+
+    locale = locale.to_sym
+    I18n.locale = locale if I18n.available_locales.include?(locale)
   end
 
   def set_language_preferences_update
@@ -322,10 +343,10 @@ module PreferenceCore
       tz: snapshot[:timezone] || Actor::Preference::DEFAULTS[:timezone],
       cu: snapshot[:currency] || "jpy",
       df: snapshot[:date_format] || "iso",
-      tf: snapshot[:time_format] || "hour_24",
+      tf: snapshot[:time_format] || "24",
       mo: snapshot[:motion] || "standard",
       dn: snapshot[:density] || "standard",
-      ps: snapshot[:page_size] || "20",
+      ps: snapshot[:page_size] || "infinity",
       consented: cookie[:consented],
       functional: cookie[:functional],
       performant: cookie[:performant],
@@ -656,9 +677,31 @@ module PreferenceCore
     return if resource_pref.blank?
 
     preference_connection_class(resource_pref.class).connected_to(role: :writing) do
-      resource_pref.destroy!
+      destroy_resource_preference_children_for_reset!(resource_pref)
+      resource_pref.delete
     end
     reset_current_resource_preference_association(resource_pref)
+  end
+
+  def destroy_resource_preference_children_for_reset!(resource_pref)
+    resource_preference_child_reflections_for_reset(resource_pref).each do |reflection|
+      reflection.klass.where(reflection.foreign_key => resource_pref.id).find_each(&:destroy!)
+    end
+  end
+
+  def resource_preference_child_reflections_for_reset(resource_pref)
+    seen = []
+
+    resource_pref.class.reflect_on_all_associations.filter_map do |reflection|
+      next unless reflection.options[:dependent] == :destroy
+      next unless reflection.foreign_key
+
+      reflection_key = [reflection.klass.name, reflection.foreign_key]
+      next if seen.include?(reflection_key)
+
+      seen << reflection_key
+      reflection
+    end
   end
 
   def reset_current_resource_preference_association(resource_pref)

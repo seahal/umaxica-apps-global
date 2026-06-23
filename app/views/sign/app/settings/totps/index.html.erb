@@ -3,7 +3,7 @@
 
 <div>
   <div>
-    <%= link_to t('sign.app.settings.totp.index.new_link'), new_sign_app_settings_totp_path %>
+    <%= link_to t('sign.app.settings.totp.index.new_link'), new_sign_app_settings_totp_path(ri: params[:ri]) %>
   </div>
 </div>
 
@@ -36,7 +36,7 @@
               </td>
               <td>
                 <%= link_to t('actions.edit'),
-                            edit_sign_app_settings_totp_path(credential.public_id) %>
+                            edit_sign_app_settings_totp_path(credential.public_id, ri: params[:ri]) %>
               </td>
             </tr>
           <% end %>

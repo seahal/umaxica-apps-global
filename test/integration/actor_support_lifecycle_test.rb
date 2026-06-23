@@ -207,10 +207,10 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
-    assert_equal "hour_24", snapshot["preference"]["time_format"]
+    assert_equal "24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["page_size"]
+    assert_equal "infinity", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
@@ -272,10 +272,10 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
-    assert_equal "hour_24", snapshot["preference"]["time_format"]
+    assert_equal "24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["page_size"]
+    assert_equal "infinity", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type
@@ -319,10 +319,10 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_equal "ja", snapshot["preference"]["language"]
     assert_equal "jpy", snapshot["preference"]["currency"]
     assert_equal "iso", snapshot["preference"]["date_format"]
-    assert_equal "hour_24", snapshot["preference"]["time_format"]
+    assert_equal "24", snapshot["preference"]["time_format"]
     assert_equal "standard", snapshot["preference"]["motion"]
     assert_equal "standard", snapshot["preference"]["density"]
-    assert_equal "20", snapshot["preference"]["page_size"]
+    assert_equal "infinity", snapshot["preference"]["page_size"]
 
     assert_equal Unauthenticated.instance, Actor.actor
     assert_equal :unauthenticated, Actor.actor_type

@@ -27,7 +27,7 @@
         </div>
         <div>
           <%= link_to t('actions.back'), sign_app_settings_secret_credentials_path %>
-          <%= link_to t('actions.edit'), edit_sign_app_settings_secret_credential_path(@secret_credential) %>
+          <%= link_to t('actions.edit'), edit_sign_app_settings_secret_credential_path(@secret_credential.public_id) %>
         </div>
       </div>
     </div>

@@ -35,7 +35,7 @@ module Sign
 
         def edit
           if params[:logout_challenge].present?
-            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params[:logout_challenge])
+            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
             warn_sign_out_event(
               "auth.sign_out.legacy_handoff.used",
               transaction: @logout_transaction,
@@ -45,9 +45,9 @@ module Sign
               result: "rejected",
               reason: "get_handoff_retired",
             )
-            return reject_sign_coordinated_logout!("get_handoff_retired")
+            reject_sign_coordinated_logout!("get_handoff_retired")
           else
-            render_sign_out_confirmation "sign/shared/sign_outs/edit"
+            render_sign_out_confirmation("sign/shared/sign_outs/edit")
           end
         rescue ActiveRecord::RecordNotFound
           reject_sign_coordinated_logout!("not_found")

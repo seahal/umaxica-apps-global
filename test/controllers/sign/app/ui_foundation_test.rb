@@ -49,11 +49,7 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
       get sign_app_settings_totps_url(ri: "jp", host: @sign_host),
           headers: acme_session_headers(scope: "settings_totp", host: @sign_host)
 
-      assert_response :see_other
-      location = URI.parse(response.location)
-
-      assert_equal @acme_host, location.host
-      assert_equal "/settings/totps", location.path
+      assert_response :success
 
       pages.each do |page|
         get page.fetch(:path), headers: page.fetch(:headers)
@@ -64,21 +60,13 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme-owned authority pages redirect to acme instead of rendering sign UI" do
+  test "session management renders on sign settings" do
     head = as_user_headers(@user, host: @host)
-    authority_pages = {
-      sign_app_settings_sessions_url(ri: "jp", host: @sign_host) => "/sign/settings/sessions",
-    }
 
-    authority_pages.each do |path, expected_path|
-      get path, headers: head
+    get sign_app_settings_sessions_url(ri: "jp", host: @sign_host), headers: head
 
-      assert_response :see_other
-      location = URI.parse(response.location)
-
-      assert_equal ENV.fetch("ACME_SERVICE_URL"), location.host
-      assert_equal expected_path, location.path
-    end
+    assert_response :success
+    assert_select "table"
   end
 
   test "dark mode class is rendered based on cookie" do
