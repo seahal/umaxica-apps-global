@@ -15,11 +15,12 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
 
-    uri = URI.parse(jump_rt_url_from_location(response.location))
+    uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
     assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
+    assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
     assert_equal "signup", query["screen_hint"]
     assert_nil session[:oidc_authorization_login_challenge]

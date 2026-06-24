@@ -163,12 +163,14 @@ module PreferenceRefreshTokenTransport
 
   def preference_creation_context_params(params_hash)
     source = params_hash || params
-    source.slice(
+    context = source.slice(
       PreferenceIoKeys::Params::RI,
       PreferenceIoKeys::Params::LX,
       PreferenceIoKeys::Params::TZ,
       PreferenceIoKeys::Params::CT,
     )
+    context[PreferenceIoKeys::Params::LX] ||= locale_from_region(context[PreferenceIoKeys::Params::RI].to_s.downcase)
+    context
   end
 
   def refresh_refresh_token_lifetime(preference)

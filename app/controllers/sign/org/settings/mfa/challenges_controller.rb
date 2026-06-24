@@ -37,7 +37,7 @@ module Sign
             )
           rescue ActiveRecord::RecordInvalid, ArgumentError
             show
-            flash.now[:alert] = t("sign.app.settings.mfa.update.failure")
+            current_operator.errors.add(:base, t("sign.app.settings.mfa.update.failure"))
             render :show, status: :unprocessable_content
           end
 

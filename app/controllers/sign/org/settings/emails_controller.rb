@@ -29,7 +29,6 @@ module Sign
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @staff_email.errors.add(:base, t("turnstile_error"))
-            flash.now[:alert] = t("turnstile_error")
             render(:edit, status: :unprocessable_content)
             return
           end

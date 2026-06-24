@@ -61,7 +61,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "should get new" do
-    get new_sign_org_settings_passkey_url(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant), headers: @headers
+    get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "h1", I18n.t("sign.org.settings.passkeys.new.page_title")
@@ -94,10 +94,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     Prosopite.pause do
-      get new_sign_org_settings_passkey_url(
-        ri: "jp",
-        passkey_ceremony_grant: passkey_ceremony_grant(actor: operator, token: token),
-      ), headers: headers
+      get new_sign_org_settings_passkey_url(ri: "jp"), headers: headers
     end
 
     assert_response :success
@@ -249,7 +246,7 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects missing challenge id" do
-    post sign_org_settings_passkeys_verification_url(ri: "jp", passkey_ceremony_grant: passkey_ceremony_grant),
+    post sign_org_settings_passkeys_verification_url(ri: "jp"),
          params: { credential: { id: "cred-id" } },
          headers: @headers,
          as: :json
@@ -303,10 +300,6 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   private
-
-  def passkey_ceremony_grant(actor: @staff, token: @token)
-    signed_passkey_ceremony_grant_for(surface: "org", actor: actor, token: token)
-  end
 
   def create_operator_passcode!(operator, name:, last_used_at: nil)
     credential = operator.staff_secret_credentials.new(

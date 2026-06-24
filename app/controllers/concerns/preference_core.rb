@@ -18,13 +18,9 @@ module PreferenceCore
   def set_region_preferences_update
     with_preference_connection(:writing) do
       @preference_region = load_or_refresh_preference_child("Region", option_id: nil)
+      @preference_language = load_or_refresh_preference_child("Language", option_id: nil)
 
-      update_preference_child_dual_write!(
-        @preference_region,
-        sanitize_option_id(preference_region_params, option_type: :region),
-        option_type: :region,
-        audit_event: "UPDATE_PREFERENCE_REGION",
-      )
+      update_region_and_language_preferences!
     end
   end
 
@@ -507,9 +503,54 @@ module PreferenceCore
   def updated_region_redirect_params
     return {} if @preference_region&.option_id.blank?
 
+    region = option_id_to_region(@preference_region.option_id, preference_prefix)
     preference_context_redirect_params.merge(
-      ri: option_id_to_region(@preference_region.option_id, preference_prefix),
+      ri: region,
     )
+  end
+
+  def update_region_and_language_preferences!
+    region_attributes = sanitize_option_id(preference_region_params, option_type: :region)
+    language_attributes = {
+      PreferenceIoKeys::Params::OPTION_ID => language_option_id_for_region_option(
+        region_attributes[PreferenceIoKeys::Params::OPTION_ID],
+      ),
+    }.compact
+    raise PreferenceOperationError if language_attributes.blank?
+
+    resource_pref = preference_write_resource_preference!
+    authorize_resource_preference_write!(resource_pref)
+
+    with_dual_write_transaction(resource_pref) do
+      update_preference_child_with_audit(@preference_region, region_attributes, "UPDATE_PREFERENCE_REGION")
+      mark_preference_field_explicit!(:region)
+      write_resource_preference_option!(
+        resource_pref, :region,
+        region_attributes[PreferenceIoKeys::Params::OPTION_ID],
+      ) if resource_pref
+
+      update_preference_child_with_audit(@preference_language, language_attributes, "UPDATE_PREFERENCE_LANGUAGE")
+      mark_preference_field_explicit!(:language)
+      write_resource_preference_option!(
+        resource_pref, :language,
+        language_attributes[PreferenceIoKeys::Params::OPTION_ID],
+      ) if resource_pref
+    end
+
+    reload_preferences_and_reissue_token!(sync_resource: false)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::InvalidForeignKey, ActionPolicy::Unauthorized, ArgumentError => e
+    record_preference_write_error("preference.write.option_error", e, target: :region)
+    raise PreferenceOperationError
+  end
+
+  def language_option_id_for_region_option(region_option_id)
+    region = option_id_to_region(region_option_id, preference_prefix)
+    option_class = PreferenceClassRegistry.option_class(preference_prefix, :language)
+
+    case region
+    when "jp" then option_class::JA
+    when "us" then option_class::EN
+    end
   end
 
   def compact_url_params(params_hash)

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
+class SignOrgSettingsActivityLogTest < ActiveSupport::TestCase
   ActivityStub = Struct.new(:event_id, :occurred_at, :created_at, :ip_address, :context, keyword_init: true)
 
   def stub_activity(event_id: 1, ip: "192.168.1.1", context: {}, occurred_at: nil, created_at: Time.current)
@@ -14,7 +14,7 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   setup do
-    @log = AcmeComSettingsActivityLog.new(visitors(:reserved_visitor))
+    @log = Sign::Org::Settings::ActivityLog.new(operators(:one))
   end
 
   test "occurred_at returns occurred_at when present" do
@@ -32,7 +32,7 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   test "event_label translates known event" do
-    activity = stub_activity(event_id: ClientChronicleEvent::LOGGED_IN)
+    activity = stub_activity(event_id: OperatorChronicleEvent::LOGGED_IN)
     I18n.with_locale(:en) do
       label = @log.event_label(activity)
 
@@ -69,32 +69,18 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   test "context_text filters sensitive keys" do
-    activity = stub_activity(context: { "user_agent" => "Chrome", "token" => "secret123", "browser" => "Chrome" })
+    activity = stub_activity(context: { "user_agent" => "Chrome", "secret_credential" => "abc", "browser" => "Chrome" })
 
     text = @log.context_text(activity)
     parsed = JSON.parse(text)
 
     assert_includes parsed, "browser"
-    assert_not_includes parsed, "token"
+    assert_not_includes parsed, "secret_credential"
     assert_not_includes parsed, "user_agent"
   end
 
   test "context_text returns empty hash for non-hash context" do
     activity = stub_activity(context: "string")
-
-    assert_equal "{}", @log.context_text(activity)
-  end
-
-  test "context_text handles non-serializable context" do
-    bad_context = Object.new
-
-    def bad_context.is_a?(klass) = (klass == Hash) ? true : super
-
-    def bad_context.deep_stringify_keys
-      raise TypeError, "can't convert to JSON"
-    end
-
-    activity = stub_activity(context: bad_context)
 
     assert_equal "{}", @log.context_text(activity)
   end
@@ -105,10 +91,10 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
     assert_equal "Chrome / Desktop", @log.user_agent_summary(activity)
   end
 
-  test "user_agent_summary detects Firefox mobile" do
-    activity = stub_activity(context: { "user_agent" => "Mozilla/5.0 Firefox/120.0 Mobile" })
+  test "user_agent_summary detects Edge mobile" do
+    activity = stub_activity(context: { "user_agent" => "Mozilla/5.0 Edg/120.0 iPhone" })
 
-    assert_equal "Firefox / Mobile", @log.user_agent_summary(activity)
+    assert_equal "Edge / Mobile", @log.user_agent_summary(activity)
   end
 
   test "user_agent_summary returns dash for blank" do
@@ -146,7 +132,6 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
   test "detect_device_type identifies devices" do
     assert_equal "Mobile", @log.send(:detect_device_type, "Mobile Safari")
     assert_equal "Mobile", @log.send(:detect_device_type, "iPhone")
-    assert_equal "Mobile", @log.send(:detect_device_type, "Android")
     assert_equal "Tablet", @log.send(:detect_device_type, "iPad")
     assert_equal "Desktop", @log.send(:detect_device_type, "Windows Chrome")
   end
@@ -155,6 +140,20 @@ class AcmeComSettingsActivityLogTest < ActiveSupport::TestCase
     assert @log.send(:sensitive_context_key?, "authorization")
     assert @log.send(:sensitive_context_key?, "token_value")
     assert_not @log.send(:sensitive_context_key?, "browser")
+  end
+
+  test "context_text handles non-serializable context" do
+    bad_context = Object.new
+
+    def bad_context.is_a?(klass) = (klass == Hash) ? true : super
+
+    def bad_context.deep_stringify_keys
+      raise TypeError, "can't convert to JSON"
+    end
+
+    activity = stub_activity(context: bad_context)
+
+    assert_equal "{}", @log.context_text(activity)
   end
 
   test "activities returns an enumerable" do

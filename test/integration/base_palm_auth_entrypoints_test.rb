@@ -26,13 +26,14 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization"
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
+      uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
       redirect_uri = URI.parse(query.fetch("redirect_uri"))
 
       assert_equal surface.fetch(:acme_host), uri.host
       assert_equal "/oauth/authorize", uri.path
+      assert_not_equal "jump.umaxica.net", uri.host
       assert_equal "base-rails-rp", query.fetch("client_id")
       assert_equal "signup", query.fetch("screen_hint")
       assert_equal surface.fetch(:host), redirect_uri.host
@@ -56,11 +57,12 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization", params: { client_id: surface.fetch(:client_id) }
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
+      uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
       assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
       assert_equal "/oauth/authorize", uri.path
+      assert_not_equal "jump.umaxica.net", uri.host
       assert_equal surface.fetch(:client_id), query.fetch("client_id")
       assert_equal "signup", query.fetch("screen_hint")
       assert_equal surface.fetch(:redirect_uri), query.fetch("redirect_uri")
@@ -76,11 +78,12 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     get "/oidc/authorization", params: { client_id: "app-ios-rp", screen_hint: "signin" }
 
     assert_response :redirect
-    uri = URI.parse(jump_rt_url_from_location(response.location))
+    uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
+    assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "app-ios-rp", query.fetch("client_id")
     assert_equal "signin", query.fetch("screen_hint")
     assert_equal "umaxica://oidc/callback", query.fetch("redirect_uri")

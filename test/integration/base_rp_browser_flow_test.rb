@@ -36,7 +36,7 @@ class BaseRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       get "/oidc/authorization", headers: browser_headers
 
-      state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
+      state = Rack::Utils.parse_nested_query(URI.parse(response.location).query).fetch("state")
       resource = instance_exec(&surface[:resource])
       resource_type = oidc_resource_type_for(resource)
       id_token = OidcIdTokenIssuer.call(

@@ -27,7 +27,7 @@ module AuthenticationSequenceGate
   end
 
   def sign_in_session_limit_path(pt: nil)
-    attrs = { ri: params[:ri] }
+    attrs = { ri: current_region_identifier }
     safe_pt = signed_pt_token(pt)
     attrs[AuthIoKeys::Params::PT] = safe_pt if safe_pt.present?
 
@@ -256,7 +256,7 @@ module AuthenticationSequenceGate
   end
 
   def sign_in_selector_path(pt: nil)
-    attrs = { ri: params[:ri] }
+    attrs = { ri: current_region_identifier }
     safe_pt = signed_pt_token(pt)
     attrs[AuthIoKeys::Params::PT] = safe_pt if safe_pt.present?
 

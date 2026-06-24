@@ -110,7 +110,9 @@ class AuthenticationLogoutCurrentSession
   end
 
   def device_session_class
-    return token.device_session.class if token&.respond_to?(:device_session) && token.device_session.present?
+    if token&.respond_to?(:association_cached?) && token.association_cached?(:device_session) && token.device_session.present?
+      return token.device_session.class
+    end
 
     case token_class&.name
     when "ClientToken" then ClientDeviceSession
@@ -122,7 +124,7 @@ class AuthenticationLogoutCurrentSession
   def revoke_device_session!(token_record)
     return true if token_record.respond_to?(:revoked?) && token_record.revoked?
 
-    device_session = token_record&.respond_to?(:device_session) ? token_record.device_session : find_device_session
+    device_session = device_session_for_token(token_record) || find_device_session
     return if device_session.blank?
 
     device_session.revoke!(reason: reason)
@@ -180,10 +182,30 @@ class AuthenticationLogoutCurrentSession
     true
   end
 
+  def device_session_for_token(token_record)
+    return if token_record.blank?
+
+    if token_record.respond_to?(:association_cached?) && token_record.association_cached?(:device_session)
+      return token_record.device_session
+    end
+
+    device_session_id = token_record.try(:device_session_id)
+    return if device_session_id.blank?
+
+    device_session_class_for_token(token_record)&.find_by(id: device_session_id)
+  end
+
+  def device_session_class_for_token(token_record)
+    case token_record.class.name
+    when "ClientToken" then ClientDeviceSession
+    when "OperatorToken" then OperatorDeviceSession
+    when "VisitorToken" then VisitorDeviceSession
+    end
+  end
+
   def device_session_cascade_handles_token?(token_record)
     cascade_device_session_tokens &&
-      token_record&.respond_to?(:device_session) &&
-      token_record.device_session.present?
+      device_session_for_token(token_record).present?
   end
 
   def begin_sign_out_flow(token_record)

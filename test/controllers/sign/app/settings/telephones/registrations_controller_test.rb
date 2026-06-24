@@ -46,15 +46,8 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current user without signup confirmation params" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: @user.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get new_sign_app_settings_telephones_registration_url(
       ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
     ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
@@ -95,15 +88,8 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       user: @user,
       user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: @user.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get new_sign_app_settings_telephones_registration_url(
       ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
     ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
@@ -122,15 +108,8 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_equal ClientTelephoneStatus::UNVERIFIED, reused.user_telephone_status_id
   end
   test "new renders successfully and resets session" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: @user.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get new_sign_app_settings_telephones_registration_url(
       ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
     ), headers: request_headers
 
     assert_response :success
@@ -138,10 +117,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     assert_includes response.body, 'data-turnstile-mode-value="execute"'
   end
 
-  test "new ignores invalid telephone ceremony grant for signed-in settings entry" do
+  test "new ignores obsolete telephone ceremony grant param for signed-in settings entry" do
     get new_sign_app_settings_telephones_registration_url(
       ri: "jp",
-      telephone_ceremony_grant: "invalid",
     ), headers: request_headers
 
     assert_response :success
@@ -254,22 +232,9 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     step_up_before = @token.reload.last_step_up_at
     set_registration_session(tel.id) do
       with_complete_telephone_verification(:success, tel) do
-        assert_difference(
-          -> {
-            ClientChronicle.where(
-              actor_type: "Client",
-              actor_id: @user.id,
-              subject_type: "Client",
-              subject_id: @user.id,
-              event_id: ClientChronicleEvent::TELEPHONE_REGISTERED,
-            ).count
-          },
-          1,
-        ) do
-          patch sign_app_settings_telephones_registration_url(ri: "jp"),
-                params: { user_telephone: { pass_code: "123456" } },
-                headers: request_headers
-        end
+        patch sign_app_settings_telephones_registration_url(ri: "jp"),
+              params: { user_telephone: { pass_code: "123456" } },
+              headers: request_headers
 
         assert_redirected_to sign_app_settings_telephones_url(
           ri: "jp",
@@ -393,30 +358,12 @@ class Sign::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       ClientTelephone.find(id)
     end
 
-    grant = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: @user.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    ).grant
-
-    original_grant_method = Sign::App::Settings::Telephones::RegistrationsController.instance_method(:telephone_ceremony_grant_token)
-    Sign::App::Settings::Telephones::RegistrationsController.define_method(:telephone_ceremony_grant_token) do
-      grant
-    end
-
-    begin
-      yield if block_given?
-    ensure
-      Sign::App::Settings::Telephones::RegistrationsController.define_method(
-        :current_registration_telephone,
-        original_method,
-      )
-      Sign::App::Settings::Telephones::RegistrationsController.define_method(
-        :telephone_ceremony_grant_token,
-        original_grant_method,
-      )
-    end
+    yield if block_given?
+  ensure
+    Sign::App::Settings::Telephones::RegistrationsController.define_method(
+      :current_registration_telephone,
+      original_method,
+    )
   end
 
   def with_complete_telephone_verification(status, telephone)

@@ -33,15 +33,8 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current staff" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "org",
-      actor_ref: @staff.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get new_sign_org_settings_telephones_registration_url(
       ri: "jp",
-      telephone_ceremony_grant: issuance.grant,
     ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
@@ -56,16 +49,9 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "new renders stealth turnstile" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "org",
-      actor_ref: @staff.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get(
       new_sign_org_settings_telephones_registration_url(
         ri: "jp",
-        telephone_ceremony_grant: issuance.grant,
       ),
       headers: request_headers,
     )
@@ -201,30 +187,12 @@ class Sign::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       telephone
     end
 
-    grant = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "org",
-      actor_ref: @staff.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    ).grant
-
-    original_grant_method = Sign::Org::Settings::Telephones::RegistrationsController.instance_method(:telephone_ceremony_grant_token)
-    Sign::Org::Settings::Telephones::RegistrationsController.define_method(:telephone_ceremony_grant_token) do
-      grant
-    end
-
-    begin
-      yield
-    ensure
-      Sign::Org::Settings::Telephones::RegistrationsController.define_method(
-        :current_registration_telephone,
-        original_method,
-      )
-      Sign::Org::Settings::Telephones::RegistrationsController.define_method(
-        :telephone_ceremony_grant_token,
-        original_grant_method,
-      )
-    end
+    yield
+  ensure
+    Sign::Org::Settings::Telephones::RegistrationsController.define_method(
+      :current_registration_telephone,
+      original_method,
+    )
   end
 
   def with_complete_staff_telephone_verification(status, telephone)

@@ -53,19 +53,34 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "authenticate! redirects unauthenticated html requests to oidc authorize url" do
-    get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
+    io = StringIO.new
+    logger = Logger.new(io)
+
+    Rails.stub(:logger, logger) do
+      get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
+    end
 
     assert_response :redirect
     location = response.location
+    uri = URI.parse(location)
 
-    assert_match %r{\Ahttps://www\.umaxica\.app/oauth/authorize\?}, location
-    authorize_params = Rack::Utils.parse_nested_query(URI.parse(location).query)
+    assert_equal "www.umaxica.app", uri.host
+    assert_equal "/oauth/authorize", uri.path
+    refute_equal "jump.umaxica.net", uri.host
+
+    authorize_params = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "base-rails-rp", authorize_params.fetch("client_id")
     assert_equal "https://www.umaxica.app/oidc/callback", authorize_params.fetch("redirect_uri")
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]
+    assert_includes io.string, "oidc.sso.redirect_policy.direct"
+    assert_includes io.string, "reason_code"
+    assert_includes io.string, "target_host"
+    assert_not_includes io.string, session[:oidc_state]
+    assert_not_includes io.string, session[:oidc_nonce]
+    assert_not_includes io.string, session[:oidc_code_verifier]
   end
 
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do
@@ -74,13 +89,24 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
       "https://www.umaxica.com/oidc/callback"
     end
 
-    get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
+    io = StringIO.new
+    logger = Logger.new(io)
+
+    Rails.stub(:logger, logger) do
+      get("/oidc/sso", headers: { "Host" => "id.umaxica.app" })
+    end
 
     assert_response :redirect
     assert_equal "jump.umaxica.net", URI.parse(response.location).host
     location = jump_rt_url_from_location(response.location)
 
     assert_match %r{\Ahttps://www\.umaxica\.com/oauth/authorize\?}, location
+    assert_includes io.string, "oidc.sso.redirect_policy.jump"
+    assert_includes io.string, "reason_code"
+    assert_includes io.string, "site_mismatch"
+    assert_not_includes io.string, "state"
+    assert_not_includes io.string, "nonce"
+    assert_not_includes io.string, "code_challenge"
   ensure
     OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.app" }
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do

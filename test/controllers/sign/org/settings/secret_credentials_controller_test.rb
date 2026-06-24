@@ -79,7 +79,6 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "should get new" do
     get new_sign_org_settings_secret_credential_url(
       ri: "jp",
-      secret_credential_ceremony_grant: secret_credential_ceremony_grant,
     ), headers: authenticated_headers
 
     assert_response :success
@@ -93,13 +92,10 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should create secret_credential and redirect to index" do
-    grant = secret_credential_ceremony_grant
-
     assert_difference("OperatorSecretCredential.count", 1) do
       post sign_org_settings_secret_credentials_url(ri: "jp"),
            params: {
              staff_secret_credential: { name: "New Secret", enabled: true },
-             secret_credential_ceremony_grant: grant,
              "cf-turnstile-response": "test",
            },
            headers: authenticated_headers
@@ -212,8 +208,4 @@ class Sign::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   private
-
-  def secret_credential_ceremony_grant
-    signed_secret_credential_ceremony_grant_for(surface: "org", actor: @staff, token: @token)
-  end
 end

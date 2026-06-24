@@ -44,7 +44,7 @@ module Sign
               notice: t(".success"),
             )
           else
-            flash.now[:alert] = result.error
+            @operator_lifecycle_request.errors.add(:base, result.error)
             render :new, status: :unprocessable_content
           end
         end

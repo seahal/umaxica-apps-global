@@ -64,6 +64,10 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
       "/sign/in"
     end
 
+    def current_region_identifier
+      params[:ri].to_s
+    end
+
     def am_i_user?
       false
     end

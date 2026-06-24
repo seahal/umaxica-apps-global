@@ -35,6 +35,10 @@ class AuthenticationBaseTestController < ApplicationController
     render plain: "ok"
   end
 
+  def current_region_identifier
+    params[:ri].to_s
+  end
+
   coverage_methods.each do |method_name|
     next unless method_defined?(method_name) || private_method_defined?(method_name)
 

@@ -18,8 +18,8 @@ module SignOrgInCheckControllerSupport
 
     refresh_bulletin_dimension!
     safe_redirect_to(
-      sign_org_sign_in_check_path(pt: signed_pt_param, ri: params[:ri]),
-      fallback: sign_org_sign_in_check_path(ri: params[:ri]),
+      sign_org_sign_in_check_path(pt: signed_pt_param, ri: current_region_identifier),
+      fallback: sign_org_sign_in_check_path(ri: current_region_identifier),
     )
   end
 

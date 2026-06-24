@@ -49,7 +49,13 @@ module SignPasskeyVerificationFlow
     actor_id = defined?(@_risk_actor_id) ? @_risk_actor_id : nil
     return unless actor_id
 
-    SignRiskEmitter.emit("auth_failed", actor_key => actor_id, :ip => request&.remote_ip, :reason => reason)
+    SignRiskEmitter.emit(
+      "auth_failed",
+      actor_key => actor_id,
+      :ip => request&.remote_ip,
+      :reason => reason,
+      :ri => current_region_identifier,
+    )
   rescue StandardError
     # Best-effort: do not let risk emission failures disrupt the auth flow
   end

@@ -34,7 +34,7 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     JitSecurityTurnstileVerifier.test_mode = false
     JitSecurityTurnstileVerifier.test_response = nil
     CloudflareTurnstile.test_mode = false
@@ -52,10 +52,21 @@ class Sign::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_select "input#identifier[pattern='[0-9A-FGHJKMNPQRSTVWXYZ]{16}']"
     assert_select "input#identifier[autocapitalize='characters']"
     assert_select "input#identifier[spellcheck='false']"
+    assert_select "[data-passkey-authentication-options-url-value=?]", sign_org_sign_in_passkey_options_path(ri: "jp")
+    assert_select "[data-passkey-authentication-verification-url-value=?]",
+                  sign_org_sign_in_passkey_verification_path(ri: "jp")
+    assert_select "[data-passkey-authentication-region-value=?]", "jp"
   end
 
   test "options returns error if identifier blank" do
     post sign_org_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("errors.webauthn.identifier_required")
+  end
+
+  test "options returns error if identifier missing" do
+    post sign_org_sign_in_passkey_options_url(ri: "jp"), params: {}
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("errors.webauthn.identifier_required")

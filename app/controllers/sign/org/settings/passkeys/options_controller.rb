@@ -4,7 +4,7 @@
 class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::ApplicationController
   include ::VerificationOperator
   include SignWebauthn
-  include SignPasskeyCeremonyDelegation
+  include SignSettingsPasskeyRegistration
   include ::SignRequiresRecoveryPasscodes
   include ::CloudflareTurnstile
   include ::SignSettingsPasskeyRegistrationEndpoint
@@ -15,7 +15,6 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
   before_action :authenticate_operator!
   step_up only: :create, bootstrap: true
   before_action :require_recovery_passcodes_for_mfa_registration!, only: :create
-  before_action :accept_org_passkey_ceremony_grant!, only: :create
   before_action :verify_settings_passkey_turnstile!, only: :create
 
   def create = render_passkey_registration_options
@@ -32,11 +31,6 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
       format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
     end
     false
-  end
-
-  def accept_org_passkey_ceremony_grant!
-    accept_passkey_ceremony_grant!(surface: "org")
-    true
   end
 
   def passkey_registration_actor = current_operator

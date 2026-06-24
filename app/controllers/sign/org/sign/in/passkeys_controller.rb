@@ -141,7 +141,7 @@ module Sign
 
           def perform_passkey_sign_in(passkey)
             establish_signed_in_session!(
-              passkey.staff, pt: retrieve_pt_for_checkpoint, ri: params[:ri], auth_method: "passkey",
+              passkey.staff, pt: retrieve_pt_for_checkpoint, ri: current_region_identifier, auth_method: "passkey",
             )
           end
 
@@ -174,11 +174,11 @@ module Sign
           end
 
           def passkey_checkpoint_redirect_url
-            sign_org_sign_in_check_path(pt: retrieve_pt_for_checkpoint, ri: params[:ri])
+            sign_org_sign_in_check_path(pt: retrieve_pt_for_checkpoint, ri: current_region_identifier)
           end
 
           def passkey_default_redirect_url
-            sign_org_root_path(ri: params[:ri])
+            sign_org_root_path(ri: current_region_identifier)
           end
 
           def minimum_response_budget_enabled?

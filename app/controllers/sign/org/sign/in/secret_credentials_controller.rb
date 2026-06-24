@@ -8,6 +8,8 @@ module Sign
         class SecretCredentialsController < ::Sign::Org::ApplicationController
           include ::CloudflareTurnstile
 
+          include MinimumResponseBudget
+
           include SessionLimitGate
 
           AUTHENTICATION_MODE = :guest
@@ -36,6 +38,8 @@ module Sign
               render_rate_limited(rule_name: "sign_org_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
             },
           )
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           class SecretLoginForm
             include ActiveModel::Model
@@ -97,6 +101,7 @@ module Sign
                 error_class: e.class.name,
                 message: e.message,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 exception: e,
               ),
             )
@@ -155,7 +160,7 @@ module Sign
           def process_standard_login(staff)
             pt = signed_pt_param
             result = establish_signed_in_session!(
-              staff, pt: pt, ri: params[:ri], auth_method: "secret_credential",
+              staff, pt: pt, ri: current_region_identifier, auth_method: "secret_credential",
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: staff)
 
@@ -192,7 +197,10 @@ module Sign
                 "sign.org.authentication.secret_credential.failed",
                 reason: reason,
                 identifier_present: @secret_credential_form.identifier.present?,
+                identifier_type: "public_id",
+                staff_id: staff&.id,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 errors: @secret_credential_form.errors.full_messages,
               ),
             )
@@ -208,6 +216,10 @@ module Sign
 
           def secret_credential_params
             params.fetch(:secret_credential_login_form, {}).permit(:identifier, :secret_credential_value)
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "create"
           end
         end
       end

@@ -108,7 +108,9 @@ services:
       otel-collector:
         condition: service_started
   primary:
-    image: postgres:17.7-alpine
+    build:
+      context: ./docker/psql-pub
+      dockerfile: Dockerfile
     command:
     - "-c"
     - config_file=/etc/postgresql/postgresql.conf
@@ -153,7 +155,9 @@ services:
       retries: 20
       start_period: 5s
   replica:
-    image: postgres:17.7-alpine
+    build:
+      context: ./docker/psql-sub
+      dockerfile: Dockerfile
     entrypoint: "/entrypoint.sh"
     environment:
       POSTGRES_USER: "${POSTGRESQL_USER:-root}"

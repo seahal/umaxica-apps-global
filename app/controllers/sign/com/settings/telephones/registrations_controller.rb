@@ -9,7 +9,7 @@ module Sign
           include CloudflareTurnstile
 
           include CommonOtp
-          include SignTelephoneCeremonyDelegation
+          include SignSettingsTelephoneRegistration
 
           include ::VerificationVisitor
 
@@ -26,7 +26,6 @@ module Sign
           def new
             @user_telephone = VisitorTelephone.new
             reset_registration_session!
-            accept_telephone_ceremony_grant!(surface: "com")
           end
 
           def edit
@@ -47,7 +46,6 @@ module Sign
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone = VisitorTelephone.new
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:new, status: :unprocessable_content)
               return
             end
@@ -87,7 +85,6 @@ module Sign
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:edit, status: :unprocessable_content)
               return
             end
@@ -227,7 +224,7 @@ module Sign
               return :invalid_code
             end
 
-            # sign/id verifies the OTP; acme/www performs the final account commit.
+            # sign/id verifies the OTP and commits the settings telephone.
             clear_otp(@user_telephone)
             @user_telephone.save! if @user_telephone.changed?
             :success

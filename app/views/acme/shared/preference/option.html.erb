@@ -41,7 +41,24 @@
                            else
                              "acme.#{surface}.preference.#{screen}.options.#{option_key}"
                            end
-                         [t(translation_key, default: default_label), option.id]
+                         translation_defaults =
+                           if option_type == :timezone
+                             timezone_alias_key = { "ETC_UTC" => "UTC", "ASIA_TOKYO" => "JST" }[option_key]
+                             [
+                               (:"acme.#{surface}.preference.locale.edit.timezone_options.#{timezone_alias_key}" if timezone_alias_key),
+                               :"acme.com.preference.locale.edit.timezone_options.#{option_key}",
+                               (:"acme.com.preference.locale.edit.timezone_options.#{timezone_alias_key}" if timezone_alias_key),
+                               default_label,
+                             ].compact
+                           elsif option_type == :region
+                             [
+                               :"acme.app.preferences.regions.select_region_selector.#{option_name.upcase}",
+                               default_label,
+                             ]
+                           else
+                             default_label
+                           end
+                         [I18n.t(translation_key, locale: I18n.locale, fallback: false, default: translation_defaults), option.id]
                        },
                        model.option_id,
                      ),

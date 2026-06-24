@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class AcmeAppSettingsActivityLog
+class Sign::App::Settings::ActivityLog
   VISIBLE_EVENT_IDS = [
     ClientChronicleEvent::LOGGED_IN,
     ClientChronicleEvent::LOGIN_SUCCESS,

@@ -7,7 +7,7 @@ class Sign::App::Settings::Revocations::AllsController < ::Sign::App::Applicatio
   before_action :authenticate_client!
 
   def create
-    current_client.client_tokens.session_inventory.find_each(&:revoke!)
+    logout_all_sessions_for!(resource: current_client, reason: "settings.session.revoke_all")
     redirect_to(sign_app_sign_out_path(ri: params[:ri]), status: :see_other)
   end
 end

@@ -11,7 +11,7 @@ module Sign
 
         include ::SignSettingsSecretCredentialCacheControl
         include ::SignAuthorityRedirect
-        include ::SignSecretCredentialCeremonyDelegation
+        include ::SignSettingsSecretCredentialRegistration
 
         AUTHENTICATION_MODE = :private
 
@@ -20,7 +20,6 @@ module Sign
         before_action :set_secret_credential, only: %i(show edit update destroy regenerate)
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: :create
-        before_action :accept_com_secret_credential_ceremony_grant!, only: %i(new create)
 
         def index
           @secret_credentials = current_visitor.visitor_secret_credentials.order(created_at: :asc)
@@ -163,11 +162,6 @@ module Sign
 
         def secret_credential_turnstile_failure_redirect_path
           sign_com_settings_secret_credentials_path(ri: params[:ri])
-        end
-
-        def accept_com_secret_credential_ceremony_grant!
-          accept_secret_credential_ceremony_grant!(surface: "com")
-          true
         end
 
         def verification_required_action?

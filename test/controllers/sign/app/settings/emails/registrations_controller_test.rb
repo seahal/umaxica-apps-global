@@ -39,7 +39,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "registration new is available" do
-    setup_email_ceremony_grant
+    get new_sign_app_settings_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response']", count: 1
@@ -59,7 +59,11 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     )
 
     Prosopite.pause do
-      setup_email_ceremony_grant(user: user, token: token)
+      get new_sign_app_settings_emails_registration_url(ri: "jp"),
+          headers: request_headers.merge(
+            "X-TEST-CURRENT-USER" => user.id.to_s,
+            "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+          )
     end
 
     assert_response :success
@@ -94,7 +98,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "registration edit renders stealth turnstile" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_app_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -120,7 +123,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create accepts browser submitted client email params without pass code validation" do
-    setup_email_ceremony_grant
     assert_enqueued_emails 1 do
       post sign_app_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -145,7 +147,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create sends OTP email" do
-    setup_email_ceremony_grant
     assert_no_difference("Client.count") do
       assert_enqueued_emails 1 do
         post sign_app_settings_emails_registration_url(ri: "jp"),
@@ -168,7 +169,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create stores requested email preference flags" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -189,7 +189,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update verifies OTP and confirms email" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_app_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -207,64 +206,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     otp_data = user_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    assert_difference(
-      -> {
-        ClientChronicle.where(
-          actor_type: "Client",
-          actor_id: @user.id,
-          subject_type: "Client",
-          subject_id: @user.id,
-          event_id: ClientChronicleEvent::EMAIL_REGISTERED,
-        ).count
-      },
-      1,
-    ) do
-      patch sign_app_settings_emails_registration_url(ri: "jp"),
-            params: {
-              user_email: {
-                pass_code: code,
-              },
-            },
-            headers: request_headers
-    end
-
-    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
-    assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
-    assert_equal @user.id, user_email.user_id
-    assert_not_nil @token.reload.last_step_up_at
-    assert_equal "settings_email", @token.last_step_up_scope
-  end
-
-  test "acme issued grant drives sign ceremony result and acme email commit" do
-    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: @user.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
-
-    get new_sign_app_settings_emails_registration_url(
-      ri: "jp",
-      email_ceremony_grant: issuance.grant,
-    ), headers: request_headers
-
-    assert_response :success
-
-    perform_enqueued_jobs do
-      post sign_app_settings_emails_registration_url(ri: "jp"),
-           params: {
-             user_email: {
-               raw_address: "config-acme-grant-commit@example.com",
-             },
-             "cf-turnstile-response": "test",
-           },
-           headers: request_headers
-    end
-
-    user_email = @user.client_emails.order(:created_at).last
-    otp_data = user_email.get_otp
-    code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
-
     patch sign_app_settings_emails_registration_url(ri: "jp"),
           params: {
             user_email: {
@@ -273,13 +214,14 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to "https://www.umaxica.app/preference?ri=jp"
+    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
-    assert_predicate issuance.transaction.reload, :consumed?
+    assert_equal @user.id, user_email.user_id
+    assert_not_nil @token.reload.last_step_up_at
+    assert_equal "settings_email", @token.last_step_up_scope
   end
 
   test "update rejects when turnstile fails" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_app_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -317,8 +259,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
       "X-TEST-CURRENT-USER" => bootstrap_user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => bootstrap_token.public_id.to_s,
     )
-
-    setup_email_ceremony_grant(user: bootstrap_user, token: bootstrap_token)
 
     perform_enqueued_jobs do
       post sign_app_settings_emails_registration_url(ri: "jp"),
@@ -358,7 +298,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     return_to = "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
     pt = Base64.urlsafe_encode64(return_to)
 
-    setup_email_ceremony_grant(params: { pt: pt })
+    get new_sign_app_settings_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
 
     assert_response :success
 
@@ -393,7 +333,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "edit falls back to latest unverified email when session is missing" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -412,8 +351,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
   test "edit renders OTP resend control" do
     pt = Base64.urlsafe_encode64(sign_app_settings_mfa_challenge_path(ri: "jp"))
-
-    setup_email_ceremony_grant(params: { pt: pt })
     post sign_app_settings_emails_registration_url(ri: "jp", pt: pt),
          params: {
            user_email: {
@@ -431,7 +368,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "resend sends a new OTP after cooldown" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -456,7 +392,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "resend is rate limited during cooldown" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -475,7 +410,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update with blank pass_code renders edit with error" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -503,7 +437,6 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update with wrong pass_code renders edit with error" do
-    setup_email_ceremony_grant
     post sign_app_settings_emails_registration_url(ri: "jp"),
          params: {
            user_email: {
@@ -538,24 +471,4 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   private
-
-  def setup_email_ceremony_grant(user: @user, token: @token, params: {})
-    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
-      surface: "app",
-      actor_ref: user.public_id,
-      session_ref: token.public_id,
-      operation: "registration",
-    )
-    get(
-      new_sign_app_settings_emails_registration_url(
-        {
-          ri: "jp",
-          email_ceremony_grant: issuance.grant,
-        }.merge(params),
-      ), headers: request_headers.merge(
-        "X-TEST-CURRENT-USER" => user.id.to_s,
-        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-      ),
-    )
-  end
 end

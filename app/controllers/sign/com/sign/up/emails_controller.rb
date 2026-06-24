@@ -132,34 +132,10 @@ module Sign
             redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
           end
 
-          def update
-            @user_email = current_registration_email
-            return redirect_invalid_session unless valid_email_session?
-            return render_code_required if params.dig("visitor_email", "pass_code").blank?
-
-            submitted_code = params.dig("visitor_email", "pass_code")
-            result =
-              existing_signup_email_flow? ? handle_existing_email_verification(submitted_code) :
-                                             complete_visitor_email_verification!(submitted_code)
-            return if result == :redirected
-            return handle_locked_result if result == :locked
-            return redirect_invalid_session if result == :invalid_session
-            return render :edit, status: :unprocessable_content unless result
-
-            progress_email_flow!(:update)
-            redirect_to(
-              sign_com_sign_up_guard_email_path(
-                ri: params[:ri],
-                pt: signed_pt_token(path_target_value),
-              ),
-              notice: t("sign.app.registration.email.update.success"),
-            )
-          end
-
           private
 
           def enforce_email_flow!
-            requirements = { new: "init", create: "init", edit: "email_created", update: "email_created" }
+            requirements = { new: "init", create: "init", edit: "email_created" }
             required = requirements[action_name.to_sym]
             return unless required
 
@@ -196,17 +172,6 @@ module Sign
           def redirect_invalid_session
             reset_email_flow!
             flash[:notice] = t("sign.app.registration.email.edit.session_expired")
-            redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
-          end
-
-          def render_code_required
-            @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
-            render :edit, status: :unprocessable_content
-          end
-
-          def handle_locked_result
-            reset_email_flow!
-            flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
             redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
           end
 
@@ -312,66 +277,6 @@ module Sign
             false
           end
 
-          def complete_visitor_email_verification!(submitted_code)
-            result = verify_otp_code(@user_email, submitted_code)
-            unless result[:success]
-              increment_otp_attempts!(@user_email)
-              if @user_email.locked?
-                reset_email_flow!
-                return :locked
-              end
-              @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-              return false
-            end
-
-            sequence_advanced = false
-            VisitorEmail.transaction do
-              clear_otp(@user_email)
-              @user_email.update!(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-              sequence_advanced = advance_sign_up_flow_after_email_otp!
-              raise ActiveRecord::Rollback unless sequence_advanced
-            end
-
-            sequence_advanced ? true : :invalid_session
-          end
-
-          def handle_existing_email_verification(submitted_code)
-            if dummy_existing_email_flow?
-              @user_email = VisitorEmail.new(pass_code: submitted_code)
-              @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-              return false
-            end
-
-            if existing_signup_skip_otp?
-              reset_email_flow!
-              redirect_to(
-                sign_com_sign_in_path(ri: params[:ri]),
-                notice: t("sign.app.registration.email.update.sign_in_required"),
-              )
-              return :redirected
-            end
-
-            result = verify_otp_code(@user_email, submitted_code)
-            unless result[:success]
-              increment_otp_attempts!(@user_email)
-              if @user_email.locked?
-                reset_email_flow!
-                return :locked
-              end
-              @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-              return false
-            end
-
-            clear_otp(@user_email)
-            reset_email_flow!
-            session.delete(EXISTING_EMAIL_SESSION_KEY)
-            redirect_to(
-              sign_com_sign_in_path(ri: params[:ri]),
-              notice: t("sign.app.registration.email.update.sign_in_required"),
-            )
-            :redirected
-          end
-
           def cleanup_pending_visitor_signup!
             cycle = sign_up_flow_locator.current
             return unless cycle&.principal_id
@@ -475,28 +380,6 @@ module Sign
               SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
             end
             session[:sign_com_up_sequence_id] = cycle.public_id
-          end
-
-          def advance_sign_up_flow_after_email_otp!
-            cycle = sign_up_flow_locator.current
-            return false unless cycle
-
-            result =
-              ComTicketRecord.connected_to(role: :writing) do
-                verify = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
-                if verify.status == :advanced
-                  SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-                  SignUpStateMachine.call(
-                    ticket: cycle.reload,
-                    event: :clear_requirement,
-                    actor_context: Actor.authn,
-                    payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
-                  )
-                else
-                  verify
-                end
-              end
-            result.status == :advanced
           end
 
           def sign_up_flow_locator

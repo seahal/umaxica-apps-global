@@ -38,27 +38,6 @@ module Sign
             only: :create,
             with: -> { render_rate_limited(rule_name: "sign_com_sign_in_email_create_ip_sustained", retry_after: 900) },
           )
-          rate_limit(
-            to: 5,
-            within: 1.minute,
-            by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
-            name: "email_update_ip_burst",
-            store: rate_limit_store,
-            only: :update,
-            with: -> { render_rate_limited(rule_name: "sign_com_sign_in_email_update_ip_burst", retry_after: 60) },
-          )
-          rate_limit(
-            to: 20,
-            within: 15.minutes,
-            by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
-            name: "email_update_ip_sustained",
-            store: rate_limit_store,
-            only: :update,
-            with: -> { render_rate_limited(rule_name: "sign_com_sign_in_email_update_ip_sustained", retry_after: 900) },
-          )
-
           declare_authentication_mode!(
             :guest,
             status: :bad_request,
@@ -66,7 +45,7 @@ module Sign
             no_redirect: true,
           )
 
-          before_action :load_user_email, only: %i(edit update)
+          before_action :load_user_email, only: :edit
 
           def identity_email_model
             VisitorEmail
@@ -112,77 +91,7 @@ module Sign
             preserve_pt
 
             flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-            redirect_to(edit_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
-          end
-
-          def update
-            start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-            @user_email.pass_code = update_pass_code_params[:pass_code]
-
-            unless @user_email.valid?
-              respond_to do |format|
-                format.html { render :edit, status: :unprocessable_content }
-                format.json do
-                  render json: { error: @user_email.errors.full_messages.join(", ") }, status: :unprocessable_content
-                end
-              end
-              return
-            end
-
-            result = verify_otp_and_login(@user_email)
-            ensure_min_elapsed(start_time)
-
-            if result[:success]
-              handle_update_success(result)
-            else
-              handle_update_failure(result)
-            end
-          end
-
-          def handle_update_success(result)
-            respond_to do |format|
-              format.html { handle_html_success(result) }
-              format.json { handle_json_success(result) }
-            end
-          end
-
-          def handle_html_success(result)
-            if result[:restricted]
-              redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
-            elsif result[:redirect_path]
-              redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
-            else
-              pt_param = retrieve_pt
-              redirect_to_sign_in_sequence!(
-                pt: pt_param,
-                notice: t("sign.app.authentication.email.update.success"),
-              )
-            end
-          end
-
-          def handle_json_success(result)
-            if result[:restricted]
-              render json: {
-                status: "session_restricted",
-                redirect_url: result[:redirect_path],
-                message: I18n.t("sign.app.in.session.restricted_notice"),
-              }, status: :ok
-            else
-              render json: result[:tokens], status: :ok
-            end
-          end
-
-          def handle_update_failure(result)
-            if result[:hard_reject]
-              render_session_limit_hard_reject(message: result[:error], http_status: result[:http_status])
-            else
-              @user_email.errors.add(:pass_code, result[:error])
-              respond_to do |format|
-                format.html { render :edit, status: :unprocessable_content }
-                format.json { render json: { error: result[:error] }, status: :unprocessable_content }
-              end
-            end
+            redirect_to(edit_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
           end
 
           private
@@ -198,7 +107,7 @@ module Sign
 
               unless @user_email
                 flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-                redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
+                redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
                 return
               end
               @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: @user_email.address)
@@ -210,7 +119,7 @@ module Sign
               )
             else
               flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: params[:ri]))
+              redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
             end
           end
 
@@ -250,84 +159,6 @@ module Sign
             :ok
           end
 
-          def verify_otp_and_login(user_email)
-            if session[:user_email_authentication_id].present?
-              verify_existing_email_otp(user_email)
-            else
-              verify_dummy_otp(user_email)
-            end
-          end
-
-          def verify_existing_email_otp(user_email)
-            result = verify_otp_code(user_email, user_email.pass_code)
-
-            if result[:success]
-              visitor = visitor_from_visitor_email(user_email)
-              unless visitor&.login_allowed?
-                return { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
-              end
-
-              clear_otp(user_email)
-              session[:user_email_authentication_id] = nil
-              pt = peek_pt
-              result = establish_signed_in_session!(visitor, pt: pt, ri: params[:ri], auth_method: "email")
-              sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
-
-              if sign_in_result.mfa_required?
-                { success: true, redirect_path: sign_in_result.redirect_to }
-              elsif sign_in_result.status == :session_limit_hard_reject
-                { success: false,
-                  error: sign_in_result.message,
-                  hard_reject: true,
-                  http_status: sign_in_result.response_status, }
-              elsif sign_in_result.session_limit_pending?
-                { success: true, restricted: true, redirect_path: sign_in_result.redirect_to }
-              elsif sign_in_result.success?
-                { success: true, tokens: sign_in_result.token }
-              else
-                { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
-              end
-            else
-              increment_otp_attempts!(user_email)
-              visitor = visitor_from_visitor_email(user_email)
-              handle_failed_otp_attempt(user_email, visitor)
-            end
-          end
-
-          def verify_dummy_otp(user_email)
-            super(user_email.pass_code)
-            { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
-          end
-
-          def handle_failed_otp_attempt(user_email, visitor = nil)
-            visitor ||= visitor_from_visitor_email(user_email)
-            audit_visitor_login_failed(visitor) if visitor
-            SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
-
-            if user_email.locked?
-              { success: false, error: email_locked_message }
-            else
-              { success: false, error: t("sign.app.authentication.email.update.invalid_code") }
-            end
-          end
-
-          def visitor_from_visitor_email(visitor_email)
-            return unless visitor_email
-            return visitor_email.visitor if visitor_email.association(:visitor).loaded?
-
-            if defined?(Prosopite)
-              Prosopite.pause { visitor_email.visitor }
-            else
-              visitor_email.visitor
-            end
-          end
-
-          def update_pass_code_params
-            params(user_email: [:pass_code])
-          rescue ActionController::ParameterMissing
-            {}
-          end
-
           def otp_request_rate_limited?(user_email)
             user_email.otp_cooldown_active?
           end
@@ -351,10 +182,6 @@ module Sign
             return t("errors.messages.login_cooldown") if existing_email&.visitor&.login_allowed?
 
             t("sign.app.authentication.email.create.cooldown")
-          end
-
-          def email_locked_message
-            t("sign.app.authentication.email.locked", default: t("errors.otp_locked"))
           end
         end
       end

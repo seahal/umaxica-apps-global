@@ -41,11 +41,12 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
+      uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
+      assert_not_equal "jump.umaxica.net", uri.host
       assert_equal surface[:client_id], query["client_id"]
       assert_equal redirect_uri_for(surface), query["redirect_uri"]
       assert_equal "S256", query["code_challenge_method"]
@@ -66,12 +67,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
-      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_uri = URI.parse(response.location)
       authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
       code_verifier = session.fetch(:oidc_code_verifier)
 
       assert_equal acme_host, authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
+      assert_not_equal "jump.umaxica.net", authorize_uri.host
 
       get "/oauth/authorize", params: authorize_query, headers: browser_headers
 
@@ -336,28 +338,28 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       second_active = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
       second_active.rotate_refresh_token!
 
-      host! acme_host
-      get "/oidc/authorization", headers: browser_headers
+      host!(acme_host)
+      get("/oidc/authorization", headers: browser_headers)
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
       authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
 
-      get "/oauth/authorize", params: authorize_query, headers: browser_headers
+      get("/oauth/authorize", params: authorize_query, headers: browser_headers)
 
       assert_response :redirect
       sign_uri = URI.parse(jump_rt_url_from_location(response.location))
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
-      host! sign_host
-      get sign_uri.request_uri, headers: browser_headers
+      host!(sign_host)
+      get(sign_uri.request_uri, headers: browser_headers)
 
       assert_response :success
 
       post(
         sign_app_sign_in_email_path(ri: "jp"),
         params: {
-          client_email: { address: email.address },
+          :client_email => { address: email.address },
           "cf-turnstile-response" => "test_token",
         },
         headers: browser_headers,
@@ -396,12 +398,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_predicate transaction, :authenticated?
       sign_session = ClientToken.find_by!(public_id: transaction.session_ref)
+
       assert_predicate sign_session, :active?
       assert_equal user.id, sign_session.user_id
       assert_equal 2, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
 
-      host! acme_host
-      get resume_uri.request_uri, headers: browser_headers
+      host!(acme_host)
+      get(resume_uri.request_uri, headers: browser_headers)
 
       assert_response :redirect
       callback_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -411,13 +414,13 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_predicate callback_query["code"], :present?
       assert_predicate transaction.reload, :consumed?
 
-      get callback_uri.request_uri, headers: browser_headers
+      get(callback_uri.request_uri, headers: browser_headers)
 
       assert_response :redirect
       assert_equal 3, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
 
-      host! sign_host
-      get sign_app_dashboard_path(ri: "jp"), headers: browser_headers
+      host!(sign_host)
+      get(sign_app_dashboard_path(ri: "jp"), headers: browser_headers)
 
       assert_response :success
       assert_select "h1", "Dashboard"

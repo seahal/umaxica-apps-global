@@ -661,7 +661,7 @@ Rails/ActionControllerFlashBeforeRender:
   Enabled: true
 
 Rails/ActionControllerTestCase:
-  Enabled: true
+  Enabled: false
 
 Rails/ActionOrder:
   Enabled: true

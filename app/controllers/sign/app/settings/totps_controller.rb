@@ -9,7 +9,7 @@ module Sign
       class TotpsController < ::Sign::App::ApplicationController
         include ::CloudflareTurnstile
         include ::SignAuthorityRedirect
-        include ::SignTotpCeremonyDelegation
+        include ::SignSettingsTotpRegistration
         include ::SignRequiresRecoveryPasscodes
 
         include ::VerificationClient
@@ -21,7 +21,6 @@ module Sign
         step_up only: %i(new create), bootstrap: true
         step_up only: []
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
-        before_action :accept_app_totp_ceremony_grant!, only: %i(new create)
 
         def index
           @totps = current_client.client_totp_credentials.order(created_at: :asc)
@@ -140,11 +139,6 @@ module Sign
 
         def find_totp
           @totp = current_client.client_totp_credentials.find_by!(public_id: params.expect(:id))
-        end
-
-        def accept_app_totp_ceremony_grant!
-          accept_totp_ceremony_grant!(surface: "app")
-          true
         end
 
         def generate_totp_session

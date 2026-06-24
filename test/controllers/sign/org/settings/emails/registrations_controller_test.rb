@@ -34,7 +34,7 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "registration new is available" do
-    setup_email_ceremony_grant
+    get new_sign_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select "input[type=checkbox][name='staff_email[notifiable]']", count: 1
@@ -42,7 +42,6 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "registration edit renders stealth turnstile" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_org_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -66,7 +65,6 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create sends OTP email and stores notification preference" do
-    setup_email_ceremony_grant
     assert_enqueued_emails 1 do
       post sign_org_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -82,7 +80,6 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update verifies OTP and confirms email" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_org_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -110,7 +107,6 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update rejects when turnstile fails" do
-    setup_email_ceremony_grant
     perform_enqueued_jobs do
       post sign_org_settings_emails_registration_url(ri: "jp"),
            params: {
@@ -133,7 +129,6 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update with blank pass_code renders edit with error" do
-    setup_email_ceremony_grant
     post sign_org_settings_emails_registration_url(ri: "jp"),
          params: {
            staff_email: { raw_address: "org-config-blank@example.com" },
@@ -157,19 +152,4 @@ class Sign::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   private
-
-  def setup_email_ceremony_grant
-    issuance = IdentityEmailCeremonyGrantIssuer.issue!(
-      surface: "org",
-      actor_ref: @staff.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
-    get(
-      new_sign_org_settings_emails_registration_url(
-        ri: "jp",
-        email_ceremony_grant: issuance.grant,
-      ), headers: request_headers,
-    )
-  end
 end

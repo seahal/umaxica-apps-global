@@ -19,6 +19,7 @@ export default class extends Controller {
   static values = {
     optionsUrl: String,
     verificationUrl: String,
+    region: String,
     identifierParam: { type: String, default: "email" },
     turnstileSiteKey: String,
     turnstileErrorMessage: {
@@ -70,6 +71,7 @@ export default class extends Controller {
         body: JSON.stringify({
           [this.identifierParamValue]: identifier,
           "cf-turnstile-response": turnstileToken,
+          ri: this.hasRegionValue ? this.regionValue : undefined,
         }),
       });
 
@@ -107,6 +109,7 @@ export default class extends Controller {
         body: JSON.stringify({
           challenge_id: challenge_id,
           credential: this.encodeCredential(credential),
+          ri: this.hasRegionValue ? this.regionValue : undefined,
         }),
       });
 

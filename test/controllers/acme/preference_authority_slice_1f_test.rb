@@ -114,7 +114,7 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "acme preference region edit renders JP and US only for every surface" do
+  test "acme preference region edit renders localized region names for every surface" do
     SURFACES.each do |surface, config|
       host = ENV.fetch(config.fetch(:host_env), config.fetch(:host_default))
       host! host
@@ -124,10 +124,23 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_select "select[name='preference_region[option_id]'] option", 2
       assert_select "select[name='preference_region[option_id]'] option[value='']", 0
-      assert_select "select[name='preference_region[option_id]'] option", text: "JP"
-      assert_select "select[name='preference_region[option_id]'] option", text: "US"
+      assert_select "select[name='preference_region[option_id]'] option", text: "日本"
+      assert_select "select[name='preference_region[option_id]'] option", text: "アメリカ合衆国 (USA)"
+      assert_select "select[name='preference_region[option_id]'] option", text: "JP", count: 0
+      assert_select "select[name='preference_region[option_id]'] option", text: "US", count: 0
       assert_select "select[name='preference_region[option_id]'] option", text: "Jp", count: 0
       assert_select "select[name='preference_region[option_id]'] option", text: "Us", count: 0
+
+      get public_send("edit_acme_#{surface}_preference_region_url", ri: "us", host: host)
+
+      assert_response :success
+      assert_select "html[lang='en']"
+      assert_select "h1", text: "Region & Language Settings"
+      assert_select "select[name='preference_region[option_id]'] option", text: "United States - USA"
+      assert_select "select[name='preference_region[option_id]'] option", text: "Japan - 日本"
+      assert_select "select[name='preference_region[option_id]'] option", text: "US", count: 0
+      assert_select "select[name='preference_region[option_id]'] option", text: "JP", count: 0
+      assert_select "select[name='preference_region[option_id]'] option", text: "English", count: 0
     end
   end
 
@@ -144,6 +157,26 @@ class AcmePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
       %r{action="(?:https?://#{Regexp.escape(host)})?/preference/timezone(?:\?[^"]*)?"},
       response.body,
     )
+  end
+
+  test "acme app preference timezone edit renders localized timezone option labels" do
+    host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    host! host
+
+    get edit_acme_app_preference_timezone_url(ri: "us", lx: "ja", host: host)
+
+    assert_response :success
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "協定世界時 (UTC)"
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "日本標準時 (Asia/Tokyo)"
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "Etc/UTC", count: 0
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "Asia/Tokyo", count: 0
+
+    get edit_acme_app_preference_timezone_url(ri: "us", lx: "en", host: host)
+
+    assert_response :success
+    assert_select "html[lang='en']"
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "Coordinated Universal Time (UTC)"
+    assert_select "select[name='preference_timezone[option_id]'] option", text: "Japan Standard Time (Asia/Tokyo)"
   end
 
   test "acme preference write updates app user preference" do

@@ -55,6 +55,7 @@ module Sign::App::In
       assert_select "[data-passkey-authentication-options-url-value=?]", sign_app_sign_in_passkey_options_path(ri: "jp")
       assert_select "[data-passkey-authentication-verification-url-value=?]",
                     sign_app_sign_in_passkey_verification_path(ri: "jp")
+      assert_select "[data-passkey-authentication-region-value=?]", "jp"
       assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
     end
 
@@ -65,6 +66,13 @@ module Sign::App::In
 
       assert_response :unprocessable_content
       assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+    end
+
+    test "options returns error if identifier missing" do
+      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: nil)
+
+      assert_response :unprocessable_content
+      assert_includes response.body, I18n.t("errors.webauthn.pii_required")
     end
 
     # Case F-2: Identifier exists but no passkey

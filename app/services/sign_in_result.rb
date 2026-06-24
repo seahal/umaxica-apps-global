@@ -5,6 +5,10 @@ TERMINAL_HTTP_STATUSES = {
   session_limit_hard_reject: :forbidden,
   guardrail_blocked: :forbidden,
   login_forbidden: :forbidden,
+  credential_rejected: :unauthorized,
+  identity_unavailable: :unauthorized,
+  transaction_expired: :gone,
+  failure: :bad_request,
   credential_failed: :unauthorized,
   invalid_request: :bad_request,
 }.freeze
@@ -54,6 +58,7 @@ SignInResult =
       status = data[:status]&.to_sym
       return :session_limit_pending if data[:restricted] || data[:session_management_required]
       return :session_limit_pending if status == :session_limit_exceeded
+      return status if TERMINAL_HTTP_STATUSES.key?(status)
       return status if status.present?
 
       :invalid_request

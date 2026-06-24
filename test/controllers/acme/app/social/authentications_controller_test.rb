@@ -3,9 +3,7 @@
 
 require "test_helper"
 
-class Acme::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
-  tests Acme::App::Social::AuthenticationsController
-
+class Acme::App::Social::AuthenticationsControllerTest < ActionController::TestCase
   setup do
     @request.host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @commit_user = Client.create!(

@@ -11,7 +11,7 @@ module Sign
           include CommonRedirect
           include CommonOtp
           include SignTelephoneRegistrable
-          include SignTelephoneCeremonyDelegation
+          include SignSettingsTelephoneRegistration
 
           include ::VerificationClient
 
@@ -26,7 +26,6 @@ module Sign
           def new
             @user_telephone = ClientTelephone.new
             reset_registration_session!
-            accept_telephone_ceremony_grant!(surface: "app")
           end
 
           def edit
@@ -47,7 +46,6 @@ module Sign
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone = ClientTelephone.new
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:new, status: :unprocessable_content)
               return
             end
@@ -87,7 +85,6 @@ module Sign
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @user_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:edit, status: :unprocessable_content)
               return
             end

@@ -20,11 +20,11 @@ module Sign
           def sign_in_sequence_surface = :com
 
           def guard_entry_path
-            sign_com_sign_in_path(ri: params[:ri])
+            sign_com_sign_in_path(ri: current_region_identifier)
           end
 
           def route_guard_cycle(cycle)
-            return redirect_to(sign_com_sign_in_session_path(ri: params[:ri], pt: guard_pt_for(cycle))) if
+            return redirect_to(sign_com_sign_in_session_path(ri: current_region_identifier, pt: guard_pt_for(cycle))) if
               cycle.sign_in_session_limit_pending?
             return route_pending_guard(cycle) if cycle.sign_in_guardrail_pending?
             return redirect_to_guard_check(cycle) if cycle.sign_in_checkpoint_pending?
@@ -46,7 +46,7 @@ module Sign
           end
 
           def redirect_to_guard_check(cycle)
-            redirect_to(sign_com_sign_in_check_path(ri: params[:ri], pt: guard_pt_for(cycle)))
+            redirect_to(sign_com_sign_in_check_path(ri: current_region_identifier, pt: guard_pt_for(cycle)))
           end
 
           def validated_guard_cycle

@@ -136,6 +136,10 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
       "/sign_in?pt=#{pt}"
     end
 
+    def current_region_identifier
+      params[:ri].to_s
+    end
+
     def am_i_user?
       true
     end

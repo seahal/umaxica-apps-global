@@ -31,7 +31,7 @@ module Sign
               user_agent: request.user_agent,
             )
           else
-            flash.now[:alert] = t("sign.app.settings.secrets.missing")
+            @missing_secret = true
           end
         end
 

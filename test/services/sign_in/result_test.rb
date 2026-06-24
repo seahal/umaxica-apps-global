@@ -68,6 +68,24 @@ class SignInResultTest < ActiveSupport::TestCase
     assert_equal "full", result.message
   end
 
+  test "passes through terminal sign-in failure statuses" do
+    expectations = {
+      credential_rejected: :unauthorized,
+      identity_unavailable: :unauthorized,
+      transaction_expired: :gone,
+      failure: :bad_request,
+    }
+
+    expectations.each do |status, http_status|
+      result = SignInResult.from_session_result({ status: status, message: "boom" })
+
+      assert_predicate result, :terminal?, "expected #{status} to be terminal"
+      assert_equal status, result.status
+      assert_equal http_status, result.response_status
+      assert_equal "boom", result.message
+    end
+  end
+
   test "maps unknown session hash to invalid request" do
     result = SignInResult.from_session_result({})
 

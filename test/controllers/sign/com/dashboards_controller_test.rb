@@ -38,11 +38,12 @@ class Sign::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "show_redirects_when_logged_out" do
     get sign_com_dashboard_url(ri: "jp"), headers: { "Host" => @host }
 
-    uri = URI.parse(jump_rt_url_from_location(response.location))
+    uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
     assert_equal @acme_host, uri.host
     assert_equal "/oauth/authorize", uri.path
+    assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
     assert_equal "code", query["response_type"]
   end

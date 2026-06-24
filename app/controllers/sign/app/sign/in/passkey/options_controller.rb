@@ -88,6 +88,7 @@ module Sign
                   reason: "verified_pii_missing",
                   user_id: passkey.user_id,
                   ip_address: request.remote_ip,
+                  ri: current_region_identifier,
                 ),
               )
               render_error("errors.webauthn.credential_not_found", :unauthorized)
@@ -97,7 +98,7 @@ module Sign
             def perform_passkey_sign_in(passkey)
               pt = retrieve_pt_for_checkpoint
               establish_signed_in_session!(
-                passkey.user, pt: pt, ri: params[:ri], auth_method: "passkey",
+                passkey.user, pt: pt, ri: current_region_identifier, auth_method: "passkey",
               )
             end
 
@@ -125,12 +126,12 @@ module Sign
             def passkey_checkpoint_redirect_url
               sign_app_sign_in_check_path(
                 pt: retrieve_pt_for_checkpoint,
-                ri: params[:ri],
+                ri: current_region_identifier,
               )
             end
 
             def passkey_default_redirect_url
-              sign_app_settings_path(ri: params[:ri])
+              sign_app_settings_path(ri: current_region_identifier)
             end
           end
         end

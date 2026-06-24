@@ -8,7 +8,7 @@ module Sign
         include ::VerificationVisitor
 
         include SignWebauthn
-        include SignPasskeyCeremonyDelegation
+        include SignSettingsPasskeyRegistration
         include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
@@ -24,7 +24,6 @@ module Sign
         before_action :authorize_passkey_create!, only: %i(create)
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
-        before_action :accept_com_passkey_ceremony_grant!, only: %i(new options verification)
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
 
@@ -164,11 +163,6 @@ module Sign
             format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
           end
           false
-        end
-
-        def accept_com_passkey_ceremony_grant!
-          accept_passkey_ceremony_grant!(surface: "com")
-          true
         end
 
         def set_passkey

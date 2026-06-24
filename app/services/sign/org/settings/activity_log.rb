@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class AcmeOrgSettingsActivityLog
+class Sign::Org::Settings::ActivityLog
   VISIBLE_EVENT_IDS = [
     OperatorChronicleEvent::LOGGED_IN,
     OperatorChronicleEvent::LOGIN_SUCCESS,

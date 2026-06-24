@@ -41,6 +41,22 @@ class PreferenceGlobalTest < ActiveSupport::TestCase
     assert_equal({ ri: "us", lx: "en", ct: "dr", tz: "utc" }, context)
   end
 
+  test "current_region_identifier canonicalizes valid and invalid params" do
+    controller = PreferenceGlobalTestController.new
+    controller.request = ActionDispatch::TestRequest.create
+    controller.params = ActionController::Parameters.new(ri: "Us")
+
+    assert_equal "us", controller.send(:current_region_identifier)
+
+    controller.params = ActionController::Parameters.new(ri: "https://evil.example")
+
+    assert_equal "jp", controller.send(:current_region_identifier)
+
+    controller.params = ActionController::Parameters.new
+
+    assert_equal "jp", controller.send(:current_region_identifier)
+  end
+
   test "requested_context ignores unsupported lx values" do
     controller = PreferenceGlobalTestController.new
     controller.request = ActionDispatch::TestRequest.create

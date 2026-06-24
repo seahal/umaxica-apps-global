@@ -43,16 +43,41 @@ separate ADR changes that policy.
 1. External candidate inquiry.
 2. Operator lifecycle request.
 
+## App Sign-Up Route Matrix
+
+| route         | controller                                                                                             | challenge/provider        | state object                                  | completion gate                     | abnormal behavior                                                                   | tests                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------ | ------------------------- | --------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email OTP     | `Sign::App::Sign::Up::EmailsController` -> `Sign::App::Sign::Up::Check::Email::OtpsController`         | Email OTP                 | `ClientSignUpFlow` + `ClientEmail`            | `finalize_sign_up_from_checkpoint!` | blank/wrong/locked/expired/stale OTP fails closed; retry stays on ticket-owned flow | `test/controllers/sign/app/sign/up/check/email/otps_controller_test.rb`                                                                       |
+| Telephone OTP | `Sign::App::Sign::Up::TelephonesController` -> `Sign::App::Sign::Up::Check::Telephone::OtpsController` | Telephone OTP             | `ClientSignUpFlow` + `ClientTelephone`        | `finalize_sign_up_from_checkpoint!` | blank/wrong/locked/expired/stale OTP fails closed; retry stays on ticket-owned flow | `test/controllers/sign/app/sign/up/check/telephone/otps_controller_test.rb`                                                                   |
+| Google social | `Sign::App::Social::AuthenticationsController` + `Sign::App::Auth::OmniauthCallbacksController`        | Google provider assertion | `ClientSignUpFlow` + social callback evidence | `finalize_sign_up_from_checkpoint!` | state/nonce/provider errors and replay fail closed                                  | `test/controllers/sign/app/social/authentications_controller_test.rb`, `test/controllers/sign/app/auth/omniauth_callbacks_controller_test.rb` |
+| Apple social  | `Sign::App::Social::AuthenticationsController` + `Sign::App::Auth::OmniauthCallbacksController`        | Apple provider assertion  | `ClientSignUpFlow` + social callback evidence | `finalize_sign_up_from_checkpoint!` | state/nonce/provider errors and replay fail closed                                  | `test/controllers/sign/app/social/authentications_controller_test.rb`, `test/controllers/sign/app/auth/omniauth_callbacks_controller_test.rb` |
+
 Current surface terminology and inventory:
 
 | Surface | Term                                           | Actor/resource                                         | Identifier                                                            | Credential setup                                                                                            | Challenge                                                                          | Verification                                                                         | Session/token                                                                       | Chronicle/audit                        | Routes/controllers/views/tests                                                                                                                          |
 | ------- | ---------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app`   | User/client registration                       | `Client`, contact identifiers, app social identities   | Email, telephone, Google provider assertion, Apple provider assertion | Birthdate checkpoint, passkey checkpoint, passcode checkpoint, and social identity binding where applicable | Sign-up checkpoint requirements; provider callback state validation for app social | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the app sign-in/session sequence                   | Client sign-up chronicle/audit events  | `config/routes/sign.rb` app `sign/up` and `social`; `app/controllers/sign/app/up/**`; app social callback controllers/views/tests                       |
-| `com`   | Public/corporate visitor entry or inquiry flow | `Visitor`, visitor contact identifiers                 | Email, telephone                                                      | Birthdate checkpoint, passkey checkpoint, passcode checkpoint                                               | Sign-up checkpoint requirements                                                    | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the com sign-in/session sequence                   | Visitor sign-up chronicle/audit events | `config/routes/sign.rb` com `sign/up`; `app/controllers/sign/com/up/**`; com sign-up/no-social tests                                                    |
+| `app`   | User/client registration                       | `Client`, contact identifiers, app social identities   | Email, telephone, Google provider assertion, Apple provider assertion | Birthdate checkpoint, passkey checkpoint, passcode checkpoint, and social identity binding where applicable | Sign-up checkpoint requirements; provider callback state validation for app social | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the app sign-in/session sequence                   | Client sign-up chronicle/audit events  | `config/routes/sign.rb` app `sign/up` and `social`; `app/controllers/sign/app/sign/up/**`; app social callback controllers/views/tests                  |
+| `com`   | Public/corporate visitor entry or inquiry flow | `Visitor`, visitor contact identifiers                 | Email, telephone                                                      | Birthdate checkpoint, passkey checkpoint, passcode checkpoint                                               | Sign-up checkpoint requirements                                                    | Email/telephone OTP verification and checkpoint completion before durable completion | Post-finalization handoff enters the com sign-in/session sequence                   | Visitor sign-up chronicle/audit events | `config/routes/sign.rb` com `sign/up`; `app/controllers/sign/com/sign/up/**`; com sign-up/no-social tests                                               |
 | `org`   | Operator acquisition / staff onboarding        | `Operator`, invitation and lifecycle request resources | Invitation token or lifecycle request context                         | Passkey and secret credential setup through staff onboarding or signed-in settings where implemented        | No public social sign-up challenge                                                 | Invitation/lifecycle approval and local credential setup boundaries                  | Operator session is established only through org sign-in after local authentication | Operator chronicle/audit events        | `config/routes/sign.rb` org `sign/up/invitations` and settings lifecycle request routes; `app/controllers/sign/org/up/**`; org sign-up/onboarding tests |
 
 The app/com sign-up checkpoint owns required registration setup before durable account finalization.
 Birthdate is a sign-up checkpoint requirement for app/com end-user registration.
+
+## Shared Completion Boundary
+
+All sign-up routes converge on the shared sign-up finalization boundary:
+
+- `finalize_sign_up_from_checkpoint!` is the sign-up completion gate.
+- `IdentityGraphProvisioner.call!` runs inside that boundary before handoff.
+- `establish_signed_in_session!(..., bootstrap_actor: true)` is the shared session issuance helper
+  used by the sign-up handoff path.
+- Sign-up controllers must not create `ClientToken` or `ClientDeviceSession` directly, and they must
+  not write auth cookies directly.
+- Sign-in convergence for the next phase should reuse `establish_signed_in_session!` instead of
+  introducing a route-specific session helper.
+
+See `docs/security/sign-up-compensation.md` for retry, rollback, and cleanup behavior when sign-up
+stops before durable completion.
 
 ## App Social Sign-Up And Sign-In Boundary
 
@@ -175,11 +200,11 @@ Expected state-machine path:
   - Create or resume pending email verification.
   - Move the sequence to the email OTP step.
 
-- OTP form: `GET /sign/up/email/edit`
+- OTP form: `GET /sign/up/check/email/otp`
   - Show the pass-code form only while the sequence is waiting for email OTP.
   - Reject direct access when the sequence is missing, expired, or no longer at the OTP step.
 
-- OTP submission: `PATCH /sign/up/email`
+- OTP submission: `PATCH /sign/up/check/email/otp`
   - Verify the submitted pass code.
   - Existing-account sign-up attempts should leave the sign-up sequence and return to sign-in.
   - New-account sign-up should move the sequence toward guardrail/checkpoint without allowing a
@@ -191,7 +216,7 @@ Expected state-machine path:
   - It returns plain text and does not redirect.
   - If no guardrail content is required, the sequence advances to checkpoint.
 
-- Sign-up check: `GET /sign/up/check`
+- Sign-up check: `GET /sign/up/check/email/birthdate`
   - This is a sign-up sequence checkpoint, not the current private `/sign/in/check`.
   - For email sign-up, the checkpoint must require birthdate.
   - Birthdate collection happens inside the checkpoint.
@@ -203,18 +228,12 @@ Expected state-machine path:
 
 - Account finalization
   - Allowed only when email OTP and checkpoint birthdate are complete.
-  - Replace the current `create_user_and_login` shape with two internal boundaries:
-    - `sign_up` finalizes the pending sign-up actor and required sign-up artifacts.
-    - the existing sign-in boundary evaluates session-limit, guardrail, checkpoint, and selector,
-      then issues the authenticated session only after selector commit succeeds.
+  - `finalize_sign_up_from_checkpoint!` promotes the pending actor, provisions the durable identity
+    graph, and hands off to the shared sign-in boundary.
+  - `establish_signed_in_session!` is called from the shared handoff path with
+    `bootstrap_actor: true` only for newly provisioned identities.
   - Both boundaries run inside the same Rails action/request.
   - Neither boundary redirects, renders, reloads through HTTP, or chooses the final route.
-  - Promote the pending `Client`.
-  - Create `rp_account` when missing.
-  - Write the sign-up audit entry.
-  - Save the verified email state.
-  - Enter the sign-in boundary with `auth_method: "email"`; session issuance happens only after
-    sign-in guardrail, checkpoint, and selector pass.
   - If sign-up finalization fails, treat it as sign-up failure recovery.
   - If sign-in/session issuance fails after durable sign-up completion, treat it as sign-in failure
     handling and do not delete the completed account.
@@ -234,61 +253,61 @@ Expected state-machine path:
 Current implementation path:
 
 - Entry: `GET /sign/up/email/new`
-  - `Sign::App::Up::EmailsController#new`
+  - `Sign::App::Sign::Up::EmailsController#new`
   - Builds an empty `ClientEmail`.
   - No pending client is created yet.
 
 - Email submission: `POST /sign/up/email`
-  - `Sign::App::Up::EmailsController#create`
+  - `Sign::App::Sign::Up::EmailsController#create`
   - Validates Turnstile.
   - Permits `user_email.raw_address`, `user_email.address`, `user_email.confirm_policy`,
     `user_email.promotional`, and `user_email.notifiable`.
   - Calls `initiate_email_verification!`.
   - Creates or resumes the pending sign-up email verification.
   - Stores registration progress in session.
-  - Redirects to `GET /sign/up/email/edit`.
+  - Redirects to `GET /sign/up/check/email/otp`.
 
-- OTP form: `GET /sign/up/email/edit`
-  - `Sign::App::Up::EmailsController#edit`
+- OTP form: `GET /sign/up/check/email/otp`
+  - `Sign::App::Sign::Up::Check::Email::OtpsController#show`
   - Loads `current_registration_email`.
   - Rejects the request and resets the flow if the pending email session is missing, expired, or
     mismatched.
   - Renders the pass-code form when the session is valid.
 
-- OTP submission: `PATCH /sign/up/email`
-  - `Sign::App::Up::EmailsController#update`
+- OTP submission: `PATCH /sign/up/check/email/otp`
+  - `Sign::App::Sign::Up::Check::Email::OtpsController#update`
   - Requires `user_email.pass_code`.
   - Calls `process_verification_code`.
   - Existing-account sign-up attempts are redirected back to sign-in instead of creating a new
     account.
-  - New-account sign-up calls `complete_email_verification!` and then `create_user_and_login`.
+  - New-account sign-up verifies the OTP ceremony, marks email verified, advances the sign-up flow
+    to checkpoint, and then redirects to birthdate.
 
-- Account finalization: current `create_user_and_login`
-  - Uses the pending `Client` from the verified `ClientEmail`.
-  - Promotes the client to `ClientStatus::VERIFIED_WITH_SIGN_UP`.
+- Birthdate checkpoint: `GET /sign/up/check/email/birthdate`
+  - `Sign::App::Sign::Up::Check::Email::BirthdatesController#show`
+  - The checkpoint owns the remaining birthdate requirement before finalization.
+
+- Account finalization: `finalize_sign_up_from_checkpoint!`
+  - Promotes the pending `Client`.
   - Creates `rp_account` when missing.
   - Writes the sign-up audit entry.
   - Saves the verified email.
-  - Logs in the client with `auth_method: "email"`.
+  - Provisions the identity graph.
+  - Hands the actor off to the shared sign-in boundary with `bootstrap_actor: true`.
 
-- Post-auth handoff: `complete_update_and_redirect`
-  - Advances the local email flow session state.
-  - Creates the welcome bulletin.
-  - Calls `redirect_to_sign_in_sequence!`.
-  - Target behavior is that guardrail, checkpoint, and selector are evaluated before session
-    issuance.
-  - In the current implementation, the actor reaches `/sign/in/check` if checkpoint content exists.
-  - Otherwise, or after checkpoint and selector completion, the actor receives the active session,
-    continues to welcome, and then the safe `rt` return path when present, falling back to
-    `/dashboard`.
+- Post-auth handoff: shared sign-in boundary
+  - The shared handoff helper establishes the authenticated session only after guardrail,
+    checkpoint, and selector evaluation complete.
+  - The sign-up controller does not choose the final route directly.
+  - The shared helper is the only place sign-up should issue auth cookies or login tokens.
 
-Current missing gate:
+Current gate status:
 
-- No sign-up checkpoint birthdate requirement is inserted between OTP success and the post-auth
-  handoff.
-- No birthdate value is permitted by the email sign-up controller.
-- Account finalization currently happens during OTP completion, before any birthdate or sign-up
-  checkpoint step.
+- The app email OTP flow now advances into the birthdate checkpoint before durable finalization.
+- The sign-up completion boundary remains shared with the sign-in handoff and must not directly
+  issue tokens or cookies.
+- Any future refactor should keep the OTP controller focused on OTP ceremony and checkpoint
+  progression only.
 
 ### Com Email
 
@@ -469,8 +488,9 @@ Current path (state-machine implementation):
    and pending `ClientTelephone`, issues a `ClientSignUpFlow` ticket with
    `entry_method: "telephone"` and `principal_id` pointing to the pending client, stores the flow
    locator in session, and redirects to edit.
-3. `GET /sign/up/telephone/edit` renders the OTP form when the registration session is valid.
-4. `PATCH /sign/up/telephone` validates the OTP and marks the telephone as `VERIFIED_WITH_SIGN_UP`.
+3. `GET /sign/up/check/telephone/otp` renders the OTP form when the registration session is valid.
+4. `PATCH /sign/up/check/telephone/otp` validates the OTP and marks the telephone as
+   `VERIFIED_WITH_SIGN_UP`.
 5. The state machine advances the ticket through `verify_contact` → `enter_checkpoint` →
    `clear_requirement(:otp)` and redirects to `GET /sign/up/guard/telephone`.
 6. `GET /sign/up/guard/telephone` evaluates guardrail content; if none is required the flow

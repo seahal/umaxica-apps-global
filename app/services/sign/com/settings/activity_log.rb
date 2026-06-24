@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class AcmeComSettingsActivityLog
+class Sign::Com::Settings::ActivityLog
   LOGIN_EVENT_IDS = [ClientChronicleEvent::LOGGED_IN, ClientChronicleEvent::LOGIN_SUCCESS].freeze
   EVENT_LABELS = {
     ClientChronicleEvent::LOGGED_IN => "logged_in",

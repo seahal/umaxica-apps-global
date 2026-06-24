@@ -147,57 +147,6 @@ module Sign
             end
           end
 
-          def update
-            @user_telephone = current_registration_telephone
-
-            return redirect_telephone_session_expired unless @user_telephone
-
-            registration_session = session[:user_telephone_registration]
-            return render_telephone_session_expired unless valid_registration_session?(registration_session)
-            return render_telephone_session_expired if otp_session_expired?(registration_session)
-
-            # Blank code check
-            submitted_code = params.dig(:client_telephone, :pass_code) || params.dig(:user_telephone, :pass_code)
-            if submitted_code.blank?
-              @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-              render :edit, status: :unprocessable_content
-              return
-            end
-
-            existing_flow = existing_signup_telephone_flow?(registration_session)
-
-            # Verify OTP code with lockout handling
-            verification_result =
-              if existing_flow
-                verify_existing_telephone_code
-              else
-                verify_submitted_telephone_code
-              end
-            if verification_result == :locked
-              flash[:alert] = t("sign.app.registration.telephone.update.attempts_exceeded")
-              redirect_to(new_sign_app_sign_up_telephone_path(ri: params[:ri]))
-              return
-            end
-            return render_invalid_telephone_code unless verification_result
-
-            if existing_flow
-              clear_otp(@user_telephone)
-              session[:user_telephone_registration] = nil
-              redirect_to(
-                sign_app_sign_in_path,
-                notice: t("sign.app.registration.telephone.update.sign_in_required"),
-              )
-              return
-            end
-
-            verify_telephone_ownership!
-            advance_sign_up_flow_after_telephone_otp!
-            redirect_to(
-              sign_app_sign_up_guard_telephone_path(ri: params[:ri]),
-              notice: t("sign.app.registration.telephone.update.passkey_required"),
-            )
-          end
-
           def resend
             registration_session = session[:user_telephone_registration]
             @user_telephone = load_registration_telephone(registration_session)
@@ -276,59 +225,6 @@ module Sign
 
             @user_telephone.otp_expired? ||
               registration_session["expires_at"].to_i <= Time.current.to_i
-          end
-
-          def verify_submitted_telephone_code
-            submitted_code = params.dig(:client_telephone, :pass_code) || params.dig(:user_telephone, :pass_code)
-            result = verify_otp_code(@user_telephone, submitted_code)
-            return true if result[:success]
-
-            increment_otp_attempts!(@user_telephone)
-
-            if @user_telephone.locked?
-              session[:user_telephone_registration] = nil
-              return :locked
-            end
-
-            @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-            false
-          end
-
-          def verify_existing_telephone_code
-            submitted_code = telephone_signup_params.dig(:pass_code)
-            result = verify_otp_code(@user_telephone, submitted_code)
-            return true if result[:success]
-
-            increment_otp_attempts!(@user_telephone)
-            return :locked if @user_telephone.locked?
-
-            @user_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-            false
-          end
-
-          def render_invalid_telephone_code
-            render :edit, status: :unprocessable_content
-          end
-
-          # OTP success only proves telephone ownership for the current sign-up
-          # cycle. It must NOT mark the telephone durably VERIFIED_WITH_SIGN_UP:
-          # passkey setup is still required, and a durable verified row that
-          # survives abandonment would block re-registration of the same number
-          # (the pending-signup cleanup only collects UNVERIFIED rows).
-          #
-          # The proof is scoped to the registration session and consumed by the
-          # passkey step. The durable transition happens in
-          # SignAppUpTelephoneRegistrationFinalizer after passkey setup.
-          def verify_telephone_ownership!
-            @user_telephone.confirm_policy = "1"
-            @user_telephone.confirm_using_mfa = "1"
-            clear_otp(@user_telephone)
-            @user_telephone.save! if @user_telephone.changed?
-
-            registration = (session[:user_telephone_registration] || {}).dup
-            registration["otp_verified"] = true
-            registration["public_id"] ||= @user_telephone.public_id
-            session[:user_telephone_registration] = registration
           end
 
           def otp_resend_rate_limited?
@@ -466,32 +362,6 @@ module Sign
             )
             SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
             session[:sign_app_up_sequence_id] = cycle.public_id
-          end
-
-          def advance_sign_up_flow_after_telephone_otp!
-            cycle = sign_up_flow_locator.current
-            return unless cycle
-
-            result = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
-            if result.status == :advanced
-              SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-              result = SignUpStateMachine.call(
-                ticket: cycle.reload,
-                event: :clear_requirement,
-                actor_context: Actor.authn,
-                payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
-              )
-            end
-            return if result.status == :advanced
-
-            Rails.logger.warn(
-              JitLogEvent.format(
-                "sign.signup.telephone.sequence_advance_failed",
-                cycle_id: cycle.public_id,
-                result_status: result.status,
-                errors: result.errors,
-              ),
-            )
           end
 
           def sign_up_flow_locator

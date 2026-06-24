@@ -14,6 +14,8 @@ module Sign
 
           include CommonRedirect
 
+          include MinimumResponseBudget
+
           include SessionLimitGate
 
           AUTHENTICATION_MODE = :guest
@@ -42,6 +44,8 @@ module Sign
               render_rate_limited(rule_name: "sign_app_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
             },
           )
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           class SecretLoginForm
             include ActiveModel::Model
@@ -119,7 +123,7 @@ module Sign
               raw_secret_credential: @secret_credential_form.secret_credential_value,
             )
 
-            if verification.secret_credential
+            if user && verification.secret_credential
               handle_successful_mfa(user, verification.secret_credential)
             else
               handle_failed_mfa(user, verification.reason, verification.details)
@@ -176,6 +180,7 @@ module Sign
               JitLogEvent.format(
                 "authentication.mfa.succeeded", user_id: user.id, ip_address: request.remote_ip,
                                                 method: "secret_credential", secret_credential_id: secret_credential.id,
+                                                ri: current_region_identifier,
               ),
             )
             clear_mfa_session!
@@ -199,7 +204,7 @@ module Sign
             Rails.logger.info(
               JitLogEvent.format(
                 "authentication.totp.failed", user_id: user&.id, ip_address: request.remote_ip,
-                                              method: "secret_credential",
+                                              method: "secret_credential", ri: current_region_identifier,
               ),
             )
             @secret_credential_hints = active_secret_credential_hints_for(user) if user
@@ -208,7 +213,7 @@ module Sign
 
           def process_standard_login(user)
             result = establish_signed_in_session!(
-              user, pt: nil, ri: params[:ri], auth_method: "secret_credential",
+              user, pt: nil, ri: current_region_identifier, auth_method: "secret_credential",
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: user)
             if sign_in_result.mfa_required?
@@ -231,7 +236,7 @@ module Sign
           private
 
           def turnstile_response_param
-            params.expect("cf-turnstile-response").to_s
+            request.request_parameters["cf-turnstile-response"].to_s
           end
 
           def mfa_user
@@ -367,6 +372,7 @@ module Sign
                 message: error.message,
                 user_id: mfa_user&.id,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 exception: error,
               ),
             )
@@ -384,6 +390,7 @@ module Sign
                 identifier_present: identifier.present?,
                 user_id: user&.id,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 errors: @secret_credential_form.errors.full_messages,
                 details: details,
               ),
@@ -392,6 +399,10 @@ module Sign
             SignRiskEmitter.emit("auth_failed", user_id: user&.id) if user
 
             render_new_with_unprocessable_entity
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "create"
           end
 
           def render_new_with_unprocessable_entity

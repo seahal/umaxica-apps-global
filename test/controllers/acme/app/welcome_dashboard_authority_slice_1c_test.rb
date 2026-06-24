@@ -8,6 +8,7 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
   setup do
     @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     @user = clients(:one)
     @user.update!(status_id: ClientStatus::ACTIVE)
   end
@@ -30,13 +31,13 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
     assert_response :success
     assert_select "h1", "Dashboard"
-    assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href=?]", acme_app_root_path(ri: "jp")
     assert_select "a[href=?]", acme_app_dashboard_path(ri: "jp")
     assert_select "a[href=?]", acme_app_accounts_path(ri: "jp"), text: "Account"
     assert_select "a[href=?]", acme_app_organizations_path(ri: "jp"), text: "Organization"
     assert_select "a[href=?]", acme_app_avatars_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", acme_app_switcher_path(ri: "jp"), text: "Switcher"
+    assert_select "a[href=?]", sign_app_settings_url(ri: "jp", host: @sign_host), text: "Sign settings"
     assert_select "a[href=?]", acme_app_selector_path(ri: "jp")
     assert_select "a[href=?]", new_acme_app_sign_out_path(ri: "jp")
     assert_select "form[action^=?]", acme_app_oidc_logout_path, count: 0

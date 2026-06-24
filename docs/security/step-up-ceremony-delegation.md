@@ -11,6 +11,11 @@ Step-up has two separate parts:
 session freshness. A successful sign ceremony is evidence only until acme consumes the signed
 ceremony result.
 
+Step-up is not sign-in and does not create a new `ClientToken`, `ClientDeviceSession`, or login
+unit. It updates freshness on the existing session only after acme accepts the ceremony result. If
+the session is revoked, the ceremony grant is replayed, or the identity does not match the current
+session, the result consumer must fail closed.
+
 ## Flow
 
 1. `acme/www` decides that a sensitive action requires step-up.

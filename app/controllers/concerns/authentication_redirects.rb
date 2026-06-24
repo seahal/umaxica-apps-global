@@ -133,7 +133,7 @@ module AuthenticationRedirects
   end
 
   def sign_in_checkpoint_path(pt: nil)
-    attrs = { ri: params[:ri] }
+    attrs = { ri: current_region_identifier }
     safe_pt = signed_pt_token(pt)
     attrs[AuthIoKeys::Params::PT] = safe_pt if safe_pt.present?
 
@@ -149,7 +149,7 @@ module AuthenticationRedirects
   end
 
   def sign_in_welcome_path(pt: nil, id: nil)
-    attrs = { ri: params[:ri] }
+    attrs = { ri: current_region_identifier }
     safe_pt = signed_pt_token(pt)
     attrs[AuthIoKeys::Params::PT] = safe_pt if safe_pt.present?
     _ = id

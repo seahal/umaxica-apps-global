@@ -130,6 +130,26 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
 
+    assert_recognizes(
+      { controller: "sign/app/sign/in/emails", action: "new" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/email/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/sign/in/emails", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/email", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/sign/in/emails", action: "edit" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/email/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/sign/in/emails", action: "update" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/email", method: :patch },
+    )
+
     ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{bad_path}", method: :get)
@@ -420,6 +440,26 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/com/sign/ins", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/in/emails", action: "new" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/email/new", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/in/emails", action: "create" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/email", method: :post },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/in/emails", action: "edit" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/email/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/com/sign/in/emails", action: "update" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/email", method: :patch },
     )
 
     ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|

@@ -26,7 +26,7 @@ module Sign
             status: :see_other,
           ) if current_session_record?(@session)
 
-          @session.revoke!
+          revoke_selected_session!(@session)
           redirect_to(sign_app_settings_sessions_path(ri: params[:ri]), status: :see_other)
         end
 
@@ -42,6 +42,16 @@ module Sign
 
         def current_session_record?(session)
           session&.public_id == current_session_public_id
+        end
+
+        def revoke_selected_session!(session)
+          AuthenticationSelectedSessionRevoker.call(
+            owner: current_client,
+            token: session,
+            current_token: current_session,
+            current_session_public_id: current_session_public_id,
+            reason: "settings.session.revoke",
+          )
         end
       end
     end

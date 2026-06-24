@@ -48,7 +48,7 @@ module Sign
 
               if passkeys.empty?
                 redirect_to(
-                  sign_com_sign_in_challenge_path(ri: params[:ri]),
+                  sign_com_sign_in_challenge_path(ri: current_region_identifier),
                   alert: I18n.t("errors.webauthn.no_passkeys_available"),
                   status: :see_other,
                 )
@@ -63,7 +63,7 @@ module Sign
             rescue SignWebauthn::OriginValidationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
               redirect_to(
-                sign_com_sign_in_challenge_path(ri: params[:ri]),
+                sign_com_sign_in_challenge_path(ri: current_region_identifier),
                 alert: I18n.t("errors.webauthn.origin_invalid"),
                 status: :see_other,
               )
@@ -72,7 +72,7 @@ module Sign
             def create
               unless cloudflare_turnstile_stealth_validation["success"]
                 redirect_to(
-                  new_sign_com_sign_in_challenge_passkey_path(ri: params[:ri]),
+                  new_sign_com_sign_in_challenge_passkey_path(ri: current_region_identifier),
                   alert: I18n.t("session_limit.turnstile_failed"),
                   status: :see_other,
                 )
@@ -85,19 +85,19 @@ module Sign
             rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
                    SignWebauthn::ChallengePurposeMismatchError
               redirect_to(
-                sign_com_sign_in_challenge_path(ri: params[:ri]),
+                sign_com_sign_in_challenge_path(ri: current_region_identifier),
                 alert: I18n.t("errors.webauthn.challenge_invalid"),
                 status: :see_other,
               )
             rescue WebAuthn::SignCountVerificationError
               redirect_to(
-                sign_com_sign_in_challenge_path(ri: params[:ri]),
+                sign_com_sign_in_challenge_path(ri: current_region_identifier),
                 alert: I18n.t("errors.webauthn.sign_count_mismatch"),
                 status: :see_other,
               )
             rescue WebAuthn::Error
               redirect_to(
-                sign_com_sign_in_challenge_path(ri: params[:ri]),
+                sign_com_sign_in_challenge_path(ri: current_region_identifier),
                 alert: I18n.t("errors.webauthn.verification_failed"),
                 status: :see_other,
               )
@@ -110,7 +110,7 @@ module Sign
 
               clear_pending_mfa!
               redirect_to(
-                sign_com_sign_in_path(ri: params[:ri]),
+                sign_com_sign_in_path(ri: current_region_identifier),
                 alert: I18n.t("sign.app.in.mfa.session_expired"),
                 status: :see_other,
               )
@@ -141,7 +141,7 @@ module Sign
                   reason: "mfa_passkey_mismatch",
                 )
                 redirect_to(
-                  sign_com_sign_in_challenge_path(ri: params[:ri]),
+                  sign_com_sign_in_challenge_path(ri: current_region_identifier),
                   alert: I18n.t("errors.webauthn.credential_not_found"),
                   status: :see_other,
                 )
@@ -154,7 +154,7 @@ module Sign
               complete_mfa_login!(visitor)
             rescue JSON::ParserError
               redirect_to(
-                sign_com_sign_in_challenge_path(ri: params[:ri]),
+                sign_com_sign_in_challenge_path(ri: current_region_identifier),
                 alert: I18n.t("errors.webauthn.verification_failed"),
                 status: :see_other,
               )
@@ -174,7 +174,7 @@ module Sign
                 )
               else
                 redirect_to(
-                  sign_com_sign_in_path(ri: params[:ri]),
+                  sign_com_sign_in_path(ri: current_region_identifier),
                   alert: I18n.t("sign.app.in.mfa.verification_failed"),
                   status: :see_other,
                 )

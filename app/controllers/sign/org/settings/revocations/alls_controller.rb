@@ -7,7 +7,7 @@ class Sign::Org::Settings::Revocations::AllsController < ::Sign::Org::Applicatio
   before_action :authenticate_operator!
 
   def create
-    current_operator.staff_tokens.session_inventory.find_each(&:revoke!)
+    logout_all_sessions_for!(resource: current_operator, reason: "settings.session.revoke_all")
     redirect_to(sign_org_sign_out_path(ri: params[:ri]), status: :see_other)
   end
 end

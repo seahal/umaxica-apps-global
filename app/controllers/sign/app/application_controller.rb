@@ -43,7 +43,8 @@ module Sign
       rescue_from ActionController::InvalidCrossOriginRequest, with: :handle_csrf_failure
       rescue_from ActionPolicy::Unauthorized, with: :handle_authorization_error
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
-                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?
+                    :signed_pt_param, :current_client, :logged_in?, :active_client?, :logged_in_client?,
+                    :current_region_identifier
       helper_method :acme_authority_host
 
       # NOTE: Order matters (dependencies rely on this sequence)
@@ -85,7 +86,7 @@ module Sign
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        sign_app_dashboard_path(ri: params[:ri])
+        sign_app_dashboard_path(ri: current_region_identifier)
       end
 
       def after_login_allows_other_host?

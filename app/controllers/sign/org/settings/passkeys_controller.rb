@@ -11,7 +11,7 @@ module Sign
       # 2. POST /settings/passkeys/options to get WebAuthn challenge
       # 3. Browser performs navigator.credentials.create()
       # 4. POST /settings/passkeys/verification with credential + challenge_id
-      # 5. sign/id verifies the ceremony; acme/www commits the passkey binding
+      # 5. sign/id verifies the ceremony and commits the passkey binding
       #
       # CRUD operations:
       # - GET /settings/passkeys (index)
@@ -23,7 +23,7 @@ module Sign
         include ::VerificationOperator
 
         include SignWebauthn
-        include SignPasskeyCeremonyDelegation
+        include SignSettingsPasskeyRegistration
         include ::SignRequiresRecoveryPasscodes
 
         include ::CloudflareTurnstile
@@ -39,7 +39,6 @@ module Sign
         before_action :authorize_passkey_create!, only: %i(create)
         step_up only: %i(new create options verification), bootstrap: true
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
-        before_action :accept_org_passkey_ceremony_grant!, only: %i(new options verification)
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options
         # GET /settings/passkeys
@@ -121,7 +120,7 @@ module Sign
         end
 
         # POST /settings/passkeys/verification
-        # Verify WebAuthn registration response and emit an acme-owned commit result.
+        # Verify WebAuthn registration response and commit the settings passkey.
         #
         # Request body:
         #   {
@@ -235,11 +234,6 @@ module Sign
             format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }
           end
           false
-        end
-
-        def accept_org_passkey_ceremony_grant!
-          accept_passkey_ceremony_grant!(surface: "org")
-          true
         end
 
         def set_passkey

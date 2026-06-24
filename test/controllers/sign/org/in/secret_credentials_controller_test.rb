@@ -43,6 +43,8 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_select "input[name='secret_credential_login_form[identifier]'][pattern='[0-9A-FGHJKMNPQRSTVWXYZ]{16}']"
     assert_select "input[name='secret_credential_login_form[identifier]'][autocapitalize='characters']"
     assert_select "input[name='secret_credential_login_form[identifier]'][spellcheck='false']"
+    assert_select "input[type='hidden'][name='ri'][value='jp']"
+    assert_select "a[href=?]", sign_org_sign_in_path(ri: "jp")
   end
 
   test "create signs in with staff public_id and secret_credential" do
@@ -59,6 +61,35 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_includes response.headers["Location"], sign_org_sign_in_check_path(ri: "jp")
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
     assert_predicate @secret_credential.reload.last_used_at, :present?
+  end
+
+  test "create falls back to jp when ri is missing" do
+    post sign_org_sign_in_secret_credential_url,
+         params: {
+           secret_credential_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         }
+
+    assert_response :redirect
+    assert_includes response.headers["Location"], sign_org_sign_in_check_path(ri: "jp")
+  end
+
+  test "create canonicalizes invalid ri" do
+    post sign_org_sign_in_secret_credential_url(ri: "https://evil.example"),
+         params: {
+           secret_credential_login_form: {
+             identifier: @staff.public_id.downcase,
+             secret_credential_value: @raw_secret_credential,
+           },
+           "cf-turnstile-response": "test_token",
+         }
+
+    assert_response :redirect
+    assert_includes response.headers["Location"], sign_org_sign_in_secret_credential_url(ri: "jp")
+    assert_no_match(/evil\.example/, response.headers["Location"])
   end
 
   test "create keeps permanent secret_credential reusable and rejects repeated login in same session" do

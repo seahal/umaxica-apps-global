@@ -11,7 +11,7 @@ module Sign
           include CommonOtp
 
           include CommonRedirect
-          include SignEmailCeremonyDelegation
+          include SignSettingsEmailRegistration
 
           include ::VerificationVisitor
 
@@ -28,7 +28,6 @@ module Sign
           def new
             @user_email = VisitorEmail.new
             reset_email_registration_flow!
-            accept_email_ceremony_grant!(surface: "com")
           end
 
           def edit

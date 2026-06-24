@@ -54,38 +54,6 @@ module Sign
                 redirect_to(sign_com_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
               end
 
-              def update
-                return handle_dummy_existing_telephone_flow if dummy_existing_telephone_flow?
-
-                return unless load_gate_context!(gate_for_update)
-
-                @visitor_telephone = current_registration_telephone
-                return render_telephone_session_expired unless @visitor_telephone
-                unless valid_registration_session?(session[:visitor_telephone_registration])
-                  return render_telephone_session_expired
-                end
-
-                submitted_code = params.dig("visitor_telephone", "pass_code")
-                if submitted_code.blank?
-                  @visitor_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-                  render "sign/com/sign/up/telephones/edit", status: :unprocessable_content
-                  return
-                end
-
-                result = verify_otp_ceremony!
-                if result.status == :locked
-                  session[:visitor_telephone_registration] = nil
-                  @visitor_telephone.errors.add(:base, t("sign.app.registration.telephone.update.attempts_exceeded"))
-                  render "sign/com/sign/up/telephones/edit", status: :too_many_requests
-                  return
-                end
-                return render_otp_ceremony_result(result) unless result.success?
-
-                verify_telephone_ownership!
-                advance_sign_up_flow_after_telephone_otp!
-                redirect_to(sign_com_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
-              end
-
               def destroy
                 cancel_from_explicit_step
               end
@@ -114,19 +82,6 @@ module Sign
                 )
               end
 
-              def verify_otp_ceremony!
-                SignOtpCeremony.verify!(
-                  purpose: :sign_up,
-                  surface: :com,
-                  channel: :telephone,
-                  subject: @sign_up_ticket,
-                  destination: @visitor_telephone.number,
-                  code: params.dig("visitor_telephone", "pass_code"),
-                  session_nonce: @sign_up_ticket.public_id,
-                  request_context: request,
-                )
-              end
-
               def render_otp_ceremony_result(result)
                 if result.status == :rate_limited
                   @visitor_telephone.errors.add(:base, t("sign.app.registration.email.create.otp_resend_too_soon"))
@@ -140,22 +95,6 @@ module Sign
               def render_telephone_session_expired
                 @visitor_telephone ||= VisitorTelephone.new
                 @visitor_telephone.errors.add(:base, t("sign.com.registration.telephone.edit.session_expired"))
-                render "sign/com/sign/up/telephones/edit", status: :unprocessable_content
-              end
-
-              def handle_dummy_existing_telephone_flow
-                @visitor_telephone = VisitorTelephone.new
-                unless valid_registration_session?(session[:visitor_telephone_registration])
-                  return render_telephone_session_expired
-                end
-
-                submitted_code = params.dig("visitor_telephone", "pass_code")
-                if submitted_code.blank?
-                  @visitor_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-                  return render "sign/com/sign/up/telephones/edit", status: :unprocessable_content
-                end
-
-                @visitor_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
                 render "sign/com/sign/up/telephones/edit", status: :unprocessable_content
               end
 

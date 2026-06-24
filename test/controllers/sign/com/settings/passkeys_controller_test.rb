@@ -59,9 +59,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options returns challenge and options" do
-    grant = passkey_ceremony_grant
-
-    post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+    post sign_com_settings_passkeys_options_path(ri: "jp"),
          headers: @headers.merge(@origin_headers)
 
     assert_response :ok
@@ -83,9 +81,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification creates passkey on success" do
-    grant = passkey_ceremony_grant
-
-    post sign_com_settings_passkeys_options_path(ri: "jp", passkey_ceremony_grant: grant),
+    post sign_com_settings_passkeys_options_path(ri: "jp"),
          headers: @headers.merge(@origin_headers)
     challenge_id = response.parsed_body["challenge_id"]
     cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
@@ -100,7 +96,6 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       assert_difference("VisitorPasskey.count", 1) do
         post sign_com_settings_passkeys_verification_path(ri: "jp"),
              params: {
-               passkey_ceremony_grant: grant,
                challenge_id: challenge_id,
                credential: {
                  id: "new_webauthn_id",
@@ -144,10 +139,6 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   private
-
-  def passkey_ceremony_grant
-    signed_passkey_ceremony_grant_for(surface: "com", actor: @visitor, token: @token)
-  end
 
   def create_visitor_recovery_passcode!(visitor, name:, last_used_at: nil)
     credential = visitor.visitor_secret_credentials.new(

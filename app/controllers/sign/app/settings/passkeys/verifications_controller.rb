@@ -4,7 +4,7 @@
 class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::ApplicationController
   include ::VerificationClient
   include SignWebauthn
-  include SignPasskeyCeremonyDelegation
+  include SignSettingsPasskeyRegistration
   include ::SignRequiresRecoveryPasscodes
   include ::SignSettingsPasskeyRegistrationEndpoint
 
@@ -14,16 +14,10 @@ class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::Appl
   before_action :authenticate_client!
   step_up only: :create, bootstrap: true
   before_action :require_recovery_passcodes_for_mfa_registration!, only: :create
-  before_action :accept_app_passkey_ceremony_grant!, only: :create
 
   def create = verify_passkey_registration
 
   private
-
-  def accept_app_passkey_ceremony_grant!
-    accept_passkey_ceremony_grant!(surface: "app")
-    true
-  end
 
   def passkey_registration_actor = current_client
 

@@ -190,6 +190,10 @@ module PreferenceGlobal
     required_ri.presence || "jp"
   end
 
+  def current_region_identifier
+    RequestContextContract.normalize_region(params[:ri])
+  end
+
   def get_timezone
     "ASIA/Tokyo"
   end
@@ -241,7 +245,9 @@ module PreferenceGlobal
   end
 
   def set_locale
-    I18n.locale = Actor.preferences.locale if defined?(Actor)
+    locale = normalized_locale(requested_context[:lx])
+    locale ||= Actor.preferences.locale if defined?(Actor)
+    I18n.locale = locale if locale.present?
     write_preference_cookie(PreferenceBase::LANGUAGE_COOKIE_KEY, I18n.locale.to_s.downcase)
   end
 

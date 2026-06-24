@@ -27,6 +27,8 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     get new_sign_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers
 
     assert_response :success
+    assert_select "input[type='hidden'][name='ri'][value='jp']"
+    assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
   end
 
   test "should return unprocessable_content with invalid params" do
@@ -152,6 +154,35 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_not_equal old_session_id, session.id
   end
 
+  test "email and matching permanent secret_credential falls back to jp when ri is missing" do
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    post sign_app_sign_in_secret_credential_url,
+         params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+         headers: default_headers
+
+    assert_response :found
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+  end
+
+  test "email and matching permanent secret_credential canonicalizes invalid ri" do
+    _secret_credential, raw_secret_credential = issue_secret_credential!(
+      kind: ClientSecretCredentialKind::PERMANENT,
+      uses: 10,
+    )
+
+    post sign_app_sign_in_secret_credential_url(ri: "https://evil.example"),
+         params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
+         headers: default_headers
+
+    assert_response :see_other
+    assert_redirected_to sign_app_sign_in_secret_credential_url(ri: "jp")
+    assert_no_match(/evil\.example/, response.location)
+  end
+
   test "telephone and matching permanent secret_credential logs in successfully" do
     _secret_credential, raw_secret_credential = issue_secret_credential!(
       kind: ClientSecretCredentialKind::PERMANENT,
@@ -232,7 +263,7 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "new-axis recovery secret uses the new verifier" do
-    result = ClientSecretCredentialsIssueRecovery.call(actor: @user, user: @user)
+    result = issue_new_axis_secret_credential!
 
     legacy_method = ClientSecretCredential.instance_method(:verify_for_secret_credential_sign_in!)
 
@@ -455,6 +486,23 @@ class Sign::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: uses,
       discarded_at: discarded_at,
       status: status,
+    )
+  end
+
+  def issue_new_axis_secret_credential!
+    SignSecretIssue.call(
+      credential_collection: @user.client_secret_credentials,
+      secret_credential_class: ClientSecretCredential,
+      name: "Recovery",
+      secret_kind: "recovery",
+      usage_policy: "single_use",
+      legacy_attributes: {
+        user_secret_kind_id: ClientSecretCredentialKind::RECOVERY,
+        user_secret_status_id: ClientSecretCredentialStatus::ACTIVE,
+      },
+      scope: "recovery",
+      max_uses: 1,
+      max_failures: 5,
     )
   end
 

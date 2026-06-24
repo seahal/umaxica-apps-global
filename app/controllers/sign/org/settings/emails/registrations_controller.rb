@@ -9,7 +9,7 @@ module Sign
           include ::CloudflareTurnstile
 
           include ::CommonOtp
-          include SignEmailCeremonyDelegation
+          include SignSettingsEmailRegistration
 
           include ::VerificationOperator
 
@@ -25,7 +25,6 @@ module Sign
           def new
             @staff_email = OperatorEmail.new
             reset_registration_session!
-            accept_email_ceremony_grant!(surface: "org")
           end
 
           def edit
@@ -129,7 +128,6 @@ module Sign
 
           def fail_turnstile
             @staff_email.errors.add(:base, t("turnstile_error"))
-            flash.now[:alert] = t("turnstile_error")
             render(:edit, status: :unprocessable_content)
           end
 

@@ -34,6 +34,8 @@ describe("PasskeyAuthenticationController", () => {
     controller = new PasskeyAuthenticationController();
     controller.optionsUrlValue = "/sign/in/passkeys/options";
     controller.verificationUrlValue = "/sign/in/passkeys/verification";
+    controller.hasRegionValue = true;
+    controller.regionValue = "jp";
     controller.identifierParamValue = "email";
     controller.turnstileSiteKeyValue = "sitekey123";
     controller.turnstileErrorMessageValue =
@@ -226,6 +228,50 @@ describe("PasskeyAuthenticationController", () => {
     await controller.authenticate(event);
 
     expect(controller.statusTarget.textContent).toBe("ログイン成功！リダイレクト中...");
+  });
+
+  test("authenticate: region value is posted to both requests", async () => {
+    controller.identifierTarget.value = "test@example.com";
+    controller.turnstileResponseTarget.value = "turnstile-token";
+
+    const optionsResponse = {
+      ok: true,
+      json: () => Promise.resolve({ challenge_id: "ch-1", options: {} }),
+    };
+    const verificationResponse = {
+      ok: true,
+      json: () => Promise.resolve({ status: "ok", redirect_url: "/dashboard" }),
+    };
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(optionsResponse)
+      .mockResolvedValueOnce(verificationResponse);
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const mockCredential = {
+      id: "cred-id",
+      rawId: new Uint8Array([1, 2, 3]).buffer,
+      type: "public-key",
+      response: {
+        clientDataJSON: new Uint8Array([4, 5, 6]).buffer,
+        authenticatorData: new Uint8Array([7, 8, 9]).buffer,
+        signature: new Uint8Array([10, 11, 12]).buffer,
+        userHandle: null,
+      },
+      getClientExtensionResults: () => ({}),
+    };
+    navigator.credentials.get.mockResolvedValue(mockCredential);
+
+    const event = { preventDefault: vi.fn() };
+    await controller.authenticate(event);
+
+    const optionsBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const verificationBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+
+    expect(optionsBody.ri).toBe("jp");
+    expect(verificationBody.ri).toBe("jp");
   });
 
   test("authenticate: TOTP 必要時にリダイレクトする", async () => {

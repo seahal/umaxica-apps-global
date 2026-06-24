@@ -8,7 +8,7 @@ class Sign::App::Settings::RevocationsController < Sign::App::ApplicationControl
   before_action :set_session, only: :create
 
   def create
-    @session.revoke! unless current_session_record?(@session)
+    revoke_selected_session!(@session) unless current_session_record?(@session)
     redirect_to(sign_app_settings_sessions_path(ri: params[:ri]), status: :see_other)
   end
 
@@ -20,5 +20,15 @@ class Sign::App::Settings::RevocationsController < Sign::App::ApplicationControl
 
   def current_session_record?(session)
     session&.public_id == current_session_public_id
+  end
+
+  def revoke_selected_session!(session)
+    AuthenticationSelectedSessionRevoker.call(
+      owner: current_client,
+      token: session,
+      current_token: current_session,
+      current_session_public_id: current_session_public_id,
+      reason: "settings.session.revoke",
+    )
   end
 end

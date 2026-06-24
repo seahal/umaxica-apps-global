@@ -8,7 +8,15 @@ class Sign::Org::Settings::Revocations::OthersController < ::Sign::Org::Applicat
 
   def create
     current_operator.staff_tokens.session_inventory.find_each do |token|
-      token.revoke! unless token.public_id == current_session_public_id
+      next if token.public_id == current_session_public_id
+
+      AuthenticationSelectedSessionRevoker.call(
+        owner: current_operator,
+        token: token,
+        current_token: current_session,
+        current_session_public_id: current_session_public_id,
+        reason: "settings.session.revoke_others",
+      )
     end
     redirect_to(sign_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
   end

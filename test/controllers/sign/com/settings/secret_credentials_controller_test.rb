@@ -80,9 +80,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :success
     assert_includes response.body, @secret_credential.name
 
-    grant = secret_credential_ceremony_grant
-
-    get new_sign_com_settings_secret_credential_url(ri: "jp", secret_credential_ceremony_grant: grant),
+    get new_sign_com_settings_secret_credential_url(ri: "jp"),
         headers: request_headers
 
     assert_response :success
@@ -107,9 +105,7 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "create persists secret_credential and redirects" do
-    grant = secret_credential_ceremony_grant
-
-    get new_sign_com_settings_secret_credential_url(ri: "jp", secret_credential_ceremony_grant: grant),
+    get new_sign_com_settings_secret_credential_url(ri: "jp"),
         headers: request_headers
 
     assert_response :success
@@ -117,7 +113,6 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_difference("VisitorSecretCredential.count", 1) do
       post sign_com_settings_secret_credentials_url(ri: "jp"),
            params: { visitor_secret_credential: { name: "New Secret", enabled: true },
-                     secret_credential_ceremony_grant: grant,
                      "cf-turnstile-response": "test", },
            headers: request_headers
     end
@@ -277,8 +272,4 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   private
-
-  def secret_credential_ceremony_grant
-    signed_secret_credential_ceremony_grant_for(surface: "com", actor: @visitor, token: @token)
-  end
 end

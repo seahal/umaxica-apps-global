@@ -106,70 +106,6 @@ module Sign
             render :new, status: :unprocessable_content
           end
 
-          def update
-            @visitor_telephone = current_registration_telephone
-            return redirect_to(new_sign_com_sign_up_telephone_path) unless @visitor_telephone
-
-            registration_session = session[:visitor_telephone_registration]
-            return redirect_to(new_sign_com_sign_up_telephone_path) unless
-              valid_registration_session?(registration_session)
-            return redirect_to(new_sign_com_sign_up_telephone_path) if otp_session_expired?(registration_session)
-
-            submitted_code = params.dig("visitor_telephone", "pass_code")
-            if submitted_code.blank?
-              @visitor_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.code_required"))
-              render :edit, status: :unprocessable_content
-              return
-            end
-
-            result = verify_otp_code(@visitor_telephone, submitted_code)
-            unless result[:success]
-              increment_otp_attempts!(@visitor_telephone)
-              if @visitor_telephone.locked?
-                session[:visitor_telephone_registration] = nil
-                redirect_to(
-                  new_sign_com_sign_up_telephone_path(ri: params[:ri]),
-                  alert: t("sign.app.registration.telephone.update.attempts_exceeded"),
-                )
-                return
-              end
-
-              @visitor_telephone.errors.add(:pass_code, t("sign.app.registration.telephone.update.invalid_code"))
-              render :edit, status: :unprocessable_content
-              return
-            end
-
-            if existing_signup_telephone_flow?(registration_session)
-              clear_otp(@visitor_telephone)
-              session[:visitor_telephone_registration] = nil
-              redirect_to(
-                sign_com_sign_in_path(ri: params[:ri]),
-                notice: t("sign.app.registration.telephone.update.sign_in_required"),
-              )
-              return
-            end
-
-            sequence_advanced = false
-            VisitorTelephone.transaction do
-              verify_telephone_ownership!
-              sequence_advanced = advance_sign_up_flow_after_telephone_otp!
-              raise ActiveRecord::Rollback unless sequence_advanced
-            end
-            unless sequence_advanced
-              session[:visitor_telephone_registration] = nil
-              redirect_to(
-                new_sign_com_sign_up_telephone_path(ri: params[:ri]),
-                notice: t("sign.com.registration.telephone.edit.session_expired"),
-              )
-              return
-            end
-
-            redirect_to(
-              sign_com_sign_up_guard_telephone_path(ri: params[:ri]),
-              notice: t("sign.com.registration.telephone.success"),
-            )
-          end
-
           private
 
           def valid_telephone_session?
@@ -273,18 +209,6 @@ module Sign
             ActiveModel::Type::Boolean.new.cast(value)
           end
 
-          def verify_telephone_ownership!
-            @visitor_telephone.confirm_policy = "1"
-            @visitor_telephone.confirm_using_mfa = "1"
-            clear_otp(@visitor_telephone)
-            @visitor_telephone.save! if @visitor_telephone.changed?
-
-            registration = (session[:visitor_telephone_registration] || {}).dup
-            registration["otp_verified"] = true
-            registration["public_id"] ||= @visitor_telephone.public_id
-            session[:visitor_telephone_registration] = registration
-          end
-
           def issue_sign_up_flow!
             ComTicketRecord.connected_to(role: :writing) do
               VisitorSignUpFlowStatus.ensure_defaults!
@@ -318,28 +242,6 @@ module Sign
               SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
             end
             session[:sign_com_up_sequence_id] = cycle.public_id
-          end
-
-          def advance_sign_up_flow_after_telephone_otp!
-            cycle = sign_up_flow_locator.current
-            return false unless cycle
-
-            result =
-              ComTicketRecord.connected_to(role: :writing) do
-                verify = SignUpStateMachine.call(ticket: cycle, event: :verify_contact, actor_context: Actor.authn)
-                if verify.status == :advanced
-                  SignUpStateMachine.call(ticket: cycle.reload, event: :enter_checkpoint, actor_context: Actor.authn)
-                  SignUpStateMachine.call(
-                    ticket: cycle.reload,
-                    event: :clear_requirement,
-                    actor_context: Actor.authn,
-                    payload: { requirement: :otp, checkpoint_version: cycle.checkpoint_version },
-                  )
-                else
-                  verify
-                end
-              end
-            result.status == :advanced
           end
 
           def sign_up_flow_locator

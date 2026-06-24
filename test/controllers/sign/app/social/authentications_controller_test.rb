@@ -29,6 +29,38 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     assert ClientSocialCeremonyTransaction.find_by(transaction_id: stored_value)
   end
 
+  test "continue issues a google sign-up flow for the sign-up entry" do
+    assert_difference("ClientSignUpFlow.count", 1) do
+      get sign_app_social_google_sign_up_path(provider: "google", entry: "sign_up", ri: "jp")
+    end
+
+    assert_response :redirect
+    assert_match %r{/social/google\?state=}, response.location
+
+    cycle = ClientSignUpFlow.order(:created_at).last
+
+    assert_equal "google", cycle.entry_method
+    assert_equal "google", cycle.social_provider
+    assert_equal "social_callback", cycle.step
+    assert_equal cycle.public_id, session[:sign_app_up_sequence_id]
+  end
+
+  test "continue issues an apple sign-up flow for the sign-up entry" do
+    assert_difference("ClientSignUpFlow.count", 1) do
+      get sign_app_social_apple_sign_up_path(provider: "apple", entry: "sign_up", ri: "jp")
+    end
+
+    assert_response :redirect
+    assert_match %r{/social/apple\?state=}, response.location
+
+    cycle = ClientSignUpFlow.order(:created_at).last
+
+    assert_equal "apple", cycle.entry_method
+    assert_equal "apple", cycle.social_provider
+    assert_equal "social_callback", cycle.step
+    assert_equal cycle.public_id, session[:sign_app_up_sequence_id]
+  end
+
   test "continue redirects to apple oauth with valid provider" do
     get sign_app_social_apple_sign_in_path(provider: "apple", ri: "jp")
 

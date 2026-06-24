@@ -42,6 +42,22 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       pref, _token, _cookie_name = assert_preference_created(domain)
       assert pref.status_id.nil? || [0, 2].include?(pref.status_id)
+
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :region)::JP,
+                   pref.public_send("#{domain[:name]}_preference_region").option_id
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::JA,
+                   pref.public_send("#{domain[:name]}_preference_language").option_id
+    end
+
+    test "#{domain[:name]} domain seeds new preference language from requested region" do
+      host!(domain[:host])
+
+      pref, _token, _cookie_name = assert_preference_created(domain, ri: "us")
+
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :region)::US,
+                   pref.public_send("#{domain[:name]}_preference_region").option_id
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::EN,
+                   pref.public_send("#{domain[:name]}_preference_language").option_id
     end
 
     test "#{domain[:name]} domain redirects to add ri param when missing" do
@@ -91,6 +107,37 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       pref.reload
 
       assert_equal 1, pref.try("#{domain[:name]}_preference_region").option_id
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::EN,
+                   pref.try("#{domain[:name]}_preference_language").option_id
+    end
+
+    test "#{domain[:name]} domain updates language when region changes to Japan" do
+      host!(domain[:host])
+      pref, = assert_preference_created(domain, ri: "us")
+
+      state = { ri: "us" }
+
+      get public_send("edit_acme_#{domain[:name]}_preference_region_url", state)
+
+      assert_response :success
+
+      patch public_send("acme_#{domain[:name]}_preference_region_url", state),
+            params: { preference_region: { option_id: "JP" } }
+
+      assert_response :redirect
+
+      location = URI.parse(response.headers.fetch("Location"))
+      query = Rack::Utils.parse_query(location.query)
+
+      assert_equal "jp", query["ri"]
+      assert_not query.key?("lx")
+
+      pref.reload
+
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :region)::JP,
+                   pref.try("#{domain[:name]}_preference_region").option_id
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::JA,
+                   pref.try("#{domain[:name]}_preference_language").option_id
     end
 
     test "#{domain[:name]} domain region edit and update do not change preference count" do
@@ -112,6 +159,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       pref.reload
 
       assert_equal 1, pref.try("#{domain[:name]}_preference_region").option_id
+      assert_equal PreferenceClassRegistry.option_class(domain[:name].camelize, :language)::EN,
+                   pref.try("#{domain[:name]}_preference_language").option_id
     end
 
     test "#{domain[:name]} domain region edit renders a submit button inside the form" do
@@ -363,6 +412,18 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         assert_select "option[value='1']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.ja")
         assert_select "option[value='2']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.en")
       end
+
+      assert_select "select[name='preference_language[option_id]'] option", text: "日本語"
+      assert_select "select[name='preference_language[option_id]'] option", text: "英語 - English"
+
+      reset!
+      host!(domain[:host])
+      get public_send("edit_acme_#{domain[:name]}_preference_language_url", ri: "us")
+
+      assert_response :success
+      assert_select "html[lang='en']"
+      assert_select "select[name='preference_language[option_id]'] option", text: "Japanese - 日本語"
+      assert_select "select[name='preference_language[option_id]'] option", text: "English"
     end
 
     test "#{domain[:name]} domain updates theme" do
@@ -843,8 +904,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     { ri: "jp" }
   end
 
-  def assert_preference_created(domain)
-    get(public_send("edit_acme_#{domain[:name]}_preference_region_url", ri: "jp"))
+  def assert_preference_created(domain, state = { ri: "jp" })
+    get(public_send("edit_acme_#{domain[:name]}_preference_region_url", state))
 
     assert_response :success
 
@@ -898,7 +959,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to public_send(
       "edit_acme_#{domain[:name]}_preference_#{suffix}_url",
-      preference_write_redirect_state(kind, state),
+      preference_write_redirect_state(kind, state, params),
     )
     follow_redirect!
 
@@ -926,10 +987,21 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def preference_write_redirect_state(kind, state)
-    return state if kind == :region
+  def preference_write_redirect_state(kind, state, params = {})
+    if kind == :region
+      region = region_context_from_preference_params(params)
+      return state.merge(ri: region).except(:lx)
+    end
 
     state.slice(:ri).merge(preference_context_key_for_kind(kind) => nil)
+  end
+
+  def region_context_from_preference_params(params)
+    option_id = params.dig(:preference_region, :option_id).to_s
+    return "jp" if option_id.casecmp("JP").zero? || option_id == "2"
+    return "us" if option_id.casecmp("US").zero? || option_id == "1"
+
+    "jp"
   end
 
   def preference_context_key_for_kind(kind)

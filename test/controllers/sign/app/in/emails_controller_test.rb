@@ -512,6 +512,29 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_includes @response.body, I18n.t("sign.app.authentication.email.update.invalid_code", locale: :ja)
   end
 
+  test "blank OTP code returns error message" do
+    user = clients(:one)
+    test_email = user.client_emails.create!(
+      address: "blank_otp_test_#{SecureRandom.hex(4)}@example.com",
+    )
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
+
+    patch sign_app_sign_in_email_url(ri: "jp"),
+          params: { user_email: { pass_code: "" } },
+          headers: { "Host" => @host }
+
+    assert_response :unprocessable_content
+    assert_includes @response.body, I18n.t("sign.app.authentication.email.update.invalid_code", locale: :ja)
+  end
+
   test "invalid OTP attempt records login failed audit event" do
     user = clients(:one)
     test_email = user.client_emails.create!(
@@ -725,6 +748,42 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Session limit gate should be issued
     assert_predicate session[SessionLimitGate::GATE_SESSION_KEY], :present?
+  end
+
+  test "email login hard rejects when a restricted session already exists" do
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
+
+    2.times do
+      create_rotated_active_user_session(user, rotations: 3)
+    end
+
+    test_email = user.client_emails.create!(
+      address: "session_limit_hard_reject_#{SecureRandom.hex(4)}@example.com",
+    )
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :user_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    hotp = ROTP::HOTP.new(otp_private_key)
+    valid_pass_code = hotp.at(otp_counter).to_s
+    test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+
+    ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::RESTRICTED)
+
+    patch sign_app_sign_in_email_url(ri: "jp"),
+          params: { user_email: { pass_code: valid_pass_code } },
+          headers: { "Host" => @host }
+
+    assert_response :forbidden
+    assert_includes response.body, "セッション数の上限に達しました"
+    assert_equal 1, ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
   test "email login (JSON) with session limit exceeded returns session_restricted" do

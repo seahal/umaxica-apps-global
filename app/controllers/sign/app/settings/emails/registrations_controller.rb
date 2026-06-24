@@ -11,7 +11,7 @@ module Sign
           include CommonOtp
           include SignEmailRegistrable
           include SignEmailRegistrationFlow
-          include SignEmailCeremonyDelegation
+          include SignSettingsEmailRegistration
 
           include ::VerificationClient
 

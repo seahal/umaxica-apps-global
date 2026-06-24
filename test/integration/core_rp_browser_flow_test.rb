@@ -69,11 +69,12 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
+      uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query)
 
       assert_equal surface[:acme_host], uri.host
       assert_equal "/oauth/authorize", uri.path
+      assert_not_equal "jump.umaxica.net", uri.host
       assert_equal surface[:client_id], query["client_id"]
       assert_equal redirect_uri_for(surface), query["redirect_uri"]
       assert_equal "signup", query["screen_hint"]
@@ -96,12 +97,13 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       get "/oidc/authorization", headers: browser_headers
 
       assert_response :redirect
-      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
+      authorize_uri = URI.parse(response.location)
       authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
       code_verifier = session.fetch(:oidc_code_verifier)
 
       assert_equal acme_host, authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
+      assert_not_equal "jump.umaxica.net", authorize_uri.host
 
       host! acme_host
       get "/oauth/authorize", params: authorize_query, headers: browser_headers

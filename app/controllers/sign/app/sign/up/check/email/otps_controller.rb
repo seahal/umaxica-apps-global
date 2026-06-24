@@ -42,27 +42,24 @@ module Sign
               end
 
               def update
-                if dummy_existing_email_flow?
-                  @user_email = ClientEmail.new
-                  return redirect_invalid_session unless valid_email_session?
-                  return render_blank_code_rejection unless validate_code_present
-
-                  @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.invalid_code"))
-                  return render "sign/app/sign/up/emails/edit", status: :unprocessable_content
-                end
-
                 return unless load_gate_context!(gate_for_update)
 
                 @user_email = current_registration_email
                 return redirect_invalid_session unless valid_email_session?
-                return render_blank_code_rejection unless validate_code_present
 
-                result = verify_otp_ceremony!
-                log_email_otp_rejection(result) unless result.success?
+                submitted_code = submitted_pass_code
+                return render_code_required if submitted_code.blank?
+
+                result = verify_otp_ceremony!(submitted_code)
                 return handle_locked_result if result.status == :locked
                 return render_otp_ceremony_result(result) unless result.success?
 
                 @user_email.update!(user_email_status_id: ClientEmailStatus::VERIFIED_WITH_SIGN_UP)
+                progress_email_flow!(:update)
+
+                flow_result = advance_sign_up_flow_after_email_otp!
+                return render_sign_up_result(flow_result) unless flow_result.success?
+
                 complete_update_and_redirect
               end
 
@@ -94,14 +91,16 @@ module Sign
                 )
               end
 
-              def verify_otp_ceremony!
+              def verify_otp_ceremony!(submitted_code)
+                return verify_dummy_otp_ceremony!(submitted_code) if dummy_existing_email_flow?
+
                 SignOtpCeremony.verify!(
                   purpose: :sign_up,
                   surface: :app,
                   channel: :email,
                   subject: @sign_up_ticket,
                   destination: @user_email.address,
-                  code: params.dig("client_email", "pass_code") || params.dig("user_email", "pass_code"),
+                  code: submitted_code,
                   session_nonce: @sign_up_ticket.public_id,
                   request_context: request,
                 )
@@ -117,45 +116,8 @@ module Sign
                 render "sign/app/sign/up/emails/edit", status: :unprocessable_content
               end
 
-              def log_email_otp_rejection(result)
-                reason =
-                  case result.status
-                  when :blank_code then "otp_blank"
-                  when :invalid_code then "otp_mismatch"
-                  when :locked then "otp_locked"
-                  when :rate_limited then "otp_attempts_exceeded"
-                  when :missing_otp then "otp_candidate_not_found"
-                  else "unexpected_error"
-                  end
-
-                log_sign_signup_event(
-                  "sign.signup.email.otp.rejected",
-                  sign_signup_request_flags.merge(
-                    step: "email_otp",
-                    reason: reason,
-                    attempts_remaining: @user_email.respond_to?(:otp_attempts_remaining) ?
-                      @user_email.otp_attempts_remaining : nil,
-                    **sign_signup_safe_otp_state(@user_email),
-                  ).compact,
-                )
-              end
-
-              def render_blank_code_rejection
-                log_email_otp_rejection(
-                  SignOtpCeremony::Result.new(
-                    success?: false,
-                    status: :blank_code,
-                    record: @user_email,
-                    error: :blank_code,
-                  ),
-                )
-                render_code_required
-              end
-
-              def redirect_invalid_session
-                reset_email_flow!
-                @user_email ||= ClientEmail.new
-                @user_email.errors.add(:base, t("sign.app.registration.email.edit.session_expired"))
+              def render_code_required
+                @user_email.errors.add(:pass_code, t("sign.app.registration.email.update.code_required"))
                 render "sign/app/sign/up/emails/edit", status: :unprocessable_content
               end
 
@@ -163,6 +125,76 @@ module Sign
                 reset_email_flow!
                 @user_email.errors.add(:base, t("sign.app.registration.email.update.attempts_exceeded"))
                 render "sign/app/sign/up/emails/edit", status: :too_many_requests
+              end
+
+              def redirect_invalid_session
+                reset_email_flow!
+                redirect_to(
+                  new_sign_app_sign_up_email_path(ri: params[:ri]),
+                  notice: t("sign.app.registration.email.edit.session_expired"),
+                )
+              end
+
+              def complete_update_and_redirect
+                redirect_to(sign_app_sign_up_check_email_birthdate_path(ri: params[:ri], pt: signed_pt_param))
+              end
+
+              def advance_sign_up_flow_after_email_otp!
+                result = perform_sign_up_event(:verify_contact)
+                return unexpected_email_otp_transition(result, :enter_guardrail) unless result.success? &&
+                  result.next_event == :enter_guardrail
+
+                result = perform_sign_up_event(:enter_guardrail)
+                return unexpected_email_otp_transition(result, :enter_checkpoint) unless result.success? &&
+                  result.next_event == :enter_checkpoint
+
+                result = perform_sign_up_event(:enter_checkpoint)
+                return unexpected_email_otp_transition(result, :clear_requirement) unless result.success? &&
+                  result.next_event == :clear_requirement
+
+                mark_email_otp_requirement_cleared!
+                result
+              end
+
+              def unexpected_email_otp_transition(result, expected_next_event)
+                Rails.logger.warn(
+                  JitLogEvent.format(
+                    "sign.signup.email.otp.transition_unexpected",
+                    status: result.status,
+                    next_event: result.next_event,
+                    expected_next_event: expected_next_event,
+                  ),
+                )
+                SignUpResult.build(
+                  status: :invalid_transition,
+                  ticket: @sign_up_ticket,
+                  errors: ["unexpected email OTP sign-up transition"],
+                )
+              end
+
+              def mark_email_otp_requirement_cleared!
+                requirements = @sign_up_ticket.completed_requirements.deep_dup
+                requirements["otp"] = {
+                  "cleared" => true,
+                  "cleared_at" => Time.current.iso8601,
+                }
+                @sign_up_ticket.update!(completed_requirements: requirements)
+              end
+
+              def verify_dummy_otp_ceremony!(submitted_code)
+                verify_dummy_otp(submitted_code)
+                SignOtpCeremony::Result.new(
+                  success?: false,
+                  status: :invalid_code,
+                  record: nil,
+                  code: nil,
+                  error: :invalid_code,
+                )
+              end
+
+              def submitted_pass_code
+                params.dig("client_email", "pass_code").presence ||
+                  params.dig("user_email", "pass_code").presence
               end
             end
           end

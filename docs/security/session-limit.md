@@ -60,6 +60,24 @@ the active-session count is below the surface limit.
 
 If the actor cancels instead, the restricted token is revoked and the request is logged out.
 
+## Sign-In Families
+
+The current `app` sign-in families all use this same identity-level model and all converge on the
+same completion gate:
+
+- email OTP sign-in
+- Google social sign-in
+- Apple social sign-in
+- passkey / WebAuthn sign-in
+- TOTP / passcode / secret credential sign-in
+
+Each family reaches `establish_signed_in_session!` or a shared MFA continuation path before a token
+is issued. Step-up does not create a new login unit and must not advance this model.
+
+Login units are counted per `ClientToken`, not per RP-specific downstream token. A social sign-in,
+email OTP sign-in, passkey sign-in, or secret credential sign-in that arrives through the same
+browser/device still contributes one login unit when it mints one `ClientToken`.
+
 ## Gate State
 
 For DB-backed sign-in cycles, `SignIn::SessionLimitManager` is the authoritative session-limit

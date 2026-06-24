@@ -119,6 +119,10 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
 
     def sign_in_sequence_surface = :app
 
+    def current_region_identifier
+      RequestContextContract.normalize_region(params[:ri])
+    end
+
     def signed_pt_token(value) = value ? "pt:#{value}" : nil
 
     def path_from_signed_pt(value) = value&.sub(/\Apt:/, "")
@@ -229,6 +233,14 @@ class AuthenticationSequenceGateExtraCoverageTest < ActiveSupport::TestCase
     fallback = FallbackHarness.new
 
     assert_equal "/selector?pt=pt%3Atarget&ri=jp", fallback.sign_in_selector_path(pt: "target")
+  end
+
+  test "sign-in helper paths canonicalize invalid region input" do
+    harness = FallbackHarness.new
+    harness.params_hash = { ri: "https://evil.example" }
+
+    assert_equal "/in/session?pt=pt%3Atarget&ri=jp", harness.sign_in_session_limit_path(pt: "target")
+    assert_equal "/selector?pt=pt%3Atarget&ri=jp", harness.sign_in_selector_path(pt: "target")
   end
 
   test "redirect_to_sign_in_sequence! uses jump gateway for absolute destinations" do

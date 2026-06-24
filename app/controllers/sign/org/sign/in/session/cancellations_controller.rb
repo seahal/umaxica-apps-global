@@ -20,9 +20,9 @@ class Sign::Org::Sign::In::Session::CancellationsController < ::Sign::Org::Appli
   def session_limit_sign_in_path
     challenge = session[:oidc_authorization_login_challenge]
     if challenge.present?
-      sign_org_sign_in_path(ri: params[:ri], login_challenge: challenge)
+      sign_org_sign_in_path(ri: current_region_identifier, login_challenge: challenge)
     else
-      sign_org_sign_in_path(ri: params[:ri])
+      sign_org_sign_in_path(ri: current_region_identifier)
     end
   end
 end

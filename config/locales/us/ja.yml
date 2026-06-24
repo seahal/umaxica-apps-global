@@ -247,6 +247,9 @@ ja:
         source_record_id: ソースレコードID
       visitor_identity:
         source_record_id: ソースレコードID
+      client_chronicle:
+        user_chronicle_event: イベント
+        user_chronicle_level: レベル
       client_email:
         address: メールアドレス
         address_digest: メールアドレスダイジェスト
@@ -2250,16 +2253,18 @@ ja:
           select_language_prompt: 言語を選択してください…
           select_timezone_prompt: タイムゾーンを選択してください…
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: 英語
-            JP: 日本語
+            USA: アメリカ合衆国 (USA)
+            JAPAN: 日本
+            US: アメリカ合衆国 (USA)
+            JP: 日本
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語
           select_timezone_selector:
             UTC: 協定世界時 (UTC)
-            JST: 日本標準時 (JST)
+            ETC_UTC: 協定世界時 (UTC)
+            JST: 日本標準時 (Asia/Tokyo)
+            ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
           update_settings: 設定を更新
           cancel: キャンセル
         languages:
@@ -2297,7 +2302,7 @@ ja:
             language_label: 言語
           options:
             ja: 日本語
-            en: 英語
+            en: 英語 - English
         currency:
           edit:
             heading: 通貨設定
@@ -2317,12 +2322,14 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: 英語
+              en: 英語 - English
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:
               UTC: 協定世界時 (UTC)
-              JST: 日本標準時 (JST)
+              ETC_UTC: 協定世界時 (UTC)
+              JST: 日本標準時 (Asia/Tokyo)
+              ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
               AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
               AMERICA_CHICAGO: 中部時間 (米国・カナダ)
               AMERICA_DENVER: 山岳部時間 (米国・カナダ)
@@ -2396,10 +2403,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: 英語
-            JP: 日本語
-            USA: US
-            JAPAN: JP
+            US: アメリカ合衆国 (USA)
+            JP: 日本
+            USA: アメリカ合衆国 (USA)
+            JAPAN: 日本
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -2411,7 +2418,9 @@ ja:
             ENGLISH: 英語
           select_timezone_selector: &2
             UTC: 協定世界時 (UTC)
-            JST: 日本標準時 (JST)
+            ETC_UTC: 協定世界時 (UTC)
+            JST: 日本標準時 (Asia/Tokyo)
+            ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
           update_settings: 設定を更新
           cancel: キャンセル
           back_link: もどる
@@ -2476,10 +2485,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: 英語
-            JP: 日本語
-            USA: US
-            JAPAN: JP
+            US: アメリカ合衆国 (USA)
+            JP: 日本
+            USA: アメリカ合衆国 (USA)
+            JAPAN: 日本
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -2531,7 +2540,7 @@ ja:
             h1: 言語選択
           options:
             ja: 日本語
-            en: 英語
+            en: 英語 - English
         timezone:
           edit:
             heading: タイムゾーン設定
@@ -2543,12 +2552,14 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: 英語
+              en: 英語 - English
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:
               UTC: 協定世界時 (UTC)
-              JST: 日本標準時 (JST)
+              ETC_UTC: 協定世界時 (UTC)
+              JST: 日本標準時 (Asia/Tokyo)
+              ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
               AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
               AMERICA_CHICAGO: 中部時間 (米国・カナダ)
               AMERICA_DENVER: 山岳部時間 (米国・カナダ)
@@ -2605,10 +2616,10 @@ ja:
           select_region: 地域を選択
           select_region_prompt: 地域を選択してください…
           select_region_selector:
-            US: 英語
-            JP: 日本語
-            USA: US
-            JAPAN: JP
+            US: アメリカ合衆国 (USA)
+            JP: 日本
+            USA: アメリカ合衆国 (USA)
+            JAPAN: 日本
           language_section: 言語設定
           select_language: 言語を選択
           timezone_section: タイムゾーン設定
@@ -2666,7 +2677,7 @@ ja:
             language_label: 言語
           options:
             ja: 日本語
-            en: 英語
+            en: 英語 - English
         currency:
           edit:
             heading: 通貨設定
@@ -2686,12 +2697,14 @@ ja:
             description: 言語とタイムゾーンの設定を管理します
             language_options:
               ja: 日本語
-              en: 英語
+              en: 英語 - English
             language_label: 言語
             timezone_label: タイムゾーン
             timezone_options:
               UTC: 協定世界時 (UTC)
-              JST: 日本標準時 (JST)
+              ETC_UTC: 協定世界時 (UTC)
+              JST: 日本標準時 (Asia/Tokyo)
+              ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
               AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
               AMERICA_CHICAGO: 中部時間 (米国・カナダ)
               AMERICA_DENVER: 山岳部時間 (米国・カナダ)
@@ -3097,16 +3110,18 @@ ja:
           select_language_prompt: 言語を選択してください…
           select_timezone_prompt: タイムゾーンを選択してください…
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: 英語
-            JP: 日本語
+            USA: アメリカ合衆国 (USA)
+            JAPAN: 日本
+            US: アメリカ合衆国 (USA)
+            JP: 日本
           select_language_selector:
             JAPANESE: 日本語
             ENGLISH: 英語
           select_timezone_selector:
             UTC: 協定世界時 (UTC)
-            JST: 日本標準時 (JST)
+            ETC_UTC: 協定世界時 (UTC)
+            JST: 日本標準時 (Asia/Tokyo)
+            ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
           update_settings: 設定を更新
           cancel: キャンセル
         languages:

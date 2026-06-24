@@ -104,6 +104,28 @@ The supported credential methods remain surface-aware:
 Org production sign-in does not use external social providers. Google, Apple, Microsoft, and other
 external social providers are not org sign-in methods.
 
+## App Sign-In Route Matrix
+
+Current `app` sign-in routes share the same completion gate. Route-local controllers verify the
+credential or provider response, then hand off to `establish_signed_in_session!` and the shared
+`SignInResult` adapter when a session is actually issued.
+
+| route family                        | controller path                                                                                 | credential / provider                | state object                        | completion gate                                         | notes                                                                                                         |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Email OTP                           | `Sign::App::Sign::In::EmailsController`                                                         | email + OTP                          | `SignAppInEmailAuthenticationState` | `establish_signed_in_session!`                          | `create` issues real or dummy OTP; `update` verifies OTP and returns success, MFA, restricted, or hard reject |
+| Google social                       | `Sign::App::Social::AuthenticationsController` + `Sign::App::Auth::OmniauthCallbacksController` | Google OAuth / OmniAuth              | social auth intent + callback state | `establish_signed_in_session!`                          | callback validates state, provider assertion, and callback replay before completion                           |
+| Apple social                        | `Sign::App::Social::AuthenticationsController` + `Sign::App::Auth::OmniauthCallbacksController` | Apple OAuth / OmniAuth               | social auth intent + callback state | `establish_signed_in_session!`                          | Apple-specific form-post callback handling is delegated to the provider integration                           |
+| Passkey / WebAuthn                  | `Sign::App::Sign::In::PasskeysController` + `Sign::App::Sign::In::Passkey::*`                   | WebAuthn credential                  | passkey challenge state             | `establish_signed_in_session!`                          | options and verification controllers already route through the shared gate                                    |
+| TOTP / passcode / secret credential | `Sign::App::Sign::In::SecretCredentialsController` + `Sign::App::Sign::In::Challenge::*`        | TOTP, passcode, or secret credential | pending MFA state                   | `establish_signed_in_session!` or `finalize_mfa_login!` | direct login and MFA follow-up branches both converge on the same session completion rules                    |
+
+The route families above must not create `ClientToken`, `ClientDeviceSession`, or auth cookies
+directly in controller code.
+
+All successful sign-in routes must normalize the completion result through the shared `SignInResult`
+adapter. The current result shape includes `success`, `mfa_required`, `session_limit_pending`,
+`session_limit_hard_reject`, `credential_rejected`, `identity_unavailable`, `transaction_expired`,
+`failure`, and `invalid_request`.
+
 ## Signed-In Re-Entry
 
 If a browser already has an acme session, sign/id may introspect or consume that fact only to decide

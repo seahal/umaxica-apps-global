@@ -1,5 +1,6 @@
 <% title t("sign.app.authentication.secret_credential.new.page_title") %>
 <% pt = signed_pt_param %>
+<% ri = current_region_identifier %>
 
 <h1><%= t("sign.app.authentication.secret_credential.new.page_title") %></h1>
 
@@ -19,6 +20,7 @@
   <% end %>
 
   <%= hidden_field_tag :pt, pt if pt.present? %>
+  <%= hidden_field_tag :ri, ri %>
 
   <% if @secret_credential_hints.present? %>
     <div>
@@ -49,7 +51,7 @@
 
   <div>
     <%= f.submit t("actions.submit") %>
-    <%= link_to sign_app_sign_in_path(pt: pt) do %>
+    <%= link_to sign_app_sign_in_path(pt: pt, ri: ri) do %>
       <%= t("sign.app.authentication.new.back") %>
     <% end %>
   </div>

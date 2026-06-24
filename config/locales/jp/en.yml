@@ -1690,7 +1690,7 @@ en:
             description: Change the display language for the organization console.
             language_label: Language
           options:
-            ja: Japanese
+            ja: Japanese - 日本語
             en: English
       settings:
         title: Settings
@@ -1767,8 +1767,21 @@ en:
             description: Change the display language for the application.
             language_label: Language
           options:
-            ja: Japanese
+            ja: Japanese - 日本語
             en: English
+        locale:
+          edit:
+            timezone_options:
+              ETC_UTC: Coordinated Universal Time (UTC)
+              UTC: Coordinated Universal Time (UTC)
+              ASIA_TOKYO: Japan Standard Time (Asia/Tokyo)
+              JST: Japan Standard Time (Asia/Tokyo)
+              AMERICA_NEW_YORK: Eastern Time (US & Canada)
+              AMERICA_CHICAGO: Central Time (US & Canada)
+              AMERICA_DENVER: Mountain Time (US & Canada)
+              AMERICA_LOS_ANGELES: Pacific Time (US & Canada)
+              AMERICA_ANCHORAGE: Alaska Time
+              PACIFIC_HONOLULU: Hawaii Time
         currency:
           edit:
             heading: Currency
@@ -1854,10 +1867,10 @@ en:
           select_region: Select Region
           select_region_prompt: Choose your region...
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: English
-            JP: Japanese
+            USA: United States - USA
+            JAPAN: Japan - 日本
+            US: United States - USA
+            JP: Japan - 日本
         region:
           timezone:
             link: Timezone Settings
@@ -1894,8 +1907,21 @@ en:
             language_label: Language
             h1: Language Select
           options:
-            ja: Japanese
+            ja: Japanese - 日本語
             en: English
+        locale:
+          edit:
+            timezone_options:
+              ETC_UTC: Coordinated Universal Time (UTC)
+              UTC: Coordinated Universal Time (UTC)
+              ASIA_TOKYO: Japan Standard Time (Asia/Tokyo)
+              JST: Japan Standard Time (Asia/Tokyo)
+              AMERICA_NEW_YORK: Eastern Time (US & Canada)
+              AMERICA_CHICAGO: Central Time (US & Canada)
+              AMERICA_DENVER: Mountain Time (US & Canada)
+              AMERICA_LOS_ANGELES: Pacific Time (US & Canada)
+              AMERICA_ANCHORAGE: Alaska Time
+              PACIFIC_HONOLULU: Hawaii Time
         resets:
           title: Reset Preferences
           description: Remove saved preference data for this browser.
@@ -2175,10 +2201,10 @@ en:
           select_region: Select Region
           select_region_prompt: Choose your region...
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: English
-            JP: Japanese
+            USA: United States - USA
+            JAPAN: Japan - 日本
+            US: United States - USA
+            JP: Japan - 日本
         region:
           timezone:
             link: Timezone Settings
@@ -2197,7 +2223,7 @@ en:
             description: Change the display language for the application.
             language_label: Language
           options:
-            ja: Japanese
+            ja: Japanese - 日本語
             en: English
         motion:
           edit:
@@ -2277,10 +2303,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: English
-            JP: Japanese
+            USA: United States - USA
+            JAPAN: Japan - 日本
+            US: United States - USA
+            JP: Japan - 日本
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -2357,10 +2383,10 @@ en:
           select_language_prompt: Choose your language...
           select_timezone_prompt: Choose your timezone...
           select_region_selector:
-            USA: US
-            JAPAN: JP
-            US: English
-            JP: Japanese
+            USA: United States - USA
+            JAPAN: Japan - 日本
+            US: United States - USA
+            JP: Japan - 日本
           select_language_selector:
             JAPANESE: Japanese
             ENGLISH: English
@@ -2398,14 +2424,16 @@ en:
             language_label: Language
             language_prompt: Choose your language...
             language_options:
-              ja: Japanese
+              ja: Japanese - 日本語
               en: English
             timezone_section: Timezone Settings
             timezone_label: Timezone
             timezone_prompt: Choose your timezone...
             timezone_options:
               UTC: Coordinated Universal Time (UTC)
-              JST: Japan Standard Time (JST)
+              ETC_UTC: Coordinated Universal Time (UTC)
+              JST: Japan Standard Time (Asia/Tokyo)
+              ASIA_TOKYO: Japan Standard Time (Asia/Tokyo)
               AMERICA_NEW_YORK: Eastern Time (US & Canada)
               AMERICA_CHICAGO: Central Time (US & Canada)
               AMERICA_DENVER: Mountain Time (US & Canada)
@@ -2493,6 +2521,19 @@ en:
             accept_functional_cookies: Allow functional cookies
             accept_performance_cookies: Allow performance cookies
             accept_targeting_cookies: Allow targeting cookies
+        locale:
+          edit:
+            timezone_options:
+              ETC_UTC: Coordinated Universal Time (UTC)
+              UTC: Coordinated Universal Time (UTC)
+              ASIA_TOKYO: Japan Standard Time (Asia/Tokyo)
+              JST: Japan Standard Time (Asia/Tokyo)
+              AMERICA_NEW_YORK: Eastern Time (US & Canada)
+              AMERICA_CHICAGO: Central Time (US & Canada)
+              AMERICA_DENVER: Mountain Time (US & Canada)
+              AMERICA_LOS_ANGELES: Pacific Time (US & Canada)
+              AMERICA_ANCHORAGE: Alaska Time
+              PACIFIC_HONOLULU: Hawaii Time
         theme:
           edit:
             title: Choose Dark or Light Theme

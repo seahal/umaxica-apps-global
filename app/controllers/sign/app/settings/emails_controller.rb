@@ -29,7 +29,6 @@ module Sign
 
           unless cloudflare_turnstile_stealth_validation["success"]
             @user_email.errors.add(:base, t("turnstile_error"))
-            flash.now[:alert] = t("turnstile_error")
             render(:edit, status: :unprocessable_content)
             return
           end
@@ -41,7 +40,7 @@ module Sign
               status: :see_other,
             )
           else
-            flash.now[:alert] = t("sign.app.settings.email.update.failure")
+            @user_email.errors.add(:base, t("sign.app.settings.email.update.failure"))
             render(:edit, status: :unprocessable_content)
           end
         end

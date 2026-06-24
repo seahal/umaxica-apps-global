@@ -14,6 +14,8 @@ module Sign
 
           include CommonRedirect
 
+          include MinimumResponseBudget
+
           include SessionLimitGate
 
           AUTHENTICATION_MODE = :guest
@@ -42,6 +44,8 @@ module Sign
               render_rate_limited(rule_name: "sign_com_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
             },
           )
+          before_action :start_minimum_response_budget
+          after_action :enforce_minimum_response_budget
 
           class SecretLoginForm
             include ActiveModel::Model
@@ -74,7 +78,7 @@ module Sign
 
           def create
             @secret_credential_form = SecretLoginForm.new(secret_credential_params)
-            @secret_credential_form.turnstile_response = params("cf-turnstile-response").to_s
+            @secret_credential_form.turnstile_response = turnstile_response_param
             unless @secret_credential_form.valid?
               return render_failed_login(
                 reason: :form_invalid,
@@ -112,6 +116,7 @@ module Sign
                 error_class: e.class.name,
                 message: e.message,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 exception: e,
               ),
             )
@@ -188,7 +193,7 @@ module Sign
 
           def process_standard_login(visitor)
             result = establish_signed_in_session!(
-              visitor, pt: nil, ri: params[:ri], auth_method: "secret_credential",
+              visitor, pt: nil, ri: current_region_identifier, auth_method: "secret_credential",
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
@@ -213,6 +218,10 @@ module Sign
             params.fetch(:secret_credential_login_form, {}).permit(:identifier, :secret_credential_value)
           end
 
+          def turnstile_response_param
+            request.request_parameters["cf-turnstile-response"].to_s
+          end
+
           def invalid_secret_credential_message
             t("sign.app.authentication.secret_credential.create.invalid")
           end
@@ -229,6 +238,7 @@ module Sign
                 identifier_present: identifier.present?,
                 visitor_id: visitor&.id,
                 ip: request.remote_ip,
+                ri: current_region_identifier,
                 errors: @secret_credential_form.errors.full_messages,
                 details: details,
               ),
@@ -237,6 +247,10 @@ module Sign
             SignRiskEmitter.emit("auth_failed", visitor_id: visitor&.id) if visitor
 
             render :new, status: :unprocessable_content, formats: :html
+          end
+
+          def minimum_response_budget_enabled?
+            action_name == "create"
           end
         end
       end

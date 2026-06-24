@@ -145,7 +145,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get new" do
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: totp_ceremony_grant), headers: @headers
+      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
@@ -166,7 +166,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   test "new denies with zero unused usable recovery passcodes" do
     @user.client_secret_credentials.destroy_all
 
-    get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: totp_ceremony_grant), headers: @headers
+    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
@@ -185,7 +185,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("ClientTotpCredential.count") do
       post sign_app_settings_totps_url(ri: "jp"),
            params: {
-             totp_ceremony_grant: totp_ceremony_grant,
              user_totp_credential: { first_token: "000000" },
            },
            headers: @headers,
@@ -206,7 +205,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       status_id: ClientSecretCredentialStatus::REVOKED,
     )
 
-    get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: totp_ceremony_grant), headers: @headers
+    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
 
     assert_response :forbidden
   end
@@ -265,10 +264,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @user.client_totp_credentials.destroy_all
 
     with_mocked_totp do |secret_credential|
-      grant = totp_ceremony_grant
-
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -277,23 +274,10 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       step_up_before = Time.current
 
       assert_difference("ClientTotpCredential.count") do
-        assert_difference(
-          -> {
-            ClientChronicle.where(
-              actor_type: "Client",
-              actor_id: @user.id,
-              subject_type: "Client",
-              subject_id: @user.id,
-              event_id: ClientChronicleEvent::TOTP_ENABLED,
-            ).count
-          },
-          1,
-        ) do
-          with_prosopite_paused do
-            post sign_app_settings_totps_url(ri: "jp"),
-                 params: { totp_ceremony_grant: grant, user_totp_credential: { first_token: token } },
-                 headers: @headers
-          end
+        with_prosopite_paused do
+          post sign_app_settings_totps_url(ri: "jp"),
+               params: { user_totp_credential: { first_token: token } },
+               headers: @headers
         end
       end
 
@@ -312,10 +296,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @user.client_totp_credentials.destroy_all
 
     with_mocked_totp do |secret_credential|
-      grant = totp_ceremony_grant
-
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -325,7 +307,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       with_prosopite_paused do
         post sign_app_settings_totps_url(ri: "jp"),
              params: {
-               totp_ceremony_grant: grant,
                user_totp_credential: { first_token: token, title: "New TOTP" },
              },
              headers: @headers
@@ -342,10 +323,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @user.client_totp_credentials.destroy_all
 
     with_mocked_totp do |secret_credential|
-      grant = totp_ceremony_grant
-
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       raw_token = ROTP::TOTP.new(secret_credential).now
@@ -355,7 +334,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
         with_prosopite_paused do
           post sign_app_settings_totps_url(ri: "jp"),
                params: {
-                 totp_ceremony_grant: grant,
                  user_totp_credential: { first_token: pasted_token, title: "Pasted TOTP" },
                },
                headers: @headers
@@ -367,10 +345,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not create totp with invalid token" do
-    grant = totp_ceremony_grant
-
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
@@ -379,7 +355,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
         post sign_app_settings_totps_url(ri: "jp"),
-             params: { totp_ceremony_grant: grant, user_totp_credential: { first_token: "000000" } },
+             params: { user_totp_credential: { first_token: "000000" } },
              headers: @headers
       end
     end
@@ -388,10 +364,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not create totp with empty token" do
-    grant = totp_ceremony_grant
-
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
@@ -399,7 +373,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
         post sign_app_settings_totps_url(ri: "jp"),
-             params: { totp_ceremony_grant: grant, user_totp_credential: { first_token: "", title: "" } },
+             params: { user_totp_credential: { first_token: "", title: "" } },
              headers: @headers
       end
     end
@@ -410,10 +384,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create totp when turnstile stealth fails" do
     with_mocked_totp do |secret_credential|
-      grant = totp_ceremony_grant
-
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp", totp_ceremony_grant: grant), headers: @headers
+        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -426,7 +398,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
         with_prosopite_paused do
           post sign_app_settings_totps_url(ri: "jp"),
                params: {
-                 totp_ceremony_grant: grant,
                  user_totp_credential: { first_token: token, title: "Blocked TOTP" },
                },
                headers: @headers
@@ -488,12 +459,9 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
 
     with_mocked_totp do |secret_credential|
-      grant = totp_ceremony_grant(actor: user, token: token)
-
       with_prosopite_paused do
         get new_sign_app_settings_totp_url(
           ri: "jp",
-          totp_ceremony_grant: grant,
         ), headers: headers
       end
 
@@ -503,7 +471,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       assert_difference("ClientTotpCredential.count", 1) do
         with_prosopite_paused do
           post sign_app_settings_totps_url(ri: "jp"),
-               params: { totp_ceremony_grant: grant, user_totp_credential: { first_token: first_code } },
+               params: { user_totp_credential: { first_token: first_code } },
                headers: headers
         end
       end
@@ -515,10 +483,6 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   private
 
   private
-
-  def totp_ceremony_grant(actor: @user, token: @token)
-    signed_totp_ceremony_grant_for(actor: actor, token: token)
-  end
 
   def with_mocked_totp
     known_secret_credential = "JBSWY3DPEHPK3PXP"

@@ -7,7 +7,6 @@ module SignEmailRegistrationFlow
   def new
     @user_email = ClientEmail.new
     reset_email_registration_flow!
-    accept_email_ceremony_grant!(surface: "app") if respond_to?(:accept_email_ceremony_grant!, true)
   end
 
   def edit

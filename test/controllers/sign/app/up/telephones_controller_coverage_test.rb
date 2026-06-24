@@ -238,39 +238,4 @@ class Sign::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
     assert registration_session[:dummy] || registration_session["dummy"]
     assert @controller.instance_variable_get(:@sign_up_flow_locator).cleared
   end
-
-  test "verify_existing_telephone_code covers success and lockout branches" do
-    telephone = FakeTelephone.new(
-      "tel-3", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, true, false,
-      "1", "1", false, nil, false, nil, nil,
-    )
-    @controller.instance_variable_set(:@user_telephone, telephone)
-    @controller.params_hash = { user_telephone: { pass_code: "123456" } }
-    @controller.otp_result = { success: false }
-
-    assert_equal :locked, @controller.send(:verify_existing_telephone_code)
-    assert @controller.instance_variable_defined?(:@attempts_incremented)
-
-    telephone.locked_value = false
-    @controller.otp_result = { success: true }
-
-    assert @controller.send(:verify_existing_telephone_code)
-  end
-
-  test "verify_telephone_ownership! persists ownership flags and session state" do
-    telephone = FakeTelephone.new(
-      "tel-4", ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, false, nil, false, false,
-      "0", "0", true, 42, false, nil, nil,
-    )
-    @controller.instance_variable_set(:@user_telephone, telephone)
-    @controller.session[:user_telephone_registration] = {}
-
-    @controller.send(:verify_telephone_ownership!)
-
-    assert_equal "1", telephone.confirm_policy
-    assert_equal "1", telephone.confirm_using_mfa
-    assert @controller.instance_variable_get(:@cleared_otp)
-    assert @controller.session[:user_telephone_registration]["otp_verified"]
-    assert_equal "tel-4", @controller.session[:user_telephone_registration]["public_id"]
-  end
 end

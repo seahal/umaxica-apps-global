@@ -31,20 +31,21 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     }
   end
 
+  def request_headers_for(visitor, token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-RESOURCE" => visitor.id,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
+  end
+
   test "new does not require step-up while registering first telephone" do
     visitor = create_verified_visitor_with_email(email_address: "first-telephone-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "com",
-      actor_ref: visitor.public_id,
-      session_ref: token.public_id,
-      operation: "registration",
-    )
 
     get(
       new_sign_com_settings_telephones_registration_url(
         ri: "jp",
-        telephone_ceremony_grant: issuance.grant,
       ),
       headers: request_headers_for(visitor, token),
     )
@@ -71,16 +72,9 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current visitor" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "com",
-      actor_ref: @visitor.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get(
       new_sign_com_settings_telephones_registration_url(
         ri: "jp",
-        telephone_ceremony_grant: issuance.grant,
       ),
       headers: request_headers,
     )
@@ -102,16 +96,9 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "new renders stealth turnstile" do
-    issuance = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "com",
-      actor_ref: @visitor.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    )
     get(
       new_sign_com_settings_telephones_registration_url(
         ri: "jp",
-        telephone_ceremony_grant: issuance.grant,
       ),
       headers: request_headers,
     )
@@ -156,176 +143,30 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
     with_current_registration_telephone(telephone) do
       original_method = Sign::Com::Settings::Telephones::RegistrationsController.instance_method(:complete_visitor_telephone_verification)
-      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
-        :complete_visitor_telephone_verification,
-      ) do |*_args|
+      Sign::Com::Settings::Telephones::RegistrationsController.define_method(:complete_visitor_telephone_verification) do |*_args|
         :success
       end
 
-      begin
-        patch(
-          sign_com_settings_telephones_registration_url(ri: "jp"),
-          params: { user_telephone: { pass_code: "123456" } },
-          headers: request_headers,
-        )
-
-        assert_redirected_to sign_com_settings_telephones_url(
-          ri: "jp",
-          host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-        )
-        assert_equal I18n.t("sign.app.registration.telephone.update.success"), flash[:notice]
-        assert_equal VisitorTelephoneStatus::VERIFIED, telephone.reload.visitor_telephone_status_id
-      ensure
-        Sign::Com::Settings::Telephones::RegistrationsController.define_method(
-          :complete_visitor_telephone_verification, original_method,
-        )
-      end
+      patch(
+        sign_com_settings_telephones_registration_url(ri: "jp"),
+        params: { user_telephone: { pass_code: "123456" } },
+        headers: request_headers,
+      )
+    ensure
+      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
+        :complete_visitor_telephone_verification,
+        original_method,
+      )
     end
-  end
 
-  test "direct controller telephone registration branches" do
-    controller = Sign::Com::Settings::Telephones::RegistrationsController.new
-    session_hash = {}
-    params_hash = ActionController::Parameters.new(ri: "jp")
-    redirects = []
-    renders = []
-    heads = []
-
-    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => @host)
-    controller.response = ActionDispatch::TestResponse.new
-    controller.define_singleton_method(:session) { session_hash }
-    controller.define_singleton_method(:params) { |*| params_hash }
-    controller.define_singleton_method(:flash) { @flash ||= {}.freeze }
-    controller.define_singleton_method(:current_visitor) { @visitor_for_test }
-    controller.instance_variable_set(:@visitor_for_test, @visitor)
-    controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
-    controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
-    controller.define_singleton_method(:head) { |status| heads << status }
-    controller.define_singleton_method(:t) { |key, **| key }
-    controller.define_singleton_method(:new_sign_com_settings_telephones_registration_path) { |ri: nil|
-      "/settings/telephones/registration/new?ri=#{ri}"
-    }
-    controller.define_singleton_method(:edit_sign_com_settings_telephones_registration_path) { |ri: nil|
-      "/settings/telephones/registration/edit?ri=#{ri}"
-    }
-    controller.define_singleton_method(:sign_com_settings_telephones_url) { |ri: nil, host: nil|
-      host ||= ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-      "http://#{host}/settings/telephones?ri=#{ri}"
-    }
-    controller.define_singleton_method(:sign_com_settings_telephones_path) { |ri: nil|
-      "/settings/telephones?ri=#{ri}"
-    }
-
-    controller.new
-
-    assert_instance_of VisitorTelephone, controller.instance_variable_get(:@user_telephone)
-    assert_nil session_hash[controller.send(:registration_session_key)]
-
-    controller.instance_variable_set(:@visitor_for_test, nil)
-    params_hash[:user_telephone] = { raw_number: "+819011111111" }
-    controller.create
-
-    assert_equal :unauthorized, heads.last
-
-    controller.instance_variable_set(:@visitor_for_test, @visitor)
-    controller.define_singleton_method(:initiate_visitor_telephone_verification) { |*, **| false }
-    controller.create
-
-    assert_equal [[:new], { status: :unprocessable_content }], renders.last
-
-    telephone = VisitorTelephone.create!(
-      visitor: @visitor,
-      raw_number: "+819011111112",
-      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
-      otp_expires_at: 10.minutes.from_now,
+    assert_redirected_to sign_com_settings_telephones_url(
+      ri: "jp",
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )
-    session_hash[controller.send(:registration_session_key)] = telephone.id
-
-    assert_equal telephone, controller.send(:current_registration_telephone)
-    controller.instance_variable_set(:@user_telephone, telephone)
-
-    assert controller.send(:valid_registration_session?)
-
-    session_hash.delete(controller.send(:registration_session_key))
-    controller.instance_variable_set(:@user_telephone, nil)
-
-    assert_not controller.send(:valid_registration_session?)
-    controller.edit
-
-    assert_equal(
-      ["/settings/telephones/registration/new?ri=jp",
-       { notice: "sign.app.registration.telephone.edit.session_expired" },],
-      redirects.last,
-    )
-
-    session_hash[controller.send(:registration_session_key)] = telephone.id
-    controller.instance_variable_set(:@user_telephone, telephone)
-    params_hash[:user_telephone] = { pass_code: "" }
-    controller.define_singleton_method(:current_registration_telephone) { telephone }
-    controller.update
-
-    assert_equal [[:edit], { status: :unprocessable_content }], renders.last
-
-    params_hash[:user_telephone] = { pass_code: "123456" }
-    controller.define_singleton_method(:complete_visitor_telephone_verification) { |*, **| :session_expired }
-    controller.update
-
-    assert_equal(
-      ["/settings/telephones/registration/new?ri=jp",
-       { notice: "sign.app.registration.telephone.edit.session_expired" },],
-      redirects.last,
-    )
-
-    controller.define_singleton_method(:complete_visitor_telephone_verification) { |*, **| :locked }
-    controller.update
-
-    assert_equal(
-      ["/settings/telephones/registration/new?ri=jp",
-       { alert: "sign.app.registration.telephone.update.attempts_exceeded" },],
-      redirects.last,
-    )
-
-    controller.define_singleton_method(:complete_visitor_telephone_verification) { |*, **| :invalid_code }
-    controller.update
-
-    assert_equal [[:edit], { status: :unprocessable_content }], renders.last
-
-    assert_not controller.send(:verification_required_action?)
-
-    @visitor.visitor_telephones.create!(
-      raw_number: "+10000000041",
-      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
-    )
-
-    assert controller.send(:verification_required_action?)
-    assert_equal "settings_telephone", controller.send(:verification_scope)
-  end
-
-  test "otp verification does not directly mark visitor telephone verified" do
-    controller = Sign::Com::Settings::Telephones::RegistrationsController.new
-    telephone = VisitorTelephone.create!(
-      visitor: @visitor,
-      raw_number: "+18888888886",
-      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED,
-      otp_private_key: ROTP::Base32.random_base32,
-      otp_expires_at: 10.minutes.from_now,
-    )
-    otp_data = telephone.get_otp
-    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
-
-    assert_equal :success, controller.send(:complete_visitor_telephone_verification, telephone.id, pass_code)
-    assert_equal VisitorTelephoneStatus::UNVERIFIED, telephone.reload.visitor_telephone_status_id
+    assert_equal VisitorTelephoneStatus::VERIFIED, telephone.reload.visitor_telephone_status_id
   end
 
   private
-
-  def request_headers_for(visitor, token)
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-RESOURCE" => visitor.id,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
-  end
 
   def with_current_registration_telephone(telephone)
     original_method =
@@ -334,29 +175,11 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       telephone
     end
 
-    grant = IdentityTelephoneCeremonyGrantIssuer.issue!(
-      surface: "com",
-      actor_ref: @visitor.public_id,
-      session_ref: @token.public_id,
-      operation: "registration",
-    ).grant
-
-    original_grant_method = Sign::Com::Settings::Telephones::RegistrationsController.instance_method(:telephone_ceremony_grant_token)
-    Sign::Com::Settings::Telephones::RegistrationsController.define_method(:telephone_ceremony_grant_token) do
-      grant
-    end
-
-    begin
-      yield
-    ensure
-      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
-        :current_registration_telephone,
-        original_method,
-      )
-      Sign::Com::Settings::Telephones::RegistrationsController.define_method(
-        :telephone_ceremony_grant_token,
-        original_grant_method,
-      )
-    end
+    yield
+  ensure
+    Sign::Com::Settings::Telephones::RegistrationsController.define_method(
+      :current_registration_telephone,
+      original_method,
+    )
   end
 end

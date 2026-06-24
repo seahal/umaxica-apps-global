@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+cd "${SCRIPT_DIR}/.."
 
 echo "🔧 Setting up databases..."
 
@@ -32,6 +35,24 @@ RAILS_ENV=development bin/rails db:prepare || {
   sleep 3
   RAILS_ENV=development bin/rails db:prepare
 }
+
+echo "🧩 Enabling pg_cron on prepared databases..."
+while IFS= read -r database; do
+  [ -n "$database" ] || continue
+  PGPASSWORD="${POSTGRESQL_PASSWORD}" psql \
+    -h primary \
+    -U "${POSTGRESQL_USER}" \
+    -d "${database}" \
+    -v ON_ERROR_STOP=1 \
+    -c 'CREATE EXTENSION IF NOT EXISTS pg_cron;'
+done < <(
+  PGPASSWORD="${POSTGRESQL_PASSWORD}" psql \
+    -h primary \
+    -U "${POSTGRESQL_USER}" \
+    -d postgres \
+    -Atq \
+    -c "select datname from pg_database where datallowconn and not datistemplate and datname <> 'postgres' order by 1"
+)
 
 echo "✨ All databases are ready!"
 echo "   You can now start developing without running db:create manually."

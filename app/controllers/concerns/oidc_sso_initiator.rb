@@ -51,49 +51,32 @@ module OidcSsoInitiator
   end
 
   def redirect_to_oidc_authorization_url(url, **)
-    return redirect_to(url, allow_other_host: true, **) if same_site_oidc_authorization_url?(url)
+    decision = oidc_redirect_decision(url)
+    log_oidc_redirect_decision(decision)
 
-    redirect_to_jump_url(url, preserve_query_keys: ["redirect_uri"], **)
+    case decision.kind
+    when :direct
+      redirect_to(url, allow_other_host: true, **)
+    when :jump
+      redirect_to_jump_url(url, preserve_query_keys: ["redirect_uri"], **)
+    else
+      head :bad_request
+    end
   end
 
   def same_site_oidc_authorization_url?(url)
-    uri = URI.parse(url.to_s)
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-    return false unless uri.is_a?(URI::HTTP)
-    return false unless uri.path == "/oauth/authorize"
-    return false unless CommonRedirect.normalize_host(uri.host) == CommonRedirect.normalize_host(oidc_acme_host)
-    return false unless oidc_same_site_host?(request.host, uri.host)
-    return false unless query["client_id"].to_s == oidc_client_id.to_s
-    return false unless defined?(OidcClientRegistry)
-    return false unless OidcClientRegistry.valid_redirect_uri?(query["client_id"], query["redirect_uri"])
-
-    true
-  rescue URI::InvalidURIError
-    false
+    oidc_redirect_decision(url).direct?
   end
 
-  def oidc_same_site_host?(source_host, target_host)
-    oidc_site_key(source_host) == oidc_site_key(target_host)
+  def same_site_oidc_rejection_reason(url)
+    oidc_redirect_decision(url).reason_code
   end
 
-  def oidc_site_key(host)
-    normalized = CommonRedirect.normalize_host(host)
-    return if normalized.blank?
-
-    labels = normalized.split(".")
-    return normalized if labels.one?
-
-    labels.last(2).join(".")
+  def oidc_redirect_decision(url)
+    oidc_acme_service_origin.decision_for_authorize_url(url, request: request)
   end
 
   def oidc_authorization_url(screen_hint:, code_challenge:, state:, nonce:)
-    uri = URI::Generic.build(
-      scheme: oidc_acme_scheme,
-      host: oidc_acme_host,
-      port: oidc_port,
-      path: "/oauth/authorize",
-    )
     query = {
       response_type: "code",
       client_id: oidc_client_id,
@@ -105,8 +88,7 @@ module OidcSsoInitiator
       scope: "openid profile",
     }
     query[:screen_hint] = screen_hint if screen_hint.present?
-    uri.query = query.to_query
-    uri.to_s
+    oidc_acme_service_origin.authorization_endpoint(query: query)
   end
 
   def oidc_callback_url
@@ -117,23 +99,7 @@ module OidcSsoInitiator
   end
 
   def oidc_token_url
-    uri = URI::Generic.build(
-      scheme: oidc_acme_scheme,
-      host: oidc_acme_host,
-      port: oidc_port,
-      path: "/oauth/token",
-    )
-    uri.to_s
-  end
-
-  def oidc_port
-    [80, 443].include?(request.port) ? nil : request.port
-  end
-
-  def oidc_acme_scheme
-    return "http" if !request.ssl? && oidc_acme_host.to_s.end_with?(".localhost")
-
-    "https"
+    oidc_acme_service_origin.token_endpoint
   end
 
   def encoded_pt(pt)
@@ -189,5 +155,66 @@ module OidcSsoInitiator
 
   def oidc_acme_host
     raise NotImplementedError, "controller must define oidc_acme_host"
+  end
+
+  def oidc_acme_service_origin
+    @oidc_acme_service_origin ||=
+      Oidc::AcmeServiceOrigin.from(
+        oidc_acme_host,
+        default_scheme: oidc_acme_default_scheme,
+      )
+  end
+
+  def oidc_acme_default_scheme
+    host = Oidc::AcmeServiceOrigin.host_from(oidc_acme_host)
+    return request.ssl? ? "https" : "http" if host.present? && host.end_with?(".localhost")
+
+    "https"
+  end
+
+  def log_oidc_redirect_decision(decision)
+    event_name =
+      case decision.kind
+      when :direct then "oidc.sso.redirect_policy.direct"
+      when :jump then "oidc.sso.redirect_policy.jump"
+      else "oidc.sso.redirect_policy.rejected"
+      end
+
+    payload = {
+      request_id: request.request_id,
+      surface: oidc_redirect_surface,
+      client_id: oidc_client_id,
+      request_host: decision.request_host,
+      request_scheme: decision.request_scheme,
+      target_scheme: decision.target_scheme,
+      target_host: decision.target_host,
+      target_port: decision.target_port,
+      target_path: decision.target_path,
+      decision: decision.kind,
+      reason_code: decision.reason_code,
+      same_site: decision.same_site,
+      acme_host: decision.acme_host,
+      acme_port: decision.acme_port,
+      acme_scheme: decision.acme_scheme,
+    }.compact
+
+    Rails.logger.info(JSON.generate(event: event_name, data: payload))
+  end
+
+  def oidc_redirect_surface
+    case self.class.name.to_s
+    when /\ASign::App::/ then "sign_app"
+    when /\ASign::Com::/ then "sign_com"
+    when /\ASign::Org::/ then "sign_org"
+    when /\ACore::App::/ then "core_app"
+    when /\ACore::Com::/ then "core_com"
+    when /\ACore::Org::/ then "core_org"
+    when /\ABase::App::/ then "base_app"
+    when /\ABase::Com::/ then "base_com"
+    when /\ABase::Org::/ then "base_org"
+    when /\APalm::App::/ then "palm_app"
+    else
+      self.class.name.to_s
+    end
   end
 end

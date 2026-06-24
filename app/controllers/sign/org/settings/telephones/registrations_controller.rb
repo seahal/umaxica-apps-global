@@ -9,7 +9,7 @@ module Sign
           include CloudflareTurnstile
 
           include SignOperatorTelephoneRegistrable
-          include SignTelephoneCeremonyDelegation
+          include SignSettingsTelephoneRegistration
 
           include ::VerificationOperator
 
@@ -24,7 +24,6 @@ module Sign
           def new
             @staff_telephone = OperatorTelephone.new
             reset_registration_session!
-            accept_telephone_ceremony_grant!(surface: "org")
           end
 
           def edit
@@ -42,7 +41,6 @@ module Sign
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_telephone = OperatorTelephone.new
               @staff_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:new, status: :unprocessable_content)
               return
             end
@@ -81,7 +79,6 @@ module Sign
 
             unless cloudflare_turnstile_stealth_validation["success"]
               @staff_telephone.errors.add(:base, t("turnstile_error"))
-              flash.now[:alert] = t("turnstile_error")
               render(:edit, status: :unprocessable_content)
               return
             end

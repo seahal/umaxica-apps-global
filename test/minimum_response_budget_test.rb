@@ -89,4 +89,21 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
     assert_not plain.send(:minimum_response_budget_enabled?)
     assert plain.send(:timing_protection_sleep_enabled?)
   end
+
+  test "sign-in secret credential controllers enable the budget only for create" do
+    [
+      Sign::App::Sign::In::SecretCredentialsController,
+      Sign::Com::Sign::In::SecretCredentialsController,
+      Sign::Org::Sign::In::SecretCredentialsController,
+    ].each do |controller_class|
+      controller = controller_class.new
+      controller.define_singleton_method(:action_name) { "create" }
+
+      assert controller.send(:minimum_response_budget_enabled?), controller_class.name
+
+      controller.define_singleton_method(:action_name) { "new" }
+
+      assert_not controller.send(:minimum_response_budget_enabled?), controller_class.name
+    end
+  end
 end

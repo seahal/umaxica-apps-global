@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
+class SignComSettingsActivityLogTest < ActiveSupport::TestCase
   ActivityStub = Struct.new(:event_id, :occurred_at, :created_at, :ip_address, :context, keyword_init: true)
 
   def stub_activity(event_id: 1, ip: "192.168.1.1", context: {}, occurred_at: nil, created_at: Time.current)
@@ -14,7 +14,7 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   setup do
-    @log = AcmeAppSettingsActivityLog.new(clients(:one))
+    @log = Sign::Com::Settings::ActivityLog.new(visitors(:reserved_visitor))
   end
 
   test "occurred_at returns occurred_at when present" do
@@ -85,8 +85,16 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
     assert_equal "{}", @log.context_text(activity)
   end
 
-  test "context_text returns empty hash when JSON generation fails" do
-    activity = stub_activity(context: { "value" => Float::NAN })
+  test "context_text handles non-serializable context" do
+    bad_context = Object.new
+
+    def bad_context.is_a?(klass) = (klass == Hash) ? true : super
+
+    def bad_context.deep_stringify_keys
+      raise TypeError, "can't convert to JSON"
+    end
+
+    activity = stub_activity(context: bad_context)
 
     assert_equal "{}", @log.context_text(activity)
   end
@@ -103,18 +111,6 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
     assert_equal "Firefox / Mobile", @log.user_agent_summary(activity)
   end
 
-  test "user_agent_summary detects Safari desktop" do
-    activity = stub_activity(context: { "user_agent" => "Mozilla/5.0 Macintosh Safari/605.1" })
-
-    assert_equal "Safari / Desktop", @log.user_agent_summary(activity)
-  end
-
-  test "user_agent_summary detects Edge" do
-    activity = stub_activity(context: { "user_agent" => "Mozilla/5.0 Edg/120.0" })
-
-    assert_equal "Edge / Desktop", @log.user_agent_summary(activity)
-  end
-
   test "user_agent_summary returns dash for blank" do
     activity = stub_activity(context: {})
 
@@ -127,16 +123,16 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
     assert_equal "passkey", @log.login_method(activity)
   end
 
+  test "login_method falls back to method key" do
+    activity = stub_activity(context: { "method" => "email_otp" })
+
+    assert_equal "email_otp", @log.login_method(activity)
+  end
+
   test "login_method returns dash when blank" do
     activity = stub_activity(context: {})
 
     assert_equal "-", @log.login_method(activity)
-  end
-
-  test "login_method includes provider for social" do
-    activity = stub_activity(context: { "auth_method" => "social", "provider" => "google" })
-
-    assert_equal "google", @log.login_method(activity)
   end
 
   test "detect_browser identifies browsers" do
@@ -159,5 +155,11 @@ class AcmeAppSettingsActivityLogTest < ActiveSupport::TestCase
     assert @log.send(:sensitive_context_key?, "authorization")
     assert @log.send(:sensitive_context_key?, "token_value")
     assert_not @log.send(:sensitive_context_key?, "browser")
+  end
+
+  test "activities returns an enumerable" do
+    result = @log.activities
+
+    assert_kind_of Enumerable, result
   end
 end

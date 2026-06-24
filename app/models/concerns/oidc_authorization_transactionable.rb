@@ -144,16 +144,11 @@ module OidcAuthorizationTransactionable
   end
 
   def acme_resume_url
-    resource_type = OidcClientRegistry.find!(client_id).resource_type
-    host = OidcIssuer.host_for_resource_type(resource_type)
-    scheme = (host.to_s.end_with?(".localhost") && !Rails.env.production?) ? "http" : "https"
-    uri = URI::Generic.build(
-      scheme: scheme,
-      host: host,
-      path: "/oauth/authorize",
+    origin = Oidc::AcmeServiceOrigin.from(
+      Rails.configuration.x.boot_config.fetch(:hosts).acme_service.to_s,
+      default_scheme: "https",
     )
-    uri.query = { login_challenge: login_challenge }.to_query
-    uri.to_s
+    origin.authorization_endpoint(query: { login_challenge: login_challenge })
   end
 
   private

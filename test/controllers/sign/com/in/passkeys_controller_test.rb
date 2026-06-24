@@ -32,7 +32,7 @@ class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
     JitSecurityTurnstileVerifier.test_mode = false
     JitSecurityTurnstileVerifier.test_response = nil
   end
@@ -41,6 +41,10 @@ class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     get new_sign_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
+    assert_select "[data-passkey-authentication-options-url-value=?]", sign_com_sign_in_passkey_options_path(ri: "jp")
+    assert_select "[data-passkey-authentication-verification-url-value=?]",
+                  sign_com_sign_in_passkey_verification_path(ri: "jp")
+    assert_select "[data-passkey-authentication-region-value=?]", "jp"
   end
 
   test "options returns challenge for known identifier" do
@@ -63,6 +67,13 @@ class Sign::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("errors.webauthn.no_passkeys_available")
+  end
+
+  test "options returns error when identifier is missing" do
+    post sign_com_sign_in_passkey_options_path(ri: "jp"), headers: @origin_headers
+
+    assert_response :unprocessable_content
+    assert_includes response.body, I18n.t("errors.webauthn.pii_required")
   end
 
   test "verification logs visitor in on success" do
