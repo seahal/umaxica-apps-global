@@ -11,16 +11,17 @@ class OidcRpSessionLogout < ApplicationService
 
   def call
     return false unless OidcLogoutTokenCodec::UUID_PATTERN.match?(sid.to_s)
-    return false unless token_class.column_names.include?("oidc_sid")
 
-    token = token_class.currently_usable_at.find_by(oidc_sid: sid)
+    token = usage_class.currently_usable_at.find_by(public_id: sid)
+    token ||= token_class.currently_usable_at.find_by(oidc_sid: sid)
+    token ||= token_class.currently_usable_at.find_by(public_id: sid)
     return false unless token
 
     AuthenticationLogoutCurrentSession.call(
       resource: token_resource(token),
       token: token,
       token_class: token_class,
-      session_public_id: token.oidc_sid,
+      session_public_id: token.public_id,
       reason: reason,
     )
     true
@@ -35,6 +36,14 @@ class OidcRpSessionLogout < ApplicationService
     when "operator", "staff" then OperatorToken
     when "visitor", "customer" then VisitorToken
     else ClientToken
+    end
+  end
+
+  def usage_class
+    case resource_type.to_s
+    when "operator", "staff" then OperatorTokenUsage
+    when "visitor", "customer" then VisitorTokenUsage
+    else ClientTokenUsage
     end
   end
 

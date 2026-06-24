@@ -226,7 +226,10 @@ class AuthenticationCurrentResourceResolver
       )
     end
 
-    resource = @resource_class.find_by(id: AuthenticationToken.extract_subject(payload))
+    resource =
+      ActiveRecord::Base.connected_to(role: :writing) do
+        @resource_class.find_by(id: AuthenticationToken.extract_subject(payload))
+      end
     return failure(
       :resource_not_found, payload: payload,
                            session_public_id: current_session_public_id(token_record, sid),

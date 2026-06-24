@@ -163,37 +163,42 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='cf-turnstile-response']"
   end
 
-  test "new denies with zero unused usable recovery passcodes" do
+  test "new allows bootstrap with zero unused usable recovery passcodes" do
+    @user.client_totp_credentials.destroy_all
     @user.client_secret_credentials.destroy_all
 
     get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
 
-    assert_response :forbidden
+    assert_response :success
     assert_equal "text/html", response.media_type
-    assert_includes response.body, sign_app_settings_secret_credentials_url(
+    assert_not_includes response.body, sign_app_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
-    assert_empty flash.to_hash
   end
 
-  test "create denies with one unused usable recovery passcode and does not return json" do
+  test "create tops recovery passcodes up after bootstrap with one existing recovery passcode" do
     @user.client_totp_credentials.destroy_all
     @user.client_secret_credentials.destroy_all
     create_client_recovery_passcode!(@user, name: "only recovery")
 
-    assert_no_difference("ClientTotpCredential.count") do
-      post sign_app_settings_totps_url(ri: "jp"),
-           params: {
-             user_totp_credential: { first_token: "000000" },
-           },
-           headers: @headers,
-           as: :json
+    with_mocked_totp do |secret_credential|
+      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      token = ROTP::TOTP.new(secret_credential).now
+
+      assert_difference("ClientTotpCredential.count", 1) do
+        assert_difference("ClientSecretCredential.count", 9) do
+          post sign_app_settings_totps_url(ri: "jp"),
+               params: {
+                 user_totp_credential: { first_token: token },
+               },
+               headers: @headers
+        end
+      end
     end
 
-    assert_response :forbidden
-    assert_equal "text/html", response.media_type
-    assert_empty flash.to_hash
+    assert_response :see_other
+    assert_includes response.location, "/settings/secrets"
   end
 
   test "used and revoked recovery passcodes are not counted" do
@@ -262,6 +267,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   test "should create totp with valid token" do
     # Clear TOTP created in setup to allow creation of a new one (limit is 2)
     @user.client_totp_credentials.destroy_all
+    @user.client_secret_credentials.destroy_all
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
@@ -273,22 +279,49 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       token = ROTP::TOTP.new(secret_credential).now
       step_up_before = Time.current
 
-      assert_difference("ClientTotpCredential.count") do
-        with_prosopite_paused do
-          post sign_app_settings_totps_url(ri: "jp"),
-               params: { user_totp_credential: { first_token: token } },
-               headers: @headers
+      assert_difference("ClientTotpCredential.count", 1) do
+        assert_difference("ClientSecretCredential.count", 10) do
+          with_prosopite_paused do
+            post sign_app_settings_totps_url(ri: "jp"),
+                 params: { user_totp_credential: { first_token: token } },
+                 headers: @headers
+          end
         end
       end
 
-      assert_redirected_to sign_app_settings_totps_url(
-        ri: "jp",
-        host: ENV.fetch(
-          "ID_SERVICE_URL", "id.app.localhost",
-        ),
-      )
+      assert_response :see_other
+      assert_includes response.location, "/settings/secrets"
       assert_operator @token.reload.last_step_up_at, :<, step_up_before
       assert_equal "settings_totp", @token.last_step_up_scope
+    end
+  end
+
+  test "create tops up only the shortfall when some recovery passcodes already exist" do
+    @user.client_totp_credentials.destroy_all
+    @user.client_secret_credentials.destroy_all
+    5.times do |index|
+      create_client_recovery_passcode!(@user, name: "existing #{index + 1}")
+    end
+
+    with_mocked_totp do |secret_credential|
+      with_prosopite_paused do
+        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      end
+
+      token = ROTP::TOTP.new(secret_credential).now
+
+      assert_difference("ClientTotpCredential.count", 1) do
+        assert_difference("ClientSecretCredential.count", 5) do
+          with_prosopite_paused do
+            post sign_app_settings_totps_url(ri: "jp"),
+                 params: { user_totp_credential: { first_token: token } },
+                 headers: @headers
+          end
+        end
+      end
+
+      assert_response :see_other
+      assert_includes response.location, "/settings/secrets"
     end
   end
 

@@ -292,6 +292,10 @@ module Sign
           "settings_passkey"
         end
 
+        def recovery_passcode_requirement_active_strong_credential_count
+          0
+        end
+
         def recovery_passcode_requirement_actor
           current_operator
         end

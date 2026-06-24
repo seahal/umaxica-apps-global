@@ -9,10 +9,14 @@ class Base::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @user = clients(:one)
+    @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    satisfy_user_verification(@token)
   end
 
   test "renders dashboard for signed-in client" do
-    get base_app_dashboard_url(ri: "jp"), headers: as_user_headers(clients(:one), host: @host)
+    get base_app_dashboard_url(ri: "jp"),
+        headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)
 
     assert_response :success
     assert_select "h1", text: "Dashboard"

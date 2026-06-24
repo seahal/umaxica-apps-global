@@ -22,11 +22,13 @@
 #  created_at            :datetime         not null
 #  updated_at            :datetime         not null
 #  client_id             :string(64)       not null
+#  operator_token_id      :bigint
 #  staff_id              :bigint           not null
 #
 # Indexes
 #
 #  index_operator_authorization_codes_on_code      (code) UNIQUE
+#  index_operator_authorization_codes_on_operator_token_id  (operator_token_id)
 #  index_operator_authorization_codes_on_staff_id  (staff_id)
 #
 class OperatorAuthorizationCode < OrgTicketRecord
@@ -36,9 +38,11 @@ class OperatorAuthorizationCode < OrgTicketRecord
   CODE_BYTES = 32
 
   belongs_to :staff, class_name: "Operator"
+  belongs_to :operator_token, optional: true
 
   validates :code, presence: true, uniqueness: true, length: { maximum: 64 }
   validates :client_id, presence: true, length: { maximum: 64 }
+  validates :operator_token_id, presence: true, on: :create
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }, length: { maximum: 8 }
@@ -60,10 +64,11 @@ class OperatorAuthorizationCode < OrgTicketRecord
     end
 
     def issue!(client_id:, redirect_uri:, code_challenge:, code_challenge_method:, scope: nil, state: nil,
-               nonce: nil, staff: nil, auth_method: nil, acr: nil)
+               nonce: nil, staff: nil, operator_token: nil, auth_method: nil, acr: nil)
       create!(
         code: generate_code,
         staff: staff,
+        operator_token: operator_token,
         client_id: client_id,
         redirect_uri: redirect_uri,
         code_challenge: code_challenge,

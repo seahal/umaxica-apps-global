@@ -19,7 +19,11 @@
   <%= form_with url: acme_app_session_limit_resolution_path,
                 method: :patch,
                 data: { turbo: false } do |form| %>
-    <%= hidden_field_tag :resolution_challenge, @resolution_challenge %>
+    <% if @social_resolution_token.present? %>
+      <%= hidden_field_tag :social_resolution, @social_resolution_token %>
+    <% else %>
+      <%= hidden_field_tag :resolution_challenge, @resolution_challenge %>
+    <% end %>
 
     <ul>
       <% @sessions.each do |session_record| %>
@@ -48,7 +52,13 @@
   <% end %>
 
   <%= button_to "Cancel sign-in",
-                acme_app_session_limit_resolution_path(resolution_challenge: @resolution_challenge),
+                acme_app_session_limit_resolution_path(
+                  if @social_resolution_token.present?
+                    { social_resolution: @social_resolution_token }
+                  else
+                    { resolution_challenge: @resolution_challenge }
+                  end,
+                ),
                 method: :delete,
                 form: { data: { turbo: false } } %>
 </main>

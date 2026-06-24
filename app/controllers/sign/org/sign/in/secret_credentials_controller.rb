@@ -14,6 +14,8 @@ module Sign
 
           AUTHENTICATION_MODE = :guest
 
+          SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
+
           rate_limit(
             to: 5,
             within: 1.minute,
@@ -64,8 +66,6 @@ module Sign
               errors.add(:identifier, :invalid)
             end
           end
-
-          SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
 
           def new
             @secret_credential_form = SecretLoginForm.new

@@ -10,7 +10,7 @@ module SignSettingsPasskeyRegistration
     nil
   end
 
-  def finish_passkey_ceremony!(surface:, actor:, session_ref:, candidate:, challenge_id:, operation: "registration")
+  def finish_passkey_ceremony!(surface:, actor:, session_ref:, candidate:, challenge_id:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
     commit_settings_passkey_registration!(
       surface: surface, actor: actor,
       candidate: candidate,

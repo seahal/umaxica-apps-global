@@ -22,11 +22,13 @@
 #  created_at            :datetime         not null
 #  updated_at            :datetime         not null
 #  client_id             :string(64)       not null
+#  visitor_token_id      :bigint
 #  visitor_id            :bigint           not null
 #
 # Indexes
 #
 #  index_visitor_authorization_codes_on_code        (code) UNIQUE
+#  index_visitor_authorization_codes_on_visitor_token_id  (visitor_token_id)
 #  index_visitor_authorization_codes_on_visitor_id  (visitor_id)
 #
 class VisitorAuthorizationCode < ComTicketRecord
@@ -36,9 +38,11 @@ class VisitorAuthorizationCode < ComTicketRecord
   CODE_BYTES = 32
 
   belongs_to :visitor
+  belongs_to :visitor_token, optional: true
 
   validates :code, presence: true, uniqueness: true, length: { maximum: 64 }
   validates :client_id, presence: true, length: { maximum: 64 }
+  validates :visitor_token_id, presence: true, on: :create
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }, length: { maximum: 8 }
@@ -60,10 +64,11 @@ class VisitorAuthorizationCode < ComTicketRecord
     end
 
     def issue!(client_id:, redirect_uri:, code_challenge:, code_challenge_method:, scope: nil, state: nil,
-               nonce: nil, visitor: nil, auth_method: nil, acr: nil)
+               nonce: nil, visitor: nil, visitor_token: nil, auth_method: nil, acr: nil)
       create!(
         code: generate_code,
         visitor: visitor,
+        visitor_token: visitor_token,
         client_id: client_id,
         redirect_uri: redirect_uri,
         code_challenge: code_challenge,

@@ -119,6 +119,8 @@ module MissingHelpers
     service =
       if normalized.include?("acme") || normalized.start_with?("www.") || acme_hosts.include?(normalized)
         "ACME"
+      elsif normalized.include?("base")
+        "BASE"
       elsif normalized.include?("core")
         "CORE"
       else
@@ -126,6 +128,12 @@ module MissingHelpers
       end
     surface =
       if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif service == "BASE"
         case resource_type
         when "operator" then "ORG"
         when "visitor" then "COM"

@@ -3,6 +3,7 @@
 
 require "sha3"
 require "concurrent"
+require_relative "../../models/concerns/refresh_token_shared"
 
 # ==========================================================================
 # TOC
@@ -21,7 +22,7 @@ require "concurrent"
 module PreferenceBase
   extend ActiveSupport::Concern
   include DbscCanonicalUrl
-  include RefreshTokenShared
+  include ::RefreshTokenShared
   include PreferenceCookieWriter
   include PreferenceAccessTokenTransport
   include PreferenceAccessTokenIssuer
@@ -30,7 +31,7 @@ module PreferenceBase
 
   class ResolutionError < StandardError; end
 
-  ACCESS_TOKEN_TTL = SecurityTokenLifetimes::PREFERENCE_JWT_TTL
+  ACCESS_TOKEN_TTL = ::SecurityTokenLifetimes::PREFERENCE_JWT_TTL
   REFRESH_TOKEN_TTL = 400.days
   THEME_COOKIE_KEY = PreferenceIoKeys::Cookies::THEME
   LANGUAGE_COOKIE_KEY = PreferenceIoKeys::Cookies::LANGUAGE

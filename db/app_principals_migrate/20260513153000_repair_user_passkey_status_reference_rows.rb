@@ -44,7 +44,7 @@ class RepairUserPasskeyStatusReferenceRows < ActiveRecord::Migration[8.2]
     values = has_code ? [id, code] : [id]
 
     insert_statement = Arel::InsertManager.new
-    insert_statement.into(Arel::Table.new(table_name))
+    insert_statement.into(Arel::Table.new(name: table_name))
     insert_statement.columns.concat(
       columns.map { |column| Arel::Attributes::Attribute.new(insert_statement.ast.relation, column) },
     )

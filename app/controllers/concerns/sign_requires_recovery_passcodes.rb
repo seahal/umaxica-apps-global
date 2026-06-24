@@ -7,6 +7,7 @@ module SignRequiresRecoveryPasscodes
   private
 
   def require_recovery_passcodes_for_mfa_registration!
+    return true unless recovery_passcodes_required_for_mfa_registration?
     return true if recovery_passcode_requirement_satisfied?
 
     @minimum_recovery_passcodes = SignRecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
@@ -19,6 +20,14 @@ module SignRequiresRecoveryPasscodes
   def recovery_passcode_requirement_satisfied?
     usable_unused_recovery_passcode_count >=
       SignRecoveryPasscodeRequirement::MINIMUM_USABLE_UNUSED_RECOVERY_PASSCODES
+  end
+
+  def recovery_passcodes_required_for_mfa_registration?
+    recovery_passcode_requirement_active_strong_credential_count.positive?
+  end
+
+  def recovery_passcode_requirement_active_strong_credential_count
+    1
   end
 
   def usable_unused_recovery_passcode_count

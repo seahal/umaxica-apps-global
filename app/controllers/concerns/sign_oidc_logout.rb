@@ -60,26 +60,38 @@ module SignOidcLogout
       return reject_oidc_logout_challenge!("get_handoff_retired")
     end
 
-    if @logout_transaction.expected_finalization?
-      finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
-      return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
+    return if finalize_oidc_logout_and_redirect!
 
-      log_sign_out_event(
-        "auth.sign_out.transaction.finalized",
-        transaction: finalize_result.transaction,
-        step_after: "finalized",
-        auto_handoff: true,
-        user_confirmation_required: false,
-        cleanup_performed: false,
-        redirect_target_surface: finalize_result.transaction.origin_surface,
-        result: "finalized",
-      )
-      return redirect_to_jump_url(
-        oidc_logout_completion_redirect_url(finalize_result.transaction),
-        status: :see_other,
-      )
-    end
+    transaction = cleanup_and_advance_oidc_logout!
+    handle_oidc_logout_completion_redirect!(transaction)
+  rescue ActiveRecord::RecordNotFound, ArgumentError
+    reject_oidc_logout_challenge!("not_found")
+  end
 
+  def finalize_oidc_logout_and_redirect!
+    return false unless @logout_transaction.expected_finalization?
+
+    finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
+    return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
+
+    log_sign_out_event(
+      "auth.sign_out.transaction.finalized",
+      transaction: finalize_result.transaction,
+      step_after: "finalized",
+      auto_handoff: true,
+      user_confirmation_required: false,
+      cleanup_performed: false,
+      redirect_target_surface: finalize_result.transaction.origin_surface,
+      result: "finalized",
+    )
+    redirect_to_jump_url(
+      oidc_logout_completion_redirect_url(finalize_result.transaction),
+      status: :see_other,
+    )
+    true
+  end
+
+  def cleanup_and_advance_oidc_logout!
     prepare_sign_out_completion_notice!
     log_sign_out_event(
       "auth.sign_out.step.started",
@@ -116,6 +128,10 @@ module SignOidcLogout
       result: "advanced",
     )
 
+    transaction
+  end
+
+  def handle_oidc_logout_completion_redirect!(transaction)
     if transaction.origin_surface == "sign"
       finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
       return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
@@ -141,8 +157,6 @@ module SignOidcLogout
         transaction: transaction,
       )
     end
-  rescue ActiveRecord::RecordNotFound, ArgumentError
-    reject_oidc_logout_challenge!("not_found")
   end
 
   def reject_oidc_logout_challenge!(reason)

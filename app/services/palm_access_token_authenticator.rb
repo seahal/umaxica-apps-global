@@ -79,7 +79,9 @@ class PalmAccessTokenAuthenticator < ApplicationService
     return if sid.blank?
 
     AppTicketRecord.connected_to(role: :reading) do
-      ClientToken.find_by(oidc_sid: sid)
+      ClientTokenUsage.find_by(public_id: sid) ||
+        ClientToken.find_by(oidc_sid: sid) ||
+        ClientToken.find_by(public_id: sid)
     end
   end
 
@@ -94,7 +96,7 @@ class PalmAccessTokenAuthenticator < ApplicationService
   end
 
   def token_jti_matches?(token, payload)
-    return true unless token.has_attribute?(:oidc_jti)
+    return true unless token.respond_to?(:oidc_jti)
     return true if token.oidc_jti.blank?
 
     expected = token.oidc_jti.to_s

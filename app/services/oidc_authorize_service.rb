@@ -7,10 +7,11 @@ class OidcAuthorizeService < ApplicationService
       def success? = success
     end
 
-  def initialize(params:, resource:, auth_method: nil, acr: nil)
+  def initialize(params:, resource:, session_token:, auth_method: nil, acr: nil)
     super()
     @params = params
     @resource = resource
+    @session_token = session_token
     @auth_method = auth_method
     @acr = acr
   end
@@ -31,7 +32,7 @@ class OidcAuthorizeService < ApplicationService
 
   private
 
-  attr_reader :params, :resource, :auth_method, :acr
+  attr_reader :params, :resource, :session_token, :auth_method, :acr
 
   def validate_request!
     OidcAuthorizeRequestValidator.call(params: params, resource: resource)
@@ -42,6 +43,7 @@ class OidcAuthorizeService < ApplicationService
       client: client.client,
       params: params.merge(scope: client.scope),
       resource: resource,
+      session_token: session_token,
       auth_method: auth_method,
       acr: acr,
     )

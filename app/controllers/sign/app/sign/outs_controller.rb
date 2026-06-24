@@ -35,7 +35,8 @@ module Sign
 
         def edit
           if params[:logout_challenge].present?
-            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
+            logout_challenge = params.expect(:logout_challenge)
+            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
             warn_sign_out_event(
               "auth.sign_out.legacy_handoff.used",
               transaction: @logout_transaction,
@@ -79,6 +80,31 @@ module Sign
           return reject_sign_coordinated_logout!("expired") if transaction.expired?
           return reject_sign_coordinated_logout!("wrong_step") unless transaction.expected_step == "sign_cleared"
 
+          advanced_transaction = cleanup_and_advance_sign_logout!(transaction)
+
+          finalize_result = AcmeLogoutTransactionService.finalize!(
+            logout_challenge: advanced_transaction.logout_challenge,
+          )
+          unless finalize_result.success?
+            return reject_sign_coordinated_logout!(finalize_result.error || "invalid_request")
+          end
+
+          log_sign_out_event(
+            "auth.sign_out.transaction.finalized",
+            transaction: finalize_result.transaction,
+            step_after: "finalized",
+            auto_handoff: true,
+            user_confirmation_required: false,
+            cleanup_performed: true,
+            redirect_target_surface: finalize_result.transaction.origin_surface,
+            result: "finalized",
+          )
+          redirect_to_jump_url(coordinated_completion_redirect_url(finalize_result.transaction), status: :see_other)
+        rescue ActiveRecord::RecordNotFound, ArgumentError, ActionController::ParameterMissing
+          reject_sign_coordinated_logout!("not_found")
+        end
+
+        def cleanup_and_advance_sign_logout!(transaction)
           log_sign_out_event(
             "auth.sign_out.step.started",
             transaction: transaction,
@@ -101,7 +127,9 @@ module Sign
             logout_challenge: transaction.logout_challenge,
             step: "sign_cleared",
           )
-          return reject_sign_coordinated_logout!(advance_result.error || "invalid_request") unless advance_result.success?
+          unless advance_result.success?
+            return reject_sign_coordinated_logout!(advance_result.error || "invalid_request")
+          end
 
           advanced_transaction = advance_result.transaction || transaction
           log_sign_out_event(
@@ -114,22 +142,7 @@ module Sign
             result: "advanced",
           )
 
-          finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: advanced_transaction.logout_challenge)
-          return reject_sign_coordinated_logout!(finalize_result.error || "invalid_request") unless finalize_result.success?
-
-          log_sign_out_event(
-            "auth.sign_out.transaction.finalized",
-            transaction: finalize_result.transaction,
-            step_after: "finalized",
-            auto_handoff: true,
-            user_confirmation_required: false,
-            cleanup_performed: true,
-            redirect_target_surface: finalize_result.transaction.origin_surface,
-            result: "finalized",
-          )
-          redirect_to_jump_url(coordinated_completion_redirect_url(finalize_result.transaction), status: :see_other)
-        rescue ActiveRecord::RecordNotFound, ArgumentError, ActionController::ParameterMissing
-          reject_sign_coordinated_logout!("not_found")
+          advanced_transaction
         end
 
         def reject_sign_coordinated_logout!(reason)

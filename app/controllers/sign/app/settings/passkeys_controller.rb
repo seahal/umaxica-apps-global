@@ -332,6 +332,13 @@ module Sign
           "settings_passkey"
         end
 
+        def recovery_passcode_requirement_active_strong_credential_count
+          current_client.client_passkeys.active.count +
+            current_client.client_totp_credentials.where(
+              user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+            ).count
+        end
+
         def recovery_passcode_requirement_actor
           current_client
         end

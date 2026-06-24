@@ -22,11 +22,13 @@
 #  created_at            :datetime         not null
 #  updated_at            :datetime         not null
 #  client_id             :string(64)       not null
+#  client_token_id       :bigint
 #  user_id               :bigint           not null
 #
 # Indexes
 #
 #  index_client_authorization_codes_on_code     (code) UNIQUE
+#  index_client_authorization_codes_on_client_token_id  (client_token_id)
 #  index_client_authorization_codes_on_user_id  (user_id)
 #
 class ClientAuthorizationCode < AppTicketRecord
@@ -36,9 +38,11 @@ class ClientAuthorizationCode < AppTicketRecord
   CODE_BYTES = 32
 
   belongs_to :user, class_name: "Client"
+  belongs_to :client_token, optional: true
 
   validates :code, presence: true, uniqueness: true, length: { maximum: 64 }
   validates :client_id, presence: true, length: { maximum: 64 }
+  validates :client_token_id, presence: true, on: :create
   validates :redirect_uri, presence: true
   validates :code_challenge, presence: true
   validates :code_challenge_method, inclusion: { in: %w(S256) }, length: { maximum: 8 }
@@ -60,10 +64,11 @@ class ClientAuthorizationCode < AppTicketRecord
     end
 
     def issue!(client_id:, redirect_uri:, code_challenge:, code_challenge_method:, scope: nil, state: nil,
-               nonce: nil, user: nil, auth_method: nil, acr: nil)
+               nonce: nil, user: nil, client_token: nil, auth_method: nil, acr: nil)
       create!(
         code: generate_code,
         user: user,
+        client_token: client_token,
         client_id: client_id,
         redirect_uri: redirect_uri,
         code_challenge: code_challenge,

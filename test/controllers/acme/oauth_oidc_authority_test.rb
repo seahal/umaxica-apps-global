@@ -467,6 +467,82 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "openid profile", transaction.scope
   end
 
+  test "acme oauth authorize issues a code immediately for an already authenticated browser session" do
+    [
+      {
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        actor: clients(:one),
+        token: ->(actor) do
+          ClientToken.create!(
+            user: actor,
+            user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+            user_token_status_id: ClientTokenStatus::ACTIVE,
+          )
+        end,
+        transaction_class: ClientOidcAuthorizationTransaction,
+        header_builder: ->(actor, host:, session_public_id:) do
+          as_user_headers(actor, host: host, session_public_id: session_public_id)
+        end,
+      },
+      {
+        host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+        actor: operators(:one),
+        token: ->(actor) do
+          OperatorToken.create!(
+            staff: actor,
+            staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+            staff_token_status_id: OperatorTokenStatus::ACTIVE,
+          )
+        end,
+        transaction_class: OperatorOidcAuthorizationTransaction,
+        header_builder: ->(actor, host:, session_public_id:) do
+          as_staff_headers(actor, host: host, session_public_id: session_public_id)
+        end,
+      },
+      {
+        host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        actor: create_visitor!,
+        token: ->(actor) do
+          VisitorToken.create!(
+            visitor: actor,
+            visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+            visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+          )
+        end,
+        transaction_class: VisitorOidcAuthorizationTransaction,
+        header_builder: ->(actor, host:, session_public_id:) do
+          host_headers(host).merge(
+            TEST_RESOURCE_HEADER => actor.id.to_s,
+            "X-TEST-SESSION-PUBLIC-ID" => session_public_id,
+          )
+        end,
+      },
+    ].each do |surface|
+      host = surface.fetch(:host)
+      actor = surface.fetch(:actor)
+      token = surface.fetch(:token).call(actor)
+      headers = surface.fetch(:header_builder).call(actor, host: host, session_public_id: token.public_id)
+
+      host!(host)
+
+      assert_no_difference -> { surface.fetch(:transaction_class).count } do
+        get "/oauth/authorize", params: oidc_authorize_params, headers: headers
+      end
+
+      assert_response :redirect
+      uri = URI.parse(response.location)
+      callback_uri = URI.parse(jump_rt_url_from_location(response.location))
+      query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
+
+      assert_equal "jump.umaxica.net", uri.host
+      assert_equal URI.parse(oidc_authorize_params[:redirect_uri]).host, callback_uri.host
+      assert_equal "/oidc/callback", callback_uri.path
+      assert_predicate query["code"], :present?
+      assert_equal oidc_authorize_params[:state], query["state"]
+      assert_not_includes callback_uri.query.to_s, "login_challenge"
+    end
+  end
+
   test "acme oauth authorize starts sign up ceremony when screen_hint requests signup" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host!(host)
@@ -597,5 +673,16 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
     assert_equal controller_name, route.fetch(:controller)
     assert_equal action, route.fetch(:action)
+  end
+
+  def create_visitor!
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
+    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+    VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+    VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+    VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
+    Visitor.create!
   end
 end

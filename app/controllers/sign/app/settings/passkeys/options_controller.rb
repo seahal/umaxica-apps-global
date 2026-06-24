@@ -45,6 +45,13 @@ class Sign::App::Settings::Passkeys::OptionsController < ::Sign::App::Applicatio
 
   def passkey_registration_log_prefix = "sign.webauthn.registration"
 
+  def recovery_passcode_requirement_active_strong_credential_count
+    current_client.client_passkeys.active.count +
+      current_client.client_totp_credentials.where(
+        user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+      ).count
+  end
+
   def recovery_passcode_requirement_actor = current_client
 
   def recovery_passcode_requirement_credential_class = ClientSecretCredential
@@ -52,6 +59,18 @@ class Sign::App::Settings::Passkeys::OptionsController < ::Sign::App::Applicatio
   def recovery_passcode_setup_url
     sign_app_settings_secret_credentials_url(
       ri: params[:ri],
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+    )
+  end
+
+  def recovery_passcode_top_up_actor = current_client
+
+  def recovery_passcode_top_up_credential_class = ClientSecretCredential
+
+  def recovery_passcode_reveal_redirect_url(token)
+    sign_app_settings_secrets_url(
+      ri: params[:ri],
+      token: token,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
   end

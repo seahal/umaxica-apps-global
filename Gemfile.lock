@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 464d8ce7d38c9adb8a180ebbfcf9fd9a468a47b9
+  revision: a0b0f0e707246dfed9320006d591b54ec14ff0de
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -851,7 +851,7 @@ GEM
     rb-fsevent (0.11.2)
     rb-inotify (0.11.1)
       ffi (~> 1.0)
-    rbi (0.3.13)
+    rbi (0.3.14)
       prism (~> 1.0)
       rbs (>= 4.0.1)
     rbs (4.0.3)
@@ -909,7 +909,7 @@ GEM
       lint_roller (~> 1.1)
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.47.1, < 2.0)
-    rubocop-rails (2.35.4)
+    rubocop-rails (2.35.5)
       activesupport (>= 4.2.0)
       lint_roller (~> 1.1)
       rack (>= 1.1)
@@ -1004,10 +1004,10 @@ GEM
     sorbet-static-and-runtime (0.6.13308)
       sorbet (= 0.6.13308)
       sorbet-runtime (= 0.6.13308)
-    spoom (1.7.16)
+    spoom (1.8.1)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
-      rbi (>= 0.3.3)
+      rbi (>= 0.3.14)
       rbs (>= 4.0.0.dev.5)
       rexml (>= 3.2.6)
       sorbet-static-and-runtime (>= 0.5.10187)
@@ -1254,7 +1254,7 @@ CHECKSUMS
   bootsnap (1.24.6) sha256=c60bab88c70332290f0a2636a288f675299eb4f804a02a3c085b42eca9da164a
   brakeman (8.0.5) sha256=03735f9690d3fd4b32d66aacbf0a6d15a84266bdd06b32c05c8ecc8f6021d2be
   builder (3.3.0) sha256=497918d2f9dca528fdca4b88d84e4ef4387256d984b8154e9d5d3fe5a9c8835f
-  bundler (4.0.14) sha256=d09a0a965cf772266a7e49e83610be7c2f4e49e61134c42a56804bb383cc24b8
+  bundler (4.0.15) sha256=a4ceb882fe94a0e0ac63cd0813932bbfd631a14e5ac0b7975189b19a4d28d9e7
   bundler-audit (0.9.3) sha256=81c8766c71e47d0d28a0f98c7eed028539f21a6ea3cd8f685eb6f42333c9b4e9
   capybara (3.40.0) sha256=42dba720578ea1ca65fd7a41d163dd368502c191804558f6e0f71b391054aeef
   capybara-playwright-driver (0.5.9) sha256=4c17fed20817b7e1bde2cfc8186e7bf5cd72017ce1aa695e35130f8e600e7282
@@ -1502,7 +1502,7 @@ CHECKSUMS
   ransack (4.4.1) sha256=6aeaac36fc19088570e10da1044e6cfd88c740e20f871b84566fd30e32b7a63d
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
-  rbi (0.3.13) sha256=6afd53a574268abcc71daed4c025673561f27a990b3b087e7889e8b073ab2d7a
+  rbi (0.3.14) sha256=932ed904adbb5ca645c285c8b36da1b7ff6321ec1870d187d6325248cb637658
   rbs (4.0.3) sha256=5a7bf70e2628549d9a1f44eae447b2cfe55968a9c60cfff52693a4bdcc020e14
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   redis (5.4.1) sha256=b5e675b57ad22b15c9bcc765d5ac26f60b675408af916d31527af9bd5a81faae
@@ -1521,7 +1521,7 @@ CHECKSUMS
   rubocop-i18n (3.3.0) sha256=6cd5977aeac9eb9e34962c0d2bd8e0225a4b43117d21b7e315dc56500c38a96b
   rubocop-minitest (0.39.1) sha256=998398d6da4026d297f0f9bf709a1eac5f2b6947c24431f94af08138510cf7ed
   rubocop-performance (1.26.1) sha256=cd19b936ff196df85829d264b522fd4f98b6c89ad271fa52744a8c11b8f71834
-  rubocop-rails (2.35.4) sha256=3aeaa325439c89950e8327565682ea794065d08e2ecbbfe95032bfa295a35df5
+  rubocop-rails (2.35.5) sha256=f00b3c936002ba8e9ac62e8607c54bb24cda44b36e41b9c7e4f3872e1b0f3fe3
   rubocop-rails-omakase (1.1.0) sha256=2af73ac8ee5852de2919abbd2618af9c15c19b512c4cfc1f9a5d3b6ef009109d
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
   rubocop-rubycw (0.2.2) sha256=28b3741cac84845bb845885943d7990b720ed05bf68d76ddd34315afa27e98c9
@@ -1562,7 +1562,7 @@ CHECKSUMS
   sorbet-static (0.6.13308-universal-darwin) sha256=0acc34dfdde8fd7215dfdfcf7445ad0a28b707acaac487784bc9e1a69d90f4dd
   sorbet-static (0.6.13308-x86_64-linux) sha256=4e5491f999cc556a5fa71996fc5fd2be36172d2b45c57d3a9c7b69650e8cf2e4
   sorbet-static-and-runtime (0.6.13308) sha256=a01f2c7817c0800858b59b3a07b3b63d29245e5a185d4790d7bab9f3f3faa39e
-  spoom (1.7.16) sha256=b6033d1aaede800ef37505474d260d57a02fa63364b4725ea40b6f606e932d59
+  spoom (1.8.1) sha256=6abdc7852a3f33e0366e6fa712533496b28e2d0e79aa213b5b1aa246bebf2e8b
   stackprof (0.2.28) sha256=4ec2ace02f386012b40ca20ef80c030ad711831f59511da12e83b34efb0f9a04
   stimulus-rails (1.3.4) sha256=765676ffa1f33af64ce026d26b48e8ffb2e0b94e0f50e9119e11d6107d67cb06
   store_attribute (2.1.1) sha256=de53611c01d3fb4c91e0d7af4208861bd18d017c4cee682ed0473d0e4496f5b8
@@ -1600,4 +1600,4 @@ RUBY VERSION
   ruby 4.0.5
 
 BUNDLED WITH
-  4.0.14
+  4.0.15

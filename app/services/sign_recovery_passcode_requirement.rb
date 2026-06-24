@@ -29,7 +29,10 @@ class SignRecoveryPasscodeRequirement
   def usable_unused_relation
     relation = actor_secret_credentials
     relation = relation.where(status_column => credential_class::SIGN_IN_ALLOWED_STATUS_IDS)
-    relation = relation.where(kind_column => credential_class::SIGN_IN_ALLOWED_KIND_IDS)
+    recovery_kind_id = credential_class.const_get(:RECOVERY) rescue nil
+    return relation.none if recovery_kind_id.nil?
+
+    relation = relation.where(kind_column => recovery_kind_id)
     relation = relation.where(last_used_at: nil)
     relation = relation.where(
       "discarded_at IS NULL OR discarded_at > ?",

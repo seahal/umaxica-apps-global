@@ -112,6 +112,10 @@ class OidcTokenExchangeService < ApplicationService
     return failure("invalid_grant", "Authorization code expired") if authorization_code.expired?
     return failure("invalid_grant", "Authorization code already consumed") if authorization_code.consumed?
     return failure("invalid_grant", "Authorization code revoked") if authorization_code.revoked?
+    return failure(
+      "invalid_grant",
+      "Authorization code is unbound",
+    ) if root_token_from_authorization_code(authorization_code).blank?
     return failure("invalid_request", "redirect_uri mismatch") unless authorization_code.redirect_uri == redirect_uri
     return failure("invalid_request", "client_id mismatch") unless authorization_code.client_id == client_id
 
@@ -143,121 +147,132 @@ class OidcTokenExchangeService < ApplicationService
     connection_class = connection_class_for(authorization_code)
 
     connection_class.connected_to(role: :writing) do
-      authorization_code.consume!
+      ActiveRecord::Base.transaction do
+        authorization_code.lock!
+        return failure("invalid_grant", "Authorization code expired") if authorization_code.expired?
+        return failure("invalid_grant", "Authorization code already consumed") if authorization_code.consumed?
+        return failure("invalid_grant", "Authorization code revoked") if authorization_code.revoked?
 
-      now = Time.current
-      oidc_connection = OidcConnectionRecorder.call(
-        resource: resource,
-        client: client,
-        scope: authorization_code.scope,
-        used_at: now,
-      )
-      token_record = create_token_record!(
-        client,
-        resource,
-        dpop_jkt: dpop_jkt,
-        oidc_connection: oidc_connection,
-        oidc_scope: authorization_code.scope,
-      )
-      refresh_plain = token_record.rotate_refresh_token!
-      access_expires_at = now + AuthenticationBase::ACCESS_TOKEN_TTL
+        root_token = root_token_from_authorization_code(authorization_code)
+        return failure("invalid_grant", "Authorization code is unbound") unless root_token
+        return failure("invalid_grant", "root session is not active") unless root_token.currently_usable?
+        return failure("invalid_grant", "root session actor mismatch") unless root_token_actor_matches?(
+          root_token,
+          resource,
+        )
 
-      resource_type = resource_type_for(authorization_code)
-      client = client_for_resource_type(client, resource_type)
-      issuer = OidcIssuer.for_resource_type(resource_type)
-      subject = OidcSubject.for(resource, resource_type: resource_type)
-      oidc_sid = token_record_oidc_sid(token_record)
-      auth_time = authorization_code.created_at || now
+        OidcConnectionRecorder.call(
+          resource: resource,
+          client: client,
+          scope: authorization_code.scope,
+          used_at: Time.current,
+        )
 
-      access_token = AuthenticationTokenService.encode(
-        resource,
-        host: OidcIssuer.host_for_resource_type(resource_type),
-        session_public_id: token_record.public_id,
-        oidc_sid: oidc_sid,
-        oidc_jti: token_record_oidc_jti(token_record),
-        resource_type: resource_type,
-        expires_at: access_expires_at,
-        scopes: authorization_code.scope.to_s.split,
-        acr: authorization_code.acr,
-        amr: Array(authorization_code.auth_method),
-        dpop_jkt: dpop_jkt,
-        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
-        issuer: issuer,
-        audiences: [client.aud],
-        subject: subject,
-        auth_time: auth_time,
-        client_id: client.client_id,
-      )
-      id_token = OidcIdTokenIssuer.call(
-        resource: resource,
-        client: client,
-        nonce: authorization_code.nonce,
-        issued_at: now,
-        acr: authorization_code.acr,
-        amr: Array(authorization_code.auth_method),
-        jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
-        issuer: issuer,
-        subject: subject,
-        sid: oidc_sid,
-        auth_time: auth_time,
-      )
+        usage = create_or_resolve_active_usage!(
+          root_token: root_token,
+          client: client,
+          scope: authorization_code.scope,
+          dpop_jkt: dpop_jkt,
+        )
 
-      token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
+        refresh_plain = issue_or_rotate_usage_refresh_token!(usage)
+        authorization_code.consume!
 
-      Result.new(
-        success: true,
-        token_response: {
-          access_token: access_token,
-          token_type: token_type,
-          expires_in: Integer(AuthenticationBase::ACCESS_TOKEN_TTL.to_s, 10),
-          refresh_token: refresh_plain,
-          id_token: id_token,
-        },
-        error: nil,
-        error_description: nil,
-      )
+        now = Time.current
+        access_expires_at = now + AuthenticationBase::ACCESS_TOKEN_TTL
+        resource_type = resource_type_for(authorization_code)
+        client = client_for_resource_type(client, resource_type)
+        issuer = OidcIssuer.for_resource_type(resource_type)
+        subject = OidcSubject.for(resource, resource_type: resource_type)
+        oidc_jti = token_usage_oidc_jti(usage)
+        access_token = AuthenticationTokenService.encode(
+          resource,
+          host: OidcIssuer.host_for_resource_type(resource_type),
+          session_public_id: root_token.public_id,
+          oidc_sid: usage.public_id,
+          oidc_jti: oidc_jti,
+          resource_type: resource_type,
+          expires_at: access_expires_at,
+          scopes: authorization_code.scope.to_s.split,
+          acr: authorization_code.acr,
+          amr: Array(authorization_code.auth_method),
+          dpop_jkt: dpop_jkt,
+          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+          issuer: issuer,
+          audiences: [client.aud],
+          subject: subject,
+          auth_time: authorization_code.created_at || now,
+          client_id: client.client_id,
+        )
+        id_token = OidcIdTokenIssuer.call(
+          resource: resource,
+          client: client,
+          nonce: authorization_code.nonce,
+          issued_at: now,
+          acr: authorization_code.acr,
+          amr: Array(authorization_code.auth_method),
+          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(resource_type),
+          issuer: issuer,
+          subject: subject,
+          sid: usage.public_id,
+          auth_time: authorization_code.created_at || now,
+        )
+
+        token_type = dpop_jkt.present? ? "DPoP" : "Bearer"
+
+        Result.new(
+          success: true,
+          token_response: {
+            access_token: access_token,
+            token_type: token_type,
+            expires_in: Integer(AuthenticationBase::ACCESS_TOKEN_TTL.to_s, 10),
+            refresh_token: refresh_plain,
+            id_token: id_token,
+          },
+          error: nil,
+          error_description: nil,
+        )
+      end
     end
   end
 
-  def create_token_record!(client, resource, dpop_jkt: nil, oidc_connection: nil, oidc_scope: nil)
-    oidc_attrs = {
-      oidc_connection_id: oidc_connection&.id,
-      oidc_client_id: client.client_id,
-      oidc_scope: oidc_scope,
-      oidc_sid: SecureRandom.uuid,
-      oidc_jti: SecureRandom.uuid,
-    }
+  def create_or_resolve_active_usage!(root_token:, client:, scope:, dpop_jkt:)
+    usage_class = usage_class_for_root_token(root_token)
+    owner = connection_owner_for(usage_class)
+    usage = nil
 
-    resource_type = resource_type_for_authorized_resource(resource)
+    owner.connected_to(role: :writing) do
+      usage = usage_class.lock.find_by(
+        parent_token_foreign_key_for(usage_class) => root_token.id,
+        :oidc_client_id => client.client_id,
+        :revoked_at => nil,
+      )
 
-    if resource_type == "operator"
-      OperatorToken.create!(
-        staff: resource,
-        public_id: SecureRandom.alphanumeric(21),
-        discarded_at: SecurityTokenLifetimes::OPERATOR_REFRESH_TOKEN_TTL.from_now,
-        staff_token_status_id: OperatorTokenStatus::ACTIVE,
-        dpop_jkt: dpop_jkt,
-        **oidc_attrs,
+      usage ||= usage_class.create!(
+        parent_token_foreign_key_for(usage_class) => root_token,
+        :oidc_client_id => client.client_id,
+        :oidc_scope => scope,
+        :oidc_jti => SecureRandom.uuid,
+        :dpop_jkt => dpop_jkt,
+        :last_used_at => Time.current,
+        :refresh_token_expires_at => refresh_expires_at_for(root_token),
       )
-    elsif resource_type == "visitor"
-      VisitorToken.create!(
-        visitor: resource,
-        public_id: SecureRandom.alphanumeric(21),
-        discarded_at: SecurityTokenLifetimes::VISITOR_REFRESH_TOKEN_TTL.from_now,
-        visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+
+      usage.update!(
+        oidc_scope: scope,
+        oidc_jti: SecureRandom.uuid,
         dpop_jkt: dpop_jkt,
-        **oidc_attrs,
+        last_used_at: Time.current,
       )
-    else
-      ClientToken.create!(
-        user: resource,
-        public_id: SecureRandom.alphanumeric(21),
-        discarded_at: SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL.from_now,
-        user_token_status_id: ClientTokenStatus::ACTIVE,
-        dpop_jkt: dpop_jkt,
-        **oidc_attrs,
-      )
+
+      usage
     end
+  rescue ActiveRecord::RecordNotUnique
+    retry
+  end
+
+  def issue_or_rotate_usage_refresh_token!(usage)
+    usage.refresh_token_digest.present? ? usage.rotate_refresh_token! : usage.issue_refresh_token!
   end
 
   def operator_client?(client)
@@ -275,20 +290,59 @@ class OidcTokenExchangeService < ApplicationService
     client.resource_type
   end
 
-  def token_record_oidc_sid(token_record)
-    token_record_attribute(token_record, :oidc_sid).presence ||
-      raise(ArgumentError, "OIDC token record is missing oidc_sid")
+  def token_usage_oidc_jti(usage)
+    usage.oidc_jti.presence || raise(ArgumentError, "OIDC token usage is missing oidc_jti")
   end
 
-  def token_record_oidc_jti(token_record)
-    token_record_attribute(token_record, :oidc_jti).presence ||
-      raise(ArgumentError, "OIDC token record is missing oidc_jti")
+  def usage_class_for_root_token(root_token)
+    case root_token
+    when ClientToken then ClientTokenUsage
+    when OperatorToken then OperatorTokenUsage
+    when VisitorToken then VisitorTokenUsage
+    else
+      raise ArgumentError, "unsupported root token class: #{root_token.class.name}"
+    end
   end
 
-  def token_record_attribute(token_record, attribute)
-    return unless token_record&.has_attribute?(attribute)
+  def connection_owner_for(klass)
+    owner = klass
+    owner = owner.superclass until owner.connection_class? || owner == ApplicationRecord
+    owner
+  end
 
-    token_record.public_send(attribute)
+  def parent_token_foreign_key_for(usage_class)
+    case usage_class.name
+    when "OperatorTokenUsage" then :operator_token
+    when "VisitorTokenUsage" then :visitor_token
+    else :client_token
+    end
+  end
+
+  def root_token_from_authorization_code(authorization_code)
+    case authorization_code
+    when ClientAuthorizationCode then authorization_code.client_token
+    when OperatorAuthorizationCode then authorization_code.operator_token
+    when VisitorAuthorizationCode then authorization_code.visitor_token
+    end
+  end
+
+  def root_token_actor_matches?(root_token, resource)
+    case root_token
+    when ClientToken then root_token.user == resource
+    when OperatorToken then root_token.staff == resource
+    when VisitorToken then root_token.visitor == resource
+    else false
+    end
+  end
+
+  def refresh_expires_at_for(root_token)
+    ttl =
+      case root_token
+      when OperatorToken then SecurityTokenLifetimes::OPERATOR_REFRESH_TOKEN_TTL
+      when VisitorToken then SecurityTokenLifetimes::VISITOR_REFRESH_TOKEN_TTL
+      else SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
+      end
+    ttl.from_now
   end
 
   def connection_class_for(authorization_code)

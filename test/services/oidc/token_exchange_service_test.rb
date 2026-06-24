@@ -8,6 +8,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     @previous_client_assertion_replay_store = OidcClientAssertionJwt.replay_store
     OidcClientAssertionJwt.replay_store = ActiveSupport::Cache::MemoryStore.new
     @user = clients(:one)
+    @user_session_token = ClientToken.create!(user: @user)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -747,18 +748,20 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   test "creates user token record" do
     code_record = issue_code!
 
-    assert_difference "ClientToken.count", 1 do
-      with_authenticated_client do
-        OidcTokenExchangeService.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: @redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
-          code_verifier: @code_verifier,
-        )
+    assert_no_difference "ClientToken.count" do
+      assert_difference "ClientTokenUsage.count", 1 do
+        with_authenticated_client do
+          OidcTokenExchangeService.call(
+            grant_type: "authorization_code",
+            code: code_record.code,
+            redirect_uri: @redirect_uri,
+            client_id: "core-next-rp",
+            client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+            client_assertion: "test-client-assertion",
+            token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+            code_verifier: @code_verifier,
+          )
+        end
       end
     end
   end
@@ -780,13 +783,14 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     end
 
     connection = ClientOidcConnection.find_by!(user_id: @user.id, client_id: "core-next-rp")
-    token = ClientToken.order(:created_at).last
+    usage = ClientTokenUsage.order(:created_at).last
 
     assert_equal "openid profile email", connection.scope
     assert_nil connection.revoked_at
-    assert_equal connection.id, token.oidc_connection_id
-    assert_equal "core-next-rp", token.oidc_client_id
-    assert_equal "openid profile email", token.oidc_scope
+    assert_equal @user_session_token.id, usage.client_token_id
+    assert_equal "core-next-rp", usage.oidc_client_id
+    assert_equal "openid profile email", usage.oidc_scope
+    assert_predicate usage.oidc_jti, :present?
   end
 
   test "reactivates existing user RP connection on token exchange" do
@@ -840,11 +844,11 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     previous_last_used_at = connection.last_used_at
     rotated = nil
     travel 1.minute do
-      rotated = SignRefreshTokenService.call(refresh_token: result.token_response[:refresh_token])
+      rotated = OidcRefreshTokenService.call(refresh_token: result.token_response[:refresh_token])
     end
     replacement = rotated[:token]
 
-    assert_equal connection.id, replacement.oidc_connection_id
+    assert_equal @user_session_token.id, replacement.client_token_id
     assert_equal "core-next-rp", replacement.oidc_client_id
     assert_equal "openid profile", replacement.oidc_scope
     assert_operator connection.reload.last_used_at, :>, previous_last_used_at
@@ -854,12 +858,14 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "exchanges valid operator code for tokens with OperatorToken" do
     staff = operators(:one)
+    staff_session_token = OperatorToken.create!(staff: staff)
     org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
+      operator_token: staff_session_token,
       client_id: "core-next-rp",
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
@@ -890,12 +896,14 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "creates staff token record for org client" do
     staff = operators(:one)
+    staff_session_token = OperatorToken.create!(staff: staff)
     org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
     staff_secret_credential = "test_secret_credential_for_core_org"
 
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
+      operator_token: staff_session_token,
       client_id: "core-next-rp",
       redirect_uri: org_redirect_uri,
       code_challenge: @code_challenge,
@@ -904,28 +912,32 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       scope: "openid profile email",
     )
 
-    assert_difference "OperatorToken.count", 1 do
-      with_authenticated_org_client(staff_secret_credential) do
-        OidcTokenExchangeService.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: org_redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-staff-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.org/oauth/token",
-          code_verifier: @code_verifier,
-        )
+    assert_no_difference "OperatorToken.count" do
+      assert_difference "OperatorTokenUsage.count", 1 do
+        with_authenticated_org_client(staff_secret_credential) do
+          OidcTokenExchangeService.call(
+            grant_type: "authorization_code",
+            code: code_record.code,
+            redirect_uri: org_redirect_uri,
+            client_id: "core-next-rp",
+            client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+            client_assertion: "test-staff-client-assertion",
+            token_endpoint_uri: "https://id.umaxica.org/oauth/token",
+            code_verifier: @code_verifier,
+          )
+        end
       end
     end
   end
 
   test "records staff RP connection" do
     staff = operators(:one)
+    staff_session_token = OperatorToken.create!(staff: staff)
     org_client = OidcClientRegistry.find("core-next-rp")
     staff_secret_credential = "test_secret_credential_for_core_org"
     code_record = OperatorAuthorizationCode.issue!(
       staff: staff,
+      operator_token: staff_session_token,
       client_id: "core-next-rp",
       redirect_uri: org_client.redirect_uris.first,
       code_challenge: @code_challenge,
@@ -948,20 +960,24 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     end
 
     connection = OperatorOidcConnection.find_by!(staff_id: staff.id, client_id: "core-next-rp")
-    token = OperatorToken.order(:created_at).last
+    usage = OperatorTokenUsage.order(:created_at).last
 
     assert_equal "openid profile email", connection.scope
-    assert_equal connection.id, token.oidc_connection_id
+    assert_equal staff_session_token.id, usage.operator_token_id
+    assert_equal "core-next-rp", usage.oidc_client_id
+    assert_equal "openid profile email", usage.oidc_scope
   end
 
   test "exchanges valid visitor code for tokens with VisitorToken" do
     visitor = create_visitor!
+    visitor_session_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
+      visitor_token: visitor_session_token,
       client_id: "core-next-rp",
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
@@ -992,12 +1008,14 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
   test "creates visitor token record for com client" do
     visitor = create_visitor!
+    visitor_session_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
     visitor_secret_credential = "test_secret_credential_for_core_com"
 
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
+      visitor_token: visitor_session_token,
       client_id: "core-next-rp",
       redirect_uri: com_redirect_uri,
       code_challenge: @code_challenge,
@@ -1006,28 +1024,32 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
       scope: "openid profile email",
     )
 
-    assert_difference "VisitorToken.count", 1 do
-      with_authenticated_com_client(visitor_secret_credential) do
-        OidcTokenExchangeService.call(
-          grant_type: "authorization_code",
-          code: code_record.code,
-          redirect_uri: com_redirect_uri,
-          client_id: "core-next-rp",
-          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
-          client_assertion: "test-visitor-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.com/oauth/token",
-          code_verifier: @code_verifier,
-        )
+    assert_no_difference "VisitorToken.count" do
+      assert_difference "VisitorTokenUsage.count", 1 do
+        with_authenticated_com_client(visitor_secret_credential) do
+          OidcTokenExchangeService.call(
+            grant_type: "authorization_code",
+            code: code_record.code,
+            redirect_uri: com_redirect_uri,
+            client_id: "core-next-rp",
+            client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+            client_assertion: "test-visitor-client-assertion",
+            token_endpoint_uri: "https://id.umaxica.com/oauth/token",
+            code_verifier: @code_verifier,
+          )
+        end
       end
     end
   end
 
   test "records visitor RP connection" do
     visitor = create_visitor!
+    visitor_session_token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     com_client = OidcClientRegistry.find("core-next-rp")
     visitor_secret_credential = "test_secret_credential_for_core_com"
     code_record = VisitorAuthorizationCode.issue!(
       visitor: visitor,
+      visitor_token: visitor_session_token,
       client_id: "core-next-rp",
       redirect_uri: com_client.redirect_uris.first,
       code_challenge: @code_challenge,
@@ -1050,10 +1072,12 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     end
 
     connection = VisitorOidcConnection.find_by!(visitor_id: visitor.id, client_id: "core-next-rp")
-    token = VisitorToken.order(:created_at).last
+    usage = VisitorTokenUsage.order(:created_at).last
 
     assert_equal "openid profile email", connection.scope
-    assert_equal connection.id, token.oidc_connection_id
+    assert_equal visitor_session_token.id, usage.visitor_token_id
+    assert_equal "core-next-rp", usage.oidc_client_id
+    assert_equal "openid profile email", usage.oidc_scope
   end
 
   # --- DPoP token exchange tests ---
@@ -1084,9 +1108,9 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
     assert_equal "DPoP", result.token_response[:token_type]
     assert_predicate result.token_response[:access_token], :present?
 
-    token_record = ClientToken.last
+    ClientToken.last
 
-    assert_predicate token_record.dpop_jkt, :present?
+    assert_predicate ClientTokenUsage.last.dpop_jkt, :present?
   end
 
   test "issues Bearer token when no DPoP proof is provided" do
@@ -1108,7 +1132,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
 
     assert_predicate result, :success?
     assert_equal "Bearer", result.token_response[:token_type]
-    assert_nil ClientToken.last.dpop_jkt
+    assert_nil ClientTokenUsage.last.dpop_jkt
   end
 
   test "fails when DPoP proof has wrong htm" do
@@ -1272,6 +1296,7 @@ class OidcTokenExchangeServiceTest < ActiveSupport::TestCase
   def issue_code!(client_id: "core-next-rp", redirect_uri: @redirect_uri, scope: "openid profile email")
     ClientAuthorizationCode.issue!(
       user: @user,
+      client_token: @user_session_token,
       client_id: client_id,
       redirect_uri: redirect_uri,
       code_challenge: @code_challenge,

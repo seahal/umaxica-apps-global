@@ -29,6 +29,10 @@ class Sign::Com::Settings::Passkeys::VerificationsController < ::Sign::Com::Appl
     sign_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"))
   end
 
+  def recovery_passcode_requirement_active_strong_credential_count
+    current_visitor.visitor_passkeys.active.count
+  end
+
   def recovery_passcode_requirement_actor = current_visitor
 
   def recovery_passcode_requirement_credential_class = VisitorSecretCredential
@@ -36,6 +40,18 @@ class Sign::Com::Settings::Passkeys::VerificationsController < ::Sign::Com::Appl
   def recovery_passcode_setup_url
     sign_com_settings_secret_credentials_url(
       ri: params[:ri],
+      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+    )
+  end
+
+  def recovery_passcode_top_up_actor = current_visitor
+
+  def recovery_passcode_top_up_credential_class = VisitorSecretCredential
+
+  def recovery_passcode_reveal_redirect_url(token)
+    sign_com_settings_secrets_url(
+      ri: params[:ri],
+      token: token,
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )
   end

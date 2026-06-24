@@ -1,0 +1,28 @@
+# == Schema Information
+#
+# Table name: identity_totp_ceremony_candidates
+# Database name: app_ticket
+#
+#  id           :bigint           not null, primary key
+#  ref          :string           not null
+#  digest       :string           not null
+#  surface      :string           not null
+#  actor_ref    :string           not null
+#  session_ref  :string           not null
+#  private_key  :text             not null
+#  title        :string
+#  last_otp_at  :datetime         not null
+#  expires_at   :datetime         not null
+#  consumed_at  :datetime
+#  lock_version :bigint           default(0), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Indexes
+#
+#  index_identity_totp_ceremony_candidates_on_actor_ref_and_session_ref  (actor_ref,session_ref)
+#  index_identity_totp_ceremony_candidates_on_expires_at                  (expires_at)
+#  index_identity_totp_ceremony_candidates_on_ref                         (ref) UNIQUE
+#
+
+# Empty fixture

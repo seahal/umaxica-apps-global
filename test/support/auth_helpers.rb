@@ -122,6 +122,8 @@ module AuthHelpers
     service =
       if normalized.include?("acme")
         "ACME"
+      elsif normalized.include?("base")
+        "BASE"
       elsif normalized.include?("core")
         "CORE"
       else
@@ -129,6 +131,12 @@ module AuthHelpers
       end
     surface =
       if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif service == "BASE"
         case resource_type
         when "operator" then "ORG"
         when "visitor" then "COM"

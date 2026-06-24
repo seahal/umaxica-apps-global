@@ -545,6 +545,12 @@ module SignUpSequenceControllerSupport
       return :failed
     end
 
+    @sign_up_recovery_passcode_reveal_url =
+      issue_sign_up_recovery_passcodes!(
+        surface: :app,
+        actor: actor,
+      )
+
     :accepted
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved,
          SignAppUpTelephoneRegistrationFinalizer::PasskeyMissingError
@@ -565,6 +571,12 @@ module SignUpSequenceControllerSupport
     else
       return :failed
     end
+
+    @sign_up_recovery_passcode_reveal_url =
+      issue_sign_up_recovery_passcodes!(
+        surface: :com,
+        actor: actor,
+      )
 
     :accepted
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved
@@ -698,6 +710,7 @@ module SignUpSequenceControllerSupport
 
   def sign_up_handoff_pt
     return @sign_up_handoff_pt if defined?(@sign_up_handoff_pt)
+    return @sign_up_recovery_passcode_reveal_url if @sign_up_recovery_passcode_reveal_url.present?
 
     ticket_return_to = @sign_up_ticket&.return_to.presence
     current_return_to =
@@ -706,5 +719,54 @@ module SignUpSequenceControllerSupport
       end
 
     @sign_up_handoff_pt = path_from_signed_pt(signed_pt_param) || ticket_return_to || current_return_to
+  end
+
+  def issue_sign_up_recovery_passcodes!(surface:, actor:)
+    config = sign_up_recovery_passcode_config(surface)
+    top_up = RecoveryPasscodeTopUp.call(
+      actor: actor,
+      credential_class: config.fetch(:credential_class),
+      target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
+    )
+    return if top_up.raw_values.empty?
+
+    reveal = IdentityOneTimeReveal.issue!(
+      actor: actor,
+      session_nonce: actor.public_id,
+      value: top_up.raw_values,
+      purpose: config.fetch(:reveal_purpose),
+      metadata: { surface: surface.to_s, issued_count: top_up.issued_count },
+    )
+
+    config.fetch(:reveal_url).call(reveal.token)
+  end
+
+  def sign_up_recovery_passcode_config(surface)
+    case surface.to_sym
+    when :app
+      {
+        credential_class: ClientSecretCredential,
+        reveal_purpose: "sign_up.app.recovery_passcodes",
+        reveal_url: ->(token) {
+          sign_app_settings_secrets_url(
+            ri: params[:ri], token: token,
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+          )
+        },
+      }
+    when :com
+      {
+        credential_class: VisitorSecretCredential,
+        reveal_purpose: "sign_up.com.recovery_passcodes",
+        reveal_url: ->(token) {
+          sign_com_settings_secrets_url(
+            ri: params[:ri], token: token,
+            host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+          )
+        },
+      }
+    else
+      raise ArgumentError, "unsupported sign up surface for recovery passcodes: #{surface.inspect}"
+    end
   end
 end

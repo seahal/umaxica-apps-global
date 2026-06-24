@@ -43,6 +43,10 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
     sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"))
   end
 
+  def recovery_passcode_requirement_active_strong_credential_count
+    0
+  end
+
   def recovery_passcode_requirement_actor = current_operator
 
   def recovery_passcode_requirement_credential_class = OperatorSecretCredential

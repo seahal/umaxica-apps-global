@@ -10,7 +10,7 @@ module SignSettingsTelephoneRegistration
     nil
   end
 
-  def finish_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration")
+  def finish_telephone_ceremony!(surface:, actor:, session_ref:, candidate:, operation: "registration") # rubocop:disable Lint/UnusedMethodArgument
     commit_settings_telephone_registration!(
       surface: surface, actor: actor,
       candidate: candidate,

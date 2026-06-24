@@ -110,6 +110,29 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, nil)
   end
 
+  test "apple request phase logs safe nonce context" do
+    env = Rack::MockRequest.env_for(
+      "/social/apple?state=known-state",
+      :method => "GET",
+      "HTTP_ORIGIN" => "https://id.example.test",
+    )
+    env["rack.session"] = { "omniauth.nonce" => "strategy-nonce" }
+
+    logged =
+      capture_json_logs do
+        SocialCallbackGuard.capture_request_state!(env)
+      end
+
+    event = logged.find { |entry| entry[:event] == "social_auth.apple.request_phase_nonce_context" }
+
+    assert_not_nil event
+    assert_equal "/social/apple", event.dig(:data, :request_path)
+    assert_equal "GET", event.dig(:data, :request_method)
+    assert event.dig(:data, :strategy_has_value)
+    assert event.dig(:data, :callback_present)
+    assert_not_includes logged.to_s, "strategy-nonce"
+  end
+
   test "normalizes malformed origins and referer sources" do
     assert_nil SocialCallbackGuard.normalize_origin("http://[")
 
@@ -207,5 +230,30 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
   ensure
     OmniAuth.config.mock_auth.delete(:apple) if defined?(OmniAuth)
     OmniAuth.config.test_mode = false if defined?(OmniAuth)
+  end
+
+  def capture_json_logs
+    logged = []
+    collector =
+      lambda do |message = nil, &block|
+        message = block.call if message.nil? && block
+        logged << JSON.parse(message, symbolize_names: true) if message.to_s.start_with?("{")
+      rescue JSON::ParserError
+        nil
+      end
+
+    logger = Object.new
+    logger.define_singleton_method(:info) do |message = nil, &block|
+      collector.call(message, &block)
+    end
+    logger.define_singleton_method(:error) do |message = nil, &block|
+      collector.call(message, &block)
+    end
+
+    Rails.stub(:logger, logger) do
+      yield
+    end
+
+    logged
   end
 end

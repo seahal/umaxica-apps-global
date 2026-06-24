@@ -28,9 +28,30 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "post without csrf token returns no content" do
-    host! ENV.fetch("SIGN_SERVICE_URL")
+    with_forgery_protection do
+      host! ENV.fetch("SIGN_SERVICE_URL")
 
-    post sign_app_csp_violation_report_path, params: csp_report_payload, as: :json
+      post sign_app_csp_violation_report_path,
+           params: csp_report_payload.to_json,
+           headers: {
+             "CONTENT_TYPE" => "application/csp-report",
+           }
+    end
+
+    assert_response :no_content
+  end
+
+  test "accepts CSP report with Origin null when forgery protection is enabled" do
+    with_forgery_protection do
+      host! ENV.fetch("SIGN_SERVICE_URL")
+
+      post sign_app_csp_violation_report_path,
+           params: csp_report_payload.to_json,
+           headers: {
+             "CONTENT_TYPE" => "application/csp-report",
+             "HTTP_ORIGIN" => "null",
+           }
+    end
 
     assert_response :no_content
   end
@@ -112,6 +133,16 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :no_content
     assert called
+  end
+
+  test "ordinary state-changing endpoint still rejects tokenless post when forgery protection is enabled" do
+    host! ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
+
+    with_forgery_protection do
+      post base_app_sign_out_url(ri: "jp")
+    end
+
+    assert_response :unprocessable_content
   end
 
   private

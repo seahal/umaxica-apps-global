@@ -38,7 +38,7 @@ class OidcTokenRevocationService < ApplicationService
     return false unless parsed
 
     public_id, verifier = parsed
-    token_record = find_token_by_public_id(public_id, resource_type: client_resource_type)
+    token_record = find_usage_by_public_id(public_id, resource_type: client_resource_type)
     return false unless token_record
     return false unless token_record.oidc_client_id == client_id
     return false unless token_record.refresh_token_digest_matches?(verifier)
@@ -61,7 +61,10 @@ class OidcTokenRevocationService < ApplicationService
     )
     return false unless payload
 
-    token_record = find_token_by_sid(client_resource_type, payload["sid"])
+    token_record = find_usage_by_sid(
+      client_resource_type,
+      payload["sid"],
+    ) || find_token_by_sid(client_resource_type, payload["sid"])
     return false unless token_record&.oidc_client_id == client_id
     return false unless token_jti_matches?(token_record, payload)
 
@@ -69,10 +72,26 @@ class OidcTokenRevocationService < ApplicationService
     true
   end
 
+  def find_usage_by_public_id(public_id, resource_type:)
+    context, usage_class = usage_context_and_class(resource_type)
+
+    context.connected_to(role: :writing) { usage_class.find_by(public_id: public_id) }
+  end
+
   def find_token_by_public_id(public_id, resource_type:)
     context, token_class = token_context_and_class(resource_type)
 
     context.connected_to(role: :writing) { token_class.find_by(public_id: public_id) }
+  end
+
+  def find_usage_by_sid(resource_type, sid)
+    return if sid.blank?
+
+    context, usage_class = usage_context_and_class(resource_type)
+
+    context.connected_to(role: :writing) do
+      usage_class.find_by(public_id: sid)
+    end
   end
 
   def find_token_by_sid(resource_type, sid)
@@ -101,6 +120,14 @@ class OidcTokenRevocationService < ApplicationService
     when "operator" then [OrgTicketRecord, OperatorToken]
     when "visitor" then [ComTicketRecord, VisitorToken]
     else [AppTicketRecord, ClientToken]
+    end
+  end
+
+  def usage_context_and_class(resource_type)
+    case resource_type
+    when "operator" then [OrgTicketRecord, OperatorTokenUsage]
+    when "visitor" then [ComTicketRecord, VisitorTokenUsage]
+    else [AppTicketRecord, ClientTokenUsage]
     end
   end
 

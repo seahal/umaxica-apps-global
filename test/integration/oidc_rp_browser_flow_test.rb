@@ -274,6 +274,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
             user_token_status_id: ClientTokenStatus::ACTIVE,
           )
         end
+      current_session = tokens.second
       issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email", code_verifier: code_verifier)
       resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
         actor: user,
@@ -288,7 +289,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
                 resolution_challenge: resolution.challenge,
                 session_ref: SessionLimitResolutionTokenRef.issue(selected),
               },
-              headers: browser_headers
+              headers: as_user_headers(user, host: acme_host, session_public_id: current_session.public_id)
       end
 
       assert_predicate selected.reload, :revoked?
@@ -320,7 +321,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :ok
       assert_predicate response.parsed_body["id_token"], :present?
       assert_predicate response.parsed_body["access_token"], :present?
-      assert_equal 3, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+      assert_equal 2, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
     end
   end
 

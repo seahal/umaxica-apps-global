@@ -6,6 +6,16 @@ module CspViolationReport
 
   class_methods do
     def protect_csp_violation_report_intake
+      # Security exception:
+      # CSP violation reports are browser-generated telemetry POSTs and do not
+      # include Rails CSRF tokens. They may arrive with Origin: null.
+      #
+      # This helper must only be called by create-only CSP report controllers.
+      # The endpoint records bounded, unauthenticated, untrusted telemetry only
+      # and must not authenticate actors, mutate user/account/session state,
+      # refresh cookies, or redirect.
+      skip_forgery_protection(only: :create)
+
       if respond_to?(:rate_limit)
         rate_limit(
           to: 120,

@@ -5,7 +5,7 @@ module OidcRpLogoutLauncher
   extend ActiveSupport::Concern
 
   included do
-    prepend_before_action :normalize_rp_logout_region!, only: :create
+    prepend_before_action :normalize_rp_logout_region!, if: -> { action_name == "create" }
   end
 
   private
@@ -39,6 +39,17 @@ module OidcRpLogoutLauncher
       cleanup_performed: false,
       result: "issued",
     )
+
+    handoff_oidc_rp_logout!(
+      transaction,
+      client_id: client_id,
+      issuer_resource_type: issuer_resource_type,
+      token_issuer: token_issuer,
+      completion_region: completion_region,
+    )
+  end
+
+  def handoff_oidc_rp_logout!(transaction, client_id:, issuer_resource_type:, token_issuer:, completion_region:)
     state = SecureRandom.hex(16)
     id_token_hint = oidc_rp_logout_id_token_hint(
       client_id: client_id,

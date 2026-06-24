@@ -120,10 +120,18 @@ module SignSettingsPasskeyRegistrationEndpoint
   end
 
   def render_verification_success(passkey)
+    recovery_passcode_top_up = top_up_recovery_passcodes_after_passkey_registration
+    redirect_url =
+      if recovery_passcode_top_up.raw_values.any?
+        recovery_passcode_reveal_url(recovery_passcode_top_up.raw_values)
+      else
+        passkey_registration_redirect_url
+      end
+
     render json: {
       status: "ok",
       passkey_id: passkey.id,
-      redirect_url: bootstrap_return_path(passkey_registration_redirect_url),
+      redirect_url: bootstrap_return_path(redirect_url),
     }, status: :created
   end
 
@@ -145,6 +153,47 @@ module SignSettingsPasskeyRegistrationEndpoint
 
   def passkey_registration_existing_credentials
     passkey_registration_passkeys.map { |passkey| { id: passkey.webauthn_id } }
+  end
+
+  def top_up_recovery_passcodes_after_passkey_registration
+    RecoveryPasscodeTopUp.call(
+      actor: recovery_passcode_top_up_actor,
+      credential_class: recovery_passcode_top_up_credential_class,
+      target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
+    )
+  end
+
+  def recovery_passcode_top_up_actor
+    raise NotImplementedError, "#{self.class} must define #recovery_passcode_top_up_actor"
+  end
+
+  def recovery_passcode_top_up_credential_class
+    raise NotImplementedError, "#{self.class} must define #recovery_passcode_top_up_credential_class"
+  end
+
+  def recovery_passcode_reveal_url(raw_values)
+    return if raw_values.blank?
+
+    reveal = IdentityOneTimeReveal.issue!(
+      actor: recovery_passcode_top_up_actor,
+      session_nonce: recovery_passcode_top_up_actor.public_id,
+      value: raw_values,
+      purpose: recovery_passcode_reveal_purpose,
+      metadata: recovery_passcode_reveal_metadata,
+    )
+    recovery_passcode_reveal_redirect_url(reveal.token)
+  end
+
+  def recovery_passcode_reveal_purpose
+    "#{passkey_registration_surface}.recovery_passcodes"
+  end
+
+  def recovery_passcode_reveal_metadata
+    {}
+  end
+
+  def recovery_passcode_reveal_redirect_url(token)
+    raise NotImplementedError, "#{self.class} must define #recovery_passcode_reveal_redirect_url"
   end
 
   def passkey_registration_log_prefix

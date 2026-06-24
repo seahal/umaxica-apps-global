@@ -10,8 +10,8 @@ module SignSettingsSecretCredentialRegistration
     nil
   end
 
-  def finish_secret_credential_ceremony!(surface:, actor:, session_ref:, record_class:, name:, enabled:,
-                                         raw_secret_credential:, operation: "enrollment")
+  def finish_secret_credential_ceremony!(surface:, actor:, session_ref:, record_class:, name:, enabled:, # rubocop:disable Lint/UnusedMethodArgument
+                                         raw_secret_credential:, _operation: "enrollment")
     create_settings_secret_credential!(
       surface: surface,
       actor: actor,
@@ -22,7 +22,7 @@ module SignSettingsSecretCredentialRegistration
     )
   end
 
-  def create_settings_secret_credential!(surface:, actor:, record_class:, name:, enabled:, raw_secret_credential:)
+  def create_settings_secret_credential!(surface:, actor:, record_class:, name:, enabled:, raw_secret_credential:) # rubocop:disable Lint/UnusedMethodArgument
     params = { name: name, enabled: enabled }
     case surface.to_s
     when "app"

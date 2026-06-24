@@ -38,7 +38,7 @@ module PreferenceCore
   # locale is otherwise resolved by ActorSupport#overlay_language, which lets a
   # transient ?lx=/?ri= request param win over the saved value. Without this pin
   # the page renders in the overlay locale while the selector shows the saved one
-  # (e.g. an English page with 日本語 selected). On the settings screen the saved
+  # (e.g. an English page with Japanese selected). On the settings screen the saved
   # value is the source of truth, so align the display to it.
   def pin_locale_to_saved_language(language_preference)
     option_id = language_preference&.option_id

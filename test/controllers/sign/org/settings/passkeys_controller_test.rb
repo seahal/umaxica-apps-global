@@ -67,18 +67,13 @@ class Sign::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_select "h1", I18n.t("sign.org.settings.passkeys.new.page_title")
   end
 
-  test "new denies with fewer than two unused usable passcodes" do
+  test "new allows bootstrap without recovery passcodes" do
     @staff.staff_secret_credentials.destroy_all
-    create_operator_passcode!(@staff, name: "only recovery")
 
     get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
 
-    assert_response :forbidden
+    assert_response :success
     assert_equal "text/html", response.media_type
-    assert_includes response.body, sign_org_settings_secret_credentials_url(
-      ri: "jp",
-      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
-    )
   end
 
   test "new allows bootstrap when operator multi factor status is unconfigured" do

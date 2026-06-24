@@ -8,6 +8,9 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
+    @user = clients(:one)
+    @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    satisfy_user_verification(@token)
   end
 
   test "renders anonymous root" do
@@ -22,7 +25,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   test "redirects signed-in client to dashboard" do
     host! @host
 
-    get base_app_root_url(ri: "jp"), headers: as_user_headers(clients(:one), host: @host)
+    get base_app_root_url(ri: "jp"), headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)
 
     assert_response :redirect
     assert_redirected_to base_app_dashboard_url(ri: "jp", host: @host)

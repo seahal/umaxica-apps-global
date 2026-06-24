@@ -582,19 +582,7 @@ module AuthenticationSequenceGate
     ).promote!
     cycle = result.cycle.reload
 
-    if cycle.sign_in_guardrail_pending?
-      guardrail_result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
-      return nil if guardrail_result.blocking?
-    end
-
-    cycle.reload
-    if cycle.sign_in_checkpoint_pending?
-      checkpoint_result =
-        with_sign_in_flow_writing(cycle) do
-          sign_in_checkpoint_participant(cycle).advance_if_clear!
-        end
-      return nil if checkpoint_result.blocking?
-    end
+    return nil unless advance_oidc_session_promotion!(cycle, actor)
 
     session_result = log_in(
       actor,
@@ -606,7 +594,28 @@ module AuthenticationSequenceGate
     )
     return nil unless session_result[:status] == :success && current_session
 
-    issued_session = current_session
+    bind_session_and_register_oidc!(cycle, actor, challenge, auth_method, current_session)
+  end
+
+  def advance_oidc_session_promotion!(cycle, actor)
+    if cycle.sign_in_guardrail_pending?
+      guardrail_result = SignInGuardrailParticipant.new(cycle: cycle, actor: actor).advance_if_clear!
+      return false if guardrail_result.blocking?
+    end
+
+    cycle.reload
+    if cycle.sign_in_checkpoint_pending?
+      checkpoint_result =
+        with_sign_in_flow_writing(cycle) do
+          sign_in_checkpoint_participant(cycle).advance_if_clear!
+        end
+      return false if checkpoint_result.blocking?
+    end
+
+    true
+  end
+
+  def bind_session_and_register_oidc!(cycle, actor, challenge, auth_method, issued_session)
     with_sign_in_flow_writing(cycle) do
       changes = {
         status_id: cycle.status_id_for("DASHBOARD_PENDING"),

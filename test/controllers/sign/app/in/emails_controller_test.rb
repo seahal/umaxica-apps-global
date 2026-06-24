@@ -250,6 +250,33 @@ class Sign::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal cycle.public_id, session.dig(:app_sign_in_flow_locator, "public_id")
   end
 
+  test "successful OTP verification accepts the form scope used by the sign-in page" do
+    user = clients(:one)
+    test_email = user.client_emails.create!(address: "form_scope_test_#{SecureRandom.hex(4)}@example.com")
+
+    post sign_app_sign_in_email_url(ri: "jp"),
+         params: {
+           :client_email => { address: test_email.address },
+           "cf-turnstile-response" => "test_token",
+         },
+         headers: { "Host" => @host }
+
+    assert_response :found
+    assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
+
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    valid_pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
+    test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+
+    patch sign_app_sign_in_email_url(ri: "jp"),
+          params: { client_email: { pass_code: valid_pass_code } },
+          headers: { "Host" => @host }
+
+    assert_response :found
+    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+  end
+
   test "successful OTP verification sets host-only auth cookies" do
     user = clients(:one)
     test_email = user.client_emails.create!(

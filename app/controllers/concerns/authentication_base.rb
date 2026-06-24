@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "jwt"
+require_relative "../../models/concerns/refresh_token_shared"
 
 module AuthenticationBase
   extend ActiveSupport::Concern
@@ -12,7 +13,7 @@ module AuthenticationBase
   include AuthenticationBulletinGate
   include AuthenticationSequenceGate
   include AuthenticationDeviceBinding
-  include RefreshTokenShared
+  include ::RefreshTokenShared
   include AuthenticationLogoutable
   include AuthenticationWithdrawalGate
 
@@ -89,8 +90,8 @@ module AuthenticationBase
   ).freeze
 
   # AuthenticationToken TTLs
-  ACCESS_TOKEN_TTL = SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
-  REFRESH_TOKEN_TTL = SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
+  ACCESS_TOKEN_TTL = ::SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL
+  REFRESH_TOKEN_TTL = ::SecurityTokenLifetimes::CLIENT_REFRESH_TOKEN_TTL
   DBSC_COOKIE_TTL = 10.minutes
   RESTRICTED_SESSION_TTL = 15.minutes
   LOGIN_COOLDOWN = 30.seconds
@@ -668,7 +669,11 @@ module AuthenticationBase
         method: request&.request_method,
       )
       store_authentication_return_target!(request.fullpath)
-      url = sign_in_url_with_pt(nil)
+      pt =
+        if respond_to?(:encoded_pt, true)
+          encoded_pt(request.original_url)
+        end
+      url = sign_in_url_with_pt(pt)
       redirect_options = {
         fallback_internal: true,
         alert: I18n.t("errors.messages.login_required"),
@@ -1338,7 +1343,7 @@ module AuthenticationBase
       (token_record.respond_to?(:created_at) ? token_record.created_at : nil)
     return true if reference.blank?
 
-    reference >= Time.current - SecurityTokenLifetimes.idle_ttl_for(resource_type)
+    reference >= Time.current - ::SecurityTokenLifetimes.idle_ttl_for(resource_type)
   end
 
   def refresh_dpop_allowed?(token_record)
@@ -2498,7 +2503,7 @@ module AuthenticationBase
 
     find_logic = -> { find_token_record_by_session_identifier(current_session_public_id) }
 
-    @current_session = token_record_connection_owner.connected_to(role: :reading, &find_logic)
+    @current_session = token_record_connection_owner.connected_to(role: :writing, &find_logic)
   end
 
   def token_class_for_resource(resource)
@@ -2804,7 +2809,9 @@ module AuthenticationBase
         "/sign/in"
       end
     message = options[:message] || I18n.t("errors.messages.login_required")
-    if path.match?(%r{\Ahttps?://}i)
+    if path.match?(%r{\Ahttps?://}i) && respond_to?(:redirect_to_oidc_authorization_url, true)
+      redirect_to_oidc_authorization_url(path, alert: message)
+    elsif path.match?(%r{\Ahttps?://}i)
       redirect_to_jump_url(path, alert: message)
     else
       redirect_to(path, allow_other_host: false, alert: message)

@@ -106,6 +106,7 @@ class ClientToken < AppTicketRecord
   belongs_to :user_token_dbsc_status, class_name: "ClientTokenDbscStatus"
   belongs_to :oidc_connection, class_name: "ClientOidcConnection"
   belongs_to :device_session, class_name: "ClientDeviceSession", inverse_of: :client_tokens
+  has_many :client_token_usages, inverse_of: :client_token, dependent: :delete_all
   has_many :client_verifications, dependent: :delete_all, inverse_of: :user_token
   has_one :step_up_session,
           class_name: "ClientStepUpSession",

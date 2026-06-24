@@ -104,6 +104,7 @@ class VisitorToken < ComTicketRecord
   belongs_to :visitor_token_dbsc_status
   belongs_to :oidc_connection, class_name: "VisitorOidcConnection"
   belongs_to :device_session, class_name: "VisitorDeviceSession", inverse_of: :visitor_tokens
+  has_many :visitor_token_usages, inverse_of: :visitor_token, dependent: :delete_all
   has_one :step_up_session,
           class_name: "VisitorStepUpSession",
           inverse_of: :visitor_token,

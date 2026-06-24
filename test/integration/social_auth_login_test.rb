@@ -100,7 +100,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, cycle.status_id
   end
 
-  test "Google login with session limit pending redirects to sign session management" do
+  test "Google login with session limit pending redirects to acme session-limit resolution" do
     existing_uid = "existing_google_session_limit_#{SecureRandom.hex(4)}"
     existing_user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -125,12 +125,36 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to sign_app_settings_sessions_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "ID_SERVICE_URL", "id.app.localhost",
-      ),
+    assert_response :redirect
+    redirect_uri = URI.parse(response.location)
+
+    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+    assert_equal "/session-limit-resolution", redirect_uri.path
+    social_resolution = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)["social_resolution"]
+
+    assert_predicate social_resolution, :present?
+    assert_equal(
+      existing_user.public_id,
+      Rails.application.message_verifier(:social_session_limit_resolution).verify(social_resolution).fetch("actor_ref"),
     )
+
+    get response.location, headers: browser_headers
+
+    assert_response :success
+    assert_select "h1", "Session limit"
+
+    session_ref = css_select("input[name=session_ref]").first["value"]
+    selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
+
+    patch acme_app_session_limit_resolution_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+          params: {
+            social_resolution: social_resolution,
+            session_ref: session_ref,
+          },
+          headers: browser_headers
+
+    assert_predicate selected_session.reload, :revoked?
+    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 
   def create_active_user_session_for_limit(user)

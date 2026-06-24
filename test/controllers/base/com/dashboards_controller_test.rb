@@ -10,10 +10,13 @@ class Base::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     @visitor = create_verified_visitor_with_email(
       email_address: "base-com-dashboard-#{SecureRandom.hex(4)}@example.com",
     )
+    @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    satisfy_visitor_verification(@token)
   end
 
   test "renders dashboard for signed-in visitor" do
-    get base_com_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: @host)
+    get base_com_dashboard_url(ri: "jp"),
+        headers: as_visitor_headers(@visitor, host: @host, session_public_id: @token.public_id)
 
     assert_response :success
     assert_select "h1", text: "Dashboard"

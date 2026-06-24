@@ -196,6 +196,7 @@ OmniAuth.config.after_request_phase = proc { |env| SocialCallbackGuard.capture_r
 # This uses OmniAuth standard path: /social/failure
 OmniAuth.config.on_failure =
   proc do |env|
+    request = Rack::Request.new(env)
     message = env["omniauth.error.type"]&.to_s || "unknown_error"
     strategy = env["omniauth.error.strategy"]&.name || "unknown"
 
@@ -205,6 +206,19 @@ OmniAuth.config.on_failure =
       Rails.logger.error(
         "[OmniAuth] Failure: strategy=#{strategy} type=#{message} " \
         "error_class=#{error.class.name} error_message=#{error.message}",
+      )
+    end
+
+    if strategy == "apple"
+      Rails.logger.info(
+        JitLogEvent.format(
+          "social_auth.apple.nonce_failure_context",
+          request_path: request.path,
+          request_method: request.request_method,
+          strategy_has_value: request.session["omniauth.nonce"].present?,
+          app_has_value: request.session[:social_auth_nonce].present?,
+          message: message,
+        ),
       )
     end
 

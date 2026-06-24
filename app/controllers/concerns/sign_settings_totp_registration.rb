@@ -10,8 +10,8 @@ module SignSettingsTotpRegistration
     nil
   end
 
-  def finish_totp_ceremony!(surface:, actor:, session_ref:, private_key:, title:, last_otp_at:,
-                            operation: "registration")
+  def finish_totp_ceremony!(surface:, actor:, session_ref:, private_key:, title:, last_otp_at:, # rubocop:disable Lint/UnusedMethodArgument
+                            _operation: "registration")
     create_settings_totp!(
       surface: surface,
       actor: actor,

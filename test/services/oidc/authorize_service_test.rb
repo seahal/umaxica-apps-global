@@ -6,6 +6,7 @@ require "test_helper"
 class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
+    @user_session_token = ClientToken.create!(user: @user)
     @code_verifier = SecureRandom.urlsafe_base64(32)
     @code_challenge = Base64.urlsafe_encode64(
       Digest::SHA256.digest(@code_verifier),
@@ -16,7 +17,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "issues authorization code and returns redirect URL" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params,
       resource: @user,
     )
@@ -35,7 +36,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for missing response_type" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.except(:response_type),
       resource: @user,
     )
@@ -45,7 +46,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for wrong response_type" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(response_type: "token"),
       resource: @user,
     )
@@ -55,7 +56,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for unknown client_id" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(client_id: "unknown"),
       resource: @user,
     )
@@ -65,7 +66,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for unregistered redirect_uri" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(redirect_uri: "https://evil.com/callback"),
       resource: @user,
     )
@@ -75,7 +76,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails without code_challenge" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.except(:code_challenge),
       resource: @user,
     )
@@ -85,7 +86,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails for non-S256 code_challenge_method" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(code_challenge_method: "plain"),
       resource: @user,
     )
@@ -95,7 +96,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails when scope does not include openid" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(scope: "profile email"),
       resource: @user,
     )
@@ -108,7 +109,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   test "fails when non-Palm client requests disallowed scopes" do
     %w(palm.read admin all write write:org).each do |scope|
       assert_no_difference "ClientAuthorizationCode.count" do
-        result = OidcAuthorizeService.call(
+        result = authorize_service_call(
           params: valid_params.merge(scope: "openid #{scope}"),
           resource: @user,
         )
@@ -122,7 +123,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   test "palm iOS client can request palm.read" do
     client = OidcClientRegistry.find!("app-ios-rp")
     assert_difference "ClientAuthorizationCode.count", 1 do
-      result = OidcAuthorizeService.call(
+      result = authorize_service_call(
         params: valid_params(
           client_id: client.client_id,
           redirect_uri: client.redirect_uris.first,
@@ -143,7 +144,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   test "palm Android client can request palm.read" do
     client = OidcClientRegistry.find!("app-android-rp")
     assert_difference "ClientAuthorizationCode.count", 1 do
-      result = OidcAuthorizeService.call(
+      result = authorize_service_call(
         params: valid_params(
           client_id: client.client_id,
           redirect_uri: client.redirect_uris.first,
@@ -162,7 +163,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "state is included in redirect URL when provided" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.merge(state: "my_state_123"),
       resource: @user,
     )
@@ -175,7 +176,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   end
 
   test "fails when state is not provided" do
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: valid_params.except(:state),
       resource: @user,
     )
@@ -193,7 +194,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     )
 
     assert_no_difference "ClientAuthorizationCode.count" do
-      result = OidcAuthorizeService.call(
+      result = authorize_service_call(
         params: valid_params,
         resource: @user,
       )
@@ -206,7 +207,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
 
   test "authorization code is stored in database" do
     assert_difference "ClientAuthorizationCode.count", 1 do
-      OidcAuthorizeService.call(
+      authorize_service_call(
         params: valid_params,
         resource: @user,
       )
@@ -228,7 +229,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     org_client = OidcClientRegistry.find("core-next-rp")
     org_redirect_uri = org_client.redirect_uris.first
 
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: {
         response_type: "code",
         client_id: "core-next-rp",
@@ -257,7 +258,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     org_redirect_uri = org_client.redirect_uris.first
 
     assert_difference "OperatorAuthorizationCode.count", 1 do
-      OidcAuthorizeService.call(
+      authorize_service_call(
         params: {
           response_type: "code",
           client_id: "core-next-rp",
@@ -283,7 +284,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     com_client = OidcClientRegistry.find("core-next-rp")
     com_redirect_uri = com_client.redirect_uris.first
 
-    result = OidcAuthorizeService.call(
+    result = authorize_service_call(
       params: {
         response_type: "code",
         client_id: "core-next-rp",
@@ -311,7 +312,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     com_redirect_uri = com_client.redirect_uris.first
 
     assert_difference "VisitorAuthorizationCode.count", 1 do
-      OidcAuthorizeService.call(
+      authorize_service_call(
         params: {
           response_type: "code",
           client_id: "core-next-rp",
@@ -352,5 +353,31 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
     VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
     VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
     Visitor.create!
+  end
+
+  def authorize_service_call(params:, resource:, session_token: nil, **)
+    session_token ||= default_session_token_for(resource)
+
+    OidcAuthorizeService.call(
+      params: params,
+      resource: resource,
+      session_token: session_token,
+      **,
+    )
+  end
+
+  def default_session_token_for(resource)
+    case resource
+    when Client
+      @user_session_token ||= ClientToken.create!(user: @user)
+    when Operator
+      @staff_session_token ||= OperatorToken.create!(staff: resource)
+    when Visitor
+      ensure_visitor_reference_records!
+      ensure_visitor_token_reference_records!
+      @visitor_session_token ||= VisitorToken.create!(visitor: resource, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    else
+      raise ArgumentError, "unsupported resource: #{resource.class.name}"
+    end
   end
 end

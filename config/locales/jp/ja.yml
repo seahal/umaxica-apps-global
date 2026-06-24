@@ -3479,6 +3479,10 @@ ja:
   views:
     acme:
       app:
+        session_limit_resolutions:
+          revoke_failed: 選択されたセッションを無効にできませんでした。
+          capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+          invalid_or_expired: このセッション制限解決リンクは無効または期限切れです。
         roots:
           index:
             redirect_prompt: "%{preference} へすぐ移動できます。"

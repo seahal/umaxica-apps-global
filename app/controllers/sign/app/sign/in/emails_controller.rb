@@ -331,7 +331,8 @@ module Sign
           end
 
           def update_pass_code_params
-            params(user_email: [:pass_code])
+            permitted = params.permit(client_email: [:pass_code], user_email: [:pass_code])
+            permitted.fetch(:client_email, {}).presence || permitted.fetch(:user_email, {}).presence || {}
           rescue ActionController::ParameterMissing
             {}
           end

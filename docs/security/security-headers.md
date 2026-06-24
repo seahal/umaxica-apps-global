@@ -33,5 +33,22 @@ security headers.
   rewritten by the edge provider. If scanners flag those, verify whether the fix belongs in Rails or
   the CDN configuration before changing application code.
 
+## CSP Violation Report Endpoints
+
+CSP violation report endpoints intentionally skip Rails CSRF verification for the `create` action
+only.
+
+- Browser-generated CSP reports do not include Rails authenticity tokens and may arrive with
+  `Origin: null`.
+- These endpoints are unauthenticated telemetry ingestion points.
+- Submitted reports are untrusted and must not be treated as authoritative evidence.
+- The endpoint must not authenticate actors, mutate user/account/session/cookie state, refresh
+  credentials, or redirect.
+- Existing body-size limits, field sanitization, and rate limiting at 120 requests per minute remain
+  in effect.
+- Static-analysis tools may flag `skip_forgery_protection` on these endpoints. This is an
+  intentional, reviewed security exception under the documented create-only and telemetry-only
+  constraints. No Brakeman suppression is applied.
+
 When changing these areas, update focused regression tests and re-scan the affected public host
 after deployment.

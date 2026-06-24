@@ -243,6 +243,10 @@ module Sign
           "settings_passkey"
         end
 
+        def recovery_passcode_requirement_active_strong_credential_count
+          current_visitor.visitor_passkeys.active.count
+        end
+
         def recovery_passcode_requirement_actor
           current_visitor
         end

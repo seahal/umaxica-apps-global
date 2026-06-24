@@ -134,10 +134,22 @@ module Oidc
       request_scheme = request.scheme.to_s.downcase
       same_site = same_site_host?(request_host, target_host)
 
-      return jump_decision("scheme_mismatch", request:, target:, same_site:, target_scheme:, target_host:, target_port:) if target_scheme != scheme
-      return jump_decision("host_mismatch", request:, target:, same_site:, target_scheme:, target_host:, target_port:) if target_host != host
-      return jump_decision("port_mismatch", request:, target:, same_site:, target_scheme:, target_host:, target_port:) if target_port != port
-      return jump_decision("site_mismatch", request:, target:, same_site:, target_scheme:, target_host:, target_port:) unless same_site
+      return jump_decision(
+        "scheme_mismatch", request:, target:, same_site:, target_scheme:, target_host:,
+                           target_port:,
+      ) if target_scheme != scheme
+      return jump_decision(
+        "host_mismatch", request:, target:, same_site:, target_scheme:, target_host:,
+                         target_port:,
+      ) if target_host != host
+      return jump_decision(
+        "port_mismatch", request:, target:, same_site:, target_scheme:, target_host:,
+                         target_port:,
+      ) if target_port != port
+      return jump_decision(
+        "site_mismatch", request:, target:, same_site:, target_scheme:, target_host:,
+                         target_port:,
+      ) unless same_site
 
       Decision.new(
         kind: :direct,

@@ -38,7 +38,8 @@ module Acme
 
         def edit
           if params[:logout_challenge].present?
-            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
+            logout_challenge = params.expect(:logout_challenge)
+            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
             warn_sign_out_event(
               "auth.sign_out.legacy_handoff.used",
               transaction: @logout_transaction,
@@ -60,19 +61,7 @@ module Acme
           return continue_acme_coordinated_logout if params[:logout_challenge].present?
           return render_oidc_logout_completion if logout_browser_session_missing?
 
-          transaction_result = AcmeLogoutTransactionService.issue!(
-            origin_surface: "acme",
-            initiating_client_id: "acme-rp",
-            completion_url: AcmeLogoutTransactionService.completion_url_for(
-              origin_surface: "acme",
-              ri: params[:ri],
-              surface: sign_surface_name,
-            ),
-            actor_ref: current_resource.try(:public_id),
-            session_ref: safe_current_session_public_id_for_logout,
-            callback_state: nil,
-            surface: sign_surface_name,
-          )
+          transaction_result = issue_acme_logout_transaction!
           return render_oidc_logout_completion unless transaction_result.success?
 
           transaction = transaction_result.transaction
@@ -123,9 +112,11 @@ module Acme
         end
 
         def continue_acme_coordinated_logout
-          @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
+          logout_challenge = params.expect(:logout_challenge)
+          @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
           return reject_acme_coordinated_logout!("expired") if @logout_transaction.expired?
-          return reject_acme_coordinated_logout!("wrong_step") unless @logout_transaction.expected_step == "acme_cleared"
+          return reject_acme_coordinated_logout!("wrong_step") unless
+            @logout_transaction.expected_step == "acme_cleared"
 
           log_sign_out_event(
             "auth.sign_out.step.started",
@@ -151,7 +142,9 @@ module Acme
             step: "acme_cleared",
           )
           transaction = advance_result.transaction || @logout_transaction
-          return reject_acme_coordinated_logout!(advance_result.error || "invalid_request") unless advance_result.success?
+          unless advance_result.success?
+            return reject_acme_coordinated_logout!(advance_result.error || "invalid_request")
+          end
 
           log_sign_out_event(
             "auth.sign_out.step.advanced",
@@ -164,9 +157,35 @@ module Acme
             result: "advanced",
           )
 
+          finalize_or_redirect_coordinated_logout!(transaction)
+        rescue ActiveRecord::RecordNotFound, ActionController::ParameterMissing
+          reject_acme_coordinated_logout!("not_found")
+        end
+
+        def issue_acme_logout_transaction!
+          AcmeLogoutTransactionService.issue!(
+            origin_surface: "acme",
+            initiating_client_id: "acme-rp",
+            completion_url: AcmeLogoutTransactionService.completion_url_for(
+              origin_surface: "acme",
+              ri: params[:ri],
+              surface: sign_surface_name,
+            ),
+            actor_ref: current_resource.try(:public_id),
+            session_ref: safe_current_session_public_id_for_logout,
+            callback_state: nil,
+            surface: sign_surface_name,
+          )
+        end
+
+        def finalize_or_redirect_coordinated_logout!(transaction)
           if transaction.origin_surface == "sign"
-            finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
-            return reject_acme_coordinated_logout!(finalize_result.error || "invalid_request") unless finalize_result.success?
+            finalize_result = AcmeLogoutTransactionService.finalize!(
+              logout_challenge: transaction.logout_challenge,
+            )
+            unless finalize_result.success?
+              return reject_acme_coordinated_logout!(finalize_result.error || "invalid_request")
+            end
 
             log_sign_out_event(
               "auth.sign_out.transaction.finalized",
@@ -188,8 +207,6 @@ module Acme
               transaction: transaction,
             )
           end
-        rescue ActiveRecord::RecordNotFound, ActionController::ParameterMissing
-          reject_acme_coordinated_logout!("not_found")
         end
 
         def reject_acme_coordinated_logout!(reason)

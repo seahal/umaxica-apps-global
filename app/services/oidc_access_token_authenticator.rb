@@ -79,12 +79,14 @@ class OidcAccessTokenAuthenticator < ApplicationService
   end
 
   def find_token(payload)
-    token_class = token_class_for_resource_type
     sid = payload["sid"].to_s
     return if sid.blank?
 
     token_context.connected_to(role: :reading) do
-      token_class.find_by(oidc_sid: sid)
+      usage = usage_class_for_resource_type&.find_by(public_id: sid)
+      return usage if usage.present?
+
+      token_class_for_resource_type.find_by(oidc_sid: sid) || token_class_for_resource_type.find_by(public_id: sid)
     end
   end
 
@@ -99,7 +101,7 @@ class OidcAccessTokenAuthenticator < ApplicationService
   end
 
   def token_jti_matches?(token, payload)
-    return true unless token.has_attribute?(:oidc_jti)
+    return true unless token.respond_to?(:oidc_jti)
     return true if token.oidc_jti.blank?
 
     expected = token.oidc_jti.to_s
@@ -122,10 +124,11 @@ class OidcAccessTokenAuthenticator < ApplicationService
   end
 
   def token_resource(token)
+    session_token = root_token_for(token)
     case resource_type
-    when "operator" then token.staff
-    when "visitor" then token.visitor
-    else token.user
+    when "operator" then session_token.staff
+    when "visitor" then session_token.visitor
+    else session_token.user
     end
   end
 
@@ -135,6 +138,22 @@ class OidcAccessTokenAuthenticator < ApplicationService
     when "visitor" then VisitorToken
     else ClientToken
     end
+  end
+
+  def usage_class_for_resource_type
+    case resource_type
+    when "operator" then OperatorTokenUsage
+    when "visitor" then VisitorTokenUsage
+    else ClientTokenUsage
+    end
+  end
+
+  def root_token_for(token)
+    return token.client_token if token.respond_to?(:client_token) && token.client_token.present?
+    return token.operator_token if token.respond_to?(:operator_token) && token.operator_token.present?
+    return token.visitor_token if token.respond_to?(:visitor_token) && token.visitor_token.present?
+
+    token
   end
 
   def token_context

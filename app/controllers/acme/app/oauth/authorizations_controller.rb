@@ -47,6 +47,7 @@ module Acme
           result = ::OidcAuthorizeService.call(
             params: params_hash,
             resource: resource,
+            session_token: current_session,
             auth_method: Array(access_claims&.dig("amr")).first,
             acr: access_claims&.dig("acr"),
           )

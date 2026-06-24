@@ -34,12 +34,14 @@ require "test_helper"
 class OperatorAuthorizationCodeTest < ActiveSupport::TestCase
   setup do
     @staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
+    @staff_session_token = OperatorToken.create!(staff: @staff)
     @valid_params = {
       client_id: "test-client",
       redirect_uri: "https://example.com/callback",
       code_challenge: "test-challenge",
       code_challenge_method: "S256",
       staff: @staff,
+      operator_token: @staff_session_token,
     }.freeze
   end
 

@@ -53,7 +53,8 @@ Rails.application.configure do
     policy.object_src(:none)
     policy.script_src(:self, "https://challenges.cloudflare.com")
     # Allow @vite/client to hot reload javascript changes in development
-    #    policy.script_src *policy.script_src, :unsafe_eval, "http://#{ ViteRuby.config.host_with_port }" if Rails.env.development?
+    # policy.script_src *policy.script_src, :unsafe_eval,
+    #   "http://#{ViteRuby.config.host_with_port}" if Rails.env.development?
 
     # You may need to enable this in production as well depending on your setup.
     #    policy.script_src *policy.script_src, :blob if Rails.env.test?

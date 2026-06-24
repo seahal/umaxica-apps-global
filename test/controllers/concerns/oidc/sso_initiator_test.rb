@@ -66,7 +66,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
     assert_equal "www.umaxica.app", uri.host
     assert_equal "/oauth/authorize", uri.path
-    refute_equal "jump.umaxica.net", uri.host
+    assert_not_equal "jump.umaxica.net", uri.host
 
     authorize_params = Rack::Utils.parse_nested_query(uri.query)
 
@@ -81,6 +81,8 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_not_includes io.string, session[:oidc_state]
     assert_not_includes io.string, session[:oidc_nonce]
     assert_not_includes io.string, session[:oidc_code_verifier]
+    assert_not_includes io.string, response.location
+    assert_not_includes io.string, "oauth/authorize?"
   end
 
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do

@@ -82,6 +82,18 @@ module SocialCallbackGuard
     request.session.delete(SOCIAL_STATE_USED_AT_SESSION_KEY)
     request.session[SOCIAL_STATE_PROVIDER_SESSION_KEY] = provider
     SocialAuthCallbackStateStore.issue!(state: state, provider: provider)
+
+    return unless provider == "apple"
+
+    Rails.logger.info(
+      JitLogEvent.format(
+        "social_auth.apple.request_phase_nonce_context",
+        request_path: request.path_info,
+        request_method: request.request_method,
+        strategy_has_value: request.session["omniauth.nonce"].present?,
+        callback_present: state.present?,
+      ),
+    )
   end
 
   def allowed_request_method?(provider, method)

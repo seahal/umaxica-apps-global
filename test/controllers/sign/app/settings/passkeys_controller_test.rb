@@ -239,8 +239,9 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
   end
 
-  test "verification succeeds without issuing passcode when two recovery passcodes already exist" do
-    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
+  test "verification tops recovery passcodes up after bootstrap passkey registration" do
+    email = "bootstrap-passkey-#{SecureRandom.hex(4)}@example.com"
+    unverified_user = create_verified_user_with_email(email_address: email)
     create_client_recovery_passcode!(unverified_user, name: "bootstrap 1", validate: false)
     create_client_recovery_passcode!(unverified_user, name: "bootstrap 2", validate: false)
     token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -273,7 +274,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_difference("ClientPasskey.count", 1) do
-        assert_no_difference("ClientSecretCredential.count") do
+        assert_difference("ClientSecretCredential.count", 8) do
           post sign_app_settings_passkeys_verification_path(ri: "jp"),
                params: params,
                headers: headers
@@ -283,8 +284,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_app_settings_passkeys_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
-                 response.parsed_body["redirect_url"]
+    assert_includes response.parsed_body["redirect_url"], "/settings/secrets"
   end
 
   test "verification rejects duplicate webauthn_id" do
@@ -454,9 +454,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "new allows bootstrap passkey registration with two recovery passcodes" do
-    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
-    create_client_recovery_passcode!(unverified_user, name: "bootstrap new 1", validate: false)
-    create_client_recovery_passcode!(unverified_user, name: "bootstrap new 2", validate: false)
+    unverified_user = create_verified_user_with_email(email_address: "bootstrap-new-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(token)
     headers = as_user_headers(
@@ -475,9 +473,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "create allows bootstrap passkey registration with two recovery passcodes" do
-    unverified_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: SecureRandom.hex(10))
-    create_client_recovery_passcode!(unverified_user, name: "bootstrap create 1", validate: false)
-    create_client_recovery_passcode!(unverified_user, name: "bootstrap create 2", validate: false)
+    email = "bootstrap-create-#{SecureRandom.hex(4)}@example.com"
+    unverified_user = create_verified_user_with_email(email_address: email)
     headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_no_difference("ClientPasskey.count") do

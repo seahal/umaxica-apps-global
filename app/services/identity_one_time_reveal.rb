@@ -11,6 +11,26 @@ class IdentityOneTimeReveal
   Result = Struct.new(:token, :expires_at, keyword_init: true)
   Payload = Struct.new(:value, :metadata, keyword_init: true)
 
+  class << self
+    # Rails.cache is :null_store in test and development. One-time reveals need
+    # a usable short-lived store there so tokens can be consumed after redirect.
+    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
+    attr_writer :store
+    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
+
+    def store
+      @store_mutex ||= Mutex.new
+      @store_mutex.synchronize { @store ||= default_store }
+    end
+
+    def default_store
+      return Rails.cache unless Rails.cache.is_a?(ActiveSupport::Cache::NullStore)
+
+      @null_store_mutex ||= Mutex.new
+      @null_store_mutex.synchronize { @null_store ||= ActiveSupport::Cache::MemoryStore.new }
+    end
+  end
+
   def self.issue!(actor:, session_nonce:, value:, purpose:, metadata: {}, expires_in: EXPIRES_IN)
     new.issue!(
       actor: actor,
@@ -34,7 +54,7 @@ class IdentityOneTimeReveal
 
     jti = SecureRandom.uuid
     expires_at = Time.current + expires_in
-    Rails.cache.write(
+    self.class.store.write(
       cache_key(jti),
       encrypt_payload(value: value, metadata: metadata),
       expires_in: expires_in,
@@ -55,10 +75,10 @@ class IdentityOneTimeReveal
     return nil unless valid_claims?(payload, actor: actor, session_nonce: session_nonce, purpose: purpose)
 
     key = cache_key(payload.fetch("jti"))
-    encrypted = Rails.cache.read(key)
+    encrypted = self.class.store.read(key)
     return nil if encrypted.blank?
 
-    Rails.cache.delete(key)
+    self.class.store.delete(key)
     decrypted = decrypt_payload(encrypted)
     Payload.new(value: decrypted.fetch("value"), metadata: decrypted.fetch("metadata", {}))
   rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveSupport::MessageEncryptor::InvalidMessage,

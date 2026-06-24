@@ -36,12 +36,14 @@ class VisitorAuthorizationCodeTest < ActiveSupport::TestCase
     VisitorStatus.ensure_defaults!
     VisitorVisibility.ensure_defaults!
     @visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+    @visitor_session_token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     @valid_params = {
       client_id: "test-client",
       redirect_uri: "https://example.com/callback",
       code_challenge: "test-challenge",
       code_challenge_method: "S256",
       visitor: @visitor,
+      visitor_token: @visitor_session_token,
     }.freeze
   end
 

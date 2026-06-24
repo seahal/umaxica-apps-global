@@ -1756,6 +1756,11 @@ en:
           preference: Preferences
           cookie: Cookie
   acme:
+    app:
+      session_limit_resolutions:
+        revoke_failed: The selected session could not be revoked.
+        capacity_still_full: Session capacity is still full. Revoke another session to continue.
+        invalid_or_expired: This session-limit resolution link is invalid or expired.
     org:
       preference:
         cookie:

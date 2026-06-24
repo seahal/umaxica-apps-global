@@ -34,12 +34,14 @@ require "test_helper"
 class ClientAuthorizationCodeTest < ActiveSupport::TestCase
   setup do
     @user = Client.create!(public_id: "u_#{SecureRandom.hex(8)}", status_id: ClientStatus::ACTIVE)
+    @user_session_token = ClientToken.create!(user: @user)
     @valid_params = {
       client_id: "test-client",
       redirect_uri: "https://example.com/callback",
       code_challenge: "test-challenge",
       code_challenge_method: "S256",
       user: @user,
+      client_token: @user_session_token,
     }.freeze
   end
 

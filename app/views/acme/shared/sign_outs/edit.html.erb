@@ -5,7 +5,7 @@
 
   <% if sign_out_active_context_present? %>
     <p><%= t("sign.shared.sign_out.confirm_description") %></p>
-    <%= form_with url: sign_out_confirmation_form_path, method: :post, data: { turbo: false } do %>
+    <%= form_with url: sign_out_post_path, method: :post, data: { turbo: false } do %>
       <%= hidden_field_tag :logout_challenge, params[:logout_challenge] if params[:logout_challenge].present? %>
       <%= submit_tag t("sign.shared.sign_out.button") %>
       <noscript><p><%= t("sign.shared.sign_out.confirm_description") %></p></noscript>

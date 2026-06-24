@@ -20,6 +20,10 @@ module Sign
 
           AUTHENTICATION_MODE = :guest
 
+          SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
+
+          MFA_USER_SESSION_KEY = :mfa_user_id
+
           rate_limit(
             to: 5,
             within: 1.minute,
@@ -81,10 +85,6 @@ module Sign
               ActiveModel::Name.new(self, nil, "mfa_secret_credential_form")
             end
           end
-
-          SecretVerificationResult = Struct.new(:secret_credential, :reason, :details, keyword_init: true)
-
-          MFA_USER_SESSION_KEY = :mfa_user_id
 
           def new
             if mfa_user

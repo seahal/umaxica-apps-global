@@ -89,14 +89,19 @@ module Sign
           )
           session[:private_key] = nil
           reset_totp_ceremony_session!
-          redirect_to(
-            bootstrap_return_path(
+
+          recovery_passcode_top_up = top_up_recovery_passcodes_after_totp_registration
+          redirect_url =
+            if recovery_passcode_top_up.raw_values.any?
+              recovery_passcode_reveal_url(recovery_passcode_top_up.raw_values)
+            else
               sign_app_settings_totps_url(
                 ri: params[:ri],
                 host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-              ),
-            ),
-            notice: t("messages.totp_successfully_created"),
+              )
+            end
+          redirect_to(
+            bootstrap_return_path(redirect_url),
             allow_other_host: cross_host_redirect_allowed?,
           )
         end
@@ -183,6 +188,13 @@ module Sign
           "settings_totp"
         end
 
+        def recovery_passcode_requirement_active_strong_credential_count
+          current_client.client_passkeys.active.count +
+            current_client.client_totp_credentials.where(
+              user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
+            ).count
+        end
+
         def recovery_passcode_requirement_actor
           current_client
         end
@@ -194,6 +206,31 @@ module Sign
         def recovery_passcode_setup_url
           sign_app_settings_secret_credentials_url(
             ri: params[:ri],
+            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+          )
+        end
+
+        def top_up_recovery_passcodes_after_totp_registration
+          RecoveryPasscodeTopUp.call(
+            actor: current_client,
+            credential_class: ClientSecretCredential,
+            target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
+          )
+        end
+
+        def recovery_passcode_reveal_url(raw_values)
+          return if raw_values.blank?
+
+          reveal = IdentityOneTimeReveal.issue!(
+            actor: current_client,
+            session_nonce: current_client.public_id,
+            value: raw_values,
+            purpose: "app.recovery_passcodes",
+            metadata: {},
+          )
+          sign_app_settings_secrets_url(
+            ri: params[:ri],
+            token: reveal.token,
             host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
           )
         end

@@ -110,7 +110,8 @@ class AuthenticationLogoutCurrentSession
   end
 
   def device_session_class
-    if token&.respond_to?(:association_cached?) && token.association_cached?(:device_session) && token.device_session.present?
+    if token&.respond_to?(:association_cached?) && token.association_cached?(:device_session) &&
+       token.device_session.present?
       return token.device_session.class
     end
 

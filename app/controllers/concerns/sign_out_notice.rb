@@ -8,7 +8,8 @@ module SignOutNotice
     helper_method :sign_out_active_context_present?,
                   :sign_out_confirmation_form_path,
                   :sign_out_home_path,
-                  :sign_out_completed_description
+                  :sign_out_completed_description,
+                  :sign_out_post_path
   end
 
   SIGN_OUT_NOTICE_SESSION_KEY = :sign_out_notice

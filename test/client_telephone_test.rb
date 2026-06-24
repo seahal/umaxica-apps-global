@@ -539,7 +539,7 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     [holder, releaser].each(&:join)
     race_results = 2.times.map { results.pop }
 
-    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert race_results.none? { |result| result[:status] == :error }
     assert_nothing_raised do
       create_telephone_record(number)
     end
@@ -606,7 +606,7 @@ class ClientTelephoneTest < ActiveSupport::TestCase
 
   def assert_identifier_race_protected(results, digest)
     assert_equal 2, results.size
-    assert results.none? { |result| result[:status] == :error }, results.inspect
+    assert results.none? { |result| result[:status] == :error }
     assert_equal 1, results.count { |result| result[:status] == :created }, results.inspect
     assert_equal 1, results.count { |result| result[:status] == :conflict }, results.inspect
     assert_operator ClientTelephone

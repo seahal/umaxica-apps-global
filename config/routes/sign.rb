@@ -344,6 +344,8 @@ sign_routes do
         resource :verification, only: :create
       end
 
+      resource :secrets, only: :show
+
       namespace :mfa do
         resource :challenge, only: :show
       end

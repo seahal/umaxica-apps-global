@@ -16,13 +16,14 @@ module Sign
         def show
           reveal = IdentityOneTimeReveal.consume!(
             actor: current_client,
-            session_nonce: current_session_token&.public_id,
+            session_nonce: current_client.public_id,
             token: params[:token],
             purpose: REVEAL_PURPOSE,
           )
 
           if reveal
-            @raw_secret_credential = reveal.value
+            @recovery_passcodes = Array(reveal.value).map(&:to_s)
+            @back_to_settings_url = sign_app_settings_url(ri: params[:ri])
             IdentityAudit.record!(
               actor: current_client,
               event_id: ClientChronicleEvent::RECOVERY_CODES_GENERATED,
@@ -31,7 +32,8 @@ module Sign
               user_agent: request.user_agent,
             )
           else
-            @missing_secret = true
+            @missing_recovery_passcodes = true
+            @back_to_settings_url = sign_app_settings_url(ri: params[:ri])
           end
         end
 

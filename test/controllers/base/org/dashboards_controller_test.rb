@@ -9,10 +9,14 @@ class Base::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
     @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    @operator = operators(:one)
+    @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    satisfy_staff_verification(@token)
   end
 
   test "renders dashboard for signed-in operator" do
-    get base_org_dashboard_url(ri: "jp"), headers: as_staff_headers(operators(:one), host: @host)
+    get base_org_dashboard_url(ri: "jp"),
+        headers: as_staff_headers(@operator, host: @host, session_public_id: @token.public_id)
 
     assert_response :success
     assert_select "h1", text: "Dashboard"
