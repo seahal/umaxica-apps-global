@@ -94,7 +94,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     WebAuthn::Credential.stub(:from_create, mock_credential) do
       assert_difference("VisitorPasskey.count", 1) do
-        assert_difference("VisitorSecretCredential.count", 8) do
+        assert_difference(-> { @visitor.reload.visitor_secret_credentials.count }, 8) do
           post sign_com_settings_passkeys_verification_path(ri: "jp"),
                params: {
                  challenge_id: challenge_id,
@@ -123,7 +123,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     token = VisitorToken.create!(visitor: visitor, visitor_token_status_id: VisitorTokenStatus::ACTIVE)
     satisfy_visitor_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: "settings_passkey")
-    headers = as_visitor_headers(visitor, host: @host)
+    headers = as_visitor_headers(visitor, host: @host, session_public_id: token.public_id)
 
     mock_credential = Object.new
     mock_credential.define_singleton_method(:id) { "bootstrap_new_webauthn_id" }
@@ -138,7 +138,7 @@ class Sign::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
 
       assert_difference("VisitorPasskey.count", 1) do
-        assert_difference("VisitorSecretCredential.count", 10) do
+        assert_difference(-> { visitor.reload.visitor_secret_credentials.count }, 10) do
           post sign_com_settings_passkeys_verification_path(ri: "jp"),
                params: {
                  challenge_id: challenge_id,

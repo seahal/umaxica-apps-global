@@ -476,7 +476,7 @@ class ClientTelephoneTest < ActiveSupport::TestCase
     [updater, creator].each(&:join)
     race_results = 2.times.map { results.pop }
 
-    assert race_results.none? { |result| result[:status] == :error }, race_results.inspect
+    assert race_results.none? { |result| result[:status] == :error }
     assert_operator active_telephone_digest_count(number), :<=, 1
   end
 

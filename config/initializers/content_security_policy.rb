@@ -75,5 +75,6 @@ Rails.application.configure do
 
   config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
   config.content_security_policy_nonce_directives = %w(script-src script-src-elem style-src style-src-elem)
+  config.content_security_policy_nonce_auto = true
   config.content_security_policy_report_only = false
 end

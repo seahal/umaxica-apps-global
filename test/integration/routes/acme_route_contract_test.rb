@@ -99,6 +99,26 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "acme/app/sign/in/limitations", action: "show" },
+      { path: "http://#{ACME_APP_HOST}/sign/in/limitation", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/in/limitations", action: "update" },
+      { path: "http://#{ACME_APP_HOST}/sign/in/limitation", method: :patch },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/in/limitations", action: "update" },
+      { path: "http://#{ACME_APP_HOST}/sign/in/limitation", method: :put },
+    )
+
+    assert_recognizes(
+      { controller: "acme/app/sign/in/limitations", action: "destroy" },
+      { path: "http://#{ACME_APP_HOST}/sign/in/limitation", method: :delete },
+    )
+
+    assert_recognizes(
       { controller: "acme/app/auth/callbacks", action: "show", to: "/acme/app/auth/callbacks#show" },
       { path: "http://#{ACME_APP_HOST}/oidc/callback", method: :get },
     )

@@ -185,7 +185,14 @@ module SignSettingsPasskeyRegistrationEndpoint
   end
 
   def recovery_passcode_reveal_purpose
-    "#{passkey_registration_surface}.recovery_passcodes"
+    case passkey_registration_surface
+    when "app"
+      "client.recovery_secret_credential"
+    when "com"
+      "visitor.recovery_secret_credential"
+    else
+      "#{passkey_registration_surface}.recovery_passcodes"
+    end
   end
 
   def recovery_passcode_reveal_metadata

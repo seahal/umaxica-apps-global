@@ -289,7 +289,7 @@ class SignSecretVerifyTest < ActiveSupport::TestCase
     end
 
     def authenticate(_raw)
-      raise "boom" if @raise_on_authenticate
+      raise StandardError, "boom" if @raise_on_authenticate
 
       @authenticate_result
     end

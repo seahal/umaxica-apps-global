@@ -112,11 +112,11 @@ module Sign
         get sign_app_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "form[action=?][data-turbo=?]",
+        assert_select "a[href=?][data-turbo=?]",
                       sign_app_social_google_sign_in_path(ri: "jp"),
                       "false",
                       count: 1
-        assert_select "form[action=?][data-turbo=?]",
+        assert_select "a[href=?][data-turbo=?]",
                       sign_app_social_apple_sign_in_path(ri: "jp"),
                       "false",
                       count: 1

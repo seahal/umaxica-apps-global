@@ -409,8 +409,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Acme renders language option names in the current page locale.
       assert_select "select[name='preference_language[option_id]']" do
-        assert_select "option[value='1']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.ja")
-        assert_select "option[value='2']", text: I18n.t("acme.#{domain[:name]}.preference.language.options.en")
+        ja_key = "acme.#{domain[:name]}.preference.language.options.ja"
+        en_key = "acme.#{domain[:name]}.preference.language.options.en"
+
+        assert_select "option[value='1']", text: I18n.t(ja_key)
+        assert_select "option[value='2']", text: I18n.t(en_key)
       end
 
       assert_select "select[name='preference_language[option_id]'] option", text: "日本語"

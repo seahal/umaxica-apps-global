@@ -58,7 +58,7 @@ class Sign::Com::Settings::SecretsControllerTest < ActionDispatch::IntegrationTe
     get sign_com_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
 
     assert_response :success
-    assert_select "title", text: /Recovery passcodes/
+    assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
     assert_includes response.body, "recovery-1"
     assert_includes response.body, "recovery-2"
   end
@@ -67,8 +67,10 @@ class Sign::Com::Settings::SecretsControllerTest < ActionDispatch::IntegrationTe
     get sign_com_settings_secrets_url(ri: "jp"), headers: @headers
 
     assert_response :success
-    assert_select "title", text: /Recovery passcodes/
-    assert_includes response.body, I18n.t("sign.recovery_passcodes.show.missing",
-                                         default: "These recovery passcodes are no longer available.")
+    assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
+    assert_includes response.body, I18n.t(
+      "sign.recovery_passcodes.show.missing",
+      default: "These recovery passcodes are no longer available.", # rubocop:disable I18n/RailsI18n/DecorateString
+    )
   end
 end

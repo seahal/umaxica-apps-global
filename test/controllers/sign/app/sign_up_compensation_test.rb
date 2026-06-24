@@ -10,7 +10,8 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
     include SignUpSequenceControllerSupport
 
     attr_accessor :params_hash, :session_hash, :redirected, :rendered, :establish_kwargs,
-                  :sign_up_surface_value, :sign_up_pending_actor_value, :sign_up_ticket_value
+                  :sign_up_surface_value, :sign_up_pending_actor_value
+    attr_writer :sign_up_ticket_value
 
     def params
       ActionController::Parameters.new(params_hash || {})
@@ -159,12 +160,12 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
 
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
-      raise "should not redirect"
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, _json: false|
+      raise StandardError, "should not redirect"
     end
 
     error = RuntimeError.new("graph boom")
@@ -187,7 +188,7 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
     graph_provisioned = false
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
@@ -196,8 +197,8 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
 
       raise RuntimeError, "graph was not provisioned"
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
-      raise "should not redirect"
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, _json: false|
+      raise StandardError, "should not redirect"
     end
 
     IdentityGraphProvisioner.stub(:call!, ->(**) { graph_provisioned = true }) do

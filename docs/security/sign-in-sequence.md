@@ -48,6 +48,7 @@ authority issuer.
 - actor/session state;
 - sign-in guardrails that depend on account/session/product policy;
 - session-limit decisions and session-management UI;
+- the Acme sign-in limitation ceremony at `/sign/in/limitation`;
 - dashboard and post-auth navigation as authenticated product surfaces;
 - OIDC authorization, token issuance, and JWKS authority;
 - refresh token family issuance and rotation;

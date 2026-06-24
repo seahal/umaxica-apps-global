@@ -177,6 +177,17 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body.to_s, "social-completion-form"
   end
 
+  test "guest cannot start Google linking" do
+    setup_google_mock_auth(uid: "guest_google_#{SecureRandom.hex(4)}")
+
+    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
+         headers: host_headers(@host)
+
+    assert_response :redirect
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
+  end
+
   test "Sign-owned Apple link intent creates one social identity" do
     new_uid = "grantless_apple_#{SecureRandom.hex(4)}"
 
@@ -193,6 +204,15 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
     assert_equal @user_one.id, ClientAppleIdentity.find_by!(uid: new_uid).user_id
+  end
+
+  test "guest cannot start Apple linking" do
+    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
+         headers: host_headers(@host)
+
+    assert_response :redirect
+    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
   # ============================================================================

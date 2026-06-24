@@ -44,8 +44,7 @@
               <% end %>
             <% else %>
               <%= button_to t('actions.connect'),
-                            sign_app_social_apple_sign_in_path(ri: params[:ri], intent: "link"),
-                            method: :post,
+                            sign_app_social_apple_connection_path(ri: params[:ri], intent: "link"),
                             form: { data: { turbo: false } } %>
             <% end %>
           </div>

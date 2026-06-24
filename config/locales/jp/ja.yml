@@ -557,6 +557,13 @@ ja:
         title: リカバリーパスコードが必要です
         description: "このMFA方法を登録するには、未使用のリカバリーパスコードが%{minimum}個以上必要です。現在は%{count}個です。"
         setup_link: リカバリーパスコードを管理する
+      show:
+        title: リカバリーパスコード
+        description: リカバリーパスコードを今保存してください。この画面で一度だけ表示されます。
+        one_time_notice: ここに表示されるのは新しく生成されたパスコードだけです。
+        inventory_notice: 既に保存済みのリカバリーパスコードは引き続き有効です。
+        missing: このリカバリーパスコードは利用できません。
+        back_to_settings: 設定に戻る
     token_refresh:
       errors:
         restricted_session: きんそくじこうです
@@ -3476,13 +3483,23 @@ ja:
         reject_all: すべて拒否
         open_settings: 設定する
         accept_all: すべて許可
+  acme:
+    app:
+      sign:
+        in:
+          limitations:
+            revoke_failed: 選択されたセッションを無効にできませんでした。
+            capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+            invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
   views:
     acme:
       app:
-        session_limit_resolutions:
-          revoke_failed: 選択されたセッションを無効にできませんでした。
-          capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
-          invalid_or_expired: このセッション制限解決リンクは無効または期限切れです。
+        sign:
+          in:
+            limitations:
+              revoke_failed: 選択されたセッションを無効にできませんでした。
+              capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+              invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
         roots:
           index:
             redirect_prompt: "%{preference} へすぐ移動できます。"

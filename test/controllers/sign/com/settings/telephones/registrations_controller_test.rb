@@ -142,8 +142,11 @@ class Sign::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     )
 
     with_current_registration_telephone(telephone) do
-      original_method = Sign::Com::Settings::Telephones::RegistrationsController.instance_method(:complete_visitor_telephone_verification)
-      Sign::Com::Settings::Telephones::RegistrationsController.define_method(:complete_visitor_telephone_verification) do |*_args|
+      original_method =
+        Sign::Com::Settings::Telephones::RegistrationsController
+          .instance_method(:complete_visitor_telephone_verification)
+      Sign::Com::Settings::Telephones::RegistrationsController
+        .define_method(:complete_visitor_telephone_verification) do |*_args|
         :success
       end
 

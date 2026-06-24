@@ -131,9 +131,10 @@ scope module: :acme, as: :acme do
         end
       end
 
-      resource :session_limit_resolution,
-               only: %i(show update destroy),
-               path: "session-limit-resolution"
+      # Acme sign-in limitation ceremony for session-limit resolution.
+      scope path: "sign/in", module: "sign/in", as: :sign_in do
+        resource :limitation, only: %i(show update destroy)
+      end
 
       # OAuth/OIDC protocol endpoints.
       namespace :oauth do

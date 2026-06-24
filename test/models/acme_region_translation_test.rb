@@ -20,7 +20,10 @@ class AcmeRegionTranslationTest < ActiveSupport::TestCase
   def test_en_region_selector_keys_exist
     locale_prefix = "acme.app.preferences.regions.select_region_selector"
 
-    assert_equal "United States - USA", I18n.t("#{locale_prefix}.US", locale: :en)
-    assert_equal "Japan - 日本", I18n.t("#{locale_prefix}.JP", locale: :en)
+    us_key = "#{locale_prefix}.US"
+    jp_key = "#{locale_prefix}.JP"
+
+    assert_equal "United States - USA", I18n.t(us_key, locale: :en)
+    assert_equal "Japan - 日本", I18n.t(jp_key, locale: :en)
   end
 end

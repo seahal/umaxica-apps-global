@@ -31,7 +31,7 @@ module Sign::App::Settings
       get sign_app_settings_secrets_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "title", text: /Recovery passcodes/
+      assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
       assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
       assert_not_includes response.body, "<pre>"
     end
@@ -68,7 +68,7 @@ module Sign::App::Settings
       get sign_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
 
       assert_response :success
-      assert_select "title", text: /Recovery passcodes/
+      assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
       assert_includes response.body, "recovery-1"
       assert_includes response.body, "recovery-2"
       assert_includes response.body, "recovery-3"
@@ -79,10 +79,7 @@ module Sign::App::Settings
 
       assert_response :success
       assert_includes response.body,
-                      I18n.t(
-                        "sign.recovery_passcodes.show.missing",
-                        default: I18n.t("sign.recovery_passcodes.show.missing_default"),
-                      )
+                      I18n.t("sign.recovery_passcodes.show.missing")
       assert_not_includes response.body, "recovery-1"
     end
   end

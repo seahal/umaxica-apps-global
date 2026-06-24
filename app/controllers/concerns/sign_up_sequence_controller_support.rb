@@ -746,7 +746,7 @@ module SignUpSequenceControllerSupport
     when :app
       {
         credential_class: ClientSecretCredential,
-        reveal_purpose: "sign_up.app.recovery_passcodes",
+        reveal_purpose: "client.recovery_secret_credential",
         reveal_url: ->(token) {
           sign_app_settings_secrets_url(
             ri: params[:ri], token: token,
@@ -757,7 +757,7 @@ module SignUpSequenceControllerSupport
     when :com
       {
         credential_class: VisitorSecretCredential,
-        reveal_purpose: "sign_up.com.recovery_passcodes",
+        reveal_purpose: "visitor.recovery_secret_credential",
         reveal_url: ->(token) {
           sign_com_settings_secrets_url(
             ri: params[:ri], token: token,

@@ -112,7 +112,7 @@ module Acme
                 bootstrap_actor: true,
               )
             end
-          return redirect_to_session_limit_resolution!(
+          return redirect_to_session_limitation!(
             resource,
             transaction,
           ) if login_result[:status] == :session_limit_hard_reject
@@ -125,7 +125,7 @@ module Acme
           issue_authorization_code!(resource, params_hash: transaction.authorize_params)
         end
 
-        def redirect_to_session_limit_resolution!(resource, transaction)
+        def redirect_to_session_limitation!(resource, transaction)
           issuance =
             ClientSessionLimitResolutionTransaction.issue_for_oidc!(
               actor: resource,
@@ -136,7 +136,7 @@ module Acme
               },
             )
           redirect_to(
-            acme_app_session_limit_resolution_path(resolution_challenge: issuance.challenge),
+            acme_app_sign_in_limitation_path(resolution_challenge: issuance.challenge),
             status: :see_other,
           )
         end

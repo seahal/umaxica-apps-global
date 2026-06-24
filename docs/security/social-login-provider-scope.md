@@ -31,6 +31,8 @@ Social login availability is surface-specific.
   sequence.
 - On `app`, a registered Google or Apple identity enters the login sequence. It must not be treated
   as a new sign-up unless required sign-up setup is still incomplete.
+- On `app`, a session-limit pending social login resumes at `/sign/in/limitation` with a
+  `social_resolution` payload on the Acme surface.
 - On `app`, linking Google or Apple from account configuration requires recent token-bound Step-Up
   scope `social_link`. This is separate from `social_unlink`, so a Step-Up completed for one social
   credential operation does not authorize the other.

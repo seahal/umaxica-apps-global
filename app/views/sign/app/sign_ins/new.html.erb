@@ -11,15 +11,13 @@
   </li>
 </ul>
 
-<%= button_to sign_app_social_google_sign_in_path(ri: params[:ri]),
-              method: :get,
-              form: { data: { turbo: false } } do %>
+<%= link_to sign_app_social_google_sign_in_path,
+            data: { turbo: false } do %>
   <%= t("sign.app.authentication.new.links.google") %>
 <% end %>
 
-<%= button_to sign_app_social_apple_sign_in_path(ri: params[:ri]),
-              method: :get,
-              form: { data: { turbo: false } } do %>
+<%= link_to sign_app_social_apple_sign_in_path,
+            data: { turbo: false } do %>
   <%= t("sign.app.authentication.new.links.apple") %>
 <% end %>
 

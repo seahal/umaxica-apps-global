@@ -134,32 +134,32 @@ module Acme
         end
 
         def acme_social_login_redirect_to(sign_in_result)
-          return social_session_limit_resolution_url(sign_in_result.actor) if sign_in_result.session_limit_pending?
+          return social_session_limitation_url(sign_in_result.actor) if sign_in_result.session_limit_pending?
 
           sign_in_result.redirect_to
         end
 
         def acme_social_login_redirect_allows_other_host?(redirect_url)
-          social_session_limit_resolution_url?(redirect_url) || after_login_allows_other_host?
+          social_session_limitation_url?(redirect_url) || after_login_allows_other_host?
         end
 
-        def social_session_limit_resolution_url?(redirect_url)
+        def social_session_limitation_url?(redirect_url)
           uri = URI.parse(redirect_url.to_s)
           uri.host == ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") &&
-            uri.path == "/session-limit-resolution"
+            uri.path == "/sign/in/limitation"
         rescue URI::InvalidURIError
           false
         end
 
-        def social_session_limit_resolution_url(actor)
-          token = Rails.application.message_verifier(:social_session_limit_resolution).generate(
+        def social_session_limitation_url(actor)
+          token = Rails.application.message_verifier(:social_session_limit_limitation).generate(
             {
               "actor_ref" => actor.public_id,
               "session_ref" => current_session&.public_id,
               "expires_at" => 15.minutes.from_now.iso8601,
             },
           )
-          acme_app_session_limit_resolution_url(
+          acme_app_sign_in_limitation_url(
             social_resolution: token,
             ri: params[:ri],
             host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),

@@ -100,7 +100,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal ClientSignInFlowStatus::CHECKPOINT_PENDING, cycle.status_id
   end
 
-  test "Google login with session limit pending redirects to acme session-limit resolution" do
+  test "Google login with session limit pending redirects to acme sign-in limitation" do
     existing_uid = "existing_google_session_limit_#{SecureRandom.hex(4)}"
     existing_user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -129,13 +129,13 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     redirect_uri = URI.parse(response.location)
 
     assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), redirect_uri.host
-    assert_equal "/session-limit-resolution", redirect_uri.path
+    assert_equal "/sign/in/limitation", redirect_uri.path
     social_resolution = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)["social_resolution"]
 
     assert_predicate social_resolution, :present?
     assert_equal(
       existing_user.public_id,
-      Rails.application.message_verifier(:social_session_limit_resolution).verify(social_resolution).fetch("actor_ref"),
+      Rails.application.message_verifier(:social_session_limit_limitation).verify(social_resolution).fetch("actor_ref"),
     )
 
     get response.location, headers: browser_headers
@@ -146,7 +146,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     session_ref = css_select("input[name=session_ref]").first["value"]
     selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
 
-    patch acme_app_session_limit_resolution_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+    patch acme_app_sign_in_limitation_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
           params: {
             social_resolution: social_resolution,
             session_ref: session_ref,

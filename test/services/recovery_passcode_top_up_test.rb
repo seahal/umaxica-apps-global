@@ -18,6 +18,11 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
     assert_equal 10, result.raw_values.length
     assert_equal 10, result.new_credentials.length
     assert_equal 10, result.target_count
+    assert_equal 10, usable_recovery_passcode_count
+    assert_equal [ClientSecretCredentialKind::RECOVERY],
+                 result.new_credentials.map(&:reload).map(&:user_secret_kind_id).uniq
+    assert_equal [ClientSecretCredentialStatus::ACTIVE],
+                 result.new_credentials.map(&:reload).map(&:user_identity_secret_status_id).uniq
   end
 
   test "tops up only the shortfall when five recovery passcodes are active and usable" do
@@ -30,6 +35,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
     assert_equal 10, result.active_usable_count_after
     assert_equal 5, result.raw_values.length
     assert_equal 5, result.new_credentials.length
+    assert_equal 10, usable_recovery_passcode_count
   end
 
   test "issues nothing when ten recovery passcodes are already active and usable" do
@@ -42,6 +48,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
     assert_equal 10, result.active_usable_count_after
     assert_empty result.raw_values
     assert_empty result.new_credentials
+    assert_equal 10, usable_recovery_passcode_count
   end
 
   test "does not revoke existing active recovery passcodes" do
@@ -106,5 +113,12 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
         status: :active,
       )
     end
+  end
+
+  def usable_recovery_passcode_count
+    SignRecoveryPasscodeRequirement.usable_unused_count(
+      actor: @client,
+      credential_class: ClientSecretCredential,
+    )
   end
 end

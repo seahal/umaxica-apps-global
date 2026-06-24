@@ -91,7 +91,7 @@ class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
     assert_equal 2, results.size
     assert_equal 1, results.count { |result| result[:success] }, results.inspect
     assert_equal 1, results.count { |result| !result[:success] }, results.inspect
-    assert results.none? { |result| result[:exception].present? }, results.inspect
+    assert results.none? { |result| result[:exception].present? }
     assert_includes results.filter_map { |result| result[:error] }, "Invitation has already been used"
 
     assert_equal 1, OrganizationInvitation.where(id: invitation.id).where.not(consumed_at: nil).count

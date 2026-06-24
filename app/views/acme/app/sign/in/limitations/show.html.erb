@@ -16,7 +16,7 @@
     <p><%= @form_notice %></p>
   <% end %>
 
-  <%= form_with url: acme_app_session_limit_resolution_path,
+  <%= form_with url: acme_app_sign_in_limitation_path,
                 method: :patch,
                 data: { turbo: false } do |form| %>
     <% if @social_resolution_token.present? %>
@@ -52,7 +52,7 @@
   <% end %>
 
   <%= button_to "Cancel sign-in",
-                acme_app_session_limit_resolution_path(
+                acme_app_sign_in_limitation_path(
                   if @social_resolution_token.present?
                     { social_resolution: @social_resolution_token }
                   else

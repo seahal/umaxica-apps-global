@@ -183,15 +183,38 @@ module Sign
 
         def render_verification_result(result)
           passkey = result[:passkey]
+          recovery_passcode_top_up = RecoveryPasscodeTopUp.call(
+            actor: current_visitor,
+            credential_class: VisitorSecretCredential,
+            target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
+          )
+          redirect_url =
+            if recovery_passcode_top_up.raw_values.any?
+              reveal = IdentityOneTimeReveal.issue!(
+                actor: current_visitor,
+                session_nonce: current_visitor.public_id,
+                value: recovery_passcode_top_up.raw_values,
+                purpose: "visitor.recovery_secret_credential",
+                metadata: {},
+              )
+              sign_com_settings_secrets_url(
+                ri: params[:ri],
+                token: reveal.token,
+                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+              )
+            else
+              bootstrap_return_path(
+                sign_com_settings_passkeys_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+                ),
+              )
+            end
+
           render json: {
             status: "ok",
             passkey_id: passkey.id,
-            redirect_url: bootstrap_return_path(
-              sign_com_settings_passkeys_url(
-                ri: params[:ri],
-                host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-              ),
-            ),
+            redirect_url: redirect_url,
           }, status: :created
         end
 

@@ -201,7 +201,7 @@ class IdentityTotpCeremonyFinalCommitterTest < ActiveSupport::TestCase
 
   private
 
-  def with_stubs(surface: "app", result_hash: valid_result_hash, transaction: @transaction,
+  def with_stubs(_surface: "app", result_hash: valid_result_hash, transaction: @transaction,
                  candidate: @candidate)
     store = FakeStore.new(transaction)
     consumer = FakeConsumer.new(FakeConsumption.new)
@@ -260,7 +260,7 @@ class IdentityTotpCeremonyFinalCommitterTest < ActiveSupport::TestCase
       @consumed = consumed
     end
 
-    def expired?(now:)
+    def expired?(_now:)
       @expired
     end
 
@@ -338,5 +338,8 @@ class IdentityTotpCeremonyFinalCommitterTest < ActiveSupport::TestCase
     end
   end
 
-  class FakeTotpRecord; end
+  # rubocop:disable Lint/EmptyClass
+  class FakeTotpRecord
+  end
+  # rubocop:enable Lint/EmptyClass
 end

@@ -66,7 +66,7 @@ class SignInSessionCancellationsControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:current_session) { nil }
     controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
     controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
-    controller.define_singleton_method(:log_out) { }
+    controller.define_singleton_method(:log_out) { nil }
     controller.define_singleton_method(:redirect_to) { |path| redirects << path }
     controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
     controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }
@@ -98,7 +98,7 @@ class SignInSessionCancellationsControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:current_session) { nil }
     controller.define_singleton_method(:current_db_sign_in_flow_for_sequence) { cycle.reload }
     controller.define_singleton_method(:consume_session_limit_gate!) { session.delete(SessionLimitGate::GATE_SESSION_KEY) }
-    controller.define_singleton_method(:log_out) { }
+    controller.define_singleton_method(:log_out) { nil }
     controller.define_singleton_method(:redirect_to) { |path| redirects << path }
     controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
     controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }

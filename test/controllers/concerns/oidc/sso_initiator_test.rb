@@ -122,6 +122,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
     assert_equal "/", controller.send(:safe_oidc_pt, "http://attacker.example/evil")
     assert_equal "/", controller.send(:safe_oidc_pt, "https://attacker.example/evil")
+    assert_equal "/", controller.send(:safe_oidc_pt, "https://www.umaxica.app/oauth/authorize?client_id=base-rails-rp")
   end
 
   test "safe_oidc_pt rejects scheme based payloads" do

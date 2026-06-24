@@ -7,6 +7,7 @@ module OidcCallback
   InvalidCallbackState = Class.new(StandardError)
 
   def show
+    response.set_header("Cache-Control", "no-store")
     validate_state!
     token_result = exchange_code!
     return render_callback_failure(token_result.error) unless token_result.success?

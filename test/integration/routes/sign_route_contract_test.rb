@@ -150,6 +150,10 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/in/email", method: :patch },
     )
 
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/in/limitation", method: :get)
+    end
+
     ["/sign/up/entrance", "/sign/in/entrance"].each do |bad_path|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{bad_path}", method: :get)
@@ -232,6 +236,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/app/social/apple/connections", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/connection", method: :post },
+    )
+
+    assert_recognizes(
       { controller: "sign/app/social/apple/disconnections", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/disconnection", method: :post },
     )
@@ -239,6 +248,11 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_recognizes(
       { controller: "sign/app/social/google/connections", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/social/google/connection", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/social/google/connections", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/connection", method: :post },
     )
 
     assert_recognizes(
@@ -789,7 +803,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{SIGN_APP_HOST}/sso/logout",
+        "http://#{SIGN_APP_HOST}/social/apple/sign/in",
         method: :post,
       )
     end
@@ -916,20 +930,6 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{SIGN_COM_HOST}/accounts",
-        method: :get,
-      )
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "http://#{SIGN_COM_HOST}/settings/secrets",
-        method: :get,
-      )
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
-        "http://#{SIGN_ORG_HOST}/settings/secrets",
         method: :get,
       )
     end

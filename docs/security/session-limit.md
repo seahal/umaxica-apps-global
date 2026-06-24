@@ -54,6 +54,10 @@ Restricted sessions may access the Sign-In session management endpoint for their
 - `com`: `Sign::Com::In::SessionsController`
 - `org`: `Sign::Org::In::SessionsController`
 
+Acme also owns a browser ceremony for session-limit resolution at `/sign/in/limitation`. It is not
+an OIDC protocol endpoint, and it is not part of the Sign RP surface. The OIDC branch uses
+`resolution_challenge`; the social branch uses `social_resolution`.
+
 The session management flow lists active and restricted sessions for the current actor. The actor
 can revoke existing sessions. After revocation, the restricted session is promoted to active only if
 the active-session count is below the surface limit.

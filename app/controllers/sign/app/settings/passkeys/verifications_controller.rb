@@ -35,6 +35,37 @@ class Sign::App::Settings::Passkeys::VerificationsController < ::Sign::App::Appl
     render plain: record.errors.full_messages.join("\n"), status: :unprocessable_content
   end
 
+  def render_verification_success(passkey)
+    recovery_passcode_top_up = RecoveryPasscodeTopUp.call(
+      actor: current_client,
+      credential_class: ClientSecretCredential,
+      target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
+    )
+    redirect_url =
+      if recovery_passcode_top_up.raw_values.any?
+        reveal = IdentityOneTimeReveal.issue!(
+          actor: current_client,
+          session_nonce: current_client.public_id,
+          value: recovery_passcode_top_up.raw_values,
+          purpose: "client.recovery_secret_credential",
+          metadata: {},
+        )
+        sign_app_settings_secrets_url(
+          ri: params[:ri],
+          token: reveal.token,
+          host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+        )
+      else
+        sign_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+      end
+
+    render json: {
+      status: "ok",
+      passkey_id: passkey.id,
+      redirect_url: bootstrap_return_path(redirect_url),
+    }, status: :created
+  end
+
   def recovery_passcode_requirement_active_strong_credential_count
     current_client.client_passkeys.active.count +
       current_client.client_totp_credentials.where(

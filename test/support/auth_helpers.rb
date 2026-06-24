@@ -130,13 +130,7 @@ module AuthHelpers
         "SIGN"
       end
     surface =
-      if service == "SIGN"
-        case resource_type
-        when "operator" then "ORG"
-        when "visitor" then "COM"
-        else "APP"
-        end
-      elsif service == "BASE"
+      if %w(SIGN BASE).include?(service)
         case resource_type
         when "operator" then "ORG"
         when "visitor" then "COM"

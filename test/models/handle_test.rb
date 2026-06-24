@@ -101,7 +101,6 @@ class HandleTest < ActiveSupport::TestCase
     )
 
     assert_not @handle.destroy
-    assert @handle.errors[:base].any? { |message| message.include?("active avatars") },
-           @handle.errors[:base].inspect
+    assert @handle.errors[:base].any? { |message| message.include?("active avatars") }
   end
 end

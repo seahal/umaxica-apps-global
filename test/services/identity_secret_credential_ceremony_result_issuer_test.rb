@@ -233,7 +233,7 @@ class IdentitySecretCredentialCeremonyResultIssuerTest < ActiveSupport::TestCase
       @consumed = consumed
     end
 
-    def expired?(now:)
+    def expired?(_now:)
       @expired
     end
 

@@ -149,6 +149,10 @@ module SignSocialAuthenticationEndpoint
     SocialIdentifiable.normalize_provider(provider)
   end
 
+  def social_auth_failure_redirect_path
+    social_link_settings_path(social_provider)
+  end
+
   def social_identity_for_provider(provider)
     case SocialIdentifiable.normalize_provider(provider)
     when "apple"

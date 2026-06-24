@@ -15,7 +15,6 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
     secret_record = Object.new
     audit = nil
     deleted_ref = nil
-    nil
     credentials_assoc = FakeAssociation.new([], create_result: secret_record)
 
     with_stubs do
@@ -269,7 +268,7 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
 
   private
 
-  def with_stubs(surface: "app", result_hash: valid_result_hash, transaction: @transaction,
+  def with_stubs(_surface: "app", result_hash: valid_result_hash, transaction: @transaction,
                  candidate: @candidate)
     store = FakeStore.new(transaction)
     consumer = FakeConsumer.new
@@ -329,7 +328,7 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
       @consumed = consumed
     end
 
-    def expired?(now:)
+    def expired?(_now:)
       @expired
     end
 

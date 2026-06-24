@@ -139,7 +139,28 @@ class RecoveryPasscodeTopUp
 
   def recovery_passcode_legacy_attributes
     attrs = {}
+    kind_column = recovery_kind_column
+    attrs[kind_column] = recovery_kind_id if kind_column.present?
+    status_column = credential_class.identity_secret_credential_status_id_column
+    attrs[status_column] = active_status_id if status_column.present? && active_status_id.present?
     attrs[:uses_remaining] = 1 if credential_class.column_names.include?("uses_remaining")
     attrs
+  end
+
+  def recovery_kind_column
+    case credential_class.name
+    when "ClientSecretCredential"
+      :user_secret_kind_id
+    when "VisitorSecretCredential"
+      :visitor_secret_credential_kind_id
+    when "OperatorSecretCredential"
+      :staff_secret_kind_id
+    end
+  end
+
+  def active_status_id
+    credential_class.identity_secret_credential_status_class.const_get(:ACTIVE)
+  rescue NameError
+    nil
   end
 end

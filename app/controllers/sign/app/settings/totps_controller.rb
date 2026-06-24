@@ -103,6 +103,7 @@ module Sign
           redirect_to(
             bootstrap_return_path(redirect_url),
             allow_other_host: cross_host_redirect_allowed?,
+            status: :see_other,
           )
         end
 
@@ -225,7 +226,7 @@ module Sign
             actor: current_client,
             session_nonce: current_client.public_id,
             value: raw_values,
-            purpose: "app.recovery_passcodes",
+            purpose: "client.recovery_secret_credential",
             metadata: {},
           )
           sign_app_settings_secrets_url(

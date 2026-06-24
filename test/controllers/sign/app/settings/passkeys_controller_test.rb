@@ -24,8 +24,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     create_client_recovery_passcode!(@user, name: "recovery 1")
     create_client_recovery_passcode!(@user, name: "recovery 2")
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    satisfy_user_verification(@token)
-    @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_passkey")
+    satisfy_user_verification(@token, scope: "settings_passkey")
     @headers = as_user_headers(@user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
@@ -245,7 +244,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     create_client_recovery_passcode!(unverified_user, name: "bootstrap 1", validate: false)
     create_client_recovery_passcode!(unverified_user, name: "bootstrap 2", validate: false)
     token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    satisfy_user_verification(token)
+    satisfy_user_verification(token, scope: "settings_passkey")
     headers = as_user_headers(
       unverified_user,
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
@@ -274,7 +273,11 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_difference("ClientPasskey.count", 1) do
-        assert_difference("ClientSecretCredential.count", 8) do
+        assert_difference(
+          -> {
+            unverified_user.client_secret_credentials.where(user_secret_kind_id: ClientSecretCredentialKind::RECOVERY).count
+          }, 8,
+        ) do
           post sign_app_settings_passkeys_verification_path(ri: "jp"),
                params: params,
                headers: headers
@@ -456,14 +459,20 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "new allows bootstrap passkey registration with two recovery passcodes" do
     unverified_user = create_verified_user_with_email(email_address: "bootstrap-new-#{SecureRandom.hex(4)}@example.com")
     token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    satisfy_user_verification(token)
+    satisfy_user_verification(token, scope: "settings_passkey")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = AuthenticationToken.encode(
+      unverified_user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
     headers = as_user_headers(
       unverified_user,
       host: ENV.fetch(
         "ID_SERVICE_URL",
         "id.app.localhost",
       ),
-    ).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
+      session_public_id: token.public_id,
+    )
 
     with_prosopite_paused do
       get new_sign_app_settings_passkey_path(ri: "jp"), headers: headers
@@ -475,7 +484,18 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "create allows bootstrap passkey registration with two recovery passcodes" do
     email = "bootstrap-create-#{SecureRandom.hex(4)}@example.com"
     unverified_user = create_verified_user_with_email(email_address: email)
-    headers = as_user_headers(unverified_user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    token = ClientToken.create!(user: unverified_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    satisfy_user_verification(token, scope: "settings_passkey")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = AuthenticationToken.encode(
+      unverified_user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
+    headers = as_user_headers(
+      unverified_user,
+      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      session_public_id: token.public_id,
+    )
 
     assert_no_difference("ClientPasskey.count") do
       assert_no_difference("ClientChronicle.count") do

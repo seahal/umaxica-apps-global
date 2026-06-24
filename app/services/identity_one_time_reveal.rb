@@ -19,15 +19,15 @@ class IdentityOneTimeReveal
     # rubocop:enable ThreadSafety/ClassAndModuleAttributes
 
     def store
-      @store_mutex ||= Mutex.new
-      @store_mutex.synchronize { @store ||= default_store }
+      @store_mutex ||= Mutex.new # rubocop:disable ThreadSafety/ClassInstanceVariable
+      @store_mutex.synchronize { @store ||= default_store } # rubocop:disable ThreadSafety/ClassInstanceVariable
     end
 
     def default_store
       return Rails.cache unless Rails.cache.is_a?(ActiveSupport::Cache::NullStore)
 
-      @null_store_mutex ||= Mutex.new
-      @null_store_mutex.synchronize { @null_store ||= ActiveSupport::Cache::MemoryStore.new }
+      @null_store_mutex ||= Mutex.new # rubocop:disable ThreadSafety/ClassInstanceVariable
+      @null_store_mutex.synchronize { @null_store ||= ActiveSupport::Cache::MemoryStore.new } # rubocop:disable ThreadSafety/ClassInstanceVariable
     end
   end
 

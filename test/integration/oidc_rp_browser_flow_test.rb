@@ -232,7 +232,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       resolution_uri = URI.parse(response.location)
       resolution_query = Rack::Utils.parse_nested_query(resolution_uri.query.to_s)
 
-      assert_equal "/session-limit-resolution", resolution_uri.path
+      assert_equal "/sign/in/limitation", resolution_uri.path
       assert_predicate resolution_query["resolution_challenge"], :present?
       assert_not_includes resolution_uri.query.to_s, user.id.to_s
       assert_not_predicate issuance.transaction.reload, :consumed?
@@ -258,7 +258,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app session-limit resolution revokes one session and resumes authorization" do
+  test "acme app session-limit limitation revokes one session and resumes authorization" do
     with_acme_oidc_client_key do
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       client = OidcClientRegistry.find!("base-rails-rp")
@@ -284,7 +284,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count }, -1 do
         host! acme_host
-        patch acme_app_session_limit_resolution_path,
+        patch acme_app_sign_in_limitation_path,
               params: {
                 resolution_challenge: resolution.challenge,
                 session_ref: SessionLimitResolutionTokenRef.issue(selected),
@@ -431,7 +431,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app session-limit resolution rejects another actor session" do
+  test "acme app session-limit limitation rejects another actor session" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     other = clients(:two)
@@ -445,7 +445,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     )
 
     host! acme_host
-    patch acme_app_session_limit_resolution_path,
+    patch acme_app_sign_in_limitation_path,
           params: {
             resolution_challenge: resolution.challenge,
             session_ref: SessionLimitResolutionTokenRef.issue(other_token),
@@ -458,7 +458,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     assert_not_predicate issuance.transaction.reload, :consumed?
   end
 
-  test "acme app session-limit resolution stays on page when capacity is still full after revoke" do
+  test "acme app session-limit limitation stays on page when capacity is still full after revoke" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
@@ -468,7 +468,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       actor: user,
       oidc_transaction: issuance.transaction,
     )
-    controller_class = Acme::App::SessionLimitResolutionsController
+    controller_class = Acme::App::Sign::In::LimitationsController
     original_method = controller_class.instance_method(:hard_reject_still_applies?)
     controller_class.define_method(:hard_reject_still_applies?) { true }
     controller_class.send(:private, :hard_reject_still_applies?)
@@ -476,7 +476,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     host!(acme_host)
     assert_no_difference -> { ClientToken.where(user_id: user.id).count } do
       patch(
-        acme_app_session_limit_resolution_path,
+        acme_app_sign_in_limitation_path,
         params: {
           resolution_challenge: resolution.challenge,
           session_ref: SessionLimitResolutionTokenRef.issue(token),
@@ -486,7 +486,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_content
-    assert_includes response.body, "Session capacity is still full"
+    assert_includes response.body, I18n.t("acme.app.sign.in.limitations.capacity_still_full")
     assert_predicate token.reload, :revoked?
     assert_not_predicate issuance.transaction.reload, :consumed?
   ensure
@@ -496,14 +496,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app session-limit resolution rejects tampered challenge without revoking" do
+  test "acme app session-limit limitation rejects tampered challenge without revoking" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
 
     host! acme_host
-    patch acme_app_session_limit_resolution_path,
+    patch acme_app_sign_in_limitation_path,
           params: {
             resolution_challenge: "tampered",
             session_ref: SessionLimitResolutionTokenRef.issue(token),
@@ -514,7 +514,46 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     assert_not token.reload.revoked?
   end
 
-  test "acme app session-limit resolution cancel does not issue login or consume oidc transaction" do
+  test "acme app session-limit limitation rejects mixed oidc and social payloads" do
+    acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    user = clients(:one)
+    ClientToken.where(user_id: user.id).delete_all
+    token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
+    resolution = ClientSessionLimitResolutionTransaction.issue_for_oidc!(
+      actor: user,
+      oidc_transaction: issuance.transaction,
+    )
+    social_token = Rails.application.message_verifier(:social_session_limit_limitation).generate(
+      {
+        "actor_ref" => user.public_id,
+        "expires_at" => 15.minutes.from_now.iso8601,
+      },
+    )
+
+    host! acme_host
+    patch acme_app_sign_in_limitation_path,
+          params: {
+            resolution_challenge: resolution.challenge,
+            social_resolution: social_token,
+            session_ref: SessionLimitResolutionTokenRef.issue(token),
+          },
+          headers: browser_headers
+
+    assert_response :gone
+    assert_not token.reload.revoked?
+    assert_not_predicate issuance.transaction.reload, :consumed?
+  end
+
+  test "acme app session-limit limitation rejects missing payload" do
+    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+
+    get acme_app_sign_in_limitation_path(ri: "jp"), headers: browser_headers
+
+    assert_response :gone
+  end
+
+  test "acme app session-limit limitation cancel does not issue login or consume oidc transaction" do
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
@@ -526,7 +565,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
     host! acme_host
     assert_no_difference -> { ClientToken.where(user_id: user.id).count } do
-      delete acme_app_session_limit_resolution_path,
+      delete acme_app_sign_in_limitation_path,
              params: { resolution_challenge: resolution.challenge },
              headers: browser_headers
     end

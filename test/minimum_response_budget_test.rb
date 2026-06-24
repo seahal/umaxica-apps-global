@@ -99,7 +99,7 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
       controller = controller_class.new
       controller.define_singleton_method(:action_name) { "create" }
 
-      assert controller.send(:minimum_response_budget_enabled?), controller_class.name
+      assert controller.send(:minimum_response_budget_enabled?)
 
       controller.define_singleton_method(:action_name) { "new" }
 

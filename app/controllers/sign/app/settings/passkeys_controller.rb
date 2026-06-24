@@ -299,11 +299,33 @@ module Sign
         end
 
         def render_verification_success(passkey)
-          default_redirect_url = sign_app_settings_passkeys_url(
-            ri: params[:ri],
-            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+          recovery_passcode_top_up = RecoveryPasscodeTopUp.call(
+            actor: current_client,
+            credential_class: ClientSecretCredential,
+            target_count: RecoveryPasscodeTopUp::TARGET_ACTIVE_RECOVERY_PASSCODES,
           )
-          redirect_url = bootstrap_return_path(default_redirect_url)
+          redirect_url =
+            if recovery_passcode_top_up.raw_values.any?
+              reveal = IdentityOneTimeReveal.issue!(
+                actor: current_client,
+                session_nonce: current_client.public_id,
+                value: recovery_passcode_top_up.raw_values,
+                purpose: "client.recovery_secret_credential",
+                metadata: {},
+              )
+              sign_app_settings_secrets_url(
+                ri: params[:ri],
+                token: reveal.token,
+                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+              )
+            else
+              bootstrap_return_path(
+                sign_app_settings_passkeys_url(
+                  ri: params[:ri],
+                  host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                ),
+              )
+            end
 
           render json: {
             status: "ok",

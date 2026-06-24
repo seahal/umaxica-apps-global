@@ -187,7 +187,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       token = ROTP::TOTP.new(secret_credential).now
 
       assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference("ClientSecretCredential.count", 9) do
+        assert_difference(-> { @user.reload.client_secret_credentials.count }, 9) do
           post sign_app_settings_totps_url(ri: "jp"),
                params: {
                  user_totp_credential: { first_token: token },
@@ -280,7 +280,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       step_up_before = Time.current
 
       assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference("ClientSecretCredential.count", 10) do
+        assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
           with_prosopite_paused do
             post sign_app_settings_totps_url(ri: "jp"),
                  params: { user_totp_credential: { first_token: token } },
@@ -311,7 +311,7 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       token = ROTP::TOTP.new(secret_credential).now
 
       assert_difference("ClientTotpCredential.count", 1) do
-        assert_difference("ClientSecretCredential.count", 5) do
+        assert_difference(-> { @user.reload.client_secret_credentials.count }, 5) do
           with_prosopite_paused do
             post sign_app_settings_totps_url(ri: "jp"),
                  params: { user_totp_credential: { first_token: token } },
@@ -374,7 +374,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    assert_response :see_other
+    assert_includes response.location, "/settings/secrets"
   end
 
   test "should not create totp with invalid token" do
@@ -510,7 +511,8 @@ class Sign::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_settings_totps_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    assert_response :see_other
+    assert_includes response.location, "/settings/secrets"
   end
 
   private
