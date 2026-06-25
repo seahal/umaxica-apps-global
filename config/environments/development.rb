@@ -128,6 +128,7 @@ Rails.application.configure do
     boot_hosts.core_origins.map(&:host) +
     boot_hosts.base_origins.map(&:host) +
     boot_hosts.palm_origins.map(&:host) +
+    boot_hosts.info_origins.map(&:host) +
     %w(
       sign.app.localhost
       sign.com.localhost
@@ -135,12 +136,21 @@ Rails.application.configure do
       acme.app.localhost
       acme.com.localhost
       acme.org.localhost
+      info.app.localhost
+      info.com.localhost
+      info.org.localhost
+      info.umaxica.app
+      info.umaxica.com
+      info.umaxica.org
       www-jp.umaxica.app
       www-jp.umaxica.com
       www-jp.umaxica.org
-      core-jp.umaxica.app
-      core-jp.umaxica.com
-      core-jp.umaxica.org
+      base-jp.umaxica.app
+      base-jp.umaxica.com
+      base-jp.umaxica.org
+      jpx.umaxica.app
+      jpx.umaxica.com
+      jpx.umaxica.org
       palm-jp.umaxica.app
       palm.app.localhost
     )
@@ -161,6 +171,7 @@ Rails.application.configure do
       "CORE_SERVICE_URL", "CORE_STAFF_URL", "CORE_CORPORATE_URL",
       "BASE_SERVICE_URL", "BASE_STAFF_URL", "BASE_CORPORATE_URL",
       "PALM_SERVICE_URL",
+      "INFO_SERVICE_URL", "INFO_STAFF_URL", "INFO_CORPORATE_URL",
       "DOCS_SERVICE_URL", "DOCS_STAFF_URL", "DOCS_CORPORATE_URL",
       "NEWS_SERVICE_URL", "NEWS_STAFF_URL", "NEWS_CORPORATE_URL",
       "HELP_SERVICE_URL", "HELP_STAFF_URL", "HELP_CORPORATE_URL",

@@ -5,6 +5,7 @@ module Sign
   module App
     class ApplicationController < ActionController::Base
       include ::RateLimit
+      include ::JumpRtReturnVerification
       include ::Session
       include ::PreferenceGlobal
       # Adopt anonymous preference cookies into the signed-in user account after authentication.
@@ -48,6 +49,10 @@ module Sign
       helper_method :acme_authority_host
 
       # NOTE: Order matters (dependencies rely on this sequence)
+      # Jump-return handling runs before rate limiting so that cross-surface
+      # navigations arriving via jump.umaxica.net can strip the rt parameter
+      # and redirect before consuming a rate-limit slot.
+      before_action :verify_jump_return_rt!, if: :jump_return_rt_request?
       # Surface-wide default web request limit (defense-in-depth baseline).
       # RateLimit stays a side-effect-free helper; the limit and its numeric
       # value are declared here on the inheriting controller.

@@ -10,6 +10,22 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   ACME_COM_HOST = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
   ACME_ORG_HOST = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
 
+  test "acme routes accept internal origin and cloudflared public hosts" do
+    {
+      "acme.app.localhost" => "acme/app/roots",
+      "acme.com.localhost" => "acme/com/roots",
+      "acme.org.localhost" => "acme/org/roots",
+      "www.umaxica.app" => "acme/app/roots",
+      "www.umaxica.com" => "acme/com/roots",
+      "www.umaxica.org" => "acme/org/roots",
+    }.each do |host, controller|
+      assert_recognizes(
+        { controller: controller, action: "index" },
+        { path: "http://#{host}/", method: :get },
+      )
+    end
+  end
+
   test "acme app static and health routes" do
     assert_recognizes(
       { controller: "acme/app/roots", action: "index" },

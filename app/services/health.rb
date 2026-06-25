@@ -326,7 +326,6 @@ module Health
         .transform_keys(&:to_s)
         .transform_values { |kind_results| kind_results.all?(&:ok?) ? "ok" : "failed" }
     end
-
   end
 
   # Startup probe: confirms boot/initialization completed.

@@ -23,7 +23,7 @@ module Core
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("CORE_CORPORATE_URL", "core-jp.umaxica.com"),
+                             ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"),
                            ),
                            with: :exception
 

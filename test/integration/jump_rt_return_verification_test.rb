@@ -82,10 +82,49 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
-  test "sign surface does not include jump return verification" do
-    assert_not_includes Sign::App::ApplicationController.ancestors, JumpRtReturnVerification
+  test "sign app includes jump return verification" do
+    assert_includes Sign::App::ApplicationController.ancestors, JumpRtReturnVerification
+  end
+
+  test "sign com and org surfaces do not include jump return verification" do
     assert_not_includes Sign::Com::ApplicationController.ancestors, JumpRtReturnVerification
     assert_not_includes Sign::Org::ApplicationController.ancestors, JumpRtReturnVerification
+  end
+
+  test "sign app consumes valid jump return rt and strips it from url" do
+    sign_origin = sign_app_origin
+    https!
+    token = sign_return_token(
+      aud: sign_origin,
+      src: "https://www.app.localhost",
+      url: "#{sign_origin}/?ok=1",
+    )
+
+    JumpRtReturnVerifier.stub(:call, sign_verifier_success(sign_origin)) do
+      get "#{sign_origin}/", params: { ok: "1", rt: token }
+    end
+
+    assert_response :see_other
+    assert_equal "#{sign_origin}/?ok=1", response.location
+  end
+
+  test "sign app rejects invalid jump return rt before normal auth flow" do
+    sign_origin = sign_app_origin
+    https!
+
+    get "#{sign_origin}/", params: { rt: "not-a-jwt" }
+
+    assert_response :bad_request
+  end
+
+  test "sign app runs jump return verification before set_current_context" do
+    before_filters =
+      Sign::App::ApplicationController._process_action_callbacks.filter_map do |callback|
+        callback.filter if callback.kind == :before
+      end
+
+    assert_includes before_filters, :verify_jump_return_rt!
+    assert_operator before_filters.index(:verify_jump_return_rt!), :<, before_filters.index(:set_current_context)
   end
 
   test "return verification concern does not register callbacks when included" do
@@ -187,6 +226,20 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
 
   def acme_app_origin
     "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}"
+  end
+
+  def sign_app_origin
+    "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
+  end
+
+  def sign_verifier_success(origin)
+    lambda do |token:, request_url:, request_base_url:|
+      assert_predicate token, :present?
+      assert_equal "#{origin}/?ok=1&rt=#{token}", request_url
+      assert_equal origin, request_base_url
+
+      JumpRtReturnVerifier::Result.new(success: true, payload: {}, error: nil)
+    end
   end
 
   def with_env(values)

@@ -26,6 +26,9 @@ Rails.application.routes.draw do
   # Help owns the public help content surface.
   draw :help
 
+  # Info owns public informational content.
+  draw :info
+
   # Docs owns the public documentation content surface.
   draw :docs
 

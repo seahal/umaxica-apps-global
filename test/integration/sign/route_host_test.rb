@@ -41,6 +41,22 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
     Rails.application.reload_routes!
   end
 
+  test "sign routes accept internal origin and cloudflared public hosts" do
+    {
+      "sign.app.localhost" => "sign/app/roots",
+      "sign.com.localhost" => "sign/com/roots",
+      "sign.org.localhost" => "sign/org/roots",
+      "id.umaxica.app" => "sign/app/roots",
+      "id.umaxica.com" => "sign/com/roots",
+      "id.umaxica.org" => "sign/org/roots",
+    }.each do |host, controller|
+      route = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
+      assert_equal controller, route[:controller]
+      assert_equal "index", route[:action]
+    end
+  end
+
   private
 
   class BootConfig
@@ -65,9 +81,9 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       sign_service: OpenStruct.new(host: sign_service_host),
       sign_corporate: OpenStruct.new(host: sign_corporate_host),
       sign_staff: OpenStruct.new(host: sign_staff_host),
-      core_service: OpenStruct.new(host: ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app")),
-      core_corporate: OpenStruct.new(host: ENV.fetch("CORE_CORPORATE_URL", "core-jp.umaxica.com")),
-      core_staff: OpenStruct.new(host: ENV.fetch("CORE_STAFF_URL", "core-jp.umaxica.org")),
+      core_service: OpenStruct.new(host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
+      core_corporate: OpenStruct.new(host: ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")),
+      core_staff: OpenStruct.new(host: ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")),
       base_service: OpenStruct.new(host: ENV.fetch("BASE_SERVICE_URL", "www-jp.umaxica.app")),
       base_corporate: OpenStruct.new(host: ENV.fetch("BASE_CORPORATE_URL", "www-jp.umaxica.com")),
       base_staff: OpenStruct.new(host: ENV.fetch("BASE_STAFF_URL", "www-jp.umaxica.org")),

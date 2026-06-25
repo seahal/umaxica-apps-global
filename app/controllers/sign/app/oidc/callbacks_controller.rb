@@ -16,6 +16,10 @@ module Sign
         provisions_oidc_rp_identity actor_class: "Client", identity_class: "ClientIdentity"
         declare_authentication_mode! :open
         skip_before_action :set_region, raise: false
+        # Clear any stale/expired access-token cookies before the authentication
+        # pipeline runs. The OIDC callback establishes a new session; an expired
+        # credential from a prior session must not block it in :open mode.
+        prepend_before_action :clear_auth_cookies!
 
         private
 

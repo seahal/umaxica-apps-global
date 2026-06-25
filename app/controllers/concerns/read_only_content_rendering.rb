@@ -37,6 +37,15 @@ module ReadOnlyContentRendering
   end
 
   def content_locale
-    params[:locale].presence || params[:ri].presence || I18n.locale.to_s
+    params[:locale].presence || locale_from_request_region(params[:ri]) || I18n.locale.to_s
+  end
+
+  def locale_from_request_region(region)
+    return if region.blank?
+
+    {
+      "jp" => "ja",
+      "us" => "en",
+    }[region.to_s.downcase]
   end
 end

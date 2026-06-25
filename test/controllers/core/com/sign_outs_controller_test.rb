@@ -5,7 +5,7 @@ require "test_helper"
 
 class Core::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("CORE_CORPORATE_URL", "core-jp.umaxica.com")
+    @host = ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")
     host! @host
   end
 

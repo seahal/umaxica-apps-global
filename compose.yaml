@@ -63,15 +63,27 @@ services:
           - sign.app.localhost
           - sign.com.localhost
           - sign.org.localhost
+          - acme.app.localhost
+          - acme.com.localhost
+          - acme.org.localhost
+          - info.app.localhost
+          - info.com.localhost
+          - info.org.localhost
           - id.umaxica.app
           - id.umaxica.com
           - id.umaxica.org
+          - www.umaxica.app
+          - www.umaxica.com
+          - www.umaxica.org
+          - info.umaxica.app
+          - info.umaxica.com
+          - info.umaxica.org
           - www-jp.umaxica.app
           - www-jp.umaxica.com
           - www-jp.umaxica.org
-          - core-jp.umaxica.app
-          - core-jp.umaxica.com
-          - core-jp.umaxica.org
+          - jpx.umaxica.app
+          - jpx.umaxica.com
+          - jpx.umaxica.org
           - palm-jp.umaxica.app
           - palm-jp.umaxica.com
           - palm-jp.umaxica.org

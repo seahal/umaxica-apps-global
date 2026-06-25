@@ -21,6 +21,9 @@ module ConfigValues
       :help_service,
       :help_corporate,
       :help_staff,
+      :info_service,
+      :info_corporate,
+      :info_staff,
     ) do
       def acme_origins
         [acme_service, acme_corporate, acme_staff]
@@ -41,6 +44,10 @@ module ConfigValues
       def palm_origins
         [palm_service, palm_corporate, palm_staff]
       end
+
+      def info_origins
+        [info_service, info_corporate, info_staff]
+      end
     end
 end
 
@@ -50,19 +57,25 @@ class << ConfigValues::HostFamilyValues
   def build(env:, production:)
     ConfigValues::HostFamilyValues.new(
       acme_service: origin(env, "ACME_SERVICE_URL", production ? nil : "acme.app.localhost", production: production),
-      acme_corporate: origin(env, "ACME_CORPORATE_URL", production ? nil : "acme.com.localhost", production: production),
+      acme_corporate: origin(
+        env, "ACME_CORPORATE_URL", production ? nil : "acme.com.localhost",
+        production: production,
+      ),
       acme_staff: origin(env, "ACME_STAFF_URL", production ? nil : "acme.org.localhost", production: production),
       sign_service: origin(env, "SIGN_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
-      sign_corporate: origin(env, "SIGN_CORPORATE_URL", production ? nil : "sign.com.localhost", production: production),
+      sign_corporate: origin(
+        env, "SIGN_CORPORATE_URL", production ? nil : "sign.com.localhost",
+        production: production,
+      ),
       sign_staff: origin(env, "SIGN_STAFF_URL", production ? nil : "sign.org.localhost", production: production),
-      core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "core-jp.umaxica.app", production: production),
+      core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "jpx.umaxica.app", production: production),
       core_corporate: origin(
         env,
         "CORE_CORPORATE_URL",
-        production ? nil : "core-jp.umaxica.com",
+        production ? nil : "jpx.umaxica.com",
         production: production,
       ),
-      core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "core-jp.umaxica.org", production: production),
+      core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "jpx.umaxica.org", production: production),
       base_service: origin(env, "BASE_SERVICE_URL", production ? nil : "www-jp.umaxica.app", production: production),
       base_corporate: origin(
         env,
@@ -87,6 +100,14 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       help_staff: origin(env, "HELP_STAFF_URL", production ? nil : "help.org.localhost", production: production),
+      info_service: origin(env, "INFO_SERVICE_URL", production ? nil : "info.app.localhost", production: production),
+      info_corporate: origin(
+        env,
+        "INFO_CORPORATE_URL",
+        production ? nil : "info.com.localhost",
+        production: production,
+      ),
+      info_staff: origin(env, "INFO_STAFF_URL", production ? nil : "info.org.localhost", production: production),
     ).freeze
   end
 

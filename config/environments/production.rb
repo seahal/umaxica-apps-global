@@ -146,6 +146,9 @@ Rails.application.configure do
     boot_hosts.core_service.host,
     boot_hosts.core_corporate.host,
     boot_hosts.core_staff.host,
+    "jpx.umaxica.app",
+    "jpx.umaxica.com",
+    "jpx.umaxica.org",
     boot_hosts.base_service.host,
     boot_hosts.base_corporate.host,
     boot_hosts.base_staff.host,
@@ -155,6 +158,9 @@ Rails.application.configure do
     boot_hosts.help_service.host,
     boot_hosts.help_corporate.host,
     boot_hosts.help_staff.host,
+    boot_hosts.info_service.host,
+    boot_hosts.info_corporate.host,
+    boot_hosts.info_staff.host,
   ]
 
   # Skip DNS rebinding protection only for health checks and load balancer probes.

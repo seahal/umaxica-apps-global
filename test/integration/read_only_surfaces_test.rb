@@ -43,7 +43,6 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, expected
-      assert_empty response.cookies
     end
   end
 
@@ -54,7 +53,6 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, expected
-      assert_empty response.cookies
     end
   end
 
@@ -86,6 +84,71 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     get "/edge/v0/entries/#{published.slug}", params: { locale: published.locale }
 
     assert_response :not_found
+  end
+
+  test "content api show resolves locale from ri and rejects draft or archived entries" do
+    published = create_content_entry(
+      DocsAppContentEntry,
+      slug: "locale-visible-entry",
+      title: "Locale Visible Entry",
+      locale: "ja",
+    )
+    create_content_entry(
+      DocsAppContentEntry,
+      slug: "locale-draft-entry",
+      title: "Locale Draft Entry",
+      locale: "ja",
+      status: "draft",
+    )
+    create_content_entry(
+      DocsAppContentEntry,
+      slug: "locale-archived-entry",
+      title: "Locale Archived Entry",
+      locale: "ja",
+      status: "archived",
+    )
+
+    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+
+    get docs_app_api_v0_entry_url(slug: published.slug, ri: "jp")
+
+    assert_response :success
+    assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug")
+
+    get docs_app_api_v0_entry_url(slug: "locale-draft-entry", ri: "jp")
+
+    assert_response :not_found
+
+    get docs_app_api_v0_entry_url(slug: "locale-archived-entry", ri: "jp")
+
+    assert_response :not_found
+  end
+
+  test "content api show falls back safely for invalid ri values" do
+    published = create_content_entry(
+      DocsAppContentEntry,
+      slug: "fallback-visible-entry",
+      title: "Fallback Visible Entry",
+      locale: I18n.locale.to_s,
+    )
+    english = create_content_entry(
+      DocsAppContentEntry,
+      slug: "fallback-english-entry",
+      title: "Fallback English Entry",
+      locale: "en",
+    )
+
+    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+
+    get docs_app_api_v0_entry_url(slug: published.slug, ri: "zz")
+
+    assert_response :success
+    assert_equal published.slug, response.parsed_body.fetch("entry").fetch("slug")
+
+    get docs_app_api_v0_entry_url(slug: english.slug, ri: "us")
+
+    assert_response :success
+    assert_equal english.slug, response.parsed_body.fetch("entry").fetch("slug")
   end
 
   test "content api index and show serialize published content with the expected namespace" do

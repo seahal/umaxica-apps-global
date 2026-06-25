@@ -8,7 +8,7 @@
 #
 #  id           :bigint           not null, primary key
 #  audience     :string           default("umaxica-core-app"), not null
-#  host         :string           default("core-jp.umaxica.app"), not null
+#  host         :string           default("jpx.umaxica.app"), not null
 #  lock_version :integer          default(0), not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -33,6 +33,6 @@ class CoreAppClientBridge < AppRpRecord
     actor_foreign_key: :client_id,
     client_id: "core-next-rp",
     audience: "umaxica-core-app",
-    host: "core-jp.umaxica.app",
+    host: "jpx.umaxica.app",
   )
 end

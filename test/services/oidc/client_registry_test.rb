@@ -21,7 +21,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_equal "core-next-rp", client.aud
     assert_equal "client", client.resource_type
     assert_equal "Core Next RP", client.name
-    assert_includes client.domains, ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app")
+    assert_includes client.domains, ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")
     assert_kind_of Array, client.redirect_uris
     assert client.redirect_uris.any? { |uri| uri.include?("/oidc/callback") }
   end
@@ -289,7 +289,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   test "core client is registered to regional redirect hosts" do
     expectations = {
       "core-next-rp" => {
-        host: ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app"),
+        host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
         aud: "core-next-rp",
         resource_type: "client",
       },

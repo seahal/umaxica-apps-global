@@ -7,7 +7,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app")
+    host! ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")
   end
 
   test "get sign out renders confirmation without mutation" do
@@ -150,7 +150,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       logout_challenge: challenge,
     ), headers: {
       "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      "Origin" => "https://#{ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app")}",
+      "Origin" => "https://#{ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")}",
       "Sec-Fetch-Site" => "same-site",
     }
 
