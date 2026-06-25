@@ -100,7 +100,8 @@ module Acme
           def load_social_resolution
             return if @social_resolution_token.blank?
 
-            payload = Rails.application.message_verifier(:social_session_limit_limitation).verify(@social_resolution_token)
+            verifier = Rails.application.message_verifier(:social_session_limit_limitation)
+            payload = verifier.verify(@social_resolution_token)
             expires_at = Time.zone.parse(payload.fetch("expires_at").to_s)
             return if expires_at.blank? || expires_at <= Time.current
 

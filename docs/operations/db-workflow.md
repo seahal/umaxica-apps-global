@@ -38,6 +38,24 @@ bin/rails db:verify_no_schema_drift
 # 差分があれば「schema drift 発生」と報告して終了コード 1。
 ```
 
+## Stop the server before running db:reset
+
+The `app_setting` DB initialises preference reference rows via `insert_missing_fixed_ids!` on
+demand. If the server is running when `db:reset` executes, an incoming request can arrive while the
+DB is being dropped and recreated. The connection pool checkout blocks until the socket times out
+(~10 s), producing a `Rack::Timeout::RequestTimeoutException` → 500 error.
+
+```bash
+# Correct procedure
+# 1. Stop Puma / Foreman / docker compose
+# 2. Reset the DB
+bin/rails db:migrate:reset
+# 3. Restart the server — the startup initializer pre-seeds all preference reference tables
+```
+
+`config/initializers/preference_reference_defaults.rb` seeds all preference reference tables during
+`after_initialize`, so the very first request after restart hits an already-populated DB.
+
 ## テーブルリネームの書き方
 
 ```ruby

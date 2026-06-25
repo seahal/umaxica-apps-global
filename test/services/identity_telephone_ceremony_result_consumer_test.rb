@@ -184,7 +184,7 @@ class IdentityTelephoneCeremonyResultConsumerTest < ActiveSupport::TestCase
       @grant_jti = "grant-1"
     end
 
-    def expired?(now:)
+    def expired?(*)
       @expired
     end
 
@@ -210,7 +210,7 @@ class IdentityTelephoneCeremonyResultConsumerTest < ActiveSupport::TestCase
       @grant_jti = "grant-1"
     end
 
-    def expired?(now:)
+    def expired?(*)
       false
     end
 

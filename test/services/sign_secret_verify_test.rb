@@ -216,7 +216,7 @@ class SignSecretVerifyTest < ActiveSupport::TestCase
       result = SignSecretVerify.call(secret_credential: credential, raw_secret_credential: "raw-1", now: @now)
 
       assert_equal :internal_error, result.reason
-      assert_equal "RuntimeError", result.details[:error_class]
+      assert_equal "StandardError", result.details[:error_class]
     end
   end
 

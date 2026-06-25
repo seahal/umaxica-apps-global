@@ -92,6 +92,7 @@ development:
     host: <%= ENV["POSTGRESQL_APP_SETTING_PUB"] || default_host %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
+    connect_timeout: 2
   app_setting_replica:
     !!merge <<: *default
     replica: true
@@ -99,6 +100,7 @@ development:
     host: <%= ENV["POSTGRESQL_APP_SETTING_SUB"] || default_host %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
+    connect_timeout: 2
   org_setting:
     !!merge <<: *default
     database: development_org_setting_db

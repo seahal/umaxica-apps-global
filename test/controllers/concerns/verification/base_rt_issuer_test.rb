@@ -140,13 +140,13 @@ class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
     # across token rotations.
     stable_session_id = "device-session-pub-id"
 
-    # Step 1 – settings page: original token + stable session id → issue pt
+    # Step 1 - settings page: original token + stable session id -> issue pt
     issuer = Sign::App::RtHarness.new
     issuer.session_token = TokenStub.new("token-before-rotation")
     issuer.define_singleton_method(:current_session_public_id) { stable_session_id }
     pt = issuer.send(:encoded_relative_pt, "/settings/emails")
 
-    # Step 2 – verification page: access token rotated, token.public_id has changed.
+    # Step 2 - verification page: access token rotated, token.public_id has changed.
     # current_session_public_id still returns the same stable_session_id.
     consumer = Sign::App::RtHarness.new
     consumer.session_token = TokenStub.new("token-after-rotation")

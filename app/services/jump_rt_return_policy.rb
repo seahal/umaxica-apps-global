@@ -71,6 +71,18 @@ module JumpRtReturnPolicy
         destination_host: hosts.core_staff.to_s,
         issuer_host: hosts.sign_staff.to_s,
       ),
+      normalize_origin(hosts.sign_service.to_s) => env_sources(
+        destination_host: hosts.sign_service.host,
+        issuer_host: hosts.acme_service.host,
+      ),
+      normalize_origin(hosts.sign_corporate.to_s) => env_sources(
+        destination_host: hosts.sign_corporate.host,
+        issuer_host: hosts.acme_corporate.host,
+      ),
+      normalize_origin(hosts.sign_staff.to_s) => env_sources(
+        destination_host: hosts.sign_staff.host,
+        issuer_host: hosts.acme_staff.host,
+      ),
     }.compact
   end
 

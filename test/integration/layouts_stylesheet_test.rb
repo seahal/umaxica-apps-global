@@ -5,27 +5,26 @@ require "test_helper"
 
 class StylesheetTagsTest < ActiveSupport::TestCase
   VITE_LAYOUT_PATHS = [
-    "app/views/layouts/application.html.erb",
-    "app/views/layouts/acme/app/application.html.erb",
-    "app/views/layouts/acme/com/application.html.erb",
-    "app/views/layouts/acme/org/application.html.erb",
-    "app/views/layouts/sign/app/application.html.erb",
-    "app/views/layouts/sign/com/application.html.erb",
-    "app/views/layouts/sign/org/application.html.erb",
-    "app/views/core/dev/roots/index.html.erb",
+    ["app/views/layouts/application.html.erb", "application"],
+    ["app/views/layouts/acme/app/application.html.erb", "acme/app"],
+    ["app/views/layouts/acme/com/application.html.erb", "acme/com"],
+    ["app/views/layouts/acme/org/application.html.erb", "acme/org"],
+    ["app/views/layouts/sign/app/application.html.erb", "sign/app"],
+    ["app/views/layouts/sign/com/application.html.erb", "sign/com"],
+    ["app/views/layouts/sign/org/application.html.erb", "sign/org"],
+    ["app/views/core/dev/roots/index.html.erb", "core/dev"],
   ].freeze
 
   test "layouts do not use stylesheet_link_tag for web ui css" do
-    paths = VITE_LAYOUT_PATHS
-
-    paths.each do |path|
+    VITE_LAYOUT_PATHS.each do |path, entrypoint|
       contents = Rails.root.join(path).read
 
       assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
       assert_includes contents, "csp_meta_tag", "missing CSP nonce meta tag in #{path}"
       assert_includes contents, "vite_client_tag", "missing Vite client in #{path}"
       assert_includes contents, "vite_react_refresh_tag", "missing React refresh preamble in #{path}"
-      assert_includes contents, 'vite_typescript_tag "application"', "missing Vite entrypoint in #{path}"
+      assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
+                      "missing Vite entrypoint in #{path}"
     end
   end
 
@@ -65,6 +64,24 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     contents = Rails.root.join("src/entrypoints/application.ts").read
 
     assert_includes contents, 'import "@styles/application.css";'
+  end
+
+  test "surface entrypoints proxy to the shared application entrypoint" do
+    paths = [
+      "src/entrypoints/acme/app.ts",
+      "src/entrypoints/acme/com.ts",
+      "src/entrypoints/acme/org.ts",
+      "src/entrypoints/core/dev.ts",
+      "src/entrypoints/sign/app.ts",
+      "src/entrypoints/sign/com.ts",
+      "src/entrypoints/sign/org.ts",
+    ]
+
+    paths.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, 'import "../application";', "#{path} must proxy to shared application entrypoint"
+    end
   end
 
   test "web ui css is no longer sourced from app/assets/stylesheets" do

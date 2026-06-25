@@ -187,9 +187,15 @@ module PreferenceBase
     prefix = preference_prefix(preference)
     option_ids = preference_option_ids(prefix, params_hash)
 
-    create_preference_cookie(prefix, preference)
-    ensure_preference_option_defaults(prefix)
-    create_preference_option_records(prefix, preference, option_ids)
+    # All three steps target the same app_setting DB with the writing role.
+    # Wrap them in a single connected_to switch so the 12 inner
+    # with_model_writing_connection calls reuse the already-active context
+    # instead of each opening a new one.
+    with_preference_connection(:writing) do
+      create_preference_cookie(prefix, preference)
+      ensure_preference_option_defaults(prefix)
+      create_preference_option_records(prefix, preference, option_ids)
+    end
   end
 
   # ==========================================================================

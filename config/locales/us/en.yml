@@ -3384,6 +3384,12 @@ en:
           show:
             no_methods: Please register a passkey.
       app:
+        sign:
+          in:
+            limitations:
+              revoke_failed: The selected session could not be revoked.
+              capacity_still_full: Session capacity is still full. Revoke another session to continue.
+              invalid_or_expired: This sign-in limitation link is invalid or expired.
         settings:
           outs:
             edit:
@@ -3433,6 +3439,12 @@ en:
             index:
               actions: Actions
               empty: No passkeys registered.
+        sign:
+          in:
+            limitations:
+              revoke_failed: The selected session could not be revoked.
+              capacity_still_full: Session capacity is still full. Revoke another session to continue.
+              invalid_or_expired: This sign-in limitation link is invalid or expired.
         emails:
           registrations:
             verification_fields:

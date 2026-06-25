@@ -192,7 +192,7 @@ class IdentityEmailCeremonyResultIssuerTest < ActiveSupport::TestCase
       @consumed = consumed
     end
 
-    def expired?(now:)
+    def expired?(*)
       @expired
     end
 

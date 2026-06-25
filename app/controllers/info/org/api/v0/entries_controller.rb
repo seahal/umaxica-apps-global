@@ -14,14 +14,18 @@ module Info
                 {
                   slug: "terms",
                   title: "Sample Terms",
+                  # rubocop:disable I18n/RailsI18n/DecorateString
                   summary: "Sample public information entry.",
+                  # rubocop:enable I18n/RailsI18n/DecorateString
                   locale: "en",
                   status: "sample",
                 },
                 {
                   slug: "privacy",
                   title: "Sample Privacy",
+                  # rubocop:disable I18n/RailsI18n/DecorateString
                   summary: "Sample public information entry.",
+                  # rubocop:enable I18n/RailsI18n/DecorateString
                   locale: "en",
                   status: "sample",
                 },
@@ -38,8 +42,10 @@ module Info
               entry: {
                 slug: params.fetch(:slug),
                 title: "Sample Info Entry",
+                # rubocop:disable I18n/RailsI18n/DecorateString
                 summary: "This is a sample response from the Info API stub.",
                 body: "Sample body. Real content lookup is not implemented yet.",
+                # rubocop:enable I18n/RailsI18n/DecorateString
                 body_format: "plain",
                 locale: "en",
                 status: "sample",

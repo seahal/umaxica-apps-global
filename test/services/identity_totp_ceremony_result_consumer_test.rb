@@ -148,7 +148,7 @@ class IdentityTotpCeremonyResultConsumerTest < ActiveSupport::TestCase
       @grant_jti = "grant-1"
     end
 
-    def expired?(now:)
+    def expired?(*)
       @expired
     end
 

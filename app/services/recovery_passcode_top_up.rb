@@ -177,7 +177,7 @@ class RecoveryPasscodeTopUp
     @recovery_kind_record ||=
       begin
         kind_id = recovery_kind_id
-        return nil if kind_id.nil?
+        nil if kind_id.nil?
 
         credential_class.reflect_on_association(recovery_kind_association)&.klass&.find(kind_id)
       end
