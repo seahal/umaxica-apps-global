@@ -76,8 +76,8 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     )
 
     assert_predicate state, :present?
-    assert_equal "login", harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
-    assert_equal "google", harness.session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
+    assert_nil harness.session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
     assert_nil harness.session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]
     assert_nil harness.send(:current_social_auth_pt)
     assert_equal "sign_up", harness.send(:current_social_auth_entry)

@@ -4,10 +4,10 @@
 module StepUpCooldownStamp
   module_function
 
-  def call(actor, method)
+  def call(_actor, method)
     method = method.to_sym
-    expires_in = StepUpCooldowns::WINDOWS.fetch(method)
+    StepUpCooldowns::WINDOWS.fetch(method)
 
-    Rails.cache.write(StepUpCooldowns.key(actor, method), true, expires_in: expires_in)
+    nil
   end
 end

@@ -1,436 +1,441 @@
-# Umaxica 認証認可基盤 — 発注前デューデリジェンス 監査台帳 (Round 1)
+# Umaxica 認証認可基盤 — 発注前デューデリジェンス 監査台帳 (Round 4)
 
 > MODE: AUDIT_AND_GRILL | WRITE_ACCESS: OFF | DATE:
-> 2026-06-24 監査委員会構成: エンタープライズアーキテクト / OAuth2・OIDC・WebAuthn 専門家 / IAM/CIAM
-> / AppSec / Rails / SRE / QA / SIer調達 / 技術文書レビュー
+> 2026-06-24 監査委員会: エンタープライズアーキテクト / OAuth2・OIDC・WebAuthn 専門家 / IAM/CIAM /
+> AppSec / Rails / SRE / QA / SIer調達 / 技術文書レビュー
 
 ---
 
-## 0. リポジトリ状態確認
+## 0. リポジトリ状態
 
-| 項目      | 確認値                                                           |
-| --------- | ---------------------------------------------------------------- |
-| branch    | develop                                                          |
-| HEAD      | c171e4706656200591d74ebcbcef1c291d17b1b8                         |
-| modified  | 66 files                                                         |
-| deleted   | 2 files (session_limit_resolutions_controller.rb, show.html.erb) |
-| untracked | 3 files                                                          |
-| submodule | なし                                                             |
-| monorepo  | なし (single Rails app)                                          |
+| 項目                                    | HEAD (c171e4706) | WORKTREE                                               |
+| --------------------------------------- | ---------------- | ------------------------------------------------------ |
+| branch                                  | develop          | develop                                                |
+| session_limit_resolutions_controller.rb | 存在             | 削除済み → sign/in/limitations_controller.rb に rename |
+| 変更ファイル                            | —                | 66 modified, 2 deleted, 3 untracked                    |
 
 ---
 
-## 1. 証拠台帳 — Round 1
+## 1. DECISION Register (全ラウンド統合)
 
-### FACT (コード・設定・文書から直接確認)
-
-| ID       | 内容                                                                                                                                    | 根拠ファイル                                                                  | confidence |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------- |
-| FACT-001 | Acme が唯一の IdP/AS。セッション・トークン・OIDC・access token の権威                                                                   | docs/security/session-token-authority.md, docs/security/sign-in-sequence.md   | High       |
-| FACT-002 | Sign は credential ceremony 専用。セッション発行・トークン発行・失効は禁止                                                              | docs/security/credential-gateway.md, docs/security/session-token-authority.md | High       |
-| FACT-003 | 3 surface: app(Client) / com(Visitor) / org(Operator)。各 surface は独立境界                                                            | ApplicationController per surface, routes                                     | High       |
-| FACT-004 | AUTHENTICATION_MODE 定数パターン: deny_all / private / open / bare                                                                      | 全 ApplicationController, BareController                                      | High       |
-| FACT-005 | BareController は ActionController::Base 直継承。RateLimit + CSRF は保持するが認証コールバックなし                                      | app/controllers/{acme,sign,base}/\*/bare_controller.rb                        | High       |
-| FACT-006 | 認証方式: email OTP / passkey(WebAuthn) / TOTP / recovery passcode / Google / Apple                                                     | docs/security/sign-in-sequence.md, controller inventory                       | High       |
-| FACT-007 | Refresh token: digest 保存、family ID 管理、rotation 実装済                                                                             | app/models/concerns/oidc_token_usage.rb, refresh_tokenable.rb                 | High       |
-| FACT-008 | Session limit: app=2+1, com=1+1, org=1+1 (active+restricted)                                                                            | docs/security/session-limit.md                                                | High       |
-| FACT-009 | JWT 署名アルゴリズム: ES384 のみ (RS256 非対応、意図的 private profile)                                                                 | docs/security/oidc-discovery-profile.md                                       | High       |
-| FACT-010 | DPoP 実装あり: dpop_proof_validator.rb, dpop_request_verifier.rb                                                                        | app/services/                                                                 | High       |
-| FACT-011 | ChainSeal 実装は docs/security/chain_seal.md に記述があるが、"not yet in production"                                                    | docs/security/chain_seal.md                                                   | High       |
-| FACT-012 | Auth cookie: \_\_Host- prefix (production), SameSite=Strict, HttpOnly, Secure                                                           | app/controllers/concerns/authentication*cookie*{name,service}.rb              | High       |
-| FACT-013 | OAuth 2.1 compliance gap note 存在。複数の open item あり (単一使用 auth code, PKCE per-RP 検証, bearer in query string, HTTP 307 etc.) | notes/oauth2-1-compliance-gap.md                                              | High       |
-| FACT-014 | Security audit 2026-06-13: 4 findings (Critical×1, High×3)。全件に決定と test coverage あり                                             | adr/security-audit-findings-2026-06-13.md                                     | High       |
-| FACT-015 | FINDING-04: verify_authorized 欠落検出機構なし。明示的に DEFERRED (backlog)。after_action :verify_authorized 未有効化                   | adr/security-audit-findings-2026-06-13.md:FINDING-04                          | High       |
-| FACT-016 | IdentityOneTimeReveal: JWT+cache によるワンタイム reveal (15分TTL)                                                                      | app/services/identity_one_time_reveal.rb                                      | High       |
-| FACT-017 | Pundit → ActionPolicy 移行中 (adr/pundit-to-action-policy-migration.md)                                                                 | ADR                                                                           | High       |
-| FACT-018 | Palm surface: bearer token 認証 API (authenticate_palm_bearer_token!)                                                                   | app/controllers/palm/app/api/v0/profiles_controller.rb                        | High       |
-| FACT-019 | Social login: app のみ許可 (Google/Apple)。com/org は ADR で拒否確定                                                                    | adr/sign-com-no-social-login.md, docs/security/social-login-provider-scope.md | High       |
-| FACT-020 | MFA reset = account recovery。Operator 承認必須、72時間 cooling                                                                         | docs/security/mfa-reset-account-recovery.md                                   | High       |
-| FACT-021 | WebAuthn: TRUSTED_ORIGINS 環境変数必須 (production)。RP ID は request-time 動的解決                                                     | config/initializers/webauthn.rb                                               | High       |
-| FACT-022 | CORS 無効 (config/initializers/cors.rb: currently disabled)                                                                             | config/initializers/cors.rb                                                   | High       |
-| FACT-023 | session_limit_resolutions_controller.rb と show.html.erb が現ブランチで **削除**                                                        | git status                                                                    | High       |
-| FACT-024 | oauth2-1-compliance-gap note: AS を "sign.\*" として記述 (stable docs の "Acme = AS" と表記が異なる)                                    | notes/oauth2-1-compliance-gap.md §Role Split Recap                            | Medium     |
-| FACT-025 | Refresh token rotation grace window: 明示的に DEFERRED                                                                                  | docs/security/refresh-token-rotation.md                                       | High       |
-| FACT-026 | OmniAuth: Apple は provider_ignores_state=true (app-side で SocialCallbackGuard により検証)                                             | config/initializers/omniauth.rb                                               | High       |
+| ID      | 内容                                                                                                                                                                                                                                                                                                                                                          | Owner                      | 期限                            | Source   |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------------- | -------- |
+| DEC-001 | notes/oauth2-1-compliance-gap.md を SIer 初回接触前に封印 (渡す場合は obsolete 明記)                                                                                                                                                                                                                                                                          | 内製アーキテクチャオーナー | RFI 前                          | Q-R2-001 |
+| DEC-002 | notes/oauth2-1-compliance-gap.md は RFP 前に修正または archive 化                                                                                                                                                                                                                                                                                             | 内製アーキテクチャオーナー | RFP 前                          | Q-R2-001 |
+| DEC-003 | verify_authorized gap の risk acceptance owner = 内製アーキテクチャオーナー                                                                                                                                                                                                                                                                                   | 内製                       | 確定                            | Q-R2-002 |
+| DEC-004 | verify_authorized gap: SIer 実装範囲の authorize! coverage evidence は SIer 責任。既存基盤への framework-level 導入は内製責任                                                                                                                                                                                                                                 | 内製+SIer                  | SIer 契約時                     | Q-R2-002 |
+| DEC-005 | Recovery passcode rate limit なし = 未対応 gap として remediation 対象 (intentional design ではない)                                                                                                                                                                                                                                                          | 内製                       | 実装前に仕様化                  | Q-R2-003 |
+| DEC-006 | DPoP は production mandatory requirement として固定しない。opt-in infrastructure として維持                                                                                                                                                                                                                                                                   | 内製                       | 確定                            | Q-R2-004 |
+| DEC-007 | SIer 向け認可ガイド = docs/authorization_guide.md (Action Policy 版) を使用。docs/spec/authorization_guide.md は非 authoritative                                                                                                                                                                                                                              | 内製                       | SIer 接触前                     | Q-R2-005 |
+| DEC-008 | **GQ-01 CLOSED (初期リリース):** social identity linking の primary key は provider+uid/sub に限定。email matching による自動 linking は OUT_OF_SCOPE。将来の explicit linking ceremony は DEFERRED (authenticated session + explicit user action + audit 必須)                                                                                               | 内製                       | 確定                            | Q-R3-001 |
+| DEC-009 | **MFA reset UI は DISABLED のまま維持**。有効化の前提条件: Account Recovery Runbook / MFA Reset State Machine / Abuse Protection / Audit Requirements / Acceptance Criteria の完成。SIer 実装範囲に含める場合は UI 単体ではなく operator workflow + audit evidence まで成果物に含める                                                                         | 内製                       | RFP 前に仕様化                  | Q-R3-002 |
+| DEC-010 | **08_threat-model.md の扱い:** RFI では "context only / not normative / subject to internal approval" と明記して参考資料として渡すのは可。RFP 前には owner・review date・approval status・scope・residual risk owner を確定する                                                                                                                               | 内製 security owner        | RFP 前                          | Q-R3-003 |
+| DEC-011 | **GQ-04 CLOSED (hardened policy):** 同一 credential・purpose・time-step で成功した TOTP は再使用禁止。clock skew window は許容するが accepted successful time-step は再使用不可。replay rejection は audit 対象                                                                                                                                               | 内製                       | 確定                            | Q-R3-004 |
+| DEC-012 | **GQ-05 CLOSED (fail-closed):** token endpoint は browser session に依存しない back-channel protocol endpoint。null_session または required protocol context 欠如時は deterministic OAuth error を返しトークン不発行。test coverage 必須                                                                                                                      | 内製                       | 確定                            | Q-R3-004 |
+| DEC-013 | **Audit log integrity = 必須セキュリティ要件:** critical security audit events は application boundary で append-only 必須。update/delete の防止または検出可能性が必要。application-level sanitization + event_uuid UNIQUE だけでは不足。短期: DB-level append-only または tamper-evidence 検討。長期: ChainSeal production 導入は future hardening candidate | 内製                       | RFP 前に対象 event class を定義 | Q-R3-005 |
 
 ---
 
-### GAP (必要だが存在しない・不足する成果物/要件)
+## 2. FACT Register (全ラウンド統合)
 
-| ID      | 内容                                                                                                     | severity | 根拠                                                       |
-| ------- | -------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------- |
-| GAP-001 | OIDC conformance test 結果が存在しない。"private profile" を主張するが conformance evidence なし         | High     | oidc-discovery-profile.md は意図のみ記述                   |
-| GAP-002 | ChainSeal は本番未導入。audit log tamper-evidence の現行機構が不明                                       | High     | chain_seal.md                                              |
-| GAP-003 | Refresh token replay detection: grace window DEFERRED。family revocation の即時性が仕様化されていない    | High     | refresh-token-rotation.md                                  |
-| GAP-004 | after_action :verify_authorized が全 surface で未有効化。authorize! 漏れを CI/テストが自動検出できない   | High     | security-audit-findings-2026-06-13.md FINDING-04           |
-| GAP-005 | SNS リソース単位の認可マトリクスが文書として未確認 (投稿/プロフィール/フォロー/ブロック/メッセージ/通報) | High     | コードに policy ファイルは存在するが体系的 matrix 文書なし |
-| GAP-006 | Palm API bearer token のライフタイム・ローテーション・失効ポリシーが security docs に未記載              | Medium   | services/palm_access_token_authenticator.rb は存在         |
-| GAP-007 | OAuth 2.1 open gaps の ownership・期限が未割当 (notes/ は design-direction、ADR 未昇格)                  | High     | notes/oauth2-1-compliance-gap.md                           |
-| GAP-008 | SIer 向け Responsibility Matrix が文書として未存在                                                       | Critical | docs/ に matrix 記述なし                                   |
-| GAP-009 | Cookie/Session/Token Matrix が体系的文書として未存在                                                     | High     | 複数 concern に分散、統合台帳なし                          |
-| GAP-010 | Threat model 文書が未確認 (security docs に脅威一覧・attack path・残存リスクの体系文書なし)              | Critical | docs/security/ inventory 確認済                            |
-
----
-
-### UNKNOWN (確認できない事項)
-
-| ID      | 内容                                                                   | why unknown                              | risk   |
-| ------- | ---------------------------------------------------------------------- | ---------------------------------------- | ------ |
-| UNK-001 | session_limit_resolutions_controller.rb 削除後の代替機構               | コード確認未完 (削除ファイル)            | High   |
-| UNK-002 | DPoP が required か optional か、どのエンドポイントで強制されるか      | dpop.md 未読、enforcement point 未確認   | High   |
-| UNK-003 | transparent_refresh_access_token 失敗時の fail-open/fail-closed 挙動   | concern 実装未読                         | High   |
-| UNK-004 | Recovery passcode 検証の rate limit 具体値                             | credential-abuse-rate-limits.md 精査未完 | Medium |
-| UNK-005 | 2026-06-13 audit findings の fix が現 develop ブランチに含まれているか | git log 精査未完                         | High   |
-
----
-
-### CONTRADICTION (複数証拠が衝突)
-
-| ID      | 内容                          | 証拠A                           | 証拠B                                                                                 | impact                                                      |
-| ------- | ----------------------------- | ------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| CON-001 | AS の帰属表記が文書間で不一致 | stable docs: "Acme が唯一の AS" | notes/oauth2-1-compliance-gap.md §Role Split: "AS: sign.\*, owned by Identity engine" | SIer が AS の所在を誤認する可能性。委託範囲・責任分界に直結 |
-
----
-
-### RISK (具体的影響を伴うリスク)
-
-| ID      | リスク                                                                          | severity | 既存コントロール                                                                 | 欠落コントロール                                                  |
-| ------- | ------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| RSK-001 | verify_authorized 欠落検出なし → 新規 action が認証通過・認可スキップ           | High     | test/unit/security/action_policy_usage_test.rb (enforce_access_policy! 存在確認) | after_action :verify_authorized の有効化                          |
-| RSK-002 | Refresh token grace window DEFERRED → replay detection の即時性が未定義         | High     | family ID による revocation 機構あり                                             | grace window 決定・仕様化                                         |
-| RSK-003 | ChainSeal 未本番導入 → audit log 改ざんを事後検証できない                       | Medium   | application log + Lograge                                                        | ChainSeal 本番展開 or 代替 integrity 機構                         |
-| RSK-004 | CON-001: AS 帰属の文書矛盾 → SIer が Sign を AS として実装する可能性            | Critical | stable docs は明確                                                               | notes/oauth2-1-compliance-gap.md の表記修正 or 発注前の明示的説明 |
-| RSK-005 | GAP-010: Threat model 未整備 → 攻撃経路・残存リスクを SIer が定義できない       | Critical | 個別セキュリティ docs は豊富                                                     | 体系的 threat model 文書                                          |
-| RSK-006 | OAuth 2.1 gaps が notes/ どまり → SIer が compliance 要件を実装必須と判断しない | High     | notes 文書が存在                                                                 | ADR 昇格 + 実装要件化                                             |
+| ID       | 内容                                                                                                                                                     | Baseline | Evidence Type | Confidence |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- | ---------- |
+| FACT-001 | Acme が唯一の IdP/AS。コード (oidc_issuer.rb) で ACME_APP/ORG/COM namespace を使用                                                                       | BOTH     | CODE+DOC+ADR  | High       |
+| FACT-002 | Sign は ceremony 専用 (session/token 発行禁止)                                                                                                           | BOTH     | CODE+DOC+ADR  | High       |
+| FACT-003 | 3 surface: app(Client) / com(Visitor) / org(Operator)                                                                                                    | BOTH     | CODE          | High       |
+| FACT-004 | AUTHENTICATION_MODE 定数パターン (deny_all / private / open / bare)                                                                                      | BOTH     | CODE          | High       |
+| FACT-005 | BareController: ActionController::Base 直継承。RateLimit+CSRF は保持                                                                                     | BOTH     | CODE          | High       |
+| FACT-006 | 認証方式: email OTP / passkey / TOTP / recovery passcode / Google (app only) / Apple (app only)                                                          | BOTH     | CODE+DOC      | High       |
+| FACT-007 | Refresh token: digest 保存 + family ID + rotate_refresh_token! 実装済み                                                                                  | BOTH     | CODE          | High       |
+| FACT-008 | Session limit: app=2+1, com=1+1, org=1+1 (active+restricted)                                                                                             | BOTH     | DOC+CODE      | High       |
+| FACT-009 | JWT 署名: ES384 のみ (意図的 private profile。RS256 非対応)                                                                                              | BOTH     | CODE+DOC      | High       |
+| FACT-010 | DPoP: opt-in インフラ。token issuance 時に client が提供すれば bound token が発行される                                                                  | BOTH     | CODE+DOC      | High       |
+| FACT-011 | DPoP: bound token の cnf.jkt が設定されると以降の全 API 呼び出しで DPoP proof が必須                                                                     | BOTH     | CODE          | High       |
+| FACT-012 | DPoP: Palm API は bearer-only (cnf.jkt 付き token を明示的に拒否)                                                                                        | BOTH     | CODE          | High       |
+| FACT-013 | DPoP: Core browser API は DBSC device binding を使用 (DPoP 未実装)                                                                                       | BOTH     | CODE          | High       |
+| FACT-014 | ChainSeal: library only。production 未導入、DB migration なし                                                                                            | BOTH     | DOC           | High       |
+| FACT-015 | Chronicle DB: event_uuid (UNIQUE)、occurred_at、result states あり。**DB level immutability なし**                                                       | BOTH     | CODE+DB       | High       |
+| FACT-016 | Chronicle: Application-level sanitization (FORBIDDEN_KEY_PATTERN、SENSITIVE_VALUE_PATTERNS) は実装済み                                                   | BOTH     | CODE          | High       |
+| FACT-017 | Auth code 単一使用: consumed_at + 10s TTL + consume! 実装済み                                                                                            | BOTH     | CODE          | High       |
+| FACT-018 | PKCE S256: required、secure_compare 使用、plain 非対応                                                                                                   | BOTH     | CODE          | High       |
+| FACT-019 | Redirect URI: exact match 検証 (OidcRedirectUriValidator)                                                                                                | BOTH     | CODE          | High       |
+| FACT-020 | enforce_access_policy!: skip_before_action で SkipNotAllowedError。bypass 不可                                                                           | BOTH     | CODE          | High       |
+| FACT-021 | ActionPolicy 0.7.6。after_action :verify_authorized 未採用                                                                                               | BOTH     | CODE+GEMLOCK  | High       |
+| FACT-022 | ApplicationPolicy default deny-all (全 action = false) + domain/audience gating                                                                          | BOTH     | CODE          | High       |
+| FACT-023 | 339 policy ファイル存在                                                                                                                                  | BOTH     | CODE          | High       |
+| FACT-024 | transparent_refresh_access_token: FAIL-CLOSED (失敗時 clear_auth_cookies! + return)                                                                      | BOTH     | CODE+TEST     | High       |
+| FACT-025 | Recovery passcode: base58(32) ≈ 184bit entropy、Argon2 保存、single-use (uses_remaining=1)                                                               | BOTH     | CODE          | High       |
+| FACT-026 | Recovery passcode: rate limit なし、attempt lockout なし (OtpLockable 未適用)                                                                            | BOTH     | CODE+DOC      | High       |
+| FACT-027 | Palm API token: access=5min、refresh=30days、idle=8h (SecurityTokenLifetimes)                                                                            | BOTH     | CODE          | High       |
+| FACT-028 | Palm logout: refresh_token_family 全体を revoke、device session も revoke                                                                                | BOTH     | CODE          | High       |
+| FACT-029 | **MFA reset UI は DISABLED** (create action が redirect_to with "reset_unavailable")                                                                     | BOTH     | CODE          | High       |
+| FACT-030 | 「全 credential 喪失」時の recovery path が docs に未定義                                                                                                | BOTH     | DOC           | High       |
+| FACT-031 | docs/vendor/identity/08_threat-model.md が存在 (DRAFT、owner=TBD、review=TBD)                                                                            | BOTH     | DOC           | High       |
+| FACT-032 | 08_threat-model.md: 29 の脅威シナリオ、保護資産一覧、脅威 actor 一覧、既存 control / 欠落 control を記述。audience に SIer と security-vendor が含まれる | BOTH     | DOC           | High       |
+| FACT-033 | docs/auth-ceremony/: CONTEXT.md・EVIDENCE-LEDGER.md・OPEN-QUESTIONS.md が存在                                                                            | BOTH     | DOC           | High       |
+| FACT-034 | GQ-01 → **CLOSED/OUT_OF_SCOPE (初期リリース):** email matching による social linking は禁止。uid+provider が identity key (DEC-008)                      | BOTH     | DOC+DEC       | High       |
+| FACT-035 | GQ-04 → **CLOSED (hardened policy):** TOTP same-window replay 禁止 (DEC-011)                                                                             | BOTH     | DOC+DEC       | High       |
+| FACT-036 | GQ-05 → **CLOSED (fail-closed):** token endpoint null_session は deterministic OAuth error (DEC-012)                                                     | BOTH     | DOC+DEC       | High       |
+| FACT-037 | GQ-06 (OPEN): Telephone-only AAL1 の扱いが未決                                                                                                           | BOTH     | DOC           | High       |
+| FACT-038 | session_limit_resolutions_controller.rb → sign/in/limitations_controller.rb (clean rename, WORKTREE)                                                     | WORKTREE | CODE+GIT      | High       |
+| FACT-039 | notes/oauth2-1-compliance-gap.md は STALE non-authoritative doc (DEC-001/002 で封印確定)                                                                 | BOTH     | DOC+ADR       | High       |
+| FACT-040 | adr/audit-findings-2026-03-30.md: 136 findings (Critical:2, High:33, Medium:90, Low:8)。概ね対応済み                                                     | BOTH     | ADR           | High       |
 
 ---
 
-## 2. As-Is 暫定構成 (証拠ベース)
+## 3. Normative Requirements Register (Q-R3 回答から導出)
+
+以下は今回ユーザーが明示した normative requirement。RFP に verbatim で含める対象。
+
+### NR-001: Social Identity Linking (DEC-008)
+
+```
+Social identity linking MUST NOT be performed solely by matching email address.
+Social identity linking MUST be based on provider stable subject identifier (uid/sub).
+email_verified=false MUST be rejected at the assertion boundary.
+If explicit account linking is introduced in the future, it MUST require:
+  (a) an authenticated existing account session,
+  (b) explicit user action,
+  (c) provider callback validation,
+  (d) audit log,
+  (e) conflict handling,
+  (f) rollback/revocation behavior.
+```
+
+### NR-002: TOTP Replay Prevention (DEC-011)
+
+```
+A successfully accepted TOTP code MUST NOT be accepted again for the same
+credential and ceremony purpose within the same time-step.
+The system MUST distinguish verification failure from already-used replay.
+Replay rejection MUST be audited.
+The implementation SHOULD avoid permanent lockout caused by accidental duplicate submission.
+```
+
+### NR-003: Token Endpoint null_session Behavior (DEC-012)
+
+```
+Token endpoint MUST authenticate and validate the OAuth client / authorization code / PKCE
+independently of browser session state.
+If request context becomes null_session or lacks required protocol context, the endpoint
+MUST return a deterministic OAuth error and MUST NOT issue tokens.
+This behavior MUST be covered by request tests.
+```
+
+### NR-004: Audit Log Integrity (DEC-013)
+
+```
+Critical security audit events MUST be append-only at the application boundary.
+Update/delete of critical audit events MUST be prevented or detectable.
+Operator/admin access to audit records MUST be logged.
+Audit event mutation, if technically possible, MUST leave independent evidence.
+Token, cookie, OTP, passcode, private key, secret values MUST NOT be logged.
+Audit retention and export policy MUST be documented.
+```
+
+**Critical audit event class (minimum):**
+
+- credential created/changed/destroyed
+- MFA enrollment/removal/reset
+- social identity linked/unlinked
+- token issued/refreshed/revoked
+- session created/limited/revoked
+- passkey registered/removed
+- recovery passcode consumed
+- operator action on user account
+- privilege change
+
+**Audit integrity implementation candidates (short-term):**
+
+- DB trigger による update/delete 防止
+- separate append-only audit table
+- restricted DB role (no application delete privilege)
+- hash chain / periodic digest
+- external log sink replication
+
+**Long-term hardening:** ChainSeal production 導入
+
+---
+
+## 4. GAP Register (Round 4 更新)
+
+| ID          | 内容                                                                                         | Security Severity   | Procurement Blocker    | Status                                                  | Confidence |
+| ----------- | -------------------------------------------------------------------------------------------- | ------------------- | ---------------------- | ------------------------------------------------------- | ---------- |
+| GAP-002     | Chronicle DB に DB-level immutability なし。NR-004 により必須要件確定 (DEC-013)              | **High** (upgraded) | **Blocker** (upgraded) | OPEN — 実装方式未決                                     | High       |
+| GAP-004     | verify_authorized 欠落検出なし (DEFERRED。DEC-003/004 で risk owner 確定済み)                | Medium              | Major                  | DEFERRED                                                | High       |
+| GAP-005     | SIer 向け tabular authorization matrix 未作成                                                | None                | Major                  | OPEN                                                    | High       |
+| GAP-006     | Palm API bearer token 失効・ローテーション policy が security docs 未記載                    | Low                 | Major                  | OPEN                                                    | High       |
+| GAP-008     | Responsibility Matrix 形式文書 未作成                                                        | None                | **Blocker**            | OPEN                                                    | High       |
+| GAP-009     | Cookie/Session/Token Matrix 形式文書 未作成                                                  | None                | **Blocker**            | OPEN                                                    | High       |
+| GAP-010     | 08_threat-model.md は DRAFT (owner=TBD, review=TBD)。統合インシデント runbook なし           | Medium              | Major                  | OPEN — DEC-010 で RFI/RFP 段階別扱い確定                | High       |
+| GAP-NEW-001 | Recovery passcode 検証に rate limit / attempt lockout なし (DEC-005 で remediation 対象確定) | Medium              | Major                  | OPEN — 実装前に仕様化必要                               | High       |
+| GAP-NEW-002 | Confidential client type 別認証の実装検証 未完了                                             | Low                 | Major                  | OPEN                                                    | Medium     |
+| GAP-NEW-004 | notes/oauth2-1-compliance-gap.md の stale AS 記述                                            | None                | Minor                  | RESOLVED — DEC-001/002 で対応確定                       | High       |
+| GAP-NEW-005 | docs/spec/authorization_guide.md (旧 Pundit) は非 authoritative                              | None                | Minor                  | RESOLVED — DEC-007                                      | High       |
+| GAP-NEW-006 | MFA reset UI が DISABLED。自力 recovery UI パスなし                                          | **High**            | **Blocker**            | OPEN — DEC-009 で仕様化・runbook を前提条件に確定       | High       |
+| GAP-NEW-007 | 「全 credential 喪失」時の catastrophic account recovery path が未定義                       | **High**            | **Blocker**            | OPEN                                                    | High       |
+| GAP-NEW-008 | GQ-01: social email matching 方針未決                                                        | ~~High~~            | ~~Blocker~~            | **CLOSED** — DEC-008 (OUT_OF_SCOPE for initial release) | High       |
+| GAP-NEW-009 | GQ-04: TOTP same-window replay 方針未決                                                      | ~~Medium~~          | ~~Major~~              | **CLOSED** — DEC-011 (hardened policy)                  | High       |
+| GAP-NEW-010 | GQ-05: CSRF null_session in token controllers 未決                                           | ~~Medium~~          | ~~Major~~              | **CLOSED** — DEC-012 (fail-closed)                      | High       |
+
+---
+
+## 5. RISK Register (Round 4 更新)
+
+| ID      | リスク                                                                    | Security Severity | Procurement Blocker | 既存 Control                                 | 欠落 Control                            | Status               |
+| ------- | ------------------------------------------------------------------------- | ----------------- | ------------------- | -------------------------------------------- | --------------------------------------- | -------------------- |
+| RSK-001 | 新規 action の authorize! 漏れが CI/test で検出されない                   | Medium            | Major               | enforce_access_policy! skip 不可             | after_action :verify_authorized         | DEFERRED             |
+| RSK-003 | Chronicle DB に DB-level immutability なし → audit log 改ざん後検証困難   | **High**          | **Blocker**         | event_uuid unique + application sanitization | append-only or tamper-evidence (NR-004) | OPEN                 |
+| RSK-005 | 08_threat-model.md が DRAFT/TBD → SIer が独自脅威判断をする可能性         | Medium            | Major               | 29 シナリオ記述あり                          | owner 確定 + review 完了                | OPEN                 |
+| RSK-007 | Recovery passcode に rate limit / lockout なし                            | Medium            | Major               | Argon2 + 184bit entropy                      | rate limiting / throttling              | OPEN                 |
+| RSK-008 | ~~GQ-01: email matching 方針未定~~                                        | —                 | —                   | uid+provider primary key                     | —                                       | **CLOSED** (DEC-008) |
+| RSK-009 | MFA reset UI 無効 + catastrophic recovery 未定義 → support 対応不能ケース | **High**          | **Blocker**         | 管理者 lock/unlock                           | runbook + state machine + audit         | OPEN                 |
+| RSK-010 | DPoP-bound token が Palm API で拒否される設計 → client 混乱の可能性       | Low               | Minor               | 明示的 rejection コード                      | SIer 向け設計文書化                     | OPEN                 |
+
+---
+
+## 6. CONTRADICTION Register
+
+| ID                 | 内容                                       | 証拠A                                             | 証拠B                                    | 解決状態                                                              |
+| ------------------ | ------------------------------------------ | ------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| CON-001 (resolved) | notes の AS 帰属 vs stable docs の AS 帰属 | notes/oauth2-1-compliance-gap.md: "sign.\* as AS" | ADR: "Acme = AS"、コード: Acme が issuer | RESOLVED — DEC-001/002: stale として封印・修正対象。Security 問題なし |
+
+---
+
+## 7. DPoP Enforcement 棚卸し結果
+
+| Endpoint                             | Transport       | DPoP Status                                             | 根拠                                                |
+| ------------------------------------ | --------------- | ------------------------------------------------------- | --------------------------------------------------- |
+| /oauth/token (code exchange)         | Bearer / DPoP   | OPTIONAL (client が提供すれば bound token が発行される) | oidc_token_exchange_service.rb:356-369              |
+| /oauth/userinfo                      | Bearer / DPoP   | OPTIONAL for Bearer / REQUIRED for bound token          | oidc_access_token_authenticator.rb:63-79            |
+| /oauth/revoke                        | Bearer          | OPTIONAL                                                | —                                                   |
+| Login (session issuance)             | Bearer / DPoP   | OPTIONAL (提供すれば token が DPoP-bound になる)        | authentication_base.rb:439-452                      |
+| Refresh token                        | Bearer / DPoP   | OPTIONAL for Bearer / REQUIRED for bound token          | authentication_base.rb:1349-1377                    |
+| General resource server (Acme, Base) | Bearer / DPoP   | OPTIONAL for Bearer / REQUIRED for bound token          | authentication_current_resource_resolver.rb:105-124 |
+| Palm API                             | Bearer only     | NOT IMPLEMENTED (cnf.jkt 付き token を明示的 reject)    | palm_access_token_authenticator.rb:35-36            |
+| Core browser API                     | HttpOnly cookie | NOT IMPLEMENTED (DBSC device binding を使用)            | core_browser_api_boundary.rb                        |
+
+設計原則: DPoP は opt-in infrastructure。New flows は明示的に採用要否を審査する。JTI replay:
+stateless for per-request API (record_jti: false)、stateful for login/refresh (record_jti: true)。
+
+---
+
+## 8. Audit Log Integrity 現状
+
+| 項目                                   | 状態                                                           | 根拠                    |
+| -------------------------------------- | -------------------------------------------------------------- | ----------------------- |
+| ChainSeal                              | library only / production 未導入                               | chain_seal.md           |
+| DB-level immutability (insert_only 等) | **なし** (NR-004 により必須要件確定)                           | chronicle_structure.sql |
+| Application-level sanitization         | 実装済み (token/secret/OTP/cookie value を除去)                | ChronicleRecorder       |
+| Retention policies                     | 実装済み (ephemeral / security / compliance / permanent)       | ChronicleRecorder       |
+| Result status                          | intent → succeeded/failed/invalidated/manual_recovery_required | Chronicle model         |
+| event_uuid                             | UNIQUE index。重複防止                                         | chronicle_structure.sql |
+| Records の update / delete             | **防止機構なし** (DB level)                                    | —                       |
+
+---
+
+## 9. Account Recovery — Catastrophic Case 現状
+
+| シナリオ                                          | 現在の対応                          | ギャップ                                                |
+| ------------------------------------------------- | ----------------------------------- | ------------------------------------------------------- |
+| MFA (passkey/TOTP/passcode) 喪失                  | MFA reset (docs あり)               | **UI が DISABLED** (redirects with "reset_unavailable") |
+| Recovery passcode 使用                            | min 2 / target 10 の在庫維持        | rate limit / lockout なし                               |
+| 全 credential 喪失 (email+phone+MFA+passkey 全て) | **未定義**                          | GAP-NEW-007                                             |
+| 管理者による override                             | Administrative lock/unlock 機能あり | 本人確認・audit 手順が未定義                            |
+
+**MFA reset 有効化の前提条件 (DEC-009):**
+
+1. Account Recovery Runbook
+2. MFA Reset State Machine (全 state・transition・rejection path)
+3. Abuse Protection (cooling period・rate limit・operator approval workflow)
+4. Audit Requirements (全 event class の定義)
+5. Acceptance Criteria (検収基準)
+
+---
+
+## 10. 08_threat-model.md 評価
+
+| 項目                       | 状態                                                              |
+| -------------------------- | ----------------------------------------------------------------- |
+| 文書の存在                 | あり                                                              |
+| ステータス                 | DRAFT                                                             |
+| owner                      | TBD                                                               |
+| review date                | TBD                                                               |
+| 対象 audience              | SIer、security-vendor、internal-architecture、implementation-team |
+| 保護資産リスト             | あり (10 asset categories)                                        |
+| 脅威 actor リスト          | あり (7 actors)                                                   |
+| 脅威マトリクス             | あり (29 シナリオ、control 一覧付き)                              |
+| インシデント runbook       | **なし**                                                          |
+| 統合 control → threat 参照 | **なし**                                                          |
+
+**SIer / security-vendor に渡す前に追加が必要な appendix (DEC-010):**
+
+- incident categories
+- severity definition
+- detection source
+- escalation owner
+- evidence preservation
+- token/session/key compromise response
+- account takeover response
+- operator compromise response
+- recovery communication owner
+- remediation tracking
+
+RFI: "context only / not normative / subject to internal approval" と明記して参考共有可。RFP:
+owner 確定・internal review 済みにする。
+
+---
+
+## 11. 修正版 As-Is Diagram
 
 ```mermaid
 graph TB
-    Browser["Browser"]
-    subgraph Sign["Sign (Ceremony Zone)"]
-        SignApp["sign/app - Client ceremony"]
-        SignCom["sign/com - Visitor ceremony"]
-        SignOrg["sign/org - Operator ceremony"]
+    subgraph External["External OpenID Providers"]
+        Google["Google (OP for social)"]
+        Apple["Apple (OP for social)"]
     end
-    subgraph Acme["Acme (Authority)"]
-        AcmeApp["acme/app - Client AS+RP"]
-        AcmeCom["acme/com - Visitor AS+RP"]
-        AcmeOrg["acme/org - Operator AS+RP"]
-        OAuthEP["OAuth/OIDC endpoints\n/oauth/authorize /token /userinfo /jwks\n/oidc/callback /oidc/logout"]
-        SocialCB["Social callbacks\n/social/authentications"]
-    end
-    subgraph RP["Downstream RPs"]
-        Core["Core (Browser JWT cookie transport)"]
-        Base["Base"]
-        Palm["Palm API (bearer token)"]
-    end
-    Google["Google OAuth2"]
-    Apple["Apple Sign In (OIDC)"]
 
-    Browser -->|ceremony UI| Sign
-    Sign -->|signed ceremony result| Acme
-    Browser -->|authorization requests| OAuthEP
-    Browser -->|social callback| SocialCB
-    Acme -->|issues access token| Core
-    Acme -->|issues access token| Base
-    Acme -->|issues access token| Palm
-    Google -->|provider callback| Sign
-    Apple -->|provider callback| Sign
+    Browser["Browser\n(End User Agent)"]
+
+    subgraph Sign["Sign — Credential Ceremony UI\n+ OIDC RP (for social providers)"]
+        SignApp["sign/app (Client)"]
+        SignCom["sign/com (Visitor)"]
+        SignOrg["sign/org (Operator)"]
+    end
+
+    subgraph Acme["Acme — Authorization Server / OpenID Provider\n(Session, Token, OIDC Authority)"]
+        OAuthEP["OAuth/OIDC Endpoints\n/oauth/authorize /token /userinfo\n/oauth/revoke /oidc/logout"]
+        SocialCB["Social Authentications\n(signed result consumer)"]
+        SessionMgmt["Session Management\n(limit, revocation, step-up freshness)"]
+    end
+
+    subgraph Downstream["Downstream (OAuth Clients / RP / Resource Servers)"]
+        Core["Core — Next.js BFF\n(OAuth Client / OIDC RP)\nJWT cookie transport"]
+        Base["Base — Rails\n(OIDC RP for views\nResource Server for APIs)"]
+        Palm["Palm — Native API\n(Resource Server)\nbearer token only\nDPoP NOT supported"]
+    end
+
+    Browser -->|"1. ceremony UI"| Sign
+    Google -->|"2a. social callback"| Sign
+    Apple -->|"2b. social callback (OIDC)"| Sign
+    Sign -->|"3. signed ceremony result (one-shot JWT, audience=Acme)"| SocialCB
+
+    Browser -->|"4. GET /oauth/authorize + PKCE"| OAuthEP
+    OAuthEP -->|"5. authorization code + redirect"| Browser
+    Browser -->|"6. code to BFF"| Core
+    Core -->|"7. POST /oauth/token (code + PKCE verifier)"| OAuthEP
+    OAuthEP -->|"8. access_token + refresh_token"| Core
+    Core -->|"9. HttpOnly JWT cookie"| Browser
+
+    Browser -->|"10. request + cookie"| Core
+    Core -->|"Bearer token (Acme-issued)"| Base
+    Core -->|"Bearer token (Acme-issued)"| Palm
+
+    style Sign fill:#e6f3ff
+    style Acme fill:#ffe6e6
+    style Downstream fill:#e6ffe6
+    style External fill:#fff3e6
 ```
 
-**証拠なし構成 (UNKNOWN):**
+---
 
-- Identity engine (sign.\*) が AS 権威を持つ将来状態 (CON-001)
-- session limit resolution の代替フロー (UNK-001)
+## 12. 発注 Blocker と Security Risk の分離 (Round 4 最終版)
+
+### Procurement Blockers (残存)
+
+| 優先 | ID              | 内容                                                          | 条件                              |
+| ---- | --------------- | ------------------------------------------------------------- | --------------------------------- |
+| 1    | GAP-008         | Responsibility Matrix 形式文書なし                            | PROCEED_TO_DRAFT で作成           |
+| 2    | GAP-009         | Cookie/Session/Token Matrix なし                              | PROCEED_TO_DRAFT で作成           |
+| 3    | GAP-NEW-006/007 | MFA reset 仕様化・runbook 未完成                              | DEC-009 の前提条件 5 項目を満たす |
+| 4    | GAP-002         | Chronicle DB immutability なし (NR-004 により Blocker 格上げ) | 実装方式選定 + RFP 前に要件定義   |
+| 5    | GAP-010         | 08_threat-model.md DRAFT/owner TBD                            | RFP 前に owner 確定・review 完了  |
+| 6    | GAP-004         | verify_authorized risk owner 未指定                           | DEFERRED。DEC-003/004 確定済み    |
+
+### ~~解消済み~~ Blockers (Round 4 で CLOSED)
+
+| ID          | 内容                                  | 解決                      |
+| ----------- | ------------------------------------- | ------------------------- |
+| GAP-NEW-008 | GQ-01: social email matching 方針未決 | DEC-008 (OUT_OF_SCOPE)    |
+| GAP-NEW-009 | GQ-04: TOTP replay 方針未決           | DEC-011 (hardened policy) |
+| GAP-NEW-010 | GQ-05: CSRF null_session 方針未決     | DEC-012 (fail-closed)     |
+
+### Security Risks (残存、business decision)
+
+| 優先 | ID          | 内容                                          | 現行 Control                       |
+| ---- | ----------- | --------------------------------------------- | ---------------------------------- |
+| 1    | RSK-009     | MFA reset 無効 + catastrophic recovery 未定義 | recovery passcode 10個             |
+| 2    | RSK-003     | Chronicle DB immutability なし (NR-004)       | event_uuid unique + sanitization   |
+| 3    | GAP-NEW-001 | recovery passcode rate limit なし             | 184bit entropy + Argon2            |
+| 4    | RSK-005     | 08_threat-model.md DRAFT                      | 29 シナリオ記述あり                |
+| 5    | RSK-001     | authorize! 漏れ検出なし                       | enforce_access_policy! bypass 不可 |
 
 ---
 
-## 3. 第1回 Grill ラウンド
+## 13. GQ Open Questions 状態 (最終)
 
-> 優先順位: trust boundary → responsibility boundary → security model → failure behavior →
-> authorization model
-
----
-
-### [Q-001] session limit resolution controller の削除意図と代替機構
-
-**背景:** 現 develop ブランチで `app/controllers/acme/app/session_limit_resolutions_controller.rb`
-と `app/views/acme/app/session_limit_resolutions/show.html.erb` が削除されている。
-`docs/security/session-limit.md` はセッション上限到達時に "restricted
-session" を使った管理フローを規定しており、ルーティング (`config/routes/acme.rb`) に session limit
-resolution エンドポイントが存在するかどうかが現時点で未確認。
-
-**現在確認できている証拠:**
-
-- `git status`: 2ファイル削除 (D)
-- `docs/security/session-limit.md`: limit 到達時の restricted session / management flow を定義
-- AUTHENTICATION_MODE = :open を使う `oauth/authorizations_controller.rb` 内に
-  `start_authorization_ceremony!` と `resume_authorization!` がある
-
-**問題:**
-
-- 削除が意図的なリファクタリングか、作業途中の未完状態か不明
-- セッション上限到達時のユーザーフローが現在コード上で実現されているか不明
-- trust boundary の核心部分 (Acme がセッション上限を強制するフロー) が機能しているか検証できない
-
-**未決のまま進んだ場合の影響:**
-
-- 実装: SIer がセッション上限機能を「削除済み仕様」と解釈して再実装しない可能性
-- セキュリティ: 上限超過時のフローが壊れていれば無制限セッション発行になる
-- 検収: 「セッション上限機能が動作する」を ACC として定義できない
-
-**回答してほしい形式:**
-
-- この削除は意図的か、作業中か
-- 代替実装はどこにあるか (ファイル名 or ルート名)
-- このブランチは session limit resolution 機能が動作する状態か
+| ID    | 内容                                        | 状態                                   |
+| ----- | ------------------------------------------- | -------------------------------------- |
+| GQ-01 | Social identity linking email matching 方針 | **CLOSED** — DEC-008 (OUT_OF_SCOPE)    |
+| GQ-04 | TOTP same-window replay                     | **CLOSED** — DEC-011 (hardened policy) |
+| GQ-05 | CSRF null_session in token controllers      | **CLOSED** — DEC-012 (fail-closed)     |
+| GQ-06 | Telephone-only AAL1                         | **OPEN** — 未決                        |
+| GQ-07 | AS attribution (notes stale)                | **RESOLVED** — DEC-001/002 で封印確定  |
 
 ---
 
-### [Q-002] AS 権威の帰属 — stable docs vs. notes の矛盾
+## 14. 発注 Readiness 判定 (Round 4)
 
-**背景:** `notes/oauth2-1-compliance-gap.md` §Role Split Recap に以下の記述がある:
+| Gate                       | 状態          | 残存 Blocker                                                            |
+| -------------------------- | ------------- | ----------------------------------------------------------------------- |
+| Gate 0: Evidence Ready     | **READY**     | —                                                                       |
+| Gate 1: Scope Ready        | **PARTIAL**   | Responsibility Matrix 未作成                                            |
+| Gate 2: Architecture Ready | **PARTIAL**   | Responsibility Matrix / Token Matrix 未作成                             |
+| Gate 3: Security Ready     | **PARTIAL**   | MFA reset / catastrophic recovery 未定義、Chronicle immutability 未実装 |
+| Gate 4: Acceptance Ready   | **NOT READY** | Matrix なし、NR-001〜004 未文書化で acceptance criteria 不完全          |
+| Gate 5: Vendor Ready       | **NOT READY** | RFP package 未整備                                                      |
 
-> Identity provider (AS): `sign.*`, owned by the Identity engine Relying parties (RP): `acme`,
-> `base`, `post`, and other future surfaces
+### **現時点の判定: READY FOR RFI WITH CONDITIONS**
 
-一方、stable docs (docs/security/session-token-authority.md, sign-in-sequence.md,
-credential-gateway.md) はいずれも「Acme が唯一の IdP/AS」「Sign は ceremony のみ」と明言している。
+**RFI に含めてよい事項:**
 
-**現在確認できている証拠:**
+- 08_threat-model.md (context only / not normative と明記)
+- DPoP opt-in design
+- ES384 private profile
+- Session limit model
+- 既知の gap 一覧 (MFA reset、Chronicle immutability、recovery passcode rate limit)
 
-- CON-001 として台帳に登録済み
-- `notes/` は "non-authoritative" と AGENTS.md が明記
-- `plans/active/identity-zenith-foundation-distributor-implementation-plan.md` が Identity
-  engine スコープとして AS 責務を扱うと notes に記述
+**RFI 前に完了必須の作業:**
 
-**問題:**
+1. notes/oauth2-1-compliance-gap.md 封印 (DEC-001)
+2. NR-001〜004 を RFI document に含める
+3. GAP-008 Responsibility Matrix 草稿 (surface × capability × owner)
 
-- この矛盾は「将来の移行計画」vs「現在の設計」のどちらを notes が記述しているのか不明
-- SIer がこの notes を読んだ場合、Sign を AS として実装するリスクがある (RSK-004: Critical)
-- 発注前に notes の表記を修正・封印しないと、RFP の interpretation が分岐する
+**RFP 移行の前提条件:**
 
-**未決のまま進んだ場合の影響:**
-
-- 契約: "AS を実装する" の範囲を Sign と Acme で SIer が誤って定義
-- セキュリティ: AS 権威が Sign に漏れることで session/token 境界が崩壊
-- 検収: どの surface が AS か合意なしに成果物を検収できない
-
-**回答してほしい形式:**
-
-- notes/oauth2-1-compliance-gap.md の AS 帰属記述は「将来の移行先」を示しているのか、「現在の誤記」か
-- Identity engine が実装された後も Acme が AS 権威を持ち続けるのか、それとも Sign に移行するのか
-- この migration の timeline と、発注前に notes を修正する予定はあるか
-
----
-
-### [Q-003] verify_authorized 欠落検出機構の risk owner と timeline
-
-**背景:** `adr/security-audit-findings-2026-06-13.md` FINDING-04 は:「ActionPolicy で
-`after_action :verify_authorized` が有効化されていないため、新規 action が `authorize!`
-を省略しても CI・テストが検出できない」と記録し、明示的に **DEFERRED** とした。
-
-**現在確認できている証拠:**
-
-- `test/unit/security/action_policy_usage_test.rb` が `enforce_access_policy!` の存在を assert
-  (authentication bypass 防止のみ)
-- `after_action :verify_authorized` は全 surface ApplicationController で未有効化 (CODE_ONLY 確認)
-- ADR に "Long-term recommendation" として backlog 追跡を推奨と記述
-
-**問題:**
-
-- この gap を受容した risk owner が明記されていない
-- backlog item が存在するかどうか未確認 (plans/backlog/ 未精査)
-- SIer が新規 action を追加した場合、`authorize!` 漏れを内製チームが検出できる保証がない
-- "SIer 実装 + 内製レビュー" の体制では、この structural gap がそのまま引き継がれる
-
-**未決のまま進んだ場合の影響:**
-
-- セキュリティ: SIer 実装の新規 action に authorize! 漏れが混入 → production で IDOR/BOLA
-- 運用: 発覚が penetration test またはインシデント時になる
-- 契約: 「認可テスト済み」の検収条件を定義できない
-
-**回答してほしい形式:**
-
-- この gap の risk acceptance owner は誰か
-- `after_action :verify_authorized` 有効化の target milestone / 担当者はあるか
-- SIer 実装範囲でこの gap を閉じる責任は SIer か内製か
+1. notes/oauth2-1-compliance-gap.md の修正または archive (DEC-002)
+2. 08_threat-model.md の owner 確定・review 完了 (DEC-010)
+3. MFA reset 仕様・runbook 5 項目の完成 (DEC-009)
+4. Chronicle immutability の実装方式選定と要件定義 (DEC-013)
+5. Responsibility Matrix・Cookie/Session/Token Matrix の完成 (GAP-008, GAP-009)
+6. NR-001〜004 の normative requirement 文書化
 
 ---
 
-### [Q-004] OAuth 2.1 compliance gap の ownership と発注前クローズ対象
+## 15. PROCEED_TO_DRAFT 後の優先作成資料
 
-**背景:** `notes/oauth2-1-compliance-gap.md` に以下の open item が列挙されている:
-
-| 要件                         | 現状                                                   |
-| ---------------------------- | ------------------------------------------------------ |
-| PKCE S256 (all clients)      | "Implementation coverage should be re-verified per RP" |
-| Auth code 単一使用           | "Requires explicit test coverage"                      |
-| Confidential client 認証     | "#611 hardening. Needs verification per client type"   |
-| Refresh token rotation       | "Tracked in backlog #558"                              |
-| DPoP                         | "Tracked in backlog #573"                              |
-| Bearer token in query string | "Needs repository audit"                               |
-| HTTP 307 redirect            | "Needs verification of current redirect codes"         |
-
-**現在確認できている証拠:**
-
-- notes/ は "non-authoritative" (AGENTS.md)
-- これらの項目を ADR に昇格したものは adr/refresh-revoke-aal-downgrade-and-replay-hardening.md 等で一部あり
-- notes/ どまりの items は "設計方向" に留まり、実装要件として確定していない
-
-**問題:**
-
-- SIer が RFP を読んだとき、これらが「実装済み」「実装必要」「対象外」のどれかが判断できない
-- auth code 単一使用の test coverage 不足は OAuth 2.1 準拠の核心
-- "OAuth/OIDC 準拠" を contract に記載した場合、どの profile の何の機能が対象か合意できない
-
-**未決のまま進んだ場合の影響:**
-
-- 契約: "OIDC 準拠" の scope が不明で紛争リスク
-- 検収: conformance test の evidence 要件が定義できない
-- セキュリティ: auth code replay や PKCE bypass が production 混入の可能性
-
-**回答してほしい形式:**
-
-- 発注前に ADR 化・実装確認を完了すべき items はどれか (MUST vs. 将来)
-- "OAuth/OIDC 準拠" を contract に含める場合、主張する profile と scope は何か
-- notes/ の gap を SIer 向け RFP に含めるか除外するか
+| 順位 | 文書                                    | 目的                                                                     | RFI/RFP                 |
+| ---- | --------------------------------------- | ------------------------------------------------------------------------ | ----------------------- |
+| 1    | Responsibility Matrix                   | Acme/Sign/Core/Base/Palm/SIer/内製の capability × surface × owner 分担   | **RFI 必須**            |
+| 2    | Cookie/Session/Token Matrix             | Artifact の owner/issuer/consumer/lifetime/revocation                    | **RFI 必須**            |
+| 3    | Normative Baseline (NR-001〜004 統合版) | 準拠範囲・private profile 宣言・非対応機能・normative requirements       | **RFI 推奨 / RFP 必須** |
+| 4    | Authentication Flow Inventory           | 全 ceremony の state machine (surface × method)                          | RFP                     |
+| 5    | Account Recovery Procedure              | MFA reset runbook / catastrophic case support フロー (DEC-009 の 5 項目) | RFP 前                  |
+| 6    | Audit Log Integrity Requirement         | critical event class 定義 + 実装方式選定 (NR-004)                        | RFP 前                  |
+| 7    | Threat Model (finalized)                | 08_threat-model.md + runbook appendix (DEC-010)                          | RFP                     |
+| 8    | SIer Authorization Implementation Guide | policy 追加手順・verify_authorized 対応方針                              | RFP                     |
 
 ---
 
-### [Q-005] transparent_refresh_access_token の fail-open / fail-closed 挙動
-
-**背景:** Core (app/com/org) の ApplicationController に
-`before_action :transparent_refresh_access_token` が登録されている。このメソッドは access
-token の透過的リフレッシュを行うと推定されるが、実装の fail behavior を未確認。
-
-**現在確認できている証拠:**
-
-- `app/controllers/core/app/application_controller.rb:62` 他
-- Acme はトークン発行権威。Core は downstream RP。
-- Access token TTL は `SecurityTokenLifetimes::AUTH_ACCESS_JWT_TTL` で管理
-
-**問題:**
-
-- refresh 失敗時 (cache down / DB down / token revoked) にリクエストが続行するか失敗するか不明
-- fail-open の場合: 失効済み credential でリソースアクセスが継続する
-- fail-closed の場合: インフラ障害時に全 Core ユーザーが強制ログアウト
-- どちらの設計かは NFR と SLA 設計に直接影響する
-
-**未決のまま進んだ場合の影響:**
-
-- セキュリティ: fail-open なら revoked credential が有効期間中アクセス継続
-- 運用: fail-closed の場合の cascade failure シナリオが未定義
-- 契約: 可用性 SLA と session 失効保証がトレードオフになる条件が不明
-
-**回答してほしい形式:**
-
-- transparent_refresh が失敗した場合の挙動 (fail-open / fail-closed / どちら)
-- この決定は明示的に設計されたか、実装の暗黙挙動か
-- キャッシュ (Valkey) 障害時とトークン失効時で挙動が分岐するか
-
----
-
-### [Q-006] SNS リソース単位の認可マトリクスの存在
-
-**背景:**
-Umaxica は SNS に近いプロダクト。投稿・プロフィール・フォロー・ブロック・メッセージ・通報・組織管理などオブジェクト単位の認可が必要なリソースが多数存在する。Pundit
-→ ActionPolicy 移行中であり、policy ファイルは複数確認されているが、体系的な **認可マトリクス文書**
-が docs/ に存在するかは未確認。
-
-**現在確認できている証拠:**
-
-- `adr/pundit-to-action-policy-migration.md` が移行を記録
-- `app/policies/` に policy ファイルが存在
-- FINDING-04 で "object-level authorization" の structural gap が確認された
-- `docs/authorization_guide.md` と `docs/spec/authorization_guide.md` の存在を確認 (内容未読)
-
-**問題:**
-
-- SNS 固有のリソース (タイムライン、フォロー関係、ブロック、通報) の認可設計が文書化されているか不明
-- IDOR/BOLA のリスクが policy カバレッジ不明のまま
-- SIer がリソース追加する際にどの policy パターンに従えばよいか不明
-
-**未決のまま進んだ場合の影響:**
-
-- セキュリティ: 新規リソースに IDOR が混入
-- 設計: SIer が独自の認可パターンを持ち込む
-- 検収: 「認可が正しく実装されている」の acceptance criteria が定義不能
-
-**回答してほしい形式:**
-
-- SNS リソース単位の認可マトリクスは存在するか (docs/ or plans/)
-- 現在の policy ファイルのカバレッジを把握している担当者は誰か
-- SIer が新規リソースを追加する場合の認可実装ガイドラインはあるか
-
----
-
-### [Q-007] Recovery passcode のブルートフォース防御の具体的仕様
-
-**背景:** Recovery passcode は account recovery の最終手段。`IdentityOneTimeReveal` は 15分TTL +
-cache-based single-use を実装。 `RecoveryPasscodeTopUp` は 10個を target として管理。
-`docs/security/credential-abuse-rate-limits.md` が rate
-limit を定義しているが、passcode 検証 endpoint に適用される具体的な limit 値を未確認。
-
-**現在確認できている証拠:**
-
-- `app/services/identity_one_time_reveal.rb`: JWT 発行 + cache 管理
-- `docs/security/credential-abuse-rate-limits.md` 存在を確認 (内容精査未完)
-- `docs/security/mfa-reset-account-recovery.md`: MFA reset は Operator 承認必須・72h cooling
-
-**問題:**
-
-- passcode 10個の総当たりに何回試行を要するか、その前に rate limit が発動するか不明
-- passcode の長さ・entropy が不明
-- OTP と passcode の rate limit が同一の仕組みか別かが不明
-- 最終手段の credential が brute force 耐性を持つかどうかは threat model の核心
-
-**未決のまま進んだ場合の影響:**
-
-- セキュリティ: recovery passcode が account takeover の最弱リンクになる
-- 設計: SIer が passcode 検証を実装する際の abuse prevention 要件が不明
-- 検収: brute force 耐性のテスト evidence が定義できない
-
-**回答してほしい形式:**
-
-- passcode の文字数・文字種・entropy
-- 検証 endpoint の rate limit (burst / sustained / lockout)
-- lockout 後の recovery パス (support escalation, Operator 介入等)
-
----
-
-## 4. Round 1 終了時の台帳状態
-
-| 種別          | 件数               |
-| ------------- | ------------------ |
-| FACT          | 26                 |
-| GAP           | 10                 |
-| UNKNOWN       | 5                  |
-| CONTRADICTION | 1                  |
-| RISK          | 6                  |
-| DECISION      | 0 (Round 1 未回答) |
-
-**発注 Readiness 暫定判定: NOT READY**
-
-Critical blocker:
-
-- GAP-008: Responsibility Matrix 未存在
-- GAP-010: Threat model 文書未存在
-- CON-001: AS 帰属矛盾 → SIer 誤実装リスク (RSK-004)
-- GAP-004: verify_authorized structural gap (RSK-001)
-
-次ラウンドで確認するテーマ (回答を受けてから決定):
-
-- Q-001〜Q-007 の回答による DECISION 確定と UNKNOWN 解消
-- DPoP enforcement status (UNK-002)
-- transparent_refresh_access_token 実装読み込み (UNK-003)
-- recovery passcode rate limit 仕様 (UNK-004)
-- plans/backlog/ の verify_authorized item 存在確認
-
----
-
-_この台帳は WRITE_ACCESS=OFF モードで作成。ファイル変更はなし。_
-_次ラウンドは Q-001〜Q-007 の回答を受けてから開始。_
+_この台帳は WRITE_ACCESS=OFF モードで作成。ソースコード・テスト・設定ファイル・docs への変更なし。_
+_PROCEED_TO_DRAFT 指示を受けて初めて各資料の drafting を開始する。_

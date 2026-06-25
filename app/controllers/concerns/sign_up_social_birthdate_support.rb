@@ -16,7 +16,7 @@ module SignUpSocialBirthdateSupport
     return render_missing_social_signup_confirmation unless social_signup_confirmation_cleared?
 
     birthdate = sign_up_birthdate_param
-    unless AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
+    unless SignUpEligibilityPolicy.minimum_age_reached?(birthdate, surface: :app, today: Time.zone.today)
       sign_up_session_state.age_restricted = true
       result = SignUpTermination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
       return render_sign_up_result(result) unless result.success? || result.status == :failed

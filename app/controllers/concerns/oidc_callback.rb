@@ -1,10 +1,13 @@
 # typed: false
 # frozen_string_literal: true
 
+require "digest"
+
 module OidcCallback
   extend ActiveSupport::Concern
 
   InvalidCallbackState = Class.new(StandardError)
+  OIDC_PENDING_FLOWS_SESSION_KEY = "oidc_pending_flows"
 
   def show
     response.set_header("Cache-Control", "no-store")
@@ -38,16 +41,21 @@ module OidcCallback
   private
 
   def validate_state!
-    expected = session.delete(:oidc_state).to_s
     actual = params[:state].to_s
+    @current_oidc_flow = consume_oidc_pending_flow(actual)
+    clear_legacy_oidc_flow_if_current!(actual) if @current_oidc_flow.present?
+    expected = @current_oidc_flow.present? ? actual : session.delete(:oidc_state).to_s
+    @oidc_invalid_state_context = oidc_invalid_state_context(expected: expected, actual: actual)
     unless expected.present? && actual.present? && expected.bytesize == actual.bytesize &&
         ActiveSupport::SecurityUtils.secure_compare(expected, actual)
       raise InvalidCallbackState, "OIDC state mismatch"
     end
+
+    @oidc_invalid_state_context = nil
   end
 
   def exchange_code!
-    code_verifier = session.delete(:oidc_code_verifier)
+    code_verifier = oidc_flow_value("code_verifier") || session.delete(:oidc_code_verifier)
     raise InvalidCallbackState, "OIDC PKCE verifier missing" if code_verifier.blank?
 
     OidcRpTokenClient.call(
@@ -65,7 +73,7 @@ module OidcCallback
       id_token: id_token,
       client_id: oidc_client_id,
       resource_type: oidc_resource_type,
-      expected_nonce: session.delete(:oidc_nonce),
+      expected_nonce: oidc_flow_value("nonce") || session.delete(:oidc_nonce),
       issuer: OidcIssuer.for_resource_type(oidc_resource_type),
       jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type(oidc_resource_type),
     )
@@ -76,7 +84,14 @@ module OidcCallback
   end
 
   def consume_oidc_pt
-    session.delete(:oidc_pt).presence || "/"
+    pending_pt = oidc_flow_value("pt").presence
+    legacy_pt = session.delete(:oidc_pt).presence
+    pt = pending_pt || legacy_pt || "/"
+    log_oidc_callback_return_to(
+      pt: pt,
+      source: pending_pt.present? ? "pending_flow" : legacy_pt.present? ? "legacy" : "default",
+    )
+    pt
   end
 
   def render_callback_failure(error)
@@ -101,11 +116,68 @@ module OidcCallback
         host: request.host,
         grant_present: params[:code].present?,
         csrf_present: params[:state].present?,
+        **(@oidc_invalid_state_context || {}),
+      ),
+    )
+  end
+
+  def oidc_invalid_state_context(expected:, actual:)
+    {
+      expected_state_present: expected.present?,
+      actual_state_present: actual.present?,
+      expected_state_digest12: oidc_state_digest12(expected),
+      actual_state_digest12: oidc_state_digest12(actual),
+      code_verifier_present: oidc_flow_value("code_verifier").present? || session[:oidc_code_verifier].present?,
+      nonce_present: oidc_flow_value("nonce").present? || session[:oidc_nonce].present?,
+      pt_present: oidc_flow_value("pt").present? || session[:oidc_pt].present?,
+    }
+  end
+
+  def oidc_state_digest12(value)
+    return nil if value.blank?
+
+    Digest::SHA256.hexdigest(value.to_s).first(12)
+  end
+
+  def log_oidc_callback_return_to(pt:, source:)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "oidc.rp.callback.return_to",
+        client_id: oidc_client_id,
+        host: request.host,
+        source: source,
+        pt_digest12: oidc_state_digest12(pt),
+        pt_is_root: pt == "/",
+        pending_flow_present: @current_oidc_flow.present?,
       ),
     )
   end
 
   def clear_oidc_session_state!
+    session.delete(:oidc_code_verifier)
+    session.delete(:oidc_state)
+    session.delete(:oidc_nonce)
+    session.delete(:oidc_pt)
+  end
+
+  def consume_oidc_pending_flow(state)
+    return nil if state.blank?
+
+    flows = session[OIDC_PENDING_FLOWS_SESSION_KEY]
+    return nil unless flows.is_a?(Hash)
+
+    flow = flows.delete(state)
+    session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
+    flow if flow.is_a?(Hash)
+  end
+
+  def oidc_flow_value(key)
+    @current_oidc_flow&.[](key)
+  end
+
+  def clear_legacy_oidc_flow_if_current!(state)
+    return unless session[:oidc_state].to_s == state
+
     session.delete(:oidc_code_verifier)
     session.delete(:oidc_state)
     session.delete(:oidc_nonce)

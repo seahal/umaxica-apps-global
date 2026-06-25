@@ -9,21 +9,21 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
   test "build in non-production mode applies localhost fallbacks for every family" do
     values = ConfigValues::HostFamilyValues.build(env: {}, production: false)
 
-    assert_equal "https://www.app.localhost", values.acme_service.to_s
-    assert_equal "https://www.com.localhost", values.acme_corporate.to_s
-    assert_equal "https://www.org.localhost", values.acme_staff.to_s
+    assert_equal "https://acme.app.localhost", values.acme_service.to_s
+    assert_equal "https://acme.com.localhost", values.acme_corporate.to_s
+    assert_equal "https://acme.org.localhost", values.acme_staff.to_s
 
-    assert_equal "https://id.app.localhost", values.sign_service.to_s
-    assert_equal "https://id.com.localhost", values.sign_corporate.to_s
-    assert_equal "https://id.org.localhost", values.sign_staff.to_s
+    assert_equal "https://sign.app.localhost", values.sign_service.to_s
+    assert_equal "https://sign.com.localhost", values.sign_corporate.to_s
+    assert_equal "https://sign.org.localhost", values.sign_staff.to_s
 
-    assert_equal "https://www-jp.umaxica.app", values.core_service.to_s
-    assert_equal "https://www-jp.umaxica.com", values.core_corporate.to_s
-    assert_equal "https://www-jp.umaxica.org", values.core_staff.to_s
+    assert_equal "https://core-jp.umaxica.app", values.core_service.to_s
+    assert_equal "https://core-jp.umaxica.com", values.core_corporate.to_s
+    assert_equal "https://core-jp.umaxica.org", values.core_staff.to_s
 
-    assert_equal "https://base-jp.umaxica.app", values.base_service.to_s
-    assert_equal "https://base-jp.umaxica.com", values.base_corporate.to_s
-    assert_equal "https://base-jp.umaxica.org", values.base_staff.to_s
+    assert_equal "https://www-jp.umaxica.app", values.base_service.to_s
+    assert_equal "https://www-jp.umaxica.com", values.base_corporate.to_s
+    assert_equal "https://www-jp.umaxica.org", values.base_staff.to_s
 
     assert_equal "https://palm-jp.umaxica.app", values.palm_service.to_s
     assert_equal "https://palm-jp.umaxica.com", values.palm_corporate.to_s

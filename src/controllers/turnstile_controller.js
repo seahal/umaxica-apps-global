@@ -11,6 +11,10 @@ export default class extends Controller {
 
   connect() {
     this.completed = false;
+    this.form = this.element?.closest?.("form");
+    if (this.form) {
+      this.form.addEventListener("submit", this.preventDuplicateSubmit);
+    }
 
     this.apiScript = document.querySelector(
       "script[src*='challenges.cloudflare.com/turnstile/v0/api.js']",
@@ -30,6 +34,9 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this.form) {
+      this.form.removeEventListener("submit", this.preventDuplicateSubmit);
+    }
     if (this.apiScript) {
       this.apiScript.removeEventListener("load", this.scheduleChallenge);
       this.apiScript.removeEventListener("error", this.reportScriptError);
@@ -116,5 +123,21 @@ export default class extends Controller {
   reportScriptError = () => {
     // eslint-disable-next-line no-console
     console.error("Turnstile script failed to load");
+  };
+
+  preventDuplicateSubmit = (event) => {
+    if (!this.form || !this.hasResponseTarget || !this.responseTarget.value) {
+      return;
+    }
+
+    if (this.form.dataset.turnstileSubmitted === "true") {
+      event.preventDefault();
+      return;
+    }
+
+    this.form.dataset.turnstileSubmitted = "true";
+    this.form.querySelectorAll("button, input[type='submit']").forEach((submitter) => {
+      submitter.disabled = true;
+    });
   };
 }

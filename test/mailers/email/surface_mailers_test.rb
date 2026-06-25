@@ -49,10 +49,13 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
 
   test "otp mailers build verification links for their own surface" do
     [
-      [Email::App::OtpMailer, "mail-app-public-id", "app-token", ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")],
-      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com")],
-      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("ID_STAFF_URL", "id.umaxica.org")],
-    ].each do |mailer, public_id, token, host|
+      [Email::App::OtpMailer, "mail-app-public-id", "app-token", ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
+       "/settings/emails/registration/edit",],
+      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"),
+       "/settings/emails/registration/edit",],
+      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
+       "/settings/emails/registration/edit",],
+    ].each do |mailer, public_id, token, host, path|
       mail = mailer.with(
         encrypted_hotp_token: encrypted_otp("123456"),
         email_address: "target@example.com",
@@ -61,10 +64,10 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
       ).create
 
       assert_match host, mail.html_part.body.decoded
-      assert_match public_id, mail.html_part.body.decoded
+      assert_match path, mail.html_part.body.decoded
       assert_match token, mail.html_part.body.decoded
       assert_match host, mail.text_part.body.decoded
-      assert_match public_id, mail.text_part.body.decoded
+      assert_match path, mail.text_part.body.decoded
       assert_match token, mail.text_part.body.decoded
     end
   end

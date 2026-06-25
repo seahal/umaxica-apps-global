@@ -228,7 +228,11 @@ class Sign::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :found
-    assert_not_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), URI.parse(response.location).host
+    assert_oidc_authorize_redirect(
+      response.location,
+      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      client_id: "sign-rp",
+    )
   end
 
   test "create requires successful stealth turnstile" do

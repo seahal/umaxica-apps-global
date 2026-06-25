@@ -68,16 +68,11 @@ module Sign::App::Settings
       get sign_app_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
 
       assert_response :redirect
-      uri = URI.parse(response.location)
-      Rack::Utils.parse_nested_query(uri.query)
-
-      assert_equal "jump.umaxica.net", uri.host
-      authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
-      query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
-
-      assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), authorize_uri.host
-      assert_equal "/oauth/authorize", authorize_uri.path
-      assert_equal "sign-rp", query["client_id"]
+      assert_oidc_authorize_redirect(
+        response.location,
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        client_id: "sign-rp",
+      )
     end
 
     test "does not route mutation or edit actions" do

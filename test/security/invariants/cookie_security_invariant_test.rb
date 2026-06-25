@@ -116,13 +116,13 @@ module Security
           rails_env: ActiveSupport::StringInquirer.new("production"),
         )
         assert_equal "__Host-session", JitSessionCookieConfig.cookie_key(force_secure: true)
-        assert JitSessionCookieConfig.partitioned?(rails_env: ActiveSupport::StringInquirer.new("production"))
 
-        session_options = JitSessionCookieConfig.session_options(force_secure: true, partitioned: true)
+        session_options = JitSessionCookieConfig.session_options(force_secure: true)
 
         assert session_options[:httponly]
         assert session_options[:secure]
         assert_equal :lax, session_options[:same_site]
+        assert session_options.key?(:partitioned)
         assert_not session_options.key?(:domain), "__Host-session must not carry a Domain attribute"
         assert JitSessionCookieConfig.force_secure?(
           id_service_host: "id.app.example",
@@ -132,7 +132,7 @@ module Security
 
       test "insecure session cookie domain shares the apex across sibling subdomains" do
         domain_option = JitSessionCookieConfig.session_options(force_secure: false)[:domain]
-        request = Struct.new(:host).new("base-jp.umaxica.app")
+        request = Struct.new(:host).new("www-jp.umaxica.app")
 
         assert_equal ".umaxica.app", domain_option.call(request)
       end

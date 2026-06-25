@@ -212,7 +212,11 @@ module SignUpSequenceControllerSupport
       return
     end
 
-    unless AgeEligibility.minimum_age_reached?(actor.birthdate, minimum_age: 13, today: Time.zone.today)
+    unless SignUpEligibilityPolicy.minimum_age_reached?(
+      actor.birthdate,
+      surface: sign_up_surface,
+      today: Time.zone.today,
+    )
       sign_up_session_state.age_restricted = true
       result = SignUpTermination.call(cycle: @sign_up_ticket, event: :fail, actor_context: Actor.authn)
       return render_sign_up_result(result) unless result.success? || result.status == :failed
@@ -245,7 +249,9 @@ module SignUpSequenceControllerSupport
       AGE_RESTRICTED_I18N_KEYS.fetch(sign_up_surface.to_s) do
         raise ArgumentError, "Unknown sign_up_surface for age-restricted lookup: #{sign_up_surface.inspect}"
       end
-    render plain: I18n.t(i18n_key), status: :ok
+    @sign_up_age_restricted_message = I18n.t(i18n_key)
+    @sign_up_age_restricted_restart_path = sign_up_restart_path
+    render "sign/app/sign/up/checkpoints/age_restricted", status: :ok
   end
 
   def finalize_sign_up_from_checkpoint!(json: false)

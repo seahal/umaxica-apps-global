@@ -13,7 +13,7 @@ sign_routes do
   hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
   # User credential gateway host.
-  sign_surface :app, host: hosts.sign_service.host do
+  sign_surface :app, host: [hosts.sign_service.host, "sign.app.localhost"] do
     root "roots#index"
 
     sign_public_gateway_routes
@@ -186,8 +186,8 @@ sign_routes do
       resources :telephones, only: %i(index new create edit destroy)
 
       resource :birthdate, only: :show
-      resource :apple, only: :show
-      resource :google, only: :show
+      resource :apple, only: %i(show edit update destroy)
+      resource :google, only: %i(show edit update destroy)
       resource :secrets, only: :show
 
       resources :secret_credentials, only: %i(index show new edit create update destroy) do
@@ -210,7 +210,7 @@ sign_routes do
   end
 
   # Corporate credential gateway host.
-  sign_surface :com, host: hosts.sign_corporate.host do
+  sign_surface :com, host: [hosts.sign_corporate.host, "sign.com.localhost"] do
     root "roots#index"
 
     sign_public_gateway_routes
@@ -384,7 +384,7 @@ sign_routes do
   end
 
   # Staff credential gateway host.
-  sign_surface :org, host: hosts.sign_staff.host do
+  sign_surface :org, host: [hosts.sign_staff.host, "sign.org.localhost"] do
     root "roots#index"
 
     sign_public_gateway_routes

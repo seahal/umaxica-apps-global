@@ -11,6 +11,12 @@ module OidcTokenUsage
   included do
     before_validation :ensure_public_id, on: :create
 
+    scope :currently_usable_at,
+          ->(now = Time.current) do
+            where(revoked_at: nil)
+              .where(arel_table[:refresh_token_expires_at].eq(nil).or(arel_table[:refresh_token_expires_at].gt(now)))
+          end
+
     validates :public_id, presence: true, uniqueness: true, length: { maximum: 21 }
     validates :oidc_client_id, presence: true, length: { maximum: 64 }
     validates :last_logout_status, inclusion: { in: LOGOUT_STATUSES }, allow_nil: true

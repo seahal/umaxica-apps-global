@@ -155,21 +155,31 @@ module AuthHelpers
     cookies[::AuthenticationBase::REFRESH_COOKIE_KEY] = token
   end
 
-  def satisfy_user_verification(user_token)
+  def assert_oidc_authorize_redirect(location, host:, client_id: "base-rails-rp")
+    uri = URI.parse(location)
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal host, uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal client_id, query["client_id"]
+    assert_predicate query["state"], :present?
+  end
+
+  def satisfy_user_verification(user_token, scope: nil)
     cookies[ClientVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{user_token.public_id}"
-    mark_token_step_up_satisfied_for_test(user_token)
+    mark_token_step_up_satisfied_for_test(user_token, scope: scope)
     true
   end
 
-  def satisfy_staff_verification(staff_token)
+  def satisfy_staff_verification(staff_token, scope: nil)
     cookies[OperatorVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{staff_token.public_id}"
-    mark_token_step_up_satisfied_for_test(staff_token)
+    mark_token_step_up_satisfied_for_test(staff_token, scope: scope)
     true
   end
 
-  def satisfy_visitor_verification(visitor_token)
+  def satisfy_visitor_verification(visitor_token, scope: nil)
     cookies[VisitorVerification.cookie_name] = "#{TEST_VERIFICATION_COOKIE_PREFIX}#{visitor_token.public_id}"
-    mark_token_step_up_satisfied_for_test(visitor_token)
+    mark_token_step_up_satisfied_for_test(visitor_token, scope: scope)
     true
   end
 

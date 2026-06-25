@@ -14,8 +14,8 @@ module Acme
         declare_authentication_mode! :open
         COORDINATED_LOGOUT_TRUSTED_ORIGINS = JitHostOriginEnv.trusted_origins(
           ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-          ENV.fetch("CORE_SERVICE_URL", "www-jp.umaxica.app"),
-          ENV.fetch("BASE_SERVICE_URL", "base-jp.umaxica.app"),
+          ENV.fetch("CORE_SERVICE_URL", "core-jp.umaxica.app"),
+          ENV.fetch("BASE_SERVICE_URL", "www-jp.umaxica.app"),
           ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost"),
         ).freeze
 

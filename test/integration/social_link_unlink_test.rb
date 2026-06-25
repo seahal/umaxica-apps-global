@@ -91,7 +91,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
 
     # Ensure it wasn't destroyed
     assert ClientAppleIdentity.find_by(uid: "apple_uid_solo")

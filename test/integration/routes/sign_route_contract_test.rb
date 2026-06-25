@@ -333,8 +333,38 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "sign/app/settings/apples", action: "edit" },
+      { path: "http://#{SIGN_APP_HOST}/settings/apple/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/settings/apples", action: "update" },
+      { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :patch },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/settings/apples", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :delete },
+    )
+
+    assert_recognizes(
       { controller: "sign/app/settings/googles", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/settings/google", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/settings/googles", action: "edit" },
+      { path: "http://#{SIGN_APP_HOST}/settings/google/edit", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/settings/googles", action: "update" },
+      { path: "http://#{SIGN_APP_HOST}/settings/google", method: :patch },
+    )
+
+    assert_recognizes(
+      { controller: "sign/app/settings/googles", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/settings/google", method: :delete },
     )
 
     assert_recognizes(

@@ -26,6 +26,17 @@ class Sign::App::UiFoundationTest < ActionDispatch::IntegrationTest
     assert_select "h1"
   end
 
+  test "unauthenticated settings entry preserves settings as oidc return path" do
+    get sign_app_settings_url(ri: "jp", host: @sign_host)
+
+    assert_response :redirect
+    assert_equal "/settings?ri=jp", session[:oidc_pt]
+
+    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+
+    assert_equal "/settings?ri=jp", pending_flow.fetch("pt")
+  end
+
   test "PageHeader renders correct up_to link" do
     head = as_user_headers(@user, host: @sign_host)
     get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head

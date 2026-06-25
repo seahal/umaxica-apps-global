@@ -42,6 +42,9 @@ class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
 
         def current_session_token = session_token
 
+        # mirrors authentication_base: returns the stable session identifier
+        def current_session_public_id = session_token&.public_id.to_s
+
         def actor_verification_path = "/sign/app/verification"
       end
     end
@@ -126,6 +129,30 @@ class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
     consumer.session_token = TokenStub.new("nonce-consumer")
 
     assert_nil consumer.send(:resolve_step_up_pt, pt)
+  end
+
+  # Regression test: when the access token is rotated between the settings redirect and the
+  # verification page, bootstrap_pt_session_nonce must not change.  The harness models this by
+  # keeping current_session_public_id stable while swapping session_token (which now holds a
+  # different token.public_id, as happens in production after AcmeRefreshTokenService rotates).
+  test "resolve_step_up_pt accepts a pt that was issued before an access-token rotation" do
+    # Simulate the session identifier (device_session.public_id in production) that is stable
+    # across token rotations.
+    stable_session_id = "device-session-pub-id"
+
+    # Step 1 – settings page: original token + stable session id → issue pt
+    issuer = Sign::App::RtHarness.new
+    issuer.session_token = TokenStub.new("token-before-rotation")
+    issuer.define_singleton_method(:current_session_public_id) { stable_session_id }
+    pt = issuer.send(:encoded_relative_pt, "/settings/emails")
+
+    # Step 2 – verification page: access token rotated, token.public_id has changed.
+    # current_session_public_id still returns the same stable_session_id.
+    consumer = Sign::App::RtHarness.new
+    consumer.session_token = TokenStub.new("token-after-rotation")
+    consumer.define_singleton_method(:current_session_public_id) { stable_session_id }
+
+    assert_equal "/settings/emails", consumer.send(:resolve_step_up_pt, pt)
   end
 
   test "decode_pt_path accepts signed tokens and rejects legacy tokens" do

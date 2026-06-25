@@ -316,8 +316,11 @@ module VerificationBase
     "step_up.bootstrap"
   end
 
+  # Uses the stable session identifier (device_session.public_id when available) rather than
+  # current_session_token.public_id, which changes on every access-token rotation and would
+  # invalidate an in-flight step-up pt between the settings redirect and the verification page.
   def bootstrap_pt_session_nonce
-    current_session_token&.public_id.to_s
+    current_session_public_id.to_s
   end
 
   def bootstrap_pt_surface

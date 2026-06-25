@@ -49,27 +49,27 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     post acme_org_organizations_url(ri: "jp", host: @org_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @org_host)
 
     patch acme_org_account_url(ri: "jp", host: @org_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @org_host)
 
     patch acme_org_current_organization_url(ri: "jp", host: @org_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @org_host)
 
     patch acme_org_avatar_url(ri: "jp", host: @org_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @org_host)
 
     delete acme_org_avatar_url(ri: "jp", host: @org_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @org_host)
   end
 
   test "com self service pages require authentication" do
@@ -90,12 +90,12 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     patch acme_com_account_url(ri: "jp", host: @com_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @com_host)
 
     patch acme_com_current_organization_url(ri: "jp", host: @com_host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @com_host)
   end
 
   test "com does not expose avatar or organization self service routes" do
@@ -115,7 +115,7 @@ class AcmeSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     get(url, headers: host_headers(host))
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: host)
   end
 
   def assert_self_service_page(url, headers:, title:)

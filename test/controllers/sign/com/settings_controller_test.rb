@@ -14,7 +14,7 @@ class Sign::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
     get sign_com_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_not_equal @acme_host, URI.parse(response.location).host
+    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
   end
 
   test "sign credential settings routes still resolve on sign" do

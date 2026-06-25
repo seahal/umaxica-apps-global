@@ -168,7 +168,7 @@ class IdentitySecretCredentialCeremonyResultConsumerTest < ActiveSupport::TestCa
       @grant_jti = "grant-1"
     end
 
-    def expired?(_now:)
+    def expired?(now:)
       @expired
     end
 

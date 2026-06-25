@@ -139,6 +139,14 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     end
   end
 
+  test "google signup result rejects thirteen-to-fifteen year old birthdate" do
+    assert_social_signup_rejects_under_sixteen(provider: "google")
+  end
+
+  test "apple signup result rejects thirteen-to-fifteen year old birthdate" do
+    assert_social_signup_rejects_under_sixteen(provider: "apple")
+  end
+
   test "signup result rejects a provider uid already linked to another client" do
     travel_to @now do
       owner = Client.create!(
@@ -393,13 +401,43 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     )
   end
 
-  def issue_signup_grant
+  def assert_social_signup_rejects_under_sixteen(provider:)
+    travel_to(@now) do
+      signup_auth_hash = auth_hash(provider: provider)
+      issuance = issue_signup_grant(provider: provider)
+      result_token = issue_signup_result(
+        issuance.grant,
+        auth_hash: signup_auth_hash,
+        birthdate: "2010-06-26",
+      )
+
+      assert_no_difference -> { Client.count } do
+        error =
+          assert_raises(IdentitySocialCeremonyContract::Error) do
+            IdentitySocialCeremonyFinalCommitter.call!(
+              result_token: result_token,
+              auth_hash: nil,
+              actor: nil,
+              session_ref: @session_ref,
+              surface: "app",
+              ip_address: "127.0.0.1",
+              user_agent: "Rails test",
+              now: @now,
+            )
+          end
+
+        assert_equal "birthdate is ineligible", error.message
+      end
+    end
+  end
+
+  def issue_signup_grant(provider: "google")
     IdentitySocialCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: @client.public_id,
       session_ref: @session_ref,
       operation: "signup",
-      provider: "google",
+      provider: provider,
       now: @now,
     )
   end
@@ -429,10 +467,16 @@ class IdentitySocialCeremonyAcmeTransactionTest < ActiveSupport::TestCase
     )
   end
 
-  def auth_hash
-    @auth_hash ||= {
-      "provider" => "google",
-      "uid" => "social-ceremony-#{SecureRandom.hex(6)}",
+  def auth_hash(provider: "google")
+    return @auth_hash ||= build_auth_hash(provider: provider) if provider == "google"
+
+    build_auth_hash(provider: provider)
+  end
+
+  def build_auth_hash(provider:)
+    {
+      "provider" => provider,
+      "uid" => "social-ceremony-#{provider}-#{SecureRandom.hex(6)}",
       "credentials" => {
         "token" => "provider-access-token",
         "refresh_token" => "provider-refresh-token",

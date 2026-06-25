@@ -89,7 +89,6 @@
   },
   "shutdownAction": "stopCompose",
   "updateRemoteUserUID": false,
-  "postStartCommand": "bash /home/global/workspace/.devcontainer/setup-db.sh",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/codex:1": {},

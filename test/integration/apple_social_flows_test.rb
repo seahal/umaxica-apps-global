@@ -88,6 +88,50 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_cancel")
   end
 
+  test "underage Apple birthdate shows recovery copy and stays terminal" do
+    travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+      state = start_social_auth_flow(intent: "login")
+      setup_apple_mock_auth(uid: "apple_flow_underage")
+
+      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+           params: { state: state },
+           headers: @callback_headers
+
+      assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
+      follow_redirect!
+      follow_redirect!
+
+      assert_response :ok
+
+      cycle = ClientSignUpFlow.order(:id).last
+
+      patch sign_app_sign_up_check_apple_confirmation_url(ri: "jp"),
+            params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
+            headers: @callback_headers
+
+      assert_redirected_to sign_app_sign_up_check_apple_birthdate_url(ri: "jp")
+
+      patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              birthdate: "2010-06-26",
+              checkpoint_version: cycle.reload.checkpoint_version,
+            },
+            headers: @callback_headers
+
+      assert_response :success
+      assert_includes response.body, "16歳"
+      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
+
+      get sign_app_sign_up_check_apple_birthdate_url(ri: "jp"), headers: @callback_headers
+
+      assert_response :success
+      assert_includes response.body, "16歳"
+      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+    end
+  end
+
   test "sign in uses existing identity" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
     user.create_rp_account!

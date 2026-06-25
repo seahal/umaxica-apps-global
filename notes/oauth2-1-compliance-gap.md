@@ -1,3 +1,7 @@
+> **INTERNAL ONLY — NOT FOR DISTRIBUTION** This document uses stale vocabulary (`sign.*` as AS) and
+> is non-authoritative. Excluded from all vendor packages per decisions DEC-001/002 (pinwheel) and
+> DEC-014 (vendor register).
+
 # OAuth 2.1 Compliance Gap Note
 
 Reference: draft-ietf-oauth-v2-1 (https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1)

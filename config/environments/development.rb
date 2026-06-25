@@ -123,16 +123,24 @@ Rails.application.configure do
   # Enable DNS rebinding protection for hosts used in route constraints.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
   tunnel_hosts =
+    boot_hosts.acme_origins.map(&:host) +
+    boot_hosts.sign_origins.map(&:host) +
     boot_hosts.core_origins.map(&:host) +
     boot_hosts.base_origins.map(&:host) +
     boot_hosts.palm_origins.map(&:host) +
     %w(
+      sign.app.localhost
+      sign.com.localhost
+      sign.org.localhost
+      acme.app.localhost
+      acme.com.localhost
+      acme.org.localhost
       www-jp.umaxica.app
       www-jp.umaxica.com
       www-jp.umaxica.org
-      base-jp.umaxica.app
-      base-jp.umaxica.com
-      base-jp.umaxica.org
+      core-jp.umaxica.app
+      core-jp.umaxica.com
+      core-jp.umaxica.org
       palm-jp.umaxica.app
       palm.app.localhost
     )
@@ -170,7 +178,7 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
   # Match the dev id/sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
   # production uses ID_SERVICE_URL. Puma serves on 3000.
-  config.action_mailer.default_url_options = { host: "id.app.localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: "sign.app.localhost", port: 3000 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",
     user_name: Rails.app.creds.option(:AWS_SES_SMTP_USERNAME),

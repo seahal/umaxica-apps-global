@@ -26,7 +26,7 @@ module SignRouteMapper
   # One credential-gateway host surface (app/com/org). Inside the block the
   # mapper is already scoped to the surface controller module and name.
   def sign_surface(surface, host:, &)
-    constraints(host: host) do
+    constraints(host: Array(host).compact) do
       scope(module: surface, as: surface, &)
     end
   end

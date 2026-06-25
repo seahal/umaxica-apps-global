@@ -10,7 +10,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   end
 
   test "issues ten recovery passcodes when none are active and usable" do
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal 10, result.issued_count
     assert_equal 0, result.active_usable_count_before
@@ -28,7 +28,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   test "tops up only the shortfall when five recovery passcodes are active and usable" do
     create_client_recovery_passcodes!(@client, count: 5)
 
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal 5, result.issued_count
     assert_equal 5, result.active_usable_count_before
@@ -41,7 +41,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   test "issues nothing when ten recovery passcodes are already active and usable" do
     create_client_recovery_passcodes!(@client, count: 10)
 
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal 0, result.issued_count
     assert_equal 10, result.active_usable_count_before
@@ -54,7 +54,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   test "does not revoke existing active recovery passcodes" do
     existing = create_client_recovery_passcodes!(@client, count: 5)
 
-    RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    issue_top_up_without_n_plus_one
 
     assert_equal ClientSecretCredentialStatus::ACTIVE,
                  existing.map(&:reload).map(&:user_identity_secret_status_id).uniq.first
@@ -62,7 +62,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   end
 
   test "raw values authenticate against persisted hashes and are not stored in attributes" do
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal result.raw_values.length, result.new_credentials.length
     result.new_credentials.zip(result.raw_values).each do |credential, raw_value|
@@ -75,7 +75,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
     ClientSecretCredential.issue!(name: "Login", user: @client, user_secret_kind_id: ClientSecretCredentialKind::LOGIN)
     ClientSecretCredential.issue!(name: "API", user: @client, user_secret_kind_id: ClientSecretCredentialKind::API)
 
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal 10, result.issued_count
     assert_equal 0, result.active_usable_count_before
@@ -84,7 +84,7 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
   test "respects the secret cap when there is no headroom" do
     create_client_secret_credentials!(count: ClientSecretCredential::MAX_SECRETS_PER_USER)
 
-    result = RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+    result = issue_top_up_without_n_plus_one
 
     assert_equal 0, result.issued_count
     assert_empty result.raw_values
@@ -112,6 +112,14 @@ class RecoveryPasscodeTopUpTest < ActiveSupport::TestCase
         user_secret_kind_id: ClientSecretCredentialKind::LOGIN,
         status: :active,
       )
+    end
+  end
+
+  def issue_top_up_without_n_plus_one
+    Prosopite.pause do
+      Prosopite.scan do
+        RecoveryPasscodeTopUp.call(actor: @client, credential_class: ClientSecretCredential)
+      end
     end
   end
 

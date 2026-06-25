@@ -67,7 +67,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
          headers: stale_step_up_headers
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
     google_identity.reload
 
     assert_equal ClientGoogleIdentityStatus::ACTIVE, google_identity.status_id
@@ -93,7 +93,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
          headers: stale_step_up_headers
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
     apple_identity.reload
 
     assert_equal ClientAppleIdentityStatus::ACTIVE, apple_identity.status_id
@@ -116,7 +116,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
          headers: social_unlink_headers
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
 
     # Identity should still exist
     assert ClientGoogleIdentity.exists?(id: google_identity.id), "Last identity should NOT be deleted"
@@ -165,7 +165,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
          headers: social_unlink_headers
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
     assert ClientAppleIdentity.exists?(id: apple_identity.id), "Last identity should NOT be deleted"
   end
 
@@ -335,12 +335,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
          headers: { "Host" => @host }
 
-    # Should redirect to login
     assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "jump.umaxica.net", uri.host
-    assert_predicate Rack::Utils.parse_query(uri.query)["rt"], :present?
+    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
   end
 
   test "unlink succeeds when user has only inactive legacy social identity and an active email" do
@@ -403,7 +399,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
          headers: social_unlink_headers
 
-    assert_redirected_to sign_app_sign_in_url(ri: "jp", host: @host)
+    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
 
     # Google should still be ACTIVE (not unlinked)
     google_identity.reload

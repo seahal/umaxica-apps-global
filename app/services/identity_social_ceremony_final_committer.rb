@@ -123,7 +123,7 @@ class IdentitySocialCeremonyFinalCommitter
     birthdate = result["birthdate"].to_s
     raise IdentitySocialCeremonyContract::Error, "birthdate is required" if birthdate.blank?
     raise IdentitySocialCeremonyContract::Error, "birthdate is ineligible" unless
-      AgeEligibility.minimum_age_reached?(birthdate, minimum_age: 13, today: Time.zone.today)
+      SignUpEligibilityPolicy.minimum_age_reached?(birthdate, surface: surface, today: Time.zone.today)
 
     signup = SocialAuthSignupFinalizer.call(auth_hash: candidate.auth_hash, birthdate: birthdate)
     Commit.new(

@@ -1,60 +1,16 @@
-<% content_for :page_title, t('controller.sign.app.setting.index.google') %>
+<% content_for :page_title, t("controller.sign.app.setting.index.google") %>
 
-<%= link_to t('sign.app.settings.show.back'), sign_app_settings_path %>
+<%= link_to t("sign.app.settings.show.back"), sign_app_settings_path %>
 
 <div>
-  <div>
-    <div>
-      <h3><%= t('controller.sign.app.setting.index.google') %></h3>
-      <p>
-        <%= t("views.sign.app.settings.googles.show.description") %>
-      </p>
-    </div>
-  </div>
-
-  <div>
-    <div>
-      <div>
-        <div>
-          <div>
-            <div>
-              <svg viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-            </div>
-            <div>
-              <h4>Google</h4>
-              <% if current_client.active_social_provider?("google") %>
-                <p><%= t("views.sign.app.settings.googles.show.linked") %></p>
-              <% else %>
-                <p><%= t("views.sign.app.settings.googles.show.unlinked") %></p>
-              <% end %>
-            </div>
-          </div>
-          <div>
-            <% if current_client.active_social_provider?("google") %>
-              <% unlink_allowed = current_client.social_unlink_methods_remaining?(excluding_provider: "google") %>
-              <%= form_with url: sign_app_social_google_disconnection_path(ri: params[:ri]),
-                            method: :post do |f| %>
-                <%= render "shared/cloudflare_turnstile_stealth" if unlink_allowed %>
-                <%= f.submit t('actions.disconnect'), disabled: !unlink_allowed %>
-              <% end %>
-              <p><%= t("auth.step_up.required") %></p>
-              <% unless unlink_allowed %>
-                <p><%= t("errors.social_auth.insufficient_login_methods") %></p>
-              <% end %>
-            <% else %>
-              <%= button_to t('actions.connect'),
-                            sign_app_social_google_connection_path(ri: params[:ri], intent: "link"),
-                            form: { data: { turbo: false } } %>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <h3><%= t("controller.sign.app.setting.index.google") %></h3>
+  <p><%= t("views.sign.app.settings.googles.show.description") %></p>
+  <p>
+    <% if current_client.active_social_provider?("google") %>
+      <%= t("views.sign.app.settings.googles.show.linked") %>
+    <% else %>
+      <%= t("views.sign.app.settings.googles.show.unlinked") %>
+    <% end %>
+  </p>
+  <%= link_to t("actions.edit"), edit_sign_app_settings_google_path(ri: params[:ri]) %>
 </div>
-<%# The closing div for max-w-4xl was also removed by replacing the first line %>

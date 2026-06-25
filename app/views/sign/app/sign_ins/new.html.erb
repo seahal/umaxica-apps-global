@@ -11,15 +11,20 @@
   </li>
 </ul>
 
-<%= link_to sign_app_social_google_sign_in_path,
-            data: { turbo: false } do %>
-  <%= t("sign.app.authentication.new.links.google") %>
-<% end %>
-
-<%= link_to sign_app_social_apple_sign_in_path,
-            data: { turbo: false } do %>
-  <%= t("sign.app.authentication.new.links.apple") %>
-<% end %>
+<ul>
+  <li>
+    <%= link_to sign_app_social_google_sign_in_path,
+                data: { turbo: false } do %>
+      <%= t("sign.app.authentication.new.links.google") %>
+    <% end %>
+  </li>
+  <li>
+    <%= link_to sign_app_social_apple_sign_in_path,
+                data: { turbo: false } do %>
+      <%= t("sign.app.authentication.new.links.apple") %>
+    <% end %>
+  </li>
+</ul>
 
 <%= link_to sign_app_sign_up_path(ri: params[:ri], pt: signed_pt_param) do %>
   <%= t("sign.app.authentication.new.links.registration") %>

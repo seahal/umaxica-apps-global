@@ -323,8 +323,8 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     )
 
     assert_predicate state, :present?
-    assert_equal "login", session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
-    assert_equal "google", session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
+    assert_nil session_hash[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
+    assert_nil session_hash[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
     assert_equal "jp", session_hash[SocialAuth::SOCIAL_RI_SESSION_KEY]
     assert_equal "sign_up", session_hash[SocialAuth::SOCIAL_ENTRY_SESSION_KEY]
     assert_nil session_hash[SocialAuth::SOCIAL_PT_SESSION_KEY]

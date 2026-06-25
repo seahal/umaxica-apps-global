@@ -144,6 +144,16 @@ module MissingHelpers
     "surface:#{service}_#{surface}"
   end
 
+  def assert_oidc_authorize_redirect(location, host:, client_id: "base-rails-rp")
+    uri = URI.parse(location)
+    query = Rack::Utils.parse_nested_query(uri.query.to_s)
+
+    assert_equal host, uri.host
+    assert_equal "/oauth/authorize", uri.path
+    assert_equal client_id, query["client_id"]
+    assert_predicate query["state"], :present?
+  end
+
   def signed_step_up_pt_for(path, surface:, session_nonce:)
     @signed_step_up_pt_cache ||= {}
     cache_key = [path.to_s, surface.to_s, session_nonce.to_s]

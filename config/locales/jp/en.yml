@@ -231,7 +231,7 @@ en:
           update:
             success: Telephone number verified.
         checkpoint:
-          age_restricted: This sign-up method cannot create an account. Please try again after your 13th birthday.
+          age_restricted: This sign-up method cannot create an account. Please try again after your 16th birthday.
           show:
             page_title: Complete registration
             complete: Registration requirements are complete.
@@ -1770,6 +1770,7 @@ en:
         cookie:
           edit:
             h1: Cookie Preferences
+            description: Review and update cookie consent settings for this browser.
             accept_necessary_cookies: Allow necessary cookies (required)
             accept_functional_cookies: Allow functional cookies
             accept_performance_cookies: Allow performance cookies

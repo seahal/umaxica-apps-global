@@ -104,7 +104,7 @@ class HealthTest < ActiveSupport::TestCase
       end
     end
 
-    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+    result = Health::ReadinessCheck.new(profile: profile).call
 
     assert_predicate result, :ok?
     assert_equal({ "database" => "ok" }, result.dependencies)
@@ -121,14 +121,13 @@ class HealthTest < ActiveSupport::TestCase
       )],
     )
 
-    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+    result = Health::ReadinessCheck.new(profile: profile).call
 
     assert_not result.ok?
     assert_equal({ "database" => "failed" }, result.dependencies)
   end
 
-  test "readiness cache key isolates profile probe and revision" do
-    cache = ActiveSupport::Cache::MemoryStore.new
+  test "readiness evaluates profile probe independently" do
     first_profile = fake_profile(
       cache_key: "first",
       checks: [FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :ok))],
@@ -138,12 +137,11 @@ class HealthTest < ActiveSupport::TestCase
       checks: [FakeCheck.new(Health::DependencyResult.new(kind: :database, status: :unready))],
     )
 
-    assert_predicate Health::ReadinessCheck.new(profile: first_profile, cache: cache).call, :ok?
-    assert_not Health::ReadinessCheck.new(profile: second_profile, cache: cache).call.ok?
+    assert_predicate Health::ReadinessCheck.new(profile: first_profile).call, :ok?
+    assert_not Health::ReadinessCheck.new(profile: second_profile).call.ok?
   end
 
-  test "readiness cache reuses result within ttl and expires transitions" do
-    cache = ActiveSupport::Cache::MemoryStore.new
+  test "readiness reevaluates dependencies without cache reuse" do
     result = Health::DependencyResult.new(kind: :database, status: :ok)
     calls = 0
     check = Object.new
@@ -153,15 +151,10 @@ class HealthTest < ActiveSupport::TestCase
     end
     profile = fake_profile(checks: [check])
 
-    assert_predicate Health::ReadinessCheck.new(profile: profile, cache: cache).call, :ok?
+    assert_predicate Health::ReadinessCheck.new(profile: profile).call, :ok?
     result = Health::DependencyResult.new(kind: :database, status: :unready)
 
-    assert_predicate Health::ReadinessCheck.new(profile: profile, cache: cache).call, :ok?
-    assert_equal 1, calls
-
-    travel Health::ReadinessCheck::CACHE_TTL + 1.second
-
-    assert_not Health::ReadinessCheck.new(profile: profile, cache: cache).call.ok?
+    assert_not Health::ReadinessCheck.new(profile: profile).call.ok?
     assert_equal 2, calls
   end
 
@@ -170,7 +163,7 @@ class HealthTest < ActiveSupport::TestCase
     check.define_singleton_method(:call) { raise Health::DeadlineExceeded }
     profile = fake_profile(checks: [check])
 
-    result = Health::ReadinessCheck.new(profile: profile, cache: ActiveSupport::Cache::MemoryStore.new).call
+    result = Health::ReadinessCheck.new(profile: profile).call
 
     assert_not result.ok?
   end

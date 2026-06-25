@@ -282,27 +282,23 @@ module Health
 
   # Readiness probe: decides whether traffic may be routed to this instance.
   class ReadinessCheck
-    CACHE_TTL = 2.seconds
     TOTAL_DEADLINE = 1.0
 
     def self.call(profile:)
       new(profile: profile).call
     end
 
-    def initialize(profile:, cache: Rails.cache)
+    def initialize(profile:)
       @profile = profile
-      @cache = cache
     end
 
     def call
-      cache.fetch(cache_key, expires_in: CACHE_TTL) do
-        build_result
-      end
+      build_result
     end
 
     private
 
-    attr_reader :profile, :cache
+    attr_reader :profile
 
     def build_result
       results =
@@ -331,9 +327,6 @@ module Health
         .transform_values { |kind_results| kind_results.all?(&:ok?) ? "ok" : "failed" }
     end
 
-    def cache_key
-      ["health", profile.cache_key, "readiness", Rails.app.revision.to_s].join(":")
-    end
   end
 
   # Startup probe: confirms boot/initialization completed.

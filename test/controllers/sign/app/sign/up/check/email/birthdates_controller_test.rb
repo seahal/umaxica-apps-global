@@ -66,6 +66,65 @@ class Sign::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
     assert_includes response.body, "ticket is required"
   end
 
+  test "rejects app client signup one day before the sixteenth birthday with sixteen birthday copy" do
+    travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+      advance_to_birthdate_checkpoint!("birthdate-under16@example.com")
+      flow = ClientSignUpFlow.order(:created_at).last
+
+      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              checkpoint_version: flow.checkpoint_version,
+              birthdate: "2010-06-26",
+            },
+            headers: { "Host" => @host }
+
+      assert_response :success
+      assert_includes response.body, "16歳の誕生日"
+      assert_not_includes response.body, "13歳の誕生日"
+      assert_equal ClientSignUpFlowStatus::FAILED, flow.reload.status_id
+      assert_not flow.requirement_cleared?(:birthdate)
+    end
+  end
+
+  test "allows app client signup on the sixteenth birthday" do
+    travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+      advance_to_birthdate_checkpoint!("birthdate-sixteen@example.com")
+      flow = ClientSignUpFlow.order(:created_at).last
+
+      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              checkpoint_version: flow.checkpoint_version,
+              birthdate: "2010-06-25",
+            },
+            headers: { "Host" => @host }
+
+      assert_response :redirect
+      assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+      assert_equal ClientSignUpFlowStatus::COMPLETED, flow.reload.status_id
+    end
+  end
+
+  test "allows app client signup after the sixteenth birthday" do
+    travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+      advance_to_birthdate_checkpoint!("birthdate-over16@example.com")
+      flow = ClientSignUpFlow.order(:created_at).last
+
+      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+            params: {
+              requirement: "birthdate",
+              checkpoint_version: flow.checkpoint_version,
+              birthdate: "2000-01-01",
+            },
+            headers: { "Host" => @host }
+
+      assert_response :redirect
+      assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+      assert_equal ClientSignUpFlowStatus::COMPLETED, flow.reload.status_id
+    end
+  end
+
   private
 
   def advance_to_birthdate_checkpoint!(email)

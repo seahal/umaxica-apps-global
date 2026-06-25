@@ -24,7 +24,7 @@ class CoverageReloadTest < ActiveSupport::TestCase
     end
 
     assert_equal "session", JitSessionCookieConfig.cookie_key(force_secure: false)
-    assert_not JitSessionCookieConfig.partitioned?(rails_env: ActiveSupport::EnvironmentInquirer.new("test"))
+    assert_not JitSessionCookieConfig.session_options(force_secure: true).key?(:partitioned)
     assert_not JitSessionCookieConfig.force_secure?(id_service_host: "localhost", rails_env: ActiveSupport::EnvironmentInquirer.new("development"))
 
     Actor.install_context!(preferences: Actor::Preference::NULL)

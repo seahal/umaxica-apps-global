@@ -1,3 +1,7 @@
+> **VENDOR-FACING REFERENCE SUPERSEDED BY `docs/vendor/identity/14_account-recovery-procedure.md`**
+> This document remains historical/internal security context. For SIer, RFI/RFP, or normative
+> vendor-facing reference, use `14_account-recovery-procedure.md`.
+
 # MFA Reset Account Recovery
 
 This document describes the approved security behavior for resetting MFA when an actor has lost,

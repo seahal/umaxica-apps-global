@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 vi.mock("@hotwired/stimulus", () => ({
   Controller: class {
     constructor() {
+      this.element = document.createElement("div");
       this.containerTarget = {
         dataset: { sitekey: "site-key" },
         id: "turnstile-widget",
@@ -338,6 +339,45 @@ describe("TurnstileController", () => {
         detail: { widgetId: "turnstile-widget" },
       }),
     );
+  });
+
+  test("submit handler allows the first token-backed submit and blocks token replay", () => {
+    const form = document.createElement("form");
+    const submitter = document.createElement("button");
+    form.appendChild(submitter);
+
+    const c = createController();
+    c.form = form;
+    c.responseTarget.value = "response-token";
+
+    const firstSubmit = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(firstSubmit);
+
+    expect(firstSubmit.defaultPrevented).toBe(false);
+    expect(form.dataset.turnstileSubmitted).toBe("true");
+    expect(submitter.disabled).toBe(true);
+
+    const replaySubmit = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(replaySubmit);
+
+    expect(replaySubmit.defaultPrevented).toBe(true);
+  });
+
+  test("submit handler does not block submissions before a token exists", () => {
+    const form = document.createElement("form");
+    const submitter = document.createElement("button");
+    form.appendChild(submitter);
+
+    const c = createController();
+    c.form = form;
+    c.responseTarget.value = "";
+
+    const event = new Event("submit", { cancelable: true });
+    c.preventDuplicateSubmit(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(form.dataset.turnstileSubmitted).toBeUndefined();
+    expect(submitter.disabled).toBe(false);
   });
 
   test("dispatchTurnstileEvent creates and dispatches CustomEvent", () => {

@@ -23,6 +23,10 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
     stored_value = session[SocialAuth::SOCIAL_CEREMONY_GRANT_SESSION_KEY]
 
     assert_predicate stored_value, :present?
+    assert_nil session[SocialAuth::SOCIAL_INTENT_SESSION_KEY]
+    assert_nil session[SocialAuth::SOCIAL_STARTED_AT_SESSION_KEY]
+    assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
+    assert_nil session[SocialAuth::SOCIAL_PROVIDER_SESSION_KEY]
     assert_nil session[SocialAuth::SOCIAL_PT_SESSION_KEY]
     assert_no_match(/\./, stored_value, "session must not store the signed social ceremony grant JWT")
     assert_operator stored_value.bytesize, :<, 80
@@ -31,7 +35,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
   test "continue issues a google sign-up flow for the sign-up entry" do
     assert_difference("ClientSignUpFlow.count", 1) do
-      get sign_app_social_google_sign_up_path(provider: "google", entry: "sign_up", ri: "jp")
+      get sign_app_social_google_sign_up_path(provider: "google", ri: "jp")
     end
 
     assert_response :redirect
@@ -47,7 +51,7 @@ class Sign::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
   test "continue issues an apple sign-up flow for the sign-up entry" do
     assert_difference("ClientSignUpFlow.count", 1) do
-      get sign_app_social_apple_sign_up_path(provider: "apple", entry: "sign_up", ri: "jp")
+      get sign_app_social_apple_sign_up_path(provider: "apple", ri: "jp")
     end
 
     assert_response :redirect

@@ -299,49 +299,7 @@ module Sign::App::Up
     end
 
     test "telephone sign up finalizes and establishes login after otp passkey passcode and birthdate" do
-      telephone = verify_telephone_via_otp!
-      cycle = current_sign_up_flow(telephone)
-
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
-      challenge_id = response.parsed_body["challenge_id"]
-
-      mock_credential = Object.new
-      mock_credential.define_singleton_method(:id) { "finalize_webauthn_id" }
-      mock_credential.define_singleton_method(:public_key) { "finalize_public_key" }
-      mock_credential.define_singleton_method(:sign_count) { 1 }
-      mock_credential.define_singleton_method(:verify) { |_challenge| true }
-
-      WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          checkpoint_version: cycle.checkpoint_version,
-          credential: {
-            id: "finalize_webauthn_id",
-            response: { clientDataJSON: "e30=", attestationObject: "e30=" },
-          },
-          description: "Finalize Passkey",
-        }
-      end
-
-      assert_response :created
-      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"),
-                   response.parsed_body["redirect_url"]
-      assert cycle.reload.requirement_cleared?(:passkey)
-
-      get sign_app_sign_up_check_telephone_passcode_url(ri: "jp")
-
-      assert_response :success
-
-      patch sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
-        checkpoint_version: cycle.reload.checkpoint_version,
-      }
-
-      assert_redirected_to sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
-      assert cycle.reload.requirement_cleared?(:passcode)
-
-      get sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
-
-      assert_response :success
+      telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("finalize")
 
       patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
         requirement: "birthdate",
@@ -356,6 +314,41 @@ module Sign::App::Up
       assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
       assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, user.status_id
       assert ClientToken.exists?(user_id: user.id)
+    end
+
+    test "telephone sign up rejects one day before the sixteenth birthday with sixteen birthday copy" do
+      travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+        telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("under16")
+
+        patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+          requirement: "birthdate",
+          birthdate: "2010-06-26",
+          checkpoint_version: cycle.reload.checkpoint_version,
+        }
+
+        assert_response :success
+        assert_includes response.body, "16歳の誕生日"
+        assert_not_includes response.body, "13歳の誕生日"
+        assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
+        assert_not cycle.requirement_cleared?(:birthdate)
+        assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
+      end
+    end
+
+    test "telephone sign up allows the sixteenth birthday" do
+      travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
+        telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("sixteen")
+
+        patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+          requirement: "birthdate",
+          birthdate: "2010-06-25",
+          checkpoint_version: cycle.reload.checkpoint_version,
+        }
+
+        assert_response :redirect
+        assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
+        assert_equal ClientStatus::VERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
+      end
     end
 
     test "sign-in failure after durable sign-up does not delete completed account data" do
@@ -497,6 +490,54 @@ module Sign::App::Up
         pending_contact_type: "telephone",
         pending_contact_id: telephone.id,
       )
+    end
+
+    def advance_telephone_signup_to_birthdate_checkpoint!(webauthn_suffix)
+      telephone = verify_telephone_via_otp!
+      cycle = current_sign_up_flow(telephone)
+
+      post(sign_app_sign_up_check_telephone_passkey_url(ri: "jp"))
+      challenge_id = response.parsed_body["challenge_id"]
+
+      mock_credential = Object.new
+      mock_credential.define_singleton_method(:id) { "#{webauthn_suffix}_webauthn_id" }
+      mock_credential.define_singleton_method(:public_key) { "#{webauthn_suffix}_public_key" }
+      mock_credential.define_singleton_method(:sign_count) { 1 }
+      mock_credential.define_singleton_method(:verify) { |_challenge| true }
+
+      WebAuthn::Credential.stub(:from_create, mock_credential) do
+        patch(
+          sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            checkpoint_version: cycle.checkpoint_version,
+            credential: {
+              id: "#{webauthn_suffix}_webauthn_id",
+              response: { clientDataJSON: "e30=", attestationObject: "e30=" },
+            },
+            description: "Signup Passkey",
+          },
+        )
+      end
+
+      assert_response :created
+      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"),
+                   response.parsed_body["redirect_url"]
+      assert cycle.reload.requirement_cleared?(:passkey)
+
+      patch(
+        sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
+          checkpoint_version: cycle.reload.checkpoint_version,
+        },
+      )
+
+      assert_redirected_to sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+      assert cycle.reload.requirement_cleared?(:passcode)
+
+      get(sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"))
+
+      assert_response :success
+
+      [telephone, cycle]
     end
 
     def registration_telephone

@@ -7,19 +7,8 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
   fixtures :clients, :operators
 
   setup do
-    @previous_cache_store = Rails.cache
-    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
-  end
-
-  teardown do
-    [@user, @staff, @visitor].compact.each do |actor|
-      StepUpCooldowns::WINDOWS.each_key do |method|
-        Rails.cache.delete(StepUpCooldowns.key(actor, method))
-      end
-    end
-    Rails.cache = @previous_cache_store
   end
 
   test "includes email_otp for verified user email status" do
@@ -40,7 +29,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
     assert_equal StepUpConfiguredMethods.call(@user), StepUpAvailableMethods.call(@user)
   end
 
-  test "cooldown hides only the cooled down method" do
+  test "cooldown stamp does not hide methods while cache-backed cooldowns are disabled" do
     @user.client_emails.create!(
       address: "available-cooldown@example.com",
       user_email_status_id: ClientEmailStatus::VERIFIED,
@@ -59,7 +48,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
 
     result = StepUpAvailableMethods.call(@user)
 
-    assert_not_includes result, :email_otp
+    assert_includes result, :email_otp
     assert_includes result, :passkey
   end
 
@@ -161,7 +150,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
     assert_not_includes StepUpAvailableMethods.call(@staff), :email_otp
   end
 
-  test "available methods apply cooldown for visitor actors" do
+  test "available methods ignore cooldown stamps for visitor actors while cache-backed cooldowns are disabled" do
     ensure_visitor_reference_records!
     @visitor = Visitor.create!(
       status_id: VisitorStatus::ACTIVE,
@@ -176,7 +165,7 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
 
     StepUpCooldownStamp.call(@visitor, :email_otp)
 
-    assert_not_includes StepUpAvailableMethods.call(@visitor), :email_otp
+    assert_includes StepUpAvailableMethods.call(@visitor), :email_otp
   end
 
   test "available methods apply lockout for staff actors" do

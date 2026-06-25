@@ -157,7 +157,9 @@ module CommonRedirect
       end
     allowed_hosts += %w(
       id.app.localhost id.com.localhost id.org.localhost
+      sign.app.localhost sign.com.localhost sign.org.localhost
       www.app.localhost www.com.localhost www.org.localhost
+      acme.app.localhost acme.com.localhost acme.org.localhost
     )
     allowed_hosts.include?(CommonRedirect.normalize_host(host))
   end

@@ -195,6 +195,10 @@ module Auth
       def t(key)
         "translated:#{key}"
       end
+
+      def current_region_identifier
+        "jp"
+      end
     end
 
     ResourceStub = Struct.new(:id)

@@ -54,11 +54,29 @@ module Sign
                     expected_cdata: @sign_up_ticket.public_id,
                     mode: :visible,
                   )
+                log_social_signup_turnstile_failure(result) unless result["success"]
                 result["success"]
               end
 
               def render_turnstile_failure
                 render plain: I18n.t("turnstile_error"), status: :unprocessable_content
+              end
+
+              def log_social_signup_turnstile_failure(result)
+                Rails.logger.info(
+                  JitLogEvent.format(
+                    "sign_up.social_confirmation.turnstile_failed",
+                    provider: sign_up_family,
+                    host: request.host,
+                    flow_id_present: @sign_up_ticket&.public_id.present?,
+                    token_present: request.request_parameters["cf-turnstile-response"].present?,
+                    error: result["error"],
+                    error_codes: result["error-codes"],
+                    action: result["action"],
+                    hostname: result["hostname"],
+                    cdata_present: result["cdata"].present?,
+                  ),
+                )
               end
             end
           end

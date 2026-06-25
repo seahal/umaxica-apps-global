@@ -14,7 +14,7 @@ class Acme::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     get acme_app_accounts_url(ri: "jp", host: @host), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_match(%r{\Ahttps://jump\.umaxica\.net/\?rt=}, response.location)
+    assert_oidc_authorize_redirect(response.location, host: @host)
   end
 
   test "selector-only (no selected context) cannot access accounts" do

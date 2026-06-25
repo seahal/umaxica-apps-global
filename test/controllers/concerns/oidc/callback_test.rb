@@ -14,6 +14,15 @@ class OidcCallbackTestController < ApplicationController
     session[:oidc_state] = params[:state] if params.key?(:state)
     session[:oidc_nonce] = params[:nonce] if params.key?(:nonce)
     session[:oidc_pt] = params[:pt] if params.key?(:pt)
+    if params[:pending_state].present?
+      session["oidc_pending_flows"] ||= {}
+      session["oidc_pending_flows"][params[:pending_state]] = {
+        "code_verifier" => params[:pending_code_verifier],
+        "nonce" => params[:pending_nonce],
+        "pt" => params[:pending_pt],
+        "created_at" => Time.current.to_i,
+      }
+    end
 
     head :no_content
   end
@@ -95,6 +104,43 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/after"
   end
 
+  test "show consumes the matching pending flow instead of the latest legacy flow" do
+    get "/oidc/callback/session",
+        params: {
+          code_verifier: "newer-verifier",
+          state: "newer-state",
+          nonce: "newer-nonce",
+          pt: "/",
+          pending_state: "older-state",
+          pending_code_verifier: "older-verifier",
+          pending_nonce: "older-nonce",
+          pending_pt: "/settings?ri=jp",
+        }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "older-nonce" },
+      error: nil,
+    )
+    token_call = nil
+
+    OidcRpTokenClient.stub(:call, ->(**kwargs) { token_call = kwargs; result }) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "older-state" }
+      end
+    end
+
+    assert_response :redirect
+    assert_redirected_to "/settings?ri=jp"
+    assert_equal "older-verifier", token_call.fetch(:code_verifier)
+  end
+
   test "show redirects to sign in on failed exchange" do
     get "/oidc/callback/session", params: { code_verifier: "verifier", state: "state" }
 
@@ -143,6 +189,12 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_equal "OIDC state mismatch", event.dig(:data, :reason)
     assert event.dig(:data, :grant_present)
     assert event.dig(:data, :csrf_present)
+    assert event.dig(:data, :expected_state_present)
+    assert event.dig(:data, :actual_state_present)
+    assert_predicate event.dig(:data, :expected_state_digest12), :present?
+    assert_predicate event.dig(:data, :actual_state_digest12), :present?
+    assert_not_equal "state", event.dig(:data, :expected_state_digest12)
+    assert_not_equal "wrong", event.dig(:data, :actual_state_digest12)
   end
 
   test "show raises unexpected provisioning errors" do

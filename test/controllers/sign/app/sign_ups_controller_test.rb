@@ -19,6 +19,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "sign-rp", query["client_id"]
     assert_equal "signup", query["screen_hint"]
     assert_nil session[:oidc_authorization_login_challenge]
+    assert_nil session["oidc_pending_flows"]
   end
 
   test "valid login challenge renders local ceremony" do
@@ -59,12 +60,12 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "form[action=?][data-turbo=?]",
-                  sign_app_social_google_sign_up_path(ri: "jp", entry: "sign_up"),
+    assert_select "a[href=?][data-turbo=?]",
+                  sign_app_social_google_sign_up_path(ri: "jp"),
                   "false",
                   count: 1
-    assert_select "form[action=?][data-turbo=?]",
-                  sign_app_social_apple_sign_up_path(ri: "jp", entry: "sign_up"),
+    assert_select "a[href=?][data-turbo=?]",
+                  sign_app_social_apple_sign_up_path(ri: "jp"),
                   "false",
                   count: 1
   end

@@ -5,6 +5,9 @@ module OidcSsoInitiator
   extend ActiveSupport::Concern
   include CommonRedirect
 
+  OIDC_PENDING_FLOWS_SESSION_KEY = "oidc_pending_flows"
+  OIDC_PENDING_FLOW_LIMIT = 2
+
   def authenticate!
     if logged_in?
       SignRiskEnforcer.call(current_resource)
@@ -21,7 +24,7 @@ module OidcSsoInitiator
       path: request&.fullpath,
       method: request&.request_method,
     )
-    url = sign_in_url_with_pt(encoded_pt(request.original_url))
+    url = sign_in_url_with_pt(encoded_pt(request.fullpath))
     redirect_to_oidc_authorization_url(url)
   end
 
@@ -37,10 +40,18 @@ module OidcSsoInitiator
     state = SecureRandom.urlsafe_base64(32)
     nonce = SecureRandom.urlsafe_base64(32)
 
+    oidc_pt = safe_oidc_pt(pt)
     session[:oidc_code_verifier] = verifier
     session[:oidc_state] = state
     session[:oidc_nonce] = nonce
-    session[:oidc_pt] = safe_oidc_pt(pt)
+    session[:oidc_pt] = oidc_pt
+    remember_oidc_pending_flow!(
+      state: state,
+      verifier: verifier,
+      nonce: nonce,
+      pt: oidc_pt,
+    ) if screen_hint.blank?
+    log_oidc_pending_flow_created(state: state, pt: oidc_pt)
 
     oidc_authorization_url(
       screen_hint: screen_hint,
@@ -89,6 +100,38 @@ module OidcSsoInitiator
     }
     query[:screen_hint] = screen_hint if screen_hint.present?
     oidc_acme_service_origin.authorization_endpoint(query: query)
+  end
+
+  def remember_oidc_pending_flow!(state:, verifier:, nonce:, pt:)
+    flows = session[OIDC_PENDING_FLOWS_SESSION_KEY]
+    flows = {} unless flows.is_a?(Hash)
+    flows[state] = {
+      "code_verifier" => verifier,
+      "nonce" => nonce,
+      "pt" => pt,
+      "created_at" => Time.current.to_i,
+    }
+    session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows.sort_by { |_key, flow| flow["created_at"].to_i }
+      .last(OIDC_PENDING_FLOW_LIMIT)
+      .to_h
+  end
+
+  def log_oidc_pending_flow_created(state:, pt:)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "oidc.sso.pending_flow.created",
+        client_id: oidc_client_id,
+        host: request.host,
+        csrf_digest12: oidc_sso_digest12(state),
+        pt_digest12: oidc_sso_digest12(pt),
+        pt_is_root: pt == "/",
+        pending_flow_count: session[OIDC_PENDING_FLOWS_SESSION_KEY].to_h.size,
+      ),
+    )
+  end
+
+  def oidc_sso_digest12(value)
+    Digest::SHA256.hexdigest(value.to_s).first(12)
   end
 
   def oidc_callback_url

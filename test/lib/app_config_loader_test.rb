@@ -10,10 +10,10 @@ class AppConfigLoaderTest < ActiveSupport::TestCase
 
     config = AppConfigLoader.load!(env: env, rails_env: ActiveSupport::EnvironmentInquirer.new("test"))
 
-    assert_equal "www.app.localhost", config.fetch(:hosts).acme_service.host
-    assert_equal "id.app.localhost", config.fetch(:hosts).sign_service.host
-    assert_equal "www-jp.umaxica.app", config.fetch(:hosts).core_service.host
-    assert_equal "base-jp.umaxica.app", config.fetch(:hosts).base_service.host
+    assert_equal "acme.app.localhost", config.fetch(:hosts).acme_service.host
+    assert_equal "sign.app.localhost", config.fetch(:hosts).sign_service.host
+    assert_equal "core-jp.umaxica.app", config.fetch(:hosts).core_service.host
+    assert_equal "www-jp.umaxica.app", config.fetch(:hosts).base_service.host
     assert_equal "palm-jp.umaxica.app", config.fetch(:hosts).palm_service.host
     assert_equal "help.app.localhost", config.fetch(:hosts).help_service.host
     assert_equal "https://jump.umaxica.net", config.fetch(:jump).origin.to_s
@@ -27,12 +27,12 @@ class AppConfigLoaderTest < ActiveSupport::TestCase
       "SIGN_SERVICE_URL" => "id.umaxica.app",
       "SIGN_CORPORATE_URL" => "id.umaxica.com",
       "SIGN_STAFF_URL" => "id.umaxica.org",
-      "CORE_SERVICE_URL" => "www-jp.umaxica.app",
-      "CORE_CORPORATE_URL" => "www-jp.umaxica.com",
-      "CORE_STAFF_URL" => "www-jp.umaxica.org",
-      "BASE_SERVICE_URL" => "base-jp.umaxica.app",
-      "BASE_CORPORATE_URL" => "base-jp.umaxica.com",
-      "BASE_STAFF_URL" => "base-jp.umaxica.org",
+      "CORE_SERVICE_URL" => "core-jp.umaxica.app",
+      "CORE_CORPORATE_URL" => "core-jp.umaxica.com",
+      "CORE_STAFF_URL" => "core-jp.umaxica.org",
+      "BASE_SERVICE_URL" => "www-jp.umaxica.app",
+      "BASE_CORPORATE_URL" => "www-jp.umaxica.com",
+      "BASE_STAFF_URL" => "www-jp.umaxica.org",
       "PALM_SERVICE_URL" => "palm-jp.umaxica.app",
       "PALM_CORPORATE_URL" => "palm-jp.umaxica.com",
       "PALM_STAFF_URL" => "palm-jp.umaxica.org",
@@ -45,8 +45,8 @@ class AppConfigLoaderTest < ActiveSupport::TestCase
     config = AppConfigLoader.load!(env: env, rails_env: ActiveSupport::EnvironmentInquirer.new("production"))
     hosts = config.fetch(:hosts)
 
-    assert_equal ["www-jp.umaxica.app", "www-jp.umaxica.com", "www-jp.umaxica.org"], hosts.core_origins.map(&:host)
-    assert_equal ["base-jp.umaxica.app", "base-jp.umaxica.com", "base-jp.umaxica.org"], hosts.base_origins.map(&:host)
+    assert_equal ["core-jp.umaxica.app", "core-jp.umaxica.com", "core-jp.umaxica.org"], hosts.core_origins.map(&:host)
+    assert_equal ["www-jp.umaxica.app", "www-jp.umaxica.com", "www-jp.umaxica.org"], hosts.base_origins.map(&:host)
     assert_equal ["palm-jp.umaxica.app", "palm-jp.umaxica.com", "palm-jp.umaxica.org"], hosts.palm_origins.map(&:host)
   end
 

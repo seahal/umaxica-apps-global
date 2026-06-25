@@ -24,6 +24,7 @@ module Sign
         assert_equal "sign-rp", query["client_id"]
         assert_equal "signin", query["screen_hint"]
         assert_nil session[:oidc_authorization_login_challenge]
+        assert_nil session["oidc_pending_flows"]
       end
 
       test "local ceremony renders authentication links" do

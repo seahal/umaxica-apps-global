@@ -68,6 +68,7 @@ Current content-model references:
 - `docs/security/social-login-provider-scope.md`
 - `docs/security/session-reset-policy.md`
 - `docs/security/sign-withdrawal-and-membership.md`
+- `docs/policy/signup-eligibility.md`
 - `docs/security/redirect_targets.md`
 - `docs/operations/container-engine-podman-notes.md`
 - `docs/operations/core-nextjs-zero-cookie-edge-contract.md`

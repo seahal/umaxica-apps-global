@@ -75,6 +75,11 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]
+    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+
+    assert_equal session[:oidc_code_verifier], pending_flow.fetch("code_verifier")
+    assert_equal session[:oidc_nonce], pending_flow.fetch("nonce")
+    assert_equal "/oidc/sso", pending_flow.fetch("pt")
     assert_includes io.string, "oidc.sso.redirect_policy.direct"
     assert_includes io.string, "reason_code"
     assert_includes io.string, "target_host"
@@ -83,6 +88,17 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_not_includes io.string, session[:oidc_code_verifier]
     assert_not_includes io.string, response.location
     assert_not_includes io.string, "oauth/authorize?"
+  end
+
+  test "authenticate! preserves the protected request query in oidc return path" do
+    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => "id.umaxica.app" }
+
+    assert_response :redirect
+    assert_equal "/oidc/sso?ri=jp", session[:oidc_pt]
+
+    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+
+    assert_equal "/oidc/sso?ri=jp", pending_flow.fetch("pt")
   end
 
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do

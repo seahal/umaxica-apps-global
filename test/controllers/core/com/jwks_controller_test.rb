@@ -9,7 +9,7 @@ module Core
       fixtures_none!
 
       test "GET jwks endpoint returns JSON with keys" do
-        host! ENV.fetch("CORE_CORPORATE_URL", "www-jp.umaxica.com")
+        host! ENV.fetch("CORE_CORPORATE_URL", "core-jp.umaxica.com")
 
         get core_com_well_known_jwks_url
 

@@ -382,7 +382,7 @@ module SocialCallbackGuard
       return
     end
 
-    generated_state = SecureRandom.hex(24)
+    generated_state = SecureRandom.hex(16)
     query["state"] = generated_state
 
     env["QUERY_STRING"] = Rack::Utils.build_query(query)

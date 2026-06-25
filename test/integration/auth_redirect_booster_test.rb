@@ -65,6 +65,10 @@ class AuthRedirectTestController < ApplicationController
   def token_class
     ClientToken
   end
+
+  def current_region_identifier
+    "jp"
+  end
 end
 
 class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest

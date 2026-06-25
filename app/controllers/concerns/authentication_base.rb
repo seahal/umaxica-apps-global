@@ -671,7 +671,7 @@ module AuthenticationBase
       store_authentication_return_target!(request.fullpath)
       pt =
         if respond_to?(:encoded_pt, true)
-          encoded_pt(request.original_url)
+          encoded_pt(request.fullpath)
         end
       url = sign_in_url_with_pt(pt)
       redirect_options = {
@@ -2802,7 +2802,8 @@ module AuthenticationBase
     path =
       if respond_to?(:sign_in_url_with_pt, true)
         store_authentication_return_target!(request.fullpath)
-        sign_in_url_with_pt(nil)
+        pt = encoded_pt(request.fullpath) if respond_to?(:encoded_pt, true)
+        sign_in_url_with_pt(pt)
       elsif main_app.respond_to?(:sign_in_path)
         main_app.sign_in_path
       else

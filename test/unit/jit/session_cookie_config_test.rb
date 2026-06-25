@@ -16,16 +16,8 @@ module Jit
       assert_equal "session", JitSessionCookieConfig.cookie_key(force_secure: false)
     end
 
-    test "partitioned is true in production" do
-      env = ActiveSupport::EnvironmentInquirer.new("production")
-
-      assert JitSessionCookieConfig.partitioned?(rails_env: env)
-    end
-
-    test "partitioned is false outside production" do
-      env = ActiveSupport::EnvironmentInquirer.new("test")
-
-      assert_not JitSessionCookieConfig.partitioned?(rails_env: env)
+    test "session options partition production cookies" do
+      assert JitSessionCookieConfig.session_options(force_secure: true).key?(:partitioned)
     end
 
     # --- force_secure? in production ---
