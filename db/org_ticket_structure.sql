@@ -2349,7 +2349,7 @@ CREATE INDEX index_organization_invitations_on_organization_id ON public.organiz
 --
 
 ALTER TABLE ONLY public.operator_sign_in_flows
-    ADD CONSTRAINT fk_rails_0451f7d1d6 FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_0451f7d1d6 FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2357,7 +2357,7 @@ ALTER TABLE ONLY public.operator_sign_in_flows
 --
 
 ALTER TABLE ONLY public.operator_sign_out_flows
-    ADD CONSTRAINT fk_rails_0467d6b6d1 FOREIGN KEY (kind_id) REFERENCES public.operator_sign_out_flow_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_0467d6b6d1 FOREIGN KEY (kind_id) REFERENCES public.operator_sign_out_flow_kinds(id);
 
 
 --
@@ -2373,7 +2373,7 @@ ALTER TABLE ONLY public.operator_token_usages
 --
 
 ALTER TABLE ONLY public.operator_sign_up_flows
-    ADD CONSTRAINT fk_rails_10f95a7068 FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_10f95a7068 FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2381,7 +2381,7 @@ ALTER TABLE ONLY public.operator_sign_up_flows
 --
 
 ALTER TABLE ONLY public.operator_tokens
-    ADD CONSTRAINT fk_rails_1a807f181b FOREIGN KEY (staff_token_status_id) REFERENCES public.operator_token_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_1a807f181b FOREIGN KEY (staff_token_status_id) REFERENCES public.operator_token_statuses(id) ON DELETE RESTRICT;
 
 
 --
@@ -2389,7 +2389,7 @@ ALTER TABLE ONLY public.operator_tokens
 --
 
 ALTER TABLE ONLY public.operator_authorization_codes
-    ADD CONSTRAINT fk_rails_6ba8af8d1d FOREIGN KEY (operator_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_6ba8af8d1d FOREIGN KEY (operator_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2397,7 +2397,7 @@ ALTER TABLE ONLY public.operator_authorization_codes
 --
 
 ALTER TABLE ONLY public.operator_step_up_sessions
-    ADD CONSTRAINT fk_rails_6daa6fb880 FOREIGN KEY (staff_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_6daa6fb880 FOREIGN KEY (staff_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2405,7 +2405,7 @@ ALTER TABLE ONLY public.operator_step_up_sessions
 --
 
 ALTER TABLE ONLY public.operator_sign_in_flows
-    ADD CONSTRAINT fk_rails_6ed9308623 FOREIGN KEY (status_id) REFERENCES public.operator_sign_in_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_6ed9308623 FOREIGN KEY (status_id) REFERENCES public.operator_sign_in_flow_statuses(id);
 
 
 --
@@ -2413,7 +2413,7 @@ ALTER TABLE ONLY public.operator_sign_in_flows
 --
 
 ALTER TABLE ONLY public.operator_sign_out_flows
-    ADD CONSTRAINT fk_rails_85024a94ea FOREIGN KEY (status_id) REFERENCES public.operator_sign_out_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_85024a94ea FOREIGN KEY (status_id) REFERENCES public.operator_sign_out_flow_statuses(id);
 
 
 --
@@ -2421,7 +2421,7 @@ ALTER TABLE ONLY public.operator_sign_out_flows
 --
 
 ALTER TABLE ONLY public.operator_verifications
-    ADD CONSTRAINT fk_rails_c8ab8d08df FOREIGN KEY (staff_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_c8ab8d08df FOREIGN KEY (staff_token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2429,7 +2429,7 @@ ALTER TABLE ONLY public.operator_verifications
 --
 
 ALTER TABLE ONLY public.operator_sign_out_flows
-    ADD CONSTRAINT fk_rails_caa3cf1c6d FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_caa3cf1c6d FOREIGN KEY (token_id) REFERENCES public.operator_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2437,7 +2437,7 @@ ALTER TABLE ONLY public.operator_sign_out_flows
 --
 
 ALTER TABLE ONLY public.operator_tokens
-    ADD CONSTRAINT fk_rails_f211b6bc2e FOREIGN KEY (staff_token_kind_id) REFERENCES public.operator_token_kinds(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_f211b6bc2e FOREIGN KEY (staff_token_kind_id) REFERENCES public.operator_token_kinds(id) ON DELETE RESTRICT;
 
 
 --
@@ -2445,7 +2445,7 @@ ALTER TABLE ONLY public.operator_tokens
 --
 
 ALTER TABLE ONLY public.operator_sign_up_flows
-    ADD CONSTRAINT fk_rails_fb3acc316b FOREIGN KEY (status_id) REFERENCES public.operator_sign_up_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_fb3acc316b FOREIGN KEY (status_id) REFERENCES public.operator_sign_up_flow_statuses(id);
 
 
 --
@@ -2453,7 +2453,7 @@ ALTER TABLE ONLY public.operator_sign_up_flows
 --
 
 ALTER TABLE ONLY public.operator_tokens
-    ADD CONSTRAINT fk_staff_tokens_on_staff_token_binding_method_id FOREIGN KEY (staff_token_binding_method_id) REFERENCES public.operator_token_binding_methods(id) NOT VALID;
+    ADD CONSTRAINT fk_staff_tokens_on_staff_token_binding_method_id FOREIGN KEY (staff_token_binding_method_id) REFERENCES public.operator_token_binding_methods(id);
 
 
 --
@@ -2461,7 +2461,7 @@ ALTER TABLE ONLY public.operator_tokens
 --
 
 ALTER TABLE ONLY public.operator_tokens
-    ADD CONSTRAINT fk_staff_tokens_on_staff_token_dbsc_status_id FOREIGN KEY (staff_token_dbsc_status_id) REFERENCES public.operator_token_dbsc_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_staff_tokens_on_staff_token_dbsc_status_id FOREIGN KEY (staff_token_dbsc_status_id) REFERENCES public.operator_token_dbsc_statuses(id);
 
 
 --

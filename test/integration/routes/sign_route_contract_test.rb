@@ -230,35 +230,19 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   # rubocop:enable Minitest/MultipleAssertions
 
   test "sign app-only route contract" do
-    assert_recognizes(
-      { controller: "sign/app/social/apple/connections", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/connection", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/social/apple/connections", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/connection", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/social/apple/disconnections", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/disconnection", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/social/google/connections", action: "show" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/connection", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/social/google/connections", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/connection", method: :post },
-    )
-
-    assert_recognizes(
-      { controller: "sign/app/social/google/disconnections", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/disconnection", method: :post },
-    )
+    %w(
+      /social/apple/connection
+      /social/apple/disconnection
+      /social/google/connection
+      /social/google/disconnection
+    ).each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{path}", method: :get)
+      end
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{path}", method: :post)
+      end
+    end
 
     assert_recognizes(
       { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
@@ -338,8 +322,8 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/apples", action: "update" },
-      { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :patch },
+      { controller: "sign/app/settings/apples", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :post },
     )
 
     assert_recognizes(
@@ -358,14 +342,20 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/googles", action: "update" },
-      { path: "http://#{SIGN_APP_HOST}/settings/google", method: :patch },
+      { controller: "sign/app/settings/googles", action: "create" },
+      { path: "http://#{SIGN_APP_HOST}/settings/google", method: :post },
     )
 
     assert_recognizes(
       { controller: "sign/app/settings/googles", action: "destroy" },
       { path: "http://#{SIGN_APP_HOST}/settings/google", method: :delete },
     )
+
+    %w(/settings/apple /settings/google).each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}#{path}", method: :patch)
+      end
+    end
 
     assert_recognizes(
       { controller: "sign/app/settings/secret_credentials", action: "index" },

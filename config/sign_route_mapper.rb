@@ -82,17 +82,6 @@ module SignRouteMapper
   # body. The connection-lifecycle routes below carry no such constraint.
   def sign_app_social_routes
     namespace(:social) do
-      # Linked-identity connection lifecycle.
-      namespace(:apple) do
-        resource(:connection, only: %i(show create))
-        resource(:disconnection, only: :create)
-      end
-
-      namespace(:google) do
-        resource(:connection, only: %i(show create))
-        resource(:disconnection, only: :create)
-      end
-
       # OmniAuth provider callbacks. Provider is injected via route defaults
       # and the action stays `omniauth` for the CSRF reason documented above.
       get(

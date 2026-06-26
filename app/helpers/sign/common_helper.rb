@@ -2,20 +2,6 @@
 # frozen_string_literal: true
 
 module Sign::CommonHelper
-  def to_localetime(time, tz = "utc")
-    return nil if time.nil?
-
-    zone =
-      case tz.to_s.downcase
-      when "jst", "asia/tokyo"
-        "Asia/Tokyo"
-      else
-        "UTC"
-      end
-
-    time.in_time_zone(zone)
-  end
-
   def get_timezone
     "asia/tokyo"
   end
@@ -41,12 +27,6 @@ module Sign::CommonHelper
         end
       [label, option.id] if label.present?
     end
-  end
-
-  def preference_language_selected(option_id, option_class)
-    return option_id if option_id.present?
-
-    I18n.locale.to_s.start_with?("en") ? option_class::EN : option_class::JA
   end
 
   def localized_session_timestamp(time)

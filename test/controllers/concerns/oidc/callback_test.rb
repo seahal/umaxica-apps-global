@@ -4,6 +4,10 @@
 require "test_helper"
 
 class OidcCallbackTestController < ApplicationController
+  class << self
+    attr_accessor :login_result_for_test, :last_login_kwargs, :last_session_limit_gate_pt, :hard_reject_payload
+  end
+
   def self.declare_authentication_mode!(*)
   end
 
@@ -51,6 +55,10 @@ class OidcCallbackTestController < ApplicationController
     "https://id.app.localhost/sign/in"
   end
 
+  def sign_app_sign_in_session_path
+    "/sign/in/session"
+  end
+
   def provision_rp_account_from_id_token!(payload)
     Struct.new(:id).new(payload.fetch("sub"))
   end
@@ -58,7 +66,14 @@ class OidcCallbackTestController < ApplicationController
   def log_in(resource, **kwargs)
     @logged_in_resource = resource
     @login_kwargs = kwargs
-    { status: :success }
+    self.class.last_login_kwargs = kwargs
+    self.class.last_session_limit_gate_pt = send(:session_limit_gate_pt)
+    self.class.login_result_for_test || { status: :success }
+  end
+
+  def render_session_limit_hard_reject(message: nil, http_status: nil)
+    self.class.hard_reject_payload = { message: message, http_status: http_status }
+    render plain: message, status: http_status
   end
 end
 
@@ -66,6 +81,11 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   setup do
+    OidcCallbackTestController.login_result_for_test = nil
+    OidcCallbackTestController.last_login_kwargs = nil
+    OidcCallbackTestController.last_session_limit_gate_pt = nil
+    OidcCallbackTestController.hard_reject_payload = nil
+
     Rails.application.routes.draw do
       get "/oidc/callback/session" => "oidc_callback_test#seed"
       get "/oidc/callback" => "oidc_callback_test#show"
@@ -102,6 +122,8 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to "/after"
+    assert_not OidcCallbackTestController.last_login_kwargs.fetch(:bootstrap_actor, false)
+    assert OidcCallbackTestController.last_login_kwargs.fetch(:skip_login_cooldown)
   end
 
   test "show consumes the matching pending flow instead of the latest legacy flow" do
@@ -166,6 +188,73 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to "https://id.app.localhost/sign/in"
     assert_equal 1, logged.count { |entry| entry[:event] == "oidc.rp.callback.failed" }
+  end
+
+  test "show redirects session-limit pending callbacks to session management without restarting oidc" do
+    get "/oidc/callback/session",
+        params: { code_verifier: "verifier", state: "state", nonce: "nonce", pt: "/settings?ri=jp" }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "nonce" },
+      error: nil,
+    )
+    OidcCallbackTestController.login_result_for_test = {
+      status: :success,
+      session_management_required: true,
+    }
+
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "state" }
+      end
+    end
+
+    assert_response :redirect
+    assert_redirected_to "/sign/in/session"
+    assert_equal "/settings?ri=jp", OidcCallbackTestController.last_session_limit_gate_pt
+    assert OidcCallbackTestController.last_login_kwargs.fetch(:skip_login_cooldown)
+    assert_not OidcCallbackTestController.last_login_kwargs.fetch(:bootstrap_actor, false)
+  end
+
+  test "show renders hard reject instead of restarting oidc when restricted session already exists" do
+    get "/oidc/callback/session", params: { code_verifier: "verifier", state: "state", nonce: "nonce" }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "nonce" },
+      error: nil,
+    )
+    OidcCallbackTestController.login_result_for_test = {
+      status: :session_limit_hard_reject,
+      message: "too many sessions",
+      http_status: :forbidden,
+    }
+
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "state" }
+      end
+    end
+
+    assert_response :forbidden
+    assert_equal "too many sessions", response.body
+    assert_equal(
+      { message: "too many sessions", http_status: :forbidden },
+      OidcCallbackTestController.hard_reject_payload,
+    )
   end
 
   test "show rejects mismatched state before token exchange" do

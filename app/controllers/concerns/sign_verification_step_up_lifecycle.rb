@@ -112,15 +112,36 @@ module SignVerificationStepUpLifecycle
   end
 
   def current_step_up_ceremony_transaction!(scope:, now: Time.current)
+    store = IdentityStepUpCeremonyReplayStore.for(step_up_ceremony_surface)
+
+    # Prefer lookup by transaction_id when the session already carries one from grant validation.
+    # Token rotation during the sign flow (RefreshTokenable) changes actor_token.public_id between
+    # the grant-receipt GET and the OTP verification POST, which breaks a session_ref-only lookup.
+    # The transaction_id is an acme-issued UUID that is stable across rotations; it was written into
+    # the session when the grant was validated and the actor_ref/scope guards below maintain the
+    # same security invariants as the session_ref lookup.
+    stored_transaction_id = session[:acme_step_up_completion].to_h["transaction_id"].presence
+    if stored_transaction_id
+      begin
+        t = store.find_transaction!(stored_transaction_id)
+        if t.actor_ref == step_up_ceremony_actor_ref &&
+            t.required_scope == scope.to_s &&
+            !t.expired?(now: now) &&
+            t.status == IdentityStepUpCeremonyTransaction::STATUS_PENDING
+          return t
+        end
+      rescue ActiveRecord::RecordNotFound
+        nil
+      end
+    end
+
     transaction =
-      IdentityStepUpCeremonyReplayStore
-        .for(step_up_ceremony_surface)
-        .latest_pending_for(
-          actor_ref: step_up_ceremony_actor_ref,
-          session_ref: actor_token.public_id,
-          required_scope: scope,
-          now: now,
-        )
+      store.latest_pending_for(
+        actor_ref: step_up_ceremony_actor_ref,
+        session_ref: actor_token.public_id,
+        required_scope: scope,
+        now: now,
+      )
     return transaction if transaction.present?
 
     # acme/www owns step-up intent. sign/id must not self-issue a ceremony grant; a pending

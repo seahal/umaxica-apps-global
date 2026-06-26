@@ -41,6 +41,18 @@ module Sign::App::Settings
       assert_match %r{/verification}, response.location
     end
 
+    test "verification accepts google edit return target for social link step-up" do
+      get edit_sign_app_settings_google_url(ri: "jp"), headers: @headers
+
+      assert_response :redirect
+      verification_location = response.location
+
+      get verification_location, headers: @headers
+
+      assert_response :success
+      assert_equal "/verification", URI.parse(verification_location).path
+    end
+
     test "edit renders mutation controls when step-up is satisfied" do
       token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
       mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
@@ -67,14 +79,14 @@ module Sign::App::Settings
       assert_select "a[href=?]", edit_sign_app_settings_google_path(ri: "jp")
     end
 
-    test "settings route uses update and destroy" do
+    test "settings route uses create and destroy" do
       route = Rails.application.routes.recognize_path(
         "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
-        method: :patch,
+        method: :post,
       )
 
       assert_equal "sign/app/settings/googles", route[:controller]
-      assert_equal "update", route[:action]
+      assert_equal "create", route[:action]
 
       route = Rails.application.routes.recognize_path(
         "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
@@ -83,6 +95,13 @@ module Sign::App::Settings
 
       assert_equal "sign/app/settings/googles", route[:controller]
       assert_equal "destroy", route[:action]
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
+          method: :patch,
+        )
+      end
     end
   end
 end

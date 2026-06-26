@@ -233,55 +233,57 @@ class Sign::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     )
 
     return_to = sign_app_settings_totps_path(ri: "jp")
-    pt = signed_step_up_pt(return_to)
-    grant = signed_step_up_grant_for(
-      actor: @user, token: @token, scope: "settings_totp", return_to: return_to, surface: "app",
-    )
+    freeze_time do
+      pt = signed_step_up_pt(return_to)
+      grant = signed_step_up_grant_for(
+        actor: @user, token: @token, scope: "settings_totp", return_to: return_to, surface: "app",
+      )
 
-    with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
-          headers: @headers
+      with_prosopite_paused do
+        get sign_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+            headers: @headers
+      end
+
+      assert_response :success
+      assert_select(
+        "a[href=?]",
+        new_sign_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
+      )
+
+      with_prosopite_paused do
+        get new_sign_app_verification_totp_url(
+          ri: "jp",
+          scope: "settings_totp",
+          pt: pt,
+        ), headers: @headers
+      end
+
+      assert_response :success
+      assert_select "input[name='verification[scope]'][value='settings_totp']"
+      assert_select "input[name='verification[pt]'][value='#{pt}']"
+      assert_select "input[name='cf-turnstile-response']"
+
+      code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
+      with_prosopite_paused do
+        post sign_app_verification_totp_url(ri: "jp"),
+             params: { verification: { code: code, scope: "settings_totp", pt: pt } },
+             headers: @headers
+      end
+
+      assert_response :success
+      assert_includes response.body, "step-up-completion-form"
+      submit_step_up_completion_if_present!(
+        headers: as_user_headers(
+          @user,
+          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          session_public_id: @token.public_id,
+        ),
+      )
+
+      assert_response :redirect
+      assert_not_nil @token.reload.last_step_up_at
+      assert_equal "settings_totp", @token.last_step_up_scope
     end
-
-    assert_response :success
-    assert_select(
-      "a[href=?]",
-      new_sign_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
-    )
-
-    with_prosopite_paused do
-      get new_sign_app_verification_totp_url(
-        ri: "jp",
-        scope: "settings_totp",
-        pt: pt,
-      ), headers: @headers
-    end
-
-    assert_response :success
-    assert_select "input[name='verification[scope]'][value='settings_totp']"
-    assert_select "input[name='verification[pt]'][value='#{pt}']"
-    assert_select "input[name='cf-turnstile-response']"
-
-    code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
-    with_prosopite_paused do
-      post sign_app_verification_totp_url(ri: "jp"),
-           params: { verification: { code: code, scope: "settings_totp", pt: pt } },
-           headers: @headers
-    end
-
-    assert_response :success
-    assert_includes response.body, "step-up-completion-form"
-    submit_step_up_completion_if_present!(
-      headers: as_user_headers(
-        @user,
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        session_public_id: @token.public_id,
-      ),
-    )
-
-    assert_response :redirect
-    assert_not_nil @token.reload.last_step_up_at
-    assert_equal "settings_totp", @token.last_step_up_scope
   end
 
   test "POST returns 422 when turnstile stealth fails" do

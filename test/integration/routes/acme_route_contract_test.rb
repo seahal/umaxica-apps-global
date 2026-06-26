@@ -223,9 +223,8 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    # Entity CRUD is plural; current-context display/switching lives at /switcher. The singular
-    # current routes (/account, /organization, /avatar) and the abandoned /current/* namespace
-    # must not resolve on the app surface.
+    # Entity CRUD is plural; current-context display/switching lives at /switcher. The abandoned
+    # /current/* namespace must not resolve on the app surface.
     [
       { path: "/current/organization", method: :get },
       { path: "/current/organization/edit", method: :get },
@@ -234,6 +233,20 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "/current/avatar/edit", method: :get },
       { path: "/current/avatar", method: :patch },
       { path: "/current/avatar", method: :delete },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{ACME_APP_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
+    end
+  end
+
+  test "acme app singular current routes do not resolve" do
+    # Singular current routes are intentionally absent; selection and switching stay on
+    # /selector and /switcher, while CRUD remains pluralized.
+    [
       { path: "/account", method: :get },
       { path: "/account/edit", method: :get },
       { path: "/account", method: :patch },

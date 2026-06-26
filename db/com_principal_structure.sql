@@ -2731,7 +2731,7 @@ ALTER TABLE ONLY public.visitor_preference_languages
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_241fa58f6a FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_241fa58f6a FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) ON DELETE CASCADE;
 
 
 --
@@ -2755,7 +2755,7 @@ ALTER TABLE ONLY public.visitor_secret_credentials
 --
 
 ALTER TABLE ONLY public.visitor_banners
-    ADD CONSTRAINT fk_rails_329012d103 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_329012d103 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
 --
@@ -2795,7 +2795,7 @@ ALTER TABLE ONLY public.visitor_passkeys
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flows
-    ADD CONSTRAINT fk_rails_3e7b55d34f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3e7b55d34f FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
 
 
 --
@@ -2827,7 +2827,7 @@ ALTER TABLE ONLY public.visitor_preference_date_formats
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_4d4952ecfc FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_4d4952ecfc FOREIGN KEY (to_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) ON DELETE RESTRICT;
 
 
 --
@@ -2843,7 +2843,7 @@ ALTER TABLE ONLY public.visitor_preference_themes
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_flow_id) REFERENCES public.visitor_withdrawal_flows(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_606617dd12 FOREIGN KEY (visitor_withdrawal_flow_id) REFERENCES public.visitor_withdrawal_flows(id);
 
 
 --
@@ -2883,7 +2883,7 @@ ALTER TABLE ONLY public.visitor_preference_regions
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flows
-    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_8021cd7888 FOREIGN KEY (status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id);
 
 
 --
@@ -2899,7 +2899,7 @@ ALTER TABLE ONLY public.visitor_preference_languages
 --
 
 ALTER TABLE ONLY public.visitor_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_8ff74bc1cb FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_8ff74bc1cb FOREIGN KEY (from_status_id) REFERENCES public.visitor_withdrawal_flow_statuses(id) ON DELETE RESTRICT;
 
 
 --

@@ -8,26 +8,6 @@ class Sign::CommonHelperTest < ActionView::TestCase
     extend Sign::CommonHelper
   end
 
-  test "to_localetime converts to JST for canonical request timezone" do
-    test_time = Time.parse("2024-01-01 00:00:00 UTC")
-
-    result = to_localetime(test_time, "asia/tokyo")
-
-    assert_equal "JST", result.zone
-  end
-
-  test "to_localetime converts to UTC by default" do
-    test_time = Time.parse("2024-01-01 00:00:00 UTC")
-
-    result = to_localetime(test_time)
-
-    assert_equal "UTC", result.zone
-  end
-
-  test "to_localetime returns nil when time is nil" do
-    assert_nil to_localetime(nil)
-  end
-
   test "localized_session_timestamp falls back to strftime when short format is unavailable" do
     test_time = Time.zone.parse("2024-01-01 12:34:00 UTC")
 
@@ -113,13 +93,10 @@ class Sign::CommonHelperTest < ActionView::TestCase
 
     I18n.with_locale(:en) do
       assert_equal [["日本語", 1], ["English", 2]], preference_language_options(option_class)
-      assert_equal 7, preference_language_selected(7, option_class)
-      assert_equal 2, preference_language_selected(nil, option_class)
     end
 
     I18n.with_locale(:ja) do
       assert_equal [["日本語", 1], ["English", 2]], preference_language_options(option_class)
-      assert_equal 1, preference_language_selected(nil, option_class)
     end
   end
 end

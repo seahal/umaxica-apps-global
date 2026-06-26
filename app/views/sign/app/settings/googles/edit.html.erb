@@ -18,8 +18,7 @@
   <% else %>
     <%= button_to t("actions.connect"),
                   sign_app_settings_google_path(ri: params[:ri]),
-                  method: :patch,
-                  form: { data: { turbo: false } },
-                  params: { intent: "link" } %>
+                  method: :post,
+                  form: { data: { turbo: false } } %>
   <% end %>
 </div>

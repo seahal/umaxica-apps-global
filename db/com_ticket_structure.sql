@@ -2282,7 +2282,7 @@ CREATE INDEX index_visitor_verifications_on_visitor_token_id ON public.visitor_v
 --
 
 ALTER TABLE ONLY public.visitor_tokens
-    ADD CONSTRAINT fk_customer_tokens_on_customer_token_binding_method_id FOREIGN KEY (visitor_token_binding_method_id) REFERENCES public.visitor_token_binding_methods(id) NOT VALID;
+    ADD CONSTRAINT fk_customer_tokens_on_customer_token_binding_method_id FOREIGN KEY (visitor_token_binding_method_id) REFERENCES public.visitor_token_binding_methods(id);
 
 
 --
@@ -2290,7 +2290,7 @@ ALTER TABLE ONLY public.visitor_tokens
 --
 
 ALTER TABLE ONLY public.visitor_tokens
-    ADD CONSTRAINT fk_customer_tokens_on_customer_token_dbsc_status_id FOREIGN KEY (visitor_token_dbsc_status_id) REFERENCES public.visitor_token_dbsc_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_customer_tokens_on_customer_token_dbsc_status_id FOREIGN KEY (visitor_token_dbsc_status_id) REFERENCES public.visitor_token_dbsc_statuses(id);
 
 
 --
@@ -2298,7 +2298,7 @@ ALTER TABLE ONLY public.visitor_tokens
 --
 
 ALTER TABLE ONLY public.visitor_tokens
-    ADD CONSTRAINT fk_customer_tokens_on_customer_token_kind_id FOREIGN KEY (visitor_token_kind_id) REFERENCES public.visitor_token_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_customer_tokens_on_customer_token_kind_id FOREIGN KEY (visitor_token_kind_id) REFERENCES public.visitor_token_kinds(id);
 
 
 --
@@ -2306,7 +2306,7 @@ ALTER TABLE ONLY public.visitor_tokens
 --
 
 ALTER TABLE ONLY public.visitor_tokens
-    ADD CONSTRAINT fk_customer_tokens_on_customer_token_status_id FOREIGN KEY (visitor_token_status_id) REFERENCES public.visitor_token_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_customer_tokens_on_customer_token_status_id FOREIGN KEY (visitor_token_status_id) REFERENCES public.visitor_token_statuses(id);
 
 
 --
@@ -2314,7 +2314,7 @@ ALTER TABLE ONLY public.visitor_tokens
 --
 
 ALTER TABLE ONLY public.visitor_sign_out_flows
-    ADD CONSTRAINT fk_rails_0289bc0560 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_out_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_0289bc0560 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_out_flow_statuses(id);
 
 
 --
@@ -2330,7 +2330,7 @@ ALTER TABLE ONLY public.visitor_token_usages
 --
 
 ALTER TABLE ONLY public.visitor_sign_out_flows
-    ADD CONSTRAINT fk_rails_173a30a232 FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_173a30a232 FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2338,7 +2338,7 @@ ALTER TABLE ONLY public.visitor_sign_out_flows
 --
 
 ALTER TABLE ONLY public.visitor_verifications
-    ADD CONSTRAINT fk_rails_2b1e12b132 FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_2b1e12b132 FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id);
 
 
 --
@@ -2346,7 +2346,7 @@ ALTER TABLE ONLY public.visitor_verifications
 --
 
 ALTER TABLE ONLY public.visitor_authorization_codes
-    ADD CONSTRAINT fk_rails_41db1e0f97 FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_41db1e0f97 FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2354,7 +2354,7 @@ ALTER TABLE ONLY public.visitor_authorization_codes
 --
 
 ALTER TABLE ONLY public.visitor_sign_in_flows
-    ADD CONSTRAINT fk_rails_75353bbdcf FOREIGN KEY (status_id) REFERENCES public.visitor_sign_in_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_75353bbdcf FOREIGN KEY (status_id) REFERENCES public.visitor_sign_in_flow_statuses(id);
 
 
 --
@@ -2362,7 +2362,7 @@ ALTER TABLE ONLY public.visitor_sign_in_flows
 --
 
 ALTER TABLE ONLY public.visitor_sign_up_flows
-    ADD CONSTRAINT fk_rails_85a641d47f FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_85a641d47f FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2370,7 +2370,7 @@ ALTER TABLE ONLY public.visitor_sign_up_flows
 --
 
 ALTER TABLE ONLY public.visitor_sign_up_flows
-    ADD CONSTRAINT fk_rails_8cef237db7 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_up_flow_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_8cef237db7 FOREIGN KEY (status_id) REFERENCES public.visitor_sign_up_flow_statuses(id) ON DELETE RESTRICT;
 
 
 --
@@ -2378,7 +2378,7 @@ ALTER TABLE ONLY public.visitor_sign_up_flows
 --
 
 ALTER TABLE ONLY public.visitor_sign_out_flows
-    ADD CONSTRAINT fk_rails_8ef47d5e3c FOREIGN KEY (kind_id) REFERENCES public.visitor_sign_out_flow_kinds(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_8ef47d5e3c FOREIGN KEY (kind_id) REFERENCES public.visitor_sign_out_flow_kinds(id);
 
 
 --
@@ -2386,7 +2386,7 @@ ALTER TABLE ONLY public.visitor_sign_out_flows
 --
 
 ALTER TABLE ONLY public.visitor_sign_in_flows
-    ADD CONSTRAINT fk_rails_9797ae40cc FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_9797ae40cc FOREIGN KEY (token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2394,7 +2394,7 @@ ALTER TABLE ONLY public.visitor_sign_in_flows
 --
 
 ALTER TABLE ONLY public.visitor_step_up_sessions
-    ADD CONSTRAINT fk_rails_cd1cdc6b2d FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_cd1cdc6b2d FOREIGN KEY (visitor_token_id) REFERENCES public.visitor_tokens(id) ON DELETE CASCADE;
 
 
 --
@@ -2402,7 +2402,7 @@ ALTER TABLE ONLY public.visitor_step_up_sessions
 --
 
 ALTER TABLE ONLY public.visitor_sign_up_flows
-    ADD CONSTRAINT fk_rails_cf6ee54a77 FOREIGN KEY (cleanup_status_id) REFERENCES public.visitor_sign_up_flow_cleanup_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_cf6ee54a77 FOREIGN KEY (cleanup_status_id) REFERENCES public.visitor_sign_up_flow_cleanup_statuses(id);
 
 
 --

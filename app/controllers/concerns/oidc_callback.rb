@@ -24,9 +24,16 @@ module OidcCallback
         log_in(
           resource, token_kind_id: "BROWSER_WEB", require_totp_check: false,
                     audit_context: { oidc_client_id: oidc_client_id },
-                    bootstrap_actor: true,
+                    skip_login_cooldown: true,
         )
       end
+    return render_oidc_session_limit_hard_reject(login_result) if login_result[:status] == :session_limit_hard_reject
+
+    if login_result[:session_management_required]
+      bind_oidc_rp_logout_session!(id_token_result.payload)
+      return redirect_to(oidc_session_management_path, allow_other_host: false)
+    end
+
     return render_callback_failure("login_failed") unless login_result[:status] == :success
 
     bind_oidc_rp_logout_session!(id_token_result.payload)
@@ -92,6 +99,34 @@ module OidcCallback
       source: pending_pt.present? ? "pending_flow" : legacy_pt.present? ? "legacy" : "default",
     )
     pt
+  end
+
+  def session_limit_gate_pt
+    oidc_flow_value("pt").presence || session[:oidc_pt].presence ||
+      (defined?(super) ? super : request&.fullpath.presence || request&.path.presence || "/")
+  rescue StandardError
+    "/"
+  end
+
+  def render_oidc_session_limit_hard_reject(login_result)
+    if respond_to?(:render_session_limit_hard_reject, true)
+      return render_session_limit_hard_reject(
+        message: login_result[:message],
+        http_status: login_result[:http_status],
+      )
+    end
+
+    render plain: login_result[:message].presence || I18n.t("session_limit.login_limit_exceeded"),
+           status: login_result[:http_status].presence || :forbidden
+  end
+
+  def oidc_session_management_path
+    return session_management_path if respond_to?(:session_management_path, true)
+    return sign_app_sign_in_session_path if respond_to?(:sign_app_sign_in_session_path, true)
+    return sign_org_sign_in_session_path if respond_to?(:sign_org_sign_in_session_path, true)
+    return sign_com_sign_in_session_path if respond_to?(:sign_com_sign_in_session_path, true)
+
+    "/sign/in/session"
   end
 
   def render_callback_failure(error)

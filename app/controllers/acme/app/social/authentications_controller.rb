@@ -21,9 +21,8 @@ module Acme
           )
 
           redirect_to(
-            social_connection_url_for(
+            social_sign_in_url_for(
               provider,
-              intent: "login",
               entry: social_entry_param,
               ri: params[:ri],
               social_ceremony_grant: issuance.grant,
@@ -318,9 +317,9 @@ module Acme
           path_from_signed_pt(signed_pt_token(value))
         end
 
-        def social_connection_url_for(provider, **params)
+        def social_sign_in_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          public_send(:"sign_app_social_#{normalized_provider}_connection_url", **params)
+          public_send(:"sign_app_social_#{normalized_provider}_sign_in_url", **params)
         end
       end
     end

@@ -3,7 +3,7 @@
 
 module Acme
   module App
-    # Account (Persona) entity management for the app surface. Plural CRUD over the accounts the
+    # Account entity management for the app surface. Plural CRUD over the accounts the
     # signed-in client may act as; changing the *current* account is the switcher's job, not this
     # controller's. Requires a selected actor context (FullAccessController).
     class AccountsController < Acme::App::FullAccessController

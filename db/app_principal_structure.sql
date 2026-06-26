@@ -4710,7 +4710,7 @@ ALTER TABLE ONLY public.user_client_deletions
 --
 
 ALTER TABLE ONLY public.client_preferences
-    ADD CONSTRAINT fk_rails_39373ef225 FOREIGN KEY (user_id) REFERENCES public.clients(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_39373ef225 FOREIGN KEY (user_id) REFERENCES public.clients(id) ON DELETE CASCADE;
 
 
 --
@@ -4726,7 +4726,7 @@ ALTER TABLE ONLY public.client_preference_currencies
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flows
-    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_flow_statuses(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_3a897cfb78 FOREIGN KEY (status_id) REFERENCES public.client_withdrawal_flow_statuses(id);
 
 
 --
@@ -4846,7 +4846,7 @@ ALTER TABLE ONLY public.client_member_revocations
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_7344701780 FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE NOT VALID;
+    ADD CONSTRAINT fk_rails_7344701780 FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
 
 
 --
@@ -4958,7 +4958,7 @@ ALTER TABLE ONLY public.client_member_discoveries
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_9511d96f8c FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_9511d96f8c FOREIGN KEY (to_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) ON DELETE RESTRICT;
 
 
 --
@@ -5030,7 +5030,7 @@ ALTER TABLE ONLY public.user_client_impersonations
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_flow_id) REFERENCES public.client_withdrawal_flows(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_b55e5a56c4 FOREIGN KEY (client_withdrawal_flow_id) REFERENCES public.client_withdrawal_flows(id);
 
 
 --
@@ -5102,7 +5102,7 @@ ALTER TABLE ONLY public.user_clients
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flows
-    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id) NOT VALID;
+    ADD CONSTRAINT fk_rails_e5e99fd372 FOREIGN KEY (client_id) REFERENCES public.clients(id);
 
 
 --
@@ -5150,7 +5150,7 @@ ALTER TABLE ONLY public.client_member_suspensions
 --
 
 ALTER TABLE ONLY public.client_withdrawal_flow_events
-    ADD CONSTRAINT fk_rails_f24d4919a7 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_f24d4919a7 FOREIGN KEY (from_status_id) REFERENCES public.client_withdrawal_flow_statuses(id) ON DELETE RESTRICT;
 
 
 --

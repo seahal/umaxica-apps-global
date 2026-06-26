@@ -21,7 +21,9 @@ class StepUpScopeCatalogTest < ActiveSupport::TestCase
     app_pattern = StepUpScopeCatalog::APP.fetch("social_link")
 
     assert_match app_pattern, "/settings/google"
+    assert_match app_pattern, "/settings/google/edit?ri=jp"
     assert_match app_pattern, "/settings/apple?ri=jp"
+    assert_match app_pattern, "/settings/apple/edit"
     assert_no_match app_pattern, "/social/auth/google_app/continue"
     assert_no_match app_pattern, "/settings/emails"
 
@@ -33,6 +35,17 @@ class StepUpScopeCatalogTest < ActiveSupport::TestCase
     assert_no_match org_pattern, "/settings/apple"
     assert_no_match org_pattern, "/social/auth/google_#{"org"}/continue"
     assert_not StepUpScopeCatalog::COM.key?("social_link")
+  end
+
+  test "social unlink scope matches only provider settings pages" do
+    app_pattern = StepUpScopeCatalog::APP.fetch("social_unlink")
+
+    assert_match app_pattern, "/settings/google"
+    assert_match app_pattern, "/settings/google/edit?ri=jp"
+    assert_match app_pattern, "/settings/apple"
+    assert_match app_pattern, "/settings/apple/edit"
+    assert_no_match app_pattern, "/social/google/disconnection"
+    assert_no_match app_pattern, "/settings/emails"
   end
 
   test "settings birthdate scope only matches the birthdate path" do

@@ -3,10 +3,11 @@
 
 module Acme
   module App
-    # Post-login context switcher for the app surface. Shows the current account / organization /
-    # avatar and the candidates the actor may switch to, and atomically changes the current context.
-    # It never creates or edits entities -- that is the accounts/organizations/avatars controllers'
-    # job. Requires a selected actor context (FullAccessController).
+    # Post-login context switcher for the app surface. Selector owns the pre-access ceremony and
+    # commits the first selected context; switcher only runs after that full-access gate is open,
+    # shows the current account / organization / avatar, and atomically changes the current
+    # context. It never creates or edits entities -- that is the accounts/organizations/avatars
+    # controllers' job. Requires a selected actor context (FullAccessController).
     class SwitchersController < Acme::App::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private

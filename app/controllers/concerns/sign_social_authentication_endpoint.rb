@@ -9,8 +9,8 @@ module SignSocialAuthenticationEndpoint
 
   private
 
-  def continue_social_authentication(provider:)
-    intent = params[:intent] || "login"
+  def continue_social_authentication(provider:, intent: nil)
+    intent = intent || params[:intent] || "login"
 
     unless SUPPORTED_PROVIDERS.include?(provider)
       return redirect_to(

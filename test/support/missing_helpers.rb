@@ -319,13 +319,14 @@ module MissingHelpers
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
-    continue_path = public_send(
-      :"sign_app_social_#{normalized_provider}_connection_path",
-      intent: intent,
-      ri: ri,
-      entry: entry,
-      rt: rt,
-    )
+    continue_path =
+      if intent.to_s == "link"
+        public_send(:"sign_app_settings_#{normalized_provider}_path", ri: ri)
+      elsif entry.to_s == "sign_up"
+        public_send(:"sign_app_social_#{normalized_provider}_sign_up_path", ri: ri, rt: rt)
+      else
+        public_send(:"sign_app_social_#{normalized_provider}_sign_in_path", ri: ri, rt: rt)
+      end
 
     with_social_auth_csrf_route do |csrf_path|
       csrf_token = fetch_csrf_token(csrf_path)
@@ -340,10 +341,11 @@ module MissingHelpers
         headers = headers.merge(user_headers)
       end
 
-      post(
-        continue_path,
-        headers: headers,
-      )
+      if intent.to_s == "link"
+        post(continue_path, headers: headers)
+      else
+        get(continue_path, headers: headers)
+      end
 
       assert_response :redirect
       social_auth_state_from_response
@@ -377,8 +379,7 @@ module MissingHelpers
 
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path = public_send(
-      :"sign_app_social_#{normalized_provider}_connection_path",
-      intent: "link",
+      :"sign_app_settings_#{normalized_provider}_path",
       ri: ri,
       social_ceremony_grant: issuance.grant,
     )

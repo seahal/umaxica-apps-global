@@ -6,7 +6,7 @@ require "test_helper"
 class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
-  fixtures :clients, :client_statuses
+  fixtures :clients, :client_statuses, :client_google_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
@@ -66,8 +66,10 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   end
 
   test "callback phase rejects reused state" do
-    setup_google_mock_auth(uid: "callback_google_reused_state_#{SecureRandom.hex(4)}")
+    uid = "callback_google_reused_state_#{SecureRandom.hex(4)}"
+    setup_google_mock_auth(uid: uid)
     user = clients(:one)
+    create_google_identity!(user: user, uid: uid)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
     get sign_app_social_google_callback_url(ri: "jp", state: state),
@@ -105,8 +107,10 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   end
 
   test "callback phase does not reject google origin header from provider domain" do
-    setup_google_mock_auth(uid: "callback_google_provider_origin_#{SecureRandom.hex(4)}")
+    uid = "callback_google_provider_origin_#{SecureRandom.hex(4)}"
+    setup_google_mock_auth(uid: uid)
     user = clients(:one)
+    create_google_identity!(user: user, uid: uid)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
     get sign_app_social_google_callback_url(ri: "jp", state: state),
@@ -199,21 +203,8 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   private
 
   def prepare_callback_flow(provider:, user:)
-    headers = as_user_headers(user, host: @host)
-    token = ClientToken.find_by(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
-
-    connection_path =
-      case provider
-      when "apple" then sign_app_social_apple_connection_url(intent: "link", ri: "jp")
-      else sign_app_social_google_connection_url(intent: "link", ri: "jp")
-      end
-
-    post(connection_path, headers: callback_headers.merge(headers))
-
-    assert_response :redirect
-    uri = URI.parse(response.location)
-    Rack::Utils.parse_nested_query(uri.query.to_s)["state"]
+    normalized_provider = (provider == "apple") ? "apple" : "google"
+    seed_social_auth_session(provider: normalized_provider, intent: "login", user: user, ri: "jp")
   end
 
   def callback_headers(host: @host, origin: nil, referer: nil)
@@ -224,8 +215,8 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
   end
 
   def setup_google_mock_auth(uid:)
-    OmniAuth.config.mock_auth[:google_app] = OmniAuth::AuthHash.new(
-      provider: "google_app",
+    OmniAuth.config.mock_auth[:google] = OmniAuth::AuthHash.new(
+      provider: "google",
       uid: uid,
       info: { image: "https://example.com/image.jpg" },
       credentials: {
@@ -245,6 +236,17 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
         token: "apple_token_#{SecureRandom.hex(8)}",
         discarded_at: 1.week.from_now.to_i,
       },
+    )
+  end
+
+  def create_google_identity!(user:, uid:)
+    ClientGoogleIdentity.create!(
+      user: user,
+      uid: uid,
+      provider: "google",
+      token: "token",
+      expires_at: 1.week.from_now.to_i,
+      status_id: ClientGoogleIdentityStatus::ACTIVE,
     )
   end
 

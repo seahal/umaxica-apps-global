@@ -149,15 +149,14 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     create_social_identity(PROVIDERS.fetch(:apple), user:, uid: "step_up_backup_apple")
     token = ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    post(
-      social_disconnection_url_for(PROVIDERS.fetch(:google), ri: "jp", host: @host),
+    delete(
+      settings_url_for(PROVIDERS.fetch(:google), ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_response :see_other
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
-    assert_not PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
+    assert_response :unauthorized
+    assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
   test "Google settings link rejects settings step-up scope" do
@@ -166,12 +165,13 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
     post(
-      social_connection_url_for(PROVIDERS.fetch(:google), intent: "link", ri: "jp"),
+      settings_url_for(PROVIDERS.fetch(:google), ri: "jp"),
       headers: as_user_headers(user, host: @host, session_public_id: token.public_id),
     )
 
-    assert_response :found
-    assert_redirected_to sign_app_settings_url(ri: "jp", host: @host)
+    assert_response :see_other
+    assert_match %r{\Ahttp://#{Regexp.escape(@host)}/verification\?}, response.location
+    assert_includes response.location, "scope=social_link"
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -182,7 +182,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_response :unprocessable_content
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
@@ -332,23 +332,19 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     user = create_social_client
     existing = create_social_identity(config, user:, uid: "existing_#{config.fetch(:normalized)}", token: "keep_token")
 
-    state = seed_social_auth_session(provider: config.fetch(:provider), intent: "link", user: user, ri: "jp")
-    setup_mock_auth(config, uid: "different_#{config.fetch(:normalized)}", token: "wrong_token")
+    headers = as_user_headers(user, host: @host)
+    token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
+    mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
 
     assert_no_difference("#{config.fetch(:model)}.count") do
-      perform_social_callback(
-        config,
-        params: { state: state },
-        headers: @callback_headers,
-      )
+      post(settings_url_for(config, ri: "jp"), headers: headers)
     end
 
-    assert_redirected_to public_send(config.fetch(:config_path), ri: "jp")
+    assert_response :unprocessable_content
     existing.reload
 
     assert_equal "existing_#{config.fetch(:normalized)}", existing.uid
     assert_equal "keep_token", existing.token
-    assert_predicate flash[:alert], :present?
     assert_nil config.fetch(:model).find_by(uid: "different_#{config.fetch(:normalized)}")
   end
 
@@ -358,7 +354,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, config)
 
-    assert_redirected_to public_send(:"sign_app_settings_#{config.fetch(:normalized)}_url", ri: "jp", host: @host)
+    assert_response :unprocessable_content
     assert config.fetch(:model).exists?(identity.id)
   end
 
@@ -429,19 +425,15 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: "social_unlink")
 
-    post(
-      social_disconnection_url_for(config, ri: "jp", host: @host),
+    delete(
+      settings_url_for(config, ri: "jp", host: @host),
       headers: sign_user_headers(user, token),
       params: { "cf-turnstile-response": "test" },
     )
   end
 
-  def social_connection_url_for(config, **params)
-    public_send(:"sign_app_social_#{config.fetch(:normalized)}_connection_path", **params)
-  end
-
-  def social_disconnection_url_for(config, **params)
-    public_send(:"sign_app_social_#{config.fetch(:normalized)}_disconnection_path", **params)
+  def settings_url_for(config, **params)
+    public_send(:"sign_app_settings_#{config.fetch(:normalized)}_path", **params)
   end
 
   def sign_user_headers(user, token)

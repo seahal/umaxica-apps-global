@@ -77,7 +77,9 @@ scope module: :acme, as: :acme do
       # runs on the :private tier -- identity-authenticated but context not yet selected.
       resource :selector, only: %i(show update)
 
-      # Post-login context switcher for selected actors on the app surface.
+      # Post-login context switcher for selected actors on the app surface. Selector owns the
+      # ceremony-time first selection; switcher only runs after full access is established and
+      # only swaps the current account / organization / avatar context.
       resource :switcher, only: %i(show update)
 
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.

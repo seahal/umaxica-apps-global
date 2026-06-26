@@ -101,6 +101,16 @@ class AuthLoginCooldownTest < ActiveSupport::TestCase
     end
   end
 
+  test "check_login_cooldown! can be skipped without bootstrap_actor" do
+    OrgTicketRecord.connected_to(role: :writing) do
+      ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
+    end
+
+    assert_nothing_raised do
+      @harness.send(:check_login_cooldown!, @user, skip_login_cooldown: true)
+    end
+  end
+
   test "check_login_cooldown! raises at exactly 30 seconds boundary" do
     OrgTicketRecord.connected_to(role: :writing) do
       ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)

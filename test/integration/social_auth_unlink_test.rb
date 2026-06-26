@@ -64,10 +64,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: stale_step_up_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: stale_step_up_headers
 
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_response :unauthorized
     google_identity.reload
 
     assert_equal ClientGoogleIdentityStatus::ACTIVE, google_identity.status_id
@@ -90,10 +90,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
-         headers: stale_step_up_headers
+    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+           headers: stale_step_up_headers
 
-    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_response :unauthorized
     apple_identity.reload
 
     assert_equal ClientAppleIdentityStatus::ACTIVE, apple_identity.status_id
@@ -113,10 +113,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_response :unprocessable_content
 
     # Identity should still exist
     assert ClientGoogleIdentity.exists?(id: google_identity.id), "Last identity should NOT be deleted"
@@ -162,10 +162,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
-    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_response :unprocessable_content
     assert ClientAppleIdentity.exists?(id: apple_identity.id), "Last identity should NOT be deleted"
   end
 
@@ -192,8 +192,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
 
@@ -220,8 +220,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
 
@@ -254,8 +254,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     email.destroy!
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
     assert_not ClientGoogleIdentity.exists?(google_identity.id)
@@ -285,8 +285,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       description: "Test Passkey",
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
     assert_not ClientGoogleIdentity.exists?(google_identity.id)
@@ -306,8 +306,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
     assert_predicate ClientAppleIdentity, :exists?
@@ -323,17 +323,17 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:revoked),
     )
 
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
-    assert_response :redirect
-    assert_not ClientGoogleIdentity.exists?(identity.id)
+    assert_response :unprocessable_content
+    assert ClientGoogleIdentity.exists?(identity.id)
   end
 
   test "unlink requires authentication" do
     # No auth header
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: { "Host" => @host }
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: { "Host" => @host }
 
     assert_response :redirect
     assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
@@ -367,8 +367,8 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Apple - should succeed because user has email as backup
-    post sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
     assert_response :redirect
     assert ClientGoogleIdentity.exists?(inactive_google.id)
@@ -396,10 +396,10 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Google - should fail because it's the only ACTIVE identity
-    post sign_app_social_google_disconnection_url(ri: "jp", host: @host),
-         headers: social_unlink_headers
+    delete sign_app_settings_google_url(ri: "jp", host: @host),
+           headers: social_unlink_headers
 
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_response :unprocessable_content
 
     # Google should still be ACTIVE (not unlinked)
     google_identity.reload

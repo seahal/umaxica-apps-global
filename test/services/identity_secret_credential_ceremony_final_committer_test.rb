@@ -268,7 +268,7 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
 
   private
 
-  def with_stubs(_surface: "app", result_hash: valid_result_hash, transaction: @transaction,
+  def with_stubs(surface: "app", result_hash: valid_result_hash, transaction: @transaction,
                  candidate: @candidate)
     store = FakeStore.new(transaction)
     consumer = FakeConsumer.new

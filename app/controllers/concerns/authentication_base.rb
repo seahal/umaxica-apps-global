@@ -346,11 +346,15 @@ module AuthenticationBase
   end
 
   def log_in(resource, record_login_audit: true, token_kind_id: "BROWSER_WEB", require_totp_check: true,
-             audit_context: {}, bootstrap_actor: false)
+             audit_context: {}, bootstrap_actor: false, skip_login_cooldown: false)
     return { status: :access_locked } if administratively_locked_resource?(resource)
     return { status: :login_forbidden } unless resource.login_allowed?
 
-    check_login_cooldown!(resource, bootstrap_actor: bootstrap_actor)
+    check_login_cooldown!(
+      resource,
+      bootstrap_actor: bootstrap_actor,
+      skip_login_cooldown: skip_login_cooldown,
+    )
 
     totp_result = check_totp_requirement_before_session_rotation(require_totp_check, resource)
     return totp_result if totp_result
@@ -2373,14 +2377,14 @@ module AuthenticationBase
     result.merge(redirect_path: sign_in_sequence_redirect_path(pt: pt))
   end
 
-  def check_login_cooldown!(resource, bootstrap_actor: false)
+  def check_login_cooldown!(resource, bootstrap_actor: false, skip_login_cooldown: false)
     return unless AuthenticationBase.login_cooldown_enabled
     # Bootstrap handoffs (sign-up completion, OIDC authorization resume) issue a
     # token within seconds of the one minted moments earlier in the same flow.
     # That fresh token is not a rapid re-login attempt, so skip the cooldown gate
     # for the same reason the session-limit gate is skipped for bootstrap logins.
     # Without this, the sign-up -> OIDC resume handoff fails with 429.
-    return if bootstrap_actor
+    return if bootstrap_actor || skip_login_cooldown
 
     fk =
       if resource.is_a?(::Client)

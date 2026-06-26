@@ -103,8 +103,8 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
     )
     original_step_up_at = user.reload.last_step_up_at
 
-    post sign_app_social_google_connection_url(intent: "step_up", ri: "jp"),
-         headers: as_user_headers(user, host: @host)
+    get sign_app_social_google_sign_in_url(intent: "step_up", ri: "jp"),
+        headers: as_user_headers(user, host: @host)
 
     assert_response :redirect
     user.reload

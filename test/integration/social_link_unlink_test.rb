@@ -59,13 +59,13 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(@token)
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
-    post(
-      sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
+    delete(
+      sign_app_settings_apple_url(ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_response :see_other
     follow_redirect!(headers: @headers)
 
     assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
@@ -85,13 +85,13 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     # Try to unlink Apple
-    post(
-      sign_app_social_apple_disconnection_url(ri: "jp", host: @host),
+    delete(
+      sign_app_settings_apple_url(ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
 
-    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_response :unprocessable_content
 
     # Ensure it wasn't destroyed
     assert ClientAppleIdentity.find_by(uid: "apple_uid_solo")

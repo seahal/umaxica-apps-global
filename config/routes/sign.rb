@@ -186,8 +186,8 @@ sign_routes do
       resources :telephones, only: %i(index new create edit destroy)
 
       resource :birthdate, only: :show
-      resource :apple, only: %i(show edit update destroy)
-      resource :google, only: %i(show edit update destroy)
+      resource :apple, only: %i(show edit create destroy)
+      resource :google, only: %i(show edit create destroy)
       resource :secrets, only: :show
 
       resources :secret_credentials, only: %i(index show new edit create update destroy) do

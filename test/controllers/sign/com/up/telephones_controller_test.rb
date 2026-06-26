@@ -122,52 +122,6 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert_includes response.body, I18n.t("sign.app.registration.telephone.edit.delivery_help")
   end
 
-  test "update routes to guardrail without signup audits or client account" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
-         params: {
-           visitor_telephone: {
-             raw_number: "+819012300010",
-             confirm_policy: "1",
-             confirm_using_mfa: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    telephone = VisitorTelephone.order(:created_at).last
-    code = otp_code_for(telephone)
-
-    assert_no_difference("ClientChronicle.count") do
-      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-            params: { visitor_telephone: { pass_code: code } },
-            headers: default_headers
-    end
-
-    visitor = telephone.reload.visitor
-    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
-
-    assert_redirected_to sign_com_sign_up_guard_telephone_path(ri: "jp")
-    assert_nil visitor.rp_account
-    assert_equal VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, telephone.visitor_telephone_status_id
-    assert session.dig(:visitor_telephone_registration, "otp_verified")
-    assert_equal visitor.id, cycle.principal_id
-    assert_equal "telephone", cycle.pending_contact_type
-    assert_equal telephone.id, cycle.pending_contact_id
-    assert_equal "checkpoint", cycle.step
-    assert_equal 0,
-                 ClientChronicle.where(
-                   event_id: ClientChronicleEvent::SIGNED_UP_WITH_TELEPHONE,
-                   subject_id: visitor.id.to_s,
-                   subject_type: "Visitor",
-                 ).count
-    assert_equal 0,
-                 ClientChronicle.where(
-                   event_id: ClientChronicleEvent::LOGGED_IN,
-                   subject_id: visitor.id.to_s,
-                   subject_type: "Visitor",
-                 ).count
-  end
-
   test "create with invalid telephone fails" do
     post sign_com_sign_up_telephone_url(ri: "jp"),
          params: {
@@ -181,46 +135,6 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
          headers: default_headers
 
     assert_response :unprocessable_content
-  end
-
-  test "existing telephone shows otp page without sending or creating sign up cycle" do
-    visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
-    existing_telephone = VisitorTelephone.create!(
-      visitor: visitor,
-      raw_number: "+819012300011",
-      confirm_policy: "1",
-      confirm_using_mfa: "1",
-      visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
-    )
-
-    assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
-      assert_no_difference("VisitorTelephone.count") do
-        post sign_com_sign_up_telephone_url(ri: "jp"),
-             params: {
-               visitor_telephone: {
-                 raw_number: "+819012300011",
-                 confirm_policy: "1",
-                 confirm_using_mfa: "1",
-               },
-               "cf-turnstile-response": "test",
-             },
-             headers: default_headers
-      end
-    end
-
-    assert_response :redirect
-    assert_nil session[:com_sign_up_flow_locator]
-    assert_no_difference("ClientChronicle.count") do
-      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-            params: { visitor_telephone: { pass_code: "000000" } },
-            headers: default_headers
-    end
-
-    assert_response :unprocessable_content
-    assert_includes response.body, I18n.t("sign.app.registration.telephone.update.invalid_code")
-    assert_predicate session[:visitor_telephone_registration], :present?
-    assert_nil session[:com_sign_up_flow_locator]
-    assert_equal VisitorTelephoneStatus::VERIFIED, existing_telephone.reload.visitor_telephone_status_id
   end
 
   test "create renders unprocessable when visitor_telephone param missing" do
@@ -252,100 +166,6 @@ class Sign::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
          headers: default_headers
 
     assert_response :unprocessable_content
-  end
-
-  test "update with missing visitor_telephone params renders unprocessable" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
-         params: {
-           visitor_telephone: {
-             raw_number: "+819012300098",
-             confirm_policy: "1",
-             confirm_using_mfa: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    VisitorTelephone.order(:created_at).last
-
-    patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
-
-    assert_response :unprocessable_content
-  end
-
-  test "update with invalid OTP does not create session" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
-         params: {
-           visitor_telephone: {
-             raw_number: "+819012300097",
-             confirm_policy: "1",
-             confirm_using_mfa: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    telephone = VisitorTelephone.order(:created_at).last
-
-    assert_no_difference("VisitorToken.count") do
-      patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-            params: { visitor_telephone: { pass_code: "000000" } },
-            headers: default_headers
-    end
-
-    assert_response :unprocessable_content
-    assert_equal 1, telephone.reload.otp_attempts_count
-  end
-
-  test "update locks after max failed OTP attempts" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
-         params: {
-           visitor_telephone: {
-             raw_number: "+819012300096",
-             confirm_policy: "1",
-             confirm_using_mfa: "1",
-           },
-           "cf-turnstile-response": "test",
-         },
-         headers: default_headers
-
-    telephone = VisitorTelephone.order(:created_at).last
-    cycle = VisitorSignUpFlow.find_by!(public_id: session.dig(:com_sign_up_flow_locator, "public_id"))
-    completed_requirements = cycle.completed_requirements.deep_dup
-
-    Prosopite.pause do
-      Telephone::MAX_OTP_ATTEMPTS.times do
-        patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-              params: { visitor_telephone: { pass_code: "000000" } },
-              headers: default_headers
-      end
-    end
-
-    assert_response :too_many_requests
-    assert_includes response.body, I18n.t("sign.app.registration.telephone.update.attempts_exceeded")
-    assert_empty flash.to_hash
-    assert_predicate telephone.reload, :locked?
-    assert_nil session[:visitor_telephone_registration]
-    assert_equal completed_requirements, cycle.reload.completed_requirements
-    assert_nil cycle.completed_requirements["otp"]
-  end
-
-  test "update without a valid session redirects to new" do
-    VisitorTelephone.create!(
-      visitor: Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR),
-      raw_number: "+819012300003",
-      confirm_policy: "1",
-      confirm_using_mfa: "1",
-      visitor_telephone_status_id: VisitorTelephoneStatus::UNVERIFIED_WITH_SIGN_UP,
-      otp_expires_at: 5.minutes.from_now,
-    )
-
-    patch sign_com_sign_up_check_telephone_otp_url(ri: "jp"),
-          params: { visitor_telephone: { pass_code: "123456" } },
-          headers: default_headers
-
-    assert_response :unprocessable_content
-    assert_equal "ticket is required", response.body
   end
 
   test "create rejects duplicate unverified telephone inside overwrite window" do

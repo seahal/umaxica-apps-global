@@ -58,17 +58,11 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     # Setup mock auth with the same uid
     setup_google_mock_auth(uid: existing_uid)
 
-    # Client two tries to link the same Google account
-    # Start link flow as user_two
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
-         headers: social_link_headers(@user_two)
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_two, ri: "jp")
 
-    assert_response :redirect
-
-    # Callback should fail with conflict
     get sign_app_social_google_callback_url(ri: "jp"),
-        params: { state: social_auth_state_from_response },
-        headers: @callback_headers.merge(as_user_headers(@user_two, host: @host))
+        params: { state: grant_session.state },
+        headers: @callback_headers.merge(grant_session.user_headers)
 
     # Should redirect with error (409 manifested as redirect with flash)
     assert_response :redirect
@@ -95,17 +89,12 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    # Client two starts link flow
-    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
-         headers: social_link_headers(@user_two)
-
-    assert_response :redirect
-
+    grant_session = seed_app_social_link_grant_session(provider: "apple", user: @user_two, ri: "jp")
     setup_apple_mock_auth(uid: existing_uid)
 
     post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: social_auth_state_from_response },
-         headers: @callback_headers.merge(as_user_headers(@user_two, host: @host))
+         params: { state: grant_session.state },
+         headers: @callback_headers.merge(grant_session.user_headers)
 
     assert_response :redirect
     follow_redirect!
@@ -138,7 +127,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "link Apple fails when intent TTL exceeded" do
     uid = "apple_state_expired_#{SecureRandom.hex(4)}"
 
-    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_apple_url(ri: "jp"),
          headers: social_link_headers(@user_one)
 
     assert_response :redirect
@@ -162,14 +151,10 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "Sign-owned Google link intent creates one social identity" do
     new_uid = "grantless_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: new_uid)
-
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
-         headers: social_link_headers(@user_one)
+    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_one, ri: "jp")
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_social_google_callback_url(ri: "jp"),
-          params: { state: social_auth_state_from_response },
-          headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
+      perform_grant_backed_link(provider: "google", grant_session: grant_session)
     end
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
@@ -180,26 +165,22 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   test "guest cannot start Google linking" do
     setup_google_mock_auth(uid: "guest_google_#{SecureRandom.hex(4)}")
 
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_google_url(ri: "jp"),
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
   test "Sign-owned Apple link intent creates one social identity" do
     new_uid = "grantless_apple_#{SecureRandom.hex(4)}"
-
-    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
-         headers: social_link_headers(@user_one)
+    grant_session = seed_app_social_link_grant_session(provider: "apple", user: @user_one, ri: "jp")
 
     setup_apple_mock_auth(uid: new_uid)
 
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: social_auth_state_from_response },
-           headers: @callback_headers.merge(as_user_headers(@user_one, host: @host))
+      perform_grant_backed_link(provider: "apple", grant_session: grant_session)
     end
 
     assert_redirected_to sign_app_settings_path(ri: "jp")
@@ -207,11 +188,11 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   end
 
   test "guest cannot start Apple linking" do
-    post sign_app_social_apple_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_apple_url(ri: "jp"),
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_redirected_to sign_app_settings_apple_url(ri: "jp", host: @host)
+    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -231,14 +212,11 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    # Re-link the same provider+uid through the Sign-owned settings ceremony.
-    setup_google_mock_auth(uid: old_uid)
-    grant_session = seed_app_social_link_grant_session(provider: "google", user: @user_one, ri: "jp")
+    headers = social_link_headers(@user_one)
 
-    perform_grant_backed_link(provider: "google", grant_session: grant_session)
+    post sign_app_settings_google_url(ri: "jp"), headers: headers
 
-    assert_redirected_to sign_app_settings_path(ri: "jp")
-    # Identity should still exist and remain owned by the same user.
+    assert_response :unprocessable_content
     existing_identity.reload
 
     assert_equal @user_one.id, existing_identity.user_id
@@ -268,24 +246,22 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     setup_google_mock_auth(uid: "unauthenticated_test")
 
     # Start without authentication headers
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_google_url(ri: "jp"),
          headers: { "Host" => @host }
 
-    # Should redirect to login or return error
     assert_response :redirect
-    follow_redirect!
-
-    assert_predicate flash[:alert], :present?, "Should require login for link intent"
+    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
   end
 
   test "link intent rejects resource-level step up without token-bound step up" do
     @user_one.update!(last_step_up_at: Time.current)
 
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_google_url(ri: "jp"),
          headers: as_user_headers(@user_one, host: @host)
 
-    assert_response :found
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_response :see_other
+    assert_match %r{\Ahttp://#{Regexp.escape(@host)}/verification\?}, response.location
+    assert_includes response.location, "scope=social_link"
     assert_nil session[SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -294,11 +270,12 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     token = ClientToken.find_by!(public_id: headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
     mark_token_step_up_satisfied_for_test(token, scope: "settings_email")
 
-    post sign_app_social_google_connection_url(intent: "link", ri: "jp"),
+    post sign_app_settings_google_url(ri: "jp"),
          headers: headers
 
-    assert_response :found
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_response :see_other
+    assert_match %r{\Ahttp://#{Regexp.escape(@host)}/verification\?}, response.location
+    assert_includes response.location, "scope=social_link"
     assert_nil session[SOCIAL_FLOW_ID_SESSION_KEY]
   end
 

@@ -3902,7 +3902,7 @@ ALTER TABLE ONLY public.operator_google_identities
 --
 
 ALTER TABLE ONLY public.operator_lifecycle_requests
-    ADD CONSTRAINT fk_rails_be7647e7b5 FOREIGN KEY (requested_by_operator_id) REFERENCES public.operators(id) ON DELETE RESTRICT NOT VALID;
+    ADD CONSTRAINT fk_rails_be7647e7b5 FOREIGN KEY (requested_by_operator_id) REFERENCES public.operators(id) ON DELETE RESTRICT;
 
 
 --
