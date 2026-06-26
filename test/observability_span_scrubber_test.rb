@@ -68,4 +68,37 @@ class ObservabilitySpanScrubberTest < ActiveSupport::TestCase
     assert_equal ObservabilityRedactor::REDACTED, span.attributes["payload"]["token"]
     assert_equal "https://example.com/x", span.attributes["entries"].first
   end
+
+  test "scrub redacts full-url attribute keys without delegating to URL parsing" do
+    span = MutableSpan.new("http.url" => "https://app.example.com/callback?code=abc&state=xyz")
+
+    _ = ObservabilitySpanScrubber.scrub(span)
+
+    assert_equal ObservabilityRedactor::REDACTED, span.attributes["http.url"]
+  end
+
+  test "scrub redacts token-family attribute keys outright" do
+    span = MutableSpan.new(
+      "token" => "t",
+      "access_token" => "at",
+      "id_token" => "it",
+      "refresh_token" => "rt",
+    )
+
+    _ = ObservabilitySpanScrubber.scrub(span)
+
+    span.attributes.each_value { |value| assert_equal ObservabilityRedactor::REDACTED, value }
+  end
+
+  test "sensitive_attribute_key? matches authorization and cookie substrings" do
+    span = MutableSpan.new(
+      "x-custom-authorization" => "secret",
+      "my-cookie-value" => "y",
+    )
+
+    _ = ObservabilitySpanScrubber.scrub(span)
+
+    assert_equal ObservabilityRedactor::REDACTED, span.attributes["x-custom-authorization"]
+    assert_equal ObservabilityRedactor::REDACTED, span.attributes["my-cookie-value"]
+  end
 end

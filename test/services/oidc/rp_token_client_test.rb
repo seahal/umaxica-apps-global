@@ -71,6 +71,71 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
     assert_not net_http_called
   end
 
+  test "logs safe token exchange failure details for non-success responses" do
+    logged = []
+    response = Net::HTTPBadRequest.new("1.1", "400", "Bad Request")
+    response.instance_variable_set(:@read, true)
+    response.body = JSON.generate(error: "invalid_grant", error_description: "Authorization code expired")
+
+    with_oidc_client_key("ACME_APP") do
+      Rails.logger.stub(:info, ->(message) { logged << message }) do
+        Net::HTTP.stub(:post_form, response) do
+          result = OidcRpTokenClient.call(
+            token_url: "https://id.umaxica.app/oauth/token",
+            client_id: "base-rails-rp",
+            client_secret: nil,
+            code: "sensitive-code",
+            redirect_uri: "https://www.umaxica.app/auth/callback",
+            code_verifier: "sensitive-verifier",
+          )
+
+          assert_not_predicate result, :success?
+          assert_equal "invalid_grant", result.error
+        end
+      end
+    end
+
+    event = logged.map { |line| JSON.parse(line) }.find { |line| line["event"] == "oidc.rp.token_exchange.failed" }
+
+    assert event
+    assert_equal "base-rails-rp", event.dig("data", "client_id")
+    assert_equal "id.umaxica.app", event.dig("data", "endpoint_host")
+    assert_equal 400, event.dig("data", "http_status")
+    assert_equal "invalid_grant", event.dig("data", "oauth_error")
+    assert_nil event.dig("data", "oauth_error_description")
+    assert_no_match(/sensitive-code|sensitive-verifier/, logged.join("\n"))
+  end
+
+  test "logs safe token exchange failure details for transport errors" do
+    logged = []
+
+    with_oidc_client_key("ACME_APP") do
+      Rails.logger.stub(:info, ->(message) { logged << message }) do
+        Net::HTTP.stub(:post_form, ->(*) { raise SocketError, "connection refused for secret.example" }) do
+          result = OidcRpTokenClient.call(
+            token_url: "https://id.umaxica.app/oauth/token",
+            client_id: "base-rails-rp",
+            client_secret: nil,
+            code: "sensitive-code",
+            redirect_uri: "https://www.umaxica.app/auth/callback",
+            code_verifier: "sensitive-verifier",
+          )
+
+          assert_not_predicate result, :success?
+          assert_equal "token_exchange_failed", result.error
+        end
+      end
+    end
+
+    event = logged.map { |line| JSON.parse(line) }.find { |line| line["event"] == "oidc.rp.token_exchange.failed" }
+
+    assert event
+    assert_equal "base-rails-rp", event.dig("data", "client_id")
+    assert_equal "id.umaxica.app", event.dig("data", "endpoint_host")
+    assert_equal "SocketError", event.dig("data", "error_class")
+    assert_no_match(/sensitive-code|sensitive-verifier|secret\.example/, logged.join("\n"))
+  end
+
   private
 
   def with_oidc_client_key(namespace, active_kid: "#{namespace.downcase.tr("_", "-")}-oidc-test",

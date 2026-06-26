@@ -43,13 +43,14 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     include SignVerificationStepUpLifecycle
     include SignAppVerificationBase
 
-    attr_accessor :user, :user_token, :params_hash, :redirect_args, :hotp_result
+    attr_accessor :user, :user_token, :params_hash, :redirect_args, :hotp_result, :session_hash
 
     def initialize(user:, user_token: nil)
       @user = user
       @user_token = user_token
       @params_hash = {}
       @hotp_result = true
+      @session_hash = {}
     end
 
     def current_client = user
@@ -59,6 +60,8 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     def current_session_token = user_token
 
     def params = ActionController::Parameters.new(params_hash)
+
+    def session = session_hash
 
     def sign_app_verification_path(params = {})
       "/verification?#{params.to_query}"
@@ -150,22 +153,22 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     assert_equal %w(scope), harness.app_call(:verification_params).keys
   end
 
-  test "email otp session active and nonce helpers use step_up session" do
+  test "email otp session active and nonce helpers use step_up session session state" do
     user = clients(:one)
     token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
 
     assert_not harness.app_call(:email_otp_session_active?)
 
-    step_up_session = create_user_step_up_session(user_token: token)
-    Rails.cache.write(
-      "step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "secret_credential" },
-      expires_in: 5.minutes,
+    create_user_step_up_session(user_token: token)
+    harness.app_call(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.app_call(:email_otp_digest, "123456") },
     )
 
     assert harness.app_call(:email_otp_session_active?)
 
-    Rails.cache.delete("step_up_session:#{step_up_session.id}:email_otp")
+    harness.clear_step_up_state!
 
     assert_not harness.app_call(:email_otp_session_active?)
 
@@ -204,16 +207,19 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.app_call(:restore_step_up_session_from_params!)
   end
 
-  test "invalid step_up session redirects and clears state" do
+  test "invalid step_up session redirects and clears session state" do
     user = clients(:one)
     token = ClientToken.create!(user: user)
     harness = Harness.new(user: user, user_token: token)
     harness.params_hash = { ri: "jp" }
-    step_up_session = create_user_step_up_session(user_token: token)
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
+    create_user_step_up_session(user_token: token)
+    harness.app_call(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.app_call(:email_otp_digest, "123456") },
+    )
 
     assert_not harness.app_call(:handle_invalid_step_up_session!)
-    assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
+    assert_nil harness.session[:sign_app_step_up_email_otp]
     assert_match "/settings?", harness.redirect_args.first.first
   end
 
@@ -257,11 +263,9 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.app_call(:verify_email_otp!)
     assert_equal ["確認コードの再送信が必要です"], harness.instance_variable_get(:@verification_errors)
 
-    Rails.cache.write(
-      "step_up_session:#{step_up_session.id}:email_otp", {
-        "secret_credential" => "secret_credential",
-        "counter" => 1,
-      },
+    harness.app_call(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.app_call(:email_otp_digest, "123456") },
     )
     step_up_session.update_columns(discarded_at: 1.minute.ago, purged_at: 1.minute.ago)
 
@@ -269,12 +273,18 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
     assert_equal ["確認コードの有効期限が切れました"], harness.instance_variable_get(:@verification_errors)
 
     step_up_session.update!(discarded_at: 5.minutes.from_now, purged_at: 5.minutes.from_now)
-    harness.hotp_result = false
+    harness.app_call(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.app_call(:email_otp_digest, "654321") },
+    )
 
     assert_not harness.app_call(:verify_email_otp!)
     assert_equal ["確認コードが正しくありません"], harness.instance_variable_get(:@verification_errors)
 
-    harness.hotp_result = true
+    harness.app_call(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.app_call(:email_otp_digest, "123456") },
+    )
 
     assert harness.app_call(:verify_email_otp!)
   end

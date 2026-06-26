@@ -90,7 +90,6 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
         assert_response :redirect
         nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
-        cache_email_nonce!(nonce)
 
         with_email_nonce_stub(true) do
           with_verify_email_otp_stub(true) do
@@ -130,8 +129,14 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_com_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     patch sign_com_verification_email_url(nonce, ri: "jp"),
           params: { verification: { code: "000000" } },
@@ -151,8 +156,14 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_com_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
       post sign_com_verification_email_redelivery_url(
@@ -167,7 +178,6 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=settings_email},
                  response.location
     assert_equal I18n.t("otp.resend.sent"), flash[:notice]
-    assert Rails.cache.exist?(email_otp_cache_key)
   end
 
   test "resend is rate limited" do
@@ -179,8 +189,14 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_com_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
       post sign_com_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
@@ -253,11 +269,15 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
       controller.send(:start_step_up_session!, scope: "settings_email", pt_param: "%%%")
     end
 
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
+    controller.define_singleton_method(:session) { @session_for_test ||= {} }
+    controller.send(
+      :write_email_otp_session_data!,
+      { "otp_digest" => controller.send(:email_otp_digest, "123456") },
+    )
     controller.instance_variable_set(:@restore_for_test, false)
 
     assert_not controller.send(:handle_invalid_step_up_session!)
-    assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
+    assert_nil controller.session[:sign_step_up_email_otp]
     assert_match "/verification?", redirects.last.first.first
 
     controller.instance_variable_set(:@restore_for_test, true)
@@ -322,18 +342,19 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_match %r{/verification/emails/nonce/edit}, redirects.last.first.first
 
-    controller.define_singleton_method(:current_step_up_session) { { "email_nonce" => "nonce" } }
+    controller.define_singleton_method(:current_step_up_session) { OpenStruct.new(id: 1) }
+    controller.define_singleton_method(:current_email_otp_session_data) { { "nonce" => "nonce" } }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:sign_com_verification_path) { |params = {}| "/verification?#{params.to_query}" }
     controller.define_singleton_method(:verification_recovery_redirect_params) { { ri: params[:ri] } }
 
     assert controller.send(:require_email_nonce!)
 
-    controller.define_singleton_method(:current_step_up_session) { { "email_nonce" => "other" } }
+    controller.define_singleton_method(:current_email_otp_session_data) { { "nonce" => "other" } }
 
     assert_not controller.send(:require_email_nonce!)
 
-    controller.define_singleton_method(:current_step_up_session) { { "email_nonce" => "nonce" } }
+    controller.define_singleton_method(:current_email_otp_session_data) { { "nonce" => "nonce" } }
     controller.instance_variable_set(:@recent_post_for_test, false)
     controller.instance_variable_set(:@verify_email_for_test, false)
     controller.update
@@ -362,15 +383,5 @@ class Sign::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     yield
   ensure
     Sign::Com::Verification::EmailsController.define_method(:require_email_nonce!, original_method)
-  end
-
-  def cache_email_nonce!(nonce)
-    rs = @token.reload.step_up_session
-    Rails.cache.write("step_up_session:#{rs.id}:email_nonce", nonce, expires_in: 15.minutes)
-  end
-
-  def email_otp_cache_key
-    rs = @token.reload.step_up_session
-    "step_up_session:#{rs.id}:email_otp"
   end
 end

@@ -107,6 +107,12 @@ class HasBirthdateTest < ActiveSupport::TestCase
     end
   end
 
+  test "age_on returns nil when birthdate is blank" do
+    each_birthdate_record(nil) do |record|
+      assert_nil record.age_on
+    end
+  end
+
   test "age_on returns nil for calendar-invalid birthdate" do
     each_birthdate_record("2000-02-30") do |record|
       assert_equal 24, record.age_on(Date.new(2024, 6, 15))

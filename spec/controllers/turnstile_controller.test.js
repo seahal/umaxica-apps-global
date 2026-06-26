@@ -64,14 +64,8 @@ describe("TurnstileController", () => {
     return controller;
   }
 
-  test("connect binds methods and sets up listeners when api script exists", () => {
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-    document.head.appendChild(script);
-
+  test("connect binds methods and sets up listeners", () => {
     const c = createController();
-    const originalQuerySelector = document.querySelector;
-    document.querySelector = () => script;
 
     c.connect();
 
@@ -79,9 +73,6 @@ describe("TurnstileController", () => {
     expect(addEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge, {
       once: true,
     });
-
-    document.querySelector = originalQuerySelector;
-    document.head.removeChild(script);
   });
 
   test("connect adds DOMContentLoaded listener when readyState is loading", () => {
@@ -124,27 +115,7 @@ describe("TurnstileController", () => {
   });
 
   test("disconnect removes all listeners", () => {
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-    const scriptRemoveEventListenerSpy = vi.spyOn(script, "removeEventListener");
-    document.head.appendChild(script);
-
     const c = createController();
-    c.apiScript = script;
-
-    c.disconnect();
-
-    expect(scriptRemoveEventListenerSpy).toHaveBeenCalledWith("load", c.scheduleChallenge);
-    expect(scriptRemoveEventListenerSpy).toHaveBeenCalledWith("error", c.reportScriptError);
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("turbo:load", c.scheduleChallenge);
-    expect(removeEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge);
-
-    document.head.removeChild(script);
-  });
-
-  test("disconnect skips script listener removal when apiScript is absent", () => {
-    const c = createController();
-    c.apiScript = null;
 
     c.disconnect();
 
@@ -152,13 +123,13 @@ describe("TurnstileController", () => {
     expect(removeEventListenerSpy).toHaveBeenCalledWith("DOMContentLoaded", c.scheduleChallenge);
   });
 
-  test("scheduleChallenge renders visible turnstile once", () => {
+  test("scheduleChallenge renders visible turnstile once", async () => {
     const c = createController();
     c.modeValue = "render";
     c.completed = false;
 
-    c.scheduleChallenge();
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).toHaveBeenCalledOnce();
     expect(render).toHaveBeenCalledWith(
@@ -196,13 +167,13 @@ describe("TurnstileController", () => {
     expect(options.cData).toBe("cycle-public-id");
   });
 
-  test("scheduleChallenge executes stealth turnstile", () => {
+  test("scheduleChallenge executes stealth turnstile", async () => {
     const c = createController();
     c.modeValue = "execute";
     c.completed = false;
     render.mockReturnValue("widget-id");
 
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).toHaveBeenCalledOnce();
     expect(render).toHaveBeenCalledWith(
@@ -215,48 +186,50 @@ describe("TurnstileController", () => {
     expect(execute).toHaveBeenCalledWith("widget-id");
   });
 
-  test("scheduleChallenge does nothing when already completed", () => {
+  test("scheduleChallenge does nothing when already completed", async () => {
     const c = createController();
     c.modeValue = "render";
     c.completed = true;
 
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).not.toHaveBeenCalled();
   });
 
-  test("scheduleChallenge does nothing when window.turnstile is missing", () => {
+  test("scheduleChallenge does nothing when window.turnstile is missing", async () => {
     vi.stubGlobal("window", {
       turnstile: undefined,
       dispatchEvent,
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
     });
     const c = createController();
     c.modeValue = "render";
     c.completed = false;
 
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).not.toHaveBeenCalled();
   });
 
-  test("scheduleChallenge does nothing when container target is missing", () => {
+  test("scheduleChallenge does nothing when container target is missing", async () => {
     const c = createController();
     c.hasContainerTarget = false;
     c.modeValue = "render";
     c.completed = false;
 
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).not.toHaveBeenCalled();
   });
 
-  test("scheduleChallenge does nothing when response target is missing", () => {
+  test("scheduleChallenge does nothing when response target is missing", async () => {
     const c = createController();
     c.hasResponseTarget = false;
     c.modeValue = "render";
     c.completed = false;
 
-    c.scheduleChallenge();
+    await c.scheduleChallenge();
 
     expect(render).not.toHaveBeenCalled();
   });

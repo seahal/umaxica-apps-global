@@ -5,10 +5,10 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
-    <%= vite_client_tag %>
-    <%= vite_react_refresh_tag %>
+    <%= vite_client_tag nonce: true %>
+    <%= vite_react_refresh_tag nonce: true %>
     <%= vite_typescript_tag "application" %>
-    <%= vite_client_tag %>
+    <%= vite_client_tag nonce: true %>
     <%= vite_javascript_tag 'application' %>
     <!--
       If using a TypeScript entrypoint file:

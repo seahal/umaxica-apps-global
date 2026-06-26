@@ -142,7 +142,10 @@ module OidcSsoInitiator
   end
 
   def oidc_token_url
-    oidc_acme_service_origin.token_endpoint
+    public_token_endpoint = oidc_acme_service_origin.token_endpoint
+    return public_token_endpoint unless Rails.env.local?
+
+    local_oidc_token_endpoint(public_token_endpoint)
   end
 
   def encoded_pt(pt)
@@ -153,6 +156,35 @@ module OidcSsoInitiator
     Base64.urlsafe_decode64(pt.to_s)
   rescue ArgumentError
     "/"
+  end
+
+  def local_oidc_token_endpoint(public_token_endpoint)
+    uri = URI.parse(public_token_endpoint)
+    return public_token_endpoint unless uri.is_a?(URI::HTTP)
+    return public_token_endpoint unless public_acme_development_host?(uri.host)
+
+    uri.scheme = "http"
+    uri.port = local_oidc_token_endpoint_port
+    uri.to_s
+  rescue URI::InvalidURIError
+    public_token_endpoint
+  end
+
+  def public_acme_development_host?(host)
+    configured_acme_hosts.include?(host.to_s.downcase)
+  end
+
+  def configured_acme_hosts
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    [
+      hosts.acme_service.host,
+      hosts.acme_corporate.host,
+      hosts.acme_staff.host,
+    ].map { |configured_host| configured_host.to_s.downcase }
+  end
+
+  def local_oidc_token_endpoint_port
+    Integer(ENV.fetch("PORT", "3000"), exception: false) || 3000
   end
 
   # Tighten the OIDC pt to a same-host internal path.

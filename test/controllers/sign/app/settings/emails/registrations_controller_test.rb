@@ -214,7 +214,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
+    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
     assert_equal @user.id, user_email.user_id
     assert_not_nil @token.reload.last_step_up_at
@@ -285,7 +285,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
     acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
 
-    assert_redirected_to "https://#{acme_host}/preference?ri=jp"
+    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
     assert_equal "settings_email", bootstrap_token.reload.last_step_up_scope
 
     get "https://#{acme_host}/preference?ri=jp",
@@ -295,7 +295,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update returns to acme email management after verifying OTP" do
-    return_to = "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
+    return_to = sign_app_settings_emails_url(ri: "jp")
     pt = Base64.urlsafe_encode64(return_to)
 
     get new_sign_app_settings_emails_registration_url(ri: "jp", pt: pt), headers: request_headers
@@ -328,7 +328,7 @@ class Sign::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
           },
           headers: request_headers
 
-    assert_redirected_to "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}/preference?ri=jp"
+    assert_redirected_to sign_app_settings_emails_url(ri: "jp")
     assert_equal ClientEmailStatus::VERIFIED, user_email.reload.user_email_status_id
   end
 

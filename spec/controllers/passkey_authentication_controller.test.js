@@ -714,19 +714,20 @@ describe("PasskeyAuthenticationController", () => {
     expect(result).toBe("existing-token");
   });
 
-  test("ensureTurnstileToken: turnstileResponseTarget が空のときスクリプト読み込みを行う", async () => {
+  test("ensureTurnstileToken: layout script load後にtokenを取得する", async () => {
     controller.turnstileResponseTarget.value = "";
-    const script = {
-      src: "",
-      async: true,
-      defer: true,
-      onload: null,
-      onerror: null,
-    };
     const container = { style: {} };
+    const existingScript = { addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    vi.stubGlobal("window", {
+      PublicKeyCredential: true,
+      location: { hostname: "localhost" },
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+    const csrfToken = { content: "csrf-token-value" };
     vi.stubGlobal("document", {
-      querySelector: vi.fn(() => null),
-      createElement: vi.fn().mockReturnValueOnce(script).mockReturnValueOnce(container),
+      querySelector: vi.fn().mockReturnValueOnce(csrfToken).mockReturnValueOnce(existingScript),
+      createElement: vi.fn(() => container),
       head: { appendChild: vi.fn() },
     });
 
@@ -736,95 +737,14 @@ describe("PasskeyAuthenticationController", () => {
         options.callback("new-token");
       }),
     };
-    script.onload();
-    const result = await promise;
-    expect(result).toBe("new-token");
-    expect(controller.turnstileResponseTarget.value).toBe("new-token");
-  });
-
-  test("ensureTurnstileScriptLoaded: 既に window.turnstile があるときすぐ解決する", async () => {
-    vi.stubGlobal("window", {
-      PublicKeyCredential: true,
-      turnstile: true,
-      location: { hostname: "localhost" },
-    });
-    await expect(controller.ensureTurnstileScriptLoaded()).resolves.toBeUndefined();
-  });
-
-  test("ensureTurnstileScriptLoaded: 既存スクリプトの load イベントで解決する", async () => {
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
-    const existingScript = { addEventListener: vi.fn() };
-    vi.stubGlobal("document", {
-      querySelector: vi.fn(() => existingScript),
-      createElement: vi.fn(),
-      head: { appendChild: vi.fn() },
-    });
-
-    const promise = controller.ensureTurnstileScriptLoaded();
     const [, loadCallback] = existingScript.addEventListener.mock.calls.find(
       ([event]) => event === "load",
     );
     loadCallback();
-    await expect(promise).resolves.toBeUndefined();
-  });
-
-  test("ensureTurnstileScriptLoaded: 既存スクリプトの error で拒否する", async () => {
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
-    const existingScript = { addEventListener: vi.fn() };
-    vi.stubGlobal("document", {
-      querySelector: vi.fn(() => existingScript),
-      createElement: vi.fn(),
-      head: { appendChild: vi.fn() },
-    });
-
-    const promise = controller.ensureTurnstileScriptLoaded();
-    const [, errorCallback] = existingScript.addEventListener.mock.calls.find(
-      ([event]) => event === "error",
-    );
-    errorCallback();
-    await expect(promise).rejects.toThrow();
-  });
-
-  test("ensureTurnstileScriptLoaded: 新規スクリプトの load イベントで解決する", async () => {
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
-    const script = {
-      src: "",
-      async: true,
-      defer: true,
-      onload: null,
-      onerror: null,
-    };
-    vi.stubGlobal("document", {
-      querySelector: vi.fn(() => null),
-      createElement: vi.fn(() => script),
-      head: { appendChild: vi.fn() },
-    });
-
-    const promise = controller.ensureTurnstileScriptLoaded();
-    expect(script.onload).not.toBeNull();
-    script.onload();
-    await expect(promise).resolves.toBeUndefined();
-  });
-
-  test("ensureTurnstileScriptLoaded: 新規スクリプトの error で拒否する", async () => {
-    vi.stubGlobal("window", { PublicKeyCredential: true, location: { hostname: "localhost" } });
-    const script = {
-      src: "",
-      async: true,
-      defer: true,
-      onload: null,
-      onerror: null,
-    };
-    vi.stubGlobal("document", {
-      querySelector: vi.fn(() => null),
-      createElement: vi.fn(() => script),
-      head: { appendChild: vi.fn() },
-    });
-
-    const promise = controller.ensureTurnstileScriptLoaded();
-    expect(script.onerror).not.toBeNull();
-    script.onerror();
-    await expect(promise).rejects.toThrow();
+    const result = await promise;
+    expect(result).toBe("new-token");
+    expect(controller.turnstileResponseTarget.value).toBe("new-token");
+    expect(document.head.appendChild).not.toHaveBeenCalled();
   });
 
   test("requestTurnstileToken: error-callback で拒否する", async () => {

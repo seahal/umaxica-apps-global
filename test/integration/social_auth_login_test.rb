@@ -367,6 +367,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "既存アカウントとは後から統合できません。"
     assert_includes response.body, "間違いならキャンセルしてください。"
     assert_select "input[name=confirm_new_social_identity][required]"
+    assert_select "script:not([nonce])", false
 
     cycle = ClientSignUpFlow.order(:id).last
 

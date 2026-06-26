@@ -276,6 +276,7 @@ ja:
         name: 名前
         created_at: 作成日時
         last_used_at: 最終使用日
+        status: ステータス
       visitor_totp_credential:
         title: 名前
         created_at: 作成日時
@@ -2284,6 +2285,13 @@ ja:
     error:
       key: カスタムエラー
   acme:
+    app:
+      sign:
+        in:
+          limitations:
+            revoke_failed: 選択されたセッションを無効にできませんでした。
+            capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+            invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
     org:
       preference:
         cookie:
@@ -2603,6 +2611,12 @@ ja:
           destroyed: 設定をリセットしました
           back: 設定一覧に戻る
     app:
+      sign:
+        in:
+          limitations:
+            revoke_failed: 選択されたセッションを無効にできませんでした。
+            capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+            invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
       preferences:
         theme:
           select_theme: テーマ選択
@@ -3420,6 +3434,12 @@ ja:
           revoke_failed: 選択されたセッションを無効にできませんでした。
           capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
           invalid_or_expired: このセッション制限解決リンクは無効または期限切れです。
+        sign:
+          in:
+            limitations:
+              revoke_failed: 選択されたセッションを無効にできませんでした。
+              capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+              invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
         roots:
           index:
             redirect_prompt: "%{preference} へすぐ移動できます。"
@@ -3436,6 +3456,13 @@ ja:
         shared:
           sign_out:
             confirm_description: 一度ログアウトすると、再度ログインが必要になります。
+      app:
+        sign:
+          in:
+            limitations:
+              revoke_failed: 選択されたセッションを無効にできませんでした。
+              capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
+              invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
         up:
           telephones:
             edit:

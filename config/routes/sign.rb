@@ -288,7 +288,7 @@ sign_routes do
 
       # Sign-in ceremony.
       namespace :in do
-        resource :email, only: %i(new create edit update)
+        resource :email, only: %i(new create edit)
 
         resource :passkey, only: :new
         namespace :passkey do

@@ -28,8 +28,10 @@ class OidcRpTokenClient < ApplicationService
     body = JSON.parse(response.body.presence || "{}").with_indifferent_access
     return Result.new(success: true, token_response: body, error: nil) if response.is_a?(Net::HTTPSuccess)
 
+    log_token_exchange_failure(uri: uri, response: response, oauth_error: body[:error].presence)
     Result.new(success: false, token_response: nil, error: body[:error].presence || "token_exchange_failed")
-  rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error
+  rescue JSON::ParserError, URI::InvalidURIError, SocketError, SystemCallError, Timeout::Error => e
+    log_token_exchange_failure(uri: safe_token_uri, error_class: e.class.name)
     Result.new(success: false, token_response: nil, error: "token_exchange_failed")
   end
 
@@ -57,5 +59,25 @@ class OidcRpTokenClient < ApplicationService
     end
 
     params.merge(client_secret: client_secret)
+  end
+
+  def log_token_exchange_failure(uri:, response: nil, oauth_error: nil, error_class: nil)
+    Rails.logger.info(
+      JitLogEvent.format(
+        "oidc.rp.token_exchange.failed",
+        client_id: client_id,
+        endpoint_host: uri&.host,
+        endpoint_path: uri&.path,
+        http_status: response&.code&.to_i,
+        oauth_error: oauth_error,
+        error_class: error_class,
+      ),
+    )
+  end
+
+  def safe_token_uri
+    URI.parse(token_url)
+  rescue URI::InvalidURIError
+    nil
   end
 end

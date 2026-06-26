@@ -160,7 +160,7 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
 
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end
@@ -188,7 +188,7 @@ class Sign::App::SignUpCompensationTest < ActiveSupport::TestCase
     graph_provisioned = false
     events = []
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end

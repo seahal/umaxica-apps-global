@@ -1,5 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 
+import { waitForTurnstileApi } from "./turnstile_api";
+
 export default class extends Controller {
   static targets = ["container", "response"];
 
@@ -7,6 +9,10 @@ export default class extends Controller {
     action: String,
     cdata: String,
     mode: { type: String, default: "render" },
+    errorMessage: {
+      type: String,
+      default: "Security verification failed. Please refresh and try again.",
+    },
   };
 
   connect() {
@@ -16,20 +22,12 @@ export default class extends Controller {
       this.form.addEventListener("submit", this.preventDuplicateSubmit);
     }
 
-    this.apiScript = document.querySelector(
-      "script[src*='challenges.cloudflare.com/turnstile/v0/api.js']",
-    );
-    if (this.apiScript) {
-      this.apiScript.addEventListener("load", this.scheduleChallenge, { once: true });
-      this.apiScript.addEventListener("error", this.reportScriptError, { once: true });
-    }
-
     document.addEventListener("turbo:load", this.scheduleChallenge, { once: true });
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", this.scheduleChallenge, { once: true });
     } else {
-      this.scheduleChallenge();
+      void this.scheduleChallenge();
     }
   }
 
@@ -37,33 +35,32 @@ export default class extends Controller {
     if (this.form) {
       this.form.removeEventListener("submit", this.preventDuplicateSubmit);
     }
-    if (this.apiScript) {
-      this.apiScript.removeEventListener("load", this.scheduleChallenge);
-      this.apiScript.removeEventListener("error", this.reportScriptError);
-    }
     document.removeEventListener("turbo:load", this.scheduleChallenge);
     document.removeEventListener("DOMContentLoaded", this.scheduleChallenge);
   }
 
-  scheduleChallenge = () => {
-    if (
-      this.completed ||
-      !window.turnstile ||
-      !this.hasContainerTarget ||
-      !this.hasResponseTarget
-    ) {
+  scheduleChallenge = async () => {
+    if (this.completed || !this.hasContainerTarget || !this.hasResponseTarget) {
+      return;
+    }
+
+    let turnstile;
+    try {
+      turnstile = await waitForTurnstileApi(this.errorMessageValue);
+    } catch (error) {
+      this.reportScriptError(error);
       return;
     }
 
     if (this.modeValue === "execute") {
       this.completed = true;
-      const widgetId = window.turnstile.render(this.containerTarget, this.challengeOptions());
-      window.turnstile.execute(widgetId);
+      const widgetId = turnstile.render(this.containerTarget, this.challengeOptions());
+      turnstile.execute(widgetId);
       return;
     }
 
     this.completed = true;
-    window.turnstile.render(this.containerTarget, this.challengeOptions());
+    turnstile.render(this.containerTarget, this.challengeOptions());
   };
 
   challengeOptions() {
@@ -120,9 +117,9 @@ export default class extends Controller {
     );
   }
 
-  reportScriptError = () => {
+  reportScriptError = (error) => {
     // eslint-disable-next-line no-console
-    console.error("Turnstile script failed to load");
+    console.error("Turnstile script failed to load:", error);
   };
 
   preventDuplicateSubmit = (event) => {

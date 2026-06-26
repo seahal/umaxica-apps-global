@@ -39,6 +39,8 @@ class VerificationBaseBootstrapReturnPathTest < ActiveSupport::TestCase
         end
 
         def current_session_token = session_token
+
+        def current_session_public_id = session_token&.public_id
       end
     end
 

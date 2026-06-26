@@ -7,8 +7,8 @@ class Sign::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL", "sign.com.localhost")
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -85,26 +85,6 @@ class Sign::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_redirected_to %r{/sign/in/email/new}
   end
 
-  test "patch update with invalid OTP fails" do
-    visitor = create_verified_visitor_with_email(email_address: "com-login-invalid@example.com")
-    email = visitor.visitor_emails.last
-
-    post sign_com_sign_in_email_url(ri: "jp"),
-         params: {
-           user_email: { address: email.address },
-           "cf-turnstile-response": "test",
-         },
-         headers: { "Host" => @host }
-
-    patch sign_com_sign_in_email_url(ri: "jp"),
-          params: {
-            user_email: { pass_code: "000000" },
-          },
-          headers: { "Host" => @host }
-
-    assert_response :unprocessable_content
-  end
-
   test "post create with cooldown active returns too many requests" do
     visitor = create_verified_visitor_with_email(email_address: "cooldown@example.com")
     email = visitor.visitor_emails.last
@@ -140,27 +120,6 @@ class Sign::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_includes response.body, I18n.t("errors.messages.login_cooldown")
   end
 
-  test "email sign in locks after five invalid OTP attempts" do
-    visitor = create_verified_visitor_with_email(email_address: "com-lockout@example.com")
-    email = visitor.visitor_emails.last
-
-    post sign_com_sign_in_email_url(ri: "jp"),
-         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
-         headers: { "Host" => @host }
-
-    Email::MAX_OTP_ATTEMPTS.times do
-      patch sign_com_sign_in_email_url(ri: "jp"),
-            params: { user_email: { pass_code: "000000" } },
-            headers: { "Host" => @host }
-    end
-
-    email.reload
-
-    assert_response :unprocessable_content
-    assert_predicate email, :locked?
-    assert_operator email.lockout_expires_at, :>, Time.current
-  end
-
   test "post create with locked visitor email does not send OTP" do
     visitor = create_verified_visitor_with_email(email_address: "com-create-locked@example.com")
     email = visitor.visitor_emails.last
@@ -186,42 +145,6 @@ class Sign::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: { "Host" => @host }
 
     assert_response :unprocessable_content
-  end
-
-  test "patch update success login" do
-    visitor = create_verified_visitor_with_email(email_address: "success@example.com")
-    email = visitor.visitor_emails.last
-
-    post sign_com_sign_in_email_url(ri: "jp"),
-         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
-         headers: { "Host" => @host }
-
-    # Use a real OTP check by setting the OTP in DB
-    email.store_otp("BASE32SECRET3232", 12_345, 15.minutes.from_now.to_i)
-    hotp = ROTP::HOTP.new("BASE32SECRET3232")
-    correct_code = hotp.at(12_345)
-
-    patch sign_com_sign_in_email_url(ri: "jp"),
-          params: { user_email: { pass_code: correct_code } },
-          headers: { "Host" => @host }
-
-    assert_response :redirect
-  end
-
-  test "patch update failure with JSON format" do
-    visitor = create_verified_visitor_with_email(email_address: "json-fail@example.com")
-    email = visitor.visitor_emails.last
-
-    post sign_com_sign_in_email_url(ri: "jp"),
-         params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
-         headers: { "Host" => @host }
-
-    patch sign_com_sign_in_email_url(ri: "jp"),
-          params: { user_email: { pass_code: "000000" } },
-          headers: { "Host" => @host, "Accept" => "application/json" }
-
-    assert_response :unprocessable_content
-    assert_not_empty response.parsed_body["error"]
   end
 
   private

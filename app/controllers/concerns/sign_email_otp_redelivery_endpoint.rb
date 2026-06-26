@@ -35,12 +35,7 @@ module SignEmailOtpRedeliveryEndpoint
 
   def require_email_nonce_for_redelivery!
     rs = current_step_up_session
-    expected_nonce =
-      if rs.is_a?(Hash)
-        rs["email_nonce"]
-      else
-        Rails.cache.read(email_nonce_cache_key)
-      end
+    expected_nonce = current_email_otp_session_data&.fetch("nonce", nil)
     return true if rs.present? && expected_nonce.present? && params[:id] == expected_nonce
 
     safe_redirect_to(

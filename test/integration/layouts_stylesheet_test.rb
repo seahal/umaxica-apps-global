@@ -6,13 +6,21 @@ require "test_helper"
 class StylesheetTagsTest < ActiveSupport::TestCase
   VITE_LAYOUT_PATHS = [
     ["app/views/layouts/application.html.erb", "application"],
-    ["app/views/layouts/acme/app/application.html.erb", "acme/app"],
-    ["app/views/layouts/acme/com/application.html.erb", "acme/com"],
-    ["app/views/layouts/acme/org/application.html.erb", "acme/org"],
-    ["app/views/layouts/sign/app/application.html.erb", "sign/app"],
-    ["app/views/layouts/sign/com/application.html.erb", "sign/com"],
-    ["app/views/layouts/sign/org/application.html.erb", "sign/org"],
-    ["app/views/core/dev/roots/index.html.erb", "core/dev"],
+    ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
+    ["app/views/layouts/acme/com/application.html.erb", "entrypoints/acme/com"],
+    ["app/views/layouts/acme/org/application.html.erb", "entrypoints/acme/org"],
+    ["app/views/layouts/sign/app/application.html.erb", "entrypoints/sign/app"],
+    ["app/views/layouts/sign/com/application.html.erb", "entrypoints/sign/com"],
+    ["app/views/layouts/sign/org/application.html.erb", "entrypoints/sign/org"],
+    ["app/views/core/dev/roots/index.html.erb", "entrypoints/core/dev"],
+  ].freeze
+  TURNSTILE_LAYOUT_PATHS = [
+    "app/views/layouts/acme/app/application.html.erb",
+    "app/views/layouts/acme/com/application.html.erb",
+    "app/views/layouts/acme/org/application.html.erb",
+    "app/views/layouts/sign/app/application.html.erb",
+    "app/views/layouts/sign/com/application.html.erb",
+    "app/views/layouts/sign/org/application.html.erb",
   ].freeze
 
   test "layouts do not use stylesheet_link_tag for web ui css" do
@@ -21,8 +29,9 @@ class StylesheetTagsTest < ActiveSupport::TestCase
 
       assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
       assert_includes contents, "csp_meta_tag", "missing CSP nonce meta tag in #{path}"
-      assert_includes contents, "vite_client_tag", "missing Vite client in #{path}"
-      assert_includes contents, "vite_react_refresh_tag", "missing React refresh preamble in #{path}"
+      assert_includes contents, "vite_client_tag nonce: true", "Vite client must carry a CSP nonce in #{path}"
+      assert_includes contents, "vite_react_refresh_tag nonce: true",
+                      "React refresh preamble must carry a CSP nonce in #{path}"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
                       "missing Vite entrypoint in #{path}"
     end
@@ -35,6 +44,31 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     gemfile = Rails.root.join("Gemfile").read
 
     assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
+  end
+
+  test "sign and acme layouts own turnstile api loading" do
+    TURNSTILE_LAYOUT_PATHS.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, 'render "layouts/shared/cloudflare_turnstile_api"',
+                      "Turnstile API loading must be layout-owned in #{path}"
+    end
+  end
+
+  test "turnstile widget partials do not load the api script" do
+    paths = [
+      "app/views/shared/_cloudflare_turnstile_visible.html.erb",
+      "app/views/shared/_cloudflare_turnstile_stealth.html.erb",
+    ]
+
+    paths.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_not_includes contents, "cloudflare_turnstile_api",
+                          "Turnstile widget partials must not own API script loading in #{path}"
+      assert_not_includes contents, "challenges.cloudflare.com/turnstile/v0/api.js",
+                          "Turnstile widget partials must not load external scripts in #{path}"
+    end
   end
 
   test "development can serve vite auto-build output" do

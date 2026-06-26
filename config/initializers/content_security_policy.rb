@@ -51,7 +51,7 @@ Rails.application.configure do
     policy.img_src(:self, :https, :data)
     policy.manifest_src(:self)
     policy.object_src(:none)
-    policy.script_src(:self, "https://challenges.cloudflare.com")
+    policy.script_src(:self, :strict_dynamic, "https://challenges.cloudflare.com")
     # Allow @vite/client to hot reload javascript changes in development
     # policy.script_src *policy.script_src, :unsafe_eval,
     #   "http://#{ViteRuby.config.host_with_port}" if Rails.env.development?
@@ -59,7 +59,6 @@ Rails.application.configure do
     # You may need to enable this in production as well depending on your setup.
     #    policy.script_src *policy.script_src, :blob if Rails.env.test?
 
-    policy.script_src_elem(:self, "https://challenges.cloudflare.com", "https://static.cloudflareinsights.com")
     policy.style_src(:self, :https)
     # Allow @vite/client to hot reload style changes in development
     #    policy.style_src *policy.style_src, :unsafe_inline if Rails.env.development?
@@ -74,7 +73,7 @@ Rails.application.configure do
   end
 
   config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
-  config.content_security_policy_nonce_directives = %w(script-src script-src-elem style-src style-src-elem)
+  config.content_security_policy_nonce_directives = %w(script-src style-src style-src-elem)
   config.content_security_policy_nonce_auto = true
   config.content_security_policy_report_only = false
 end

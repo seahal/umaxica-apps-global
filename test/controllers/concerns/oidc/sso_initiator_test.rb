@@ -101,6 +101,45 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_equal "/oidc/sso?ri=jp", pending_flow.fetch("pt")
   end
 
+  test "token endpoint uses local rails port for local public Acme hosts" do
+    controller = OidcSsoInitiatorTestController.new
+    controller.request = ActionDispatch::TestRequest.create(
+      "HTTP_HOST" => "id.umaxica.app",
+      "HTTPS" => "on",
+    )
+
+    with_env("PORT" => "3000") do
+      assert_equal "http://www.umaxica.app:3000/oauth/token", controller.send(:oidc_token_url)
+    end
+  end
+
+  test "token endpoint keeps public https origin outside local environments" do
+    controller = OidcSsoInitiatorTestController.new
+    controller.request = ActionDispatch::TestRequest.create(
+      "HTTP_HOST" => "id.umaxica.app",
+      "HTTPS" => "on",
+    )
+
+    Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      assert_equal "https://www.umaxica.app/oauth/token", controller.send(:oidc_token_url)
+    end
+  end
+
+  test "token endpoint local rewrite is limited to configured Acme hosts" do
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www-jp.umaxica.app" }
+    controller = OidcSsoInitiatorTestController.new
+    controller.request = ActionDispatch::TestRequest.create(
+      "HTTP_HOST" => "id.umaxica.app",
+      "HTTPS" => "on",
+    )
+
+    with_env("PORT" => "3000") do
+      assert_equal "https://www-jp.umaxica.app/oauth/token", controller.send(:oidc_token_url)
+    end
+  ensure
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.app" }
+  end
+
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do
     OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.com" }
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
@@ -191,5 +230,20 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert called
+  end
+
+  private
+
+  def with_env(values)
+    previous = {}
+    values.each do |key, value|
+      previous[key] = ENV[key]
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
+    yield
+  ensure
+    previous.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
   end
 end

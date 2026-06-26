@@ -46,7 +46,9 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"],
                     ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
     assert_includes response.headers["Content-Security-Policy"], "connect-src 'self' https: ws: wss:"
-    assert_includes response.headers["Content-Security-Policy"], "script-src 'self' https://challenges.cloudflare.com"
+    assert_includes response.headers["Content-Security-Policy"], "script-src 'self' 'strict-dynamic'"
+    assert_not_includes response.headers["Content-Security-Policy"], "script-src-elem"
+    assert_includes response.headers["Content-Security-Policy"], "https://challenges.cloudflare.com"
     assert_no_match(/script-src[^;]*\shttps:(?:\s|;|$)/, response.headers["Content-Security-Policy"])
     assert_not_includes response.headers["Content-Security-Policy"], "'unsafe-inline'"
     assert_equal "credentialless", response.headers["Cross-Origin-Embedder-Policy"]
@@ -60,14 +62,5 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_not_includes response.headers["Permissions-Policy"], "bluetooth"
     assert_not_includes response.headers["Permissions-Policy"], "publickey-credentials-create"
     assert_no_match(/,\s+/, response.headers["Permissions-Policy"])
-  end
-
-  test "acme app root does not load turnstile script until a form needs it" do
-    host! ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-
-    get acme_app_root_url(ri: "jp")
-
-    assert_response :success
-    assert_no_match(/challenges\.cloudflare\.com\/turnstile/, response.body)
   end
 end

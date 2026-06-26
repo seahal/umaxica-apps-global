@@ -64,7 +64,7 @@ module SignComVerificationBase
     end
 
     def clear_step_up_state!
-      Rails.cache.delete(email_otp_cache_key) if current_step_up_session.present?
+      session.delete(email_otp_session_key) if step_up_session_storage_available?
     end
 
     def verification_model
@@ -129,12 +129,11 @@ module SignComVerificationBase
         return false
       end
 
-      secret_credential, counter, pass_code = generate_hotp_code
-      Rails.cache.write(
-        email_otp_cache_key, {
-          "secret_credential" => secret_credential,
-          "counter" => counter,
-        }, expires_in: [current_step_up_session.discarded_at - Time.current, 0].max,
+      _secret_credential, _counter, pass_code = generate_hotp_code
+      write_email_otp_session_data!(
+        (current_email_otp_session_data || {}).merge(
+          "otp_digest" => email_otp_digest(pass_code),
+        ),
       )
 
       enqueue_step_up_email_otp!(

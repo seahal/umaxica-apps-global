@@ -179,7 +179,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
   end
 
-  test "new resends otp when otp cache is already active" do
+  test "new resends otp when otp session is already active" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
@@ -187,7 +187,13 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         headers: @headers
 
     assert_response :success
-    cache_email_otp!
+    get new_sign_app_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
@@ -203,7 +209,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_match %r{/verification/emails/.+/edit}, response.location
   end
 
-  test "edit sends otp when nonce is valid but otp cache is missing" do
+  test "edit sends otp when nonce is valid but otp session is missing" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
@@ -213,11 +219,12 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_response :success
 
     nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
 
     StepUpAvailableMethods.stub(:call, []) do
-      assert_enqueued_emails 1 do
-        get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
+      with_email_nonce_stub(true) do
+        assert_enqueued_emails 1 do
+          get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
+        end
       end
     end
 
@@ -225,7 +232,7 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_select "input[name='verification[code]']"
   end
 
-  test "edit does not resend otp when otp cache is already active" do
+  test "edit does not resend otp when otp session is already active" do
     return_to = sign_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
@@ -234,9 +241,14 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
-    cache_email_otp!
+    get new_sign_app_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     StepUpAvailableMethods.stub(:call, []) do
       assert_enqueued_emails 0 do
@@ -266,7 +278,6 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
         assert_response :redirect
         nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
-        cache_email_nonce!(nonce)
 
         with_email_nonce_stub(true) do
           with_verify_email_otp_stub(true) do
@@ -278,7 +289,6 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
             assert_includes response.body, "step-up-completion-form"
             assert_nil @token.reload.step_up_session
             # sign no longer writes freshness; acme commits it on completion (asserted below).
-            assert_nil Rails.cache.read(email_otp_cache_key_for_id(@step_up_session_id))
 
             submit_step_up_completion_if_present!(
               host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
@@ -307,8 +317,14 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_app_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     patch sign_app_verification_email_url(nonce, ri: "jp"),
           params: { verification: { code: "000000" } },
@@ -337,8 +353,14 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_app_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
       post sign_app_verification_email_redelivery_url(
@@ -353,7 +375,6 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=settings_email},
                  response.location
     assert_equal I18n.t("otp.resend.sent"), flash[:notice]
-    assert Rails.cache.exist?(email_otp_cache_key)
   end
 
   test "resend is rate limited" do
@@ -365,8 +386,14 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     assert_response :success
 
-    nonce = SecureRandom.urlsafe_base64(16)
-    cache_email_nonce!(nonce)
+    get new_sign_app_verification_email_url(
+      ri: "jp",
+      scope: "settings_email",
+      pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
+    ), headers: @headers
+
+    assert_response :redirect
+    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
       post sign_app_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
@@ -440,29 +467,6 @@ class Sign::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     yield
   ensure
     Sign::App::Verification::EmailsController.define_method(:require_email_nonce!, original_method)
-  end
-
-  def cache_email_nonce!(nonce)
-    rs = current_step_up_session
-    Rails.cache.write("step_up_session:#{rs.id}:email_nonce", nonce, expires_in: 15.minutes)
-  end
-
-  def cache_email_otp!
-    rs = current_step_up_session
-    Rails.cache.write(
-      "step_up_session:#{rs.id}:email_otp",
-      { "secret_credential" => "secret_credential", "counter" => 0 },
-      expires_in: 15.minutes,
-    )
-  end
-
-  def email_otp_cache_key
-    rs = current_step_up_session
-    "step_up_session:#{rs.id}:email_otp"
-  end
-
-  def email_otp_cache_key_for_id(id)
-    "step_up_session:#{id}:email_otp"
   end
 
   def current_step_up_session

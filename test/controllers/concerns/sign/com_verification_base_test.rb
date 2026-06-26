@@ -10,12 +10,15 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
 
   class Harness
     include SignVerificationStepUpSessionStore
+    include SignEmailOtpVerificationSupport
     include SignComVerificationBase::Overrides
 
     ALLOWED_SCOPES = SignComVerificationBase::ALLOWED_SCOPES
     STEP_UP_TTL = SignComVerificationBase::STEP_UP_TTL
+    EMAIL_OTP_RESEND_COOLDOWN = SignEmailOtpVerificationSupport::EMAIL_OTP_RESEND_COOLDOWN
 
-    attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp
+    attr_accessor :visitor, :visitor_token, :params_hash, :redirect_args, :restore_result, :generated_hotp,
+                  :session_hash
 
     def initialize(visitor:, visitor_token: nil)
       @visitor = visitor
@@ -23,6 +26,7 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
       @params_hash = {}
       @restore_result = false
       @generated_hotp = ["secret_credential", 1, "123456"]
+      @session_hash = {}
     end
 
     def current_visitor = visitor
@@ -32,6 +36,8 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     def current_session_token = visitor_token
 
     def params = params_hash.with_indifferent_access
+
+    def session = session_hash
 
     def safe_internal_path(path)
       (path.to_s.start_with?("/") && !path.to_s.start_with?("//")) ? path : nil
@@ -59,10 +65,6 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
 
     def generate_hotp_code
       generated_hotp
-    end
-
-    def email_otp_cache_key
-      "step_up_session:#{current_step_up_session.id}:email_otp"
     end
   end
 
@@ -136,16 +138,19 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     assert_not harness.send(:valid_step_up_session?, valid_session.dup.tap { |rs| rs.return_to = "" })
   end
 
-  test "handle_invalid_step_up_session clears cache and redirects when restore fails" do
+  test "handle_invalid_step_up_session clears session state and redirects when restore fails" do
     visitor = create_verified_visitor_with_email(email_address: "com-invalid-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor)
     harness = Harness.new(visitor: visitor, visitor_token: token)
     harness.params_hash = { ri: "jp" }
-    step_up_session = create_visitor_step_up_session(visitor_token: token)
-    Rails.cache.write("step_up_session:#{step_up_session.id}:email_otp", { "secret_credential" => "old" })
+    create_visitor_step_up_session(visitor_token: token)
+    harness.send(
+      :write_email_otp_session_data!,
+      { "otp_digest" => harness.send(:email_otp_digest, "123456") },
+    )
 
     assert_not harness.send(:handle_invalid_step_up_session!)
-    assert_nil Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp")
+    assert_nil harness.session[:sign_step_up_email_otp]
     assert_match "/verification?", harness.redirect_args.first.first
   end
 
@@ -199,11 +204,10 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
     step_up_session = create_visitor_step_up_session(visitor_token: token)
 
     assert harness.send(:send_email_otp!)
-    assert_equal(
-      { "secret_credential" => "secret_credential",
-        "counter" => 1, },
-      Rails.cache.read("step_up_session:#{step_up_session.id}:email_otp"),
-    )
+    payload = harness.session.fetch(:sign_step_up_email_otp)
+
+    assert_equal step_up_session.id, payload.fetch("step_up_session_id")
+    assert_equal harness.send(:email_otp_digest, "123456"), payload.fetch("otp_digest")
   end
 
   private

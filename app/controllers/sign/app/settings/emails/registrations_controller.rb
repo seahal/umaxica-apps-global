@@ -62,7 +62,10 @@ module Sign
 
           def after_email_registration_verified_path
             email_registration_return_path(
-              "https://#{oidc_acme_host}/preference?ri=#{params[:ri]}",
+              sign_app_settings_emails_url(
+                ri: params[:ri],
+                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+              ),
             )
           end
 

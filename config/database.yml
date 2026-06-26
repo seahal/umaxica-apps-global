@@ -295,6 +295,7 @@ test:
     schema_dump: com_principal_structure.sql
   com_principal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_com_principal_replica_db
     host: <%= test_host %>
     migrations_paths: db/com_principals_migrate
@@ -306,6 +307,7 @@ test:
     migrations_paths: db/com_zenith_migrate
   com_zenith_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_com_zenith_replica_db
     host: <%= test_host %>
     migrations_paths: db/com_zenith_migrate
@@ -317,6 +319,7 @@ test:
     migrations_paths: db/app_zenith_migrate
   app_zenith_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_app_zenith_replica_db
     host: <%= test_host %>
     migrations_paths: db/app_zenith_migrate
@@ -328,6 +331,7 @@ test:
     migrations_paths: db/org_zenith_migrate
   org_zenith_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_org_zenith_replica_db
     host: <%= test_host %>
     migrations_paths: db/org_zenith_migrate
@@ -339,6 +343,7 @@ test:
     migrations_paths: db/app_principals_migrate
   app_principal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_app_principal_replica_db
     host: <%= test_host %>
     migrations_paths: db/app_principals_migrate
@@ -351,6 +356,7 @@ test:
     schema_dump: app_setting_structure.sql
   app_setting_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_app_setting_replica_db
     host: <%= test_host %>
     migrations_paths: db/app_settings_migrate
@@ -363,6 +369,7 @@ test:
     schema_dump: org_setting_structure.sql
   org_setting_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_org_setting_replica_db
     host: <%= test_host %>
     migrations_paths: db/org_settings_migrate
@@ -375,6 +382,7 @@ test:
     schema_dump: com_setting_structure.sql
   com_setting_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_com_setting_replica_db
     host: <%= test_host %>
     migrations_paths: db/com_settings_migrate
@@ -386,6 +394,7 @@ test:
     migrations_paths: db/searches_migrate
   search_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_search_replica_db
     host: <%= test_host %>
     migrations_paths: db/searches_migrate
@@ -397,6 +406,7 @@ test:
     migrations_paths: db/org_tickets_migrate
   org_ticket_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_org_ticket_replica_db
     host: <%= test_host %>
     migrations_paths: db/org_tickets_migrate
@@ -408,6 +418,7 @@ test:
     migrations_paths: db/com_tickets_migrate
   com_ticket_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_com_ticket_replica_db
     host: <%= test_host %>
     migrations_paths: db/com_tickets_migrate
@@ -419,6 +430,7 @@ test:
     migrations_paths: db/app_tickets_migrate
   app_ticket_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_app_ticket_replica_db
     host: <%= test_host %>
     migrations_paths: db/app_tickets_migrate
@@ -430,6 +442,7 @@ test:
     migrations_paths: db/app_signals_migrate
   app_signal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_app_signal_replica_db
     host: <%= test_host %>
     migrations_paths: db/app_signals_migrate
@@ -441,6 +454,7 @@ test:
     migrations_paths: db/org_signals_migrate
   org_signal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_org_signal_replica_db
     host: <%= test_host %>
     migrations_paths: db/org_signals_migrate
@@ -452,6 +466,7 @@ test:
     migrations_paths: db/com_signals_migrate
   com_signal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_com_signal_replica_db
     host: <%= test_host %>
     migrations_paths: db/com_signals_migrate
@@ -463,6 +478,7 @@ test:
     migrations_paths: db/caches_migrate
   cache_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_cache_replica_db
     host: <%= test_host %>
     migrations_paths: db/caches_migrate
@@ -474,6 +490,7 @@ test:
     migrations_paths: db/queues_migrate
   queue_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_queue_replica_db
     host: <%= test_host %>
     migrations_paths: db/queues_migrate
@@ -485,6 +502,7 @@ test:
     migrations_paths: db/storages_migrate
   storage_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_storage_replica_db
     host: <%= test_host %>
     migrations_paths: db/storages_migrate
@@ -496,6 +514,7 @@ test:
     migrations_paths: db/occurrences_migrate
   occurrence_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_occurrence_replica_db
     host: <%= test_host %>
     migrations_paths: db/occurrences_migrate
@@ -508,6 +527,7 @@ test:
     schema_dump: chronicle_structure.sql
   chronicle_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_chronicle_replica_db
     host: <%= test_host %>
     migrations_paths: db/chronicle_migrate
@@ -519,6 +539,7 @@ test:
     migrations_paths: db/org_principals_migrate
   org_principal_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_org_principal_replica_db
     host: <%= test_host %>
     migrations_paths: db/org_principals_migrate
@@ -530,6 +551,7 @@ test:
     migrations_paths: db/avatars_migrate
   avatar_replica:
     !!merge <<: *test_default
+    replica: true
     database: test_avatar_replica_db
     host: <%= test_host %>
     migrations_paths: db/avatars_migrate

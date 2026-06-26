@@ -16,6 +16,7 @@ class CloudflareTurnstileVisiblePartialTest < ActionView::TestCase
     assert_select "[data-turnstile-action-value='social_signup_confirmation']"
     assert_select "[data-turnstile-cdata-value='cycle-public-id']"
     assert_select "input[name='cf-turnstile-response'][type='hidden']"
+    assert_no_match(/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/, rendered)
   end
 
   test "omits ceremony binding attributes by default" do
@@ -24,5 +25,6 @@ class CloudflareTurnstileVisiblePartialTest < ActionView::TestCase
     assert_select "[data-controller='turnstile'][data-turnstile-mode-value='render']"
     assert_select "[data-turnstile-action-value]", false
     assert_select "[data-turnstile-cdata-value]", false
+    assert_no_match(/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/, rendered)
   end
 end

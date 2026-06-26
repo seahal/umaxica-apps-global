@@ -9,6 +9,10 @@ class Sign::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   include RootThemeCookieHelper
 
+  setup do
+    host! ENV.fetch("SIGN_STAFF_URL", "sign.org.localhost")
+  end
+
   test "GET / renders root page" do
     get sign_org_root_url(ri: "jp")
 

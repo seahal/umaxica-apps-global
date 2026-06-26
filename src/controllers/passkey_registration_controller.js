@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus";
 
+import { waitForTurnstileApi } from "./turnstile_api";
 import { normalizePublicKeyOptions } from "./webauthn_utils";
 
 // Passkey Registration Controller
@@ -172,38 +173,8 @@ export default class extends Controller {
       return this.turnstileResponseTarget.value;
     }
 
-    await this.ensureTurnstileScriptLoaded();
+    await waitForTurnstileApi(this.turnstileErrorMessageValue);
     return this.requestTurnstileToken();
-  }
-
-  ensureTurnstileScriptLoaded() {
-    return new Promise((resolve, reject) => {
-      if (window.turnstile) {
-        resolve();
-        return;
-      }
-
-      const existingScript = document.querySelector(
-        "script[src*='challenges.cloudflare.com/turnstile']",
-      );
-      if (existingScript) {
-        existingScript.addEventListener("load", () => resolve(), { once: true });
-        existingScript.addEventListener(
-          "error",
-          () => reject(new Error(this.turnstileErrorMessageValue)),
-          { once: true },
-        );
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(this.turnstileErrorMessageValue));
-      document.head.appendChild(script);
-    });
   }
 
   requestTurnstileToken() {
@@ -225,7 +196,9 @@ export default class extends Controller {
           "error-callback": () => reject(new Error(this.turnstileErrorMessageValue)),
           "expired-callback": () => reject(new Error(this.turnstileErrorMessageValue)),
         });
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Turnstile token request failed:", error);
         reject(new Error(this.turnstileErrorMessageValue));
       }
     });

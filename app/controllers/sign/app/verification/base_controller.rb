@@ -29,6 +29,7 @@ module Sign
         before_action :enforce_step_up_prereqs!
         skip_before_action :enforce_verification_if_required
         before_action :authorize_verification_actor!
+        helper_method :current_step_up_scope, :current_step_up_pt_param
 
         private
 
@@ -66,7 +67,7 @@ module Sign
         end
 
         def clear_step_up_state!
-          Rails.cache.delete(email_otp_cache_key) if current_step_up_session.present?
+          session.delete(email_otp_session_key) if step_up_session_storage_available?
         end
 
         def verification_model

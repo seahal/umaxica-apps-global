@@ -1,8 +1,8 @@
 <% content_for :page_title, t("sign.app.verification.index.title") %>
 <% title t("sign.app.verification.index.title") %>
 <% verification_method_params = { ri: params[:ri] } %>
-<% verification_method_params[:scope] = params[:scope] if params[:scope].present? %>
-<% verification_method_params[:pt] = params[:pt].presence || params[:pt].presence if params[:pt].present? || params[:pt].present? %>
+<% verification_method_params[:scope] = current_step_up_scope if current_step_up_scope.present? %>
+<% verification_method_params[:pt] = current_step_up_pt_param if current_step_up_pt_param.present? %>
 
 <div>
   <div>
