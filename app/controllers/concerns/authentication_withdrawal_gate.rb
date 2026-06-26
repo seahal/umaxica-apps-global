@@ -29,17 +29,25 @@ module AuthenticationWithdrawalGate
     end
 
     # HTML: redirect to the withdrawal lifecycle surface
-    safe_redirect_to(withdrawal_gate_redirect_path, fallback: "/settings/withdrawal", status: :found)
+    safe_redirect_to(withdrawal_gate_redirect_path, fallback: acme_withdrawal_gate_redirect_path, status: :found)
   end
 
   def withdrawal_gate_allowlisted?
-    return true if controller_path.end_with?("settings/withdrawals") && %w(show new edit update
-                                                                           create destroy).include?(action_name)
+    return true if withdrawal_controller_allowlisted?
 
     # Allowlist: health/assets (rarely needed but safe)
     return true if controller_path == "rails/health"
 
     false
+  end
+
+  def withdrawal_controller_allowlisted?
+    %w(
+      sign/app/settings/withdrawals
+      sign/com/settings/withdrawals
+      sign/org/settings/withdrawals
+      acme/app/identity/withdrawals
+    ).include?(controller_path) && %w(show new edit update create destroy).include?(action_name)
   end
 
   def withdrawal_restricted_resource?(resource)
@@ -55,8 +63,9 @@ module AuthenticationWithdrawalGate
     return edit_sign_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
     return edit_sign_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
     return sign_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
+    return edit_acme_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("acme/app/")
 
-    "/settings/withdrawal"
+    acme_withdrawal_gate_redirect_path
   rescue StandardError => e
     Rails.logger.error(
       JitLogEvent.format(
@@ -64,6 +73,20 @@ module AuthenticationWithdrawalGate
                                                        exception: e,
       ),
     )
-    "/settings/withdrawal"
+    acme_withdrawal_gate_redirect_path
+  end
+
+  def withdrawal_gate_api_redirect_path
+    ri = params[AuthIoKeys::Params::RI]
+    return sign_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
+    return sign_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
+    return sign_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
+    return acme_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("acme/app/")
+
+    acme_app_identity_withdrawal_path(ri: ri)
+  end
+
+  def acme_withdrawal_gate_redirect_path
+    edit_acme_app_identity_withdrawal_path(ri: params[AuthIoKeys::Params::RI])
   end
 end

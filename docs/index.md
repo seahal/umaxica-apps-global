@@ -46,6 +46,7 @@ Current content-model references:
 - `docs/security/social-callback-boundary.md`
 - `docs/security/logout-session-management.md`
 - `docs/security/preference-settings-authority.md`
+- `docs/architecture/sign-settings-to-acme-identity.md`
 - `docs/security/downstream-token-authority.md`
 - `docs/security/redirect-vs-ceremony-result.md`
 - `docs/qa/identity-authority-regression-checklist.md`

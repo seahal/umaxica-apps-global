@@ -10,14 +10,14 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     host! @host
 
-    @deactivated_user = clients(:one)
-    @deactivated_user.update!(
+    @deactivated_user = Client.create!(
+      status_id: ClientStatus::ACTIVE,
+      visibility_id: ClientVisibility::USER,
       withdrawal_started_at: 1.day.ago,
       deactivated_at: Time.current,
       discarded_at: Time.current,
       purged_at: 31.days.from_now,
     )
-    ClientToken.where(user: @deactivated_user).delete_all
 
     @token = ClientToken.create!(
       user: @deactivated_user,
@@ -28,33 +28,38 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     )
     satisfy_user_verification(@token)
     mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @deactivated_user)
+    AcmeSelectorAuthority.prepare(surface: :app, principal: @deactivated_user, session: @token)
 
     @headers = {
+      "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       "X-TEST-CURRENT-USER" => @deactivated_user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
   end
 
   test "deactivated user accessing normal page redirects to withdrawal status" do
-    get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+    get acme_app_identity_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
         headers: @headers
 
     assert_response :redirect
-    assert_redirected_to edit_sign_app_settings_withdrawal_path(ri: "jp")
+    assert_redirected_to edit_acme_app_identity_withdrawal_path(ri: "jp")
   end
 
   test "deactivated user can access allowlisted pages" do
-    get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
+    get new_acme_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+        headers: @headers
 
     assert_response :success
 
-    get edit_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
+    get edit_acme_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+        headers: @headers
 
     assert_response :success
   end
 
   test "deactivated user accessing API returns 403" do
-    get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+    get acme_app_identity_sessions_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
         headers: @headers.merge("Accept" => "application/json")
 
     assert_response :forbidden
@@ -64,9 +69,10 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "normal user can access pages without withdrawal gate" do
-    normal_user = clients(:two)
-    normal_user.update!(status_id: ClientStatus::NOTHING)
-
+    normal_user = Client.create!(
+      status_id: ClientStatus::ACTIVE,
+      visibility_id: ClientVisibility::USER,
+    )
     normal_token = ClientToken.create!(
       user: normal_user,
       user_token_status_id: ClientTokenStatus::NOTHING,
@@ -75,13 +81,16 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       discarded_at: 1.day.from_now,
     )
     satisfy_user_verification(normal_token)
+    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: normal_user)
+    AcmeSelectorAuthority.prepare(surface: :app, principal: normal_user, session: normal_token)
 
     headers = {
+      "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       "X-TEST-CURRENT-USER" => normal_user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => normal_token.public_id,
     }
 
-    get sign_app_settings_url(ri: "jp"), headers: headers
+    get acme_app_identity_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")), headers: headers
 
     assert_response :success
   end

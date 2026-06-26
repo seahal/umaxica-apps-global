@@ -10,7 +10,7 @@ module Sign
 
       def show
         authorize!(current_client, to: :show?)
-        render "sign/app/settings/show"
+        redirect_to(acme_app_identity_url(ri: params[:ri]), status: :see_other)
       end
     end
   end

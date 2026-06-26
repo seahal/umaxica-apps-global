@@ -12,17 +12,9 @@ module Sign
 
           # Object-level authorization (ActionPolicy): the MFA-reset surface is account-self; gate
           # owner-self via ClientPolicy#show? (read) / #update? (the reset write, currently disabled).
-          def show
-            authorize!(current_client, to: :show?)
-          end
+          def show = redirect_to(acme_app_identity_mfa_reset_path(ri: params[:ri]), status: :see_other)
 
-          def create
-            authorize!(current_client, to: :update?)
-            redirect_to(
-              sign_app_settings_mfa_reset_path(ri: params[:ri]),
-              alert: t("sign.app.settings.mfa.show.reset_unavailable"),
-            )
-          end
+          def create = head(:gone)
         end
       end
     end

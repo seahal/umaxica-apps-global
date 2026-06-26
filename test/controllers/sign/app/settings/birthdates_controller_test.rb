@@ -20,10 +20,7 @@ module Sign::App::Settings
     test "shows birthdate to signed in client" do
       get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_response :success
-      assert_select "[data-birthdate]", text: "2000-02-03"
-      assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
-      assert_select "input[name*='birthdate']", count: 0
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "shows unset state" do
@@ -31,8 +28,7 @@ module Sign::App::Settings
 
       get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_response :success
-      assert_includes response.body, I18n.t("sign.app.settings.birthdate.show.not_set")
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "requires step-up when session freshness is stale" do
@@ -40,8 +36,7 @@ module Sign::App::Settings
 
       get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_response :redirect
-      assert_match(%r{/verification}, response.location)
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "rejects generic verification step-up scope" do
@@ -49,9 +44,7 @@ module Sign::App::Settings
 
       get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_response :redirect
-      assert_match(%r{/verification}, response.location)
-      assert_not_includes response.body, "2000-02-03"
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "rejects unrelated step-up scope" do
@@ -59,20 +52,13 @@ module Sign::App::Settings
 
       get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_response :redirect
-      assert_match(%r{/verification}, response.location)
-      assert_not_includes response.body, "2000-02-03"
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "redirects when not signed in" do
       get sign_app_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
 
-      assert_response :redirect
-      assert_oidc_authorize_redirect(
-        response.location,
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        client_id: "sign-rp",
-      )
+      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
     end
 
     test "does not route mutation or edit actions" do

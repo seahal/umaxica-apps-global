@@ -15,67 +15,21 @@ module Sign
         before_action :authenticate_client!
         before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
 
-        def new
-          render_withdrawal_entry(current_client)
-          render "sign/app/settings/withdrawals/new" unless performed?
-        end
+        def new = redirect_to(new_acme_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
 
-        def edit
-          render_withdrawal_status(current_client)
-          render "sign/app/settings/withdrawals/edit" unless performed?
-        end
+        def edit = redirect_to(edit_acme_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
 
-        def create
-          recover_withdrawal!(current_client)
-        end
+        def create = head(:gone)
 
-        def update
-          update_withdrawal!(current_client)
-        end
+        def update = head(:gone)
 
-        def destroy
-          terminate_withdrawal!(current_client)
-        end
+        def destroy = head(:gone)
 
         private
 
-        def authorize_withdrawal!
-          authorize!(current_client, to: :"#{action_name}?", with: ClientWithdrawalPolicy)
-        end
+        def authorize_withdrawal! = authorize!(current_client, to: :"#{action_name}?", with: ClientWithdrawalPolicy)
 
-        def withdrawal_new_path(extra_params = {})
-          new_sign_app_settings_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
-        end
-
-        def withdrawal_edit_path
-          edit_sign_app_settings_withdrawal_path(ri: params[:ri])
-        end
-
-        def withdrawal_settings_path
-          sign_app_settings_withdrawal_path(ri: params[:ri])
-        end
-
-        def handle_deactivation_failure(actor)
-          Rails.logger.info(
-            JitLogEvent.format(
-              "user.withdrawal.suspension_failed",
-              user_id: actor.id,
-              errors: actor.errors.full_messages,
-              ip_address: request.remote_ip,
-            ),
-          )
-          @schedule_confirmed = true
-          render "sign/app/settings/withdrawals/new", status: :unprocessable_content
-        end
-
-        def render_update_validation_error
-          @schedule_confirmed = true
-          render "sign/app/settings/withdrawals/new", status: :unprocessable_content
-        end
-
-        def verification_required_action? = true
-
-        def verification_scope = "withdrawal"
+        def verification_required_action? = false
       end
     end
   end

@@ -12,47 +12,15 @@ module Sign
 
         helper_method :current_session_record?
 
-        def index
-          @sessions = visible_sessions.order(created_at: :desc)
-        end
+        def index = redirect_to(acme_app_identity_sessions_path(ri: params[:ri]), status: :see_other)
 
-        def show
-          render :show
-        end
+        def show = redirect_to(acme_app_identity_session_path(params.expect(:id), ri: params[:ri]), status: :see_other)
 
-        def destroy
-          return redirect_to(
-            sign_app_settings_sessions_path(ri: params[:ri]),
-            status: :see_other,
-          ) if current_session_record?(@session)
-
-          revoke_selected_session!(@session)
-          redirect_to(sign_app_settings_sessions_path(ri: params[:ri]), status: :see_other)
-        end
+        def destroy = head(:gone)
 
         private
 
-        def visible_sessions
-          current_client.client_tokens.session_inventory
-        end
-
-        def set_session
-          @session = visible_sessions.find_by!(public_id: params.expect(:id))
-        end
-
-        def current_session_record?(session)
-          session&.public_id == current_session_public_id
-        end
-
-        def revoke_selected_session!(session)
-          AuthenticationSelectedSessionRevoker.call(
-            owner: current_client,
-            token: session,
-            current_token: current_session,
-            current_session_public_id: current_session_public_id,
-            reason: "settings.session.revoke",
-          )
-        end
+        def visible_sessions = current_client.client_tokens.session_inventory
       end
     end
   end

@@ -20,7 +20,7 @@ module Sign
           before_action :preserve_email_registration_redirect_parameter, only: :create
           step_up only: :create, bootstrap: true
 
-          def create = resend
+          def create = head(:gone)
 
           private
 

@@ -1,0 +1,15 @@
+# typed: false
+# frozen_string_literal: true
+
+module Acme
+  module App
+    module Identity
+      module Secrets
+        class RemovalsController < BaseController
+          before_action :authenticate_client!
+          def create = head(:not_implemented)
+        end
+      end
+    end
+  end
+end

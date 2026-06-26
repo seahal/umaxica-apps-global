@@ -2,12 +2,8 @@
 # frozen_string_literal: true
 
 class Sign::App::Settings::Revocations::AllsController < ::Sign::App::ApplicationController
-  AUTHENTICATION_MODE = :private
+  AUTHENTICATION_MODE = :open
+  declare_authentication_mode! :open
 
-  before_action :authenticate_client!
-
-  def create
-    logout_all_sessions_for!(resource: current_client, reason: "settings.session.revoke_all")
-    redirect_to(sign_app_sign_out_path(ri: params[:ri]), status: :see_other)
-  end
+  def create = head(:gone)
 end

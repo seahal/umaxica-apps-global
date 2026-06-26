@@ -162,6 +162,46 @@ scope module: :acme, as: :acme do
 
       # Current identity entrypoint.
       resource :identity, only: :show
+      namespace :identity do
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :emails do
+          resource :registration, only: %i(new create edit update) do
+            resource :redelivery, only: :create
+          end
+        end
+
+        resources :telephones, only: %i(index new create edit destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resource :birthdate, only: :show
+        resource :recovery_secret, only: :show, path: "recovery-secret"
+
+        resources :secrets, only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
+        end
+
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
+
+        resources :activities, only: :index
+        resource :withdrawal, only: %i(new create edit update destroy)
+
+        namespace :mfa do
+          resource :challenge, only: %i(show update)
+          resource :reset, only: %i(show create)
+        end
+      end
 
       # Account / Organization / Avatar entity management (plural CRUD). Current-context
       # display and switching is consolidated into /switcher; there are intentionally no

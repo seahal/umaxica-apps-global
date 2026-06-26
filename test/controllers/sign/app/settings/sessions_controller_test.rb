@@ -13,17 +13,16 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
     @current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
   end
 
-  test "index renders sign session inventory" do
+  test "index redirects to acme identity session inventory" do
     get sign_app_settings_sessions_url(ri: "jp"), headers: session_headers
 
-    assert_response :ok
-    assert_includes response.body, @current_token.public_id
+    assert_redirected_to acme_app_identity_sessions_path(ri: "jp")
   end
 
   test "session revocation routes require authentication" do
     post sign_app_settings_session_revocation_url("missing-session", ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
+    assert_response :gone
     assert_predicate @current_token.reload, :currently_usable?
   end
 
@@ -32,8 +31,8 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
 
     post sign_app_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_app_settings_sessions_path(ri: "jp")
-    assert_not_predicate other_token.reload, :currently_usable?
+    assert_response :gone
+    assert_predicate other_token.reload, :currently_usable?
   end
 
   test "others revokes other sessions" do
@@ -41,9 +40,9 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
 
     post sign_app_settings_revocations_others_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_app_settings_sessions_path(ri: "jp")
+    assert_response :gone
     assert_predicate @current_token.reload, :currently_usable?
-    assert_not_predicate other_token.reload, :currently_usable?
+    assert_predicate other_token.reload, :currently_usable?
   end
 
   test "revoke all revokes every session" do
@@ -51,9 +50,9 @@ class Sign::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
 
     post sign_app_settings_revocations_all_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_app_sign_out_path(ri: "jp")
-    assert_not_predicate @current_token.reload, :currently_usable?
-    assert_not_predicate other_token.reload, :currently_usable?
+    assert_response :gone
+    assert_predicate @current_token.reload, :currently_usable?
+    assert_predicate other_token.reload, :currently_usable?
   end
 
   private

@@ -27,10 +27,11 @@ sign_routes do
       end
     end
 
+    # TODO: WHAT IS THIS?
     sign_rp_oidc_routes
 
     # Dashboard.
-    resource :dashboard, only: :show
+    resource :dashboard, only: :show # FIXME: DELETE THIS!
 
     # Public web API: OTP delivery, cookie consent, theme.
     namespace :web do
@@ -162,6 +163,7 @@ sign_routes do
 
       resources :totps, only: %i(index new create edit update destroy)
 
+      # TODO: ceche passkeys and passkey.
       resources :passkeys do
         resource :removal, only: :create
       end

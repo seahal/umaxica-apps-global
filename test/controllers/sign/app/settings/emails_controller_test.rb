@@ -22,13 +22,13 @@ class Sign::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_validation_response = nil
   end
 
-  test "sign settings emails index renders email list" do
+  test "sign settings emails index redirects to acme identity" do
     get sign_app_settings_emails_url(ri: "jp"), headers: session_headers
 
-    assert_response :ok
+    assert_redirected_to acme_app_identity_emails_path(ri: "jp")
   end
 
-  test "sign settings email edit renders form" do
+  test "sign settings email edit redirects to acme identity" do
     email = ClientEmail.create!(
       address: "sign-email-edit-form@example.com",
       user: clients(:one),
@@ -37,10 +37,10 @@ class Sign::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
 
-    assert_response :ok
+    assert_redirected_to edit_acme_app_identity_email_path(email.public_id, ri: "jp")
   end
 
-  test "sign settings email update mutates preferences on sign surface" do
+  test "sign settings email update is gone" do
     email = ClientEmail.create!(
       address: "sign-email-update-redirect@example.com",
       user: clients(:one),
@@ -53,30 +53,29 @@ class Sign::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
           params: { user_email: { promotional: "0", notifiable: "0" } },
           headers: session_headers
 
-    assert_redirected_to edit_sign_app_settings_email_path(email.public_id, ri: "jp")
-    assert_not email.reload.promotional
-    assert_not email.reload.notifiable
+    assert_response :gone
+    assert email.reload.promotional
+    assert email.reload.notifiable
   end
 
-  test "sign settings email destroy removes unverified email" do
+  test "sign settings email destroy is gone" do
     email = ClientEmail.create!(
       address: "sign-email-destroy-redirect@example.com",
       user: clients(:one),
       user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    assert_difference("ClientEmail.count", -1) do
+    assert_no_difference("ClientEmail.count") do
       delete sign_app_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to sign_app_settings_emails_path(ri: "jp")
+    assert_response :gone
   end
 
-  test "sign email registration route remains on sign ceremony surface" do
+  test "sign email registration route redirects to acme identity" do
     get new_sign_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
-    assert_equal "sign/app/settings/emails/registrations", @request.path_parameters[:controller]
-    assert_equal "new", @request.path_parameters[:action]
+    assert_redirected_to new_acme_app_identity_emails_registration_path(ri: "jp")
   end
 
   private

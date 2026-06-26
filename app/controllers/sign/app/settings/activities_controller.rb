@@ -13,37 +13,13 @@ module Sign
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
 
-        def index
-          @activities = activity_log.activities.limit(100)
-          render "sign/app/settings/activities/index"
-        rescue ActiveRecord::ActiveRecordError
-          @activities = ClientChronicle.none
-          render "sign/app/settings/activities/index"
-        end
+        def index = redirect_to(acme_app_identity_activities_path(ri: params[:ri]), status: :see_other)
 
-        def show
-          index
-        end
+        def show = redirect_to(acme_app_identity_activities_path(ri: params[:ri]), status: :see_other)
 
         private
 
-        def authorize_activity_log!
-          authorize!(ClientChronicle, to: :index?)
-        end
-
-        def activity_log = @activity_log ||= ::Sign::App::Settings::ActivityLog.new(current_client)
-
-        def activity_occurred_at(activity) = activity_log.occurred_at(activity)
-
-        def activity_event_label(activity) = activity_log.event_label(activity)
-
-        def activity_ip_address(activity) = activity_log.ip_address(activity)
-
-        def activity_context_text(activity) = activity_log.context_text(activity)
-
-        def activity_user_agent_summary(activity) = activity_log.user_agent_summary(activity)
-
-        def activity_login_method(activity) = activity_log.login_method(activity)
+        def authorize_activity_log! = authorize!(ClientChronicle, to: :index?)
       end
     end
   end

@@ -5,26 +5,10 @@ module Sign
   module App
     module Settings
       class BirthdatesController < ::Sign::App::ApplicationController
-        AUTHENTICATION_MODE = :private
+        AUTHENTICATION_MODE = :open
+        declare_authentication_mode! :open
 
-        before_action :authenticate_client!
-        # Object-level authorization (ActionPolicy): only the owner may view their own birthdate.
-        # Step-up freshness is still enforced separately below.
-        before_action :authorize_birthdate!, only: :show
-        step_up only: :show
-
-        def show
-        end
-
-        private
-
-        def authorize_birthdate!
-          authorize!(current_client, to: :show?)
-        end
-
-        def verification_scope
-          "settings_birthdate"
-        end
+        def show = redirect_to(acme_app_identity_birthdate_path(ri: params[:ri]), status: :see_other)
       end
     end
   end

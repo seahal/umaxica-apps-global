@@ -10,7 +10,10 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @staff = operators(:one)
+    @staff = Operator.create!(
+      status_id: OperatorStatus::ACTIVE,
+      visibility_id: OperatorVisibility::STAFF,
+    )
     @token = OperatorToken.create!(
       staff: @staff,
       staff_token_status_id: OperatorTokenStatus::NOTHING,
@@ -27,7 +30,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
   test "GET protected endpoint redirects to setup when configured methods are zero" do

@@ -10,9 +10,10 @@
 ## Current Boundary
 
 `acme/www` is the Session, Token, Account, Preference, Authorization, and downstream-token
-Authority.
+Authority. It also owns the general `/identity` settings surface that moved from Sign.
 
-`sign/id` is not the IdP. It is a Credential Gateway and Credential Ceremony Zone.
+`sign/id` is not the IdP. It is a Credential Gateway and Credential Ceremony Zone. Its remaining
+settings scope is limited to passkeys, TOTP, Google, and Apple.
 
 Logical authority moves now; physical DB movement is out of scope. Existing sign-side tables,
 models, namespaces, and route names do not imply sign-side authority.

@@ -15,23 +15,24 @@ module Sign
 
           include ::VerificationClient
 
-          AUTHENTICATION_MODE = :private
+          AUTHENTICATION_MODE = :open
+          declare_authentication_mode! :open
           before_action :authenticate_client!
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update resend)
           # Object-level authorization (ActionPolicy): registering an email is a fresh-record action
           # for the authenticated client, so gate by actor type. Each flow step builds/looks up the
           # email through current_client.client_emails (owner-scoped). Step-up/turnstile remain below.
           before_action :authorize_email_registration!, only: %i(new create edit update)
-          step_up only: %i(new create edit update), bootstrap: true
-          def new = super
+          step_up only: []
+          def new = redirect_to(new_acme_app_identity_emails_registration_path(ri: params[:ri]), status: :see_other)
 
-          def edit = super
+          def edit = redirect_to(edit_acme_app_identity_emails_registration_path(ri: params[:ri]), status: :see_other)
 
-          def create = super
+          def create = head(:gone)
 
-          def update = super
+          def update = head(:gone)
 
-          def resend = super
+          def resend = head(:gone)
 
           private
 
@@ -69,13 +70,7 @@ module Sign
             )
           end
 
-          def verification_required_action?
-            step_up_bootstrap_active?
-          end
-
-          def verification_scope
-            "settings_email"
-          end
+          def verification_required_action? = false
 
           def pending_email_status_id
             ClientEmailStatus::UNVERIFIED

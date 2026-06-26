@@ -4,15 +4,20 @@
 
 `acme/www` owns preference writes, account lifecycle, withdrawal, and dashboards.
 
-`sign/id` owns the settings shell that lives on the identity host, account-local credential
-configuration, and session-management UI. It must not own preference writes, account lifecycle, or
-withdrawal. Credential enrollment screens may remain on `sign/id` when they are credential
-ceremonies or account-local credential settings.
+`acme/www` owns the general identity/settings shell, preference writes, account lifecycle,
+withdrawal, and session-management UI. `sign/id` owns only credential/provider ceremonies: passkeys,
+TOTP, Google, and Apple.
 
-Signed-in Sign `/settings` credential registration is not an Acme ceremony-grant entry flow. These
-settings actions use Sign-side authentication, current actor restoration, and token handling, and
-normal email, telephone, passkey, secret credential, and app TOTP registration does not require an
-Acme ceremony grant. This note does not redesign non-settings delegated credential ceremonies.
+Signed-in Sign `/settings` is being retired as a general settings surface. The remaining
+credential/provider ceremonies stay on Sign. General identity/settings flows now belong to Acme
+`/identity`.
+
+Telephone registration, withdrawal, sessions, secrets, emails, birthdate, activities, and MFA policy
+are Acme-owned identity surfaces. Acme should read MFA inventory from a summary or domain-service
+boundary instead of depending on Sign controller behavior.
+
+Sign-side tests for the moved routes are boundary tests that verify redirect or gone behavior. They
+are not compatibility tests for the retired general settings UI.
 
 ## Physical Storage
 

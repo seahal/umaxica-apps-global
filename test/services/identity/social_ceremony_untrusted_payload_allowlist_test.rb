@@ -12,9 +12,9 @@ class IdentitySocialCeremonyUntrustedPayloadAllowlistTest < ActiveSupport::TestC
 
   # Files permitted to invoke the social contract's untrusted routing decode.
   ALLOWLIST = %w(
-    app/services/identity_social_ceremony_contract.rb
-    app/services/identity_social_ceremony_grant.rb
-    app/services/identity_social_ceremony_result.rb
+    app/values/identity_social_ceremony_contract.rb
+    app/values/identity_social_ceremony_grant.rb
+    app/values/identity_social_ceremony_result.rb
     app/controllers/acme/app/social/authentications_controller.rb
   ).freeze
 
