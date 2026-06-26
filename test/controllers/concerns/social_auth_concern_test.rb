@@ -165,7 +165,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     harness = Harness.new
     harness.send(:prepare_social_auth_intent!, "login", provider: "google", pt: "encoded-pt")
 
-    SocialAuthService.stub(:handle_callback, ->(**) { { user: clients(:one), existing_account: true } }) do
+    SocialAuthCoordinator.stub(:handle_callback, ->(**) { { user: clients(:one), existing_account: true } }) do
       result = harness.send(:process_social_auth_callback)
 
       assert_nil result[:pt]
@@ -198,7 +198,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     # The sign-side inline commit must never run for an established grantless login.
     committed = false
 
-    SocialAuthService.stub(:handle_callback, ->(**) { committed = true; { user: user } }) do
+    SocialAuthCoordinator.stub(:handle_callback, ->(**) { committed = true; { user: user } }) do
       assert_raises(SocialAuth::UnauthorizedError) do
         harness.send(:process_social_auth_callback)
       end
@@ -217,7 +217,7 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
     )
 
     handled = false
-    SocialAuthService.stub(:handle_callback, ->(**) { handled = true; { user: nil, existing_account: nil } }) do
+    SocialAuthCoordinator.stub(:handle_callback, ->(**) { handled = true; { user: nil, existing_account: nil } }) do
       harness.send(:process_social_auth_callback)
     end
 

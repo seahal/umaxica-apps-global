@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcTokenExchangeService < ApplicationService
+class OidcTokenExchangeCoordinator < ApplicationService
   Result =
     Data.define(:success, :token_response, :error, :error_description) do
       def success? = success

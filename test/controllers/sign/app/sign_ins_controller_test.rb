@@ -135,7 +135,7 @@ module Sign
       test "logged in entry with login challenge resumes acme authorization" do
         user = clients(:one)
         issuance =
-          OidcAuthorizationTransactionService.issue!(
+          OidcAuthorizationTransactionCoordinator.issue!(
             surface: "app",
             intent: "sign_in",
             params: authorize_params,
@@ -164,7 +164,7 @@ module Sign
       private
 
       def login_challenge(intent: "sign_in")
-        OidcAuthorizationTransactionService.issue!(
+        OidcAuthorizationTransactionCoordinator.issue!(
           surface: "app",
           intent: intent,
           params: authorize_params,

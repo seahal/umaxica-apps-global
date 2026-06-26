@@ -578,7 +578,7 @@ module AuthenticationBase
       refresh_public_id,
     ) unless refresh_dpop_allowed?(token_record) && refresh_binding_allowed?(token_record)
 
-    result = AcmeRefreshTokenService.call(refresh_token: refresh_plain)
+    result = AcmeRefreshTokenIssuer.call(refresh_token: refresh_plain)
     return handle_invalid_refresh_token_result(result, refresh_public_id, token_record) unless result.success?
 
     previous_token_record = result[:previous_token] || token_record

@@ -4,6 +4,7 @@
 module EmailCeremonyTransactionable
   extend ActiveSupport::Concern
 
+  DEFAULT_TTL = 10.minutes
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
   STATUSES = [STATUS_PENDING, STATUS_CONSUMED].freeze
@@ -57,7 +58,7 @@ module EmailCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           email_candidate_ref: email_candidate_ref,
           normalized_email_digest: normalized_email_digest,
-          expires_at: expires_at || (now + IdentityEmailCeremonyTransaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )

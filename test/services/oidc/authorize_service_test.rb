@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OidcAuthorizeServiceTest < ActiveSupport::TestCase
+class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
     @user_session_token = ClientToken.create!(user: @user)
@@ -358,7 +358,7 @@ class OidcAuthorizeServiceTest < ActiveSupport::TestCase
   def authorize_service_call(params:, resource:, session_token: nil, **)
     session_token ||= default_session_token_for(resource)
 
-    OidcAuthorizeService.call(
+    OidcAuthorizeCoordinator.call(
       params: params,
       resource: resource,
       session_token: session_token,

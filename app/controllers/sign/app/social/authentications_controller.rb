@@ -96,7 +96,7 @@ module Sign
 
           return redirect_social_unlink_turnstile_failure unless cloudflare_turnstile_stealth_validation["success"]
 
-          SocialAuthService.unlink(provider: provider, client: current_client)
+          SocialAuthCoordinator.unlink(provider: provider, client: current_client)
           redirect_to(
             social_unlink_success_path(provider),
             notice: I18n.t(

@@ -5,7 +5,7 @@ module AcmeOauthTokenEndpoint
   extend ActiveSupport::Concern
 
   def create
-    result = ::OidcTokenExchangeService.call(
+    result = ::OidcTokenExchangeCoordinator.call(
       grant_type: params[:grant_type],
       code: params[:code],
       redirect_uri: params[:redirect_uri],

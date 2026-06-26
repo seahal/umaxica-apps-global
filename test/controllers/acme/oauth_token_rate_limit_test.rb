@@ -55,7 +55,7 @@ class AcmeOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
       error_description: "invalid_code",
     )
 
-    OidcTokenExchangeService.stub(:call, ->(**) { result }) do
+    OidcTokenExchangeCoordinator.stub(:call, ->(**) { result }) do
       10.times do
         post(
           url_helper.call(host: host),

@@ -86,7 +86,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       token_response: { access_token: "access", refresh_token: "refresh", token_type: "Bearer" },
     )
 
-    OidcTokenExchangeService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenExchangeCoordinator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post acme_app_oauth_token_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              grant_type: "authorization_code",
@@ -115,7 +115,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       error_description: "invalid_code",
     )
 
-    OidcTokenExchangeService.stub(:call, ->(**) { result }) do
+    OidcTokenExchangeCoordinator.stub(:call, ->(**) { result }) do
       post acme_app_oauth_token_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              grant_type: "authorization_code",
@@ -272,7 +272,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     captured = nil
     result = RevocationResult.new(success: true)
 
-    OidcTokenRevocationService.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
+    OidcTokenRevoker.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
       post acme_app_oauth_revocation_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            params: {
              token: "refresh",
@@ -379,7 +379,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "acme edge token refresh rejects missing refresh token without rotation" do
-    AcmeRefreshTokenService.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
+    AcmeRefreshTokenIssuer.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
       post acme_app_edge_v0_token_refresh_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
            as: :json
     end
@@ -391,8 +391,8 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "refresh authority source uses acme service not sign refresh service" do
     source = Rails.root.join("app/controllers/concerns/authentication_base.rb").read
 
-    assert_includes source, "AcmeRefreshTokenService.call"
-    assert_not_includes source, "SignRefreshTokenService.call"
+    assert_includes source, "AcmeRefreshTokenIssuer.call"
+    assert_not_includes source, "SignRefreshTokenIssuer.call"
 
     %w(app com org).each do |surface|
       assert_not Rails.root.join("app/controllers/sign/#{surface}/edge/v0/token/refreshes_controller.rb").exist?
@@ -584,12 +584,12 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "acme oauth authorize consumes login challenge once" do
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host!(host)
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app", intent: "sign_in",
       params: oidc_authorize_params,
     )
 
-    OidcAuthorizationTransactionService.register_result!(
+    OidcAuthorizationTransactionCoordinator.register_result!(
       surface: "app",
       login_challenge: issuance.transaction.login_challenge,
       actor: clients(:one),
@@ -617,7 +617,7 @@ class AcmeOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host!(host)
     issuance =
-      OidcAuthorizationTransactionService.issue!(
+      OidcAuthorizationTransactionCoordinator.issue!(
         surface: "app",
         intent: "sign_in",
         params: oidc_authorize_params,

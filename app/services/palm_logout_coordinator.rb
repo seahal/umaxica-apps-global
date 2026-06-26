@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class PalmLogoutService < ApplicationService
+class PalmLogoutCoordinator < ApplicationService
   Result =
     Data.define(
       :success, :logout_url, :state, :expires_at, :transaction, :resource, :token, :error,
@@ -29,11 +29,11 @@ class PalmLogoutService < ApplicationService
     token = authentication_result[:token]
     state = SecureRandom.urlsafe_base64(24)
 
-    transaction_result = AcmeLogoutTransactionService.issue!(
+    transaction_result = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "palm",
       initiating_client_id: AuthorizationTokenClaims.client_id(authentication_result[:payload]).presence ||
         "app-ios-rp",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "palm"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "palm"),
       actor_ref: resource.public_id,
       session_ref: token.public_id,
       callback_state: state,
@@ -51,7 +51,7 @@ class PalmLogoutService < ApplicationService
       reason: "user_logout",
     )
     revoke_refresh_token_family!(token)
-    AcmeLogoutTransactionService.advance!(
+    AcmeLogoutTransactionCoordinator.advance!(
       logout_challenge: transaction.logout_challenge,
       step: AcmeLogoutTransaction::STEP_ORIGIN_CLEARED,
     )

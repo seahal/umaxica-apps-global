@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class SignInOtpResendService
+class SignInOtpResender
   include CommonOtp
 
   BASE_SECONDS = 30

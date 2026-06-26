@@ -101,7 +101,7 @@ class IdentitySocialCeremonyFinalCommitter
   def commit_login!(consumption)
     candidate = IdentitySocialCeremonyCandidateStore.consume!(result["candidate_ref"])
     validate_candidate!(candidate)
-    decision = SocialAuthService.handle_callback(
+    decision = SocialAuthCoordinator.handle_callback(
       auth_hash: candidate.auth_hash,
       intent: "login",
       sign_up_entry: transaction_return_entry == "sign_up",

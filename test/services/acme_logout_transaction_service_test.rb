@@ -3,13 +3,13 @@
 
 require "test_helper"
 
-class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
+class AcmeLogoutTransactionCoordinatorTest < ActiveSupport::TestCase
   fixtures_none!
 
   test "issue! persists an allowlisted completion url and public challenge" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "core")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "core")
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "core",
         initiating_client_id: "core-next-rp",
         completion_url: completion_url,
@@ -24,10 +24,10 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "issue! accepts canonical jp completion url" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "core", ri: "jp")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "core", ri: "jp")
 
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "core",
         initiating_client_id: "core-next-rp",
         completion_url: completion_url,
@@ -40,10 +40,10 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "issue! accepts canonical us completion url" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "core", ri: "us")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "core", ri: "us")
 
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "core",
         initiating_client_id: "core-next-rp",
         completion_url: completion_url,
@@ -56,10 +56,10 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "issue! does not compare us completion url against jp expected url" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "base", ri: "us")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "base", ri: "us")
 
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "base",
         initiating_client_id: "base-rails-rp",
         completion_url: completion_url,
@@ -71,15 +71,15 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "advance! rejects wrong step and tampered challenges safely" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "sign")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign")
     transaction =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "sign",
         initiating_client_id: "sign-rp",
         completion_url: completion_url,
       ).transaction
 
-    rejected = AcmeLogoutTransactionService.advance!(
+    rejected = AcmeLogoutTransactionCoordinator.advance!(
       logout_challenge: transaction.logout_challenge,
       step: "acme_cleared",
     )
@@ -87,29 +87,29 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
     assert_equal :rejected, rejected.status
     assert_equal "invalid_request", rejected.error
 
-    missing = AcmeLogoutTransactionService.advance!(logout_challenge: "tampered", step: "origin_cleared")
+    missing = AcmeLogoutTransactionCoordinator.advance!(logout_challenge: "tampered", step: "origin_cleared")
 
     assert_equal :missing, missing.status
     assert_equal "not_found", missing.error
   end
 
   test "finalize! is replay safe" do
-    completion_url = AcmeLogoutTransactionService.completion_url_for(origin_surface: "sign")
+    completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "sign")
     transaction =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "sign",
         initiating_client_id: "sign-rp",
         completion_url: completion_url,
       ).transaction
 
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "acme_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "acme_cleared")
 
-    result = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
+    result = AcmeLogoutTransactionCoordinator.finalize!(logout_challenge: transaction.logout_challenge)
 
     assert_equal :finalized, result.status
 
-    replay = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
+    replay = AcmeLogoutTransactionCoordinator.finalize!(logout_challenge: transaction.logout_challenge)
 
     assert_equal :finalized, replay.status
     assert_predicate replay.transaction, :finalized?
@@ -117,7 +117,7 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
 
   test "completion url is not arbitrary return_to" do
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "sign",
         initiating_client_id: "sign-rp",
         completion_url: "https://attacker.example/signed-out",
@@ -128,12 +128,12 @@ class AcmeLogoutTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "issue! rejects unsupported or unregistered completion url" do
-    completion_url = AcmeLogoutTransactionService
+    completion_url = AcmeLogoutTransactionCoordinator
       .completion_url_for(origin_surface: "sign", ri: "jp")
       .sub("ri=jp", "ri=xx")
 
     result =
-      AcmeLogoutTransactionService.issue!(
+      AcmeLogoutTransactionCoordinator.issue!(
         origin_surface: "sign",
         initiating_client_id: "sign-rp",
         completion_url: completion_url,

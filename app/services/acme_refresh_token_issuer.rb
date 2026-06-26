@@ -6,9 +6,9 @@
 #
 # acme/www owns refresh token rotation. This class is the physical home of the
 # rotation, replay-detection, family-revoke, and audit logic. The sign-side
-# `SignRefreshTokenService` is only a compatibility subclass and must not be
+# `SignRefreshTokenIssuer` is only a compatibility subclass and must not be
 # read as sign-side refresh authority.
-class AcmeRefreshTokenService
+class AcmeRefreshTokenIssuer
   Result =
     Data.define(:success, :token, :refresh_token, :previous_token, :reason) do
       def success? = success

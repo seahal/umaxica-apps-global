@@ -27,7 +27,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "valid login challenge renders local ceremony" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
@@ -41,7 +41,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony does not show registration method choices" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
@@ -58,7 +58,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony does not show google signup button even if legacy flag is set" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
@@ -75,7 +75,7 @@ class Sign::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony renders recruit contact and home links" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),

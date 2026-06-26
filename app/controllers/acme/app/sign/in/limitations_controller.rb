@@ -173,7 +173,7 @@ module Acme
           end
 
           def issue_authorization_code!
-            result = ::OidcAuthorizeService.call(
+            result = ::OidcAuthorizeCoordinator.call(
               params: @oidc_transaction.authorize_params,
               resource: @actor,
               session_token: current_session,

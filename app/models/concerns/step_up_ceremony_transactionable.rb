@@ -4,6 +4,7 @@
 module StepUpCeremonyTransactionable
   extend ActiveSupport::Concern
 
+  DEFAULT_TTL = 15.minutes
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
   STATUS_CANCELED = "canceled"
@@ -65,7 +66,7 @@ module StepUpCeremonyTransactionable
           resource_ref: resource_ref,
           return_to: return_to,
           grant_jti: grant_jti.presence || SecureRandom.uuid,
-          expires_at: expires_at || (now + IdentityStepUpCeremonyTransaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )

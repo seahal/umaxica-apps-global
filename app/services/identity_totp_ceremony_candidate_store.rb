@@ -14,7 +14,7 @@ class IdentityTotpCeremonyCandidateStore
     :expires_at,
   )
 
-  DEFAULT_TTL = IdentityTotpCeremonyTransaction::DEFAULT_TTL
+  DEFAULT_TTL = 10.minutes
 
   def self.store!(surface:, actor_ref:, session_ref:, private_key:, title:, last_otp_at:, expires_at:)
     new.store!(

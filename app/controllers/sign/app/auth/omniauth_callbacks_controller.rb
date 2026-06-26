@@ -12,7 +12,7 @@ module Sign
       #   GET  /social/failure         -> #failure
       #
       # This controller handles the OmniAuth callback, validates state,
-      # and delegates to SocialAuthService for user creation/linking.
+      # and delegates to SocialAuthCoordinator for user creation/linking.
       #
       # State validation is applied to ALL providers (including Apple).
       # Apple sends state in POST body, Google sends in query string.

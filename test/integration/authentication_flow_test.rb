@@ -192,7 +192,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   def login_challenge_for_sign_in
-    OidcAuthorizationTransactionService.issue!(
+    OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_in",
       params: {

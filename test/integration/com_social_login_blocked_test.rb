@@ -72,7 +72,7 @@ class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   private
 
   def login_challenge_for(surface)
-    OidcAuthorizationTransactionService.issue!(
+    OidcAuthorizationTransactionCoordinator.issue!(
       surface: surface,
       intent: "sign_in",
       params: {

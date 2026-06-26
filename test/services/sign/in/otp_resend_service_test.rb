@@ -18,7 +18,7 @@ module Sign
         state = SignInOtpResendState.issue(kind: :telephone, target: telephone.number)
 
         assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-          result = SignInOtpResendService.new(kind: :telephone, state: state).call
+          result = SignInOtpResender.new(kind: :telephone, state: state).call
 
           assert_equal :ok, result.status
           assert result.resendable

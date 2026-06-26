@@ -91,7 +91,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_response :success
 
       result =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: clients(:one),
@@ -155,7 +155,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       result =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: clients(:one),
@@ -216,7 +216,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       issuance =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: user,
@@ -603,7 +603,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       sign_query = Rack::Utils.parse_nested_query(sign_uri.query.to_s)
 
       issuance =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: user,
@@ -803,7 +803,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         SecureRandom.urlsafe_base64(32)
       end
 
-    OidcAuthorizationTransactionService.issue!(
+    OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_in",
       params: {
@@ -817,7 +817,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
         code_challenge_method: "S256",
       },
     ).transaction.then do |transaction|
-      OidcAuthorizationTransactionService.register_result!(
+      OidcAuthorizationTransactionCoordinator.register_result!(
         surface: "app",
         login_challenge: transaction.login_challenge,
         actor: user,

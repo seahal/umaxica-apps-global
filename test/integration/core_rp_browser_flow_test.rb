@@ -123,7 +123,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal sign_query["login_challenge"], session[:oidc_authorization_login_challenge]
 
       result =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: clients(:one),

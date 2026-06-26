@@ -10,7 +10,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
   end
 
   test "sign in entry accepts a valid login challenge" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_in",
       params: authorize_params,
@@ -24,7 +24,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
   end
 
   test "sign up entry accepts a valid login challenge" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_up",
       params: authorize_params(screen_hint: "signup"),
@@ -102,7 +102,7 @@ class SignOidcEntrancesTest < ActionDispatch::IntegrationTest
       assert_equal sign_query["login_challenge"], session[:oidc_authorization_login_challenge]
 
       result =
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: sign_query.fetch("login_challenge"),
           actor: clients(:one),

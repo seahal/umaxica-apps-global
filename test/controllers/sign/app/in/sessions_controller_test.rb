@@ -73,7 +73,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "show counts only usable active sessions" do
     active_token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     rotated_refresh = active_token.rotate_refresh_token!
-    SignRefreshTokenService.call(refresh_token: rotated_refresh)
+    SignRefreshTokenIssuer.call(refresh_token: rotated_refresh)
 
     current_active = ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::ACTIVE).order(:created_at).last
     other_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -657,7 +657,7 @@ class Sign::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   end
 
   def issue_login_challenge
-    OidcAuthorizationTransactionService.issue!(
+    OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_in",
       params: {

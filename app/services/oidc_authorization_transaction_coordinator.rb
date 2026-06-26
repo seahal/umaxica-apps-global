@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcAuthorizationTransactionService < ApplicationService
+class OidcAuthorizationTransactionCoordinator < ApplicationService
   Issuance = Data.define(:transaction, :resume_url)
 
   def self.model_for(surface)

@@ -134,7 +134,7 @@ class VerificationBaseRtIssuerTest < ActiveSupport::TestCase
   # Regression test: when the access token is rotated between the settings redirect and the
   # verification page, bootstrap_pt_session_nonce must not change.  The harness models this by
   # keeping current_session_public_id stable while swapping session_token (which now holds a
-  # different token.public_id, as happens in production after AcmeRefreshTokenService rotates).
+  # different token.public_id, as happens in production after AcmeRefreshTokenIssuer rotates).
   test "resolve_step_up_pt accepts a pt that was issued before an access-token rotation" do
     # Simulate the session identifier (device_session.public_id in production) that is stable
     # across token rotations.

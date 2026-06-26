@@ -28,7 +28,7 @@ module Security
           purged_at: 2.days.from_now,
         )
         reused_refresh = original.rotate_refresh_token!
-        rotated = SignRefreshTokenService.call(refresh_token: reused_refresh).fetch(:token)
+        rotated = SignRefreshTokenIssuer.call(refresh_token: reused_refresh).fetch(:token)
 
         other_family = ClientToken.create!(
           user: user,
@@ -37,7 +37,7 @@ module Security
         )
         other_family.rotate_refresh_token!
 
-        result = SignRefreshTokenService.call(refresh_token: reused_refresh)
+        result = SignRefreshTokenIssuer.call(refresh_token: reused_refresh)
 
         assert_not result.success?
         assert_equal :refresh_token_reuse_detected, result.reason
@@ -56,7 +56,7 @@ module Security
           purged_at: 2.days.from_now,
         )
         refresh = current.rotate_refresh_token!
-        sibling = SignRefreshTokenService.call(refresh_token: refresh).fetch(:token)
+        sibling = SignRefreshTokenIssuer.call(refresh_token: refresh).fetch(:token)
 
         current.revoke!
 

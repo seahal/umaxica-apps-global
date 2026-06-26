@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SocialAuthServiceTest < ActiveSupport::TestCase
+class SocialAuthCoordinatorTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
     # Ensure ClientGoogleIdentityStatus and ClientGoogleIdentity exist and are used correctly
@@ -39,7 +39,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
   end
 
   test "handle_callback for existing google identity" do
-    result = SocialAuthService.handle_callback(
+    result = SocialAuthCoordinator.handle_callback(
       auth_hash: @auth_hash,
       current_client: nil,
       intent: "login",
@@ -60,7 +60,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     }
 
     assert_raises(SocialAuth::ProviderError) do
-      SocialAuthService.handle_callback(
+      SocialAuthCoordinator.handle_callback(
         auth_hash: auth_hash,
         current_client: nil,
         intent: "login",
@@ -78,7 +78,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     }
 
     assert_raises(SocialAuth::ProviderError) do
-      SocialAuthService.handle_callback(
+      SocialAuthCoordinator.handle_callback(
         auth_hash: auth_hash,
         current_client: nil,
         intent: "login",
@@ -102,7 +102,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
         assert_no_difference -> {
           ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count
         } do
-          result = SocialAuthService.handle_callback(
+          result = SocialAuthCoordinator.handle_callback(
             auth_hash: auth_hash,
             current_client: nil,
             intent: "login",
@@ -135,7 +135,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
         assert_no_difference -> {
           ClientChronicle.where(event_id: ClientChronicleEvent::SIGNED_UP_WITH_GOOGLE).count
         } do
-          result = SocialAuthService.handle_callback(
+          result = SocialAuthCoordinator.handle_callback(
             auth_hash: auth_hash,
             current_client: nil,
             intent: "login",
@@ -165,7 +165,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     result = nil
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        result = SocialAuthService.handle_callback(
+        result = SocialAuthCoordinator.handle_callback(
           auth_hash: auth_hash,
           current_client: nil,
           intent: "login",
@@ -194,7 +194,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     }
 
     assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SOCIAL_LINKED).count }, 1 do
-      result = SocialAuthService.handle_callback(
+      result = SocialAuthCoordinator.handle_callback(
         auth_hash: auth_hash,
         current_client: user,
         intent: "link",
@@ -226,7 +226,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
     )
 
     assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SOCIAL_UNLINKED).count }, 1 do
-      result = SocialAuthService.unlink(provider: "google", client: @user)
+      result = SocialAuthCoordinator.unlink(provider: "google", client: @user)
 
       audit = ClientChronicle.order(created_at: :desc).find_by!(
         event_id: ClientChronicleEvent::SOCIAL_UNLINKED,
@@ -244,7 +244,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
 
   test "handle_callback raises error for invalid intent" do
     assert_raises(SocialAuth::UnauthorizedError) do
-      SocialAuthService.handle_callback(
+      SocialAuthCoordinator.handle_callback(
         auth_hash: @auth_hash,
         current_client: nil,
         intent: "invalid",
@@ -255,7 +255,7 @@ class SocialAuthServiceTest < ActiveSupport::TestCase
   test "unlink google identity" do
     # Client now has 2 login methods: Google + Email (set up in setup)
     # login_methods_remaining? returns true without stubbing
-    result = SocialAuthService.unlink(provider: "google", client: @user)
+    result = SocialAuthCoordinator.unlink(provider: "google", client: @user)
 
     assert result[:success]
     assert_equal "google", result[:provider]

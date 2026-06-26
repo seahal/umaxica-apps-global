@@ -48,20 +48,20 @@ class RefreshTokenableTest < ActiveSupport::TestCase
     )
     original_refresh_token = ClientToken.build_refresh_token(original.public_id, "first-verifier")
 
-    first_rotation = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+    first_rotation = AcmeRefreshTokenIssuer.call(refresh_token: original_refresh_token)
     replacement = first_rotation.fetch(:token)
 
     assert_predicate first_rotation, :success?
     assert_equal original.refresh_token_family_id, replacement.refresh_token_family_id
 
-    replay = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+    replay = AcmeRefreshTokenIssuer.call(refresh_token: original_refresh_token)
 
     assert_not_predicate replay, :success?
     assert_equal :refresh_token_reuse_detected, replay.reason
     assert_predicate original.reload, :expired_refresh?
     assert_predicate replacement.reload, :expired_refresh?
 
-    replacement_reuse = AcmeRefreshTokenService.call(refresh_token: first_rotation.fetch(:refresh_token))
+    replacement_reuse = AcmeRefreshTokenIssuer.call(refresh_token: first_rotation.fetch(:refresh_token))
 
     assert_not_predicate replacement_reuse, :success?
     assert_equal :inactive_token, replacement_reuse.reason
@@ -76,7 +76,7 @@ class RefreshTokenableTest < ActiveSupport::TestCase
     original.update!(dbsc_session_id: "session-1")
     original_refresh_token = ClientToken.build_refresh_token(original.public_id, "first-verifier")
 
-    result = AcmeRefreshTokenService.call(refresh_token: original_refresh_token)
+    result = AcmeRefreshTokenIssuer.call(refresh_token: original_refresh_token)
 
     assert_predicate result, :success?
     assert_nil original.reload.dbsc_session_id

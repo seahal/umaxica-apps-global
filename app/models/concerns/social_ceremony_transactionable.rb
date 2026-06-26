@@ -4,6 +4,7 @@
 module SocialCeremonyTransactionable
   extend ActiveSupport::Concern
 
+  DEFAULT_TTL = 10.minutes
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
   STATUSES = [STATUS_PENDING, STATUS_CONSUMED].freeze
@@ -60,7 +61,7 @@ module SocialCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           provider_subject_ref: provider_subject_ref,
           provider_subject_digest: provider_subject_digest,
-          expires_at: expires_at || (now + IdentitySocialCeremonyTransaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         }

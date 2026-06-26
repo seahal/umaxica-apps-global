@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcTokenRevocationService < ApplicationService
+class OidcTokenRevoker < ApplicationService
   Result =
     Data.define(:success, :error, :error_description) do
       def success? = success

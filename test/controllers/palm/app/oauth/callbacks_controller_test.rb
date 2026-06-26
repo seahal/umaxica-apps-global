@@ -28,7 +28,7 @@ module Palm
           host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
 
           assert_no_oauth_mutation do
-            OidcTokenExchangeService.stub(:call, ->(**) { flunk("Palm callback must not call token exchange") }) do
+            OidcTokenExchangeCoordinator.stub(:call, ->(**) { flunk("Palm callback must not call token exchange") }) do
               assert_raises(ActionController::RoutingError) do
                 Rails.application.routes.recognize_path("https://#{host}/oauth/callback/ios", method: :get)
               end

@@ -5,16 +5,16 @@
 # Supports login and link intents. Social authentication is AAL1 and must not satisfy AAL2 step-up.
 #
 # Usage:
-#   result = SocialAuthService.handle_callback(
+#   result = SocialAuthCoordinator.handle_callback(
 #     auth_hash: request.env["omniauth.auth"],
 #     current_client: current_client,
 #     intent: "login"
 #   )
 #   # => { user: Client, identity: ClientGoogleIdentity, jwt_payload: {...} }
 #
-#   SocialAuthService.unlink(provider: "google", client: client)
+#   SocialAuthCoordinator.unlink(provider: "google", client: client)
 #
-class SocialAuthService
+class SocialAuthCoordinator
   VALID_INTENTS = %w(login link).freeze
 
   class << self

@@ -15,7 +15,7 @@ module OidcRpLogoutLauncher
     transaction_options = {
       origin_surface: logout_origin_surface,
       initiating_client_id: client_id,
-      completion_url: AcmeLogoutTransactionService.completion_url_for(
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(
         origin_surface: logout_origin_surface,
         ri: completion_region,
         surface: logout_surface_name,
@@ -27,7 +27,7 @@ module OidcRpLogoutLauncher
     }
     transaction_options[:ri] = completion_region if logout_surface_name == "app"
 
-    transaction_result = AcmeLogoutTransactionService.issue!(**transaction_options)
+    transaction_result = AcmeLogoutTransactionCoordinator.issue!(**transaction_options)
     return render_oidc_rp_logout_unavailable unless transaction_result.success?
 
     transaction = transaction_result.transaction
@@ -66,7 +66,7 @@ module OidcRpLogoutLauncher
       result: "cleaned",
     )
     issue_sign_out_notice!
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
     log_sign_out_event(
       "auth.sign_out.step.advanced",
       transaction: transaction.reload,
@@ -80,7 +80,7 @@ module OidcRpLogoutLauncher
       target_url: acme_oidc_logout_url(
         ri: completion_region,
         id_token_hint: id_token_hint,
-        post_logout_redirect_uri: AcmeLogoutTransactionService.completion_url_for(
+        post_logout_redirect_uri: AcmeLogoutTransactionCoordinator.completion_url_for(
           origin_surface: logout_origin_surface,
           ri: completion_region,
           surface: logout_surface_name,

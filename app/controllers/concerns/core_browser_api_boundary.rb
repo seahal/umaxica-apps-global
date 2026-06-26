@@ -102,7 +102,7 @@ module CoreBrowserApiBoundary
       return
     end
 
-    result = AcmeRefreshTokenService.call(refresh_token: refresh_plain)
+    result = AcmeRefreshTokenIssuer.call(refresh_token: refresh_plain)
     unless result.success? && result.token.is_a?(core_token_class)
       # rubocop:disable I18n/RailsI18n/DecorateString
       render_error(:token_expired, "Token expired.", status: :unauthorized)

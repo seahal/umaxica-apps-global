@@ -43,7 +43,7 @@ module Sign
 
         def load_sign_in_authorization_transaction!
           transaction =
-            OidcAuthorizationTransactionService.find_by_login_challenge!(
+            OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
               surface: "app",
               login_challenge: params[:login_challenge].to_s,
             )

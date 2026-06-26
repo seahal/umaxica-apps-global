@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class AcmeLogoutTransactionService < ApplicationService
+class AcmeLogoutTransactionCoordinator < ApplicationService
   Result =
     Data.define(:transaction, :status, :error, :error_description) do
       def success? = error.blank?

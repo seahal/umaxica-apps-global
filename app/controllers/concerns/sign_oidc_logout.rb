@@ -71,7 +71,7 @@ module SignOidcLogout
   def finalize_oidc_logout_and_redirect!
     return false unless @logout_transaction.expected_finalization?
 
-    finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: @logout_transaction.logout_challenge)
+    finalize_result = AcmeLogoutTransactionCoordinator.finalize!(logout_challenge: @logout_transaction.logout_challenge)
     return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
 
     log_sign_out_event(
@@ -111,7 +111,7 @@ module SignOidcLogout
     )
     issue_sign_out_notice!
 
-    advance_result = AcmeLogoutTransactionService.advance!(
+    advance_result = AcmeLogoutTransactionCoordinator.advance!(
       logout_challenge: @logout_transaction.logout_challenge,
       step: "acme_cleared",
     )
@@ -133,7 +133,7 @@ module SignOidcLogout
 
   def handle_oidc_logout_completion_redirect!(transaction)
     if transaction.origin_surface == "sign"
-      finalize_result = AcmeLogoutTransactionService.finalize!(logout_challenge: transaction.logout_challenge)
+      finalize_result = AcmeLogoutTransactionCoordinator.finalize!(logout_challenge: transaction.logout_challenge)
       return reject_oidc_logout_challenge!(finalize_result.error || "invalid_request") unless finalize_result.success?
 
       log_sign_out_event(
@@ -405,7 +405,7 @@ module SignOidcLogout
   def logout_transaction_for_challenge
     return if logout_challenge.blank?
 
-    AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
+    AcmeLogoutTransactionCoordinator.find_by!(logout_challenge: logout_challenge)
   end
 
   def sign_service_host

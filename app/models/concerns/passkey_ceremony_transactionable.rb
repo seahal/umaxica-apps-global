@@ -4,6 +4,7 @@
 module PasskeyCeremonyTransactionable
   extend ActiveSupport::Concern
 
+  DEFAULT_TTL = 10.minutes
   STATUS_PENDING = "pending"
   STATUS_CONSUMED = "consumed"
   STATUSES = [STATUS_PENDING, STATUS_CONSUMED].freeze
@@ -57,7 +58,7 @@ module PasskeyCeremonyTransactionable
           grant_jti: grant_jti.presence || SecureRandom.uuid,
           credential_candidate_ref: credential_candidate_ref,
           credential_candidate_digest: credential_candidate_digest,
-          expires_at: expires_at || (now + IdentityPasskeyCeremonyTransaction::DEFAULT_TTL),
+          expires_at: expires_at || (now + DEFAULT_TTL),
           created_at: now,
           updated_at: now,
         )

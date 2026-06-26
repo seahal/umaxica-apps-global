@@ -14,7 +14,7 @@ module Acme
         def show
           if params[:login_challenge].present?
             transaction =
-              OidcAuthorizationTransactionService.find_by_login_challenge!(
+              OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
                 surface: "app",
                 login_challenge: params[:login_challenge].to_s,
               )
@@ -44,7 +44,7 @@ module Acme
 
         def issue_authorization_code!(resource, params_hash: authorize_params)
           access_claims = Actor.authn.access_claims
-          result = ::OidcAuthorizeService.call(
+          result = ::OidcAuthorizeCoordinator.call(
             params: params_hash,
             resource: resource,
             session_token: current_session,
@@ -62,7 +62,7 @@ module Acme
 
         def start_authorization_ceremony!
           issuance =
-            OidcAuthorizationTransactionService.issue!(
+            OidcAuthorizationTransactionCoordinator.issue!(
               surface: "app",
               intent: authorization_intent,
               params: authorize_params,

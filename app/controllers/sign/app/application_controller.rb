@@ -126,7 +126,7 @@ module Sign
       end
 
       def register_oidc_authorization_result!(login_challenge)
-        OidcAuthorizationTransactionService.register_result!(
+        OidcAuthorizationTransactionCoordinator.register_result!(
           surface: "app",
           login_challenge: login_challenge,
           actor: current_resource,

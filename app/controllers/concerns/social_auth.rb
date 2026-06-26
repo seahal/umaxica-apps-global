@@ -606,7 +606,7 @@ module SocialAuth
       process_social_ceremony_login_callback(auth_hash)
     else
       reject_grantless_established_social_login!(auth_hash, intent)
-      SocialAuthService.handle_callback(
+      SocialAuthCoordinator.handle_callback(
         auth_hash: auth_hash,
         current_client: social_auth_user,
         intent: intent,

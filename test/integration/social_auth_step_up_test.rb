@@ -46,7 +46,7 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
     )
 
     assert_raises(SocialAuth::UnauthorizedError) do
-      SocialAuthService.handle_callback(
+      SocialAuthCoordinator.handle_callback(
         auth_hash: auth_hash,
         current_client: @user,
         intent: "step_up",

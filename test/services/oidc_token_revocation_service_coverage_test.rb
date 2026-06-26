@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
+class OidcTokenRevokerCoverageTest < ActiveSupport::TestCase
   fixtures_none!
 
   Token =
@@ -22,7 +22,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
     end
 
   test "rejects invalid client authentication" do
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "token",
       client_id: "client-1",
       client_secret: "secret",
@@ -39,7 +39,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
 
   test "revokes refresh token when the digest matches" do
     token = Token.new("client-1", nil)
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "refresh.public.verifier",
       client_id: "client-1",
       client_secret: "secret",
@@ -64,7 +64,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
 
   test "revokes access token when refresh token parsing fails" do
     token = Token.new("client-1", "jti-1")
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "access-token",
       client_id: "client-1",
       client_secret: "secret",
@@ -99,7 +99,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
 
   test "refresh token revocation ignores tokens for another client" do
     token = Token.new("other-client", nil)
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "refresh.public.verifier",
       client_id: "client-1",
       client_secret: "secret",
@@ -122,7 +122,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
 
   test "access token revocation handles missing sid and jti mismatch" do
     token = Token.new("client-1", "expected-jti")
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "access-token",
       client_id: "client-1",
       client_secret: "secret",
@@ -159,7 +159,7 @@ class OidcTokenRevocationServiceCoverageTest < ActiveSupport::TestCase
   end
 
   test "token lookup branches use the expected resource contexts" do
-    service = OidcTokenRevocationService.new(
+    service = ::OidcTokenRevoker.new(
       token: "token",
       client_id: "client-1",
       client_secret: "secret",

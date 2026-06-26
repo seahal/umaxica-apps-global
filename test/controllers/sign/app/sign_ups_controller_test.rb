@@ -144,7 +144,7 @@ class Sign::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def login_challenge
-    OidcAuthorizationTransactionService.issue!(
+    OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app",
       intent: "sign_up",
       params: authorize_params,

@@ -90,14 +90,14 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    rejected = AcmeLogoutTransactionService::Result.new(
+    rejected = AcmeLogoutTransactionCoordinator::Result.new(
       transaction: nil,
       status: :rejected,
       error: "invalid_request",
       error_description: "completion destination is not allowlisted",
     )
 
-    AcmeLogoutTransactionService.stub(:issue!, rejected) do
+    AcmeLogoutTransactionCoordinator.stub(:issue!, rejected) do
       post base_app_sign_out_url(ri: "us"), headers: {
         "X-TEST-CURRENT-USER" => user.id.to_s,
         "X-TEST-SESSION-PUBLIC-ID" => token.public_id,

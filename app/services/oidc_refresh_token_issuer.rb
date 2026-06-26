@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcRefreshTokenService
+class OidcRefreshTokenIssuer
   Result =
     Data.define(:success, :token, :refresh_token, :previous_token, :reason) do
       def success? = success

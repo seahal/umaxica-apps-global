@@ -18,7 +18,7 @@ module Sign
           return normalize_to_acme_authorize! if params[:login_challenge].blank?
 
           transaction =
-            OidcAuthorizationTransactionService.find_by_login_challenge!(
+            OidcAuthorizationTransactionCoordinator.find_by_login_challenge!(
               surface: "app",
               login_challenge: params[:login_challenge].to_s,
             )

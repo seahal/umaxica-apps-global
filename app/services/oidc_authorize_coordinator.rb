@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class OidcAuthorizeService < ApplicationService
+class OidcAuthorizeCoordinator < ApplicationService
   Result =
     Data.define(:success, :redirect_url, :redirect_uri, :error, :error_description) do
       def success? = success

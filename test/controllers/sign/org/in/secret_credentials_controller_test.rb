@@ -276,7 +276,7 @@ class Sign::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     refresh = token.rotate_refresh_token!
 
     rotations.times do
-      refresh = SignRefreshTokenService.call(refresh_token: refresh)[:refresh_token]
+      refresh = SignRefreshTokenIssuer.call(refresh_token: refresh)[:refresh_token]
     end
   end
 end

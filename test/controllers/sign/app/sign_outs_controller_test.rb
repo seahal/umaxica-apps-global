@@ -122,14 +122,14 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    rejected = AcmeLogoutTransactionService::Result.new(
+    rejected = AcmeLogoutTransactionCoordinator::Result.new(
       transaction: nil,
       status: :rejected,
       error: "invalid_request",
       error_description: "completion destination is not allowlisted",
     )
 
-    AcmeLogoutTransactionService.stub(:issue!, rejected) do
+    AcmeLogoutTransactionCoordinator.stub(:issue!, rejected) do
       post sign_app_sign_out_url(ri: "us", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
            headers: browser_headers.merge(
              "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
@@ -209,7 +209,7 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
     assert_equal "origin_cleared",
-                 AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge).completed_steps.last
+                 AcmeLogoutTransactionCoordinator.find_by!(logout_challenge: logout_challenge).completed_steps.last
   end
 
   test "acme relay post rejects untrusted same-site origin before cleanup" do
@@ -238,21 +238,21 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
     assert_equal "origin_cleared",
-                 AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge).completed_steps.last
+                 AcmeLogoutTransactionCoordinator.find_by!(logout_challenge: logout_challenge).completed_steps.last
   end
 
   test "coordination edit hop rejects without mutating the sign session" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    transaction = AcmeLogoutTransactionService.issue!(
+    transaction = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "acme",
       initiating_client_id: "acme-app",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "acme", ri: "jp"),
       actor_ref: user.public_id,
       session_ref: token.public_id,
     ).transaction
-    AcmeLogoutTransactionService.advance!(
+    AcmeLogoutTransactionCoordinator.advance!(
       logout_challenge: transaction.logout_challenge,
       step: "origin_cleared",
     )
@@ -299,14 +299,14 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    transaction = AcmeLogoutTransactionService.issue!(
+    transaction = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "acme",
       initiating_client_id: "acme-app",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "acme", ri: "jp"),
       actor_ref: user.public_id,
       session_ref: token.public_id,
     ).transaction
-    AcmeLogoutTransactionService.advance!(
+    AcmeLogoutTransactionCoordinator.advance!(
       logout_challenge: transaction.logout_challenge,
       step: "origin_cleared",
     )
@@ -341,14 +341,14 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    transaction = AcmeLogoutTransactionService.issue!(
+    transaction = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "acme",
       initiating_client_id: "acme-app",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "acme", ri: "jp"),
       actor_ref: user.public_id,
       session_ref: token.public_id,
     ).transaction
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
 
     post sign_app_sign_out_url(
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
@@ -371,14 +371,14 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    transaction = AcmeLogoutTransactionService.issue!(
+    transaction = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "acme",
       initiating_client_id: "acme-app",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "acme", ri: "jp"),
       actor_ref: user.public_id,
       session_ref: token.public_id,
     ).transaction
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
 
     post sign_app_sign_out_url(
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
@@ -407,14 +407,14 @@ class Sign::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-    transaction = AcmeLogoutTransactionService.issue!(
+    transaction = AcmeLogoutTransactionCoordinator.issue!(
       origin_surface: "acme",
       initiating_client_id: "acme-app",
-      completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "acme", ri: "jp"),
+      completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "acme", ri: "jp"),
       actor_ref: user.public_id,
       session_ref: token.public_id,
     ).transaction
-    AcmeLogoutTransactionService.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
+    AcmeLogoutTransactionCoordinator.advance!(logout_challenge: transaction.logout_challenge, step: "origin_cleared")
 
     post sign_app_sign_out_url(
       host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),

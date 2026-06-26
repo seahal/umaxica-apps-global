@@ -117,7 +117,7 @@ module Sign
       def oidc_authorization_after_login_path
         challenge = oidc_authorization_login_challenge
         result =
-          OidcAuthorizationTransactionService.register_result!(
+          OidcAuthorizationTransactionCoordinator.register_result!(
             surface: "org",
             login_challenge: challenge,
             actor: current_resource,

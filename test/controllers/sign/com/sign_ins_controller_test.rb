@@ -82,7 +82,7 @@ module Sign
       private
 
       def login_challenge
-        OidcAuthorizationTransactionService.issue!(
+        OidcAuthorizationTransactionCoordinator.issue!(
           surface: "com",
           intent: "sign_in",
           params: authorize_params,

@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
+class OidcAuthorizationTransactionCoordinatorTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
@@ -21,7 +21,7 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "issue creates a pending transaction and resume url points to acme authorize" do
-    issuance = OidcAuthorizationTransactionService.issue!(surface: "app", intent: "sign_in", params: @params)
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(surface: "app", intent: "sign_in", params: @params)
 
     assert_predicate issuance.transaction, :persisted?
     assert_equal "pending", issuance.transaction.status
@@ -36,10 +36,10 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
   end
 
   test "register_result marks the transaction authenticated and consume makes it one time" do
-    issuance = OidcAuthorizationTransactionService.issue!(surface: "app", intent: "sign_in", params: @params)
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(surface: "app", intent: "sign_in", params: @params)
 
     result =
-      OidcAuthorizationTransactionService.register_result!(
+      OidcAuthorizationTransactionCoordinator.register_result!(
         surface: "app",
         login_challenge: issuance.transaction.login_challenge,
         actor: @client,
@@ -50,7 +50,7 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
     assert_predicate result.transaction, :authenticated?
     assert_equal @client.public_id, result.transaction.actor_ref
 
-    consumed = OidcAuthorizationTransactionService.consume!(
+    consumed = OidcAuthorizationTransactionCoordinator.consume!(
       surface: "app",
       login_challenge: issuance.transaction.login_challenge,
     )
@@ -58,7 +58,7 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
     assert_predicate consumed, :consumed?
 
     assert_raises(ArgumentError) do
-      OidcAuthorizationTransactionService.consume!(
+      OidcAuthorizationTransactionCoordinator.consume!(
         surface: "app",
         login_challenge: issuance.transaction.login_challenge,
       )
@@ -67,13 +67,13 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
 
   test "model_for raises on unsupported surface" do
     assert_raises(ArgumentError, match: /unsupported OIDC authorization surface/) do
-      OidcAuthorizationTransactionService.model_for("unsupported")
+      OidcAuthorizationTransactionCoordinator.model_for("unsupported")
     end
   end
 
   test "expired login challenge is rejected when registering ceremony result" do
     issuance =
-      OidcAuthorizationTransactionService.issue!(
+      OidcAuthorizationTransactionCoordinator.issue!(
         surface: "app",
         intent: "sign_in",
         params: @params,
@@ -84,7 +84,7 @@ class OidcAuthorizationTransactionServiceTest < ActiveSupport::TestCase
     travel 2.seconds do
       error =
         assert_raises(ArgumentError) do
-          OidcAuthorizationTransactionService.register_result!(
+          OidcAuthorizationTransactionCoordinator.register_result!(
             surface: "app",
             login_challenge: issuance.transaction.login_challenge,
             actor: @client,

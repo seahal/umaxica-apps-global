@@ -36,7 +36,7 @@ module Sign
         def edit
           if params[:logout_challenge].present?
             logout_challenge = params.expect(:logout_challenge)
-            @logout_transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: logout_challenge)
+            @logout_transaction = AcmeLogoutTransactionCoordinator.find_by!(logout_challenge: logout_challenge)
             warn_sign_out_event(
               "auth.sign_out.legacy_handoff.used",
               transaction: @logout_transaction,
@@ -75,14 +75,14 @@ module Sign
         end
 
         def continue_acme_coordinated_logout
-          transaction = AcmeLogoutTransactionService.find_by!(logout_challenge: params.expect(:logout_challenge))
+          transaction = AcmeLogoutTransactionCoordinator.find_by!(logout_challenge: params.expect(:logout_challenge))
           @logout_transaction = transaction
           return reject_sign_coordinated_logout!("expired") if transaction.expired?
           return reject_sign_coordinated_logout!("wrong_step") unless transaction.expected_step == "sign_cleared"
 
           advanced_transaction = cleanup_and_advance_sign_logout!(transaction)
 
-          finalize_result = AcmeLogoutTransactionService.finalize!(
+          finalize_result = AcmeLogoutTransactionCoordinator.finalize!(
             logout_challenge: advanced_transaction.logout_challenge,
           )
           unless finalize_result.success?
@@ -123,7 +123,7 @@ module Sign
           )
           issue_sign_out_notice!
 
-          advance_result = AcmeLogoutTransactionService.advance!(
+          advance_result = AcmeLogoutTransactionCoordinator.advance!(
             logout_challenge: transaction.logout_challenge,
             step: "sign_cleared",
           )

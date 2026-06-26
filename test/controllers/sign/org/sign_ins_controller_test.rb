@@ -27,7 +27,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "valid login challenge renders local ceremony" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,
@@ -41,7 +41,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony renders authentication links only" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,
@@ -62,7 +62,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony ignores inbound pt and keeps authentication links on ceremony flow" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,
@@ -80,7 +80,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony does not render sign up link on sign in page" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,
@@ -94,7 +94,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony renders back to root link" do
-    issuance = OidcAuthorizationTransactionService.issue!(
+    issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "org",
       intent: "sign_in",
       params: authorize_params,

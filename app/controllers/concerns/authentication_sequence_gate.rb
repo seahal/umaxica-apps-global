@@ -628,7 +628,7 @@ module AuthenticationSequenceGate
     end
 
     issuance =
-      OidcAuthorizationTransactionService.register_result!(
+      OidcAuthorizationTransactionCoordinator.register_result!(
         surface: sign_in_sequence_surface.to_s,
         login_challenge: challenge,
         actor: actor,

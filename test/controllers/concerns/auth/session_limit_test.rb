@@ -122,7 +122,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
 
     token = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
-    SignRefreshTokenService.call(refresh_token: refresh)
+    SignRefreshTokenIssuer.call(refresh_token: refresh)
 
     result = @harness.send(:count_active_sessions, @user)
 
@@ -135,7 +135,7 @@ class AuthSessionLimitTest < ActiveSupport::TestCase
 
     token = OperatorToken.create!(staff: staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     refresh = token.rotate_refresh_token!
-    SignRefreshTokenService.call(refresh_token: refresh)
+    SignRefreshTokenIssuer.call(refresh_token: refresh)
 
     result = @harness.send(:count_active_sessions, staff)
 

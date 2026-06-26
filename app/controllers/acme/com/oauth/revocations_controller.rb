@@ -13,7 +13,7 @@ module Acme
         after_action :set_oauth_cache_headers
 
         def create
-          result = ::OidcTokenRevocationService.call(
+          result = ::OidcTokenRevoker.call(
             token: params[:token],
             client_id: params[:client_id],
             client_secret: params[:client_secret],

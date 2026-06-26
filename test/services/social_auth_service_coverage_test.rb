@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
+class SocialAuthCoordinatorCoverageTest < ActiveSupport::TestCase
   setup do
     @user = clients(:one)
     ClientStatus.find_or_create_by!(id: 1)
@@ -25,7 +25,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
 
     assert_no_difference -> { Client.count } do
       assert_no_difference -> { ClientGoogleIdentity.count } do
-        result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
+        result = SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
 
         assert_nil result[:user]
         assert_nil result[:identity]
@@ -45,7 +45,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     )
 
     assert_difference -> { ClientAppleIdentity.count }, 1 do
-      result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
+      result = SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
 
       assert_equal @user.id, result[:user].id
       assert_equal "apple-link", result[:identity].uid
@@ -65,7 +65,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     auth_hash = OmniAuth::AuthHash.new({ "provider" => "google", "uid" => "other-uid" })
 
     assert_raises(SocialAuth::ConflictError) do
-      SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
+      SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
     end
   end
 
@@ -86,7 +86,7 @@ class SocialAuthServiceCoverageTest < ActiveSupport::TestCase
     )
 
     assert_raises(SocialAuth::UnauthorizedError) do
-      SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "step_up")
+      SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "step_up")
     end
 
     assert_nil @user.reload.last_step_up_at

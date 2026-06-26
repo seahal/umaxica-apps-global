@@ -18,7 +18,7 @@ module Palm
         transaction = AcmeLogoutTransaction.create!(
           origin_surface: "palm",
           initiating_client_id: "app-ios-rp",
-          completion_url: AcmeLogoutTransactionService.completion_url_for(origin_surface: "palm"),
+          completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "palm"),
           actor_ref: clients(:one).public_id,
           session_ref: "session-public-id",
           callback_state: "client-state",
@@ -58,8 +58,8 @@ module Palm
         assert_predicate payload["expires_at"], :present?
         assert_predicate native_token.reload, :revoked?
         assert_predicate native_token.device_session.reload, :revoked?
-        assert_not AcmeRefreshTokenService.call(refresh_token: same_family_refresh).success?
-        assert_predicate AcmeRefreshTokenService.call(refresh_token: unrelated_refresh), :success?
+        assert_not AcmeRefreshTokenIssuer.call(refresh_token: same_family_refresh).success?
+        assert_predicate AcmeRefreshTokenIssuer.call(refresh_token: unrelated_refresh), :success?
         assert_not_predicate unrelated_token.device_session.reload, :revoked?
 
         logout_uri = URI.parse(payload["logout_url"])

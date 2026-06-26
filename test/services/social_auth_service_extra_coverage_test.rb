@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
+class SocialAuthCoordinatorExtraCoverageTest < ActiveSupport::TestCase
   setup do
     @user = Client.create!(status_id: ClientStatus::ACTIVE)
     @auth_hash = auth_hash_for("google-123")
@@ -16,12 +16,12 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "extract_uid rejects raw_info and id_info without top-level uid" do
-    raw_info_service = SocialAuthService.new(
+    raw_info_service = SocialAuthCoordinator.new(
       auth_hash: { "provider" => "apple", "extra" => { "raw_info" => { "sub" => "raw-sub" } } },
       current_client: nil,
       intent: "login",
     )
-    id_info_service = SocialAuthService.new(
+    id_info_service = SocialAuthCoordinator.new(
       auth_hash: { "provider" => "apple", "extra" => { "id_info" => { "sub" => "id-info-sub" } } },
       current_client: nil,
       intent: "login",
@@ -35,7 +35,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     # This layer never derives uid from raw token material.
     header = Base64.urlsafe_encode64({ alg: "RS256", typ: "JWT" }.to_json, padding: false)
     payload = Base64.urlsafe_encode64({ sub: "forged-sub" }.to_json, padding: false)
-    service = SocialAuthService.new(
+    service = SocialAuthCoordinator.new(
       auth_hash: { "provider" => "apple", "credentials" => { "id_token" => "#{header}.#{payload}.sig" } },
       current_client: nil,
       intent: "login",
@@ -59,7 +59,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     auth_hash = auth_hash_for("orphan-google")
 
     ClientGoogleIdentity.stub(:find_by, identity) do
-      result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
+      result = SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: nil, intent: "login")
 
       assert_predicate result[:user], :persisted?
       assert_equal result[:user].id, identity.reload.user_id
@@ -79,7 +79,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     auth_hash = auth_hash_for("existing-for-user")
 
     assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::SOCIAL_LINKED).count }, 1 do
-      result = SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
+      result = SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
 
       assert_equal @user.id, result[:user].id
       assert_equal ClientGoogleIdentityStatus::ACTIVE, identity.reload.status_id
@@ -99,7 +99,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     logged = []
 
     Rails.logger.stub(:debug, ->(message = nil, &block) { logged << (message || block&.call).to_s }) do
-      SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
+      SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "link")
     end
 
     assert_no_match(/log-safe-link/, logged.join("\n"))
@@ -115,7 +115,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       token_expires_at: 1.day.from_now.to_i,
     )
     auth_hash = auth_hash_for("same-user-link")
-    service = SocialAuthService.new(auth_hash: auth_hash, current_client: @user, intent: "link")
+    service = SocialAuthCoordinator.new(auth_hash: auth_hash, current_client: @user, intent: "link")
     service.define_singleton_method(:identity_for_user) { |_identity_class, _provider| nil }
 
     result = service.handle_callback
@@ -136,14 +136,14 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     auth_hash = auth_hash_for("step-up-forbidden-google")
 
     assert_raises(SocialAuth::UnauthorizedError) do
-      SocialAuthService.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "step_up")
+      SocialAuthCoordinator.handle_callback(auth_hash: auth_hash, current_client: @user, intent: "step_up")
     end
 
     assert_nil @user.reload.last_step_up_at
   end
 
   test "handle_login unknown identity does not persist before confirmation" do
-    service = SocialAuthService.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
+    service = SocialAuthCoordinator.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
 
     ClientGoogleIdentity.stub(:find_by, nil) do
       assert_no_difference("Client.count") do
@@ -166,7 +166,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
-    service = SocialAuthService.new(auth_hash: @auth_hash, current_client: @user, intent: "link")
+    service = SocialAuthCoordinator.new(auth_hash: @auth_hash, current_client: @user, intent: "link")
 
     assert_raises(SocialAuth::ConflictError) do
       service.handle_callback
@@ -181,7 +181,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
-    service = SocialAuthService.new(auth_hash: @auth_hash, current_client: @user, intent: "step_up")
+    service = SocialAuthCoordinator.new(auth_hash: @auth_hash, current_client: @user, intent: "step_up")
 
     assert_raises(SocialAuth::UnauthorizedError) do
       service.handle_callback
@@ -197,7 +197,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
     # Ensure social_unlink_methods_remaining? returns false
     @user.define_singleton_method(:social_unlink_methods_remaining?) { |**| false }
 
-    service = SocialAuthService.new(auth_hash: nil, current_client: @user, intent: nil)
+    service = SocialAuthCoordinator.new(auth_hash: nil, current_client: @user, intent: nil)
     assert_raises(SocialAuth::LastIdentityError) do
       service.unlink("google")
     end
@@ -210,7 +210,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
       token: "t", token_expires_at: 1.day.from_now.to_i,
     )
 
-    service = SocialAuthService.new(auth_hash: nil, current_client: @user, intent: nil)
+    service = SocialAuthCoordinator.new(auth_hash: nil, current_client: @user, intent: nil)
     result = service.unlink("google")
 
     assert result[:success]
@@ -234,7 +234,7 @@ class SocialAuthServiceExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "ensure_identity_status creates active provider status" do
-    service = SocialAuthService.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
+    service = SocialAuthCoordinator.new(auth_hash: @auth_hash, current_client: nil, intent: "login")
     calls = []
 
     service.define_singleton_method(:ensure_reference_record!) do |model, id, code|

@@ -127,7 +127,7 @@ module SignVerificationStepUpLifecycle
         if t.actor_ref == step_up_ceremony_actor_ref &&
             t.required_scope == scope.to_s &&
             !t.expired?(now: now) &&
-            t.status == IdentityStepUpCeremonyTransaction::STATUS_PENDING
+            t.status == StepUpCeremonyTransactionable::STATUS_PENDING
           return t
         end
       rescue ActiveRecord::RecordNotFound
