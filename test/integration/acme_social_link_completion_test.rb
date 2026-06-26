@@ -15,7 +15,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end

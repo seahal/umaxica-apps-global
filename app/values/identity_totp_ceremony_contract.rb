@@ -12,9 +12,9 @@ module IdentityTotpCeremonyContract
   OPERATIONS = %w(registration).freeze
   LEEWAY = 30
 
-  SIGN_ISSUERS = { "app" => "https://id.umaxica.app" }.freeze
+  SIGN_ISSUERS = { "app" => "https://log.umaxica.app" }.freeze
   ACME_ISSUERS = { "app" => "https://www.umaxica.app" }.freeze
-  SIGN_AUDIENCES = { "app" => "https://id.umaxica.app/totp-ceremony" }.freeze
+  SIGN_AUDIENCES = { "app" => "https://log.umaxica.app/totp-ceremony" }.freeze
   ACME_AUDIENCES = { "app" => "https://www.umaxica.app/totp-ceremony-result" }.freeze
 
   FORBIDDEN_KEYS = %w(

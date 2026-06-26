@@ -10,23 +10,23 @@ class OmniauthTest < ActiveSupport::TestCase
 
   test "callback origin uses https for configured app sign host" do
     env = Rack::MockRequest.env_for(
-      "http://id.umaxica.app/social/google/callback",
-      "HTTP_HOST" => "id.umaxica.app",
+      "http://log.umaxica.app/social/google/callback",
+      "HTTP_HOST" => "log.umaxica.app",
     )
 
-    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["id.umaxica.app"]) do
-      assert_equal "https://id.umaxica.app", OmniAuthCallbackOrigin.call(env)
+    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["log.umaxica.app"]) do
+      assert_equal "https://log.umaxica.app", OmniAuthCallbackOrigin.call(env)
     end
   end
 
   test "callback origin uses https for configured org sign host" do
     env = Rack::MockRequest.env_for(
-      "http://id.umaxica.org/social/failure",
-      "HTTP_HOST" => "id.umaxica.org",
+      "http://log.umaxica.org/social/failure",
+      "HTTP_HOST" => "log.umaxica.org",
     )
 
-    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["id.umaxica.org"]) do
-      assert_equal "https://id.umaxica.org", OmniAuthCallbackOrigin.call(env)
+    OmniAuthCallbackOrigin.stub(:public_sign_hosts, ["log.umaxica.org"]) do
+      assert_equal "https://log.umaxica.org", OmniAuthCallbackOrigin.call(env)
     end
   end
 

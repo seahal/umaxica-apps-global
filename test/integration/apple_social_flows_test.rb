@@ -9,7 +9,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     @callback_headers = social_callback_headers(@host)
   end
 

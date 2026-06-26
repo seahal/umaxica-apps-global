@@ -14,7 +14,7 @@ module IdentitySocialCeremonyContract
   LEEWAY = 30
 
   SIGN_ISSUERS = {
-    "app" => "https://id.umaxica.app",
+    "app" => "https://log.umaxica.app",
   }.freeze
 
   ACME_ISSUERS = {
@@ -22,7 +22,7 @@ module IdentitySocialCeremonyContract
   }.freeze
 
   SIGN_AUDIENCES = {
-    "app" => "https://id.umaxica.app/social-ceremony",
+    "app" => "https://log.umaxica.app/social-ceremony",
   }.freeze
 
   ACME_AUDIENCES = {

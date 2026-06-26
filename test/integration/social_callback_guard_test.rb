@@ -149,11 +149,11 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
 
     begin
-      with_env("SIGN_SERVICE_URL" => "id.umaxica.app", "SIGN_STAFF_URL" => "id.umaxica.org") do
+      with_env("SIGN_SERVICE_URL" => "log.umaxica.app", "SIGN_STAFF_URL" => "log.umaxica.org") do
         SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
 
-        assert_includes SocialCallbackGuard.allowed_hosts, "id.umaxica.app"
-        assert_includes SocialCallbackGuard.allowed_hosts, "id.umaxica.org"
+        assert_includes SocialCallbackGuard.allowed_hosts, "log.umaxica.app"
+        assert_includes SocialCallbackGuard.allowed_hosts, "log.umaxica.org"
       end
     ensure
       SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)

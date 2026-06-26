@@ -6,13 +6,13 @@ require "jwt"
 require "base64"
 require "sha3"
 
-ENV["ID_SERVICE_URL"] ||= "id.umaxica.app"
-ENV["SIGN_SERVICE_URL"] ||= "id.umaxica.app"
+ENV["ID_SERVICE_URL"] ||= "log.umaxica.app"
+ENV["SIGN_SERVICE_URL"] ||= "log.umaxica.app"
 ENV["MAIN_SERVICE_URL"] ||= "www.umaxica.app"
-ENV["ID_STAFF_URL"] ||= "id.umaxica.org"
-ENV["SIGN_STAFF_URL"] ||= "id.umaxica.org"
+ENV["ID_STAFF_URL"] ||= "log.umaxica.org"
+ENV["SIGN_STAFF_URL"] ||= "log.umaxica.org"
 ENV["MAIN_STAFF_URL"] ||= "www.umaxica.org"
-ENV["SIGN_CORPORATE_URL"] ||= "id.umaxica.com"
+ENV["SIGN_CORPORATE_URL"] ||= "log.umaxica.com"
 ENV["MAIN_CORPORATE_URL"] ||= "www.umaxica.com"
 
 ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret_credential"
@@ -315,7 +315,7 @@ module MissingHelpers
   end
 
   def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
-    host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
@@ -360,7 +360,7 @@ module MissingHelpers
   AppSocialLinkGrantSession = Struct.new(:state, :user_headers, :session_public_id, keyword_init: true)
 
   def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
-    host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
 

@@ -88,11 +88,11 @@ CORE_STAFF_URL=jpx.umaxica.org
 DOCS_CORPORATE_URL=docs.jp.umaxica.com
 DOCS_SERVICE_URL=docs.jp.umaxica.app
 DOCS_STAFF_URL=docs.jp.umaxica.org
-ID_SERVICE_URL=id.umaxica.app
-ID_STAFF_URL=id.umaxica.org
-SIGN_CORPORATE_URL=id.umaxica.com
-SIGN_SERVICE_URL=id.umaxica.app
-SIGN_STAFF_URL=id.umaxica.org
+ID_SERVICE_URL=log.umaxica.app
+ID_STAFF_URL=log.umaxica.org
+SIGN_CORPORATE_URL=log.umaxica.com
+SIGN_SERVICE_URL=log.umaxica.app
+SIGN_STAFF_URL=log.umaxica.org
 JUMP_CORPORATE_URL=jump.com.localhost
 JUMP_SERVICE_URL=jump.app.localhost/
 JUMP_STAFF_URL=jump.org.localhost
@@ -138,13 +138,13 @@ JWT_CORE_COM_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"oOhrqDHnhdvb-7f08er0T
 JWT_CORE_ORG_ACTIVE_KID=core-org-es384-dev-a
 JWT_CORE_ORG_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"1qI30T6AnBMLsjd-gS0lJINJm1PbHDDOWjzfDzhbS2MJNbBsVTh6PevbtayBp-fO","y":"4W7yjBUY4N7LrgFAEArYBmiQ7eyQvJan9kJLwTKG2PG0VUHqO9gBQzjp4R6qAfTi","kid":"core-org-es384-dev-a","alg":"ES384","use":"sig"}]
 # WebAuthn
-TRUSTED_ORIGINS=https://id.umaxica.app,https://id.umaxica.org,https://id.umaxica.com
-WEBAUTHN_APP_RP_ID=id.umaxica.app
-WEBAUTHN_APP_ORIGIN=https://id.umaxica.app
-WEBAUTHN_ORG_RP_ID=id.umaxica.org
-WEBAUTHN_ORG_ORIGIN=https://id.umaxica.org
-WEBAUTHN_COM_RP_ID=id.umaxica.com
-WEBAUTHN_COM_ORIGIN=https://id.umaxica.com
+TRUSTED_ORIGINS=https://log.umaxica.app,https://log.umaxica.org,https://log.umaxica.com
+WEBAUTHN_APP_RP_ID=log.umaxica.app
+WEBAUTHN_APP_ORIGIN=https://log.umaxica.app
+WEBAUTHN_ORG_RP_ID=log.umaxica.org
+WEBAUTHN_ORG_ORIGIN=https://log.umaxica.org
+WEBAUTHN_COM_RP_ID=log.umaxica.com
+WEBAUTHN_COM_ORIGIN=https://log.umaxica.com
 # HMAC Secret is resolved from encrypted credentials via Rails.app.creds.
 # VITE Configuration
 VITE_RUBY_PACKAGE_MANAGER=pnpm

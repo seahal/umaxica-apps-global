@@ -35,7 +35,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -50,7 +50,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
   test "exchanges valid code with private_key_jwt client assertion" do
     code_record = issue_code!
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)

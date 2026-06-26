@@ -5,15 +5,15 @@ module JumpRtReturnPolicy
   module_function
 
   ALLOWED_SOURCES = {
-    "https://www.umaxica.app" => %w(https://id.umaxica.app https://www.umaxica.app),
-    "https://www.umaxica.com" => %w(https://id.umaxica.com https://www.umaxica.com),
-    "https://www.umaxica.org" => %w(https://id.umaxica.org https://www.umaxica.org),
+    "https://www.umaxica.app" => %w(https://log.umaxica.app https://www.umaxica.app),
+    "https://www.umaxica.com" => %w(https://log.umaxica.com https://www.umaxica.com),
+    "https://www.umaxica.org" => %w(https://log.umaxica.org https://www.umaxica.org),
     "https://jpx.umaxica.app" => %w(https://jpx.umaxica.app),
     "https://jpx.umaxica.com" => %w(https://jpx.umaxica.com),
     "https://jpx.umaxica.org" => %w(https://jpx.umaxica.org),
-    "https://www.jp.umaxica.app" => %w(https://id.umaxica.app https://www.jp.umaxica.app),
-    "https://www.jp.umaxica.com" => %w(https://id.umaxica.com https://www.jp.umaxica.com),
-    "https://www.jp.umaxica.org" => %w(https://id.umaxica.org https://www.jp.umaxica.org),
+    "https://www.jp.umaxica.app" => %w(https://log.umaxica.app https://www.jp.umaxica.app),
+    "https://www.jp.umaxica.com" => %w(https://log.umaxica.com https://www.jp.umaxica.com),
+    "https://www.jp.umaxica.org" => %w(https://log.umaxica.org https://www.jp.umaxica.org),
   }.freeze
 
   def allowed_source?(destination_origin:, source:)

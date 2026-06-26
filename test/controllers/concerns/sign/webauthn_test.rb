@@ -13,7 +13,7 @@ module Sign
 
       def initialize
         super
-        @request = Struct.new(:host, :base_url).new("id.umaxica.app", "https://id.umaxica.app")
+        @request = Struct.new(:host, :base_url).new("log.umaxica.app", "https://log.umaxica.app")
         @session = {}
       end
     end
@@ -223,8 +223,8 @@ module Sign
       rp = @controller.webauthn_relying_party
 
       assert_kind_of WebAuthn::RelyingParty, rp
-      assert_equal ["https://id.umaxica.app"], rp.allowed_origins
-      assert_equal "id.umaxica.app", rp.id
+      assert_equal ["https://log.umaxica.app"], rp.allowed_origins
+      assert_equal "log.umaxica.app", rp.id
     end
 
     test "global WebAuthn.configuration is not mutated during request" do

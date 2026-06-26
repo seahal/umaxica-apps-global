@@ -44,17 +44,17 @@ class SignWebauthnConfigTest < ActiveSupport::TestCase
   end
 
   test "webauthn_rp_id uses app environment override" do
-    ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
+    ENV["WEBAUTHN_APP_RP_ID"] = "log.umaxica.app"
     @controller.request.host = "internal.example.test"
 
-    assert_equal "id.umaxica.app", @controller.webauthn_rp_id
+    assert_equal "log.umaxica.app", @controller.webauthn_rp_id
   end
 
   test "webauthn_rp_id extracts host when app environment override is an origin" do
-    ENV["WEBAUTHN_APP_RP_ID"] = "https://id.umaxica.app"
+    ENV["WEBAUTHN_APP_RP_ID"] = "https://log.umaxica.app"
     @controller.request.host = "internal.example.test"
 
-    assert_equal "id.umaxica.app", @controller.webauthn_rp_id
+    assert_equal "log.umaxica.app", @controller.webauthn_rp_id
   end
 
   # Case B-2: webauthn_origin should return request.base_url
@@ -66,20 +66,20 @@ class SignWebauthnConfigTest < ActiveSupport::TestCase
   end
 
   test "webauthn_origin uses app environment override" do
-    ENV["WEBAUTHN_APP_ORIGIN"] = "https://id.umaxica.app"
+    ENV["WEBAUTHN_APP_ORIGIN"] = "https://log.umaxica.app"
     @controller.request.host = "internal.example.test"
     @controller.request.set_header("rack.url_scheme", "http")
 
-    assert_equal "https://id.umaxica.app", @controller.webauthn_origin
+    assert_equal "https://log.umaxica.app", @controller.webauthn_origin
   end
 
   test "configured app origin is trusted even when TRUSTED_ORIGINS was loaded without it" do
-    ENV["WEBAUTHN_APP_ORIGIN"] = "https://id.umaxica.app"
+    ENV["WEBAUTHN_APP_ORIGIN"] = "https://log.umaxica.app"
     @controller.request.host = "internal.example.test"
     @controller.request.set_header("rack.url_scheme", "http")
 
-    assert @controller.trusted_webauthn_origin?("https://id.umaxica.app")
-    assert_equal "https://id.umaxica.app", @controller.validate_webauthn_origin!
+    assert @controller.trusted_webauthn_origin?("https://log.umaxica.app")
+    assert_equal "https://log.umaxica.app", @controller.validate_webauthn_origin!
   end
 
   # Case B-3: validate_webauthn_origin! rejects origins that are not trusted

@@ -22,7 +22,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   - Public sites: `www.umaxica.app`, `www.umaxica.com`, `www.umaxica.org`
   - Service endpoints: `sign.umaxica.*`, `api.jp.umaxica.*`, `docs.[jp|us].umaxica.*`,
     `help.[jp|us].umaxica.*`, `news.[jp|us].umaxica.*`
-  - Staff estate: `www.umaxica.org`, `id.umaxica.org`, `api.umaxica.org`, etc.
+  - Staff estate: `www.umaxica.org`, `log.umaxica.org`, `api.umaxica.org`, etc.
   - Network-only hosts (e.g., `asset-jp.umaxica.net`) are proxied but not powered by Rails.
 - Subsystems: top-level marketing pages, authentication (sign), help center/contact flows,
   documentation and news portals, BFF preference endpoints, public API endpoints for inquiry
@@ -73,7 +73,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   |---------|---------------|-----------|-----------------| | Top (marketing / preferences) |
   `www.umaxica.com`, `www.umaxica.app`, `www.umaxica.org` | `Top::Com/App/Org` | Redirects to edge,
   exposes `/health`, `/v1/health`, preference UIs (cookie/region/theme). | | Sign |
-  `id.umaxica.app`, `id.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP, passkeys,
+  `log.umaxica.app`, `log.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP, passkeys,
   OAuth (Google/Apple), recovery, withdrawals. | | Help | `help.umaxica.com` | `Help::Com/App/Org` |
   Contact forms, ticket intake (`ServiceSiteContact`), Turnstile enforcement. | | Docs / News |
   `docs.umaxica.*`, `news.umaxica.*` | `Docs::*`, `News::*` | Documentation/newsroom placeholders

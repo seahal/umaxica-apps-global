@@ -4,7 +4,7 @@ require "test_helper"
 
 class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     host! @host
     @user = create_verified_user_with_email(email_address: "withdrawal-p0-#{SecureRandom.hex(4)}@example.com")
     @user.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)

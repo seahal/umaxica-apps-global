@@ -61,7 +61,7 @@ class JumpRtReturnPolicyTest < ActiveSupport::TestCase
   test "allowed_source returns true for valid source matching destination" do
     assert JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://www.umaxica.app",
-      source: "https://id.umaxica.app",
+      source: "https://log.umaxica.app",
     )
   end
 
@@ -75,7 +75,7 @@ class JumpRtReturnPolicyTest < ActiveSupport::TestCase
   test "allowed_source returns false when destination origin is unknown" do
     assert_not JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://unknown.example.com",
-      source: "https://id.umaxica.app",
+      source: "https://log.umaxica.app",
     )
   end
 
@@ -91,28 +91,28 @@ class JumpRtReturnPolicyTest < ActiveSupport::TestCase
     sources = JumpRtReturnPolicy.allowed_sources
 
     assert_includes sources.keys, "https://www.umaxica.app"
-    assert_includes sources["https://www.umaxica.app"], "https://id.umaxica.app"
+    assert_includes sources["https://www.umaxica.app"], "https://log.umaxica.app"
   end
 
   test "core destinations allow matching idp sources" do
     assert JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://www.jp.umaxica.app",
-      source: "https://id.umaxica.app",
+      source: "https://log.umaxica.app",
     )
     assert JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://www.jp.umaxica.com",
-      source: "https://id.umaxica.com",
+      source: "https://log.umaxica.com",
     )
     assert JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://www.jp.umaxica.org",
-      source: "https://id.umaxica.org",
+      source: "https://log.umaxica.org",
     )
   end
 
   test "core destinations reject cross surface idp sources" do
     assert_not JumpRtReturnPolicy.allowed_source?(
       destination_origin: "https://www.jp.umaxica.app",
-      source: "https://id.umaxica.org",
+      source: "https://log.umaxica.org",
     )
   end
 

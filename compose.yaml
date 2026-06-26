@@ -69,9 +69,9 @@ services:
           - info.app.localhost
           - info.com.localhost
           - info.org.localhost
-          - id.umaxica.app
-          - id.umaxica.com
-          - id.umaxica.org
+          - log.umaxica.app
+          - log.umaxica.com
+          - log.umaxica.org
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org

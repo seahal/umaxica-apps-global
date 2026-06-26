@@ -14,9 +14,9 @@ module IdentityStepUpCeremonyContract
   LEEWAY = 30
 
   SIGN_ISSUERS = {
-    "app" => "https://id.umaxica.app",
-    "com" => "https://id.umaxica.com",
-    "org" => "https://id.umaxica.org",
+    "app" => "https://log.umaxica.app",
+    "com" => "https://log.umaxica.com",
+    "org" => "https://log.umaxica.org",
   }.freeze
 
   ACME_ISSUERS = {
@@ -26,9 +26,9 @@ module IdentityStepUpCeremonyContract
   }.freeze
 
   SIGN_AUDIENCES = {
-    "app" => "https://id.umaxica.app/step-up-ceremony",
-    "com" => "https://id.umaxica.com/step-up-ceremony",
-    "org" => "https://id.umaxica.org/step-up-ceremony",
+    "app" => "https://log.umaxica.app/step-up-ceremony",
+    "com" => "https://log.umaxica.com/step-up-ceremony",
+    "org" => "https://log.umaxica.org/step-up-ceremony",
   }.freeze
 
   ACME_AUDIENCES = {

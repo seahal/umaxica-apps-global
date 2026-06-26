@@ -11,7 +11,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     host! @host
     @expected_redirect = %r{\Ahttps?://#{Regexp.escape(@host)}/.*}.freeze
   end

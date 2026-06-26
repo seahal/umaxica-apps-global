@@ -13,9 +13,9 @@ module IdentitySecretCredentialCeremonyContract
   LEEWAY = 30
 
   SIGN_ISSUERS = {
-    "app" => "https://id.umaxica.app",
-    "com" => "https://id.umaxica.com",
-    "org" => "https://id.umaxica.org",
+    "app" => "https://log.umaxica.app",
+    "com" => "https://log.umaxica.com",
+    "org" => "https://log.umaxica.org",
   }.freeze
   ACME_ISSUERS = {
     "app" => "https://www.umaxica.app",
@@ -23,9 +23,9 @@ module IdentitySecretCredentialCeremonyContract
     "org" => "https://www.umaxica.org",
   }.freeze
   SIGN_AUDIENCES = {
-    "app" => "https://id.umaxica.app/secret-credential-ceremony",
-    "com" => "https://id.umaxica.com/secret-credential-ceremony",
-    "org" => "https://id.umaxica.org/secret-credential-ceremony",
+    "app" => "https://log.umaxica.app/secret-credential-ceremony",
+    "com" => "https://log.umaxica.com/secret-credential-ceremony",
+    "org" => "https://log.umaxica.org/secret-credential-ceremony",
   }.freeze
   ACME_AUDIENCES = {
     "app" => "https://www.umaxica.app/secret-credential-ceremony-result",

@@ -44,7 +44,7 @@ module Jit
             public_keyset: JSON.generate(keys: [JitSecurityJwtJwk.export_public(@legacy_key, kid: "legacy-kid")]),
             public_keyset_source: "JWT_SIGN_APP_PUBLIC_KEYSET",
             revoked_kids: [],
-            issuer: "https://id.umaxica.app",
+            issuer: "https://log.umaxica.app",
             audiences: ["https://jump.umaxica.net"],
           )
 
@@ -68,7 +68,7 @@ module Jit
                 public_keyset: JSON.generate(keys: [wrong_public_jwk]),
                 public_keyset_source: "JWT_SIGN_APP_PUBLIC_KEYSET",
                 revoked_kids: [],
-                issuer: "https://id.umaxica.app",
+                issuer: "https://log.umaxica.app",
                 audiences: ["https://jump.umaxica.net"],
               )
             end

@@ -49,11 +49,11 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
 
   test "otp mailers build verification links for their own surface" do
     [
-      [Email::App::OtpMailer, "mail-app-public-id", "app-token", ENV.fetch("ID_SERVICE_URL", "id.umaxica.app"),
+      [Email::App::OtpMailer, "mail-app-public-id", "app-token", ENV.fetch("ID_SERVICE_URL", "log.umaxica.app"),
        "/settings/emails/registration/edit",],
-      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"),
+      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"),
        "/settings/emails/registration/edit",],
-      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("ID_STAFF_URL", "id.umaxica.org"),
+      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("ID_STAFF_URL", "log.umaxica.org"),
        "/settings/emails/registration/edit",],
     ].each do |mailer, public_id, token, host, path|
       mail = mailer.with(

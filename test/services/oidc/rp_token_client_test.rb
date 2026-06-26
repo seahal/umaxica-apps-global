@@ -26,7 +26,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
                     },
       ) do
         result = OidcRpTokenClient.call(
-          token_url: "https://id.umaxica.app/oauth/token",
+          token_url: "https://log.umaxica.app/oauth/token",
           client_id: "base-rails-rp",
           client_secret: nil,
           code: "code",
@@ -55,7 +55,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
         },
       ) do
         result = OidcRpTokenClient.call(
-          token_url: "https://id.umaxica.app/oauth/token",
+          token_url: "https://log.umaxica.app/oauth/token",
           client_id: "base-rails-rp",
           client_secret: "fallback-secret",
           code: "code",
@@ -81,7 +81,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
       Rails.logger.stub(:info, ->(message) { logged << message }) do
         Net::HTTP.stub(:post_form, response) do
           result = OidcRpTokenClient.call(
-            token_url: "https://id.umaxica.app/oauth/token",
+            token_url: "https://log.umaxica.app/oauth/token",
             client_id: "base-rails-rp",
             client_secret: nil,
             code: "sensitive-code",
@@ -99,7 +99,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
 
     assert event
     assert_equal "base-rails-rp", event.dig("data", "client_id")
-    assert_equal "id.umaxica.app", event.dig("data", "endpoint_host")
+    assert_equal "log.umaxica.app", event.dig("data", "endpoint_host")
     assert_equal 400, event.dig("data", "http_status")
     assert_equal "invalid_grant", event.dig("data", "oauth_error")
     assert_nil event.dig("data", "oauth_error_description")
@@ -113,7 +113,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
       Rails.logger.stub(:info, ->(message) { logged << message }) do
         Net::HTTP.stub(:post_form, ->(*) { raise SocketError, "connection refused for secret.example" }) do
           result = OidcRpTokenClient.call(
-            token_url: "https://id.umaxica.app/oauth/token",
+            token_url: "https://log.umaxica.app/oauth/token",
             client_id: "base-rails-rp",
             client_secret: nil,
             code: "sensitive-code",
@@ -131,7 +131,7 @@ class OidcRpTokenClientTest < ActiveSupport::TestCase
 
     assert event
     assert_equal "base-rails-rp", event.dig("data", "client_id")
-    assert_equal "id.umaxica.app", event.dig("data", "endpoint_host")
+    assert_equal "log.umaxica.app", event.dig("data", "endpoint_host")
     assert_equal "SocketError", event.dig("data", "error_class")
     assert_no_match(/sensitive-code|sensitive-verifier|secret\.example/, logged.join("\n"))
   end

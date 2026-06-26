@@ -12,9 +12,9 @@ module IdentityTelephoneCeremonyContract
   LEEWAY = 30
 
   SIGN_ISSUERS = {
-    "app" => "https://id.umaxica.app",
-    "com" => "https://id.umaxica.com",
-    "org" => "https://id.umaxica.org",
+    "app" => "https://log.umaxica.app",
+    "com" => "https://log.umaxica.com",
+    "org" => "https://log.umaxica.org",
   }.freeze
 
   ACME_ISSUERS = {
@@ -24,9 +24,9 @@ module IdentityTelephoneCeremonyContract
   }.freeze
 
   SIGN_AUDIENCES = {
-    "app" => "https://id.umaxica.app/telephone-ceremony",
-    "com" => "https://id.umaxica.com/telephone-ceremony",
-    "org" => "https://id.umaxica.org/telephone-ceremony",
+    "app" => "https://log.umaxica.app/telephone-ceremony",
+    "com" => "https://log.umaxica.com/telephone-ceremony",
+    "org" => "https://log.umaxica.org/telephone-ceremony",
   }.freeze
 
   ACME_AUDIENCES = {

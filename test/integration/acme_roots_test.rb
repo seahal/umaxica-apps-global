@@ -63,14 +63,14 @@ class SurfaceHealthEndpointTest < ActionDispatch::IntegrationTest
   end
 
   test "sign app health responds successfully" do
-    get "/health", headers: { "Host" => ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app") }
+    get "/health", headers: { "Host" => ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app") }
     follow_redirect! if response.redirect?
 
     assert_response :success
   end
 
   test "sign org health responds successfully" do
-    get "/health", headers: { "Host" => ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org") }
+    get "/health", headers: { "Host" => ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org") }
     follow_redirect! if response.redirect?
 
     assert_response :success

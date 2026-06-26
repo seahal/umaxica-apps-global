@@ -46,12 +46,14 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       "sign.app.localhost" => "sign/app/roots",
       "sign.com.localhost" => "sign/com/roots",
       "sign.org.localhost" => "sign/org/roots",
-      "id.umaxica.app" => "sign/app/roots",
-      "id.umaxica.com" => "sign/com/roots",
-      "id.umaxica.org" => "sign/org/roots",
+      "log.umaxica.app" => "sign/app/roots",
+      "log.umaxica.com" => "sign/com/roots",
+      "log.umaxica.org" => "sign/org/roots",
     }.each do |host, controller|
-      route = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+      get "/", headers: { "Host" => host }
 
+      assert_not_equal 404, response.status
+      route = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
       assert_equal controller, route[:controller]
       assert_equal "index", route[:action]
     end
@@ -93,6 +95,9 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       help_service: OpenStruct.new(host: ENV.fetch("HELP_SERVICE_URL", "help.app.localhost")),
       help_corporate: OpenStruct.new(host: ENV.fetch("HELP_CORPORATE_URL", "help.com.localhost")),
       help_staff: OpenStruct.new(host: ENV.fetch("HELP_STAFF_URL", "help.org.localhost")),
+      info_service: OpenStruct.new(host: ENV.fetch("INFO_SERVICE_URL", "info.app.localhost")),
+      info_corporate: OpenStruct.new(host: ENV.fetch("INFO_CORPORATE_URL", "info.com.localhost")),
+      info_staff: OpenStruct.new(host: ENV.fetch("INFO_STAFF_URL", "info.org.localhost")),
     )
 
     Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do

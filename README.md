@@ -53,7 +53,7 @@ Start the local stack, install dependencies, and boot the app:
 docker compose up
 bundle install
 pnpm install
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/setup
+TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/setup
 ```
 
 `docker compose up` starts the `core` service with `bin/dev`. The PostgreSQL services use Compose
@@ -77,7 +77,7 @@ missing.
 your shell or dev env file, for example:
 
 ```bash
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000
+TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000
 ```
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
@@ -86,7 +86,7 @@ TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000
 If dependencies are already installed, you can start development directly:
 
 ```bash
-TRUSTED_ORIGINS=http://id.app.localhost:3000,http://id.org.localhost:3000 bin/dev
+TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/dev
 ```
 
 `bin/dev` is the unified local entrypoint. It runs `bin/rails db:prepare` unless
@@ -104,7 +104,7 @@ needed.
 | Surface | URL                                        |
 | :------ | :----------------------------------------- |
 | Acme    | `http://www.{app,com,org}.localhost:3001`  |
-| Sign    | `http://id.{org,com,app}.localhost:3001`   |
+| Sign    | `http://sign.{org,com,app}.localhost:3000` |
 | Jump    | `http://jump.{app,com,org}.localhost:3001` |
 
 ## コード品質
