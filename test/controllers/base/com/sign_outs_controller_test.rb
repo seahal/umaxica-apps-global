@@ -3,62 +3,53 @@
 
 require "test_helper"
 
-class Base::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_token_kinds
-
+class Base::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
+    @host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    @visitor = create_verified_visitor_with_email(email_address: "base-com-sign-out-#{SecureRandom.hex(4)}@example.com")
+    host! @host
   end
 
-  test "get sign out renders confirmation without mutation" do
-    user = clients(:one)
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "edit sign out renders confirmation without mutation" do
+    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
-    get edit_base_com_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    get edit_base_com_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
     assert_response :success
+    assert_select "p", text: I18n.t("sign.shared.sign_out.confirm_description")
     assert_select "form[action*=?][method=?]", base_com_sign_out_path, "post"
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out redirects to acme oidc logout with completion state" do
-    user = clients(:one)
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+  test "post sign out revokes the current session and reaches completion" do
+    token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post base_com_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    post base_com_sign_out_url(host: @host, ri: "jp"), headers: session_headers(token)
 
-    assert_response :success
-    assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
-    location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
-    query = Rack::Utils.parse_nested_query(location.query.to_s)
+    assert_response :see_other
+    assert_predicate token.reload, :revoked?
 
-    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), location.host
-    assert_equal "/oidc/logout", location.path
-    assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_base_com_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]
-    assert_predicate query["logout_challenge"], :present?
-  end
-
-  test "complete sign out consumes the state and renders completion" do
-    user = clients(:one)
-    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
-
-    post base_com_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
-
-    get complete_base_com_sign_out_url(ri: "jp")
+    get jump_rt_url_from_location(response.location)
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+  end
+
+  test "post sign out without a resolved session renders friendly completion" do
+    post base_com_sign_out_url(host: @host, ri: "jp")
+
+    assert_response :success
+    assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+  end
+
+  private
+
+  def session_headers(token)
+    {
+      "Host" => @host,
+      "X-TEST-CURRENT-RESOURCE" => @visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    }
   end
 end

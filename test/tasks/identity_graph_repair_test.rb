@@ -63,7 +63,7 @@ class IdentityGraphRepairTest < ActiveSupport::TestCase
         lambda do |surface:, principal:|
           raise RuntimeError, "boom" if principal.id == first.id
 
-          AcmeSelectorBootstrapAuthority.call(surface: surface, principal: principal)
+          BaseSelectorBootstrapAuthority.call(surface: surface, principal: principal)
         end,
       ) do
         assert_output(/identity_graph_repair surface=app dry_run=false .*failed=1/) do

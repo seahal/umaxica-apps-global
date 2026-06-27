@@ -28,7 +28,9 @@ class Agent < OrgRpRecord
   include ::Account
 
   belongs_to :operator_identity, inverse_of: :agent
+  has_many :agent_assignments, dependent: :destroy, inverse_of: :agent
   has_many :agent_memberships, dependent: :destroy, inverse_of: :agent
+  has_one :avatar_agent_binding, dependent: :destroy, inverse_of: :agent
 
   validates :operator_identity_id, uniqueness: true
 end

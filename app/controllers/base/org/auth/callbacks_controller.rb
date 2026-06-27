@@ -20,6 +20,8 @@ module Base
         private
 
         def oidc_client_id
+          # Shared browser RP client for Base's local browser flow and Base launcher flows.
+          # Base does not own this callback endpoint.
           "base-rails-rp"
         end
       end

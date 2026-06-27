@@ -93,8 +93,8 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
   end
 
   def acme_headers_with_session
-    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @user)
-    AcmeSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
     acme_headers
   end
 end

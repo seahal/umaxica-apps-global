@@ -19,6 +19,9 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal ClientIdentity, config.identity_class
     assert_equal ClientIdentityState, config.identity_state_class
     assert_equal Persona, config.account_class
+    assert_equal PersonaAssignment, config.account_assignment_class
+    assert_equal :persona_id, config.account_assignment_account_key
+    assert_equal :client_identity_id, config.account_assignment_identity_key
     assert_equal Enterprise, config.collective_class
     assert_equal EnterpriseUnit, config.unit_class
     assert_equal PersonaMembership, config.membership_class
@@ -38,6 +41,9 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal VisitorIdentity, config.identity_class
     assert_equal VisitorIdentityState, config.identity_state_class
     assert_equal Individual, config.account_class
+    assert_equal IndividualAssignment, config.account_assignment_class
+    assert_equal :individual_id, config.account_assignment_account_key
+    assert_equal :visitor_identity_id, config.account_assignment_identity_key
     assert_equal Company, config.collective_class
     assert_equal CompanyUnit, config.unit_class
     assert_equal IndividualMembership, config.membership_class
@@ -57,6 +63,9 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal OperatorIdentity, config.identity_class
     assert_equal OperatorIdentityState, config.identity_state_class
     assert_equal Agent, config.account_class
+    assert_equal AgentAssignment, config.account_assignment_class
+    assert_equal :agent_id, config.account_assignment_account_key
+    assert_equal :operator_identity_id, config.account_assignment_identity_key
     assert_equal Bureau, config.collective_class
     assert_equal BureauUnit, config.unit_class
     assert_equal AgentMembership, config.membership_class

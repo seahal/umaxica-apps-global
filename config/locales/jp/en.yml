@@ -1264,6 +1264,12 @@ en:
         refresh_expires_at: Refresh expires at
         discarded_at: Lapses at
         purged_at: Purge at
+      persona_assignment:
+        assigned_at: Assigned at
+      agent_assignment:
+        assigned_at: Assigned at
+      individual_assignment:
+        assigned_at: Assigned at
       user_identity_email:
         address: Email address
       client_identity:

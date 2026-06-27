@@ -72,7 +72,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
       source_record_id: client.id,
       status_id: ClientIdentityState::ACTIVE,
     )
-    controller = Acme::App::Auth::CallbacksController.new
+    controller = Base::App::Auth::CallbacksController.new
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {
@@ -90,7 +90,7 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
   test "acme com callback provisioning records visitor identity without a core bridge" do
     visitor = Visitor.create!
     VisitorIdentity.where(source_record_id: visitor.id).delete_all
-    controller = Acme::Com::Auth::CallbacksController.new
+    controller = Base::Com::Auth::CallbacksController.new
 
     actor = controller.send(
       :provision_rp_account_from_id_token!, {

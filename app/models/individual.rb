@@ -28,7 +28,9 @@ class Individual < ComRpRecord
   include ::Account
 
   belongs_to :visitor_identity, inverse_of: :individual
+  has_many :individual_assignments, dependent: :destroy, inverse_of: :individual
   has_many :individual_memberships, dependent: :destroy, inverse_of: :individual
+  has_one :avatar_individual_binding, dependent: :destroy, inverse_of: :individual
 
   validates :visitor_identity_id, uniqueness: true
 end

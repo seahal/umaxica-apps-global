@@ -37,6 +37,6 @@ module SignUpSocialCheckBirthdateControllerSupport
     @sign_up_completed_requirements = @sign_up_ticket.completed_requirements
     @sign_up_pending_actor = sign_up_pending_actor
 
-    render "sign/app/sign/up/checkpoints/show", status: :ok
+    render "auth/app/sign/up/checkpoints/show", status: :ok
   end
 end

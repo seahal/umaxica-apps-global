@@ -100,7 +100,7 @@ module PreferenceSignScreenActions
   def edit_selectable_preference_screen(screen)
     set_selectable_preference_edit(screen)
     set_selectable_preference_view_context(screen)
-    render "sign/shared/preference/selectable"
+    render "auth/shared/preference/selectable"
   end
 
   def update_selectable_preference_screen(screen)

@@ -1,0 +1,15 @@
+# typed: false
+# frozen_string_literal: true
+
+module Base
+  module Org
+    class BillingController < Base::Org::ApplicationController
+      AUTHENTICATION_MODE = :private
+      declare_authentication_mode! :private
+
+      def index
+        render json: { status: "ok" }
+      end
+    end
+  end
+end

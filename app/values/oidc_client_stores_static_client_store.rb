@@ -33,15 +33,15 @@ module OidcClientStoresStaticClientStore
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
           build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost") +
-          build_redirect_uris("BASE_SERVICE_URL", "base.app.localhost") +
-          build_redirect_uris("BASE_STAFF_URL", "base.org.localhost") +
-          build_redirect_uris("BASE_CORPORATE_URL", "base.com.localhost"),
+          build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+          build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+          build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
         post_logout_redirect_uris: build_post_logout_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_post_logout_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
           build_post_logout_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost") +
-          build_post_logout_redirect_uris("BASE_SERVICE_URL", "base.app.localhost") +
-          build_post_logout_redirect_uris("BASE_STAFF_URL", "base.org.localhost") +
-          build_post_logout_redirect_uris("BASE_CORPORATE_URL", "base.com.localhost"),
+          build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+          build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+          build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
         aud: "base-rails-rp",
         resource_type: "client",
         name: "Base Rails RP",
@@ -193,9 +193,9 @@ module OidcClientStoresStaticClientStore
       when "ACME_SERVICE_URL" then hosts.acme_service.to_s
       when "ACME_STAFF_URL" then hosts.acme_staff.to_s
       when "ACME_CORPORATE_URL" then hosts.acme_corporate.to_s
-      when "BASE_SERVICE_URL" then hosts.base_service.to_s
-      when "BASE_STAFF_URL" then hosts.base_staff.to_s
-      when "BASE_CORPORATE_URL" then hosts.base_corporate.to_s
+      when "SIDE_SERVICE_URL" then hosts.side_service.to_s
+      when "SIDE_STAFF_URL" then hosts.side_staff.to_s
+      when "SIDE_CORPORATE_URL" then hosts.side_corporate.to_s
       when "CORE_SERVICE_URL" then hosts.core_service.to_s
       when "CORE_STAFF_URL" then hosts.core_staff.to_s
       when "CORE_CORPORATE_URL" then hosts.core_corporate.to_s

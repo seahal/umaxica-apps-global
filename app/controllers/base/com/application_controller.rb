@@ -6,28 +6,30 @@ module Base
     class ApplicationController < ActionController::Base
       include ::RateLimit
       include ::JumpRtReturnVerification
+
       include ::Session
+
       include ::PreferenceGlobal
+
       include ::AuthenticationVisitor
       include ::SignErrorResponses
       include ::SessionLimitGate
       include ::AuthorizationAudit
+
       include ::AuthorizationVisitor
+
       include ::VerificationVisitor
+
       include ActionPolicy::Controller
+      include ::RestrictedSessionGuard
+
       include ::OidcSsoInitiator
+
       include ::ActorSupport
+
       include ::Finisher
 
       AUTHENTICATION_MODE = :deny_all
-
-      allow_browser versions: :modern
-
-      protect_from_forgery using: :header_or_legacy_token,
-                           trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
-                           ),
-                           with: :exception
 
       authorize :user, through: :current_policy_user
       authorize :actor, through: :current_actor
@@ -38,7 +40,17 @@ module Base
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_visitor, :logged_in?, :active_visitor?, :logged_in_visitor?
 
+      allow_browser versions: :modern
+
+      # NOTE: Order matters (dependencies rely on this sequence)
+      # Layer order: explicit RateLimit -> CurrentContext -> Preference -> AuthN ->
+      # CurrentActor -> side-effect reflection -> Verification -> AuthZ
+      # Existing jump-return handling runs before rate limiting; keep that order
+      # for this extraction and review the risk in a follow-up lifecycle PR.
       before_action :verify_jump_return_rt!, if: :jump_return_rt_request?
+      # Surface-wide default web request limit (defense-in-depth baseline).
+      # RateLimit stays a side-effect-free helper; the limit and its numeric
+      # value are declared here on the inheriting controller.
       rate_limit(
         to: 300,
         within: 1.minute,
@@ -53,17 +65,30 @@ module Base
       before_action :set_preferences_cookie
       before_action :resolve_param_context
       before_action :set_region
+
       before_action :transparent_refresh_access_token, unless: -> { request.format.json? }
       before_action :set_current_actor
       before_action :apply_localization_preferences
       before_action :set_color_theme
       before_action :enforce_withdrawal_gate!
+      before_action :enforce_restricted_session_guard!
       before_action :enforce_verification_if_required
       before_action :enforce_access_policy!
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
+      # NOTE: rewrite in production.
+      # FIXME: Resolve the URL issues before deploying.
+      protect_from_forgery using: :header_or_legacy_token,
+                           trusted_origins: JitHostOriginEnv.trusted_origins(
+                             ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"),
+                           ),
+                           with: :exception
+
+      public
+
       def oidc_client_id
+        # Historical name for Base's own browser/local-session RP client; Base does not own this callback.
         "base-rails-rp"
       end
 
@@ -71,8 +96,18 @@ module Base
         ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
       end
 
-      def oidc_acme_host
-        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      def oidc_base_host
+        ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+      end
+
+      private
+
+      def actor_verification_path(**args)
+        base_com_verification_path(**args)
+      end
+
+      def cross_host_redirect_allowed?
+        true
       end
     end
   end

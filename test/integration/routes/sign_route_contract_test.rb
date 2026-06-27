@@ -79,9 +79,10 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_APP_HOST}/sign/out/complete", method: :get },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/out", method: :delete)
-    end
+    assert_recognizes(
+      { controller: "sign/app/sign/outs", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :delete },
+    )
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/oidc/logout", method: :get)
@@ -245,22 +246,22 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "failure" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "failure" },
       { path: "http://#{SIGN_APP_HOST}/social/failure", method: :get },
     )
 
@@ -292,17 +293,17 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/auth/omniauth_callbacks", action: "omniauth" },
+      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
@@ -425,9 +426,10 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_COM_HOST}/sign/out/complete", method: :get },
     )
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/out", method: :delete)
-    end
+    assert_recognizes(
+      { controller: "sign/com/sign/outs", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :delete },
+    )
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/oidc/logout", method: :get)

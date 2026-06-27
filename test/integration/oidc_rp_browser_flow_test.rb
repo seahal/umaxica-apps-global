@@ -468,7 +468,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       actor: user,
       oidc_transaction: issuance.transaction,
     )
-    controller_class = Acme::App::Sign::In::LimitationsController
+    controller_class = Base::App::Sign::In::LimitationsController
     original_method = controller_class.instance_method(:hard_reject_still_applies?)
     controller_class.define_method(:hard_reject_still_applies?) { true }
     controller_class.send(:private, :hard_reject_still_applies?)

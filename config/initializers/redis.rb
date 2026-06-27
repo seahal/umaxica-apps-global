@@ -30,7 +30,12 @@ should_smoke_test =
 fail_fast =
   ENV.fetch("REDIS_FAIL_FAST", fail_fast_redis_by_default ? "1" : "0") == "1"
 
-if should_smoke_test && !Rails.env.test?
+running_rake_task =
+  defined?(Rake) &&
+  Rake.respond_to?(:application) &&
+  Rake.application.top_level_tasks.any?
+
+if should_smoke_test && !Rails.env.test? && !running_rake_task
   begin
     REDIS_CLIENT.ping
   rescue StandardError => e

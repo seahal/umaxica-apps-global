@@ -35,6 +35,7 @@ class OperatorIdentity < OrgRpRecord
   belongs_to :identity_state, class_name: "OperatorIdentityState", foreign_key: :status_id,
                               inverse_of: :operator_identities
   has_one :agent, dependent: :restrict_with_error, inverse_of: :operator_identity
+  has_many :agent_assignments, dependent: :destroy, inverse_of: :operator_identity
 
   validates :issuer, :subject, :audience, :source_record_id, presence: true
   validates :public_id, uniqueness: true

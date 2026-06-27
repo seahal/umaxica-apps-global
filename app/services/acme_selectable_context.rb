@@ -3,7 +3,7 @@
 
 # Shared selectable-context resolution for the Acme surfaces.
 #
-# Both the login-time selector (AcmeSelectorAuthority) and the post-login switcher
+# Both the login-time selector (BaseSelectorAuthority) and the post-login switcher
 # (AcmeSwitcherAuthority) need the same notion of "which account / organization / avatar
 # combinations is this principal actually allowed to act as", and the same atomic
 # persistence of a chosen combination onto the session token. This module is the single

@@ -7,13 +7,13 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
   fixtures_none!
 
   BARE_CONTROLLERS = [
-    Acme::App::BareController,
-    Acme::Com::BareController,
-    Acme::Dev::BareController,
-    Acme::Net::BareController,
-    Acme::Org::BareController,
+    Auth::App::BareController,
+    Auth::Com::BareController,
+    Auth::Org::BareController,
     Base::App::BareController,
     Base::Com::BareController,
+    Base::Dev::BareController,
+    Base::Net::BareController,
     Base::Org::BareController,
     Core::App::BareController,
     Core::Com::BareController,
@@ -33,20 +33,26 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
     News::Com::BareController,
     News::Org::BareController,
     Palm::App::BareController,
-    Sign::App::BareController,
-    Sign::Com::BareController,
-    Sign::Org::BareController,
+    Side::App::BareController,
+    Side::Com::BareController,
+    Side::Org::BareController,
   ].freeze
 
   APPLICATION_CONTROLLERS = [
-    Acme::App::ApplicationController,
-    Acme::Com::ApplicationController,
-    Acme::Dev::ApplicationController,
-    Acme::Net::ApplicationController,
-    Acme::Org::ApplicationController,
-    Sign::App::ApplicationController,
-    Sign::Com::ApplicationController,
-    Sign::Org::ApplicationController,
+    Auth::App::ApplicationController,
+    Auth::Com::ApplicationController,
+    Auth::Org::ApplicationController,
+    Base::App::ApplicationController,
+    Base::Com::ApplicationController,
+    Base::Dev::ApplicationController,
+    Base::Net::ApplicationController,
+    Base::Org::ApplicationController,
+    Core::App::ApplicationController,
+    Core::Com::ApplicationController,
+    Core::Org::ApplicationController,
+    Side::App::ApplicationController,
+    Side::Com::ApplicationController,
+    Side::Org::ApplicationController,
   ].freeze
 
   test "bare controllers inherit directly from ActionController base" do
@@ -96,15 +102,18 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
 
   test "legacy open controller compatibility bases are retired" do
     [
-      Acme::App,
-      Acme::Com,
-      Acme::Org,
+      Base::App,
+      Base::Com,
+      Base::Org,
       Core::App,
       Core::Com,
       Core::Org,
-      Sign::App,
-      Sign::Com,
-      Sign::Org,
+      Auth::App,
+      Auth::Com,
+      Auth::Org,
+      Side::App,
+      Side::Com,
+      Side::Org,
     ].each do |namespace|
       assert_not namespace.const_defined?(:OpenController, false), namespace.name
     end
@@ -112,7 +121,7 @@ class ControllerBaseInheritanceTest < ActiveSupport::TestCase
 
   test "check namespace controllers do not inherit checkpoint namespace implementations" do
     violations =
-      Rails.root.glob("app/controllers/sign/**/*_controller.rb").filter_map do |path|
+      Rails.root.glob("app/controllers/auth/**/*_controller.rb").filter_map do |path|
         content = File.binread(path).encode("UTF-8", invalid: :replace, undef: :replace)
         next unless content.match?(/class\s+.*::Checks?::?.*Controller\s*<\s*.*::Checkpoints?::?.*Controller/)
 

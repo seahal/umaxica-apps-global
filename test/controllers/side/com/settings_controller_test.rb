@@ -1,0 +1,15 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class Side::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
+  test "show renders" do
+    host! ENV.fetch("SIDE_CORPORATE_URL", "side.com.localhost")
+
+    get "/settings"
+
+    assert_response :success
+    assert_equal "Settings", response.body
+  end
+end

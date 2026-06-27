@@ -37,6 +37,26 @@ module ConfigValues
         [core_service, core_corporate, core_staff]
       end
 
+      def auth_service = sign_service
+
+      def auth_corporate = sign_corporate
+
+      def auth_staff = sign_staff
+
+      def auth_origins
+        [auth_service, auth_corporate, auth_staff]
+      end
+
+      def side_service = base_service
+
+      def side_corporate = base_corporate
+
+      def side_staff = base_staff
+
+      def side_origins
+        [side_service, side_corporate, side_staff]
+      end
+
       def base_origins
         [base_service, base_corporate, base_staff]
       end
@@ -76,14 +96,24 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "jpx.umaxica.org", production: production),
-      base_service: origin(env, "BASE_SERVICE_URL", production ? nil : "www-jp.umaxica.app", production: production),
+      base_service: origin(
+        env,
+        env.key?("SIDE_SERVICE_URL") ? "SIDE_SERVICE_URL" : "BASE_SERVICE_URL",
+        production ? nil : "www-jp.umaxica.app",
+        production: production,
+      ),
       base_corporate: origin(
         env,
-        "BASE_CORPORATE_URL",
+        env.key?("SIDE_CORPORATE_URL") ? "SIDE_CORPORATE_URL" : "BASE_CORPORATE_URL",
         production ? nil : "www-jp.umaxica.com",
         production: production,
       ),
-      base_staff: origin(env, "BASE_STAFF_URL", production ? nil : "www-jp.umaxica.org", production: production),
+      base_staff: origin(
+        env,
+        env.key?("SIDE_STAFF_URL") ? "SIDE_STAFF_URL" : "BASE_STAFF_URL",
+        production ? nil : "www-jp.umaxica.org",
+        production: production,
+      ),
       palm_service: origin(env, "PALM_SERVICE_URL", production ? nil : "palm-jp.umaxica.app", production: production),
       palm_corporate: origin(
         env,

@@ -28,7 +28,19 @@ class Persona < AppRpRecord
   include ::Account
 
   belongs_to :client_identity, inverse_of: :persona
+  has_many :persona_assignments, dependent: :destroy, inverse_of: :persona
   has_many :persona_memberships, dependent: :destroy, inverse_of: :persona
+  has_one :avatar_persona_binding, dependent: :destroy, inverse_of: :persona
 
   validates :client_identity_id, uniqueness: true
+
+  def current_avatar_persona_binding
+    return nil unless persisted?
+
+    AvatarPersonaBinding.active.find_by(persona_id: id)
+  end
+
+  def current_avatar
+    current_avatar_persona_binding&.avatar
+  end
 end

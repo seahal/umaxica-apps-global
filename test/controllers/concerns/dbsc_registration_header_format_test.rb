@@ -36,7 +36,7 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
   test "preference dbsc registration header uses structured-field tokens" do
     preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
 
-    controller = Acme::App::Edge::V0::CookiesController.new
+    controller = Base::App::Edge::V0::CookiesController.new
     controller.instance_variable_set(:@_response, ActionDispatch::Response.new)
     controller.define_singleton_method(:preference_dbsc_path) { "/edge/v0/dbsc" }
 

@@ -170,7 +170,7 @@ module SignOidcLogout
       result: "rejected",
       reason: reason,
     )
-    render "sign/shared/sign_outs/unavailable", status: :unprocessable_content
+    render "auth/shared/sign_outs/unavailable", status: :unprocessable_content
   end
 
   def perform_oidc_end_session_logout(result)

@@ -28,8 +28,8 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     )
     satisfy_user_verification(@token)
     mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
-    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: @deactivated_user)
-    AcmeSelectorAuthority.prepare(surface: :app, principal: @deactivated_user, session: @token)
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @deactivated_user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: @deactivated_user, session: @token)
 
     @headers = {
       "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
@@ -81,8 +81,8 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       discarded_at: 1.day.from_now,
     )
     satisfy_user_verification(normal_token)
-    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: normal_user)
-    AcmeSelectorAuthority.prepare(surface: :app, principal: normal_user, session: normal_token)
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: normal_user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: normal_user, session: normal_token)
 
     headers = {
       "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),

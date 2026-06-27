@@ -22,7 +22,7 @@ module Core
       end
 
       def edit
-        render "sign/shared/sign_outs/edit"
+        render "auth/shared/sign_outs/edit"
       end
 
       def create

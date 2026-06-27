@@ -7,15 +7,18 @@ class ActionPolicyUsageTest < ActiveSupport::TestCase
   fixtures_none!
 
   SURFACE_AUTHORIZATION_CONTEXTS = {
-    Acme::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
-    Acme::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
-    Acme::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Auth::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Auth::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Auth::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Base::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Base::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Base::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
     Core::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
     Core::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
     Core::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
-    Sign::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
-    Sign::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
-    Sign::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Side::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Side::Com::ApplicationController => { actor: :current_actor, user: :current_policy_user },
+    Side::Org::ApplicationController => { actor: :current_actor, user: :current_policy_user },
   }.freeze
 
   test "authenticated surface controllers use Action Policy with explicit actor context" do

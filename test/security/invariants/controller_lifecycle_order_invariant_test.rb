@@ -9,18 +9,18 @@ module Security
       fixtures_none!
 
       AUTHENTICATED_SURFACE_CONTROLLERS = [
-        Acme::App::ApplicationController,
-        Acme::Com::ApplicationController,
-        Acme::Org::ApplicationController,
+        Auth::App::ApplicationController,
+        Auth::Com::ApplicationController,
+        Auth::Org::ApplicationController,
         Base::App::ApplicationController,
         Base::Com::ApplicationController,
         Base::Org::ApplicationController,
         Core::App::ApplicationController,
         Core::Com::ApplicationController,
         Core::Org::ApplicationController,
-        Sign::App::ApplicationController,
-        Sign::Com::ApplicationController,
-        Sign::Org::ApplicationController,
+        Side::App::ApplicationController,
+        Side::Com::ApplicationController,
+        Side::Org::ApplicationController,
       ].freeze
 
       REQUIRED_ORDER = %i(

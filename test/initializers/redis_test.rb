@@ -64,6 +64,34 @@ class RedisInitializerTest < ActiveSupport::TestCase
     end
   end
 
+  test "rake tasks skip redis smoke tests during environment boot" do
+    redis_client = Class.new do
+      def ping
+        flunk("redis ping should not run during rake tasks")
+      end
+    end.new
+    env = ActiveSupport::StringInquirer.new("development")
+
+    with_env(
+      "REDIS_NORMAL_URL" => "redis://localhost:6379/0",
+      "REDIS_SMOKE_TEST" => "1",
+      "REDIS_FAIL_FAST" => "1",
+    ) do
+      with_reloaded_redis_client do
+        Redis.stub(:new, redis_client) do
+          Rails.stub(:env, env) do
+            rake = Struct.new(:application).new(Struct.new(:top_level_tasks).new(["db:migrate:reset"]))
+            stub_const(:Rake, rake) do
+              Rails.logger.stub(:error, ->(_message) { flunk("redis errors should not be logged") }) do
+                load INITIALIZER_PATH
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
   private
 
   def with_reloaded_redis_client
@@ -85,5 +113,15 @@ class RedisInitializerTest < ActiveSupport::TestCase
     old_values.each do |key, value|
       value.nil? ? ENV.delete(key) : ENV[key] = value
     end
+  end
+
+  def stub_const(name, value)
+    existed = Object.const_defined?(name, false)
+    old_value = Object.const_get(name) if existed
+    Object.const_set(name, value)
+    yield
+  ensure
+    Object.send(:remove_const, name) if Object.const_defined?(name, false)
+    Object.const_set(name, old_value) if existed
   end
 end

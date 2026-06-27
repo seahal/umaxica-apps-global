@@ -1,0 +1,34 @@
+<% surface = controller_path.split("/").second %>
+<% content_for :page_title, t("base.#{surface}.preference.resets.title") %>
+
+<section>
+  <div>
+    <%= link_to t("base.#{surface}.preferences.regions.back_link"),
+                public_send("base_#{surface}_preference_path", lx: params[:lx], ri: params[:ri]) %>
+  </div>
+
+  <h1><%= t("base.#{surface}.preference.resets.title") %></h1>
+  <p><%= t("base.#{surface}.preference.resets.description") %></p>
+
+  <%= form_with url: public_send("base_#{surface}_preference_reset_path", ri: params[:ri]), method: :delete do |f| %>
+    <% if @preference&.errors&.any? %>
+      <div>
+        <ul>
+          <% @preference.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div>
+      <%= check_box_tag :confirm_reset, "1", @preference&.confirm_reset == "1", required: true %>
+      <%= label_tag :confirm_reset, t("base.#{surface}.preference.resets.confirm") %>
+    </div>
+
+    <div>
+      <%= f.submit t("base.#{surface}.preference.resets.button"),
+                   data: { turbo_submits_with: t("base.#{surface}.preferences.submitting") } %>
+    </div>
+  <% end %>
+</section>

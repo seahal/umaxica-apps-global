@@ -27,6 +27,8 @@ Rules:
 Current content-model references:
 
 - `docs/architecture/acme-sign-core-base-port.md`
+- `docs/architecture/sns-subject-resource-grill.md`
+- `docs/architecture/sns-subject-resource-decision-record.md`
 - `docs/identity/authority-boundary.md`
 - `docs/architecture/actor-naming.md`
 - `docs/architecture/current_context.md`

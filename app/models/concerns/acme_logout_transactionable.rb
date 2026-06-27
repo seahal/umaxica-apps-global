@@ -4,7 +4,7 @@
 module AcmeLogoutTransactionable
   extend ActiveSupport::Concern
 
-  ORIGIN_SURFACES = %w(sign acme core base palm).freeze
+  ORIGIN_SURFACES = %w(sign acme core side palm).freeze
   STATUS_INITIATED = "initiated"
   STATUS_IN_PROGRESS = "in_progress"
   STATUS_FINALIZED = "finalized"
@@ -37,7 +37,7 @@ module AcmeLogoutTransactionable
         [STEP_ORIGIN_CLEARED, STEP_ACME_CLEARED]
       when "acme"
         [STEP_ORIGIN_CLEARED, STEP_SIGN_CLEARED]
-      when "core", "base", "palm"
+      when "core", "side", "palm"
         [STEP_ORIGIN_CLEARED, STEP_ACME_CLEARED, STEP_SIGN_CLEARED]
       else
         raise ArgumentError, "unsupported logout origin surface: #{origin_surface.inspect}"

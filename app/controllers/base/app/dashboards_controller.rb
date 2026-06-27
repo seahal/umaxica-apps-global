@@ -3,11 +3,9 @@
 
 module Base
   module App
-    class DashboardsController < Base::App::ApplicationController
+    class DashboardsController < Base::App::FullAccessController
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
-
-      before_action :authenticate_client!
 
       def show
         render "base/shared/dashboards/show"

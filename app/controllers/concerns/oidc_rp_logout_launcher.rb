@@ -146,12 +146,12 @@ module OidcRpLogoutLauncher
   def render_oidc_rp_logout_unavailable
     return render_oidc_rp_logout_completion unless logout_surface_name == "app"
 
-    render "sign/shared/sign_outs/unavailable", status: :unprocessable_content
+    render "auth/shared/sign_outs/unavailable", status: :unprocessable_content
   end
 
   def render_oidc_rp_logout_completion
     @sign_out_notice = consume_sign_out_notice
-    render "sign/shared/sign_outs/complete", status: :ok
+    render "auth/shared/sign_outs/complete", status: :ok
   end
 
   def rp_logout_region

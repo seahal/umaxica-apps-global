@@ -11,7 +11,7 @@ class IdentityGraphProvisionerTest < ActiveSupport::TestCase
   test "delegates to selector bootstrap authority" do
     user = create_client!
 
-    AcmeSelectorBootstrapAuthority.stub(:call, :provisioned) do
+    BaseSelectorBootstrapAuthority.stub(:call, :provisioned) do
       assert_equal :provisioned, IdentityGraphProvisioner.call!(surface: :app, principal: user)
     end
   end
@@ -21,7 +21,7 @@ class IdentityGraphProvisionerTest < ActiveSupport::TestCase
     error = RuntimeError.new("bootstrap boom")
     logged = nil
 
-    AcmeSelectorBootstrapAuthority.stub(:call, ->(*) { raise error }) do
+    BaseSelectorBootstrapAuthority.stub(:call, ->(*) { raise error }) do
       Rails.logger.stub(:error, ->(message) { logged = message }) do
         raised =
           assert_raises(RuntimeError) do

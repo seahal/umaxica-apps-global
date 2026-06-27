@@ -177,7 +177,7 @@ module SignOutNotice
         result: "rejected",
         reason: fetch_metadata_rejection_reason(sec_fetch_site, allowed_origin),
       )
-      render "sign/shared/sign_outs/unavailable", status: :forbidden, layout: false
+      render "auth/shared/sign_outs/unavailable", status: :forbidden, layout: false
     end
 
     log_sign_out_event(

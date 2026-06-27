@@ -5,7 +5,7 @@ require "test_helper"
 
 # Probe controller inheriting the lightest surface base so the surface-wide
 # default_web rate limit (declared on the base) is exercised end-to-end.
-class DefaultWebRateLimitProbeController < Acme::Net::ApplicationController
+class DefaultWebRateLimitProbeController < Base::Net::ApplicationController
   def index
     render plain: "ok"
   end
@@ -31,13 +31,13 @@ class DefaultWebRateLimitTest < ActionDispatch::IntegrationTest
 
       assert_response :too_many_requests
       assert_equal "rails", response.headers["X-RateLimit-Layer"]
-      assert_equal "acme_net_default_web", response.headers["X-RateLimit-Rule"]
+      assert_equal "base_net_default_web", response.headers["X-RateLimit-Rule"]
       assert_equal "60", response.headers["Retry-After"]
 
       body = response.parsed_body
 
       assert_equal "rate_limited", body["error"]
-      assert_equal "acme_net_default_web", body["rule"]
+      assert_equal "base_net_default_web", body["rule"]
       assert_equal I18n.t("errors.rate_limit.exceeded"), body["message"]
     end
   end

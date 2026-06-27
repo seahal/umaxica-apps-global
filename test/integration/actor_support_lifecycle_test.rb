@@ -78,12 +78,12 @@ class ActorSupportLifecyclePolicy < ApplicationPolicy
   end
 end
 
-module Acme
+module Base
   module App
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
 
-      declare_authentication_mode! :open
+      AUTHENTICATION_MODE = :open
 
       def show
         render json: actor_support_snapshot
@@ -101,7 +101,7 @@ module Acme
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
 
-      declare_authentication_mode! :open
+      AUTHENTICATION_MODE = :open
 
       def show
         render json: actor_support_snapshot
@@ -117,7 +117,7 @@ module Acme
     class ActorSupportController < ApplicationController
       include ActorSupportLifecycle
 
-      declare_authentication_mode! :open
+      AUTHENTICATION_MODE = :open
 
       def show
         render json: actor_support_snapshot
@@ -134,12 +134,12 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   setup do
     Actor.reset
     Rails.application.routes.draw do
-      get "/actor-support/acme-app", to: "acme/app/actor_support#show"
-      get "/actor-support/acme-app-policy", to: "acme/app/actor_support#policy"
-      get "/actor-support/acme-org", to: "acme/org/actor_support#show"
-      get "/actor-support/acme-org-policy", to: "acme/org/actor_support#policy"
-      get "/actor-support/acme-com", to: "acme/com/actor_support#show"
-      get "/actor-support/acme-com-policy", to: "acme/com/actor_support#policy"
+      get "/actor-support/acme-app", to: "base/app/actor_support#show"
+      get "/actor-support/acme-app-policy", to: "base/app/actor_support#policy"
+      get "/actor-support/acme-org", to: "base/org/actor_support#show"
+      get "/actor-support/acme-org-policy", to: "base/org/actor_support#policy"
+      get "/actor-support/acme-com", to: "base/com/actor_support#show"
+      get "/actor-support/acme-com-policy", to: "base/com/actor_support#policy"
     end
   end
 

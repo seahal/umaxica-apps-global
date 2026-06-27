@@ -32,7 +32,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "org sign in page exposes only local verifier entrypoints" do
-    source = read("app/views/sign/org/sign_ins/new.html.erb")
+    source = read("app/views/auth/org/sign_ins/new.html.erb")
 
     assert_match(/new_sign_org_sign_in_passkey_path/, source)
     assert_match(/new_sign_org_sign_in_secret_credential_path/, source)
@@ -40,8 +40,8 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "org routes expose local sign in and passkey verification only" do
-    source = read("config/routes/sign.rb")
-    org_block = surface_block(source, "sign_surface :org")
+    source = read("config/routes/auth.rb")
+    org_block = surface_block(source, "auth_surface :org")
 
     assert_match(/resource :passkey, only: :new/, org_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, org_block)
@@ -51,27 +51,27 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
 
   test "com pages do not expose social auth helpers" do
     source = [
-      "app/views/sign/com/sign_ins/new.html.erb",
-      "app/views/sign/com/sign_ups/new.html.erb",
+      "app/views/auth/com/sign_ins/new.html.erb",
+      "app/views/auth/com/sign_ups/new.html.erb",
     ].map { |path| read(path) }.join("\n")
 
     assert_no_match(/social_authentication|google|apple|microsoft/i, source)
   end
 
   test "com routes expose no social provider callback" do
-    source = read("config/routes/sign.rb")
-    com_block = surface_block(source, "sign_surface :com", "# Staff credential gateway host")
+    source = read("config/routes/auth.rb")
+    com_block = surface_block(source, "auth_surface :com", "# Staff credential gateway host")
 
-    assert_match(/resource :email, only: %i\(new create edit update\)/, com_block)
+    assert_match(/resource :email, only: %i\(new create edit\)/, com_block)
     assert_match(/resource :secret_credential, only: %i\(new create\)/, com_block)
     assert_no_match(/namespace :social|google|apple|microsoft/i, com_block)
   end
 
   test "app routes and omniauth config keep app social providers" do
-    routes = surface_block(read("config/routes/sign.rb"), "sign_surface :app", "# Corporate credential gateway host")
+    routes = surface_block(read("config/routes/auth.rb"), "auth_surface :app", "# Corporate credential gateway host")
     omniauth = read("config/initializers/omniauth.rb")
 
-    assert_match(/sign_app_social_routes/, routes)
+    assert_match(/auth_app_social_routes/, routes)
     assert_match(/apple/, routes)
     assert_match(/google/, omniauth)
     assert_match(/apple/, omniauth)

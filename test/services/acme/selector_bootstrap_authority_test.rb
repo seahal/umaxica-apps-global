@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
+class BaseSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
   setup do
     ensure_reference_rows!
   end
@@ -15,22 +15,30 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_difference -> { ClientAccount.count }, 1 do
       assert_difference -> { ClientIdentity.count }, 1 do
         assert_difference -> { Persona.count }, 1 do
-          assert_difference -> { Enterprise.count }, 1 do
-            assert_difference -> { Avatar.count }, 1 do
-              result = AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
+          assert_difference -> { PersonaAssignment.count }, 1 do
+            assert_difference -> { Enterprise.count }, 1 do
+              assert_difference -> { Avatar.count }, 1 do
+                result = BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+              end
             end
           end
         end
       end
     end
 
-    assert_no_difference -> { ClientAccount.count + Persona.count + Enterprise.count + Avatar.count } do
-      AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
+    assert_no_difference -> {
+      ClientAccount.count + Persona.count + PersonaAssignment.count +
+        Enterprise.count + Avatar.count
+    } do
+      BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
     end
     assert_equal "Persona01", Persona.first.title
     assert_equal "Org01", Enterprise.first.title
+    assert_equal 1, AvatarPersonaBinding.count
     assert_equal 1, Persona.first.current_memberships.count
     assert_predicate result.avatar, :present?
+    assert_equal Persona.first, result.avatar.current_persona
+    assert_equal result.avatar, Persona.first.current_avatar
   end
 
   test "com and org bootstrap do not create app avatars" do
@@ -41,8 +49,8 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     org_result = nil
 
     assert_no_difference -> { Avatar.count } do
-      com_result = AcmeSelectorBootstrapAuthority.call(surface: :com, principal: visitor)
-      org_result = AcmeSelectorBootstrapAuthority.call(surface: :org, principal: operator)
+      com_result = BaseSelectorBootstrapAuthority.call(surface: :com, principal: visitor)
+      org_result = BaseSelectorBootstrapAuthority.call(surface: :org, principal: operator)
     end
 
     assert_equal 1, VisitorAccount.where(visitor_id: visitor.id).count
@@ -53,12 +61,14 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_equal "Org01", Bureau.first.title
     assert_nil com_result.avatar
     assert_nil org_result.avatar
+    assert_equal 1, IndividualAssignment.count
+    assert_equal 1, AgentAssignment.count
   end
 
   test "rolls back zenith rows when account creation fails after identity creation" do
     user = create_client!
 
-    failing_authority = Class.new(AcmeSelectorBootstrapAuthority) do
+    failing_authority = Class.new(BaseSelectorBootstrapAuthority) do
       def ensure_account!(_identity)
         raise StandardError, "boom"
       end

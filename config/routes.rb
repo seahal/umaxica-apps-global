@@ -1,24 +1,24 @@
 # typed: false
 # frozen_string_literal: true
 
-# Define the Sign route-mapper macros (sign_routes/sign_surface/...) before the
+# Define the Auth route-mapper macros (auth_routes/auth_surface/...) before the
 # surface tables consume them. Required here rather than from an initializer so
 # the macros exist regardless of initializer load order. See the file header.
-require_relative "sign_route_mapper"
-ActionDispatch::Routing::Mapper.include(SignRouteMapper)
+require_relative "auth_route_mapper"
+ActionDispatch::Routing::Mapper.include(AuthRouteMapper)
 
 Rails.application.routes.draw do
-  # Acme owns the OP/Authorization Server and durable identity/session authority.
-  draw :acme
+  # Base owns the OP/Authorization Server and durable identity/session authority.
+  draw :base
 
-  # Sign owns the credential gateway for sign-in/sign-up ceremonies.
-  draw :sign
+  # Auth owns the credential gateway for sign-in/sign-up ceremonies.
+  draw :auth
 
   # Core owns the regional BFF surface.
   draw :core
 
-  # Base owns the Rails foundation/control-plane surface.
-  draw :base
+  # Side owns the Rails foundation/control-plane surface.
+  draw :side
 
   # Palm owns the native bearer-token API surface.
   draw :palm

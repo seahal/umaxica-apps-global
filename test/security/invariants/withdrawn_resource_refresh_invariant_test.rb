@@ -71,7 +71,7 @@ module Security
       end
 
       def controller
-        @controller ||= Sign::App::ApplicationController.new
+        @controller ||= Auth::App::ApplicationController.new
       end
     end
   end

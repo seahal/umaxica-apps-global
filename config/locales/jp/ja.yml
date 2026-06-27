@@ -237,6 +237,12 @@ ja:
         refresh_expires_at: リフレッシュトークン有効期限
         discarded_at: 有効期限
         purged_at: 削除予定日時
+      persona_assignment:
+        assigned_at: 割当日時
+      agent_assignment:
+        assigned_at: 割当日時
+      individual_assignment:
+        assigned_at: 割当日時
       user_identity_email:
         address: メールアドレス
       client_identity:

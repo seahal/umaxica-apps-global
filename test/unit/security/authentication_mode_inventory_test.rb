@@ -71,12 +71,18 @@ module Security
 
     test "surface application controllers default to deny_all" do
       [
-        Acme::App::ApplicationController,
-        Acme::Com::ApplicationController,
-        Acme::Org::ApplicationController,
-        Sign::App::ApplicationController,
-        Sign::Com::ApplicationController,
-        Sign::Org::ApplicationController,
+        Auth::App::ApplicationController,
+        Auth::Com::ApplicationController,
+        Auth::Org::ApplicationController,
+        Base::App::ApplicationController,
+        Base::Com::ApplicationController,
+        Base::Org::ApplicationController,
+        Core::App::ApplicationController,
+        Core::Com::ApplicationController,
+        Core::Org::ApplicationController,
+        Side::App::ApplicationController,
+        Side::Com::ApplicationController,
+        Side::Org::ApplicationController,
       ].each do |controller_class|
         assert_equal :deny_all, controller_class.authentication_mode_for(:index), controller_class.name
       end
@@ -140,7 +146,7 @@ module Security
     private
 
     def application_controller_class?(controller_class)
-      controller_class.name.start_with?("Acme::", "Jump::", "Sign::", "Inertia")
+      controller_class.name.start_with?("Auth::", "Base::", "Core::", "Jump::", "Side::", "Inertia")
     end
   end
 end

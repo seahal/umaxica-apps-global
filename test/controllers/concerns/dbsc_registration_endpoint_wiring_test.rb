@@ -10,9 +10,9 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
   end
 
   test "acme dbsc controllers use shared preference registration endpoint concern" do
-    assert_includes Acme::App::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
-    assert_includes Acme::Org::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
-    assert_includes Acme::Com::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
+    assert_includes Base::App::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
+    assert_includes Base::Org::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
+    assert_includes Base::Com::Edge::V0::DbscController, PreferenceDbscRegistrationEndpoint
   end
 
   test "controllers do not redefine dbsc registration internals locally" do
@@ -21,9 +21,9 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
       Sign::Org::Edge::V0::Token::DbscController,
     ]
     acme_controllers = [
-      Acme::App::Edge::V0::DbscController,
-      Acme::Org::Edge::V0::DbscController,
-      Acme::Com::Edge::V0::DbscController,
+      Base::App::Edge::V0::DbscController,
+      Base::Org::Edge::V0::DbscController,
+      Base::Com::Edge::V0::DbscController,
     ]
 
     (sign_controllers + acme_controllers).each do |controller|

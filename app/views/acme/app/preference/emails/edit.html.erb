@@ -1,5 +1,0 @@
-<% content_for :page_title, "Email settings" %>
-<%= render "acme/shared/preference/email_unsubscribe",
-           email: @email,
-           token: params[:token],
-           unsubscribe_path: acme_app_preference_email_path(@email) %>

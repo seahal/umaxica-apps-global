@@ -61,6 +61,9 @@ class Avatar < AvatarRecord
 
   # Avatar assignments (role-based access control)
   has_many :avatar_assignments, dependent: :destroy
+  has_one :avatar_persona_binding, dependent: :destroy, inverse_of: :avatar
+  has_one :avatar_agent_binding, dependent: :destroy, inverse_of: :avatar
+  has_one :avatar_individual_binding, dependent: :destroy, inverse_of: :avatar
 
   has_many :member_avatar_accesses, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_visibilities, dependent: :destroy, inverse_of: :avatar
@@ -187,5 +190,15 @@ class Avatar < AvatarRecord
       avatar.avatar_assignments.create!(user_id: user.id, role: "owner")
       avatar
     end
+  end
+
+  def current_avatar_persona_binding
+    return nil unless persisted?
+
+    AvatarPersonaBinding.active.find_by(avatar_id: id)
+  end
+
+  def current_persona
+    current_avatar_persona_binding&.persona
   end
 end
