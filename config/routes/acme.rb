@@ -154,8 +154,8 @@ scope module: :acme, as: :acme do
       end
 
       # Canonical browser sign-out flow.
-      scope path: :sign, module: :sign do
-        resource :out, only: %i(new edit create), as: :sign_out do
+      scope path: :sign do
+        resource :out, only: %i(new create), as: :sign_out do
           get :complete, on: :collection
         end
       end
@@ -203,13 +203,12 @@ scope module: :acme, as: :acme do
         end
       end
 
-      # Account / Organization / Avatar entity management (plural CRUD). Current-context
-      # display and switching is consolidated into /switcher; there are intentionally no
-      # singular current routes (/account, /organization, /avatar) on the app surface.
-      resources :accounts, only: %i(index new create show edit update)
+      # Account / Organization entity management. Read-only public resource lookup uses the
+      # default `:id` parameter and resolves by public_id in the controller layer.
+      resources :accounts, only: %i(index show)
 
       # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index new create show edit update) do
+      resources :organizations, only: %i(index show) do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
 
@@ -367,8 +366,11 @@ scope module: :acme, as: :acme do
       # Current account entrypoint.
       resource :account, only: %i(show edit update)
 
+      # Read-only account resource surface.
+      resources :accounts, only: %i(index show)
+
       # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show new create edit update) do
+      resources :organizations, only: %i(index show) do
         # Keep membership URLs nested under organizations while routing to the surface-local
         # organizations/memberships controller namespace.
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
@@ -574,8 +576,11 @@ scope module: :acme, as: :acme do
       # Current account entrypoint.
       resource :account, only: %i(show edit update)
 
+      # Read-only account resource surface.
+      resources :accounts, only: %i(index show)
+
       # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show new create edit update) do
+      resources :organizations, only: %i(index show) do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
     end

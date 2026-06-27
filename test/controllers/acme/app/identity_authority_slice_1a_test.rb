@@ -11,21 +11,19 @@ class Acme::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     @user = clients(:one)
   end
 
-  test "acme_sign_out_create_is_session_mutation_and_renders_post_handoff" do
+  test "acme_sign_out_create_is_session_mutation_and_redirects_to_sign_handoff" do
     token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
     post acme_app_sign_out_url(ri: "jp"), headers: session_headers(token)
 
-    assert_response :success
+    assert_response :see_other
     assert_predicate token.reload, :revoked?
-    form = css_select("form#sign-out-handoff-form").first
-    location = URI.parse(form["action"])
+    location = URI.parse(response.location)
 
     assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
     assert_equal "/sign/out", location.path
-    assert_predicate css_select('form#sign-out-handoff-form input[name="logout_challenge"]').first["value"],
-                     :present?
+    assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
   end
 
   private

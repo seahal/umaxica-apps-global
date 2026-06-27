@@ -23,6 +23,8 @@ AcmeSelectorSurfaceConfig = Data.define(
   :membership_collective_association,
   :membership_unit_association,
   :requires_avatar,
+  :account_title,
+  :collective_title,
 )
 
 AcmeSelectorSurfaceConfig::CONFIGS = {
@@ -48,6 +50,8 @@ AcmeSelectorSurfaceConfig::CONFIGS = {
     membership_collective_association: :enterprise,
     membership_unit_association: :enterprise_unit,
     requires_avatar: true,
+    account_title: "Persona01",
+    collective_title: "Org01",
   ),
   com: AcmeSelectorSurfaceConfig.new(
     surface: :com,
@@ -71,6 +75,8 @@ AcmeSelectorSurfaceConfig::CONFIGS = {
     membership_collective_association: :company,
     membership_unit_association: :company_unit,
     requires_avatar: false,
+    account_title: "Indiv01",
+    collective_title: "Org01",
   ),
   org: AcmeSelectorSurfaceConfig.new(
     surface: :org,
@@ -94,5 +100,7 @@ AcmeSelectorSurfaceConfig::CONFIGS = {
     membership_collective_association: :bureau,
     membership_unit_association: :bureau_unit,
     requires_avatar: false,
+    account_title: "Agent01",
+    collective_title: "Org01",
   ),
 }.freeze

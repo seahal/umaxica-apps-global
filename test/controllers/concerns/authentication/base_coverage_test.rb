@@ -1058,9 +1058,9 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   end
 
   test "path_from_signed_pt rejects welcome return targets after URI normalization" do
-    @request.host = "id.umaxica.app"
+    @request.host = "log.umaxica.app"
     encoded_internal = @controller.signed_pt_token("/welcome?ri=jp")
-    encoded_absolute = @controller.signed_pt_token("https://id.umaxica.app/welcome?ri=jp")
+    encoded_absolute = @controller.signed_pt_token("https://log.umaxica.app/welcome?ri=jp")
 
     assert_nil @controller.path_from_signed_pt(encoded_internal)
     assert_nil @controller.path_from_signed_pt(encoded_absolute)

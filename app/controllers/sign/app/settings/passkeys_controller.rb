@@ -316,13 +316,13 @@ module Sign
               sign_app_settings_secrets_url(
                 ri: params[:ri],
                 token: reveal.token,
-                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               )
             else
               bootstrap_return_path(
                 sign_app_settings_passkeys_url(
                   ri: params[:ri],
-                  host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                  host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
                 ),
               )
             end
@@ -372,7 +372,7 @@ module Sign
         def recovery_passcode_setup_url
           sign_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           )
         end
       end

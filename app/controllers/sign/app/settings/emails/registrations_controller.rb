@@ -65,7 +65,7 @@ module Sign
             email_registration_return_path(
               sign_app_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               ),
             )
           end

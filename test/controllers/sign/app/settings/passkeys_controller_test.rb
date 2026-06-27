@@ -35,8 +35,8 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       "http://id.app.localhost",
       "http://id.org.localhost",
       "http://www.example.com",
-      "http://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
-      "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
+      "http://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
+      "https://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
     ].uniq
     Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
 
@@ -157,7 +157,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options uses configured app rp id" do
-    ENV["WEBAUTHN_APP_RP_ID"] = "id.umaxica.app"
+    ENV["WEBAUTHN_APP_RP_ID"] = "log.umaxica.app"
     ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
     Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
       post sign_app_settings_passkeys_options_path(ri: "jp"),
@@ -165,7 +165,7 @@ class Sign::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :ok
-    assert_equal "id.umaxica.app", response.parsed_body.dig("options", "rp", "id")
+    assert_equal "log.umaxica.app", response.parsed_body.dig("options", "rp", "id")
   end
 
   # Case D-3: Untrusted origin

@@ -53,7 +53,7 @@ module Acme
 
             if social_resolution?
               return redirect_to(
-                sign_app_sign_in_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+                sign_app_sign_in_url(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
                 allow_other_host: cross_host_redirect_allowed?,
                 status: :see_other,
               )
@@ -61,7 +61,7 @@ module Acme
 
             @resolution.cancel!
             redirect_to(
-              sign_app_sign_in_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+              sign_app_sign_in_url(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
               allow_other_host: cross_host_redirect_allowed?,
               status: :see_other,
             )

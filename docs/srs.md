@@ -73,13 +73,13 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   |---------|---------------|-----------|-----------------| | Top (marketing / preferences) |
   `www.umaxica.com`, `www.umaxica.app`, `www.umaxica.org` | `Top::Com/App/Org` | Redirects to edge,
   exposes `/health`, `/v1/health`, preference UIs (cookie/region/theme). | | Sign |
-  `log.umaxica.app`, `log.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP, passkeys,
-  OAuth (Google/Apple), recovery, withdrawals. | | Help | `help.umaxica.com` | `Help::Com/App/Org` |
-  Contact forms, ticket intake (`ServiceSiteContact`), Turnstile enforcement. | | Docs / News |
-  `docs.umaxica.*`, `news.umaxica.*` | `Docs::*`, `News::*` | Documentation/newsroom placeholders
-  with health pages. | | BFF | `bff.umaxica.*` | `Bff::*` | Non-auth preference/email endpoints for
-  clients. | | API | `api.umaxica.*` | `Api::*` | JSON APIs (`/v1/inquiry/valid_email_addresses`,
-  `valid_telephone_numbers`, `health`). |
+  `log.umaxica.app`, `log.umaxica.org` | `Sign::App/Org` | Registration (email/phone), OTP,
+  passkeys, OAuth (Google/Apple), recovery, withdrawals. | | Help | `help.umaxica.com` |
+  `Help::Com/App/Org` | Contact forms, ticket intake (`ServiceSiteContact`), Turnstile enforcement.
+  | | Docs / News | `docs.umaxica.*`, `news.umaxica.*` | `Docs::*`, `News::*` |
+  Documentation/newsroom placeholders with health pages. | | BFF | `bff.umaxica.*` | `Bff::*` |
+  Non-auth preference/email endpoints for clients. | | API | `api.umaxica.*` | `Api::*` | JSON APIs
+  (`/v1/inquiry/valid_email_addresses`, `valid_telephone_numbers`, `health`). |
 
 ---
 

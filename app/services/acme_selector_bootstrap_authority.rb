@@ -101,7 +101,7 @@ class AcmeSelectorBootstrapAuthority
     association_key = :"#{config.account_identity_association}_id"
     create_unique(
       config.account_class,
-      { association_key => identity.id, :moniker => config.account_moniker },
+      { association_key => identity.id, :moniker => config.account_moniker, :title => config.account_title },
       lookup: { association_key => identity.id },
     )
   end
@@ -110,7 +110,7 @@ class AcmeSelectorBootstrapAuthority
     membership = account.current_memberships.first
     return membership.collective if membership.present?
 
-    config.collective_class.create!(name: config.collective_name)
+    config.collective_class.create!(name: config.collective_name, title: config.collective_title)
   end
 
   def ensure_root_unit!(collective)

@@ -129,17 +129,17 @@ module Auth
     test "Token roundtrips with an explicit surface issuer and not the legacy auth issuer" do
       token = AuthenticationToken.encode(
         clients(:one),
-        host: "id.umaxica.app",
+        host: "log.umaxica.app",
         session_public_id: "sid",
         resource_type: "client",
         jwt_issuer_id: "surface:SIGN_APP",
       )
 
-      assert AuthenticationToken.decode(token, host: "id.umaxica.app", resource_type: "client")
+      assert AuthenticationToken.decode(token, host: "log.umaxica.app", resource_type: "client")
 
       payload = AuthenticationToken.decode(
         token,
-        host: "id.umaxica.app",
+        host: "log.umaxica.app",
         resource_type: "client",
         jwt_issuer_id: "surface:SIGN_APP",
       )

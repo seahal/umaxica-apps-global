@@ -54,6 +54,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
 
       assert_not_equal 404, response.status
       route = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
+
       assert_equal controller, route[:controller]
       assert_equal "index", route[:action]
     end

@@ -27,6 +27,8 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_no_difference -> { ClientAccount.count + Persona.count + Enterprise.count + Avatar.count } do
       AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
     end
+    assert_equal "Persona01", Persona.first.title
+    assert_equal "Org01", Enterprise.first.title
     assert_equal 1, Persona.first.current_memberships.count
     assert_predicate result.avatar, :present?
   end
@@ -45,8 +47,10 @@ class AcmeSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
 
     assert_equal 1, VisitorAccount.where(visitor_id: visitor.id).count
     assert_equal 1, OperatorAccount.where(staff_id: operator.id).count
-    assert_equal 1, Individual.count
-    assert_equal 1, Agent.count
+    assert_equal "Indiv01", Individual.first.title
+    assert_equal "Agent01", Agent.first.title
+    assert_equal "Org01", Company.first.title
+    assert_equal "Org01", Bureau.first.title
     assert_nil com_result.avatar
     assert_nil org_result.avatar
   end

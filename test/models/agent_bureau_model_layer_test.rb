@@ -17,7 +17,7 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
   end
 
   test "root and child unit closure rows are maintained" do
-    bureau = Bureau.create!(name: "Operations")
+    bureau = Bureau.create!(name: "Operations", title: "Ops")
     root = BureauUnit.create!(bureau:, name: "Root")
     child = BureauUnit.create!(bureau:, parent: root, name: "Child")
 
@@ -29,8 +29,8 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
   end
 
   test "unit parent must belong to same bureau and cannot be changed" do
-    first = Bureau.create!(name: "First")
-    second = Bureau.create!(name: "Second")
+    first = Bureau.create!(name: "First", title: "First")
+    second = Bureau.create!(name: "Second", title: "Second")
     parent = BureauUnit.create!(bureau: first, name: "Root")
     invalid = BureauUnit.new(bureau: second, parent:, name: "Invalid")
 
@@ -45,8 +45,8 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
   end
 
   test "membership validates bureau and active primary uniqueness" do
-    agent = Agent.create!(operator_identity: operator_identity("agent-primary"))
-    bureau = Bureau.create!(name: "Operations")
+    agent = Agent.create!(operator_identity: operator_identity("agent-primary"), title: "Agent1")
+    bureau = Bureau.create!(name: "Operations", title: "Ops")
     unit = BureauUnit.create!(bureau:, name: "Root")
     AgentMembership.create!(
       agent:,
@@ -69,7 +69,7 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
     assert duplicate.errors.of_kind?(:primary, :taken)
 
-    other_bureau = Bureau.create!(name: "Other")
+    other_bureau = Bureau.create!(name: "Other", title: "Other")
     mismatch = AgentMembership.new(
       agent:,
       bureau: other_bureau,
@@ -83,8 +83,8 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
   end
 
   test "account exposes current membership and collective interface" do
-    agent = Agent.create!(operator_identity: operator_identity("agent-interface"))
-    bureau = Bureau.create!(name: "Operations")
+    agent = Agent.create!(operator_identity: operator_identity("agent-interface"), title: "Agent2")
+    bureau = Bureau.create!(name: "Operations", title: "Ops")
     unit = BureauUnit.create!(bureau:, name: "Root")
     membership = AgentMembership.create!(
       agent:,
@@ -110,11 +110,11 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
 
   test "database rejects identity and bureau hierarchy integrity violations" do
     identity = operator_identity("agent-identity-unique")
-    Agent.create!(operator_identity: identity)
-    first = Bureau.create!(name: "First")
-    second = Bureau.create!(name: "Second")
+    Agent.create!(operator_identity: identity, title: "Agent3")
+    first = Bureau.create!(name: "First", title: "First")
+    second = Bureau.create!(name: "Second", title: "Second")
     unit = BureauUnit.create!(bureau: first, name: "Root")
-    agent = Agent.create!(operator_identity: operator_identity("agent-db-mismatch"))
+    agent = Agent.create!(operator_identity: operator_identity("agent-db-mismatch"), title: "Agent4")
 
     assert_raises(ActiveRecord::RecordNotUnique) do
       Agent.transaction(requires_new: true) do
@@ -123,6 +123,7 @@ class AgentBureauModelLayerTest < ActiveSupport::TestCase
             {
               operator_identity_id: identity.id,
               public_id: "dup-#{SecureRandom.hex(8)}",
+              title: "Agent3",
               created_at: Time.current,
               updated_at: Time.current,
             },

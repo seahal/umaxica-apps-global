@@ -10,24 +10,19 @@ module Acme
       before_action :authenticate_visitor!
 
       def index
+        authorize!(current_visitor, to: :show?)
+        @organizations = Company.all
       end
 
       def show
+        @organization = find_organization!
         authorize!(current_visitor, to: :show?)
       end
 
-      def new
-      end
+      private
 
-      def edit
-      end
-
-      def create
-        redirect_to(acme_com_organizations_path(ri: params[:ri]), status: :see_other)
-      end
-
-      def update
-        redirect_to(acme_com_organization_path(ri: params[:ri]), status: :see_other)
+      def find_organization!
+        Company.find_by!(public_id: params.expect(:id))
       end
     end
   end

@@ -48,7 +48,7 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   test "encodes and decodes with a sign surface issuer without using legacy preference issuer" do
     token = PreferenceToken.encode(
       @prefs,
-      host: "id.umaxica.app",
+      host: "log.umaxica.app",
       preference_type: @preference_type,
       public_id: @public_id,
       jti: @jti,
@@ -56,11 +56,11 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     )
 
     assert_not_nil token
-    assert_nil PreferenceToken.decode(token, host: "id.umaxica.app")
+    assert_nil PreferenceToken.decode(token, host: "log.umaxica.app")
 
     decoded = PreferenceToken.decode(
       token,
-      host: "id.umaxica.app",
+      host: "log.umaxica.app",
       jwt_issuer_id: "surface:SIGN_APP",
     )
 
@@ -121,7 +121,7 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   end
 
   test ".app token cannot be replayed against the .com surface" do
-    audiences = ["id.umaxica.app", "id.umaxica.com"].freeze
+    audiences = ["log.umaxica.app", "log.umaxica.com"].freeze
     key_for = ->(kid) { (kid == "default") ? @public_key : nil }
 
     PreferenceJwtConfiguration.stub(:private_key, @private_key) do
@@ -133,14 +133,14 @@ class PreferenceTokenTest < ActiveSupport::TestCase
                 PreferenceJwtConfiguration.stub(:audiences, audiences) do
                   app_token = PreferenceToken.encode(
                     @prefs,
-                    host: "id.umaxica.app",
+                    host: "log.umaxica.app",
                     preference_type: "AppPreference",
                     public_id: @public_id,
                     jti: @jti,
                   )
 
                   assert_not_nil app_token
-                  assert_nil PreferenceToken.decode(app_token, host: "id.umaxica.com"),
+                  assert_nil PreferenceToken.decode(app_token, host: "log.umaxica.com"),
                              "audience scoped to .app TLD must not validate on a .com host"
                 end
               end

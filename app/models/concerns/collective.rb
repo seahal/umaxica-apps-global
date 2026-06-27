@@ -9,5 +9,7 @@ module Collective
 
   included do
     validates :name, presence: true, if: -> { has_attribute?(:name) }
+    validates :title, presence: true, length: { in: 1..10 },
+                      format: { with: /\A[A-Za-z0-9]{1,10}\z/ }, if: -> { has_attribute?(:title) }
   end
 end

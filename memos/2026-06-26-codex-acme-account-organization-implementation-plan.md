@@ -8,8 +8,8 @@ Acme Account / Organization bootstrap.
 ## Scope
 
 - Natural-person organization scope only.
-- No corporate organization, legal entity, billing, contract, or representative-verification work
-  in this plan.
+- No corporate organization, legal entity, billing, contract, or representative-verification work in
+  this plan.
 - No STI or enum `kind` / `type` modeling in this plan.
 - No account / organization / unit code changes in this docs freeze.
 - All three Acme surfaces remain in scope as parallel contracts; they should not be merged into one
@@ -55,10 +55,14 @@ but the long-term direction is not yet captured cleanly in the implementation pl
 
 - The current model is effectively 1:1 at the identity binding boundary.
 - Moving to 1:n will require association changes and likely unique index changes.
-- Option A: loosen identity-binding uniqueness and allow multiple bindings.
+- Option A: loosen identity-binding uniqueness and allow multiple bindings. Reject this because it
+  preserves the wrong boundary.
 - Option B: hang multiple Accounts directly under the principal and keep identity binding as login /
-  OIDC binding. This is the preferred future direction.
+  OIDC binding. Reject this as an ownership model, though it may still be useful as a future lookup
+  convenience.
 - Option C: keep 1:1 for now and defer the redesign.
+- Option D: introduce `AccountAssignment`, `AccountGrant`, or an equivalent join model so access can
+  be granted by an Identity with the right organization role.
 
 2. `title` introduction
 
@@ -96,8 +100,11 @@ but the long-term direction is not yet captured cleanly in the implementation pl
 - Keep `IdentityGraphProvisioner`, `AcmeSelectorBootstrapAuthority`, and `AcmeSelectorSurfaceConfig`
   as the existing bootstrap stack.
 - Treat title support as additive and migrate callers gradually.
+- Describe signup bootstrap as creating the initial organization, account, and initial
+  assignment/grant rather than as Identity owning an Account.
 - Keep `moniker` and `name` as legacy fields until a later rename or removal decision.
-- Record any future choice to make Account 1:n in a separate ADR and separate PR.
+- Record any future choice to make Account 1:n in a separate ADR and separate PR, preferably with an
+  assignment / grant model instead of an ownership model.
 - Keep preference authority conflicts visible in docs until a dedicated ADR resolves them.
 
 ## Promotion Candidate

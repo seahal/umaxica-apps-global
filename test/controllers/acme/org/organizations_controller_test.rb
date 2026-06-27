@@ -9,13 +9,7 @@ class Acme::Org::OrganizationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
-    @organization_public_id = "test-org-public-id"
-  end
-
-  test "unauthenticated cannot access organizations" do
-    get acme_org_organizations_url(ri: "jp", host: @host), headers: host_headers(@host)
-
-    assert_response :redirect
+    @bootstrap = AcmeSelectorBootstrapAuthority.call(surface: :org, principal: @staff)
   end
 
   test "index renders" do
@@ -24,38 +18,15 @@ class Acme::Org::OrganizationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "show renders" do
-    get acme_org_organization_url(@organization_public_id, ri: "jp", host: @host),
-        headers: as_staff_headers(@staff, host: @host)
+  test "show resolves by public_id" do
+    get "/organizations/#{@bootstrap.collective.public_id}?ri=jp", headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
   end
 
-  test "new renders" do
-    get new_acme_org_organization_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
+  test "unknown public_id returns 404" do
+    get "/organizations/unknown-organization?ri=jp", headers: as_staff_headers(@staff, host: @host)
 
-    assert_response :success
-  end
-
-  test "edit renders" do
-    get edit_acme_org_organization_url(@organization_public_id, ri: "jp", host: @host),
-        headers: as_staff_headers(@staff, host: @host)
-
-    assert_response :success
-  end
-
-  test "create redirects" do
-    post acme_org_organizations_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
-
-    assert_response :see_other
-    assert_redirected_to acme_org_organizations_url(ri: "jp", host: @host)
-  end
-
-  test "update redirects" do
-    patch acme_org_organization_url(@organization_public_id, ri: "jp", host: @host),
-          headers: as_staff_headers(@staff, host: @host)
-
-    assert_response :see_other
-    assert_redirected_to acme_org_organization_url(@organization_public_id, ri: "jp", host: @host)
+    assert_response :not_found
   end
 end

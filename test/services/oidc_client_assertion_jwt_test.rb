@@ -24,7 +24,7 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
   end
 
   test "issue refreshes local key material once when the registry is missing a client assertion key" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
     key = OpenSSL::PKey::EC.generate("secp384r1")
     previous = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
     installed = false
@@ -58,7 +58,7 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
   end
 
   test "valid? rejects an assertion with the wrong audience" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
@@ -66,13 +66,13 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
       assert_not OidcClientAssertionJwt.valid?(
         client_id: "core-next-rp",
         assertion: assertion,
-        token_url: "https://id.umaxica.app/oauth/token-alt",
+        token_url: "https://log.umaxica.app/oauth/token-alt",
       )
     end
   end
 
   test "valid? rejects an assertion for another client id" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
@@ -86,7 +86,7 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
   end
 
   test "valid? accepts a matching assertion" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
@@ -100,7 +100,7 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
   end
 
   test "valid? rejects a replayed assertion jti" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
@@ -119,7 +119,7 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
   end
 
   test "valid? fails closed when the replay store is unavailable" do
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)

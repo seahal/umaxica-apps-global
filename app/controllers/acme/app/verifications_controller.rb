@@ -22,7 +22,7 @@ module Acme
           allowed_scopes: StepUpScopeCatalog::APP,
           sign_url_builder: ->(**query) {
             sign_app_verification_url(
-              query.merge(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+              query.merge(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
             )
           },
         )

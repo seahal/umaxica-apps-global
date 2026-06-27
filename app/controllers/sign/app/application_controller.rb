@@ -32,7 +32,7 @@ module Sign
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV["ID_SERVICE_URL"],
+                             ENV["SIGN_SERVICE_URL"],
                              ENV.fetch("SIGN_SERVICE_URL"),
                            ),
                            with: :exception

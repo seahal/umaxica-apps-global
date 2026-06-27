@@ -176,7 +176,7 @@ module Jit
           {
             "success" => false,
             "error-codes" => ["timeout-or-duplicate"],
-            "hostname" => "id.umaxica.app",
+            "hostname" => "log.umaxica.app",
             "action" => "signup",
             "challenge_ts" => "2026-06-19T00:00:00Z",
             "cdata" => "opaque",
@@ -191,7 +191,7 @@ module Jit
           assert_equal "visible", parsed["data"]["mode"]
           assert_not parsed["data"]["success"]
           assert_equal "[FILTERED]", parsed["data"]["error_codes"]
-          assert_equal "id.umaxica.app", parsed["data"]["hostname"]
+          assert_equal "log.umaxica.app", parsed["data"]["hostname"]
           assert_equal "signup", parsed["data"]["action"]
           assert_equal "2026-06-19T00:00:00Z", parsed["data"]["challenge_ts"]
           assert parsed["data"]["cdata_present"]

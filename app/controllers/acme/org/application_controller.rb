@@ -93,7 +93,7 @@ module Acme
       end
 
       def oidc_sign_host
-        ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+        ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
       end
 
       def oidc_acme_host

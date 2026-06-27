@@ -77,7 +77,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(
         client_id: "core-next-rp",
-        token_url: "https://id.umaxica.app/oauth/token",
+        token_url: "https://log.umaxica.app/oauth/token",
       )
 
       result = OidcTokenExchangeCoordinator.call(
@@ -88,7 +88,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: assertion,
         code_verifier: @code_verifier,
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token-alt",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token-alt",
       )
 
       assert_not result.success?
@@ -99,7 +99,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
   test "rejects reused private_key_jwt client assertion before exchanging a second code" do
     first_code_record = issue_code!
     second_code_record = issue_code!
-    token_url = "https://id.umaxica.app/oauth/token"
+    token_url = "https://log.umaxica.app/oauth/token"
 
     with_oidc_client_key("CORE_APP") do
       assertion = OidcClientAssertionJwt.issue(client_id: "core-next-rp", token_url: token_url)
@@ -143,7 +143,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
       client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
       client_assertion: "assertion",
       code_verifier: @code_verifier,
-      token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+      token_endpoint_uri: "https://log.umaxica.app/oauth/token",
     )
 
     assert_not result.success?
@@ -182,7 +182,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "assertion",
         code_verifier: @code_verifier,
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
       )
 
       assert_not result.success?
@@ -201,7 +201,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-client-assertion",
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
         code_verifier: @code_verifier,
       )
     end
@@ -276,7 +276,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -512,7 +512,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -596,7 +596,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "assertion",
         code_verifier: @code_verifier,
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
       )
 
       assert_not result.success?
@@ -629,7 +629,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -651,7 +651,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
             client_id: "core-next-rp",
             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
             client_assertion: "test-client-assertion",
-            token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+            token_endpoint_uri: "https://log.umaxica.app/oauth/token",
             code_verifier: @code_verifier,
           )
         end
@@ -674,7 +674,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -695,7 +695,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -715,7 +715,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: "wrong_verifier_value",
         )
       end
@@ -736,7 +736,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: "",
         )
       end
@@ -758,7 +758,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
             client_id: "core-next-rp",
             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
             client_assertion: "test-client-assertion",
-            token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+            token_endpoint_uri: "https://log.umaxica.app/oauth/token",
             code_verifier: @code_verifier,
           )
         end
@@ -777,7 +777,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-client-assertion",
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
         code_verifier: @code_verifier,
       )
     end
@@ -811,7 +811,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-client-assertion",
-        token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.app/oauth/token",
         code_verifier: @code_verifier,
       )
     end
@@ -835,7 +835,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -883,7 +883,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-staff-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.org/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.org/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -922,7 +922,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
             client_id: "core-next-rp",
             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
             client_assertion: "test-staff-client-assertion",
-            token_endpoint_uri: "https://id.umaxica.org/oauth/token",
+            token_endpoint_uri: "https://log.umaxica.org/oauth/token",
             code_verifier: @code_verifier,
           )
         end
@@ -954,7 +954,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-staff-client-assertion",
-        token_endpoint_uri: "https://id.umaxica.org/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.org/oauth/token",
         code_verifier: @code_verifier,
       )
     end
@@ -995,7 +995,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-visitor-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.com/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.com/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -1034,7 +1034,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
             client_id: "core-next-rp",
             client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
             client_assertion: "test-visitor-client-assertion",
-            token_endpoint_uri: "https://id.umaxica.com/oauth/token",
+            token_endpoint_uri: "https://log.umaxica.com/oauth/token",
             code_verifier: @code_verifier,
           )
         end
@@ -1066,7 +1066,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
         client_id: "core-next-rp",
         client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
         client_assertion: "test-visitor-client-assertion",
-        token_endpoint_uri: "https://id.umaxica.com/oauth/token",
+        token_endpoint_uri: "https://log.umaxica.com/oauth/token",
         code_verifier: @code_verifier,
       )
     end
@@ -1125,7 +1125,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end
@@ -1198,7 +1198,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
           client_id: "core-next-rp",
           client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
           client_assertion: "test-client-assertion",
-          token_endpoint_uri: "https://id.umaxica.app/oauth/token",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
           code_verifier: @code_verifier,
         )
       end

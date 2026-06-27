@@ -5,7 +5,7 @@ require "test_helper"
 
 class BureauRootUnitsTest < ActiveSupport::TestCase
   test "root_units returns only units without parent" do
-    bureau = Bureau.create!(name: "Division")
+    bureau = Bureau.create!(name: "Division", title: "Div")
     root = BureauUnit.create!(bureau:, name: "Root")
     _child = BureauUnit.create!(bureau:, parent: root, name: "Child")
 
@@ -14,7 +14,7 @@ class BureauRootUnitsTest < ActiveSupport::TestCase
   end
 
   test "root_units returns multiple root units" do
-    bureau = Bureau.create!(name: "Division")
+    bureau = Bureau.create!(name: "Division", title: "Div")
     root_a = BureauUnit.create!(bureau:, name: "Root A")
     root_b = BureauUnit.create!(bureau:, name: "Root B")
 
@@ -24,7 +24,7 @@ class BureauRootUnitsTest < ActiveSupport::TestCase
   end
 
   test "root_units returns empty when no units exist" do
-    bureau = Bureau.create!(name: "Empty")
+    bureau = Bureau.create!(name: "Empty", title: "Empty")
 
     assert_empty bureau.root_units
   end

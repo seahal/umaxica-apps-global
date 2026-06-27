@@ -26,7 +26,7 @@ module Acme
               entry: social_entry_param,
               ri: params[:ri],
               social_ceremony_grant: issuance.grant,
-              host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+              host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
             ),
             status: :see_other,
             allow_other_host: cross_host_redirect_allowed?,
@@ -99,9 +99,9 @@ module Acme
 
         def sign_social_settings_url_for(provider)
           if SocialIdentifiable.normalize_provider(provider) == "apple"
-            sign_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+            sign_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
           else
-            sign_app_settings_google_url(ri: params[:ri], host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+            sign_app_settings_google_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
           end
         end
 
@@ -174,7 +174,7 @@ module Acme
               :"sign_app_sign_up_guard_#{normalized_provider}_url",
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
-              host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+              host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

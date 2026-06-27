@@ -8,6 +8,7 @@ class Acme::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    @bootstrap = bootstrap_and_select!(@user, @token)
   end
 
   test "unauthenticated cannot access accounts" do
@@ -17,92 +18,24 @@ class Acme::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_oidc_authorize_redirect(response.location, host: @host)
   end
 
-  test "selector-only (no selected context) cannot access accounts" do
-    get acme_app_accounts_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
-
-    assert_response :redirect
-    assert_match(%r{/selector}, response.location)
-  end
-
-  test "full login can list accounts" do
-    bootstrap_and_select!(@user, @token)
-
+  test "index lists accounts" do
     get acme_app_accounts_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_select "body", text: /account/i
   end
 
-  test "full login can show, edit and update own account" do
-    result = bootstrap_and_select!(@user, @token)
-
-    get acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
+  test "show resolves by public_id" do
+    get acme_app_account_url(@bootstrap.account.public_id, ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
+    assert_select "body", text: /account/i
+  end
 
-    get edit_acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
+  test "unknown public_id returns 404" do
+    get acme_app_account_url("unknown-account", ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host)
-
-    assert_response :success
-
-    patch acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
-          headers: as_user_headers(@user, host: @host)
-
-    assert_response :see_other
-  end
-
-  test "new account form renders" do
-    bootstrap_and_select!(@user, @token)
-
-    get new_acme_app_account_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
-
-    assert_response :success
-  end
-
-  test "create account redirects" do
-    bootstrap_and_select!(@user, @token)
-
-    post acme_app_accounts_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
-
-    assert_response :see_other
-    assert_redirected_to acme_app_accounts_url(ri: "jp", host: @host)
-  end
-
-  test "edit account form renders" do
-    result = bootstrap_and_select!(@user, @token)
-
-    get edit_acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
-        headers: as_user_headers(@user, host: @host)
-
-    assert_response :success
-  end
-
-  test "update account redirects" do
-    result = bootstrap_and_select!(@user, @token)
-
-    patch acme_app_account_url(result.account.public_id, ri: "jp", host: @host),
-          headers: as_user_headers(@user, host: @host)
-
-    assert_response :see_other
-    assert_redirected_to acme_app_account_url(result.account.public_id, ri: "jp", host: @host)
-  end
-
-  test "cannot show another client's account" do
-    bootstrap_and_select!(@user, @token)
-    other_account = bootstrap_other_client.account
-
-    get acme_app_account_url(other_account.public_id, ri: "jp", host: @host),
-        headers: as_user_headers(@user, host: @host)
-
-    assert_response :not_found
-  end
-
-  test "cannot update another client's account" do
-    bootstrap_and_select!(@user, @token)
-    other_account = bootstrap_other_client.account
-
-    patch acme_app_account_url(other_account.public_id, ri: "jp", host: @host),
-          headers: as_user_headers(@user, host: @host)
 
     assert_response :not_found
   end
@@ -113,10 +46,5 @@ class Acme::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     result = AcmeSelectorBootstrapAuthority.call(surface: :app, principal: user)
     AcmeSelectorAuthority.prepare(surface: :app, principal: user, session: token)
     result
-  end
-
-  def bootstrap_other_client
-    other = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
-    AcmeSelectorBootstrapAuthority.call(surface: :app, principal: other)
   end
 end

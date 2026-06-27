@@ -9,6 +9,8 @@ module Account
 
   included do
     validates :status_id, numericality: { only_integer: true }, if: -> { has_attribute?(:status_id) }
+    validates :title, presence: true, length: { in: 1..10 },
+                      format: { with: /\A[A-Za-z0-9]{1,10}\z/ }, if: -> { has_attribute?(:title) }
   end
 
   def memberships

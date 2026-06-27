@@ -187,8 +187,8 @@ Rails.application.configure do
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
-  # Match the dev id/sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
-  # production uses ID_SERVICE_URL. Puma serves on 3000.
+  # Match the dev Sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
+  # production uses SIGN_SERVICE_URL. Puma serves on 3000.
   config.action_mailer.default_url_options = { host: "sign.app.localhost", port: 3000 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",

@@ -31,7 +31,7 @@ module Core
 
     test "derives from request host when configured credential does not match non-localhost host" do
       with_cookie_domain_credentials(COOKIE_DOMAIN_APP: ".app.localhost") do
-        assert_equal ".umaxica.app", CoreCookieDomain.for(surface: :app, request_host: "id.umaxica.app")
+        assert_equal ".umaxica.app", CoreCookieDomain.for(surface: :app, request_host: "log.umaxica.app")
       end
     end
 

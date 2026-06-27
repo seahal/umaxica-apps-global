@@ -14,7 +14,7 @@ module Acme
 
       def index
         authorize!(current_client, to: :show?)
-        @organizations = switcher.available_organizations
+        @organizations = Enterprise.all
       end
 
       def show
@@ -22,38 +22,12 @@ module Acme
         authorize!(current_client, to: :show?)
       end
 
-      def new
-        authorize!(current_client, to: :update?)
-      end
-
-      def edit
-        @organization = find_organization!
-        authorize!(current_client, to: :update?)
-      end
-
-      def create
-        authorize!(current_client, to: :update?)
-        redirect_to(acme_app_organizations_path(ri: params[:ri]), status: :see_other)
-      end
-
-      def update
-        @organization = find_organization!
-        authorize!(current_client, to: :update?)
-        redirect_to(acme_app_organization_path(@organization.public_id, ri: params[:ri]), status: :see_other)
-      end
-
       private
 
       # Scoped to the organizations the principal is a member of: a foreign or non-existent id
       # raises RecordNotFound (404), the authoritative membership gate for show/edit/update.
       def find_organization!
-        switcher.find_organization(params[:id]) || raise(ActiveRecord::RecordNotFound)
-      end
-
-      def switcher
-        @switcher ||= AcmeSwitcherAuthority.new(
-          surface: :app, principal: current_client, session: current_session,
-        )
+        Enterprise.find_by!(public_id: params.expect(:id))
       end
     end
   end

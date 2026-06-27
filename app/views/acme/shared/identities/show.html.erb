@@ -9,7 +9,7 @@
   <ul>
     <% case surface %>
     <% when :app %>
-      <li><%= link_to t("sign.app.settings.show.logout"), new_acme_app_sign_out_path(ri: params[:ri]) %></li>
+      <li><%= link_to t("sign.app.settings.show.logout"), new_acme_app_sign_out_path %></li>
     <% when :com %>
       <li><%= link_to t("sign.app.settings.show.logout"), new_acme_com_sign_out_path(ri: params[:ri]) %></li>
     <% when :org %>

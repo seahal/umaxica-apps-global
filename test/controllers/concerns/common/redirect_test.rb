@@ -177,7 +177,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -201,7 +201,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     assert_equal "JWT", header["typ"]
     assert_equal "ES384", header["alg"]
     assert_equal JitSecurityJwtRegistry.surface("SIGN_APP").current_kid, header["kid"]
-    assert_equal "https://id.umaxica.app", payload["iss"]
+    assert_equal "https://log.umaxica.app", payload["iss"]
     assert_equal "reuse", payload["rpl"]
     assert_equal "https://www.umaxica.app/dashboard", payload["url"]
     assert_equal({ allow_other_host: true }, redirects.first.last)
@@ -239,7 +239,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -285,7 +285,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -322,7 +322,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "RP_APP_URL" => "https://rp.example",
     ) do
@@ -346,18 +346,18 @@ class CommonRedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url can fall back to same-host internal path when token cannot be issued" do
     controller = redirect_helper
     redirects = []
-    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    request = Struct.new(:host, :host_with_port, :request_id).new("log.umaxica.app", "log.umaxica.app", "request-id")
     controller.define_singleton_method(:request) { request }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(
         :redirect_to_jump_url,
-        "https://id.umaxica.app/sign/in?ri=jp&pt=signed",
+        "https://log.umaxica.app/sign/in?ri=jp&pt=signed",
         fallback_internal: true,
         alert: "login required",
       )
@@ -372,7 +372,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
   test "redirect_to_jump_url can fall back to same-host internal path when gateway URL is invalid" do
     controller = redirect_helper
     redirects = []
-    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    request = Struct.new(:host, :host_with_port, :request_id).new("log.umaxica.app", "log.umaxica.app", "request-id")
     controller.define_singleton_method(:request) { request }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
@@ -380,7 +380,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
       JumpRtIssuer.stub(:call, "aaa.bbb.ccc") do
         controller.send(
           :redirect_to_jump_url,
-          "https://id.umaxica.app/sign/in?ri=jp&pt=signed",
+          "https://log.umaxica.app/sign/in?ri=jp&pt=signed",
           fallback_internal: true,
           alert: "login required",
         )
@@ -407,19 +407,19 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
       def warn(message) = logs << message
     end.new(logs)
-    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    request = Struct.new(:host, :host_with_port, :request_id).new("log.umaxica.app", "log.umaxica.app", "request-id")
     controller.define_singleton_method(:request) { request }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env(
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtIssuer.stub(:call, nil) do
         Rails.stub(:logger, logger) do
           controller.send(
             :redirect_to_jump_url,
-            "https://id.umaxica.app/sign/in?secret_credential=hidden",
+            "https://log.umaxica.app/sign/in?secret_credential=hidden",
             fallback_internal: true,
           )
         end
@@ -433,7 +433,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     assert_equal "jump_rt.fallback_internal", parsed.fetch("event")
     assert_equal "issuance_failed", data.fetch("reason")
     assert_equal "SIGN_APP", data.fetch("namespace")
-    assert_equal Digest::SHA256.hexdigest("https://id.umaxica.app/sign/in?secret_credential=hidden")[0, 12],
+    assert_equal Digest::SHA256.hexdigest("https://log.umaxica.app/sign/in?secret_credential=hidden")[0, 12],
                  data.fetch("target_url_digest")
     assert_not_includes logs.join, "secret_credential=hidden"
   end
@@ -452,7 +452,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
       def warn(message) = logs << message
     end.new(logs)
-    request = Struct.new(:host, :host_with_port, :request_id).new("id.umaxica.app", "id.umaxica.app", "request-id")
+    request = Struct.new(:host, :host_with_port, :request_id).new("log.umaxica.app", "log.umaxica.app", "request-id")
     controller.define_singleton_method(:request) { request }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     fake_token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
@@ -462,7 +462,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
         JumpRtIssuer.stub(:call, fake_token) do
           controller.send(
             :redirect_to_jump_url,
-            "https://id.umaxica.app/sign/in",
+            "https://log.umaxica.app/sign/in",
             fallback_internal: true,
           )
         end
@@ -487,7 +487,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
-      "SIGN_SERVICE_URL" => "id.umaxica.app",
+      "SIGN_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")

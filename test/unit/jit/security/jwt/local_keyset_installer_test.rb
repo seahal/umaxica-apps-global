@@ -16,7 +16,7 @@ module Jit
           @previous = @env_keys.index_with { |key| ENV[key] }
           @original_issuers = JitSecurityJwtRegistry.instance_variable_get(:@issuers)
           clear_local_jwt_env!
-          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.app"
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "log.umaxica.app"
         end
 
         teardown do
@@ -31,20 +31,20 @@ module Jit
 
           token = PreferenceToken.encode(
             { "ct" => "dr" },
-            host: "id.umaxica.app",
+            host: "log.umaxica.app",
             preference_type: "AppPreference",
             public_id: "pref-public",
             jti: "pref-jti",
           )
 
-          assert_not_nil PreferenceToken.decode(token, host: "id.umaxica.app")
+          assert_not_nil PreferenceToken.decode(token, host: "log.umaxica.app")
 
           clear_local_jwt_env!
-          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.app"
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "log.umaxica.app"
           JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
           JitSecurityJwtRegistry.reload!
 
-          decoded = PreferenceToken.decode(token, host: "id.umaxica.app")
+          decoded = PreferenceToken.decode(token, host: "log.umaxica.app")
 
           assert_not_nil decoded
           assert_equal "pref-public", decoded["public_id"]
@@ -52,13 +52,13 @@ module Jit
         end
 
         test "reinstalling keeps surface-scoped preference jwt signatures valid" do
-          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.org"
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "log.umaxica.org"
           JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
           JitSecurityJwtRegistry.reload!
 
           token = PreferenceToken.encode(
             { "ct" => "dr" },
-            host: "id.umaxica.org",
+            host: "log.umaxica.org",
             preference_type: "OrgPreference",
             public_id: "org-pref-public",
             jti: "org-pref-jti",
@@ -67,18 +67,18 @@ module Jit
 
           assert_not_nil PreferenceToken.decode(
             token,
-            host: "id.umaxica.org",
+            host: "log.umaxica.org",
             jwt_issuer_id: "surface:SIGN_ORG",
           )
 
           clear_local_jwt_env!
-          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.org"
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "log.umaxica.org"
           JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
           JitSecurityJwtRegistry.reload!
 
           decoded = PreferenceToken.decode(
             token,
-            host: "id.umaxica.org",
+            host: "log.umaxica.org",
             jwt_issuer_id: "surface:SIGN_ORG",
           )
 
@@ -207,7 +207,7 @@ module Jit
           JitSecurityJwtLocalKeysetInstaller.install!(store_path: @store_path)
 
           clear_local_jwt_env!
-          ENV["PREFERENCE_JWT_AUDIENCES"] = "id.umaxica.app"
+          ENV["PREFERENCE_JWT_AUDIENCES"] = "log.umaxica.app"
 
           warnings = []
           Rails.logger.stub(:warn, ->(message) { warnings << message }) do

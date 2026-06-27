@@ -70,7 +70,7 @@ class Sign::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     get sign_org_sign_in_url(
       ri: "jp",
-      pt: Base64.urlsafe_encode64("https://id.umaxica.org/settings/sessions?ri=jp", padding: false),
+      pt: Base64.urlsafe_encode64("https://log.umaxica.org/settings/sessions?ri=jp", padding: false),
       login_challenge: issuance.transaction.login_challenge,
     ), headers: { "Host" => @host }
 

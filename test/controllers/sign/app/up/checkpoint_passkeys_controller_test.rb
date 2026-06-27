@@ -21,8 +21,8 @@ module Sign::App::Up
         "http://id.app.localhost",
         "http://id.org.localhost",
         "http://www.example.com",
-        "http://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")}",
+        "http://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
+        "https://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
       ].uniq
       Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
     end

@@ -34,7 +34,7 @@ module Sign
       end
 
       test "authentication links carry pt" do
-        pt = Base64.urlsafe_encode64("https://id.umaxica.com/settings/sessions?ri=jp", padding: false)
+        pt = Base64.urlsafe_encode64("https://log.umaxica.com/settings/sessions?ri=jp", padding: false)
 
         get sign_com_sign_in_url(ri: "jp", pt: pt, login_challenge: login_challenge),
             headers: { "Host" => @host }

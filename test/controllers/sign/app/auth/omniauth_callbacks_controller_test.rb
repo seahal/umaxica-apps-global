@@ -649,7 +649,7 @@ class Sign::App::Auth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
     auth = OpenStruct.new(provider: "apple", uid: "apple_uid")
     redirects = []
 
-    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.umaxica.app")
+    controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "log.umaxica.app")
     controller.response = ActionDispatch::TestResponse.new
     controller.request.env["omniauth.auth"] = auth
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }

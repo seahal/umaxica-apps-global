@@ -5,7 +5,7 @@ require "test_helper"
 
 class EnterpriseRootUnitsTest < ActiveSupport::TestCase
   test "root_units returns only units without parent" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     root = EnterpriseUnit.create!(enterprise:, name: "Root")
     _child = EnterpriseUnit.create!(enterprise:, parent: root, name: "Child")
 
@@ -14,7 +14,7 @@ class EnterpriseRootUnitsTest < ActiveSupport::TestCase
   end
 
   test "root_units returns multiple root units" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     root_a = EnterpriseUnit.create!(enterprise:, name: "Root A")
     root_b = EnterpriseUnit.create!(enterprise:, name: "Root B")
 
@@ -24,7 +24,7 @@ class EnterpriseRootUnitsTest < ActiveSupport::TestCase
   end
 
   test "root_units returns empty when no units exist" do
-    enterprise = Enterprise.create!(name: "Empty")
+    enterprise = Enterprise.create!(name: "Empty", title: "Empty")
 
     assert_empty enterprise.root_units
   end

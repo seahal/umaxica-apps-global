@@ -339,7 +339,7 @@ module Preference
 
     test "audience_for filters to matching TLD only" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = PreferenceJwtConfiguration.audience_for("id.umaxica.app")
+        result = PreferenceJwtConfiguration.audience_for("log.umaxica.app")
 
         assert_includes result, "umaxica.app"
         assert_includes result, "localhost", "localhost is included in non-production"
@@ -388,14 +388,14 @@ module Preference
     test "audience_for raises for an .org host when only .app/.com are configured" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
         assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-          PreferenceJwtConfiguration.audience_for("id.umaxica.org")
+          PreferenceJwtConfiguration.audience_for("log.umaxica.org")
         end
       end
     end
 
     test "host_scope_for uses matching configured audience for sibling hosts" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_equal "umaxica.app", PreferenceJwtConfiguration.host_scope_for("id.umaxica.app")
+        assert_equal "umaxica.app", PreferenceJwtConfiguration.host_scope_for("log.umaxica.app")
         assert_equal "umaxica.com", PreferenceJwtConfiguration.host_scope_for("www.umaxica.com")
       end
     end
@@ -403,7 +403,7 @@ module Preference
     test "host_scope_for raises when no configured audience matches" do
       with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
         assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-          PreferenceJwtConfiguration.host_scope_for("id.umaxica.org")
+          PreferenceJwtConfiguration.host_scope_for("log.umaxica.org")
         end
       end
     end

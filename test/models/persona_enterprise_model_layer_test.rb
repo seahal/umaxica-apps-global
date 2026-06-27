@@ -16,8 +16,42 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
     assert_includes Enterprise.included_modules, Collective
   end
 
+  test "account title validation rejects blank invalid and long values" do
+    persona = Persona.new(client_identity: client_identity("persona-title-validation"), title: "bad title!")
+
+    assert_not persona.valid?
+    assert persona.errors.of_kind?(:title, :invalid)
+
+    persona.title = ""
+
+    assert_not persona.valid?
+    assert persona.errors.of_kind?(:title, :blank)
+
+    persona.title = "TooLongTitleHere"
+
+    assert_not persona.valid?
+    assert persona.errors.of_kind?(:title, :too_long)
+  end
+
+  test "collective title validation rejects blank invalid and long values" do
+    enterprise = Enterprise.new(name: "Acme", title: "bad title!")
+
+    assert_not enterprise.valid?
+    assert enterprise.errors.of_kind?(:title, :invalid)
+
+    enterprise.title = ""
+
+    assert_not enterprise.valid?
+    assert enterprise.errors.of_kind?(:title, :blank)
+
+    enterprise.title = "TooLongTitleHere"
+
+    assert_not enterprise.valid?
+    assert enterprise.errors.of_kind?(:title, :too_long)
+  end
+
   test "root unit creates self closure row" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     root = EnterpriseUnit.create!(enterprise:, name: "Root")
 
     closure = EnterpriseUnitClosure.find_by!(ancestor: root, descendant: root)
@@ -29,7 +63,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "child unit creates ancestor closure rows" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     root = EnterpriseUnit.create!(enterprise:, name: "Root")
     child = EnterpriseUnit.create!(enterprise:, parent: root, name: "Child")
 
@@ -41,8 +75,8 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "unit parent must belong to the same enterprise" do
-    first = Enterprise.create!(name: "First")
-    second = Enterprise.create!(name: "Second")
+    first = Enterprise.create!(name: "First", title: "First")
+    second = Enterprise.create!(name: "Second", title: "Second")
     parent = EnterpriseUnit.create!(enterprise: first, name: "Root")
     child = EnterpriseUnit.new(enterprise: second, parent:, name: "Invalid")
 
@@ -51,7 +85,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "unit parent cannot be changed after create" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     first = EnterpriseUnit.create!(enterprise:, name: "First")
     second = EnterpriseUnit.create!(enterprise:, name: "Second")
 
@@ -62,9 +96,9 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "membership validates unit enterprise" do
-    persona = Persona.create!(client_identity: client_identity("persona-membership-mismatch"))
-    enterprise = Enterprise.create!(name: "Acme")
-    other = Enterprise.create!(name: "Other")
+    persona = Persona.create!(client_identity: client_identity("persona-membership-mismatch"), title: "P1")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
+    other = Enterprise.create!(name: "Other", title: "Other")
     other_unit = EnterpriseUnit.create!(enterprise: other, name: "Other Root")
     membership = PersonaMembership.new(
       persona:,
@@ -79,8 +113,8 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "allows only one active primary membership per persona" do
-    persona = Persona.create!(client_identity: client_identity("persona-primary"))
-    enterprise = Enterprise.create!(name: "Acme")
+    persona = Persona.create!(client_identity: client_identity("persona-primary"), title: "P2")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     unit = EnterpriseUnit.create!(enterprise:, name: "Root")
     attrs = {
       persona:,
@@ -99,8 +133,8 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "account exposes current membership and collective interface" do
-    persona = Persona.create!(client_identity: client_identity("persona-interface"))
-    enterprise = Enterprise.create!(name: "Acme")
+    persona = Persona.create!(client_identity: client_identity("persona-interface"), title: "P3")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     unit = EnterpriseUnit.create!(enterprise:, name: "Root")
     membership = PersonaMembership.create!(
       persona:,
@@ -126,7 +160,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
 
   test "database rejects a second persona for the same client identity" do
     identity = client_identity("persona-identity-unique")
-    Persona.create!(client_identity: identity)
+    Persona.create!(client_identity: identity, title: "P4")
 
     assert_raises(ActiveRecord::RecordNotUnique) do
       Persona.transaction(requires_new: true) do
@@ -135,6 +169,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
             {
               client_identity_id: identity.id,
               public_id: "dup-#{SecureRandom.hex(8)}",
+              title: "P4",
               created_at: Time.current,
               updated_at: Time.current,
             },
@@ -145,8 +180,8 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "database rejects unit parent from a different enterprise" do
-    first = Enterprise.create!(name: "First")
-    second = Enterprise.create!(name: "Second")
+    first = Enterprise.create!(name: "First", title: "First")
+    second = Enterprise.create!(name: "Second", title: "Second")
     parent = EnterpriseUnit.create!(enterprise: first, name: "Root")
 
     assert_raises(ActiveRecord::InvalidForeignKey) do
@@ -168,9 +203,9 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "database rejects membership whose unit belongs to another enterprise" do
-    persona = Persona.create!(client_identity: client_identity("persona-db-membership-mismatch"))
-    enterprise = Enterprise.create!(name: "Acme")
-    other = Enterprise.create!(name: "Other")
+    persona = Persona.create!(client_identity: client_identity("persona-db-membership-mismatch"), title: "P5")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
+    other = Enterprise.create!(name: "Other", title: "Other")
     other_unit = EnterpriseUnit.create!(enterprise: other, name: "Other Root")
 
     assert_raises(ActiveRecord::InvalidForeignKey) do
@@ -193,7 +228,7 @@ class PersonaEnterpriseModelLayerTest < ActiveSupport::TestCase
   end
 
   test "database rejects non-self closure rows with depth zero" do
-    enterprise = Enterprise.create!(name: "Acme")
+    enterprise = Enterprise.create!(name: "Acme", title: "Acme")
     root = EnterpriseUnit.create!(enterprise:, name: "Root")
     child = EnterpriseUnit.create!(enterprise:, parent: root, name: "Child")
 

@@ -27,7 +27,7 @@
       <%= link_to t("sign.app.layout.nav.log_in"),
                   acme_app_oidc_authorization_path(ri: params[:ri], screen_hint: "signin") %>
     <% else %>
-      <%= link_to t("sign.app.layout.nav.logout"), new_acme_app_sign_out_path(ri: params[:ri]) %>
+      <%= link_to t("sign.app.layout.nav.logout"), new_acme_app_sign_out_path %>
     <% end %>
   </nav>
   <div>

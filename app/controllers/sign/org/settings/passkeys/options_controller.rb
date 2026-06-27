@@ -40,7 +40,7 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
   def passkey_registration_passkeys = current_operator.staff_passkeys
 
   def passkey_registration_redirect_url
-    sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"))
+    sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
   end
 
   def recovery_passcode_requirement_active_strong_credential_count
@@ -54,7 +54,7 @@ class Sign::Org::Settings::Passkeys::OptionsController < ::Sign::Org::Applicatio
   def recovery_passcode_setup_url
     sign_org_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
     )
   end
 end

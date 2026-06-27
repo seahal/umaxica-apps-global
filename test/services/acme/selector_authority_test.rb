@@ -21,7 +21,7 @@ class AcmeSelectorAuthorityTest < ActiveSupport::TestCase
 
   test "returns selection required when multiple valid candidates exist" do
     persona = Persona.first
-    enterprise = Enterprise.create!(name: "Second")
+    enterprise = Enterprise.create!(name: "Second", title: "Second")
     unit = EnterpriseUnit.create!(enterprise: enterprise, name: "Default")
     PersonaMembership.create!(
       persona: persona,
@@ -80,7 +80,7 @@ class AcmeSelectorAuthorityTest < ActiveSupport::TestCase
       surface: :app, principal: @user,
       session: @token,
     ).selectable_candidates.first
-    enterprise = Enterprise.create!(name: "Foreign Combination")
+    enterprise = Enterprise.create!(name: "Foreign Combination", title: "Foreign1")
     unit = EnterpriseUnit.create!(enterprise: enterprise, name: "Default")
 
     params = candidate[:public].merge(

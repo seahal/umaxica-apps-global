@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] ||= "test"
-ENV["ID_SERVICE_URL"] = "log.umaxica.app"
 ENV["SIGN_SERVICE_URL"] = "log.umaxica.app"
-ENV["ID_STAFF_URL"] = "log.umaxica.org"
 ENV["SIGN_STAFF_URL"] = "log.umaxica.org"
 ENV["SIGN_CORPORATE_URL"] = "log.umaxica.com"
 

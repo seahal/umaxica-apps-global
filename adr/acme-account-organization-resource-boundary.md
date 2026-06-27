@@ -4,20 +4,20 @@ Status: proposed
 
 ## Context
 
-This ADR records the Acme surface Account / Organization resource boundary for the current
-bootstrap implementation plan. It builds on `adr/acme-account-organization-bootstrap-boundary.md`
-and does not replace it.
+This ADR records the Acme surface Account / Organization resource boundary for the current bootstrap
+implementation plan. It builds on `adr/acme-account-organization-bootstrap-boundary.md` and does not
+replace it.
 
-The repository already has a bootstrap path that provisions the initial Acme graph atomically.
-This ADR keeps that behavior as a preservation target while documenting the next-step resource
-shape, the unresolved choices, and the intended PR sequence.
+The repository already has a bootstrap path that provisions the initial Acme graph atomically. This
+ADR keeps that behavior as a preservation target while documenting the next-step resource shape, the
+unresolved choices, and the intended PR sequence.
 
 ## Decision
 
 1. Acme owns Account and Organization resource management for the `app`, `org`, and `com` surfaces
    as separate but parallel surface contracts.
-2. The current bootstrap path must remain atomic and must continue to provision the existing
-   Account / Organization / Unit / Membership / Avatar graph.
+2. The current bootstrap path must remain atomic and must continue to provision the existing Account
+   / Organization / Unit / Membership / Avatar graph.
 3. Existing bootstrap behavior is preserved and expanded incrementally rather than replaced by a new
    bootstrap service.
 4. Account and Organization are treated as public-lookup plural resources.
@@ -29,8 +29,8 @@ shape, the unresolved choices, and the intended PR sequence.
 8. Existing `moniker` and `name` fields are not removed in the initial migration and bootstrap
    stages.
 9. Account title validation and Organization title validation stay separate.
-10. The initial title constraint is ASCII alphanumeric, 1 to 10 characters, with no spaces,
-    symbols, or Japanese characters.
+10. The initial title constraint is ASCII alphanumeric, 1 to 10 characters, with no spaces, symbols,
+    or Japanese characters.
 11. Quota enforcement belongs in policy, quota object, or service layers rather than model
     validations.
 12. The current quota direction is 10 Accounts per principal and 2 Organizations per principal.
@@ -40,7 +40,8 @@ shape, the unresolved choices, and the intended PR sequence.
 15. `OrganizationUnit` is intentionally untouched by this work.
 16. Preference authority conflicts are recorded separately from the Account / Organization resource
     decision.
-17. The future Identity 1:n Account shape is deferred as a distinct architectural decision.
+17. The future Identity 1:n Account shape is deferred as a distinct architectural decision, and the
+    current docs do not model Identity as owning Accounts.
 18. The next implementation work is documented as a docs-only freeze before any code, migration, or
     route changes.
 
@@ -56,8 +57,7 @@ shape, the unresolved choices, and the intended PR sequence.
   `PublicId` concern.
 - Acme routes currently use ordinary plural resources for `accounts`, `organizations`, and
   `avatars`.
-- Current controllers resolve resource identifiers through `params[:id]` and look up by
-  `public_id`.
+- Current controllers resolve resource identifiers through `params[:id]` and look up by `public_id`.
 - `Persona` still carries `moniker`.
 - `Organization` still carries `name`.
 - `title` is not implemented yet.
@@ -67,11 +67,11 @@ shape, the unresolved choices, and the intended PR sequence.
 
 ## Account / Organization model mapping
 
-| Surface | Concrete model | Current public lookup | Notes |
-| --- | --- | --- | --- |
-| `app` | Account-side resource | `public_id` via `params[:id]` | Plural resource; `title` is planned additively |
-| `org` | Organization-side resource | `public_id` via `params[:id]` | Plural resource; `title` is planned additively |
-| `com` | Parallel Acme resource surface | `public_id` via `params[:id]` | Same lookup pattern; no `param: :public_id` |
+| Surface | Concrete model                 | Current public lookup         | Notes                                          |
+| ------- | ------------------------------ | ----------------------------- | ---------------------------------------------- |
+| `app`   | Account-side resource          | `public_id` via `params[:id]` | Plural resource; `title` is planned additively |
+| `org`   | Organization-side resource     | `public_id` via `params[:id]` | Plural resource; `title` is planned additively |
+| `com`   | Parallel Acme resource surface | `public_id` via `params[:id]` | Same lookup pattern; no `param: :public_id`    |
 
 ## Existing bootstrap behavior to preserve
 
@@ -87,12 +87,11 @@ shape, the unresolved choices, and the intended PR sequence.
 Signup bootstrap should remain additive and transactional.
 
 - The existing bootstrap transaction boundary is the one to preserve.
-- `title` support is expected to be added later without changing the current bootstrap ownership
-  boundary.
+- `title` support is expected to be added later without changing the current bootstrap boundary.
 - The current bootstrap should continue to create the initial usable graph before any future 1:n
   account redesign.
 - Identity 1:n Account support must not be inferred from the current implementation; it is a future
-  change.
+  change that should be modeled as an assignment / grant problem rather than an ownership problem.
 
 ## Public lookup and routing
 
@@ -159,13 +158,15 @@ Open quota questions:
 
 ### Identity 1:n Account
 
-Current implementation is effectively 1:1 at the identity binding boundary.
+Current implementation is effectively 1:1 at the identity binding boundary, but the target model
+should treat Account as an organization-anchored resource rather than Identity-owned data.
 
 #### Option A
 
 - Relax the identity-binding unique constraints.
 - Allow one principal to hold multiple identity bindings.
-- This changes the meaning of identity binding itself.
+- Reject this direction because it expands the meaning of identity binding itself and still treats
+  the binding as the ownership boundary.
 
 #### Option B
 
@@ -173,13 +174,22 @@ Current implementation is effectively 1:1 at the identity binding boundary.
 - Keep identity binding as login / OIDC binding.
 - Model Client -> Personas, Operator -> Agents, and Visitor -> Individuals as the account-owning
   direction.
-- This is the preferred future direction, but it is not implemented in this docs freeze.
+- Reject this as an ownership model; it may still remain a future lookup convenience, but not a
+  resource-ownership definition.
 
 #### Option C
 
 - Keep the current 1:1 shape for now.
 - Add `title`, quota, and routing preparation first.
 - Defer multi-account support to a later ADR and PR.
+
+#### Option D
+
+- Introduce `AccountAssignment`, `AccountGrant`, or an equivalent join model.
+- Use it to grant Identity operation or usage rights over an Account.
+- Allow an Identity with organization membership or role to grant Account access to another
+  Identity.
+- This is the preferred candidate direction for future 1:n work.
 
 ### OrganizationUnit
 

@@ -24,7 +24,7 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 
   def oidc_sign_host
-    "id.umaxica.app"
+    "log.umaxica.app"
   end
 
   def oidc_acme_host
@@ -57,7 +57,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
-      get "/oidc/sso", headers: { "Host" => "id.umaxica.app" }
+      get "/oidc/sso", headers: { "Host" => "log.umaxica.app" }
     end
 
     assert_response :redirect
@@ -91,7 +91,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "authenticate! preserves the protected request query in oidc return path" do
-    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => "id.umaxica.app" }
+    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => "log.umaxica.app" }
 
     assert_response :redirect
     assert_equal "/oidc/sso?ri=jp", session[:oidc_pt]
@@ -104,7 +104,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   test "token endpoint uses local rails port for local public Acme hosts" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "id.umaxica.app",
+      "HTTP_HOST" => "log.umaxica.app",
       "HTTPS" => "on",
     )
 
@@ -116,7 +116,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   test "token endpoint keeps public https origin outside local environments" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "id.umaxica.app",
+      "HTTP_HOST" => "log.umaxica.app",
       "HTTPS" => "on",
     )
 
@@ -129,7 +129,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www-jp.umaxica.app" }
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "id.umaxica.app",
+      "HTTP_HOST" => "log.umaxica.app",
       "HTTPS" => "on",
     )
 
@@ -150,7 +150,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
-      get("/oidc/sso", headers: { "Host" => "id.umaxica.app" })
+      get("/oidc/sso", headers: { "Host" => "log.umaxica.app" })
     end
 
     assert_response :redirect

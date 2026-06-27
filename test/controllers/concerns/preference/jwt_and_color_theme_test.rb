@@ -119,13 +119,13 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     ENV["PREFERENCE_JWT_AUDIENCES"] = "umaxica.app"
     token = PreferenceToken.encode(
       { "lx" => "ja" },
-      host: "id.umaxica.app",
+      host: "log.umaxica.app",
       preference_type: "AppPreference",
       public_id: "pref_123",
       jti: "jti_123",
     )
 
-    assert PreferenceToken.decode(token, host: "id.umaxica.app")
+    assert PreferenceToken.decode(token, host: "log.umaxica.app")
     assert PreferenceToken.decode(token, host: "www.umaxica.app")
   ensure
     ENV["PREFERENCE_JWT_AUDIENCES"] = previous

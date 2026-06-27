@@ -97,7 +97,7 @@ module Sign
             else
               sign_app_settings_totps_url(
                 ri: params[:ri],
-                host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               )
             end
           redirect_to(
@@ -207,7 +207,7 @@ module Sign
         def recovery_passcode_setup_url
           sign_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           )
         end
 
@@ -232,7 +232,7 @@ module Sign
           sign_app_settings_secrets_url(
             ri: params[:ri],
             token: reveal.token,
-            host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           )
         end
       end

@@ -23,8 +23,8 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
   end
 
   test "strips multiple context query params" do
-    assert_equal "https://id.umaxica.app/edge/v0/token/dbsc",
-                 @harness.dbsc_canonical_url("https://id.umaxica.app/edge/v0/token/dbsc?ri=us&lx=en&tz=UTC")
+    assert_equal "https://log.umaxica.app/edge/v0/token/dbsc",
+                 @harness.dbsc_canonical_url("https://log.umaxica.app/edge/v0/token/dbsc?ri=us&lx=en&tz=UTC")
   end
 
   test "strips a fragment as well" do
@@ -33,8 +33,8 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
 
   test "leaves an already-canonical url unchanged" do
     assert_equal "/edge/v0/token/dbsc", @harness.dbsc_canonical_url("/edge/v0/token/dbsc")
-    assert_equal "https://id.umaxica.app/edge/v0/token/dbsc",
-                 @harness.dbsc_canonical_url("https://id.umaxica.app/edge/v0/token/dbsc")
+    assert_equal "https://log.umaxica.app/edge/v0/token/dbsc",
+                 @harness.dbsc_canonical_url("https://log.umaxica.app/edge/v0/token/dbsc")
   end
 
   test "returns blank input unchanged" do
@@ -58,9 +58,9 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
     controller = Sign::App::Edge::V0::Token::ChecksController.new
     controller.define_singleton_method(:resource_type) { "client" }
     controller.define_singleton_method(:sign_app_edge_v0_token_dbsc_url) do
-      "https://id.umaxica.app/edge/v0/token/dbsc?ri=jp&lx=ja"
+      "https://log.umaxica.app/edge/v0/token/dbsc?ri=jp&lx=ja"
     end
 
-    assert_equal "https://id.umaxica.app/edge/v0/token/dbsc", controller.send(:token_dbsc_url)
+    assert_equal "https://log.umaxica.app/edge/v0/token/dbsc", controller.send(:token_dbsc_url)
   end
 end

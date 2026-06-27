@@ -35,14 +35,14 @@ class Sign::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "protected settings sessions requires authentication" do
     with_env(
       "ID_STAFF_URL" => "id.org.localhost",
-      "SIGN_STAFF_URL" => "id.umaxica.org",
+      "SIGN_STAFF_URL" => "log.umaxica.org",
       "ACME_STAFF_URL" => "www.umaxica.org",
     ) do
       Rails.application.reload_routes!
 
       get(
-        "https://id.umaxica.org/settings/sessions?ri=jp",
-        headers: browser_headers.merge("Host" => "id.umaxica.org"),
+        "https://log.umaxica.org/settings/sessions?ri=jp",
+        headers: browser_headers.merge("Host" => "log.umaxica.org"),
       )
 
       assert_response :redirect

@@ -19,9 +19,9 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
     ["core app", "CORE_APP", normalized_host(ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"))],
     ["core com", "CORE_COM", normalized_host(ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"))],
     ["core org", "CORE_ORG", normalized_host(ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org"))],
-    ["sign app", "SIGN_APP", normalized_host(ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app"))],
-    ["sign com", "SIGN_COM", normalized_host(ENV.fetch("SIGN_CORPORATE_URL", "id.umaxica.com"))],
-    ["sign org", "SIGN_ORG", normalized_host(ENV.fetch("SIGN_STAFF_URL", "id.umaxica.org"))],
+    ["sign app", "SIGN_APP", normalized_host(ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app"))],
+    ["sign com", "SIGN_COM", normalized_host(ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))],
+    ["sign org", "SIGN_ORG", normalized_host(ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org"))],
   ].freeze
 
   setup do

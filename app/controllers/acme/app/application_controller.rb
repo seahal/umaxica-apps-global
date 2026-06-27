@@ -88,7 +88,7 @@ module Acme
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-                             ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+                             ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
                            ),
                            with: :exception
 
@@ -100,7 +100,7 @@ module Acme
       end
 
       def oidc_sign_host
-        ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
       end
 
       def oidc_acme_host

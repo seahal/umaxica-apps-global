@@ -54,7 +54,7 @@ module Palm
 
         assert_empty native_ids
 
-        sign_host = ENV.fetch("ID_SERVICE_URL", "id.umaxica.app")
+        sign_host = ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")
         assert_raises(ActionController::RoutingError) do
           Rails.application.routes.recognize_path("https://#{sign_host}/oauth/authorize", method: :get)
         end

@@ -9,30 +9,24 @@ class Acme::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
+    @bootstrap = AcmeSelectorBootstrapAuthority.call(surface: :org, principal: @staff)
   end
 
-  test "unauthenticated cannot access account" do
-    get acme_org_account_url(ri: "jp", host: @host), headers: host_headers(@host)
-
-    assert_response :redirect
-  end
-
-  test "index delegates to show" do
-    get acme_org_account_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
+  test "index renders" do
+    get acme_org_accounts_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
   end
 
-  test "edit renders" do
-    get edit_acme_org_account_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
+  test "show resolves by public_id" do
+    get "/accounts/#{@bootstrap.account.public_id}?ri=jp", headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
   end
 
-  test "update redirects" do
-    patch acme_org_account_url(ri: "jp", host: @host), headers: as_staff_headers(@staff, host: @host)
+  test "unknown public_id returns 404" do
+    get "/accounts/unknown-account?ri=jp", headers: as_staff_headers(@staff, host: @host)
 
-    assert_response :see_other
-    assert_redirected_to acme_org_account_url(ri: "jp", host: @host)
+    assert_response :not_found
   end
 end

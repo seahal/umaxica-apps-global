@@ -22,7 +22,7 @@ sign_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: %i(new edit create) do
+      resource :out, only: %i(new edit create destroy) do
         get :complete, on: :collection
       end
     end
@@ -221,7 +221,7 @@ sign_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: %i(new edit create) do
+      resource :out, only: %i(new edit create destroy) do
         get :complete, on: :collection
       end
     end

@@ -76,12 +76,12 @@ class Oidc::AcmeServiceOriginTest < ActiveSupport::TestCase
 
   test "directs same-site browser authorize requests and rejects mismatches by reason" do
     origin = build_origin("www.umaxica.app", default_scheme: "https")
-    request = test_request(host: "id.umaxica.app", scheme: "https")
+    request = test_request(host: "log.umaxica.app", scheme: "https")
     authorize_url =
       origin.authorization_endpoint(
         query: {
           client_id: "base-rails-rp",
-          redirect_uri: "https://id.umaxica.app/oidc/callback",
+          redirect_uri: "https://log.umaxica.app/oidc/callback",
           response_type: "code",
         },
       )

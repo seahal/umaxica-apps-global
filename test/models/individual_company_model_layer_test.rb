@@ -17,7 +17,7 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
   end
 
   test "root and child unit closure rows are maintained" do
-    company = Company.create!(name: "Example Co")
+    company = Company.create!(name: "Example Co", title: "ExampleCo")
     root = CompanyUnit.create!(company:, name: "Root")
     child = CompanyUnit.create!(company:, parent: root, name: "Child")
 
@@ -29,8 +29,8 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
   end
 
   test "unit parent must belong to same company and cannot be changed" do
-    first = Company.create!(name: "First")
-    second = Company.create!(name: "Second")
+    first = Company.create!(name: "First", title: "First")
+    second = Company.create!(name: "Second", title: "Second")
     parent = CompanyUnit.create!(company: first, name: "Root")
     invalid = CompanyUnit.new(company: second, parent:, name: "Invalid")
 
@@ -45,8 +45,8 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
   end
 
   test "membership validates company and active primary uniqueness" do
-    individual = Individual.create!(visitor_identity: visitor_identity("individual-primary"))
-    company = Company.create!(name: "Example Co")
+    individual = Individual.create!(visitor_identity: visitor_identity("individual-primary"), title: "Indiv1")
+    company = Company.create!(name: "Example Co", title: "ExampleCo")
     unit = CompanyUnit.create!(company:, name: "Root")
     IndividualMembership.create!(
       individual:,
@@ -69,7 +69,7 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
     assert duplicate.errors.of_kind?(:primary, :taken)
 
-    other_company = Company.create!(name: "Other")
+    other_company = Company.create!(name: "Other", title: "Other")
     mismatch = IndividualMembership.new(
       individual:,
       company: other_company,
@@ -83,8 +83,8 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
   end
 
   test "account exposes current membership and collective interface" do
-    individual = Individual.create!(visitor_identity: visitor_identity("individual-interface"))
-    company = Company.create!(name: "Example Co")
+    individual = Individual.create!(visitor_identity: visitor_identity("individual-interface"), title: "Indiv2")
+    company = Company.create!(name: "Example Co", title: "ExampleCo")
     unit = CompanyUnit.create!(company:, name: "Root")
     membership = IndividualMembership.create!(
       individual:,
@@ -110,11 +110,11 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
 
   test "database rejects identity and company hierarchy integrity violations" do
     identity = visitor_identity("individual-identity-unique")
-    Individual.create!(visitor_identity: identity)
-    first = Company.create!(name: "First")
-    second = Company.create!(name: "Second")
+    Individual.create!(visitor_identity: identity, title: "Indiv3")
+    first = Company.create!(name: "First", title: "First")
+    second = Company.create!(name: "Second", title: "Second")
     unit = CompanyUnit.create!(company: first, name: "Root")
-    individual = Individual.create!(visitor_identity: visitor_identity("individual-db-mismatch"))
+    individual = Individual.create!(visitor_identity: visitor_identity("individual-db-mismatch"), title: "Indiv4")
 
     assert_raises(ActiveRecord::RecordNotUnique) do
       Individual.transaction(requires_new: true) do
@@ -123,6 +123,7 @@ class IndividualCompanyModelLayerTest < ActiveSupport::TestCase
             {
               visitor_identity_id: identity.id,
               public_id: "dup-#{SecureRandom.hex(8)}",
+              title: "Indiv3",
               created_at: Time.current,
               updated_at: Time.current,
             },

@@ -62,7 +62,7 @@ module Sign
           redirect_to(
             sign_org_settings_secret_credentials_url(
               ri: params[:ri],
-              host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+              host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

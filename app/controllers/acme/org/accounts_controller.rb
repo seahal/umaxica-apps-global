@@ -9,19 +9,20 @@ module Acme
 
       before_action :authenticate_operator!
 
-      def index = show
+      def index
+        authorize!(current_operator, to: :show?)
+        @accounts = Agent.all
+      end
 
       def show
+        @account = find_account!
         authorize!(current_operator, to: :show?)
       end
 
-      def edit
-        authorize!(current_operator, to: :update?)
-      end
+      private
 
-      def update
-        authorize!(current_operator, to: :update?)
-        redirect_to(acme_org_account_path(ri: params[:ri]), status: :see_other)
+      def find_account!
+        Agent.find_by!(public_id: params.expect(:id))
       end
     end
   end

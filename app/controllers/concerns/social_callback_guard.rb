@@ -111,9 +111,9 @@ module SocialCallbackGuard
       begin
         hosts =
           %w(
-            ID_SERVICE_URL
             SIGN_SERVICE_URL
-            ID_STAFF_URL
+            SIGN_SERVICE_URL
+            SIGN_STAFF_URL
             SIGN_STAFF_URL
             SIGN_CORPORATE_URL
           ).filter_map { |key| normalize_host_port(ENV[key]) }

@@ -9,19 +9,20 @@ module Acme
 
       before_action :authenticate_visitor!
 
-      def index = show
+      def index
+        authorize!(current_visitor, to: :show?)
+        @accounts = Individual.all
+      end
 
       def show
+        @account = find_account!
         authorize!(current_visitor, to: :show?)
       end
 
-      def edit
-        authorize!(current_visitor, to: :update?)
-      end
+      private
 
-      def update
-        authorize!(current_visitor, to: :update?)
-        redirect_to(acme_com_account_path(ri: params[:ri]), status: :see_other)
+      def find_account!
+        Individual.find_by!(public_id: params.expect(:id))
       end
     end
   end

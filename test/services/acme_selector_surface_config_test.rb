@@ -23,6 +23,8 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal EnterpriseUnit, config.unit_class
     assert_equal PersonaMembership, config.membership_class
     assert config.requires_avatar
+    assert_equal "Persona01", config.account_title
+    assert_equal "Org01", config.collective_title
   end
 
   test "com config has correct attributes" do
@@ -40,6 +42,8 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal CompanyUnit, config.unit_class
     assert_equal IndividualMembership, config.membership_class
     assert_not config.requires_avatar
+    assert_equal "Indiv01", config.account_title
+    assert_equal "Org01", config.collective_title
   end
 
   test "org config has correct attributes" do
@@ -57,6 +61,8 @@ class AcmeSelectorSurfaceConfigTest < ActiveSupport::TestCase
     assert_equal BureauUnit, config.unit_class
     assert_equal AgentMembership, config.membership_class
     assert_not config.requires_avatar
+    assert_equal "Agent01", config.account_title
+    assert_equal "Org01", config.collective_title
   end
 
   test "configs are frozen" do

@@ -55,10 +55,14 @@ without changing the current implementation in this planning step.
 
 - The current shape is 1:1.
 - Future 1:n support will require association and uniqueness redesign.
-- Option A: loosen identity-binding uniqueness.
+- Option A: loosen identity-binding uniqueness. Reject this because it keeps the wrong ownership
+  boundary.
 - Option B: move account ownership under principal and keep identity binding as login / OIDC
-  binding.
+  binding. Reject this as an ownership model, though the principal-to-account lookup idea may still
+  survive as a convenience later.
 - Option C: keep 1:1 for now.
+- Option D: introduce `AccountAssignment`, `AccountGrant`, or an equivalent join model so Identity
+  access is granted rather than owned.
 - This is a separate ADR and a separate implementation PR.
 
 2. `title` introduction
@@ -115,11 +119,13 @@ without changing the current implementation in this planning step.
 ### PR 3: Signup bootstrap `title` support
 
 - Update the Acme bootstrap path to populate `title`.
-- Ensure signup completion creates account, organization, membership, and root unit atomically.
+- Ensure signup completion creates organization, account, initial assignment, membership, and root
+  unit atomically.
 - Add tests that prove bootstrap writes `title`.
 - Keep `IdentityGraphProvisioner` delegating to `AcmeSelectorBootstrapAuthority`.
 - Preserve idempotency and existing transaction behavior.
-- Rollback consideration: title writes must not break existing moniker/name fallback behavior.
+- Rollback consideration: title writes must not break existing moniker/name fallback behavior or the
+  initial assignment/grant creation flow.
 - Risk: bootstrap drift if one surface is updated without the other.
 
 ### PR 4: Quota policy
@@ -150,8 +156,8 @@ without changing the current implementation in this planning step.
 - Treat this as a separate architectural change.
 - Revisit association shape, unique indexes, bootstrap impact, fixtures, and tests before changing
   the storage model.
-- Preferred direction: move Account ownership under principal and keep identity binding as login /
-  OIDC binding.
+- Preferred direction: model access through `AccountAssignment` / `AccountGrant` or an equivalent
+  join model, and keep identity binding as login / OIDC binding.
 - Test strategy: add coverage for multiple accounts per principal and uniqueness boundaries.
 - Rollback consideration: this change will likely need migration and data backfill staging.
 - Risk: the current 1:1 bootstrap assumptions will break if the redesign is attempted without a

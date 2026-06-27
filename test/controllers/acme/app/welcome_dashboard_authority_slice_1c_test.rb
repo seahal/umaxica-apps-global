@@ -8,7 +8,7 @@ class Acme::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
   setup do
     @host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-    @sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
     @user = clients(:one)
     @user.update!(status_id: ClientStatus::ACTIVE)
   end

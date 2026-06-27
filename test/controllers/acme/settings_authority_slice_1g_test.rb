@@ -17,7 +17,7 @@ class AcmeSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app activities list only current user entries" do
-    host = ENV.fetch("SIGN_SERVICE_URL", "id.umaxica.app")
+    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
     host! host
     user = clients(:one)
     other_user = clients(:two)
