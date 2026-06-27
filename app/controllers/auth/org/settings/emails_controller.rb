@@ -35,7 +35,7 @@ module Auth
 
           if @staff_email.update(email_preference_params)
             redirect_to(
-              edit_sign_org_settings_email_path(@staff_email.public_id, ri: params[:ri]),
+              edit_auth_org_settings_email_path(@staff_email.public_id, ri: params[:ri]),
               status: :see_other,
             )
           else
@@ -50,7 +50,7 @@ module Auth
 
           if @staff_email.undeletable?
             redirect_to(
-              sign_org_settings_emails_path(ri: params[:ri]),
+              auth_org_settings_emails_path(ri: params[:ri]),
               alert: t("sign.org.settings.email.destroy.protected"),
             )
             return
@@ -58,7 +58,7 @@ module Auth
 
           unless AuthMethodGuard.can_remove_email?(current_operator, @staff_email)
             redirect_to(
-              sign_org_settings_emails_path(ri: params[:ri]),
+              auth_org_settings_emails_path(ri: params[:ri]),
               alert: t("sign.org.settings.email.destroy.last_method"),
             )
             return
@@ -66,7 +66,7 @@ module Auth
 
           @staff_email.destroy!
           redirect_to(
-            sign_org_settings_emails_path(ri: params[:ri]),
+            auth_org_settings_emails_path(ri: params[:ri]),
             notice: t("sign.org.settings.email.destroy.success"),
             status: :see_other,
           )

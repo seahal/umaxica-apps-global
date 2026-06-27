@@ -61,7 +61,7 @@ module Auth
 
           flash[:notice] = t("sign.app.settings.secret_credentials.create.created")
           redirect_to(
-            sign_com_settings_secret_credentials_url(
+            auth_com_settings_secret_credentials_url(
               ri: params[:ri],
               host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
             ),
@@ -79,7 +79,7 @@ module Auth
           if disabling_secret_credential?(secret_credential_params) &&
               AuthMethodGuard.last_method?(current_visitor, excluding: @secret_credential)
             redirect_to(
-              sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+              auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
               status: :see_other,
             )
             return
@@ -87,7 +87,7 @@ module Auth
 
           apply_secret_credential_update!
           redirect_to(
-            sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+            auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
             status: :see_other,
           )
         end
@@ -96,7 +96,7 @@ module Auth
           authorize!(@secret_credential)
           unless AuthMethodGuard.can_remove_secret_credential?(current_visitor, @secret_credential)
             redirect_to(
-              sign_com_settings_secret_credentials_path(ri: params[:ri]),
+              auth_com_settings_secret_credentials_path(ri: params[:ri]),
               alert: t("sign.app.settings.secret_credentials.destroy.last_method"),
               status: :see_other,
             )
@@ -105,13 +105,13 @@ module Auth
           @secret_credential.discard_now!(purge_after: 1.day)
           @secret_credential.visitor_secret_credential_status_id = VisitorSecretCredential.status_id_for(:deleted)
           @secret_credential.save!
-          redirect_to(sign_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_com_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end
 
         def regenerate
           authorize!(@secret_credential)
           redirect_to(
-            sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+            auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
             alert: t("messages.not_implemented"),
             status: :see_other,
           )
@@ -161,7 +161,7 @@ module Auth
         end
 
         def secret_credential_turnstile_failure_redirect_path
-          sign_com_settings_secret_credentials_path(ri: params[:ri])
+          auth_com_settings_secret_credentials_path(ri: params[:ri])
         end
 
         def verification_required_action?

@@ -55,7 +55,7 @@ class Auth::Com::Settings::SecretsControllerTest < ActionDispatch::IntegrationTe
       purpose: "visitor.recovery_secret_credential",
     )
 
-    get sign_com_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
+    get auth_com_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
 
     assert_response :success
     assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
@@ -64,7 +64,7 @@ class Auth::Com::Settings::SecretsControllerTest < ActionDispatch::IntegrationTe
   end
 
   test "renders the recovery passcodes title when reveal is missing" do
-    get sign_com_settings_secrets_url(ri: "jp"), headers: @headers
+    get auth_com_settings_secrets_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/

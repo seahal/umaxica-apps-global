@@ -13,8 +13,12 @@ module Base
           def show
             @user = current_client
             @passkeys = current_client.client_passkeys.active.order(created_at: :desc)
-            @totps = current_client.client_totp_credentials.where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE).order(created_at: :desc)
-            @secret_credentials = current_client.client_secret_credentials.where(user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE).order(created_at: :desc)
+            @totps = current_client.client_totp_credentials
+              .where(user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE)
+              .order(created_at: :desc)
+            @secret_credentials = current_client.client_secret_credentials
+              .where(user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE)
+              .order(created_at: :desc)
             render "auth/app/settings/mfa/challenges/show"
           end
 

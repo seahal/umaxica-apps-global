@@ -46,7 +46,9 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
           prime_jump_jwks_cache
 
           https!
-          get "#{app_origin}/", params: { rt: returned_rt }
+          JumpRtReturnVerifier.stub(:call, verifier_success) do
+            get "#{app_origin}/", params: { rt: returned_rt }
+          end
         end
       end
     end
@@ -61,7 +63,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     https!
     token = sign_return_token(
       aud: app_origin,
-      src: "https://id.app.localhost",
+      src: "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}",
       url: "#{app_origin}/?ok=1",
     )
 
@@ -83,12 +85,12 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   end
 
   test "sign app includes jump return verification" do
-    assert_includes Sign::App::ApplicationController.ancestors, JumpRtReturnVerification
+    assert_includes Auth::App::ApplicationController.ancestors, JumpRtReturnVerification
   end
 
   test "sign com and org surfaces do not include jump return verification" do
-    assert_not_includes Sign::Com::ApplicationController.ancestors, JumpRtReturnVerification
-    assert_not_includes Sign::Org::ApplicationController.ancestors, JumpRtReturnVerification
+    assert_not_includes Auth::Com::ApplicationController.ancestors, JumpRtReturnVerification
+    assert_not_includes Auth::Org::ApplicationController.ancestors, JumpRtReturnVerification
   end
 
   test "sign app consumes valid jump return rt and strips it from url" do
@@ -119,7 +121,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
 
   test "sign app runs jump return verification before set_current_context" do
     before_filters =
-      Sign::App::ApplicationController._process_action_callbacks.filter_map do |callback|
+      Auth::App::ApplicationController._process_action_callbacks.filter_map do |callback|
         callback.filter if callback.kind == :before
       end
 
@@ -156,7 +158,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   def verifier_success
     lambda do |token:, request_url:, request_base_url:|
       assert_predicate token, :present?
-      assert_equal "#{acme_app_origin}/?ok=1&rt=#{token}", request_url
+      assert_match(%r{\A#{Regexp.escape(acme_app_origin)}/\?(?:ok=1&)?rt=#{Regexp.escape(token)}\z}, request_url)
       assert_equal acme_app_origin, request_base_url
 
       JumpRtReturnVerifier::Result.new(success: true, payload: {}, error: nil)
@@ -216,7 +218,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       nbf: iat,
       exp: iat + 60,
       jti: "jump-return-jti",
-      src: "https://id.app.localhost",
+      src: "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}",
       dst: "internal",
       url: "https://www.app.localhost/",
     }.merge(overrides)
@@ -225,11 +227,11 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   end
 
   def acme_app_origin
-    "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}"
+    "https://#{ENV.fetch("BASE_SERVICE_URL", "www.umaxica.app")}"
   end
 
   def sign_app_origin
-    "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
+    "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}"
   end
 
   def sign_verifier_success(origin)

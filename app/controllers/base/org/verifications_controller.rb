@@ -21,7 +21,7 @@ module Base
           token: current_session_token,
           allowed_scopes: StepUpScopeCatalog::ORG,
           sign_url_builder: ->(**query) {
-            sign_org_verification_url(
+            auth_org_verification_url(
               query.merge(host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")),
             )
           },

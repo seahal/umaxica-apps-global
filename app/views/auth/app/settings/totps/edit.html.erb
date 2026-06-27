@@ -1,4 +1,4 @@
-<%= link_to t('sign.app.settings.show.back'), sign_app_settings_totps_path(ri: params[:ri]) %>
+<%= link_to t('sign.app.settings.show.back'), auth_app_settings_totps_path(ri: params[:ri]) %>
 
 <% content_for :page_title, t('sign.app.setting.totp.edit.title') %>
 <div>
@@ -17,7 +17,7 @@
     <div>
       <%= form_with model: @totp,
                     scope: :user_totp_credential,
-                    url: sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+                    url: auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
                     method: :patch do |form| %>
         <div>
           <% if @totp.errors.any? %>
@@ -54,14 +54,14 @@
 
         <div>
           <div>
-            <%= link_to t('actions.cancel'), sign_app_settings_totps_path(ri: params[:ri]) %>
+            <%= link_to t('actions.cancel'), auth_app_settings_totps_path(ri: params[:ri]) %>
             <%= form.submit t('actions.save') %>
           </div>
         </div>
       <% end %>
       <div>
         <%= button_to t('actions.delete'),
-                      sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
+                      auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]),
                       method: :delete,
                       form: { data: { turbo_confirm: t('messages.confirm_delete_totp') } } %>
       </div>

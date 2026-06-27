@@ -1,6 +1,6 @@
 <% content_for :page_title, t("controller.sign.app.setting.index.google") %>
 
-<%= link_to t("sign.app.settings.show.back"), sign_app_settings_google_path(ri: params[:ri]) %>
+<%= link_to t("sign.app.settings.show.back"), auth_app_settings_google_path(ri: params[:ri]) %>
 
 <div>
   <h3><%= t("controller.sign.app.setting.index.google") %></h3>
@@ -8,7 +8,7 @@
 
   <% if current_client.active_social_provider?("google") %>
     <% unlink_allowed = current_client.social_unlink_methods_remaining?(excluding_provider: "google") %>
-    <%= form_with url: sign_app_settings_google_path(ri: params[:ri]), method: :delete do |f| %>
+    <%= form_with url: auth_app_settings_google_path(ri: params[:ri]), method: :delete do |f| %>
       <%= render "shared/cloudflare_turnstile_stealth" if unlink_allowed %>
       <%= f.submit t("actions.disconnect"), disabled: !unlink_allowed %>
     <% end %>
@@ -17,7 +17,7 @@
     <% end %>
   <% else %>
     <%= button_to t("actions.connect"),
-                  sign_app_settings_google_path(ri: params[:ri]),
+                  auth_app_settings_google_path(ri: params[:ri]),
                   method: :post,
                   form: { data: { turbo: false } } %>
   <% end %>

@@ -14,16 +14,16 @@ module Auth::App::Settings
     end
 
     test "show is read only" do
-      get sign_app_settings_google_url(ri: "jp"), headers: @headers
+      get auth_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
-      assert_select "a[href=?]", edit_sign_app_settings_google_path(ri: "jp")
-      assert_select "form[action=?]", sign_app_settings_google_path(ri: "jp"), count: 0
+      assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
+      assert_select "a[href=?]", edit_auth_app_settings_google_path(ri: "jp")
+      assert_select "form[action=?]", auth_app_settings_google_path(ri: "jp"), count: 0
     end
 
     test "show redirects when not logged in" do
-      get sign_app_settings_google_url(ri: "jp")
+      get auth_app_settings_google_url(ri: "jp")
 
       assert_response :redirect
       uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -35,14 +35,14 @@ module Auth::App::Settings
     end
 
     test "edit redirects to verification when step-up is missing" do
-      get edit_sign_app_settings_google_url(ri: "jp"), headers: @headers
+      get edit_auth_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match %r{/verification}, response.location
     end
 
     test "verification accepts google edit return target for social link step-up" do
-      get edit_sign_app_settings_google_url(ri: "jp"), headers: @headers
+      get edit_auth_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       verification_location = response.location
@@ -57,10 +57,10 @@ module Auth::App::Settings
       token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
       mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
 
-      get edit_sign_app_settings_google_url(ri: "jp"), headers: @headers
+      get edit_auth_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "form[action=?]", sign_app_settings_google_path(ri: "jp"), count: 1
+      assert_select "form[action=?]", auth_app_settings_google_path(ri: "jp"), count: 1
     end
 
     test "show treats revoked google identity as unlinked" do
@@ -73,10 +73,10 @@ module Auth::App::Settings
         user_google_identity_status: client_google_identity_statuses(:revoked),
       )
 
-      get sign_app_settings_google_url(ri: "jp"), headers: @headers
+      get auth_app_settings_google_url(ri: "jp"), headers: @headers
 
       assert_response :success
-      assert_select "a[href=?]", edit_sign_app_settings_google_path(ri: "jp")
+      assert_select "a[href=?]", edit_auth_app_settings_google_path(ri: "jp")
     end
 
     test "settings route uses create and destroy" do

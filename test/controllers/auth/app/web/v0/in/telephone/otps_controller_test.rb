@@ -23,7 +23,7 @@ class Auth::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
       memo: "purpose=in issued=#{Time.current.to_i}",
     )
 
-    post sign_app_web_v0_in_telephone_otp_path,
+    post auth_app_web_v0_in_telephone_otp_path,
          params: { state: state_for(telephone) },
          headers: { "Host" => @host },
          as: :json
@@ -48,7 +48,7 @@ class Auth::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
     )
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
-      post sign_app_web_v0_in_telephone_otp_path,
+      post auth_app_web_v0_in_telephone_otp_path,
            params: { state: state_for(telephone) },
            headers: { "Host" => @host },
            as: :json
@@ -78,7 +78,7 @@ class Auth::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
     old_code = ROTP::HOTP.new(old_private_key).at(old_counter).to_s
     telephone_record.store_otp(old_private_key, old_counter, 12.minutes.from_now.to_i)
 
-    post sign_app_web_v0_in_telephone_otp_path,
+    post auth_app_web_v0_in_telephone_otp_path,
          params: { state: state_for(telephone_record.number) },
          headers: { "Host" => @host },
          as: :json

@@ -20,7 +20,7 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
   end
 
   test "moved sign get routes redirect to acme identity" do
-    get sign_app_settings_emails_url(ri: "jp"), headers: sign_headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: sign_headers
 
     assert_redirected_to acme_app_identity_emails_path(ri: "jp")
 

@@ -51,7 +51,7 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
 
   test "raises when the surface is invalid" do
     with_stubs(
-      surface: "bad", result_hash: valid_result_hash.merge("surface" => "bad"),
+      _surface: "bad", result_hash: valid_result_hash.merge("surface" => "bad"),
       candidate: FakeCandidate.new(surface: "bad"),
     ) do
       assert_secret_error("surface is invalid") do
@@ -268,7 +268,7 @@ class IdentitySecretCredentialCeremonyFinalCommitterTest < ActiveSupport::TestCa
 
   private
 
-  def with_stubs(surface: "app", result_hash: valid_result_hash, transaction: @transaction,
+  def with_stubs(_surface: "app", result_hash: valid_result_hash, transaction: @transaction,
                  candidate: @candidate)
     store = FakeStore.new(transaction)
     consumer = FakeConsumer.new

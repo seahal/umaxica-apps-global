@@ -96,6 +96,10 @@ module Base
         ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
       end
 
+      def oidc_acme_host
+        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      end
+
       def oidc_base_host
         ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
       end

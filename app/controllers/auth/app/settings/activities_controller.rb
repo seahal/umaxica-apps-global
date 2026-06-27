@@ -13,9 +13,9 @@ module Auth
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,
                       :activity_user_agent_summary, :activity_login_method
 
-        def index = redirect_to(acme_app_identity_activities_path(ri: params[:ri]), status: :see_other)
+        def index = redirect_to(base_app_identity_activities_path(ri: params[:ri]), status: :see_other)
 
-        def show = redirect_to(acme_app_identity_activities_path(ri: params[:ri]), status: :see_other)
+        def show = redirect_to(base_app_identity_activities_path(ri: params[:ri]), status: :see_other)
 
         private
 

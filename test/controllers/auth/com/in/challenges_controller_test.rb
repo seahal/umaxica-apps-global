@@ -33,20 +33,20 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   test "show requires pending_mfa" do
-    get sign_com_sign_in_challenge_path(ri: "jp")
+    get auth_com_sign_in_challenge_path(ri: "jp")
 
     assert_response :see_other
-    assert_redirected_to sign_com_sign_in_path(ri: "jp")
+    assert_redirected_to auth_com_sign_in_path(ri: "jp")
   end
 
   test "show renders for pending_mfa visitor" do
-    get new_sign_com_sign_in_secret_credential_path(ri: "jp")
+    get new_auth_com_sign_in_secret_credential_path(ri: "jp")
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
     assert_includes response.body, 'data-turnstile-mode-value="render"'
 
-    post sign_com_sign_in_secret_credential_path(ri: "jp"),
+    post auth_com_sign_in_secret_credential_path(ri: "jp"),
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,
@@ -55,7 +55,7 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to sign_com_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
 
     follow_redirect!
 
@@ -63,11 +63,11 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
   end
 
   test "show indicates no mfa methods available when visitor has no active passkey" do
-    get new_sign_com_sign_in_secret_credential_path(ri: "jp")
+    get new_auth_com_sign_in_secret_credential_path(ri: "jp")
 
     assert_response :success
 
-    post sign_com_sign_in_secret_credential_path(ri: "jp"),
+    post auth_com_sign_in_secret_credential_path(ri: "jp"),
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,

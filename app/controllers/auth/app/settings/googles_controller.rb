@@ -48,7 +48,7 @@ module Auth
           redirect_to(
             actor_verification_path(
               scope: scope,
-              pt: encoded_relative_pt(edit_sign_app_settings_google_path(ri: params[:ri])),
+              pt: encoded_relative_pt(edit_auth_app_settings_google_path(ri: params[:ri])),
               ri: params[:ri],
             ),
             status: :see_other,

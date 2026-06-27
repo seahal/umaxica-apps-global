@@ -69,14 +69,14 @@ module Base
             )
           sign_url =
             if authorization_intent == "sign_up"
-              sign_app_sign_up_url(
+              auth_app_sign_up_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
                 protocol: oidc_sign_protocol,
                 login_challenge: issuance.transaction.login_challenge,
               )
             else
-              sign_app_sign_in_url(
+              auth_app_sign_in_url(
                 ri: params[:ri],
                 host: oidc_sign_host,
                 protocol: oidc_sign_protocol,

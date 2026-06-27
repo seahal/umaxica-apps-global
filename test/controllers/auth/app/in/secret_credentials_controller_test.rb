@@ -24,15 +24,15 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should get new" do
-    get new_sign_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "input[type='hidden'][name='ri'][value='jp']"
-    assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
+    assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
   end
 
   test "should return unprocessable_content with invalid params" do
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } },
          headers: default_headers
 
@@ -43,7 +43,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   test "identifier without @ or + is rejected" do
     _secret_credential, raw_secret_credential = issue_secret_credential!
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: "plaintext", secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -67,7 +67,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
     restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -88,12 +88,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
     assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
@@ -102,7 +102,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.test_validation_response = { "success" => false }
     _secret_credential, raw_secret_credential = issue_secret_credential!
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -121,7 +121,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
-        sign_app_sign_in_secret_credential_url(ri: "jp"),
+        auth_app_sign_in_secret_credential_url(ri: "jp"),
         params: login_params(identifier: @raw_email, secret_credential_value: "not-checked"),
         headers: default_headers,
       )
@@ -140,17 +140,17 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    get new_sign_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     old_session_id = session.id
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email.upcase, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_not_equal old_session_id, session.id
   end
 
@@ -160,12 +160,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url,
+    post auth_app_sign_in_secret_credential_url,
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "email and matching permanent secret_credential canonicalizes invalid ri" do
@@ -174,12 +174,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "https://evil.example"),
+    post auth_app_sign_in_secret_credential_url(ri: "https://evil.example"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :see_other
-    assert_redirected_to sign_app_sign_in_secret_credential_url(ri: "jp")
+    assert_redirected_to auth_app_sign_in_secret_credential_url(ri: "jp")
     assert_no_match(/evil\.example/, response.location)
   end
 
@@ -189,12 +189,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: "+819012345678", secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "secret_credential sign-in redirects to MFA challenge for weak method when MFA is enabled" do
@@ -204,18 +204,18 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
   end
 
   test "mismatched secret_credential fails with unified message" do
     _secret_credential, _raw_secret_credential = issue_secret_credential!
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: "wrong-secret_credential"),
          headers: default_headers
 
@@ -224,7 +224,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "unknown user fails with unified message" do
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(
            identifier: "missing-#{SecureRandom.hex(4)}@example.com",
            secret_credential_value: "nope",
@@ -238,7 +238,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   test "known user with no secret_credential fails with unified message" do
     @user.client_secret_credentials.delete_all
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: "nope"),
          headers: default_headers
 
@@ -253,13 +253,13 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     )
 
     SignSecretVerify.stub(:call, ->(*) { flunk("new-axis verifier must not be used for legacy rows") }) do
-      post sign_app_sign_in_secret_credential_url(ri: "jp"),
+      post auth_app_sign_in_secret_credential_url(ri: "jp"),
            params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
            headers: default_headers
     end
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "new-axis recovery secret uses the new verifier" do
@@ -289,7 +289,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
         end,
       ) do
         post(
-          sign_app_sign_in_secret_credential_url(ri: "jp"),
+          auth_app_sign_in_secret_credential_url(ri: "jp"),
           params: login_params(identifier: @raw_email, secret_credential_value: result.raw_secret_credential),
           headers: default_headers,
         )
@@ -299,7 +299,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     end
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "reserved user cannot sign in with secret_credential" do
@@ -316,7 +316,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       status: :active,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: email.address, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -331,7 +331,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: "wrong-secret_credential"),
          headers: default_headers
 
@@ -356,7 +356,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       user_email_status_id: ClientEmailStatus::UNVERIFIED,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: unverified_email.address, secret_credential_value: pii_raw_secret_credential),
          headers: default_headers
 
@@ -369,12 +369,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       kind: ClientSecretCredentialKind::ONE_TIME, uses: 1,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_equal 0, one_time_secret_credential.reload.uses_remaining
     assert_equal ClientSecretCredentialStatus::USED, one_time_secret_credential.user_secret_status_id
 
@@ -383,7 +383,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -394,7 +394,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   test "expired secret_credential fails authentication" do
     _secret_credential, raw_secret_credential = issue_secret_credential!(discarded_at: 1.minute.ago)
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -409,7 +409,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     )
     secret_credential.update!(uses_remaining: 0)
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -420,7 +420,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   test "secret_credential with disallowed status fails authentication" do
     _secret_credential, raw_secret_credential = issue_secret_credential!(status: :revoked)
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -434,7 +434,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
@@ -445,19 +445,19 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   test "secret_credential login succeeds without extra confirmation parameter" do
     _secret_credential, raw_secret_credential = issue_secret_credential!
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_not_nil session.id
   end
 
   test "guest request does not query clients with null mfa_user_id" do
     queries =
       capture_sql_queries do
-        get(new_sign_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers)
+        get(new_auth_app_sign_in_secret_credential_url(ri: "jp"), headers: default_headers)
 
         assert_response :success
       end
@@ -556,12 +556,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
       uses: 10,
     )
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: login_params(identifier: @raw_email, secret_credential_value: raw_secret_credential),
          headers: default_headers
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_session_path(ri: "jp")
     assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
@@ -588,12 +588,12 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:redirect_to_pt_or_default!) { |pt, default_path:|
       redirects << [pt || default_path, {}]
     }
-    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
+    controller.define_singleton_method(:auth_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_sign_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_sign_in_check_path) { |pt: nil, ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:auth_app_sign_in_check_path) { |pt: nil, ri: nil|
       "/sign/in/check?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }
@@ -699,9 +699,9 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs|
       failures << kwargs.merge(reason: :hard_reject)
     }
-    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_sign_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_sign_in_check_path) { |pt: nil, ri: nil|
+    controller.define_singleton_method(:auth_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
+    controller.define_singleton_method(:auth_app_sign_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:auth_app_sign_in_check_path) { |pt: nil, ri: nil|
       "/sign/in/check?pt=#{pt}&ri=#{ri}"
     }
     controller.define_singleton_method(:t) { |key| key }

@@ -11,7 +11,7 @@ module Auth
       end
 
       test "direct entry normalizes to acme com authorization" do
-        get sign_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
+        get auth_com_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
         assert_response :redirect
 
@@ -27,7 +27,7 @@ module Auth
       end
 
       test "valid login challenge renders local ceremony" do
-        get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+        get auth_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "h1", text: I18n.t("sign.com.authentication.new.page_title")
@@ -36,17 +36,17 @@ module Auth
       test "authentication links carry pt" do
         pt = Base64.urlsafe_encode64("https://log.umaxica.com/settings/sessions?ri=jp", padding: false)
 
-        get sign_com_sign_in_url(ri: "jp", pt: pt, login_challenge: login_challenge),
+        get auth_com_sign_in_url(ri: "jp", pt: pt, login_challenge: login_challenge),
             headers: { "Host" => @host }
 
         assert_response :success
-        assert_select "a[href=?]", new_sign_com_sign_in_email_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_com_sign_in_passkey_path(ri: "jp")
-        assert_select "a[href=?]", new_sign_com_sign_in_secret_credential_path(ri: "jp")
+        assert_select "a[href=?]", new_auth_com_sign_in_email_path(ri: "jp")
+        assert_select "a[href=?]", new_auth_com_sign_in_passkey_path(ri: "jp")
+        assert_select "a[href=?]", new_auth_com_sign_in_secret_credential_path(ri: "jp")
       end
 
       test "does not show social login buttons" do
-        get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
+        get auth_com_sign_in_url(ri: "jp", login_challenge: login_challenge), headers: { "Host" => @host }
 
         assert_response :success
         assert_select "form[action='/auth/google_app']", count: 0
@@ -57,7 +57,7 @@ module Auth
 
       test "does not show temporary google signin button when legacy flag is set" do
         with_env("COM_#{"GOOGLE"}_SIGNIN_ENABLED" => "true") do
-          get sign_com_sign_in_url(ri: "jp", login_challenge: login_challenge),
+          get auth_com_sign_in_url(ri: "jp", login_challenge: login_challenge),
               headers: { "Host" => @host }
         end
 
@@ -73,7 +73,7 @@ module Auth
           visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
         )
 
-        get sign_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
+        get auth_com_sign_in_url(ri: "jp"), headers: as_visitor_headers(visitor, host: @host)
 
         assert_response :forbidden
         assert_equal I18n.t("errors.messages.already_authenticated"), response.body

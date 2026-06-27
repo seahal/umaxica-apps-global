@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Com::RouteAliasHelperTest < ActionView::TestCase
+class SignComRouteAliasHelperViewTest < ActionView::TestCase
   test "defines sign app route aliases that delegate to sign com routes" do
     url_helpers = Rails.application.routes.url_helpers
     helper_methods = ["sign_app_sample_path", :sign_app_sample_path, "sign_com_sample_path", :sign_com_sample_path]

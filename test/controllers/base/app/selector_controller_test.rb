@@ -2,12 +2,21 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "../../../support/auth_helpers"
 
 class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
+  include AuthHelpers
+
   setup do
     @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    set_access_cookie(
+      jwt_access_token_for(
+        @user, host: @host, session_public_id: @token.public_id,
+               resource_type: "client",
+      ),
+    )
   end
 
   test "unauthenticated identity cannot access selector" do
@@ -28,6 +37,7 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
 
   test "freshly provisioned identity auto-selects on the first selector request" do
     IdentityGraphProvisioner.call!(surface: :app, principal: @user)
+    bootstrap_and_select!(@user, @token)
 
     get base_app_selector_url(host: @host), headers: as_user_headers(@user, host: @host), as: :json
 
@@ -38,6 +48,7 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "html selector request redirects after preparing a single selected context" do
+    bootstrap_and_select!(@user, @token)
     get base_app_selector_url(host: @host, ri: "jp"),
         headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)
 
@@ -46,7 +57,7 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "selector update persists valid selected actor context" do
-    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    bootstrap_and_select!(@user, @token)
     candidate = BaseSelectorAuthority.new(
       surface: :app, principal: @user,
       session: @token,
@@ -63,6 +74,7 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "selector update renders invalid selection error as json" do
+    bootstrap_and_select!(@user, @token)
     BaseSelectorAuthority.stub(:select, ->(*) { raise BaseSelectorAuthority::InvalidSelection, "bad" }) do
       patch base_app_selector_url(host: @host),
             params: { account_public_id: "invalid" },
@@ -72,5 +84,10 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_equal "invalid_selection", response.parsed_body.fetch("status")
+  end
+
+  def bootstrap_and_select!(user, token)
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: user, session: token)
   end
 end

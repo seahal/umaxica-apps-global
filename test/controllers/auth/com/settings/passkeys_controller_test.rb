@@ -46,20 +46,20 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "redirects unauthenticated user to login" do
-    get sign_com_settings_passkeys_path(ri: "jp")
+    get auth_com_settings_passkeys_path(ri: "jp")
 
     assert_response :redirect
   end
 
   test "index renders sign settings passkeys" do
-    get sign_com_settings_passkeys_path(ri: "jp"), headers: @headers
+    get auth_com_settings_passkeys_path(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_includes response.body, @passkey.description
   end
 
   test "options returns challenge and options" do
-    post sign_com_settings_passkeys_options_path(ri: "jp"),
+    post auth_com_settings_passkeys_options_path(ri: "jp"),
          headers: @headers.merge(@origin_headers)
 
     assert_response :ok
@@ -70,18 +70,18 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @visitor.visitor_secret_credentials.destroy_all
     create_visitor_recovery_passcode!(@visitor, name: "only recovery")
 
-    post sign_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers), as: :json
+    post auth_com_settings_passkeys_options_path(ri: "jp"), headers: @headers.merge(@origin_headers), as: :json
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, sign_com_settings_secret_credentials_url(
+    assert_includes response.body, auth_com_settings_secret_credentials_url(
       ri: "jp",
       host: @host,
     )
   end
 
   test "verification creates passkey on success" do
-    post sign_com_settings_passkeys_options_path(ri: "jp"),
+    post auth_com_settings_passkeys_options_path(ri: "jp"),
          headers: @headers.merge(@origin_headers)
     challenge_id = response.parsed_body["challenge_id"]
     cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
@@ -95,7 +95,7 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     WebAuthn::Credential.stub(:from_create, mock_credential) do
       assert_difference("VisitorPasskey.count", 1) do
         assert_difference(-> { @visitor.reload.visitor_secret_credentials.count }, 8) do
-          post sign_com_settings_passkeys_verification_path(ri: "jp"),
+          post auth_com_settings_passkeys_verification_path(ri: "jp"),
                params: {
                  challenge_id: challenge_id,
                  credential: {
@@ -132,14 +132,14 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_create, mock_credential) do
-      post sign_com_settings_passkeys_options_path(ri: "jp"),
+      post auth_com_settings_passkeys_options_path(ri: "jp"),
            headers: headers.merge(@origin_headers)
       challenge_id = response.parsed_body["challenge_id"]
       cookie_header = response_set_cookie_lines.map { |line| line.split(";", 2).first }.join("; ")
 
       assert_difference("VisitorPasskey.count", 1) do
         assert_difference(-> { visitor.reload.visitor_secret_credentials.count }, 10) do
-          post sign_com_settings_passkeys_verification_path(ri: "jp"),
+          post auth_com_settings_passkeys_verification_path(ri: "jp"),
                params: {
                  challenge_id: challenge_id,
                  credential: {
@@ -159,29 +159,29 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "create json returns registration ceremony handoff" do
     assert_no_difference("VisitorPasskey.count") do
-      post sign_com_settings_passkeys_path(ri: "jp", format: :json), headers: @headers
+      post auth_com_settings_passkeys_path(ri: "jp", format: :json), headers: @headers
     end
 
     assert_response :accepted
     assert_equal "registration_ceremony_required", response.parsed_body["status"]
-    assert_equal new_sign_com_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
+    assert_equal new_auth_com_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
   end
 
   test "update accepts visitor passkey form params" do
-    patch sign_com_settings_passkey_path(@passkey.public_id, ri: "jp"),
+    patch auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"),
           params: { visitor_passkey: { description: "Updated Passkey" } },
           headers: @headers
 
-    assert_redirected_to sign_com_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_redirected_to auth_com_settings_passkey_path(@passkey.public_id, ri: "jp")
     assert_equal "Updated Passkey", @passkey.reload.description
   end
 
   test "destroy removes visitor passkey on sign settings authority" do
     assert_difference("VisitorPasskey.count", -1) do
-      delete sign_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      delete auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to sign_com_settings_passkeys_path(ri: "jp")
+    assert_redirected_to auth_com_settings_passkeys_path(ri: "jp")
   end
 
   private

@@ -27,7 +27,7 @@ module Auth
             return if valid_telephone_session?
 
             redirect_to(
-              new_sign_com_sign_up_telephone_path,
+              new_auth_com_sign_up_telephone_path,
               notice: t("sign.com.registration.telephone.edit.session_expired"),
             )
           end
@@ -100,7 +100,7 @@ module Auth
             session[:visitor_telephone_registration] = result.session_payload
             bind_sign_up_flow_to_telephone!(@visitor_telephone)
             redirect_to(
-              sign_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
+              auth_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
             )
           rescue ActiveRecord::RecordInvalid
             render :new, status: :unprocessable_content
@@ -192,7 +192,7 @@ module Auth
             }
 
             redirect_to(
-              sign_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
+              auth_com_sign_up_check_telephone_otp_path(ri: params[:ri]),
             )
           end
 
@@ -241,7 +241,7 @@ module Auth
               )
               SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
             end
-            session[:sign_com_up_sequence_id] = cycle.public_id
+            session[:auth_com_up_sequence_id] = cycle.public_id
           end
 
           def sign_up_flow_locator

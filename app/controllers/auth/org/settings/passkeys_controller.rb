@@ -69,14 +69,14 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_to(
-                new_sign_org_settings_passkey_path(ri: params[:ri]),
+                new_auth_org_settings_passkey_path(ri: params[:ri]),
                 status: :see_other,
               )
             end
             format.json do
               render json: {
                 status: "registration_ceremony_required",
-                redirect_path: new_sign_org_settings_passkey_path(ri: params[:ri]),
+                redirect_path: new_auth_org_settings_passkey_path(ri: params[:ri]),
               }, status: :accepted
             end
           end
@@ -159,7 +159,7 @@ module Auth
               status: "ok",
               passkey_id: passkey.id,
               redirect_url: bootstrap_return_path(
-                sign_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")),
+                auth_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")),
               ),
             }, status: :created
           end
@@ -190,7 +190,7 @@ module Auth
           authorize!(@passkey)
 
           if @passkey.update(update_params)
-            redirect_to(sign_org_settings_passkey_path(@passkey, ri: params[:ri]), status: :see_other)
+            redirect_to(auth_org_settings_passkey_path(@passkey, ri: params[:ri]), status: :see_other)
           else
             render :edit, status: :unprocessable_content
           end
@@ -201,14 +201,14 @@ module Auth
           authorize!(@passkey)
           unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
             redirect_to(
-              sign_org_settings_passkeys_path(ri: params[:ri]),
+              auth_org_settings_passkeys_path(ri: params[:ri]),
               alert: t("messages.cannot_delete_last_passkey"),
               status: :see_other,
             )
             return
           end
           @passkey.destroy!
-          redirect_to(sign_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_org_settings_passkeys_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -227,7 +227,7 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_back_or_to(
-                sign_org_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
+                auth_org_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
                                                                   status: :see_other,
               )
             end
@@ -305,7 +305,7 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          sign_org_settings_secret_credentials_url(
+          auth_org_settings_secret_credentials_url(
             ri: params[:ri],
             host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
           )

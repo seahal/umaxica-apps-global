@@ -62,7 +62,7 @@ module Auth
               private
 
               def success_redirect_url
-                sign_app_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)
+                auth_app_sign_up_check_telephone_passcode_path(ri: params[:ri], pt: signed_pt_param)
               end
 
               def load_sign_up_actor
@@ -103,7 +103,7 @@ module Auth
 
               def sign_up_ticket_class = ClientSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_app_up_sequence_id
+              def sign_up_sequence_session_key = :auth_app_up_sequence_id
             end
           end
         end

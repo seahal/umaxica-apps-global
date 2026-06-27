@@ -114,7 +114,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
+          get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
 
           assert_response :success

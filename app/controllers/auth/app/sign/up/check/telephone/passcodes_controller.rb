@@ -43,7 +43,7 @@ module Auth
                 return finalize_sign_up_from_checkpoint! if result.success? && result.next_event == :finalize
                 return render_sign_up_result(result) unless result.success?
 
-                redirect_to(sign_app_sign_up_check_telephone_birthdate_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_app_sign_up_check_telephone_birthdate_path(ri: params[:ri], pt: signed_pt_param))
               rescue ActiveRecord::RecordInvalid => e
                 @secret_credential = e.record
                 @raw_secret_credential = session[passcode_registration_raw_session_key]
@@ -67,7 +67,7 @@ module Auth
 
               def passcode_registration_secret_credential_class = ClientSecretCredential
 
-              def passcode_registration_raw_session_key = :sign_app_up_passcode_raw
+              def passcode_registration_raw_session_key = :auth_app_up_passcode_raw
 
               def passcode_registration_param_key = :user_secret_credential
 
@@ -108,7 +108,7 @@ module Auth
 
               def sign_up_ticket_class = ClientSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_app_up_sequence_id
+              def sign_up_sequence_session_key = :auth_app_up_sequence_id
             end
           end
         end

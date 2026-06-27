@@ -15,7 +15,7 @@ class Auth::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
   test "GET show without access jwt returns default theme sy" do
     cookies.delete(PreferenceCookieName.access)
 
-    get sign_app_web_v0_theme_path, as: :json
+    get auth_app_web_v0_theme_path, as: :json
 
     assert_response :ok
     assert_equal "sy", response.parsed_body["theme"]
@@ -30,7 +30,7 @@ class Auth::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
-      get sign_app_web_v0_theme_path, as: :json
+      get auth_app_web_v0_theme_path, as: :json
 
       assert_response :success
     end
@@ -48,7 +48,7 @@ class Auth::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
     cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
-      patch sign_app_web_v0_theme_path, params: { theme: "dark" }, as: :json
+      patch auth_app_web_v0_theme_path, params: { theme: "dark" }, as: :json
     end
 
     assert_response :ok

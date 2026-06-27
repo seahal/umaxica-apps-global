@@ -33,24 +33,24 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "create registers telephone for current staff" do
-    get new_sign_org_settings_telephones_registration_url(
+    get new_auth_org_settings_telephones_registration_url(
       ri: "jp",
     ), headers: request_headers
 
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
-        post sign_org_settings_telephones_registration_url(ri: "jp"),
+        post auth_org_settings_telephones_registration_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000009" } },
              headers: request_headers
       end
     end
 
-    assert_redirected_to edit_sign_org_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_org_settings_telephones_registration_url(ri: "jp")
   end
 
   test "new renders stealth turnstile" do
     get(
-      new_sign_org_settings_telephones_registration_url(
+      new_auth_org_settings_telephones_registration_url(
         ri: "jp",
       ),
       headers: request_headers,
@@ -65,7 +65,7 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     assert_no_difference("OperatorTelephone.count") do
-      post sign_org_settings_telephones_registration_url(ri: "jp"),
+      post auth_org_settings_telephones_registration_url(ri: "jp"),
            params: { staff_telephone: { raw_number: "+10000000009" } },
            headers: request_headers
     end
@@ -76,7 +76,7 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
   test "create returns 422 for invalid number" do
     assert_no_difference("OperatorTelephone.count") do
-      post sign_org_settings_telephones_registration_url(ri: "jp"),
+      post auth_org_settings_telephones_registration_url(ri: "jp"),
            params: { staff_telephone: { raw_number: "invalid-number" } },
            headers: request_headers
     end
@@ -85,11 +85,11 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   end
 
   test "edit redirects if no valid session" do
-    get edit_sign_org_settings_telephones_registration_url(ri: "jp"), headers: request_headers
+    get edit_auth_org_settings_telephones_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :redirect
 
-    assert_redirected_to new_sign_org_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to new_auth_org_settings_telephones_registration_url(ri: "jp")
   end
 
   test "edit renders stealth turnstile when session is valid" do
@@ -102,7 +102,7 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     )
 
     with_current_registration_telephone(tel) do
-      get edit_sign_org_settings_telephones_registration_url(ri: "jp"), headers: request_headers
+      get edit_auth_org_settings_telephones_registration_url(ri: "jp"), headers: request_headers
 
       assert_response :success
       assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
@@ -128,13 +128,13 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
     with_current_registration_telephone(tel) do
       with_complete_staff_telephone_verification(:success, tel) do
-        patch sign_org_settings_telephones_registration_url(ri: "jp"),
+        patch auth_org_settings_telephones_registration_url(ri: "jp"),
               params: { staff_telephone: { pass_code: "123456" } },
               headers: request_headers
       end
     end
 
-    assert_redirected_to sign_org_settings_telephones_url(
+    assert_redirected_to auth_org_settings_telephones_url(
       ri: "jp",
       host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
@@ -152,7 +152,7 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     with_current_registration_telephone(tel) do
-      patch sign_org_settings_telephones_registration_url(ri: "jp"),
+      patch auth_org_settings_telephones_registration_url(ri: "jp"),
             params: { staff_telephone: { pass_code: "123456" } },
             headers: request_headers
 

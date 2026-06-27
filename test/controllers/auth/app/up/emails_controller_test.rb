@@ -23,7 +23,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "should get new" do
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "div[id^='cf-turnstile-']", count: 1
@@ -55,7 +55,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.stub(:verify, verifier) do
       post(
-        sign_app_sign_up_email_url(ri: "jp"),
+        auth_app_sign_up_email_url(ri: "jp"),
         params: {
           user_email: {
             raw_address: "turnstile-signup-#{SecureRandom.hex(4)}@example.com",
@@ -74,13 +74,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "collection get redirects to add ri" do
-    get new_sign_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
+    get new_auth_app_sign_up_email_url(hotwire_spark: true, reload: "123"), headers: default_headers
 
     assert_response :redirect
   end
 
   test "renders email registration form structure" do
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
@@ -91,17 +91,17 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "includes navigation links to other registration flows" do
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
-    assert_select "a[href=?]", sign_app_sign_up_path(ri: "jp"), count: 2
-    assert_select "a[href=?]", new_sign_app_sign_in_email_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", auth_app_sign_up_path(ri: "jp"), count: 2
+    assert_select "a[href=?]", new_auth_app_sign_in_email_path(ri: "jp"), count: 1
   end
 
   test "edit uses current registration email from session" do
     # Establish flow state by starting a registration
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "flow_setup@example.com",
@@ -111,11 +111,11 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
          },
          headers: default_headers
 
-    sequence_id = session[:sign_app_up_sequence_id]
+    sequence_id = session[:auth_app_up_sequence_id]
     session.delete(:app_sign_up_flow_locator)
-    session[:sign_app_up_sequence_id] = sequence_id
+    session[:auth_app_up_sequence_id] = sequence_id
 
-    get sign_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
@@ -132,11 +132,11 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     follow_redirect!
     pass_code = otp_code_for(user_email)
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { client_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_url(ri: "jp")
     assert_nil flash[:notice]
   end
 
@@ -155,7 +155,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email = "test_re_reg@example.com"
 
     # First registration attempt
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -179,7 +179,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     # Second registration attempt after the independent overwrite window expires (case-variant)
     # This should delete the previous unverified record and create a new one
     travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "TEST_RE_REG@EXAMPLE.COM",
@@ -202,7 +202,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "create redirects to edit and allows edit page" do
     email = "flow_step_test@example.com"
 
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -222,7 +222,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "create renders unprocessable when user_email param missing" do
     assert_no_difference("ClientEmail.count") do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: { "cf-turnstile-response": "test" },
            headers: default_headers
     end
@@ -235,7 +235,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     assert_no_difference("ClientEmail.count") do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "turnstile-failure@example.com",
@@ -262,7 +262,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_no_difference("Client.count") do
       assert_no_difference("ClientEmail.count") do
         assert_enqueued_emails 0 do
-          post sign_app_sign_up_email_url(ri: "jp"),
+          post auth_app_sign_up_email_url(ri: "jp"),
                params: {
                  user_email: {
                    raw_address: existing_email.address,
@@ -276,7 +276,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_otp_url(ri: "jp")
     assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
 
     follow_redirect!
@@ -299,7 +299,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_no_difference("Client.count") do
       assert_no_difference("ClientEmail.count") do
         assert_enqueued_emails 0 do
-          post sign_app_sign_up_email_url(ri: "jp"),
+          post auth_app_sign_up_email_url(ri: "jp"),
                params: {
                  user_email: {
                    raw_address: "completed-signup@example.com",
@@ -313,7 +313,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_otp_url(ri: "jp")
     assert_nil session[SignEmailRegistrable::EXISTING_EMAIL_SESSION_KEY]
   end
 
@@ -321,7 +321,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email = "enqueue_test@example.com"
 
     assert_enqueued_emails 1 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -336,7 +336,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create stores requested email preference flags" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "signup-preferences@example.com",
@@ -370,7 +370,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     before_otp_attempts_count = existing_email.otp_attempts_count
 
     assert_enqueued_emails 0 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "no_otp_send@example.com",
@@ -391,7 +391,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email = "invalid_email"
 
     assert_enqueued_emails 0 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -412,7 +412,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_enqueued_emails 0 do
       Rails.logger.stub(:info, ->(*args, &block) { logs << (args.first || block&.call).to_s }) do
-        post sign_app_sign_up_email_url(ri: "jp"),
+        post auth_app_sign_up_email_url(ri: "jp"),
              params: {
                user_email: {
                  raw_address: "policy_missing@example.com",
@@ -438,7 +438,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_enqueued_emails 0 do
       post(
-        sign_app_sign_up_email_url(ri: "jp"),
+        auth_app_sign_up_email_url(ri: "jp"),
         params: {
           user_email: {
             raw_address: email,
@@ -461,7 +461,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -478,7 +478,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     user_email = ClientEmail.find_by(public_id: email_id)
 
     # Attempt wrong code
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -496,7 +496,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -511,7 +511,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     user_email = ClientEmail.find_by(public_id: email_id)
 
     # Attempt with blank code
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -529,7 +529,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -545,7 +545,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Travel to expire OTP
     travel 16.minutes do
-      patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
             params: {
               id: user_email.id,
               user_email: {
@@ -564,7 +564,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -583,7 +583,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     completed_requirements = cycle.completed_requirements.deep_dup
 
     Email::MAX_OTP_ATTEMPTS.times do
-      patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
             params: {
               id: user_email.id,
               user_email: {
@@ -615,7 +615,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   # Turnstile Widget Verification Tests
   test "new registration email page renders Turnstile widget" do
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "div[id^='cf-turnstile-']", count: 1
@@ -638,7 +638,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
 
     # Try to access registration page while logged in (using test header to inject current user)
-    get new_sign_app_sign_up_email_url(ri: "jp"),
+    get new_auth_app_sign_up_email_url(ri: "jp"),
         headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
 
     assert_response :unauthorized
@@ -649,7 +649,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
 
     assert_no_difference("ClientEmail.count") do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "logged-in@example.com",
@@ -669,7 +669,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     redirect_url = "/dashboard"
 
     # Create registration record with pt parameter
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -696,7 +696,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
     # Submit correct OTP with pt parameter
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -707,7 +707,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Should redirect directly to the decoded pt destination
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
   end
 
   # Transaction Tests for Client Creation
@@ -717,7 +717,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -739,7 +739,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     initial_user_count = Client.count
 
     # Submit correct OTP
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -749,7 +749,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     # Verify Client count unchanged (pending user was updated, not created)
     assert_equal initial_user_count, Client.count
@@ -772,7 +772,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -794,7 +794,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     initial_audit_count = ClientChronicle.count
 
     # Submit correct OTP
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -804,7 +804,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: default_headers
 
     # Verify success response
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     # Sign-up completion and sign-in audit are delayed until checkpoint finalization.
     assert_equal initial_audit_count, ClientChronicle.count
@@ -815,7 +815,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     initial_audit_count = ClientChronicle.count
 
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -832,7 +832,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     hotp = ROTP::HOTP.new(otp_data[:otp_private_key])
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -841,7 +841,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
     assert_equal initial_audit_count, ClientChronicle.count
   end
 
@@ -850,7 +850,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -870,7 +870,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     correct_code = hotp.at(otp_data[:otp_counter]).to_s
 
     # Submit correct OTP
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -892,7 +892,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "successful registration does not set auth cookies before finalization" do
     email = "cookie_domain_up_#{SecureRandom.hex(4)}@example.com"
 
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -907,7 +907,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -924,7 +924,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "email sign up finalizes and establishes login from checkpoint" do
     email = "finalize_app_email_#{SecureRandom.hex(4)}@example.com"
 
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -939,13 +939,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_url(ri: "jp")
 
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
@@ -953,25 +953,25 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_select "input[type=number][name=birthdate_month][autocomplete=bday-month]"
     assert_select "input[type=number][name=birthdate_day][autocomplete=bday-day]"
     assert_select "input[type=hidden][name=requirement][value=birthdate]"
-    birthdate_path = sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    birthdate_path = auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     assert_select "form[data-turbo=false][method=post][action='#{birthdate_path}']"
     assert_select "form[action='#{birthdate_path}'] input[name=_method][value=patch]"
-    cancellation_path = sign_app_sign_up_check_email_cancellation_path(ri: "jp")
+    cancellation_path = auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     assert_select "form[data-turbo=false][method=post][action='#{cancellation_path}']"
-    assert_select "form[action='#{cancellation_path}'] input[name=_method]", count: 0
-    assert_select "a[href*=?]", sign_app_sign_up_path, count: 0
-    assert_select "a[href*=?]", sign_app_sign_in_path, count: 0
+    assert_select "form[action='#{cancellation_path}'] input[name=_method][value=delete]"
+    assert_select "a[href*=?]", auth_app_sign_up_path, count: 0
+    assert_select "a[href*=?]", auth_app_sign_in_path, count: 0
 
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :ok
     assert_select "[data-birthdate-format=iso]"
 
     cycle = current_sign_up_flow(user_email)
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-01-01",
@@ -983,7 +983,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     uri = URI.parse(response.location)
 
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
 
     user = user_email.reload.user
 
@@ -997,7 +997,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1020,7 +1020,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_not_nil user_email.get_otp
 
     # Submit correct OTP
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -1040,7 +1040,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Create registration record
     perform_enqueued_jobs do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1060,7 +1060,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     old_session_id = session.id.to_s
 
     # Submit correct OTP
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             id: user_email.id,
             user_email: {
@@ -1078,7 +1078,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     initial_user_count = Client.count
 
     # Create registration record
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -1103,7 +1103,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create binds email signup cycle and otp success advances to guardrail" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "email_cycle_#{SecureRandom.hex(4)}@example.com",
@@ -1127,18 +1127,18 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             user_email: { pass_code: pass_code },
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
     assert_equal "checkpoint", cycle.reload.step
   end
 
   test "email signup checkpoint persists birthdate requirement" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "email_birthdate_#{SecureRandom.hex(4)}@example.com",
@@ -1157,21 +1157,21 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             user_email: { pass_code: pass_code },
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
     assert_nil flash[:notice]
 
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "[data-birthdate-format=iso]"
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate_year: "2000",
@@ -1188,7 +1188,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "duplicate email signup birthdate submission renders acme completion and completes there" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            client_email: {
              raw_address: "email_birthdate_duplicate_#{SecureRandom.hex(4)}@example.com",
@@ -1202,13 +1202,13 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     cycle = current_sign_up_flow(user_email)
     pass_code = otp_code_for(user_email)
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: {
             user_email: { pass_code: pass_code },
           },
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_path(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_path(ri: "jp")
 
     birthdate_params = {
       requirement: "birthdate",
@@ -1218,7 +1218,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       checkpoint_version: cycle.reload.checkpoint_version,
     }
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: birthdate_params,
           headers: default_headers
 
@@ -1226,19 +1226,19 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     uri = URI.parse(response.location)
 
     assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: birthdate_params,
           headers: default_headers
 
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
   end
 
   test "email signup checkpoint cancel stops the signup path" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "email_checkpoint_cancel_#{SecureRandom.hex(4)}@example.com",
@@ -1253,28 +1253,28 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
-    post sign_app_sign_up_check_email_cancellation_url(ri: "jp"), headers: default_headers
+    delete auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
-    assert_redirected_to sign_app_sign_up_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_url(ri: "jp")
     assert_equal ClientSignUpFlowStatus::CANCELLED, cycle.reload.status_id
 
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
     assert_equal "ticket is required", response.body
   end
 
   test "email signup checkpoint birthdate is idempotent after requirement is cleared" do
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: "email_birthdate_retry_#{SecureRandom.hex(4)}@example.com",
@@ -1289,12 +1289,12 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     otp_data = user_email.get_otp
     pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { user_email: { pass_code: pass_code } },
           headers: default_headers
 
-    get sign_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
-    get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_guard_email_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
     user_email.user.update!(birthdate: "2000-02-03")
     cycle.update!(
@@ -1311,7 +1311,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       checkpoint_version: cycle.reload.checkpoint_version,
     )
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
@@ -1325,7 +1325,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "email signup checkpoint blocks users before thirteenth birthday" do
     travel_to Time.zone.local(2024, 2, 29, 12, 0, 0) do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "email_under13_#{SecureRandom.hex(4)}@example.com",
@@ -1341,17 +1341,17 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       otp_data = user_email.get_otp
       pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-      patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
             params: { user_email: { pass_code: pass_code } },
             headers: default_headers
 
-      assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
+      assert_redirected_to auth_app_sign_up_check_email_birthdate_url(ri: "jp")
 
-      get sign_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
+      get auth_app_sign_up_check_email_birthdate_url(ri: "jp"), headers: default_headers
 
       assert_response :success
 
-      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2011-03-01",
@@ -1363,7 +1363,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       assert_includes response.body, "この登録方法ではアカウントを作成できません"
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
 
-      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               birthdate: "2000-01-01",
@@ -1382,7 +1382,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email = "no_zero_user_id@example.com"
 
     # Create registration record
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -1411,7 +1411,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email = "replace_pending_test@example.com"
 
     # First registration attempt
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: email,
@@ -1433,7 +1433,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Second registration attempt after cooldown (should delete first pending user)
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1465,7 +1465,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     second_email = "second_attempt@example.com"
 
     # First registration attempt with email A
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: first_email,
@@ -1487,12 +1487,12 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Client abandons: navigates back to "new" page
     # This should succeed without redirect loop or error
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 
     # Client submits a different email B
-    post sign_app_sign_up_email_url(ri: "jp"),
+    post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            user_email: {
              raw_address: second_email,
@@ -1523,7 +1523,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # First registration attempt
     assert_enqueued_emails 1 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1538,7 +1538,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Second attempt immediately (inside the 10s overwrite window)
     assert_enqueued_emails 0 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1558,7 +1558,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # First registration attempt
     assert_enqueued_emails 1 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: email,
@@ -1574,7 +1574,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     # After the overwrite window expires, even though OTP resend cooldown is longer.
     travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
       assert_enqueued_emails 1 do
-        post sign_app_sign_up_email_url(ri: "jp"),
+        post auth_app_sign_up_email_url(ri: "jp"),
              params: {
                user_email: {
                  raw_address: email,
@@ -1600,7 +1600,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # First attempt with existing email -- no OTP sent, same user-facing OTP page.
     assert_enqueued_emails 0 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "registered_cooldown@example.com",
@@ -1612,11 +1612,11 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_otp_url(ri: "jp")
 
     # Second attempt immediately -- same generic response, not an overwrite-window cooldown.
     assert_enqueued_emails 0 do
-      post sign_app_sign_up_email_url(ri: "jp"),
+      post auth_app_sign_up_email_url(ri: "jp"),
            params: {
              user_email: {
                raw_address: "registered_cooldown@example.com",
@@ -1628,7 +1628,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_check_email_otp_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_otp_url(ri: "jp")
   end
 
   test "otp_resend_too_soon i18n key exists in both locales" do
@@ -1648,7 +1648,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   def start_sign_up_flow!(email)
     post(
-      sign_app_sign_up_email_url(ri: "jp"),
+      auth_app_sign_up_email_url(ri: "jp"),
       params: {
         user_email: { raw_address: email, confirm_policy: "1" },
         "cf-turnstile-response": "test",

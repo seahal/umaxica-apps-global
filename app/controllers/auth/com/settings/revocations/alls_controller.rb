@@ -8,6 +8,6 @@ class Auth::Com::Settings::Revocations::AllsController < ::Auth::Com::Applicatio
 
   def create
     logout_all_sessions_for!(resource: current_visitor, reason: "settings.session.revoke_all")
-    redirect_to(sign_com_sign_out_path(ri: params[:ri]), status: :see_other)
+    redirect_to(auth_com_sign_out_path(ri: params[:ri]), status: :see_other)
   end
 end

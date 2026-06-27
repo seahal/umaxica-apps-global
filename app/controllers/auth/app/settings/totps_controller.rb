@@ -48,7 +48,7 @@ module Auth
 
           if @totp.private_key.blank?
             redirect_to(
-              new_sign_app_settings_totp_path,
+              new_auth_app_settings_totp_path,
               notice: t("sign.app.registration.email.flow.invalid"),
             )
             return
@@ -95,7 +95,7 @@ module Auth
             if recovery_passcode_top_up.raw_values.any?
               recovery_passcode_reveal_url(recovery_passcode_top_up.raw_values)
             else
-              sign_app_settings_totps_url(
+              auth_app_settings_totps_url(
                 ri: params[:ri],
                 host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               )
@@ -119,7 +119,7 @@ module Auth
           authorize!(@totp)
 
           if @totp.update(update_params)
-            redirect_to(sign_app_settings_totp_path(@totp.public_id, ri: params[:ri]), status: :see_other)
+            redirect_to(auth_app_settings_totp_path(@totp.public_id, ri: params[:ri]), status: :see_other)
           else
             render :edit, status: :unprocessable_content
           end
@@ -131,14 +131,14 @@ module Auth
           authorize!(totp)
           unless AuthMethodGuard.can_remove_totp?(current_client, totp)
             redirect_to(
-              sign_app_settings_totps_path(ri: params[:ri]),
-              alert: t(".last_method"),
+              auth_app_settings_totps_path(ri: params[:ri]),
+              alert: t("messages.cannot_delete_last_passkey"),
               status: :see_other,
             )
             return
           end
           totp.destroy!
-          redirect_to(sign_app_settings_totps_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_app_settings_totps_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -205,7 +205,7 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          sign_app_settings_secret_credentials_url(
+          auth_app_settings_secret_credentials_url(
             ri: params[:ri],
             host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           )
@@ -229,7 +229,7 @@ module Auth
             purpose: "client.recovery_secret_credential",
             metadata: {},
           )
-          sign_app_settings_secrets_url(
+          auth_app_settings_secrets_url(
             ri: params[:ri],
             token: reveal.token,
             host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),

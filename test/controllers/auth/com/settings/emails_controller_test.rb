@@ -25,7 +25,7 @@ class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "sign settings emails index renders sign settings authority" do
-    get sign_com_settings_emails_url(ri: "jp"), headers: session_headers
+    get auth_com_settings_emails_url(ri: "jp"), headers: session_headers
 
     assert_response :success
   end
@@ -33,7 +33,7 @@ class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "sign settings email edit loads owned email" do
     email = @visitor.visitor_emails.first
 
-    get edit_sign_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
+    get edit_auth_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
 
     assert_response :success
   end
@@ -50,12 +50,12 @@ class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     assert_changes -> { email.reload.attributes.slice("promotional", "notifiable") } do
-      patch sign_com_settings_email_url(email.public_id, ri: "jp"),
+      patch auth_com_settings_email_url(email.public_id, ri: "jp"),
             params: { visitor_email: { promotional: "0", notifiable: "0" } },
             headers: session_headers
     end
 
-    assert_redirected_to edit_sign_com_settings_email_url(email.public_id, ri: "jp")
+    assert_redirected_to edit_auth_com_settings_email_url(email.public_id, ri: "jp")
   end
 
   test "sign settings email destroy mutates local account email" do
@@ -68,14 +68,14 @@ class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     assert_difference("VisitorEmail.count", -1) do
-      delete sign_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
+      delete auth_com_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to sign_com_settings_emails_url(ri: "jp")
+    assert_redirected_to auth_com_settings_emails_url(ri: "jp")
   end
 
   test "sign email registration route remains on sign ceremony surface" do
-    get new_sign_com_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    get new_auth_com_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_equal "sign/com/settings/emails/registrations", @request.path_parameters[:controller]
     assert_equal "new", @request.path_parameters[:action]

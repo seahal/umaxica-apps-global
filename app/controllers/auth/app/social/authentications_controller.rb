@@ -52,7 +52,7 @@ module Auth
 
           unless SUPPORTED_PROVIDERS.include?(provider)
             return redirect_to(
-              sign_app_sign_in_path,
+              auth_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.invalid_provider"),
             )
           end
@@ -83,7 +83,7 @@ module Auth
 
           safe_redirect_to(
             omniauth_authorize_path(provider, state: state),
-            fallback: sign_app_sign_in_path,
+            fallback: auth_app_sign_in_path,
           )
         rescue SocialAuth::BaseError => e
           handle_social_auth_error(e)
@@ -121,7 +121,7 @@ module Auth
           return "sign_up" if request.parameters["entry"].to_s == "sign_up"
 
           referer_path = URI.parse(request.referer.to_s).path
-          return "sign_up" if referer_path == sign_app_sign_up_path
+          return "sign_up" if referer_path == auth_app_sign_up_path
 
           "sign_in"
         rescue URI::InvalidURIError
@@ -155,7 +155,7 @@ module Auth
           raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
 
           sign_up_flow_locator.issue!(cycle)
-          session[:sign_app_up_sequence_id] = cycle.public_id
+          session[:auth_app_up_sequence_id] = cycle.public_id
         end
 
         def social_login_actor_ref
@@ -203,9 +203,9 @@ module Auth
         def social_unlink_settings_path(provider)
           case SocialIdentifiable.normalize_provider(provider)
           when "apple"
-            sign_app_settings_apple_path(ri: params[:ri])
+            auth_app_settings_apple_path(ri: params[:ri])
           else
-            sign_app_settings_google_path(ri: params[:ri])
+            auth_app_settings_google_path(ri: params[:ri])
           end
         end
 
@@ -230,9 +230,9 @@ module Auth
         def social_link_settings_path(provider)
           case SocialIdentifiable.normalize_provider(provider)
           when "apple"
-            sign_app_settings_apple_path(ri: params[:ri])
+            auth_app_settings_apple_path(ri: params[:ri])
           else
-            sign_app_settings_google_path(ri: params[:ri])
+            auth_app_settings_google_path(ri: params[:ri])
           end
         end
 

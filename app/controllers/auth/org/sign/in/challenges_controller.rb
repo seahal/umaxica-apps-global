@@ -22,7 +22,7 @@ module Auth
 
             clear_pending_mfa!
             redirect_to(
-              sign_org_sign_in_path,
+              auth_org_sign_in_path,
               alert: I18n.t("sign.org.in.mfa.session_expired"),
               status: :see_other,
             )

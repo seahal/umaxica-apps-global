@@ -9,7 +9,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   include ActiveSupport::Testing::TimeHelpers
 
   test "should get new" do
-    get new_sign_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+    get new_auth_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
 
@@ -19,14 +19,14 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_nil cookies[:htop_private_key]
     #    assert_select "a[href=?]",
-    #                  new_sign_app_authentication_path(query, ri: "jp"),
+    #                  new_auth_app_authentication_path(query, ri: "jp"),
     #                  I18n.t("sign.app.authentication.new.back")
     assert_response :success
   end
 
   test "reject already logged in user" do
     user = clients(:one)
-    get new_sign_app_sign_in_email_url(ri: "jp"),
+    get new_auth_app_sign_in_email_url(ri: "jp"),
         headers: as_user_headers(user, host: @host)
 
     assert_response :bad_request
@@ -35,7 +35,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "reject already logged in staff" do
     staff = operators(:one)
-    get new_sign_app_sign_in_email_url(ri: "jp"),
+    get new_auth_app_sign_in_email_url(ri: "jp"),
         headers: { "Host" => @host, "X-TEST-CURRENT-STAFF" => staff.id }
 
     assert_response :success
@@ -54,14 +54,14 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "GET new displays email form" do
-    get new_sign_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+    get new_auth_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "input[name='client_email[address]']"
   end
 
   test "POST create without valid email redirects (enumeration protection)" do
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "nonexistent@example.com" } },
          headers: { "Host" => @host }
 
@@ -75,7 +75,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     user = clients(:one)
     email = user.client_emails.create!(address: "scope_test_#{SecureRandom.hex(4)}@example.com")
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :client_email => { address: email.address },
            "cf-turnstile-response" => "test_token",
@@ -93,14 +93,14 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     existing_session = open_session
     existing_session.post(
-      sign_app_sign_in_email_url(ri: "jp"),
+      auth_app_sign_in_email_url(ri: "jp"),
       params: { user_email: { address: existing_email.address } },
       headers: { "Host" => @host },
     )
 
     missing_session = open_session
     missing_session.post(
-      sign_app_sign_in_email_url(ri: "jp"),
+      auth_app_sign_in_email_url(ri: "jp"),
       params: { user_email: { address: "missing-enum@example.com" } },
       headers: { "Host" => @host },
     )
@@ -124,7 +124,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Make the POST request with valid email and Turnstile response
     # Turnstile is automatically mocked to return true in test environment
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email },
            "cf-turnstile-response" => "test_token",
@@ -153,7 +153,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.update!(pass_code: "123456", otp_attempts_count: 0)
 
     # Start session
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -165,7 +165,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Measure time for valid code
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: "123456" } },
           headers: { "Host" => @host, "Cookie" => "user_email_authentication_id=#{session_id}" }
     valid_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
@@ -173,7 +173,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     # Reset for invalid code test
     test_email.update!(pass_code: "123456", otp_attempts_count: 0)
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
-      post sign_app_sign_in_email_url(ri: "jp"),
+      post auth_app_sign_in_email_url(ri: "jp"),
            params: {
              :user_email => { address: test_email.address },
              "cf-turnstile-response" => "test_token",
@@ -186,7 +186,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Measure time for invalid code
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: "999999" } },
           headers: { "Host" => @host, "Cookie" => "user_email_authentication_id=#{session_id}" }
     invalid_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
@@ -201,7 +201,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   # Turnstile Widget Verification Tests
   test "new authentication email page renders Turnstile widget" do
-    get new_sign_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+    get new_auth_app_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "div[id^='cf-turnstile-']", count: 1
@@ -217,7 +217,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     # Start authentication process to trigger email discovery
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -237,12 +237,12 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     # Verify OTP to log in
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -254,7 +254,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     user = clients(:one)
     test_email = user.client_emails.create!(address: "form_scope_test_#{SecureRandom.hex(4)}@example.com")
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :client_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -269,12 +269,12 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     valid_pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { client_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "successful OTP verification sets host-only auth cookies" do
@@ -283,7 +283,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "cookie_domain_in_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -295,7 +295,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     valid_pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
@@ -319,7 +319,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "mfa_email_login_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -331,12 +331,12 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     valid_pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_challenge_path(ri: "jp")
   end
 
   def test_setup_cooldown_test_email
@@ -349,7 +349,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_difference -> { ActionMailer::Base.deliveries.count }, 1 do
       perform_enqueued_jobs do
         post(
-          sign_app_sign_in_email_url(ri: "jp"),
+          auth_app_sign_in_email_url(ri: "jp"),
           params: {
             :user_email => { address: test_email.address },
             "cf-turnstile-response" => "test_token",
@@ -375,7 +375,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     initial_sent_at = test_email.otp_last_sent_at
 
     assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-      post sign_app_sign_in_email_url(ri: "jp"),
+      post auth_app_sign_in_email_url(ri: "jp"),
            params: {
              :user_email => { address: test_email.address },
              "cf-turnstile-response" => "test_token",
@@ -393,7 +393,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     travel 29.seconds do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-        post sign_app_sign_in_email_url(ri: "jp"),
+        post auth_app_sign_in_email_url(ri: "jp"),
              params: {
                :user_email => { address: test_email.address },
                "cf-turnstile-response" => "test_token",
@@ -412,7 +412,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     travel 31.seconds do
       assert_difference -> { ActionMailer::Base.deliveries.count }, 1 do
         perform_enqueued_jobs do
-          post sign_app_sign_in_email_url(ri: "jp"),
+          post auth_app_sign_in_email_url(ri: "jp"),
                params: {
                  :user_email => { address: test_email.address },
                  "cf-turnstile-response" => "test_token",
@@ -433,7 +433,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -441,7 +441,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
          headers: { "Host" => @host }
 
     Email::MAX_OTP_ATTEMPTS.times do
-      patch sign_app_sign_in_email_url(ri: "jp"),
+      patch auth_app_sign_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: "000000" } },
             headers: { "Host" => @host }
     end
@@ -464,7 +464,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-        post sign_app_sign_in_email_url(ri: "jp"),
+        post auth_app_sign_in_email_url(ri: "jp"),
              params: {
                :user_email => { address: test_email.address },
                "cf-turnstile-response" => "test_token",
@@ -481,7 +481,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     user = clients(:one)
     test_email = user.client_emails.create!(address: "audit_login_#{SecureRandom.hex(4)}@example.com")
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -497,7 +497,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGGED_IN).count }, 1 do
-      patch sign_app_sign_in_email_url(ri: "jp"),
+      patch auth_app_sign_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: valid_pass_code } },
             headers: { "Host" => @host }
     end
@@ -515,7 +515,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     # Start authentication
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -530,7 +530,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     # Try with invalid code
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: "999999" } },
           headers: { "Host" => @host }
 
@@ -545,7 +545,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "blank_otp_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -554,7 +554,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_equal test_email.id, SignAppInEmailAuthenticationState.load(session)&.id
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: "" } },
           headers: { "Host" => @host }
 
@@ -568,7 +568,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "audit_login_failed_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -582,7 +582,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     assert_difference -> { ClientChronicle.where(event_id: ClientChronicleEvent::LOGIN_FAILED).count }, 1 do
-      patch sign_app_sign_in_email_url(ri: "jp"),
+      patch auth_app_sign_in_email_url(ri: "jp"),
             params: { user_email: { pass_code: "000000" } },
             headers: { "Host" => @host }
     end
@@ -595,7 +595,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "already logged in user cannot authenticate via post" do
     user = clients(:one)
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "some@example.com" } },
          headers: { "Host" => @host, "X-TEST-CURRENT-USER" => user.id }
 
@@ -609,11 +609,11 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "redirect_login_test_#{SecureRandom.hex(4)}@example.com",
     )
 
-    redirect_url = sign_app_settings_path(ri: "jp")
+    redirect_url = auth_app_settings_path(ri: "jp")
     pt = redirect_url
 
     # Start authentication with pt parameter
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -636,7 +636,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     # Verify OTP with pt parameter
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
             pt: pt,
@@ -644,7 +644,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
 
     cycle = ClientSignInFlow.where(principal_id: user.id).recent_first.first
 
@@ -662,7 +662,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     pt = "https://example.com/evil"
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -680,7 +680,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: {
             user_email: { pass_code: valid_pass_code },
             pt: pt,
@@ -688,7 +688,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "resets session ID after successful email login" do
@@ -699,7 +699,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     # Start authentication
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -722,7 +722,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     old_session_id = session.id
 
     # Verify OTP to log in
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
@@ -745,7 +745,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     # Start authentication
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -760,12 +760,12 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
     # Verify OTP - should redirect to session management, not "/"
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
     assert_response :found
-    assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_session_path(ri: "jp")
     assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # The current session-limit gate keeps the pending login in session state.
@@ -789,7 +789,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "session_limit_hard_reject_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -804,7 +804,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::RESTRICTED)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host }
 
@@ -825,7 +825,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       address: "session_limit_json_#{SecureRandom.hex(4)}@example.com",
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: test_email.address },
            "cf-turnstile-response" => "test_token",
@@ -838,7 +838,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     valid_pass_code = hotp.at(otp_counter).to_s
     test_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
 
-    patch sign_app_sign_in_email_url(ri: "jp"),
+    patch auth_app_sign_in_email_url(ri: "jp"),
           params: { user_email: { pass_code: valid_pass_code } },
           headers: { "Host" => @host, "Accept" => "application/json" },
           as: :json
@@ -847,14 +847,14 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     json = response.parsed_body
 
     assert_equal "session_restricted", json["status"]
-    assert_equal sign_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
+    assert_equal auth_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
   end
 
   test "cooldown applies identically for non-existing emails (anti-enumeration)" do
     non_existing = "does_not_exist_#{SecureRandom.hex(4)}@example.com"
 
     # First attempt -- redirect (same as existing email)
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: non_existing },
            "cf-turnstile-response" => "test_token",
@@ -864,7 +864,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :found
 
     # Second attempt immediately -- 429 (same as existing email)
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: non_existing },
            "cf-turnstile-response" => "test_token",
@@ -876,7 +876,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # After cooldown -- allowed again
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
-      post sign_app_sign_in_email_url(ri: "jp"),
+      post auth_app_sign_in_email_url(ri: "jp"),
            params: {
              :user_email => { address: non_existing },
              "cf-turnstile-response" => "test_token",
@@ -894,7 +894,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
       user_email_status_id: ClientEmailStatus::VERIFIED,
     )
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            user_email: { address: email.address },
            "cf-turnstile-response": "test_token",
@@ -903,7 +903,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :found
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            user_email: { address: email.address },
            "cf-turnstile-response": "test_token",
@@ -918,7 +918,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     first_email = "first_signin_#{SecureRandom.hex(4)}@example.com"
     second_email = "second_signin_#{SecureRandom.hex(4)}@example.com"
 
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: first_email },
            "cf-turnstile-response" => "test_token",
@@ -928,7 +928,7 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :found
 
     # Different email should not be blocked
-    post sign_app_sign_in_email_url(ri: "jp"),
+    post auth_app_sign_in_email_url(ri: "jp"),
          params: {
            :user_email => { address: second_email },
            "cf-turnstile-response" => "test_token",

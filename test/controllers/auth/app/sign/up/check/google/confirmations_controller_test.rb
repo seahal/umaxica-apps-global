@@ -18,7 +18,7 @@ class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest < ActionDi
   test "show does not redirect signed-in clients away from the google confirmation checkpoint" do
     user = clients(:one)
 
-    get sign_app_sign_up_check_google_confirmation_url(ri: "jp"),
+    get auth_app_sign_up_check_google_confirmation_url(ri: "jp"),
         headers: as_user_headers(user, host: @host)
 
     assert_response :unprocessable_content

@@ -21,7 +21,7 @@ module Base
 
         def authorize_activity_log! = authorize!(ClientChronicle, to: :index?)
 
-        def activity_log = @activity_log ||= ::Sign::App::Settings::ActivityLog.new(current_client)
+        def activity_log = @activity_log ||= ::Auth::App::Settings::ActivityLog.new(current_client)
 
         def activity_occurred_at(activity) = activity_log.occurred_at(activity)
 

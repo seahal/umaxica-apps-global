@@ -1,10 +1,10 @@
 <% content_for :page_title, "Telephones" %>
-<%= link_to t("sign.app.settings.show.back"), sign_com_settings_path(ri: params[:ri]) %>
+<%= link_to t("sign.app.settings.show.back"), auth_com_settings_path(ri: params[:ri]) %>
 
 <div>
   <div>
     <%= link_to t("sign.app.settings.telephone.index.new_link"),
-                new_sign_com_settings_telephones_registration_path(ri: params[:ri]) %>
+                new_auth_com_settings_telephones_registration_path(ri: params[:ri]) %>
   </div>
 </div>
 
@@ -35,7 +35,7 @@
               </td>
               <td>
                 <%= link_to t("sign.app.settings.telephone.index.edit"),
-                            edit_sign_com_settings_telephone_path(telephone, ri: params[:ri]) %>
+                            edit_auth_com_settings_telephone_path(telephone, ri: params[:ri]) %>
               </td>
             </tr>
           <% end %>

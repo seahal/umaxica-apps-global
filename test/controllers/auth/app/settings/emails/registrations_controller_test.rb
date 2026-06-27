@@ -12,31 +12,31 @@ class Auth::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "new redirects to acme identity email registration" do
-    get new_sign_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    get new_auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to new_acme_app_identity_emails_registration_path(ri: "jp")
+    assert_redirected_to new_base_app_identity_emails_registration_path(ri: "jp")
   end
 
   test "edit redirects to acme identity email registration" do
-    get edit_sign_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    get edit_auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to edit_acme_app_identity_emails_registration_path(ri: "jp")
+    assert_redirected_to edit_base_app_identity_emails_registration_path(ri: "jp")
   end
 
   test "create is gone" do
-    post sign_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    post auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_response :gone
   end
 
   test "update is gone" do
-    patch sign_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    patch auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_response :gone
   end
 
   test "redelivery is gone" do
-    post sign_app_settings_emails_registration_redelivery_url(ri: "jp"), headers: session_headers
+    post auth_app_settings_emails_registration_redelivery_url(ri: "jp"), headers: session_headers
 
     assert_response :gone
   end

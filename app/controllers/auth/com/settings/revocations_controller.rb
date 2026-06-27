@@ -9,7 +9,7 @@ class Auth::Com::Settings::RevocationsController < Auth::Com::ApplicationControl
 
   def create
     revoke_selected_session!(@session) unless current_session_record?(@session)
-    redirect_to(sign_com_settings_sessions_path(ri: params[:ri]), status: :see_other)
+    redirect_to(auth_com_settings_sessions_path(ri: params[:ri]), status: :see_other)
   end
 
   private

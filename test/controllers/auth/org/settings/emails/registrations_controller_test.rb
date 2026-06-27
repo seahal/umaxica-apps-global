@@ -34,7 +34,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "registration new is available" do
-    get new_sign_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
+    get new_auth_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select "input[type=checkbox][name='staff_email[notifiable]']", count: 1
@@ -43,7 +43,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
   test "registration edit renders stealth turnstile" do
     perform_enqueued_jobs do
-      post sign_org_settings_emails_registration_url(ri: "jp"),
+      post auth_org_settings_emails_registration_url(ri: "jp"),
            params: {
              staff_email: { raw_address: "org-config-edit@example.com" },
              "cf-turnstile-response": "test",
@@ -51,7 +51,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
            headers: request_headers
     end
 
-    get edit_sign_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
+    get edit_auth_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
@@ -66,7 +66,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
   test "create sends OTP email and stores notification preference" do
     assert_enqueued_emails 1 do
-      post sign_org_settings_emails_registration_url(ri: "jp"),
+      post auth_org_settings_emails_registration_url(ri: "jp"),
            params: {
              staff_email: { raw_address: "org-config-registration@example.com", notifiable: "0" },
              "cf-turnstile-response": "test",
@@ -75,13 +75,13 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_org_settings_emails_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_org_settings_emails_registration_url(ri: "jp")
     assert_not @staff.operator_emails.order(:created_at).last.notifiable
   end
 
   test "update verifies OTP and confirms email" do
     perform_enqueued_jobs do
-      post sign_org_settings_emails_registration_url(ri: "jp"),
+      post auth_org_settings_emails_registration_url(ri: "jp"),
            params: {
              staff_email: { raw_address: "org-config-verify@example.com" },
              "cf-turnstile-response": "test",
@@ -95,11 +95,11 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     otp_data = staff_email.get_otp
     code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
 
-    patch sign_org_settings_emails_registration_url(ri: "jp"),
+    patch auth_org_settings_emails_registration_url(ri: "jp"),
           params: { staff_email: { pass_code: code } },
           headers: request_headers
 
-    assert_redirected_to sign_org_settings_emails_url(
+    assert_redirected_to auth_org_settings_emails_url(
       ri: "jp",
       host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
@@ -108,7 +108,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
   test "update rejects when turnstile fails" do
     perform_enqueued_jobs do
-      post sign_org_settings_emails_registration_url(ri: "jp"),
+      post auth_org_settings_emails_registration_url(ri: "jp"),
            params: {
              staff_email: { raw_address: "org-config-turnstile-failure@example.com" },
              "cf-turnstile-response": "test",
@@ -119,7 +119,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     staff_email = @staff.operator_emails.order(:created_at).last
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    patch sign_org_settings_emails_registration_url(ri: "jp"),
+    patch auth_org_settings_emails_registration_url(ri: "jp"),
           params: { staff_email: { pass_code: "123456" } },
           headers: request_headers
 
@@ -129,14 +129,14 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "update with blank pass_code renders edit with error" do
-    post sign_org_settings_emails_registration_url(ri: "jp"),
+    post auth_org_settings_emails_registration_url(ri: "jp"),
          params: {
            staff_email: { raw_address: "org-config-blank@example.com" },
            "cf-turnstile-response": "test",
          },
          headers: request_headers
 
-    patch sign_org_settings_emails_registration_url(ri: "jp"),
+    patch auth_org_settings_emails_registration_url(ri: "jp"),
           params: { staff_email: { pass_code: "" } },
           headers: request_headers
 
@@ -145,10 +145,10 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "edit with invalid session redirects to new registration" do
-    get edit_sign_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
+    get edit_auth_org_settings_emails_registration_url(ri: "jp"), headers: request_headers
 
     assert_response :redirect
-    assert_redirected_to new_sign_org_settings_emails_registration_url(ri: "jp")
+    assert_redirected_to new_auth_org_settings_emails_registration_url(ri: "jp")
   end
 
   private

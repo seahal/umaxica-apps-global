@@ -21,7 +21,7 @@ module Auth
         end
 
         test "rejects invalid email format" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { address: "invalid-email" },
           }
 
@@ -31,7 +31,7 @@ module Auth
         test "accepts valid emails with consecutive special characters" do
           # Test that user+tag@example.co.uk format is accepted
           # (This will redirect because email doesn't exist, preventing enumeration)
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "user+tag@example.co.uk" },
             "cf-turnstile-response" => "test_token",
           }
@@ -41,7 +41,7 @@ module Auth
         end
 
         test "accepts valid emails with dots in local part" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "user.name@example.com" },
             "cf-turnstile-response" => "test_token",
           }
@@ -51,7 +51,7 @@ module Auth
         end
 
         test "accepts valid emails with underscores" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "user_name@example.co.uk" },
             "cf-turnstile-response" => "test_token",
           }
@@ -61,7 +61,7 @@ module Auth
         end
 
         test "accepts Gmail-style addressing with plus" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "user+mailbox@gmail.com" },
             "cf-turnstile-response" => "test_token",
           }
@@ -71,7 +71,7 @@ module Auth
         end
 
         test "accepts emails with multiple domain levels" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "user@mail.example.co.uk" },
             "cf-turnstile-response" => "test_token",
           }
@@ -81,7 +81,7 @@ module Auth
         end
 
         test "rejects emails without @ symbol" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { address: "usernameexample.com" },
           }
 
@@ -89,7 +89,7 @@ module Auth
         end
 
         test "rejects emails without domain" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { address: "user@" },
           }
 
@@ -97,7 +97,7 @@ module Auth
         end
 
         test "rejects emails without local part" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { address: "@example.com" },
           }
 
@@ -105,7 +105,7 @@ module Auth
         end
 
         test "rejects emails with spaces" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { address: "user name@example.com" },
           }
 
@@ -113,7 +113,7 @@ module Auth
         end
 
         test "normalizes email to lowercase" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "TEST@EXAMPLE.COM" },
             "cf-turnstile-response" => "test_token",
           }
@@ -123,7 +123,7 @@ module Auth
         end
 
         test "rejects emails with excessive whitespace" do
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "  test@example.com  " },
             "cf-turnstile-response" => "test_token",
           }
@@ -138,7 +138,7 @@ module Auth
           email = ClientEmail.create!(user: user, address: "otp_test@example.com", confirm_policy: true)
 
           # Request OTP
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "otp_test@example.com" },
             "cf-turnstile-response" => "test_token",
           }
@@ -153,7 +153,7 @@ module Auth
           email = ClientEmail.create!(user: user, address: "cleanup_test@example.com", confirm_policy: true)
 
           # Request OTP to generate secret_credentials
-          post sign_app_sign_in_email_url(ri: "jp"), params: {
+          post auth_app_sign_in_email_url(ri: "jp"), params: {
             :user_email => { address: "cleanup_test@example.com" },
             "cf-turnstile-response" => "test_token",
           }
@@ -161,7 +161,7 @@ module Auth
           email.reload
           otp_code = ROTP::HOTP.new(email.otp_private_key).at(Integer(email.otp_counter.to_s, 10))
 
-          patch sign_app_sign_in_email_url(ri: "jp"), params: {
+          patch auth_app_sign_in_email_url(ri: "jp"), params: {
             user_email: { pass_code: otp_code },
           }
 

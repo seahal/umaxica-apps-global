@@ -16,13 +16,13 @@ class Auth::Org::Settings::OperatorLifecycleRequestsControllerTest < ActionDispa
   end
 
   test "index renders for authenticated operator" do
-    get sign_org_settings_operator_lifecycle_requests_url(ri: "jp"), headers: authenticated_headers
+    get auth_org_settings_operator_lifecycle_requests_url(ri: "jp"), headers: authenticated_headers
 
     assert_response :success
   end
 
   test "new renders withdrawal request for current operator" do
-    get new_sign_org_settings_operator_lifecycle_request_url(
+    get new_auth_org_settings_operator_lifecycle_request_url(
       action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
       ri: "jp",
     ), headers: authenticated_headers
@@ -33,7 +33,7 @@ class Auth::Org::Settings::OperatorLifecycleRequestsControllerTest < ActionDispa
 
   test "create stores lifecycle request" do
     assert_difference -> { OperatorLifecycleRequest.count }, 1 do
-      post sign_org_settings_operator_lifecycle_requests_url(ri: "jp"),
+      post auth_org_settings_operator_lifecycle_requests_url(ri: "jp"),
            params: {
              operator_lifecycle_request: {
                action: OperatorLifecycleRequest::ACTION_WITHDRAW,

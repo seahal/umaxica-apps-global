@@ -49,6 +49,25 @@ module OidcClientStoresStaticClientStore
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "ACME_APP",
       },
+      # Side browser RP.
+      "side-rails-rp" => {
+        redirect_uris: build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+          build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+          build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
+          build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
+          build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
+        backchannel_logout_uris: build_logout_uris("SIDE_SERVICE_URL", "side.app.localhost", "backchannel/logout") +
+          build_logout_uris("SIDE_STAFF_URL", "side.org.localhost", "backchannel/logout") +
+          build_logout_uris("SIDE_CORPORATE_URL", "side.com.localhost", "backchannel/logout"),
+        backchannel_logout_session_required: true,
+        aud: "side-rails-rp",
+        resource_type: "client",
+        name: "Side Rails RP",
+        allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
+        token_endpoint_auth_method: "private_key_jwt",
+        jwt_namespace: "BASE_APP",
+      },
       # Core browser RP.
       "core-next-rp" => {
         redirect_uris: build_redirect_uris("CORE_SERVICE_URL", "jpx.umaxica.app") +

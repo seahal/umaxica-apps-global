@@ -17,6 +17,6 @@ class Auth::Org::Edge::V0::Token::DbscController < ::Auth::Org::ApplicationContr
   private
 
   def dbsc_url
-    sign_org_edge_v0_token_dbsc_url
+    auth_org_edge_v0_token_dbsc_url
   end
 end

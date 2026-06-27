@@ -215,7 +215,7 @@ module Auth
 
           redirect_to(
             public_send(
-              :"sign_app_sign_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
+              :"auth_app_sign_up_guard_#{SocialIdentifiable.normalize_provider(identity.provider)}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -242,7 +242,7 @@ module Auth
 
           redirect_to(
             public_send(
-              :"sign_app_sign_up_guard_#{provider}_path",
+              :"auth_app_sign_up_guard_#{provider}_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -276,7 +276,7 @@ module Auth
               return_to: path_from_signed_pt(signed_pt_token(pt)),
             )
             sign_up_flow_locator.issue!(cycle)
-            session[:sign_app_up_sequence_id] = cycle.public_id
+            session[:auth_app_up_sequence_id] = cycle.public_id
             cycle
           end
         end
@@ -284,7 +284,7 @@ module Auth
         def redirect_pending_social_signup_confirmation(provider, pt: nil)
           redirect_to(
             public_send(
-              :"sign_app_sign_up_check_#{provider}_confirmation_path",
+              :"auth_app_sign_up_check_#{provider}_confirmation_path",
               ri: params[:ri].presence || current_social_auth_ri,
               pt: pt.presence,
             ),
@@ -410,7 +410,7 @@ module Auth
               return_to: path_from_signed_pt(signed_pt_token(pt)),
             )
             sign_up_flow_locator.issue!(cycle)
-            session[:sign_app_up_sequence_id] = cycle.public_id
+            session[:auth_app_up_sequence_id] = cycle.public_id
             cycle
           end
         end
@@ -428,7 +428,7 @@ module Auth
             default: "%{provider} linked",
           )
           redirect_to(
-            sign_app_settings_path,
+            auth_app_settings_path,
             notice: I18n.t(
               "sign.app.social.sessions.link.success",
               provider: provider_name,
@@ -445,7 +445,7 @@ module Auth
 
           unless user&.login_allowed?
             return redirect_to(
-              sign_app_sign_in_path,
+              auth_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -465,7 +465,7 @@ module Auth
 
           if login_result.is_a?(Hash) && login_result[:restricted]
             return redirect_to(
-              sign_app_sign_in_session_path,
+              auth_app_sign_in_session_path,
               notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           end
@@ -487,7 +487,7 @@ module Auth
             ),
           )
           redirect_to(
-            sign_app_sign_in_path(ri: params[:ri].presence || current_social_auth_ri),
+            auth_app_sign_in_path(ri: params[:ri].presence || current_social_auth_ri),
             alert: I18n.t("sign.app.social.sessions.create.failure"),
           )
         end
@@ -578,7 +578,7 @@ module Auth
         end
 
         def store_social_sign_up_sequence_id(cycle)
-          session[:sign_app_up_sequence_id] = cycle.public_id
+          session[:auth_app_up_sequence_id] = cycle.public_id
         rescue ActionDispatch::Request::Session::DisabledSessionError
           nil
         end
@@ -612,13 +612,13 @@ module Auth
             Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.mfa_required"))
             safe_redirect_to(
               sign_in_result.redirect_to,
-              fallback: sign_app_sign_in_path,
+              fallback: auth_app_sign_in_path,
               notice: I18n.t("sign.app.in.mfa.required"),
             )
           else
             Rails.logger.warn(JitLogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
             redirect_to(
-              sign_app_sign_in_path,
+              auth_app_sign_in_path,
               alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
@@ -628,14 +628,14 @@ module Auth
           ri = params[:ri].presence || current_social_auth_ri
 
           if current_social_auth_entry == "sign_up"
-            return sign_app_sign_up_path(ri: ri)
+            return auth_app_sign_up_path(ri: ri)
           end
 
-          sign_app_sign_in_path(ri: ri)
+          auth_app_sign_in_path(ri: ri)
         end
 
         def social_auth_success_redirect_path
-          sign_app_settings_path
+          auth_app_settings_path
         end
 
         def duplicate_google_callback_failure_after_success?(message, strategy)

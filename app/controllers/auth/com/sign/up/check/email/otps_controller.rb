@@ -38,7 +38,7 @@ module Auth
                 result = issue_otp_ceremony!
                 return render_otp_ceremony_result(result) unless result.success?
 
-                redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_com_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
               end
 
               def destroy
@@ -51,7 +51,7 @@ module Auth
 
               def sign_up_ticket_class = VisitorSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_com_up_sequence_id
+              def sign_up_sequence_session_key = :auth_com_up_sequence_id
 
               def sign_up_family = "email"
 

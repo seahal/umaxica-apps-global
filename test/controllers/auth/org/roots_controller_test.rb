@@ -14,7 +14,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "GET / renders root page" do
-    get sign_org_root_url(ri: "jp")
+    get auth_org_root_url(ri: "jp")
 
     assert_response :success
     assert_select "title", "Sign Org"
@@ -23,7 +23,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "creates preference cookies on root" do
     assert_difference("OrgPreference.count", 1) do
-      get sign_org_root_url(ri: "jp")
+      get auth_org_root_url(ri: "jp")
     end
 
     assert_response :success
@@ -34,7 +34,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   test "sets theme cookie" do
     assert_theme_cookie_for(
       host: ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org"),
-      path: :sign_org_root_path,
+      path: :auth_org_root_path,
       label: "sign org root",
       ri: "jp",
     )
@@ -43,10 +43,10 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   test "GET / redirects to dashboard when logged in" do
     staff = operators(:one)
 
-    get sign_org_root_url(ri: "jp"),
+    get auth_org_root_url(ri: "jp"),
         headers: as_staff_headers(staff, host: ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org"))
 
     assert_response :redirect
-    assert_redirected_to sign_org_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org"))
+    assert_redirected_to auth_org_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_STAFF_URL", "log.umaxica.org"))
   end
 end

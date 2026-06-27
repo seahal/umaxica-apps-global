@@ -109,15 +109,15 @@ module AuthenticationVisitor
 
   def sign_in_url_with_pt(return_to)
     _ = return_to
-    sign_com_sign_in_url(
-      host: sign_com_redirect_host,
+    auth_com_sign_in_url(
+      host: auth_com_redirect_host,
       protocol: "https",
     )
   end
 
-  def sign_com_redirect_host
+  def auth_com_redirect_host
     configured_hosts =
-      %w(SIGN_CORPORATE_URL).filter_map do |key|
+      %w(AUTH_CORPORATE_URL SIGN_CORPORATE_URL).filter_map do |key|
         CommonRedirect.normalize_host(ENV[key])
       end
 

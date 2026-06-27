@@ -315,7 +315,7 @@ module MissingHelpers
   end
 
   def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
-    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    host = ENV.fetch("AUTH_SERVICE_URL", "log.umaxica.app")
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
@@ -323,9 +323,9 @@ module MissingHelpers
       if intent.to_s == "link"
         public_send(:"sign_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"sign_app_social_#{normalized_provider}_sign_up_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_sign_up_path", ri: ri, rt: rt)
       else
-        public_send(:"sign_app_social_#{normalized_provider}_sign_in_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_sign_in_path", ri: ri, rt: rt)
       end
 
     with_social_auth_csrf_route do |csrf_path|

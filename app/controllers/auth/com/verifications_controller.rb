@@ -15,7 +15,7 @@ module Auth
       end
 
       def verification_invalid_request_redirect_path(ri:)
-        sign_com_settings_path(ri: ri)
+        auth_com_settings_path(ri: ri)
       end
     end
   end

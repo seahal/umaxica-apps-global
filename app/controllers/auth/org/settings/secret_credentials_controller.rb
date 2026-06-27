@@ -60,7 +60,7 @@ module Auth
 
           flash[:notice] = t(".created")
           redirect_to(
-            sign_org_settings_secret_credentials_url(
+            auth_org_settings_secret_credentials_url(
               ri: params[:ri],
               host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
             ),
@@ -82,7 +82,7 @@ module Auth
             excluding: @secret_credential,
           )
             redirect_to(
-              sign_org_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
+              auth_org_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
               status: :see_other,
             )
             return
@@ -94,7 +94,7 @@ module Auth
             params: secret_credential_params,
           )
           redirect_to(
-            sign_org_settings_secret_credential_path(result.secret_credential.public_id, ri: params[:ri]),
+            auth_org_settings_secret_credential_path(result.secret_credential.public_id, ri: params[:ri]),
             status: :see_other,
           )
         end
@@ -103,14 +103,14 @@ module Auth
           authorize!(@secret_credential)
           unless AuthMethodGuard.can_remove_secret_credential?(current_operator, @secret_credential)
             redirect_to(
-              sign_org_settings_secret_credentials_path(ri: params[:ri]),
+              auth_org_settings_secret_credentials_path(ri: params[:ri]),
               alert: t(".last_method"),
               status: :see_other,
             )
             return
           end
           OperatorSecretCredentialsDestroy.call(actor: current_operator, secret_credential: @secret_credential)
-          redirect_to(sign_org_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_org_settings_secret_credentials_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -137,7 +137,7 @@ module Auth
         end
 
         def secret_credential_turnstile_failure_redirect_path
-          sign_org_settings_secret_credentials_path(ri: params[:ri])
+          auth_org_settings_secret_credentials_path(ri: params[:ri])
         end
 
         def verification_required_action?

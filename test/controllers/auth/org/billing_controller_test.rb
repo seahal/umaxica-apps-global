@@ -9,16 +9,16 @@ class Auth::Org::BillingControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index redirects to acme org authority" do
-    get sign_org_billing_index_url(ri: "jp"), headers: host_headers(@host)
+    get auth_org_billing_index_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal "log.umaxica.org", uri.host
     assert_equal "/billing", uri.path
   end
 
   test "route path is preserved for compatibility" do
-    assert_equal "/billing", sign_org_billing_index_path
+    assert_equal "/billing", auth_org_billing_index_path
   end
 end

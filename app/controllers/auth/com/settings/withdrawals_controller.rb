@@ -44,15 +44,15 @@ module Auth
         end
 
         def withdrawal_new_path(extra_params = {})
-          new_sign_com_settings_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
+          new_auth_com_settings_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
         end
 
         def withdrawal_edit_path
-          edit_sign_com_settings_withdrawal_path(ri: params[:ri])
+          edit_auth_com_settings_withdrawal_path(ri: params[:ri])
         end
 
         def withdrawal_settings_path
-          sign_com_settings_withdrawal_path(ri: params[:ri])
+          auth_com_settings_withdrawal_path(ri: params[:ri])
         end
 
         def handle_deactivation_failure(actor)

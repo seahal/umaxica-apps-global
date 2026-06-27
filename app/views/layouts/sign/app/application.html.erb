@@ -31,10 +31,10 @@
           <% unless @hide_auth_navigation || content_for?(:nav_links) %>
             <% content_for :nav_links do %>
             <% if logged_in? %>
-                <%= link_to t("sign.app.layout.nav.logout"), new_sign_app_sign_out_path %>
+                <%= link_to t("sign.app.layout.nav.logout"), new_auth_app_sign_out_path %>
               <% else %>
-                <%= link_to t("sign.app.layout.nav.sign_up"), sign_app_sign_up_path %>
-                <%= link_to t("sign.app.layout.nav.log_in"), sign_app_sign_in_path %>
+                <%= link_to t("sign.app.layout.nav.sign_up"), auth_app_sign_up_path %>
+                <%= link_to t("sign.app.layout.nav.log_in"), auth_app_sign_in_path %>
               <% end %>
             <% end %>
           <% end %>
@@ -45,7 +45,7 @@
         <span class="bg-black text-white px-1 font-bold text-xs">SIGN</span>
         <h1 class="text-lg font-bold">
           <% content_for :root_link do %>
-            <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), sign_app_root_path %>
+            <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), auth_app_root_path %>
           <% end %>
           <%= yield :root_link %>
           <span class="opacity-50 text-sm">(<%= tld %>)</span>
@@ -62,19 +62,19 @@
         <% content_for :footer_links do %>
           <ul class="flex gap-4">
             <% if logged_in? %>
-              <li><%= link_to t("sign.app.preferences.footer.dashboard"), sign_app_dashboard_path %></li>
+              <li><%= link_to t("sign.app.preferences.footer.dashboard"), auth_app_dashboard_path %></li>
             <% else %>
-              <li><%= link_to t("sign.app.preferences.footer.home"), sign_app_root_path %></li>
+              <li><%= link_to t("sign.app.preferences.footer.home"), auth_app_root_path %></li>
             <% end %>
-            <li><%= link_to t("sign.app.preferences.footer.preference"), acme_app_preference_url(host: acme_authority_host) %></li>
-            <li><%= link_to t("sign.app.preferences.footer.settings"), sign_app_settings_path %></li>
+            <li><%= link_to t("sign.app.preferences.footer.preference"), auth_app_settings_path %></li>
+            <li><%= link_to t("sign.app.preferences.footer.settings"), auth_app_settings_emails_path %></li>
           </ul>
         <% end %>
         <%= yield :footer_links %>
       </nav>
       <div class="flex flex-wrap justify-between items-end gap-2 border-t border-black pt-2">
         <div class="flex gap-4">
-          <%= render "layouts/shared/footer_cookie_controls", scope: tld, acme_host: acme_authority_host %>
+            <%= render "layouts/shared/footer_cookie_controls", scope: tld, acme_host: acme_authority_host %>
           <%= render "layouts/shared/footer_theme_controls", scope: tld %>
         </div>
         <div>

@@ -9,12 +9,12 @@ class Auth::App::Verification::SetupsControllerTest < ActionDispatch::Integratio
     host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     user = Client.create!
     headers = as_user_headers(user, host: host)
-    pt = Base64.urlsafe_encode64(sign_app_settings_telephones_path(ri: "jp"))
+    pt = Base64.urlsafe_encode64(auth_app_settings_telephones_path(ri: "jp"))
 
-    get new_sign_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
+    get new_auth_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", auth_app_settings_path(ri: "jp"), count: 1
     assert_select "ul"
   end
 end

@@ -2,12 +2,22 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "../../../support/auth_helpers"
 
 class Base::Org::SelectorControllerTest < ActionDispatch::IntegrationTest
+  include AuthHelpers
+
   setup do
     @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
     @operator = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
     @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    set_access_cookie(
+      jwt_access_token_for(
+        @operator, host: @host, session_public_id: @token.public_id,
+                   resource_type: "operator",
+      ),
+    )
+    bootstrap_and_select!(@operator, @token)
   end
 
   test "authenticated operator without selected actor context can access selector" do
@@ -33,5 +43,12 @@ class Base::Org::SelectorControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_content
     assert_equal "invalid_selection", response.parsed_body.fetch("status")
+  end
+
+  private
+
+  def bootstrap_and_select!(operator, token)
+    BaseSelectorBootstrapAuthority.call(surface: :org, principal: operator)
+    BaseSelectorAuthority.prepare(surface: :org, principal: operator, session: token)
   end
 end

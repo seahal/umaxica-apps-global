@@ -1,5 +1,5 @@
 <% content_for :page_title, t('sign.org.settings.passkeys.show.title') %>
-<%= link_to t('sign.org.settings.passkeys.show.back'), sign_org_settings_passkeys_path(ri: params[:ri]) %>
+<%= link_to t('sign.org.settings.passkeys.show.back'), auth_org_settings_passkeys_path(ri: params[:ri]) %>
 
 <div>
   <div>
@@ -26,8 +26,8 @@
 
   <div>
     <div>
-      <%= link_to t('actions.edit'), edit_sign_org_settings_passkey_path(@passkey, ri: params[:ri]) %>
-      <%= form_with url: sign_org_settings_passkey_path(@passkey, ri: params[:ri]),
+      <%= link_to t('actions.edit'), edit_auth_org_settings_passkey_path(@passkey, ri: params[:ri]) %>
+      <%= form_with url: auth_org_settings_passkey_path(@passkey, ri: params[:ri]),
                     method: :delete,
                     data: { turbo_confirm: t('messages.confirm_destroy') } do |form| %>
         <%= render "shared/cloudflare_turnstile_stealth" %>

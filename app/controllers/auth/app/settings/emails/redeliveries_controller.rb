@@ -29,16 +29,16 @@ module Auth
           end
 
           def after_email_registration_started_path(params = {})
-            edit_sign_app_settings_emails_registration_path(params)
+            edit_auth_app_settings_emails_registration_path(params)
           end
 
           def new_email_registration_path(params = {})
-            new_sign_app_settings_emails_registration_path(params)
+            new_auth_app_settings_emails_registration_path(params)
           end
 
           def after_email_registration_verified_path
             email_registration_return_path(
-              sign_app_settings_emails_url(
+              auth_app_settings_emails_url(
                 ri: params[:ri],
                 host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               ),

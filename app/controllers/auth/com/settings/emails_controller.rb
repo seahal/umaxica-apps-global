@@ -35,7 +35,7 @@ module Auth
 
           if @user_email.update(email_preference_params)
             redirect_to(
-              edit_sign_com_settings_email_path(@user_email.public_id, ri: params[:ri]),
+              edit_auth_com_settings_email_path(@user_email.public_id, ri: params[:ri]),
               notice: t("sign.com.settings.email.update.success"),
               status: :see_other,
             )
@@ -51,7 +51,7 @@ module Auth
 
           if @user_email.undeletable?
             redirect_to(
-              sign_com_settings_emails_path(ri: params[:ri]),
+              auth_com_settings_emails_path(ri: params[:ri]),
               alert: t("sign.app.settings.email.destroy.protected"),
             )
             return
@@ -59,7 +59,7 @@ module Auth
 
           unless AuthMethodGuard.can_remove_email?(current_visitor, @user_email)
             redirect_to(
-              sign_com_settings_emails_path(ri: params[:ri]),
+              auth_com_settings_emails_path(ri: params[:ri]),
               alert: t("sign.com.settings.email.destroy.last_method"),
             )
             return
@@ -69,7 +69,7 @@ module Auth
           create_audit_event!(ClientChronicleEvent::EMAIL_REMOVED, subject: @user_email)
 
           redirect_to(
-            sign_com_settings_emails_path(ri: params[:ri]),
+            auth_com_settings_emails_path(ri: params[:ri]),
             notice: t("sign.com.settings.email.destroy.success"),
             status: :see_other,
           )

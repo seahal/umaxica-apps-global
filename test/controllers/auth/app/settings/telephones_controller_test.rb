@@ -23,7 +23,7 @@ class Auth::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "sign settings telephones index redirects to acme authority" do
-    get sign_app_settings_telephones_url(ri: "jp")
+    get auth_app_settings_telephones_url(ri: "jp")
 
     assert_response :success
     assert_select "table"
@@ -36,12 +36,12 @@ class Auth::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       user_telephone_status_id: ClientTelephoneStatus::VERIFIED,
     )
 
-    get edit_sign_app_settings_telephone_url(telephone.public_id, ri: "jp"), headers: request_headers
+    get edit_auth_app_settings_telephone_url(telephone.public_id, ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select(
       "form[action=?]",
-      sign_app_settings_telephone_path(telephone.public_id, ri: "jp"),
+      auth_app_settings_telephone_path(telephone.public_id, ri: "jp"),
       count: 1,
     )
   end
@@ -54,14 +54,14 @@ class Auth::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     )
 
     assert_no_difference("ClientTelephone.count") do
-      delete sign_app_settings_telephone_url(telephone.public_id, ri: "jp")
+      delete auth_app_settings_telephone_url(telephone.public_id, ri: "jp")
     end
 
-    assert_redirected_to sign_app_settings_telephones_url(ri: "jp")
+    assert_redirected_to auth_app_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new remains ceremony entry" do
-    get new_sign_app_settings_telephone_url(ri: "jp"), headers: request_headers
+    get new_auth_app_settings_telephone_url(ri: "jp"), headers: request_headers
 
     assert_response :success
   end
@@ -69,12 +69,12 @@ class Auth::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   test "legacy sign settings telephone create starts ceremony and redirects to registration edit" do
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("ClientTelephone.count", 1) do
-        post sign_app_settings_telephones_url(ri: "jp"),
+        post auth_app_settings_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000008" } },
              headers: request_headers
       end
     end
 
-    assert_redirected_to edit_sign_app_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_app_settings_telephones_registration_url(ri: "jp")
   end
 end

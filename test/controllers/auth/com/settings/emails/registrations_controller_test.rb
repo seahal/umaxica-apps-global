@@ -29,7 +29,7 @@ class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "new renders notification preference only" do
-    get new_sign_com_settings_emails_registration_url(
+    get new_auth_com_settings_emails_registration_url(
       ri: "jp",
     ), headers: @headers
 
@@ -48,7 +48,7 @@ class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     headers = as_visitor_headers(visitor, host: @host)
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
-    get new_sign_com_settings_emails_registration_url(
+    get new_auth_com_settings_emails_registration_url(
       ri: "jp",
     ), headers: headers
 
@@ -59,7 +59,7 @@ class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   test "new requires step up when visitor multi factor status is active" do
     @token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get new_sign_com_settings_emails_registration_url(ri: "jp"), headers: @headers
+    get new_auth_com_settings_emails_registration_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -71,12 +71,12 @@ class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   end
 
   test "create sends OTP email and stores notification preference" do
-    get new_sign_com_settings_emails_registration_url(
+    get new_auth_com_settings_emails_registration_url(
       ri: "jp",
     ), headers: @headers
 
     assert_enqueued_emails 1 do
-      post sign_com_settings_emails_registration_url(ri: "jp"),
+      post auth_com_settings_emails_registration_url(ri: "jp"),
            params: {
              visitor_email: { raw_address: "com-config-new@example.com", notifiable: "0" },
              "cf-turnstile-response": "test",
@@ -85,9 +85,9 @@ class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_com_settings_emails_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_com_settings_emails_registration_url(ri: "jp")
 
-    get edit_sign_com_settings_emails_registration_url(ri: "jp"), headers: @headers
+    get edit_auth_com_settings_emails_registration_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")

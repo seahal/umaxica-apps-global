@@ -28,16 +28,16 @@ module Auth::App::Settings
     end
 
     test "renders the missing state for a signed-in owner without a reveal token" do
-      get sign_app_settings_secrets_url(ri: "jp"), headers: @headers
+      get auth_app_settings_secrets_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
-      assert_select "a[href=?]", sign_app_settings_path(ri: "jp")
+      assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
       assert_not_includes response.body, "<pre>"
     end
 
     test "redirects when not signed in" do
-      get sign_app_settings_secrets_url(ri: "jp"), headers: { "Host" => @host }
+      get auth_app_settings_secrets_url(ri: "jp"), headers: { "Host" => @host }
 
       assert_response :redirect
     end
@@ -65,7 +65,7 @@ module Auth::App::Settings
         purpose: "client.recovery_secret_credential",
       )
 
-      get sign_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
+      get auth_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
 
       assert_response :success
       assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
@@ -75,7 +75,7 @@ module Auth::App::Settings
       assert_includes response.body,
                       I18n.t("sign.recovery_passcodes.show.one_time_notice")
 
-      get sign_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
+      get auth_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
 
       assert_response :success
       assert_includes response.body,

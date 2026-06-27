@@ -40,7 +40,7 @@ module Auth
 
           if result.success?
             redirect_to(
-              sign_org_settings_operator_lifecycle_request_path(result.request),
+              auth_org_settings_operator_lifecycle_request_path(result.request),
               notice: t(".success"),
             )
           else

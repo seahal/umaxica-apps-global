@@ -34,7 +34,7 @@ module Auth
 
                   perform_dummy_otp_generation
                   session[:user_telephone_otp_last_sent_at] = Time.current.to_i
-                  return redirect_to(sign_app_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
+                  return redirect_to(auth_app_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
                 end
 
                 return unless load_gate_context!(gate_for_create)
@@ -51,7 +51,7 @@ module Auth
                 registration["expires_at"] = @user_telephone.reload.otp_expires_at.to_i
                 session[:user_telephone_registration] = registration
                 session[:user_telephone_otp_last_sent_at] = Time.current.to_i
-                redirect_to(sign_app_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_app_sign_up_check_telephone_otp_path(ri: params[:ri], pt: signed_pt_param))
               end
 
               def update
@@ -94,7 +94,7 @@ module Auth
 
               def sign_up_ticket_class = ClientSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_app_up_sequence_id
+              def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
               def sign_up_family = "telephone"
 
@@ -156,7 +156,7 @@ module Auth
               end
 
               def complete_update_and_redirect
-                redirect_to(sign_app_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_app_sign_up_guard_telephone_path(ri: params[:ri], pt: signed_pt_param))
               end
 
               def advance_sign_up_flow_after_telephone_otp!
@@ -225,7 +225,7 @@ module Auth
               def redirect_telephone_session_expired
                 reset_telephone_flow!
                 redirect_to(
-                  new_sign_app_sign_up_telephone_path(ri: params[:ri]),
+                  new_auth_app_sign_up_telephone_path(ri: params[:ri]),
                   notice: t("sign.app.registration.telephone.edit.session_expired"),
                 )
               end

@@ -125,7 +125,7 @@ module OidcRpLogoutLauncher
   def acme_oidc_logout_url(**query)
     region = RequestContextContract.normalize_region(query.delete(:ri).presence || rp_logout_region)
     public_send(
-      "acme_#{sign_surface_name}_oidc_logout_url",
+      "base_#{sign_surface_name}_oidc_logout_url",
       host: oidc_acme_host,
       ri: region,
       **query,
@@ -169,7 +169,8 @@ module OidcRpLogoutLauncher
   end
 
   def logout_origin_surface
-    controller_path.split("/").first
+    origin_surface = controller_path.split("/").first
+    (origin_surface == "auth") ? "sign" : origin_surface
   end
 
   def logout_surface_name

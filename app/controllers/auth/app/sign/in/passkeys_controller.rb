@@ -47,46 +47,46 @@ module Auth
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "passkey_options_ip_burst",
             store: rate_limit_store,
             only: :options,
-            with: -> { render_rate_limited(rule_name: "sign_app_sign_in_passkey_options_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_passkey_options_ip_burst", retry_after: 60) },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "passkey_options_ip_sustained",
             store: rate_limit_store,
             only: :options,
             with: -> {
-              render_rate_limited(rule_name: "sign_app_sign_in_passkey_options_ip_sustained", retry_after: 900)
+              render_rate_limited(rule_name: "auth_app_sign_in_passkey_options_ip_sustained", retry_after: 900)
             },
           )
           rate_limit(
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "passkey_verification_ip_burst",
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "sign_app_sign_in_passkey_verification_ip_burst", retry_after: 60)
+              render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_burst", retry_after: 60)
             },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "passkey_verification_ip_sustained",
             store: rate_limit_store,
             only: :verification,
             with: -> {
-              render_rate_limited(rule_name: "sign_app_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+              render_rate_limited(rule_name: "auth_app_sign_in_passkey_verification_ip_sustained", retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget
@@ -184,20 +184,20 @@ module Auth
           def render_passkey_restricted_success(_result)
             render json: {
               status: "session_restricted",
-              redirect_url: sign_app_sign_in_session_path,
+              redirect_url: auth_app_sign_in_session_path,
               message: I18n.t("sign.app.in.session.restricted_notice"),
             }, status: :ok
           end
 
           def passkey_checkpoint_redirect_url
-            sign_app_sign_in_check_path(
+            auth_app_sign_in_check_path(
               pt: retrieve_pt_for_checkpoint,
               ri: current_region_identifier,
             )
           end
 
           def passkey_default_redirect_url
-            sign_app_settings_path(ri: current_region_identifier)
+            auth_app_settings_path(ri: current_region_identifier)
           end
 
           def minimum_response_budget_enabled?

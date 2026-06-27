@@ -5,12 +5,12 @@
 <ul>
   <li data-test-id="registration-method">
     <%= link_to t("sign.app.registration.new.methods.email.cta"),
-                new_sign_com_sign_up_email_path(ct: params[:ct], ri: params[:ri]) %>
+                new_auth_com_sign_up_email_path(ct: params[:ct], ri: params[:ri]) %>
   </li>
   <li data-test-id="registration-method">
     <%= link_to t("sign.app.registration.new.methods.telephone.cta"),
-                new_sign_com_sign_up_telephone_path(ct: params[:ct], ri: params[:ri]) %>
+                new_auth_com_sign_up_telephone_path(ct: params[:ct], ri: params[:ri]) %>
   </li>
 </ul>
 
-<%= link_to t("sign.app.registration.new.links.sign_in"), sign_com_sign_in_path(ct: params[:ct], ri: params[:ri]) %>
+<%= link_to t("sign.app.registration.new.links.sign_in"), auth_com_sign_in_path(ct: params[:ct], ri: params[:ri]) %>

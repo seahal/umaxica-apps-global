@@ -22,9 +22,9 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "sign settings telephones index redirects to acme authority" do
-    get sign_com_settings_telephones_url(ri: "jp")
+    get auth_com_settings_telephones_url(ri: "jp")
 
-    assert_redirected_to new_sign_com_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to new_auth_com_settings_telephones_registration_url(ri: "jp")
   end
 
   test "legacy sign settings telephone edit remains on sign authority" do
@@ -34,7 +34,7 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get edit_sign_com_settings_telephone_url(telephone.public_id, ri: "jp"), headers: request_headers
+    get edit_auth_com_settings_telephone_url(telephone.public_id, ri: "jp"), headers: request_headers
 
     if response.redirect?
       assert_match %r{\Ahttp://#{Regexp.escape(@host)}/verification\?}, response.location
@@ -43,7 +43,7 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       assert_response :success
       assert_select(
         "form[action=?]",
-        sign_com_settings_telephone_path(telephone.public_id, ri: "jp"),
+        auth_com_settings_telephone_path(telephone.public_id, ri: "jp"),
         count: 1,
       )
     end
@@ -57,27 +57,27 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     )
 
     assert_difference("VisitorTelephone.count", -1) do
-      delete sign_com_settings_telephone_url(telephone.public_id, ri: "jp")
+      delete auth_com_settings_telephone_url(telephone.public_id, ri: "jp")
     end
 
-    assert_redirected_to sign_com_settings_telephones_url(ri: "jp")
+    assert_redirected_to auth_com_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new redirects to registration ceremony when setup is incomplete" do
-    get new_sign_com_settings_telephone_url(ri: "jp"), headers: request_headers
+    get new_auth_com_settings_telephone_url(ri: "jp"), headers: request_headers
 
-    assert_redirected_to new_sign_com_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to new_auth_com_settings_telephones_registration_url(ri: "jp")
   end
 
   test "legacy sign settings telephone create redirects without local mutation when setup is incomplete" do
     assert_no_enqueued_jobs only: Outbound::SmsDeliveryJob do
       assert_no_difference("VisitorTelephone.count") do
-        post sign_com_settings_telephones_url(ri: "jp"),
+        post auth_com_settings_telephones_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000028" } },
              headers: request_headers
       end
     end
 
-    assert_redirected_to new_sign_com_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to new_auth_com_settings_telephones_registration_url(ri: "jp")
   end
 end

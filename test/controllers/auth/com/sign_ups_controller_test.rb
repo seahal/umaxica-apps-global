@@ -9,7 +9,7 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "direct entry normalizes to acme com authorization" do
-    get sign_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
+    get auth_com_sign_up_url(ct: "dr", ri: "jp"), headers: default_headers
 
     assert_response :redirect
 
@@ -25,16 +25,16 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "local ceremony shows email and telephone registration methods" do
-    get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
+    get auth_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "[data-test-id=?]", "registration-method", count: 2
-    assert_select "a[href=?]", new_sign_com_sign_up_email_path(ct: "dr", ri: "jp"), count: 1
-    assert_select "a[href=?]", new_sign_com_sign_up_telephone_path(ct: "dr", ri: "jp"), count: 1
+    assert_select "a[href=?]", new_auth_com_sign_up_email_path(ct: "dr", ri: "jp"), count: 1
+    assert_select "a[href=?]", new_auth_com_sign_up_telephone_path(ct: "dr", ri: "jp"), count: 1
   end
 
   test "does not show social login buttons when flag is off" do
-    get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
+    get auth_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
     assert_select "form[action*=?]", "/social/auth/google_app/continue", count: 0
@@ -45,7 +45,7 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
   test "does not show temporary google signup button when legacy flag is on" do
     with_env("COM_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge),
+      get auth_com_sign_up_url(ct: "dr", ri: "jp", login_challenge: login_challenge),
           headers: default_headers
     end
 
@@ -61,14 +61,14 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get sign_com_sign_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
+    get auth_com_sign_up_url(ri: "jp"), headers: as_visitor_headers(visitor, host: host)
 
     assert_response :forbidden
     assert_equal I18n.t("errors.messages.already_authenticated"), response.body
   end
 
   test "sign up entry renders without an active registration" do
-    get sign_com_sign_up_url(ri: "jp", login_challenge: login_challenge), headers: default_headers
+    get auth_com_sign_up_url(ri: "jp", login_challenge: login_challenge), headers: default_headers
 
     assert_response :success
   end

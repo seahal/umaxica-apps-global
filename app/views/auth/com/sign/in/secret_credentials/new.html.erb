@@ -5,7 +5,7 @@
 <h1><%= t("sign.app.authentication.secret_credential.new.page_title") %></h1>
 
 <%= form_with model: @secret_credential_form,
-              url: sign_com_sign_in_secret_credential_path,
+              url: auth_com_sign_in_secret_credential_path,
               data: { turbo: false } do |f| %>
 
   <% if @secret_credential_form.errors.any? %>
@@ -42,7 +42,7 @@
 
   <div>
     <%= f.submit t("actions.submit") %>
-    <%= link_to sign_com_sign_in_path(pt: pt, ri: ri) do %>
+    <%= link_to auth_com_sign_in_path(pt: pt, ri: ri) do %>
       <%= t("sign.app.authentication.new.back") %>
     <% end %>
   </div>

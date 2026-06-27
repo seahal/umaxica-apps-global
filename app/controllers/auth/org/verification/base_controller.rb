@@ -46,7 +46,7 @@ module Auth
         def handle_invalid_step_up_session!
           clear_step_up_state!
           safe_redirect_to(
-            sign_org_settings_path(ri: params[:ri]),
+            auth_org_settings_path(ri: params[:ri]),
             fallback: "/settings",
             alert: I18n.t("auth.step_up.session_expired"),
           )
@@ -63,7 +63,7 @@ module Auth
 
         def verification_success_notice_key = "sign.org.verification.success.complete"
 
-        def verification_success_fallback_path = sign_org_verification_path(ri: params[:ri])
+        def verification_success_fallback_path = auth_org_verification_path(ri: params[:ri])
 
         def verification_audit_event_class = OperatorChronicleEvent
 

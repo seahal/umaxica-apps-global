@@ -13,7 +13,7 @@
 <% end %>
 
 <%= form_with model: @operator_lifecycle_request,
-              url: sign_org_settings_operator_lifecycle_requests_path do |form| %>
+              url: auth_org_settings_operator_lifecycle_requests_path do |form| %>
   <div>
     <%= form.label :action, t("sign.org.settings.operator_lifecycle_requests.form.action") %>
     <%= form.select :action,
@@ -52,5 +52,5 @@
 
 <p>
   <%= link_to t("sign.org.settings.show.back"),
-              sign_org_settings_operator_lifecycle_requests_path %>
+              auth_org_settings_operator_lifecycle_requests_path %>
 </p>

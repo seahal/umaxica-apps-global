@@ -9,7 +9,7 @@ class Auth::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index redirects to acme org authority" do
-    get sign_org_accounts_url(ri: "jp"), headers: host_headers(@host)
+    get auth_org_accounts_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :see_other
     uri = URI.parse(response.location)
@@ -19,6 +19,6 @@ class Auth::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "route path is preserved for compatibility" do
-    assert_equal "/accounts", sign_org_accounts_path
+    assert_equal "/accounts", auth_org_accounts_path
   end
 end

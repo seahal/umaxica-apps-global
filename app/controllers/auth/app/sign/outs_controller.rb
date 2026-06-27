@@ -16,7 +16,7 @@ module Auth
 
         def new
           redirect_to(
-            new_acme_app_sign_out_url(
+            new_auth_app_sign_out_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
               protocol: "https",
             ),
@@ -27,7 +27,7 @@ module Auth
 
         def edit
           redirect_to(
-            new_acme_app_sign_out_url(
+            new_auth_app_sign_out_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
               protocol: "https",
             ),
@@ -47,7 +47,7 @@ module Auth
           clear_sign_cleanup_state!
 
           redirect_to(
-            complete_acme_app_sign_out_url(
+            complete_auth_app_sign_out_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
               protocol: "https",
             ),
@@ -58,7 +58,7 @@ module Auth
 
         def destroy
           redirect_to(
-            new_acme_app_sign_out_url(
+            new_auth_app_sign_out_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
               protocol: "https",
             ),

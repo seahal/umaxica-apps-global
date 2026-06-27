@@ -26,7 +26,7 @@ module Auth
             result = ::OrgOperatorLifecycleInvitationAcceptance.call(invitation_code: @invitation_code)
 
             if result.success?
-              redirect_to(sign_org_sign_in_path)
+              redirect_to(auth_org_sign_in_path)
             else
               @form_error = result.error
               render :new, status: :unprocessable_content

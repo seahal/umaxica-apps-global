@@ -1,14 +1,14 @@
 <% content_for :page_title, 'Sessions' %>
-<%= link_to t('sign.app.settings.show.back'), sign_app_settings_path %>
+<%= link_to t('sign.app.settings.show.back'), auth_app_settings_path %>
 <% has_other_sessions = @sessions.any? { |session| session.public_id != current_session_public_id } %>
 <% if has_other_sessions %>
   <div>
     <%= button_to t("sign.app.settings.sessions.revoke.others_button"),
-                  sign_app_settings_revocations_others_path,
+                  auth_app_settings_revocations_others_path,
                   method: :delete,
                   data: { confirm: t("sign.app.settings.sessions.revoke.others_confirm") } %>
     <%= button_to t("sign.app.settings.sessions.revoke.all_button"),
-                  sign_app_settings_revocations_all_path,
+                  auth_app_settings_revocations_all_path,
                   method: :delete,
                   data: { confirm: t("sign.app.settings.sessions.revoke.all_confirm") } %>
   </div>
@@ -52,7 +52,7 @@
           <td><%= l(session.discarded_at, format: :short) %></td>
           <td>
             <% unless current_session %>
-              <%= button_to "Revoke", sign_app_settings_session_revocation_path(session.public_id),
+              <%= button_to "Revoke", auth_app_settings_session_revocation_path(session.public_id),
                             data: { confirm: "Revoke this session?" } %>
             <% end %>
           </td>

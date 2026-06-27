@@ -52,7 +52,7 @@ class IdentityTotpCeremonyFinalCommitterTest < ActiveSupport::TestCase
   end
 
   test "raises when the surface is not app" do
-    with_stubs(surface: "com", result_hash: valid_result_hash.merge("surface" => "com")) do
+    with_stubs(_surface: "com", result_hash: valid_result_hash.merge("surface" => "com")) do
       assert_totp_error("surface is invalid") do
         IdentityTotpCeremonyFinalCommitter.call!(
           result_token: "token", actor: @actor, session_ref: "session-1",
@@ -201,7 +201,7 @@ class IdentityTotpCeremonyFinalCommitterTest < ActiveSupport::TestCase
 
   private
 
-  def with_stubs(surface: "app", result_hash: valid_result_hash, transaction: @transaction,
+  def with_stubs(_surface: "app", result_hash: valid_result_hash, transaction: @transaction,
                  candidate: @candidate)
     store = FakeStore.new(transaction)
     consumer = FakeConsumer.new(FakeConsumption.new)

@@ -34,20 +34,20 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
     pt = signed_step_up_pt(return_to)
     grant = signed_step_up_grant_for(
       actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
     )
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
           headers: @headers
     end
 
     assert_response :success
 
     with_prosopite_paused do
-      get new_sign_app_verification_totp_url(ri: "jp"), headers: @headers
+      get new_auth_app_verification_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
@@ -66,7 +66,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
 
     with_prosopite_paused do
-      post sign_app_verification_totp_url(ri: "jp"),
+      post auth_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: code } },
            headers: @headers
     end
@@ -99,14 +99,14 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
     pt = signed_step_up_pt(return_to)
     grant = signed_step_up_grant_for(
       actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
     )
 
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
           headers: @headers
     end
 
@@ -117,7 +117,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     assert_no_difference -> { ClientVerification.count } do
       with_prosopite_paused do
-        post sign_app_verification_totp_url(ri: "jp"),
+        post auth_app_verification_totp_url(ri: "jp"),
              params: { verification: { code: code } },
              headers: @headers
       end
@@ -130,14 +130,14 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     # sign no longer writes freshness; acme commits it when it consumes the result.
     assert_no_difference -> { ClientVerification.count } do
       with_prosopite_paused do
-        post sign_app_verification_totp_url(ri: "jp"),
+        post auth_app_verification_totp_url(ri: "jp"),
              params: { verification: { code: code } },
              headers: @headers
       end
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to auth_app_settings_url(ri: "jp")
   end
 
   test "renders new on failure" do
@@ -149,16 +149,16 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
     assert_response :success
 
     with_prosopite_paused do
-      post sign_app_verification_totp_url(ri: "jp"),
+      post auth_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: "000000" } },
            headers: @headers
     end
@@ -175,16 +175,16 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
     assert_response :success
 
     with_prosopite_paused do
-      post sign_app_verification_totp_url(ri: "jp"),
+      post auth_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: "abc123" } },
            headers: @headers
     end
@@ -201,16 +201,16 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
     assert_response :success
 
     with_prosopite_paused do
-      get new_sign_app_verification_totp_url(
+      get new_auth_app_verification_totp_url(
         ri: "jp",
         scope: "settings_email",
         pt: pt,
@@ -232,7 +232,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = sign_app_settings_totps_path(ri: "jp")
+    return_to = auth_app_settings_totps_path(ri: "jp")
     freeze_time do
       pt = signed_step_up_pt(return_to)
       grant = signed_step_up_grant_for(
@@ -240,18 +240,18 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       )
 
       with_prosopite_paused do
-        get sign_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+        get auth_app_verification_url(scope: "settings_totp", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
             headers: @headers
       end
 
       assert_response :success
       assert_select(
         "a[href=?]",
-        new_sign_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
+        new_auth_app_verification_totp_path(ri: "jp", scope: "settings_totp", pt: pt),
       )
 
       with_prosopite_paused do
-        get new_sign_app_verification_totp_url(
+        get new_auth_app_verification_totp_url(
           ri: "jp",
           scope: "settings_totp",
           pt: pt,
@@ -265,7 +265,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
       code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
       with_prosopite_paused do
-        post sign_app_verification_totp_url(ri: "jp"),
+        post auth_app_verification_totp_url(ri: "jp"),
              params: { verification: { code: code, scope: "settings_totp", pt: pt } },
              headers: @headers
       end
@@ -295,9 +295,9 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(sign_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
     with_prosopite_paused do
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
     end
 
@@ -307,7 +307,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
     with_prosopite_paused do
-      post sign_app_verification_totp_url(ri: "jp"),
+      post auth_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: code } },
            headers: @headers
     end
@@ -320,7 +320,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     StepUpConfiguredMethods.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
         with_prosopite_paused do
-          post sign_app_verification_totp_url(ri: "jp"),
+          post auth_app_verification_totp_url(ri: "jp"),
                params: { verification: { code: "123456" } },
                headers: @headers
         end

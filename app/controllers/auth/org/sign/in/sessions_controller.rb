@@ -101,7 +101,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
       log_out
-      redirect_to(sign_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
+      redirect_to(auth_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
     end
   end
 
@@ -133,7 +133,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
 
   def redirect_to_login
     redirect_to(
-      sign_org_sign_in_path,
+      auth_org_sign_in_path,
       alert: I18n.t("session_limit.login_required"),
     )
   end
@@ -150,10 +150,10 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
 
     if return_path.present?
       flash[:notice] = notice
-      destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_org_settings_path
+      destination = path_from_signed_pt(signed_pt_token(return_path)) || auth_org_settings_path
       redirect_to_pt_destination!(destination)
     else
-      redirect_to(sign_org_settings_path, notice: notice)
+      redirect_to(auth_org_settings_path, notice: notice)
     end
   end
 

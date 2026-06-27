@@ -5,7 +5,7 @@
 <p><%= @staff_telephone.number %></p>
 
 <%= button_to t("sign.org.settings.telephone.index.delete"),
-              sign_org_settings_telephone_path(
+              auth_org_settings_telephone_path(
                 @staff_telephone.id,
                 ri: params[:ri],
               ),
@@ -14,5 +14,5 @@
 
 <div>
   <%= link_to t("sign.common.cancel"),
-              sign_org_settings_telephones_path(ri: params[:ri]) %>
+              auth_org_settings_telephones_path(ri: params[:ri]) %>
 </div>

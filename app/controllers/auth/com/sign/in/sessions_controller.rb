@@ -78,7 +78,7 @@ module Auth
               session.delete(:pending_login_visitor_id)
               log_out
               redirect_to(
-                sign_com_sign_in_path(ri: current_region_identifier),
+                auth_com_sign_in_path(ri: current_region_identifier),
                 notice: I18n.t("sign.app.in.session.cancelled"),
               )
             end
@@ -105,7 +105,7 @@ module Auth
 
           def redirect_to_login
             redirect_to(
-              sign_com_sign_in_path(ri: current_region_identifier),
+              auth_com_sign_in_path(ri: current_region_identifier),
               alert: I18n.t("sign.app.in.session.login_required"),
             )
           end
@@ -122,10 +122,10 @@ module Auth
 
             if return_path.present?
               flash[:notice] = notice
-              destination = path_from_signed_pt(signed_pt_token(return_path)) || sign_com_settings_path
+              destination = path_from_signed_pt(signed_pt_token(return_path)) || auth_com_settings_path
               redirect_to_pt_destination!(destination)
             else
-              redirect_to(sign_com_settings_path(ri: current_region_identifier), notice: notice)
+              redirect_to(auth_com_settings_path(ri: current_region_identifier), notice: notice)
             end
           end
 

@@ -13,6 +13,6 @@ class Auth::App::VerificationsController < ::Auth::App::Verification::BaseContro
   end
 
   def verification_invalid_request_redirect_path(ri:)
-    sign_app_settings_path(ri: ri)
+    auth_app_settings_path(ri: ri)
   end
 end

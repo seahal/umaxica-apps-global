@@ -27,12 +27,12 @@ module Auth
         private
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_app_root_path(ri: params[:ri]), screen_hint: "signin")
+          url = initiate_oidc_session!(pt: auth_app_root_path(ri: params[:ri]), screen_hint: "signin")
           redirect_to_oidc_authorization_url(url)
         end
 
         def redirect_logged_in_direct_entry!
-          redirect_to(sign_app_dashboard_path(ri: params[:ri]))
+          redirect_to(auth_app_dashboard_path(ri: params[:ri]))
         end
 
         def redirect_signed_in_authorization_transaction!(transaction)

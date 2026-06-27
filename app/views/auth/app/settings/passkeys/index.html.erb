@@ -1,9 +1,9 @@
 <% content_for :page_title, 'Passkeys' %>
-<%= link_to t('sign.app.settings.show.back'), sign_app_settings_path %>
+<%= link_to t('sign.app.settings.show.back'), auth_app_settings_path %>
 
 <div>
   <div>
-    <%= link_to t('controller.sign.app.v1.passkey.new'), new_sign_app_settings_passkey_path(ri: params[:ri]) %>
+    <%= link_to t('controller.sign.app.v1.passkey.new'), new_auth_app_settings_passkey_path(ri: params[:ri]) %>
   </div>
 </div>
 
@@ -29,8 +29,8 @@
               <td><%= l(passkey.created_at, format: :short) %></td>
               <td><%= passkey.respond_to?(:last_used_at) && passkey.last_used_at ? l(passkey.last_used_at, format: :short) : '-' %></td>
               <td>
-                <%= link_to t('actions.edit'), edit_sign_app_settings_passkey_path(passkey.public_id, ri: params[:ri]) %>
-                <%= form_with url: sign_app_settings_passkey_path(passkey.public_id, ri: params[:ri]),
+                <%= link_to t('actions.edit'), edit_auth_app_settings_passkey_path(passkey.public_id, ri: params[:ri]) %>
+                <%= form_with url: auth_app_settings_passkey_path(passkey.public_id, ri: params[:ri]),
                               method: :delete,
                               data: { turbo_confirm: t('messages.confirm_destroy') } do |form| %>
                   <%= render "shared/cloudflare_turnstile_stealth" %>

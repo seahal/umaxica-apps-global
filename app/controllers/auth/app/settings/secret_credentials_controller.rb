@@ -22,15 +22,15 @@ module Auth
         before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
         before_action :verify_secret_credential_turnstile!, only: :create
 
-        def index = redirect_to(acme_app_identity_secrets_path(ri: params[:ri]), status: :see_other)
+        def index = redirect_to(base_app_identity_secrets_path(ri: params[:ri]), status: :see_other)
 
-        def show = redirect_to(acme_app_identity_secret_path(params.expect(:id), ri: params[:ri]), status: :see_other)
+        def show = redirect_to(base_app_identity_secret_path(params.expect(:id), ri: params[:ri]), status: :see_other)
 
-        def new = redirect_to(new_acme_app_identity_secret_path(ri: params[:ri]), status: :see_other)
+        def new = redirect_to(new_base_app_identity_secret_path(ri: params[:ri]), status: :see_other)
 
         def edit
           redirect_to(
-            edit_acme_app_identity_secret_path(params.expect(:id), ri: params[:ri]),
+            edit_base_app_identity_secret_path(params.expect(:id), ri: params[:ri]),
             status: :see_other,
           )
         end
@@ -45,7 +45,7 @@ module Auth
         def regenerate
           authorize!(@secret_credential)
           redirect_to(
-            sign_app_settings_secret_credential_path(@secret_credential.public_id),
+            auth_app_settings_secret_credential_path(@secret_credential.public_id),
             alert: t("messages.not_implemented"),
             status: :see_other,
           )

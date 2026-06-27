@@ -57,15 +57,15 @@ module Auth
           end
 
           safe_redirect_to(
-            sign_com_verification_path(verification_recovery_redirect_params),
-            fallback: sign_com_verification_path(ri: params[:ri]),
+            auth_com_verification_path(verification_recovery_redirect_params),
+            fallback: auth_com_verification_path(ri: params[:ri]),
             alert: I18n.t("auth.step_up.session_expired"),
           )
           false
         end
 
         def verification_unavailable_redirect_path
-          sign_com_verification_path(ri: params[:ri])
+          auth_com_verification_path(ri: params[:ri])
         end
 
         def clear_step_up_state!
@@ -85,7 +85,7 @@ module Auth
         end
 
         def verification_success_fallback_path
-          sign_com_verification_path(ri: params[:ri])
+          auth_com_verification_path(ri: params[:ri])
         end
 
         def verification_audit_event_class = ClientChronicleEvent

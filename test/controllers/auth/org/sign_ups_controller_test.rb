@@ -11,7 +11,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "direct entry normalizes to acme org authorization" do
-    get sign_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
+    get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
 
@@ -33,7 +33,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -47,7 +47,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -65,7 +65,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     )
 
     with_env("ORG_#{"GOOGLE"}_SIGNUP_ENABLED" => "true") do
-      get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+      get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
           headers: { "Host" => @host }
     end
 
@@ -81,7 +81,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
+    get auth_org_sign_up_url(ri: "jp", login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @host }
 
     assert_response :success
@@ -133,7 +133,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   test "rejects direct entry when logged in" do
     staff = operators(:one)
 
-    get sign_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
+    get auth_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
     assert_response :forbidden
     assert_equal I18n.t("errors.messages.already_authenticated"), response.body

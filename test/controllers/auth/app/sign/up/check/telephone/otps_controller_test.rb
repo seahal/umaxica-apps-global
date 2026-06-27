@@ -24,7 +24,7 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
   test "show renders the otp form" do
     start_telephone_signup!("+1234567890")
 
-    get sign_app_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
@@ -36,23 +36,23 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     user_telephone = start_telephone_signup!("+12345678905")
 
     travel_to(user_telephone.reload.otp_expires_at + 1.second) do
-      get sign_app_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+      get auth_app_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
     end
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_sign_up_telephone_url(ri: "jp")
+    assert_redirected_to new_auth_app_sign_up_telephone_url(ri: "jp")
   end
 
   test "patch with a valid otp advances to the guard checkpoint" do
     user_telephone = start_telephone_signup!("+1234567891")
     cycle = current_sign_up_cycle
 
-    patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { client_telephone: { pass_code: otp_code_for(user_telephone) } },
           headers: default_headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_guard_telephone_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_guard_telephone_url(ri: "jp")
     assert_equal ClientTelephoneStatus::UNVERIFIED_WITH_SIGN_UP, user_telephone.reload.user_telephone_status_id
     assert session.dig(:user_telephone_registration, "otp_verified")
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
@@ -64,19 +64,19 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     user_telephone = start_telephone_signup!("+1234567896")
 
     travel_to(user_telephone.reload.otp_expires_at + 1.second) do
-      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { client_telephone: { pass_code: "000000" } },
             headers: default_headers
     end
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_sign_up_telephone_url(ri: "jp")
+    assert_redirected_to new_auth_app_sign_up_telephone_url(ri: "jp")
   end
 
   test "patch with a blank otp returns a validation error" do
     start_telephone_signup!("+1234567892")
 
-    patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { client_telephone: { pass_code: "" } },
           headers: default_headers
 
@@ -87,7 +87,7 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
   test "patch with an invalid otp returns a validation error" do
     start_telephone_signup!("+1234567893")
 
-    patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
           params: { client_telephone: { pass_code: "000000" } },
           headers: default_headers
 
@@ -101,7 +101,7 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
     completed_requirements = cycle.completed_requirements.deep_dup
 
     Telephone::MAX_OTP_ATTEMPTS.times do
-      patch sign_app_sign_up_check_telephone_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { client_telephone: { pass_code: "000000" } },
             headers: default_headers
     end
@@ -118,7 +118,7 @@ class Auth::App::Sign::Up::Check::Telephone::OtpsControllerTest < ActionDispatch
 
   def start_telephone_signup!(telephone)
     post(
-      sign_app_sign_up_telephone_url(ri: "jp"),
+      auth_app_sign_up_telephone_url(ri: "jp"),
       params: {
         client_telephone: {
           raw_number: telephone,

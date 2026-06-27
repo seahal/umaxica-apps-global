@@ -15,12 +15,12 @@
 
       <%= form_with model: @user_email,
                     scope: :user_email,
-                    url: sign_com_sign_in_email_path,
+                    url: auth_com_sign_in_email_path,
                     method: :patch,
                     data: {
                       turbo: false,
                       controller: "otp-resend",
-                      otp_resend_endpoint_value: sign_com_web_v0_in_email_otp_path,
+                      otp_resend_endpoint_value: auth_com_web_v0_in_email_otp_path,
                       otp_resend_state_value: @otp_resend_state,
                       otp_resend_button_label_value: t("otp.resend.button"),
                       otp_resend_sent_message_value: t("otp.resend.sent"),
@@ -75,7 +75,7 @@
       <p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
 
       <div>
-        <%= link_to new_sign_com_sign_in_email_path(pt: pt) do %>
+        <%= link_to new_auth_com_sign_in_email_path(pt: pt) do %>
           <span><%= t("sign.app.authentication.email.edit.return_page") %></span>
         <% end %>
       </div>

@@ -1,4 +1,4 @@
-<%= link_to t('sign.app.settings.show.back'), sign_app_settings_totps_path(ri: params[:ri]) %>
+<%= link_to t('sign.app.settings.show.back'), auth_app_settings_totps_path(ri: params[:ri]) %>
 
 <% content_for :page_title, t('sign.app.settings.totp.new.page_title') %>
 <div>
@@ -17,7 +17,7 @@
     <div>
       <%= form_with model: @totp,
                     scope: :user_totp_credential,
-                    url: sign_app_settings_totps_path(ri: params[:ri]) do |form| %>
+                    url: auth_app_settings_totps_path(ri: params[:ri]) do |form| %>
         <div>
           <% if @totp.errors.any? %>
             <div>
@@ -77,7 +77,7 @@
         </div>
 
         <div>
-          <%= link_to t('actions.cancel'), sign_app_settings_totps_path(ri: params[:ri]) %>
+          <%= link_to t('actions.cancel'), auth_app_settings_totps_path(ri: params[:ri]) %>
           <%= form.submit t("views.sign.app.settings.totps.new.submit") %>
         </div>
       <% end %>

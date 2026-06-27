@@ -118,12 +118,56 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/ups", action: "show" },
+      { controller: "auth/app/sign/ups", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/up", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/apple/confirmations", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/apple/confirmation", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/apple/birthdates", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/apple/birthdate", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/email/otps", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/email/otp", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/email/birthdates", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/email/birthdate", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/telephone/otps", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/telephone/otp", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/telephone/passkeys", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/telephone/passkey", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/telephone/passcodes", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/telephone/passcode", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/sign/up/check/telephone/birthdates", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/up/check/telephone/birthdate", method: :delete },
     )
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/up/email", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/up/check/email/cancellation", method: :post)
     end
 
     assert_recognizes(
@@ -465,12 +509,46 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/ups", action: "show" },
+      { controller: "auth/com/sign/ups", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/up", method: :get },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/email/otps", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/email/otp", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/email/birthdates", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/email/birthdate", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/telephone/otps", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/telephone/otp", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/telephone/passkeys", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/telephone/passkey", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/telephone/passcodes", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/telephone/passcode", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/sign/up/check/telephone/birthdates", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/up/check/telephone/birthdate", method: :delete },
     )
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/up/email", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/up/check/email/cancellation", method: :post)
     end
 
     assert_recognizes(

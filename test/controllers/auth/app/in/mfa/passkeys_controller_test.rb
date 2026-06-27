@@ -58,17 +58,17 @@ module Auth::App::In
     end
 
     test "new redirects to sign in when pending_mfa is missing" do
-      get new_sign_app_sign_in_challenge_passkey_path(ri: "jp")
+      get new_auth_app_sign_in_challenge_passkey_path(ri: "jp")
 
       assert_response :see_other
-      assert_redirected_to sign_app_sign_in_path(ri: "jp")
+      assert_redirected_to auth_app_sign_in_path(ri: "jp")
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
     test "create verifies passkey and finalizes login with pending_mfa" do
       establish_pending_mfa_via_secret_credential!
 
-      get new_sign_app_sign_in_challenge_passkey_path(ri: "jp")
+      get new_auth_app_sign_in_challenge_passkey_path(ri: "jp")
 
       assert_response :success
 
@@ -85,7 +85,7 @@ module Auth::App::In
       end
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post sign_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_passkey_path(ri: "jp"), params: {
           mfa_passkey_form: {
             challenge_id: challenge_id,
             credential_json: {
@@ -114,7 +114,7 @@ module Auth::App::In
 
     def establish_pending_mfa_via_secret_credential!
       post(
-        sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
+        auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
           secret_credential_login_form: {
             identifier: @email,
             secret_credential_value: @raw_secret_credential,
@@ -122,8 +122,8 @@ module Auth::App::In
           "cf-turnstile-response": "test_token",
         },
       )
-      # Skip redirect verification - route helper sign_app_sign_in_mfa_path is undefined
-      # assert_redirected_to sign_app_sign_in_mfa_path(ri: "jp")
+      # Skip redirect verification - route helper auth_app_sign_in_mfa_path is undefined
+      # assert_redirected_to auth_app_sign_in_mfa_path(ri: "jp")
       assert_response :redirect
     end
   end

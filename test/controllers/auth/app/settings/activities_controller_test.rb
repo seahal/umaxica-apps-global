@@ -15,7 +15,7 @@ class Auth::App::Settings::ActivitiesControllerTest < ActionDispatch::Integratio
   end
 
   test "sign settings activities renders activity log" do
-    get sign_app_settings_activities_url(ri: "jp"), headers: session_headers
+    get auth_app_settings_activities_url(ri: "jp"), headers: session_headers
 
     assert_response :success
   end

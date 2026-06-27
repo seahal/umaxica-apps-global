@@ -14,13 +14,13 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   end
 
   test "index redirects to acme identity session inventory" do
-    get sign_app_settings_sessions_url(ri: "jp"), headers: session_headers
+    get auth_app_settings_sessions_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to acme_app_identity_sessions_path(ri: "jp")
+    assert_redirected_to base_app_identity_sessions_path(ri: "jp")
   end
 
   test "session revocation routes require authentication" do
-    post sign_app_settings_session_revocation_url("missing-session", ri: "jp"), headers: { "Host" => @host }
+    post auth_app_settings_session_revocation_url("missing-session", ri: "jp"), headers: { "Host" => @host }
 
     assert_response :gone
     assert_predicate @current_token.reload, :currently_usable?
@@ -29,7 +29,7 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "destroy revokes the selected session" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    post sign_app_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
+    post auth_app_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
 
     assert_response :gone
     assert_predicate other_token.reload, :currently_usable?
@@ -38,7 +38,7 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "others revokes other sessions" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    post sign_app_settings_revocations_others_url(ri: "jp"), headers: session_headers
+    post auth_app_settings_revocations_others_url(ri: "jp"), headers: session_headers
 
     assert_response :gone
     assert_predicate @current_token.reload, :currently_usable?
@@ -48,7 +48,7 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "revoke all revokes every session" do
     other_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    post sign_app_settings_revocations_all_url(ri: "jp"), headers: session_headers
+    post auth_app_settings_revocations_all_url(ri: "jp"), headers: session_headers
 
     assert_response :gone
     assert_predicate @current_token.reload, :currently_usable?

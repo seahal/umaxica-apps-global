@@ -26,7 +26,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
     advance_to_birthdate_checkpoint!("birthdate-finalize@example.com")
     flow = ClientSignUpFlow.order(:created_at).last
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             checkpoint_version: flow.checkpoint_version,
@@ -37,9 +37,9 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           params: {
             requirement: "birthdate",
             checkpoint_version: flow.reload.checkpoint_version,
@@ -50,13 +50,13 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
           headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+    assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
   end
 
   test "update without a sign-up ticket does not raise an unsafe cross-host redirect" do
     user = clients(:one)
 
-    patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
           headers: as_user_headers(user, host: @host)
 
     # No sign-in flow present for this signed-in client, so the gate failure renders the
@@ -71,7 +71,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
       advance_to_birthdate_checkpoint!("birthdate-under16@example.com")
       flow = ClientSignUpFlow.order(:created_at).last
 
-      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               checkpoint_version: flow.checkpoint_version,
@@ -92,7 +92,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
       advance_to_birthdate_checkpoint!("birthdate-sixteen@example.com")
       flow = ClientSignUpFlow.order(:created_at).last
 
-      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               checkpoint_version: flow.checkpoint_version,
@@ -101,7 +101,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
             headers: { "Host" => @host }
 
       assert_response :redirect
-      assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+      assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
       assert_equal ClientSignUpFlowStatus::COMPLETED, flow.reload.status_id
     end
   end
@@ -111,7 +111,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
       advance_to_birthdate_checkpoint!("birthdate-over16@example.com")
       flow = ClientSignUpFlow.order(:created_at).last
 
-      patch sign_app_sign_up_check_email_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               checkpoint_version: flow.checkpoint_version,
@@ -120,7 +120,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
             headers: { "Host" => @host }
 
       assert_response :redirect
-      assert_redirected_to sign_app_sign_in_check_path(ri: "jp")
+      assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
       assert_equal ClientSignUpFlowStatus::COMPLETED, flow.reload.status_id
     end
   end
@@ -132,7 +132,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
     pass_code = otp_code_for(user_email)
 
     patch(
-      sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      auth_app_sign_up_check_email_otp_url(ri: "jp"),
       params: { client_email: { pass_code: pass_code } },
       headers: { "Host" => @host },
     )
@@ -143,7 +143,7 @@ class Auth::App::Sign::Up::Check::Email::BirthdatesControllerTest < ActionDispat
 
   def start_pending_email_flow!(email)
     post(
-      sign_app_sign_up_email_url(ri: "jp"),
+      auth_app_sign_up_email_url(ri: "jp"),
       params: {
         :user_email => {
           raw_address: email,

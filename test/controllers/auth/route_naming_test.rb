@@ -11,20 +11,20 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   }.freeze
 
   test "sign entry helpers use explicit lifecycle resources" do
-    assert_equal "/sign/up", sign_app_sign_up_path
-    assert_equal "/sign/in", sign_app_sign_in_path
+    assert_equal "/sign/up", auth_app_sign_up_path
+    assert_equal "/sign/in", auth_app_sign_in_path
   end
 
   test "sign logout helpers expose the explicit ceremony lifecycle" do
     helpers = Rails.application.routes.url_helpers
 
-    assert_respond_to helpers, :sign_app_sign_out_path
-    assert_respond_to helpers, :new_sign_app_sign_out_path
-    assert_respond_to helpers, :edit_sign_app_sign_out_path
-    assert_respond_to helpers, :complete_sign_app_sign_out_path
-    assert_not_respond_to helpers, :sign_app_sign_out_confirmation_path
-    assert_not_respond_to helpers, :sign_app_sign_out_attempt_path
-    assert_not_respond_to helpers, :sign_app_sign_out_completion_path
+    assert_respond_to helpers, :auth_app_sign_out_path
+    assert_respond_to helpers, :new_auth_app_sign_out_path
+    assert_respond_to helpers, :edit_auth_app_sign_out_path
+    assert_respond_to helpers, :complete_auth_app_sign_out_path
+    assert_not_respond_to helpers, :auth_app_sign_out_confirmation_path
+    assert_not_respond_to helpers, :auth_app_sign_out_attempt_path
+    assert_not_respond_to helpers, :auth_app_sign_out_completion_path
   end
 
   test "top-level sign entry routes resolve conventionally on every sign surface" do
@@ -124,7 +124,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_includes source, "sign_routes"
     assert_includes source, "sign_surface"
     assert_includes source, "sign_rp_oidc_routes"
-    assert_includes source, "sign_app_social_routes"
+    assert_includes source, "auth_app_social_routes"
   end
 
   private

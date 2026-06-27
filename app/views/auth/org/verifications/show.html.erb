@@ -23,7 +23,7 @@
         <% if @available_methods.include?(:passkey) %>
           <div>
             <%= link_to t("sign.org.verification.new.methods.passkey"),
-                        new_sign_org_verification_passkey_path(ri: params[:ri]) %>
+                        new_auth_org_verification_passkey_path(ri: params[:ri]) %>
           </div>
         <% end %>
       </div>

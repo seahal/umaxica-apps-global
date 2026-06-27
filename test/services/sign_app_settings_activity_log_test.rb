@@ -14,7 +14,7 @@ class SignAppSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   setup do
-    @log = Sign::App::Settings::ActivityLog.new(clients(:one))
+    @log = Auth::App::Settings::ActivityLog.new(clients(:one))
   end
 
   test "occurred_at returns occurred_at when present" do

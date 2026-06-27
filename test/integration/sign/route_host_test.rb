@@ -19,7 +19,7 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
 
   test "sign com named root route points at sign/com/roots#index" do
     with_boot_config(sign_corporate_host: "sign.com.example.test") do
-      route = Rails.application.routes.named_routes[:sign_com_root]
+      route = Rails.application.routes.named_routes[:auth_com_root]
 
       assert_equal "/", route.path.spec.to_s
       assert_equal "sign/com/roots", route.defaults[:controller]

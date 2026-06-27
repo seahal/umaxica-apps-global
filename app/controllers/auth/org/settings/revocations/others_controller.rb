@@ -18,6 +18,6 @@ class Auth::Org::Settings::Revocations::OthersController < ::Auth::Org::Applicat
         reason: "settings.session.revoke_others",
       )
     end
-    redirect_to(sign_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
+    redirect_to(auth_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
   end
 end

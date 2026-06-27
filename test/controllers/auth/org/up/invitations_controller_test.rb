@@ -24,7 +24,7 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
   end
 
   test "new renders invitation acceptance form" do
-    get new_sign_org_sign_up_invitation_url(invitation_code: @invitation.code, ri: "jp")
+    get new_auth_org_sign_up_invitation_url(invitation_code: @invitation.code, ri: "jp")
 
     assert_response :success
     assert_select "input[name=?]", "invitation_code"
@@ -34,18 +34,18 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
 
   test "create accepts invitation and redirects to sign in" do
     assert_difference -> { Operator.count }, 1 do
-      post sign_org_sign_up_invitations_url(ri: "jp"),
+      post auth_org_sign_up_invitations_url(ri: "jp"),
            params: { invitation_code: @invitation.code, "cf-turnstile-response": "test" }
     end
 
-    assert_redirected_to sign_org_sign_in_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_path(ri: "jp")
     assert_predicate @invitation.reload, :consumed?
     assert_nil flash[:notice]
   end
 
   test "create renders new for invalid invitation" do
     assert_no_difference -> { Operator.count } do
-      post sign_org_sign_up_invitations_url(ri: "jp"),
+      post auth_org_sign_up_invitations_url(ri: "jp"),
            params: { invitation_code: "missing", "cf-turnstile-response": "test" }
     end
 
@@ -58,7 +58,7 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     assert_no_difference -> { Operator.count } do
-      post sign_org_sign_up_invitations_url(ri: "jp"),
+      post auth_org_sign_up_invitations_url(ri: "jp"),
            params: { invitation_code: @invitation.code, "cf-turnstile-response": "test" }
     end
 

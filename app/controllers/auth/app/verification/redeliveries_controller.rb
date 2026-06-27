@@ -21,7 +21,7 @@ class Auth::App::Verification::RedeliveriesController < ::Auth::App::Verificatio
   private
 
   def verification_email_edit_path
-    edit_sign_app_verification_email_path(
+    edit_auth_app_verification_email_path(
       params[:id],
       ri: params[:ri],
       scope: @verification_scope,
@@ -30,10 +30,10 @@ class Auth::App::Verification::RedeliveriesController < ::Auth::App::Verificatio
   end
 
   def verification_recovery_path
-    sign_app_verification_path(verification_recovery_redirect_params)
+    auth_app_verification_path(verification_recovery_redirect_params)
   end
 
   def verification_recovery_fallback_path
-    sign_app_verification_path(ri: params[:ri])
+    auth_app_verification_path(ri: params[:ri])
   end
 end

@@ -80,7 +80,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_sign_up_check_apple_cancellation_url(ri: "jp"), headers: @callback_headers
+        delete sign_app_sign_up_check_apple_confirmation_url(ri: "jp"), headers: @callback_headers
       end
     end
 
@@ -121,14 +121,14 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_includes response.body, "16歳"
-      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
       assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
 
       get sign_app_sign_up_check_apple_birthdate_url(ri: "jp"), headers: @callback_headers
 
       assert_response :success
       assert_includes response.body, "16歳"
-      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
     end
   end
 

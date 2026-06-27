@@ -24,11 +24,11 @@ module Auth
           # for current_client. Verification/turnstile guards remain on the flow.
           before_action :authorize_telephone_registration!, only: %i(new create edit update)
 
-          def new = redirect_to(new_acme_app_identity_telephones_registration_path(ri: params[:ri]), status: :see_other)
+          def new = redirect_to(new_base_app_identity_telephones_registration_path(ri: params[:ri]), status: :see_other)
 
           def edit
             redirect_to(
-              edit_acme_app_identity_telephones_registration_path(ri: params[:ri]),
+              edit_base_app_identity_telephones_registration_path(ri: params[:ri]),
               status: :see_other,
             )
           end

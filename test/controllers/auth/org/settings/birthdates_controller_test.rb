@@ -19,18 +19,18 @@ module Auth::Org::Settings
     end
 
     test "shows birthdate to signed in operator" do
-      get sign_org_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_org_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_select "[data-birthdate]", text: "1990-12-31"
-      assert_select "a[href=?]", sign_org_settings_path(ri: "jp")
+      assert_select "a[href=?]", auth_org_settings_path(ri: "jp")
       assert_select "input[name*='birthdate']", count: 0
     end
 
     test "shows unset state" do
       @staff.update!(birthdate: nil)
 
-      get sign_org_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_org_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_includes response.body, I18n.t("sign.org.settings.birthdate.show.not_set")
@@ -39,7 +39,7 @@ module Auth::Org::Settings
     test "requires step-up when session freshness is stale" do
       @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
 
-      get sign_org_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_org_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -48,7 +48,7 @@ module Auth::Org::Settings
     test "rejects generic verification step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
 
-      get sign_org_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_org_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -58,7 +58,7 @@ module Auth::Org::Settings
     test "rejects unrelated step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
-      get sign_org_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_org_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -66,7 +66,7 @@ module Auth::Org::Settings
     end
 
     test "redirects when not signed in" do
-      get sign_org_settings_birthdate_url(ri: "jp")
+      get auth_org_settings_birthdate_url(ri: "jp")
 
       assert_response :redirect
       assert_oidc_authorize_redirect(
@@ -78,10 +78,10 @@ module Auth::Org::Settings
 
     test "does not route mutation or edit actions" do
       assert_raises(NoMethodError) do
-        edit_sign_org_settings_birthdate_url(ri: "jp")
+        edit_auth_org_settings_birthdate_url(ri: "jp")
       end
 
-      patch sign_org_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
+      patch auth_org_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
         operator: { birthdate: "1991-01-01" },
       }
 

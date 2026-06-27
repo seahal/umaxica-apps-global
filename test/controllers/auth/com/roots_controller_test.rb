@@ -8,7 +8,7 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   include RootThemeCookieHelper
 
   test "GET / renders root page" do
-    get sign_com_root_url(ri: "jp")
+    get auth_com_root_url(ri: "jp")
 
     assert_response :success
     assert_select "title", "Sign Com"
@@ -17,7 +17,7 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "creates preference cookies on root" do
     assert_difference("ComPreference.count", 1) do
-      get sign_com_root_url(ri: "jp")
+      get auth_com_root_url(ri: "jp")
     end
 
     assert_response :success
@@ -28,7 +28,7 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   test "sets theme cookie" do
     assert_theme_cookie_for(
       host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"),
-      path: :sign_com_root_path,
+      path: :auth_com_root_path,
       label: "sign com root",
       ri: "jp",
     )
@@ -41,10 +41,10 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get sign_com_root_url(ri: "jp"),
+    get auth_com_root_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
 
     assert_response :redirect
-    assert_redirected_to sign_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
   end
 end

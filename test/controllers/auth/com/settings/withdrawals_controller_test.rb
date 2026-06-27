@@ -23,13 +23,13 @@ class Auth::Com::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
   end
 
   test "new renders sign withdrawal entry" do
-    get new_sign_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
+    get new_auth_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
     assert_response :success
   end
 
   test "update_redirect_is_not_account_lifecycle_mutation" do
-    patch sign_com_settings_withdrawal_url(ri: "jp"),
+    patch auth_com_settings_withdrawal_url(ri: "jp"),
           params: { ack_deactivate_today: "1" },
           headers: session_headers
 
@@ -46,7 +46,7 @@ class Auth::Com::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
       purged_at: 21.days.from_now,
     )
 
-    post sign_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
+    post auth_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
     assert_response :redirect
     assert_nil @visitor.reload.withdrawal_started_at
@@ -63,7 +63,7 @@ class Auth::Com::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
       terminated_at: nil,
     )
 
-    delete sign_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
+    delete auth_com_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
     assert_response :redirect
     assert_not_nil @visitor.reload.terminated_at

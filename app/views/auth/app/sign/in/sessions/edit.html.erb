@@ -22,7 +22,7 @@
         </div>
       </div>
 
-      <%= form_with url: sign_app_sign_in_email_path, method: :patch do |f| %>
+      <%= form_with url: auth_app_sign_in_email_path, method: :patch do |f| %>
         <div>
           <h2>
             <%= t("session_limit.edit.active_sessions") %>
@@ -68,7 +68,7 @@
         <div>
           <%= f.submit t("session_limit.edit.submit") %>
           <%= link_to t("session_limit.edit.cancel"),
-                      sign_app_sign_in_path %>
+                      auth_app_sign_in_path %>
         </div>
       <% end %>
     <% end %>

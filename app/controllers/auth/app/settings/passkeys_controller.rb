@@ -67,7 +67,7 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_to(
-                new_sign_app_settings_passkey_path(ri: params[:ri]),
+                new_auth_app_settings_passkey_path(ri: params[:ri]),
                 status: :see_other,
                 alert: passkey_verification_required_message,
               )
@@ -181,7 +181,7 @@ module Auth
           authorize!(@passkey)
 
           if @passkey.update(update_params)
-            redirect_to(sign_app_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
+            redirect_to(auth_app_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
           else
             render :edit, status: :unprocessable_content
           end
@@ -199,7 +199,7 @@ module Auth
 
           passkey.destroy!
           redirect_to(
-            sign_app_settings_passkeys_path(ri: params[:ri]),
+            auth_app_settings_passkeys_path(ri: params[:ri]),
             status: :see_other,
           )
         end
@@ -224,7 +224,7 @@ module Auth
 
         def redirect_turnstile_failure
           redirect_to(
-            sign_app_settings_passkeys_path(ri: params[:ri]),
+            auth_app_settings_passkeys_path(ri: params[:ri]),
             alert: t("turnstile_error"),
             status: :see_other,
           )
@@ -232,7 +232,7 @@ module Auth
 
         def redirect_last_method
           redirect_to(
-            sign_app_settings_passkeys_path(ri: params[:ri]),
+            auth_app_settings_passkeys_path(ri: params[:ri]),
             alert: t("messages.cannot_delete_last_passkey"),
             status: :see_other,
           )
@@ -244,7 +244,7 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_back_or_to(
-                sign_app_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
+                auth_app_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
                                                                   status: :see_other,
               )
             end
@@ -313,14 +313,14 @@ module Auth
                 purpose: "client.recovery_secret_credential",
                 metadata: {},
               )
-              sign_app_settings_secrets_url(
+              auth_app_settings_secrets_url(
                 ri: params[:ri],
                 token: reveal.token,
                 host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
               )
             else
               bootstrap_return_path(
-                sign_app_settings_passkeys_url(
+                auth_app_settings_passkeys_url(
                   ri: params[:ri],
                   host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
                 ),
@@ -370,7 +370,7 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          sign_app_settings_secret_credentials_url(
+          auth_app_settings_secret_credentials_url(
             ri: params[:ri],
             host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           )

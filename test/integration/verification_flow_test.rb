@@ -38,7 +38,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     @token.update!(created_at: 1.hour.ago)
 
     # Try to access email settings (requires step-up)
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_match %r{/identity/emails}, response.location
@@ -50,7 +50,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     @token.update!(created_at: 1.hour.ago)
 
     # Try to access email settings (requires step-up)
-    head sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    head auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_match %r{/identity/emails}, response.location
@@ -60,7 +60,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
   test "successful passkey verification redirects to return_to" do
     @token.update!(created_at: 1.hour.ago)
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     verification_uri = URI.parse(response.location)
     pt = Rack::Utils.parse_query(verification_uri.query)["pt"]
@@ -69,15 +69,15 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+          get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
               headers: @headers
-          get new_sign_app_verification_passkey_url(ri: "jp"), headers: @headers
+          get new_auth_app_verification_passkey_url(ri: "jp"), headers: @headers
 
           # Seed the acme-issued ceremony transaction the real acme intent route would create. sign
           # no longer self-issues grants; it can only emit a result against an acme-issued ceremony.
           signed_step_up_grant_for(
             actor: @user, token: @token, scope: "settings_email",
-            return_to: sign_app_settings_emails_path(ri: "jp"), surface: "app",
+            return_to: auth_app_settings_emails_path(ri: "jp"), surface: "app",
           )
 
           post sign_app_verification_passkey_url(ri: "jp"),

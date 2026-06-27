@@ -64,45 +64,7 @@ auth_routes do
     # Sign-up and sign-in ceremonies.
     namespace :sign do
       # Auth-up ceremony.
-      namespace :up do
-        resource :email, only: %i(new create)
-        resource :telephone, only: %i(new create)
-
-        namespace :guard do
-          resource :apple, only: :show
-          resource :google, only: :show
-          resource :email, only: :show
-          resource :telephone, only: :show
-        end
-
-        namespace :check do
-          namespace :apple do
-            resource :confirmation, only: %i(show update destroy) # FIXME: Add dstroy method!
-            resource :birthdate, only: %i(show update) # FIXME: Add dstroy method!
-            resource :cancellation, only: :create # FIXME: use delete method!
-          end
-
-          namespace :google do
-            resource :confirmation, only: %i(show update destroy) # FIXME: Add dstroy method!
-            resource :birthdate, only: %i(show update) # FIXME: Add dstroy method!
-            resource :cancellation, only: :create # FIXME: use delete method!
-          end
-
-          namespace :email do
-            resource :otp, only: %i(show create update) # FIXME: Add dstroy method!
-            resource :birthdate, only: %i(show update) # FIXME: Add dstroy method!
-            resource :cancellation, only: :create # FIXME: use delete method!
-          end
-
-          namespace :telephone do
-            resource :otp, only: %i(show create update) # FIXME: Add dstroy method!
-            resource :passkey, only: %i(show create update) # FIXME: Add dstroy method!
-            resource :passcode, only: %i(show update) # FIXME: Add dstroy method!
-            resource :birthdate, only: %i(show update) # FIXME: Add dstroy method!
-            resource :cancellation, only: :create # FIXME: use delete method!
-          end
-        end
-      end
+      auth_signup_check_routes
 
       # Sign-in ceremony.
       namespace :in do
@@ -262,31 +224,7 @@ auth_routes do
     # Sign-up and sign-in ceremonies.
     namespace :sign do
       # Auth-up ceremony.
-      namespace :up do
-        resource :email, only: %i(new create)
-        resource :telephone, only: %i(new create)
-
-        namespace :guard do
-          resource :email, only: :show
-          resource :telephone, only: :show
-        end
-
-        namespace :check do
-          namespace :email do
-            resource :otp, only: %i(show create update)
-            resource :birthdate, only: %i(show update)
-            resource :cancellation, only: :create
-          end
-
-          namespace :telephone do
-            resource :otp, only: %i(show create update)
-            resource :passkey, only: %i(show create update)
-            resource :passcode, only: %i(show update)
-            resource :birthdate, only: %i(show update)
-            resource :cancellation, only: :create
-          end
-        end
-      end
+      auth_signup_check_routes(providers: %i(email telephone))
 
       # Sign-in ceremony.
       namespace :in do

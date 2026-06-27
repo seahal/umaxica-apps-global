@@ -10,7 +10,7 @@
     </div>
   <% end %>
 
-  <%= form_with url: sign_com_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
+  <%= form_with url: auth_com_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
     <%= f.hidden_field :scope, value: params.dig(:verification, :scope).presence || params[:scope], name: "verification[scope]" %>
     <%= f.hidden_field :pt, value: params.dig(:verification, :pt).presence || params[:pt], name: "verification[pt]" %>
@@ -33,7 +33,7 @@
 
   <div>
     <%= link_to t("sign.app.verification.edit.back"),
-                sign_com_verification_path(
+                auth_com_verification_path(
                   ri: params[:ri],
                   scope: params.dig(:verification, :scope).presence || params[:scope],
                   pt: params.dig(:verification, :pt).presence || params[:pt]

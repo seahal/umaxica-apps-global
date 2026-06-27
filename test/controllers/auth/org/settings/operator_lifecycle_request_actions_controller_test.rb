@@ -18,7 +18,7 @@ class Auth::Org::Settings::OperatorLifecycleRequestActionsControllerTest < Actio
   test "another operator can approve a pending request" do
     request = lifecycle_request(status: OperatorLifecycleRequest::STATUS_PENDING)
 
-    post sign_org_settings_operator_lifecycle_request_approval_url(request, ri: "jp"),
+    post auth_org_settings_operator_lifecycle_request_approval_url(request, ri: "jp"),
          headers: authenticated_headers
 
     assert_response :redirect
@@ -29,7 +29,7 @@ class Auth::Org::Settings::OperatorLifecycleRequestActionsControllerTest < Actio
   test "another operator can execute an approved request" do
     request = lifecycle_request(status: OperatorLifecycleRequest::STATUS_APPROVED, approved_by_operator: @operator)
 
-    post sign_org_settings_operator_lifecycle_request_execution_url(request, ri: "jp"),
+    post auth_org_settings_operator_lifecycle_request_execution_url(request, ri: "jp"),
          headers: authenticated_headers
 
     assert_response :redirect

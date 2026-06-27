@@ -2287,10 +2287,10 @@ module AuthenticationBase
   end
 
   def default_after_login_path
-    if respond_to?(:sign_app_root_path, true)
-      sign_app_root_path
-    elsif respond_to?(:sign_org_root_path, true)
-      sign_org_root_path
+    if respond_to?(:auth_app_root_path, true)
+      auth_app_root_path
+    elsif respond_to?(:auth_org_root_path, true)
+      auth_org_root_path
     else
       "/"
     end
@@ -2660,11 +2660,11 @@ module AuthenticationBase
     raw =
       case resource_type
       when "client"
-        sign_app_edge_v0_token_dbsc_path
+        auth_app_edge_v0_token_dbsc_path
       when "operator"
-        sign_org_edge_v0_token_dbsc_path
+        auth_org_edge_v0_token_dbsc_path
       when "visitor"
-        sign_com_edge_v0_token_dbsc_path
+        auth_com_edge_v0_token_dbsc_path
       end
     # Canonicalize: the advertised DBSC path must not carry per-request context params.
     dbsc_canonical_url(raw)
@@ -2674,11 +2674,11 @@ module AuthenticationBase
     raw =
       case resource_type
       when "client"
-        sign_app_edge_v0_token_dbsc_url
+        auth_app_edge_v0_token_dbsc_url
       when "operator"
-        sign_org_edge_v0_token_dbsc_url
+        auth_org_edge_v0_token_dbsc_url
       when "visitor"
-        sign_com_edge_v0_token_dbsc_url
+        auth_com_edge_v0_token_dbsc_url
       end
     # Canonicalize: this URL is the DBSC proof audience and must match registration and
     # refresh byte-for-byte, so it cannot vary with request context (ri/lx/...).

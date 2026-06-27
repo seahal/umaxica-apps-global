@@ -15,7 +15,7 @@ class Auth::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   test "GET show without access jwt returns consented false" do
     cookies.delete(PreferenceCookieName.access)
 
-    get sign_app_web_v0_cookie_path, as: :json
+    get auth_app_web_v0_cookie_path, as: :json
 
     assert_response :ok
     body = response.parsed_body
@@ -35,7 +35,7 @@ class Auth::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
-      get sign_app_web_v0_cookie_path, as: :json
+      get auth_app_web_v0_cookie_path, as: :json
 
       assert_response :success
     end
@@ -67,7 +67,7 @@ class Auth::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     cookies[PreferenceCookieName.access(surface: :app)] = token
 
     with_preference_jwt_keys(host: @host) do
-      patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json
+      patch auth_app_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
     assert_response :ok
@@ -89,7 +89,7 @@ class Auth::App::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     cookies.delete(PreferenceCookieName.access)
 
     assert_no_difference -> { AppPreference.count } do
-      patch sign_app_web_v0_cookie_path, params: { consented: true }, as: :json
+      patch auth_app_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
     assert_response :ok

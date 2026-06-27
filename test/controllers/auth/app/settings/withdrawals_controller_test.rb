@@ -22,31 +22,31 @@ class Auth::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
   end
 
   test "new redirects to acme identity withdrawal" do
-    get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+    get new_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
-    assert_redirected_to new_acme_app_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to new_base_app_identity_withdrawal_path(ri: "jp")
   end
 
   test "edit redirects to acme identity withdrawal" do
-    get edit_sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+    get edit_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
-    assert_redirected_to edit_acme_app_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to edit_base_app_identity_withdrawal_path(ri: "jp")
   end
 
   test "create is gone" do
-    post sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+    post auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
     assert_response :gone
   end
 
   test "update is gone" do
-    patch sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+    patch auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
     assert_response :gone
   end
 
   test "destroy is gone" do
-    delete sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+    delete auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
     assert_response :gone
   end

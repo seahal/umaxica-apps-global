@@ -1,4 +1,4 @@
-<%= link_to t("sign.app.settings.show.back"), sign_app_settings_passkeys_path(ri: params[:ri]) %>
+<%= link_to t("sign.app.settings.show.back"), auth_app_settings_passkeys_path(ri: params[:ri]) %>
 
 <% title t("sign.app.settings.passkeys.new.page_title") %>
 
@@ -10,8 +10,8 @@
 
   <div
     data-controller="passkey-registration"
-    data-passkey-registration-options-url-value="<%= sign_app_settings_passkeys_options_path %>"
-    data-passkey-registration-verification-url-value="<%= sign_app_settings_passkeys_verification_path %>"
+    data-passkey-registration-options-url-value="<%= auth_app_settings_passkeys_options_path %>"
+    data-passkey-registration-verification-url-value="<%= auth_app_settings_passkeys_verification_path %>"
     data-passkey-registration-turnstile-site-key-value="<%= JitSecurityTurnstileConfig.stealth_site_key.to_s %>"
     data-passkey-registration-turnstile-error-message-value="<%= t("turnstile_error") %>">
 
@@ -36,7 +36,7 @@
               data-action="click->passkey-registration#register">
         <%= t("sign.app.settings.passkeys.new.submit") %>
       </button>
-      <%= link_to t("sign.common.cancel"), sign_app_settings_passkeys_path %>
+      <%= link_to t("sign.common.cancel"), auth_app_settings_passkeys_path %>
     </div>
   </div>
 </div>

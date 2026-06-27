@@ -15,7 +15,7 @@
 
       <%= form_with model: @user_email,
                     scope: :user_email,
-                    url: sign_com_sign_in_email_path,
+                    url: auth_com_sign_in_email_path,
                     data: { turbo: false } do |form| %>
         <%= hidden_field_tag :pt, pt if pt.present? %>
 
@@ -51,7 +51,7 @@
       <% end %>
 
       <div>
-        <%= link_to sign_com_sign_in_path(pt: pt) do %>
+        <%= link_to auth_com_sign_in_path(pt: pt) do %>
           <span><%= t("sign.app.authentication.new.back") %></span>
         <% end %>
       </div>

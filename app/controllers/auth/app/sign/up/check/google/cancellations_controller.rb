@@ -18,7 +18,7 @@ class Auth::App::Sign::Up::Check::Google::CancellationsController < ::Auth::App:
 
   def sign_up_ticket_class = ClientSignUpFlow
 
-  def sign_up_sequence_session_key = :sign_app_up_sequence_id
+  def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
   def sign_up_family = "google"
 

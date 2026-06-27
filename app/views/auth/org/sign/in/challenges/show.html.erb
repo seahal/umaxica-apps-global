@@ -9,13 +9,13 @@
   <div>
     <% if @can_use_passkey %>
       <p>
-        <%= link_to t("sign.org.in.mfa.methods.passkey"), new_sign_org_sign_in_challenge_passkey_path %>
+        <%= link_to t("sign.org.in.mfa.methods.passkey"), new_auth_org_sign_in_challenge_passkey_path %>
       </p>
     <% end %>
 
     <% unless @can_use_passkey %>
       <p><%= t("sign.org.in.mfa.no_methods_available") %></p>
-      <p><%= link_to t("sign.org.in.back"), sign_org_sign_in_path %></p>
+      <p><%= link_to t("sign.org.in.back"), auth_org_sign_in_path %></p>
     <% end %>
   </div>
 </div>

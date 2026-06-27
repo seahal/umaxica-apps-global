@@ -33,12 +33,12 @@ module Auth
             notice_key = "sign.org.settings.operator_lifecycle_requests.#{success_key}.success"
             if result.success?
               redirect_to(
-                sign_org_settings_operator_lifecycle_request_path(result.request),
+                auth_org_settings_operator_lifecycle_request_path(result.request),
                 notice: t(notice_key),
               )
             else
               redirect_to(
-                sign_org_settings_operator_lifecycle_request_path(result.request),
+                auth_org_settings_operator_lifecycle_request_path(result.request),
                 alert: result.error,
               )
             end

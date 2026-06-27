@@ -39,7 +39,7 @@ module Auth
         end
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_com_root_path(ri: params[:ri]), screen_hint: "signin")
+          url = initiate_oidc_session!(pt: auth_com_root_path(ri: params[:ri]), screen_hint: "signin")
           redirect_to_oidc_authorization_url(url)
         end
       end

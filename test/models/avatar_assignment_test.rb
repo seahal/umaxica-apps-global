@@ -114,6 +114,7 @@ class AvatarAssignmentTest < ActiveSupport::TestCase
 
     assert_no_changes -> { owner.reload.role } do
       owner.role = "editor"
+
       assert_not owner.save
     end
 
@@ -125,6 +126,7 @@ class AvatarAssignmentTest < ActiveSupport::TestCase
 
     assert_no_changes -> { owner.reload.role } do
       owner.role = "administrator"
+
       assert_not owner.save
     end
 
@@ -136,6 +138,7 @@ class AvatarAssignmentTest < ActiveSupport::TestCase
 
     assert_no_changes -> { administrator.reload.role } do
       administrator.role = "viewer"
+
       assert_not administrator.save
     end
 
@@ -147,6 +150,7 @@ class AvatarAssignmentTest < ActiveSupport::TestCase
 
     assert_no_changes -> { administrator.reload.role } do
       administrator.role = "owner"
+
       assert_not administrator.save
     end
 

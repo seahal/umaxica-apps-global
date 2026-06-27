@@ -21,10 +21,10 @@ module Auth
 
           if reveal
             @recovery_passcodes = Array(reveal.value).map(&:to_s)
-            @back_to_settings_url = sign_com_settings_url(ri: params[:ri])
+            @back_to_settings_url = auth_com_settings_url(ri: params[:ri])
           else
             @missing_recovery_passcodes = true
-            @back_to_settings_url = sign_com_settings_url(ri: params[:ri])
+            @back_to_settings_url = auth_com_settings_url(ri: params[:ri])
           end
         end
 

@@ -15,6 +15,6 @@ class Auth::Org::VerificationsController < ::Auth::Org::Verification::BaseContro
   end
 
   def verification_invalid_request_redirect_path(ri:)
-    sign_org_settings_path(ri: ri)
+    auth_org_settings_path(ri: ri)
   end
 end

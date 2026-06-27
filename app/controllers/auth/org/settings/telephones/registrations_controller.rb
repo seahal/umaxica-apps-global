@@ -32,7 +32,7 @@ module Auth
 
             reset_registration_session!
             redirect_to(
-              new_sign_org_settings_telephones_registration_path,
+              new_auth_org_settings_telephones_registration_path,
               notice: t("sign.org.registration.telephone.edit.session_expired"),
             )
           end
@@ -61,7 +61,7 @@ module Auth
               candidate: @staff_telephone,
             )
             redirect_to(
-              edit_sign_org_settings_telephones_registration_path,
+              edit_auth_org_settings_telephones_registration_path,
               notice: t("sign.org.registration.telephone.create.verification_code_sent"),
             )
           end
@@ -71,7 +71,7 @@ module Auth
             unless valid_registration_session?
               reset_registration_session!
               redirect_to(
-                new_sign_org_settings_telephones_registration_path,
+                new_auth_org_settings_telephones_registration_path,
                 notice: t("sign.org.registration.telephone.edit.session_expired"),
               )
               return
@@ -112,7 +112,7 @@ module Auth
               )
               reset_registration_session!
               redirect_to(
-                sign_org_settings_telephones_url(
+                auth_org_settings_telephones_url(
                   ri: params[:ri],
                   host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
                 ),
@@ -122,13 +122,13 @@ module Auth
             when :session_expired
               reset_registration_session!
               redirect_to(
-                new_sign_org_settings_telephones_registration_path,
+                new_auth_org_settings_telephones_registration_path,
                 notice: t("sign.org.registration.telephone.edit.session_expired"),
               )
             when :locked
               reset_registration_session!
               redirect_to(
-                new_sign_org_settings_telephones_registration_path,
+                new_auth_org_settings_telephones_registration_path,
                 alert: t("sign.org.registration.telephone.update.attempts_exceeded"),
               )
             else

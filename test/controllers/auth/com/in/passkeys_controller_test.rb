@@ -38,17 +38,17 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "should get new" do
-    get new_sign_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
+    get new_auth_com_sign_in_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
-    assert_select "[data-passkey-authentication-options-url-value=?]", sign_com_sign_in_passkey_options_path(ri: "jp")
+    assert_select "[data-passkey-authentication-options-url-value=?]", auth_com_sign_in_passkey_options_path(ri: "jp")
     assert_select "[data-passkey-authentication-verification-url-value=?]",
-                  sign_com_sign_in_passkey_verification_path(ri: "jp")
+                  auth_com_sign_in_passkey_verification_path(ri: "jp")
     assert_select "[data-passkey-authentication-region-value=?]", "jp"
   end
 
   test "options returns challenge for known identifier" do
-    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
          params: { identifier: @visitor.visitor_emails.first.address },
          headers: @origin_headers
 
@@ -61,7 +61,7 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options returns error when identifier is unknown" do
-    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
          params: { identifier: "missing@example.com" },
          headers: @origin_headers
 
@@ -70,14 +70,14 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options returns error when identifier is missing" do
-    post sign_com_sign_in_passkey_options_path(ri: "jp"), headers: @origin_headers
+    post auth_com_sign_in_passkey_options_path(ri: "jp"), headers: @origin_headers
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("errors.webauthn.pii_required")
   end
 
   test "verification logs visitor in on success" do
-    post sign_com_sign_in_passkey_options_path(ri: "jp"),
+    post auth_com_sign_in_passkey_options_path(ri: "jp"),
          params: { identifier: @visitor.visitor_emails.first.address },
          headers: @origin_headers
     challenge_id = response.parsed_body["challenge_id"]
@@ -89,7 +89,7 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_com_sign_in_passkey_verification_path(ri: "jp"),
+      post auth_com_sign_in_passkey_verification_path(ri: "jp"),
            params: {
              challenge_id: challenge_id,
              credential: {
@@ -107,6 +107,6 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :ok
     assert_equal "ok", response.parsed_body["status"]
-    assert_equal sign_com_sign_in_check_path(ri: "jp"), response.parsed_body["redirect_url"]
+    assert_equal auth_com_sign_in_check_path(ri: "jp"), response.parsed_body["redirect_url"]
   end
 end

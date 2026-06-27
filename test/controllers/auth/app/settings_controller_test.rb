@@ -11,18 +11,18 @@ class Auth::App::SettingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "anonymous sign settings shell requires sign authentication" do
-    get sign_app_settings_url(ri: "jp")
+    get auth_app_settings_url(ri: "jp")
 
     assert_response :redirect
     assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
   end
 
   test "sign credential settings routes still resolve on sign" do
-    get sign_app_settings_passkeys_url(ri: "jp")
+    get auth_app_settings_passkeys_url(ri: "jp")
 
     assert_not_equal 404, response.status
 
-    get sign_app_settings_secret_credentials_url(ri: "jp")
+    get auth_app_settings_secret_credentials_url(ri: "jp")
 
     assert_not_equal 404, response.status
   end

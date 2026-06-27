@@ -43,11 +43,11 @@ module Auth
         # in the cross-host redirect chain when the SSO handshake briefly
         # revisited this endpoint.
         def redirect_logged_in_direct_entry!
-          redirect_to(sign_app_dashboard_path(ri: params[:ri]))
+          redirect_to(auth_app_dashboard_path(ri: params[:ri]))
         end
 
         def normalize_to_acme_authorize!
-          url = initiate_oidc_session!(pt: sign_app_root_path(ri: params[:ri]), screen_hint: "signup")
+          url = initiate_oidc_session!(pt: auth_app_root_path(ri: params[:ri]), screen_hint: "signup")
           redirect_to_oidc_authorization_url(url)
         end
       end

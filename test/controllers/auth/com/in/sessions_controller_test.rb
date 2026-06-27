@@ -17,7 +17,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   end
 
   test "show redirects to login when not authenticated" do
-    get sign_com_sign_in_session_url(ri: "jp"), headers: { "Host" => @host }
+    get auth_com_sign_in_session_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
     assert_redirected_to %r{/sign/in\?ri=jp}
@@ -47,11 +47,11 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     create_active_session(@visitor)
     headers = request_headers(@token)
 
-    get sign_com_sign_in_session_url(ri: "jp"), headers: headers
+    get auth_com_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", sign_com_sign_in_session_path(ri: "jp")
+    assert_select "form[data-turbo=false][action=?]", auth_com_sign_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
   end
@@ -59,7 +59,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "update without selections flashes alert and re-renders show" do
     headers = request_headers(@token)
 
-    patch sign_com_sign_in_session_url(ri: "jp"), params: { revoke_refs: [] }, headers: headers
+    patch auth_com_sign_in_session_url(ri: "jp"), params: { revoke_refs: [] }, headers: headers
 
     assert_response :unprocessable_content
   end
@@ -68,7 +68,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     active_token = create_active_session(@visitor)
     headers = request_headers(@token)
 
-    patch sign_com_sign_in_session_url(ri: "jp"), params: { ref: active_token.signed_ref }, headers: headers
+    patch auth_com_sign_in_session_url(ri: "jp"), params: { ref: active_token.signed_ref }, headers: headers
 
     assert_response :redirect
     # Redirect to settings because restricted session is promoted after revoking the only active session
@@ -82,7 +82,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     other_token = create_active_session(other_visitor)
     headers = request_headers(@token)
 
-    patch sign_com_sign_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
+    patch auth_com_sign_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
 
     assert_response :redirect
     assert_predicate other_token.reload, :currently_usable?
@@ -91,7 +91,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "destroy without ref logs out and redirects to login" do
     headers = request_headers(@token)
 
-    delete sign_com_sign_in_session_url(ri: "jp"), headers: headers
+    delete auth_com_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     assert_match %r{/sign/in\?ri=jp}, response.location
@@ -100,7 +100,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "session cancellation route logs out and redirects to login" do
     headers = request_headers(@token)
 
-    post sign_com_sign_in_session_cancellation_url(ri: "jp"), headers: headers
+    post auth_com_sign_in_session_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     assert_match %r{/sign/in\?ri=jp}, response.location
@@ -113,7 +113,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     other_token = create_active_session(other_visitor)
     headers = request_headers(@token)
 
-    delete sign_com_sign_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
+    delete auth_com_sign_in_session_url(ri: "jp"), params: { ref: other_token.signed_ref }, headers: headers
 
     assert_response :success
     assert_predicate other_token.reload, :currently_usable?
@@ -155,8 +155,8 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:render) { |*args, **kwargs| renders << [args, kwargs] }
     controller.define_singleton_method(:head) { |status| heads << status }
-    controller.define_singleton_method(:sign_com_sign_in_path) { |ri: nil| "/sign/in?ri=#{ri}" }
-    controller.define_singleton_method(:sign_com_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
+    controller.define_singleton_method(:auth_com_sign_in_path) { |ri: nil| "/sign/in?ri=#{ri}" }
+    controller.define_singleton_method(:auth_com_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
 
     controller.instance_variable_set(:@logged_in_for_test, true)
     controller.instance_variable_set(:@restricted_for_test, true)

@@ -8,7 +8,7 @@
   <p role="alert"><%= @form_error %></p>
 <% end %>
 
-<%= form_with url: sign_org_sign_up_invitations_path do |form| %>
+<%= form_with url: auth_org_sign_up_invitations_path do |form| %>
   <div>
     <%= form.label :invitation_code, t("sign.org.up.invitations.form.invitation_code") %>
     <%= form.text_field :invitation_code,
@@ -21,5 +21,5 @@
 <% end %>
 
 <p>
-  <%= link_to t("sign.org.in.back"), sign_org_sign_in_path %>
+  <%= link_to t("sign.org.in.back"), auth_org_sign_in_path %>
 </p>

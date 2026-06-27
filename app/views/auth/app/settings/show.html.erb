@@ -5,37 +5,37 @@
 <section>
   <h2><%= t("sign.app.settings.show.security_settings") %></h2>
   <ul>
-    <li><%= link_to t("controller.sign.app.setting.index.totp"), sign_app_settings_totps_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.passkey"), sign_app_settings_passkeys_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), sign_app_settings_secret_credentials_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("sign.app.settings.show.mfa"), sign_app_settings_mfa_challenge_path %></li>
-    <li><%= link_to t("sign.app.settings.show.mfa_reset"), sign_app_settings_mfa_reset_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.totp"), auth_app_settings_totps_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.passkey"), auth_app_settings_passkeys_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), auth_app_settings_secret_credentials_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.mfa"), auth_app_settings_mfa_challenge_path %></li>
+    <li><%= link_to t("sign.app.settings.show.mfa_reset"), auth_app_settings_mfa_reset_path(ri: params[:ri]) %></li>
   </ul>
 </section>
 <br />
 <section>
   <h2><%= t("sign.app.settings.show.account_settings") %></h2>
   <ul>
-    <li><%= link_to t("controller.sign.app.setting.index.email"), sign_app_settings_emails_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.telephone"), sign_app_settings_telephones_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.birthdate"), sign_app_settings_birthdate_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.session"), sign_app_settings_sessions_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.activity"), sign_app_settings_activities_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.email"), auth_app_settings_emails_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.telephone"), auth_app_settings_telephones_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.birthdate"), auth_app_settings_birthdate_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.session"), auth_app_settings_sessions_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.activity"), auth_app_settings_activities_path %></li>
   </ul>
 </section>
 <br />
 <section>
   <h2><%= t("sign.app.settings.show.external_services") %></h2>
   <ul>
-    <li><%= link_to t("controller.sign.app.setting.index.google"), sign_app_settings_google_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.apple"), sign_app_settings_apple_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.google"), auth_app_settings_google_path %></li>
+    <li><%= link_to t("controller.sign.app.setting.index.apple"), auth_app_settings_apple_path %></li>
   </ul>
 </section>
 <br />
 <section>
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
-    <li><%= link_to t("sign.app.settings.show.logout"), new_sign_app_sign_out_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("sign.app.settings.show.withdrawal"), new_sign_app_settings_withdrawal_path %></li>
+    <li><%= link_to t("sign.app.settings.show.logout"), new_auth_app_sign_out_path(ri: params[:ri]) %></li>
+    <li><%= link_to t("sign.app.settings.show.withdrawal"), new_auth_app_settings_withdrawal_path %></li>
   </ul>
 </section>

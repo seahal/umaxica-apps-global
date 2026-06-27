@@ -17,13 +17,13 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   end
 
   test "show without login is rejected" do
-    get sign_com_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
+    get auth_com_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
   end
 
   test "show without sign in sequence is rejected" do
-    get sign_com_sign_in_check_url(ri: "jp"),
+    get auth_com_sign_in_check_url(ri: "jp"),
         headers: as_visitor_headers(@visitor, host: @host)
 
     assert_response :bad_request
@@ -32,7 +32,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   test "show with checkpoint notice state without sequence authorization is rejected" do
     start_checkpoint_sequence
 
-    get sign_com_sign_in_check_url(ri: "jp"),
+    get auth_com_sign_in_check_url(ri: "jp"),
         headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "new"),
         )
@@ -44,7 +44,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     start_checkpoint_sequence
     previous_issued_at = 10.minutes.ago.to_i
 
-    patch sign_com_sign_in_check_url(ri: "jp"),
+    patch auth_com_sign_in_check_url(ri: "jp"),
           headers: checkpoint_headers.merge(
             "X-TEST-BULLETIN" => checkpoint_json(issued_at: previous_issued_at, state: "new"),
           )
@@ -56,7 +56,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     start_checkpoint_sequence
     pt = Base64.urlsafe_encode64("/settings?ri=jp")
 
-    delete sign_com_sign_in_check_url(ri: "jp", pt: pt),
+    delete auth_com_sign_in_check_url(ri: "jp", pt: pt),
            headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
@@ -67,7 +67,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   test "destroy without pt is rejected by routing" do
     start_checkpoint_sequence
 
-    delete sign_com_sign_in_check_url(ri: "jp"),
+    delete auth_com_sign_in_check_url(ri: "jp"),
            headers: checkpoint_headers.merge(
              "X-TEST-BULLETIN" => checkpoint_json(issued_at: Time.current.to_i, state: "updated"),
            )
@@ -78,7 +78,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   test "expired checkpoint returns timeout" do
     start_checkpoint_sequence
 
-    get sign_com_sign_in_check_url(ri: "jp"),
+    get auth_com_sign_in_check_url(ri: "jp"),
         headers: checkpoint_headers.merge(
           "X-TEST-BULLETIN" => checkpoint_json(issued_at: 2.hours.ago.to_i - 1, state: "new"),
         )
@@ -90,7 +90,7 @@ class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
 
   def start_checkpoint_sequence
     @checkpoint_headers = as_visitor_headers(@visitor, host: @host)
-    get(sign_com_dashboard_url(ri: "jp"), headers: checkpoint_headers)
+    get(auth_com_dashboard_url(ri: "jp"), headers: checkpoint_headers)
 
     SignInSequenceCarrier.new(session, surface: :com).start!(
       surface: :com,

@@ -33,7 +33,7 @@ module Auth
             visitor.save!
 
             redirect_to(
-              sign_com_settings_mfa_challenge_path(ri: params[:ri]),
+              auth_com_settings_mfa_challenge_path(ri: params[:ri]),
               notice: t("sign.app.settings.mfa.update.success"),
             )
           rescue ActiveRecord::RecordInvalid, ArgumentError

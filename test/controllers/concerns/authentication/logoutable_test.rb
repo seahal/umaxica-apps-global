@@ -75,7 +75,7 @@ module Authentication
       # Simulate an audit-write failure (e.g. chronicle DB unreachable)
       # after the token has been revoked. The ensure block must still
       # clear cookies and the Rails session.
-      def record_audit(_event, resource: nil)
+      def record_audit(_event, _resource: nil)
         raise BoomError, "audit write failed"
       end
     end
@@ -129,7 +129,7 @@ module Authentication
     end
 
     test "base log_out delegates to logoutable concern" do
-      assert_includes Sign::App::ApplicationController.private_instance_methods, :logout_current_session!
+      assert_includes Auth::App::ApplicationController.private_instance_methods, :logout_current_session!
     end
 
     # ------------------------------------------------------------------

@@ -63,21 +63,21 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should get index" do
-    get sign_org_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
+    get auth_org_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
 
     assert_response :success
     assert_includes response.body, @staff_secret_credential.name
   end
 
   test "should get show" do
-    get sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
+    get auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
 
     assert_response :success
     assert_includes response.body, @staff_secret_credential.name
   end
 
   test "should get new" do
-    get new_sign_org_settings_secret_credential_url(
+    get new_auth_org_settings_secret_credential_url(
       ri: "jp",
     ), headers: authenticated_headers
 
@@ -85,7 +85,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should get edit" do
-    get edit_sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+    get edit_auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
         headers: authenticated_headers
 
     assert_response :success
@@ -93,7 +93,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should create secret_credential and redirect to index" do
     assert_difference("OperatorSecretCredential.count", 1) do
-      post sign_org_settings_secret_credentials_url(ri: "jp"),
+      post auth_org_settings_secret_credentials_url(ri: "jp"),
            params: {
              staff_secret_credential: { name: "New Secret", enabled: true },
              "cf-turnstile-response": "test",
@@ -101,7 +101,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
            headers: authenticated_headers
     end
 
-    assert_redirected_to sign_org_settings_secret_credentials_url(
+    assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
@@ -110,12 +110,12 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should update secret_credential and redirect to index" do
-    patch sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+    patch auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
           params: { staff_secret_credential: { name: "Updated Secret", enabled: false },
                     "cf-turnstile-response": "test", },
           headers: authenticated_headers
 
-    assert_redirected_to sign_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
     @staff_secret_credential.reload
 
     assert_equal "Updated Secret", @staff_secret_credential.name
@@ -127,12 +127,12 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       -> { OperatorSecretCredential.where(staff_secret_status_id: OperatorSecretCredentialStatus::ACTIVE).count },
       -1,
     ) do
-      delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+      delete auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: authenticated_headers
     end
 
-    assert_redirected_to sign_org_settings_secret_credentials_url(
+    assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )
@@ -140,7 +140,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "URL uses public_id not numeric ID" do
-    get sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
+    get auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"), headers: authenticated_headers
 
     # Verify URL contains public_id, not numeric ID
     assert_not_includes request.fullpath, "/#{@staff_secret_credential.id}/"
@@ -149,14 +149,14 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should access secret_credential by public_id" do
-    get sign_org_settings_secret_credential_url(@staff_secret_credential.public_id, ri: "jp"),
+    get auth_org_settings_secret_credential_url(@staff_secret_credential.public_id, ri: "jp"),
         headers: authenticated_headers
 
     assert_response :success
   end
 
   test "numeric id is not found" do
-    get sign_org_settings_secret_credential_url(@staff_secret_credential.id, ri: "jp"),
+    get auth_org_settings_secret_credential_url(@staff_secret_credential.id, ri: "jp"),
         headers: authenticated_headers
 
     assert_response :not_found
@@ -166,7 +166,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
     assert_no_difference("OperatorSecretCredential.count") do
-      post sign_org_settings_secret_credentials_url(ri: "jp"),
+      post auth_org_settings_secret_credentials_url(ri: "jp"),
            params: { staff_secret_credential: { name: "Blocked Secret", enabled: true },
                      "cf-turnstile-response": "bad", },
            headers: authenticated_headers
@@ -179,12 +179,12 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "update requires successful stealth turnstile" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    patch sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+    patch auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
           params: { staff_secret_credential: { name: "Blocked Update", enabled: true },
                     "cf-turnstile-response": "bad", },
           headers: authenticated_headers
 
-    assert_redirected_to sign_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_org_settings_secret_credential_path(@staff_secret_credential.public_id, ri: "jp")
     assert_equal "Blocked Update", @staff_secret_credential.reload.name
   end
 
@@ -195,12 +195,12 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       -> { OperatorSecretCredential.where(staff_secret_status_id: OperatorSecretCredentialStatus::ACTIVE).count },
       -1,
     ) do
-      delete sign_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
+      delete auth_org_settings_secret_credential_url(@staff_secret_credential, ri: "jp"),
              params: { "cf-turnstile-response": "bad" },
              headers: authenticated_headers
     end
 
-    assert_redirected_to sign_org_settings_secret_credentials_url(
+    assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
     )

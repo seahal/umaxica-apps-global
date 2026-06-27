@@ -4,28 +4,28 @@
 <p><%= t("sign.app.authentication.new.description") %></p>
 
 <ul>
-  <li><%= link_to t("sign.app.authentication.new.links.email"), new_sign_app_sign_in_email_path(pt: pt) %></li>
-  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_sign_app_sign_in_passkey_path(pt: pt) %>
+  <li><%= link_to t("sign.app.authentication.new.links.email"), new_auth_app_sign_in_email_path(pt: pt) %></li>
+  <li><%= link_to t("sign.app.authentication.new.links.passkey"), new_auth_app_sign_in_passkey_path(pt: pt) %>
   </li>
-  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_sign_app_sign_in_secret_credential_path(pt: pt) %>
+  <li><%= link_to t("sign.app.authentication.new.links.secret_credential"), new_auth_app_sign_in_secret_credential_path(pt: pt) %>
   </li>
 </ul>
 
 <ul>
   <li>
-    <%= link_to sign_app_social_google_sign_in_path,
+    <%= link_to auth_app_social_google_auth_in_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.authentication.new.links.google") %>
     <% end %>
   </li>
   <li>
-    <%= link_to sign_app_social_apple_sign_in_path,
+    <%= link_to auth_app_social_apple_auth_in_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.authentication.new.links.apple") %>
     <% end %>
   </li>
 </ul>
 
-<%= link_to sign_app_sign_up_path(ri: params[:ri], pt: signed_pt_param) do %>
+<%= link_to auth_app_sign_up_path(ri: params[:ri], pt: signed_pt_param) do %>
   <%= t("sign.app.authentication.new.links.registration") %>
 <% end %>

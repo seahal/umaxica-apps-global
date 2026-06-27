@@ -9,20 +9,20 @@ module PromotionalEmailUnsubscribeHeaders
   # preference endpoints have been removed.
   SURFACE_OPTIONS = {
     client: {
-      edit_route: :edit_acme_app_preference_email_url,
-      one_click_route: :acme_app_preference_email_url,
+      edit_route: :edit_base_app_preference_email_url,
+      one_click_route: :base_app_preference_email_url,
       host_env: "ACME_SERVICE_URL",
       default_host: "www.app.localhost",
     },
     visitor: {
-      edit_route: :edit_acme_com_preference_email_url,
-      one_click_route: :acme_com_preference_email_url,
+      edit_route: :edit_base_com_preference_email_url,
+      one_click_route: :base_com_preference_email_url,
       host_env: "ACME_CORPORATE_URL",
       default_host: "www.com.localhost",
     },
     operator: {
-      edit_route: :edit_acme_org_preference_email_url,
-      one_click_route: :acme_org_preference_email_url,
+      edit_route: :edit_base_org_preference_email_url,
+      one_click_route: :base_org_preference_email_url,
       host_env: "ACME_STAFF_URL",
       default_host: "www.org.localhost",
     },

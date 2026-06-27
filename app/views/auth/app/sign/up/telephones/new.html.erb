@@ -5,7 +5,7 @@
   </div>
 
   <div>
-    <%= form_with model: @user_telephone, url: sign_app_sign_up_telephone_path, method: 'post' do |form| %>
+    <%= form_with model: @user_telephone, url: auth_app_sign_up_telephone_path, method: 'post' do |form| %>
       <% if @user_telephone.errors.any? %>
         <div>
           <div>
@@ -63,10 +63,10 @@
     <div>
       <div>
         <div>
-          <%= link_to t('sign.app.registration.telephone.new.link_to_other_methods'), sign_app_sign_up_path %>
+          <%= link_to t('sign.app.registration.telephone.new.link_to_other_methods'), auth_app_sign_up_path %>
         </div>
         <div>
-          <%= link_to t('sign.app.registration.telephone.new.link_to_sign_in'), sign_app_sign_in_path %>
+          <%= link_to t('sign.app.registration.telephone.new.link_to_sign_in'), auth_app_sign_in_path %>
         </div>
       </div>
     </div>

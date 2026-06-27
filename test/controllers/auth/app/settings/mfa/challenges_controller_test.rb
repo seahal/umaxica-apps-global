@@ -17,19 +17,19 @@ class Auth::App::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   end
 
   test "should get show" do
-    get sign_app_settings_mfa_challenge_url(ri: "jp"), headers: authenticated_headers
+    get auth_app_settings_mfa_challenge_url(ri: "jp"), headers: authenticated_headers
 
     assert_response :success
     assert_select "h1", I18n.t("sign.app.settings.mfa.show.title")
     assert_select "p", text: I18n.t("sign.app.settings.mfa.show.reset_unavailable")
-    assert_equal "/settings/mfa/challenge", URI.parse(sign_app_settings_mfa_challenge_url(ri: "jp")).path
+    assert_equal "/settings/mfa/challenge", URI.parse(auth_app_settings_mfa_challenge_url(ri: "jp")).path
   end
 
   test "show redirects to verification when step-up is not satisfied" do
     cookies.delete(ClientVerification.cookie_name)
     @token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get sign_app_settings_mfa_challenge_url(ri: "jp"), headers: authenticated_headers
+    get auth_app_settings_mfa_challenge_url(ri: "jp"), headers: authenticated_headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -44,7 +44,7 @@ class Auth::App::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   test "update route is not exposed" do
     @user.update!(mfa_level_id: ClientMfaLevel::NOTHING, mfa_level_enabled: false)
 
-    patch sign_app_settings_mfa_challenge_url(ri: "jp"),
+    patch auth_app_settings_mfa_challenge_url(ri: "jp"),
           params: { user: { mfa_level_id: ClientMfaLevel::FULL.to_s } },
           headers: authenticated_headers
 

@@ -27,7 +27,7 @@ module Side
 
       def create
         launch_oidc_rp_logout!(
-          client_id: "side-rails-rp",
+          client_id: "base-rails-rp",
           issuer_resource_type: "visitor",
           token_issuer: "visitor",
         )

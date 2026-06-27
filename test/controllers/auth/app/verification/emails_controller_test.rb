@@ -29,7 +29,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new sends otp and redirects to edit" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
@@ -37,12 +37,12 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         grant = signed_step_up_grant_for(
           actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
         )
-        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+        get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
             headers: @headers
 
         assert_response :success
 
-        get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
+        get new_auth_app_verification_email_url(ri: "jp"), headers: @headers
 
         assert_response :redirect
 
@@ -62,14 +62,14 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "email selection from verification page reaches otp entry page" do
-    return_to = edit_sign_app_settings_email_path(
+    return_to = edit_auth_app_settings_email_path(
       @user.client_emails.last.public_id,
       ri: "jp",
     )
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
 
       assert_response :success
@@ -80,7 +80,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       )
 
       assert_enqueued_emails 1 do
-        get new_sign_app_verification_email_url(
+        get new_auth_app_verification_email_url(
           ri: "jp",
           scope: "settings_email",
           pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -103,7 +103,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "new enqueues otp email while request is on readonly role" do
     @previous_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :solid_queue
-    return_to = edit_sign_app_settings_email_path(
+    return_to = edit_auth_app_settings_email_path(
       @user.client_emails.last.public_id,
       ri: "jp",
     )
@@ -112,7 +112,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
       assert_difference -> { SolidQueue::Job.where(class_name: "ActionMailer::MailDeliveryJob").count }, 1 do
         ActiveRecord::Base.connected_to(role: :reading, prevent_writes: true) do
           get(
-            new_sign_app_verification_email_url(
+            new_auth_app_verification_email_url(
               ri: "jp",
               scope: "settings_email",
               pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -129,17 +129,17 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "new sends otp for email verified during signup" do
     @user.client_emails.update_all(user_email_status_id: ClientEmailStatus::VERIFIED_WITH_SIGN_UP)
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-      get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
 
       assert_response :success
 
       assert_enqueued_emails 1 do
-        get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
+        get new_auth_app_verification_email_url(ri: "jp"), headers: @headers
       end
 
       assert_response :redirect
@@ -148,10 +148,10 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new keeps scope and return_to in form hidden fields" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
-      get new_sign_app_verification_email_url(
+      get new_auth_app_verification_email_url(
         ri: "jp",
         scope: "settings_email",
         pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -163,11 +163,11 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new restores step_up session from scope and pt query parameters" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
-        get new_sign_app_verification_email_url(
+        get new_auth_app_verification_email_url(
           ri: "jp",
           scope: "settings_email",
           pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -180,14 +180,14 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new resends otp when otp session is already active" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
-    get new_sign_app_verification_email_url(
+    get new_auth_app_verification_email_url(
       ri: "jp",
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -197,7 +197,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       assert_enqueued_emails 1 do
-        get new_sign_app_verification_email_url(
+        get new_auth_app_verification_email_url(
           ri: "jp",
           scope: "settings_email",
           pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -210,10 +210,10 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "edit sends otp when nonce is valid but otp session is missing" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
@@ -223,7 +223,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, []) do
       with_email_nonce_stub(true) do
         assert_enqueued_emails 1 do
-          get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
+          get edit_auth_app_verification_email_url(nonce, ri: "jp"), headers: @headers
         end
       end
     end
@@ -233,15 +233,15 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "edit does not resend otp when otp session is already active" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
 
-    get new_sign_app_verification_email_url(
+    get new_auth_app_verification_email_url(
       ri: "jp",
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -252,7 +252,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     StepUpAvailableMethods.stub(:call, []) do
       assert_enqueued_emails 0 do
-        get edit_sign_app_verification_email_url(nonce, ri: "jp"), headers: @headers
+        get edit_auth_app_verification_email_url(nonce, ri: "jp"), headers: @headers
       end
     end
 
@@ -261,7 +261,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "update verifies otp and redirects to return_to" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
@@ -269,19 +269,19 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
         grant = signed_step_up_grant_for(
           actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
         )
-        get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+        get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
             headers: @headers
 
         assert_response :success
 
-        get new_sign_app_verification_email_url(ri: "jp"), headers: @headers
+        get new_auth_app_verification_email_url(ri: "jp"), headers: @headers
 
         assert_response :redirect
         nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
         with_email_nonce_stub(true) do
           with_verify_email_otp_stub(true) do
-            patch sign_app_verification_email_url(nonce, ri: "jp"),
+            patch auth_app_verification_email_url(nonce, ri: "jp"),
                   params: { verification: { code: "123456" } },
                   headers: @headers
 
@@ -309,15 +309,15 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "invalid otp keeps back link from step_up session when request params are missing" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
 
-    get new_sign_app_verification_email_url(
+    get new_auth_app_verification_email_url(
       ri: "jp",
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -326,7 +326,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_response :redirect
     nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
-    patch sign_app_verification_email_url(nonce, ri: "jp"),
+    patch auth_app_verification_email_url(nonce, ri: "jp"),
           params: { verification: { code: "000000" } },
           headers: @headers
 
@@ -345,15 +345,15 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "resend sends a new otp and returns to edit page" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
 
-    get new_sign_app_verification_email_url(
+    get new_auth_app_verification_email_url(
       ri: "jp",
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -363,7 +363,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
-      post sign_app_verification_email_redelivery_url(
+      post auth_app_verification_email_redelivery_url(
         nonce,
         ri: "jp",
         scope: "settings_email",
@@ -378,15 +378,15 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "resend is rate limited" do
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
 
     pt = signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id)
-    get sign_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
         headers: @headers
 
     assert_response :success
 
-    get new_sign_app_verification_email_url(
+    get new_auth_app_verification_email_url(
       ri: "jp",
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: @token.public_id),
@@ -396,11 +396,11 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
 
     assert_enqueued_emails 1 do
-      post sign_app_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
+      post auth_app_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
     end
 
     assert_enqueued_emails 0 do
-      post sign_app_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
+      post auth_app_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
     end
 
     assert_response :redirect
@@ -413,7 +413,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
     email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
-      get edit_sign_app_settings_email_url(email.public_id, ri: "jp"), headers: stale_headers
+      get edit_auth_app_settings_email_url(email.public_id, ri: "jp"), headers: stale_headers
 
       assert_response :redirect
       location = URI.parse(response.location)
@@ -429,16 +429,16 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   test "create restores step_up session only when scope and return_to are present" do
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::App::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        post sign_app_verification_emails_url(ri: "jp"),
+        post auth_app_verification_emails_url(ri: "jp"),
              params: { verification: { scope: "", pt: "" } },
              headers: @headers
 
         assert_response :redirect
-        assert_redirected_to sign_app_settings_url(ri: "jp")
+        assert_redirected_to auth_app_settings_url(ri: "jp")
       end
 
-      return_to = sign_app_settings_telephones_path(ri: "jp")
-      post sign_app_verification_emails_url(ri: "jp"),
+      return_to = auth_app_settings_telephones_path(ri: "jp")
+      post auth_app_verification_emails_url(ri: "jp"),
            params: { verification: { scope: "settings_telephone",
                                      pt: signed_step_up_pt_for(
                                        return_to, surface: "app",

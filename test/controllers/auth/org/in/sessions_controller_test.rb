@@ -25,7 +25,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   # ===================================================================
 
   test "show without authentication redirects to login" do
-    get sign_org_sign_in_session_url(ri: "jp"),
+    get auth_org_sign_in_session_url(ri: "jp"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -58,16 +58,16 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    get sign_org_sign_in_session_url(ri: "jp"), headers: headers
+    get auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :success
     assert_not response.redirect?
-    assert_select "form[data-turbo=false][action=?]", sign_org_sign_in_session_path(ri: "jp")
+    assert_select "form[data-turbo=false][action=?]", auth_org_sign_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
     assert_select "input[type=checkbox][name='revoke_session_ids[]']", false
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
     assert_select "form[data-turbo=false][method=post][action=?]",
-                  sign_org_sign_in_session_cancellation_path(ri: "jp")
+                  auth_org_sign_in_session_cancellation_path(ri: "jp")
     rendered_ref = css_select("input[type=radio][name=ref]").first["value"]
 
     assert_equal active_token, OperatorToken.find_from_signed_ref(rendered_ref)
@@ -77,7 +77,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     active_token = create_active_session(@staff)
     headers = as_staff_headers_with_token(@staff, active_token, host: @host)
 
-    get sign_org_sign_in_session_url(ri: "jp"), headers: headers
+    get auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :forbidden
   end
@@ -87,7 +87,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   # ===================================================================
 
   test "update without authentication redirects to login" do
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: ["some-ref"] },
           headers: browser_headers.merge(
             "Host" => @host,
@@ -103,7 +103,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     active_token = create_active_session(@staff)
     headers = as_staff_headers_with_token(@staff, active_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: ["some-ref"] },
           headers: headers
 
@@ -118,7 +118,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: [] },
           headers: headers
 
@@ -138,7 +138,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: [active_token1.signed_ref] },
           headers: headers
 
@@ -162,7 +162,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
     # Send an invalid ref so nothing actually gets revoked
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: ["invalid_ref_value"] },
           headers: headers
 
@@ -184,7 +184,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
     # Try to revoke the current (restricted) session via refs -- should be skipped
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: [restricted_token.signed_ref] },
           headers: headers
 
@@ -203,7 +203,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     restricted_token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: [other_token.signed_ref] },
           headers: headers
 
@@ -226,7 +226,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { ref: active_token.signed_ref },
           headers: headers
 
@@ -250,7 +250,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { ref: restricted_token.signed_ref },
           headers: headers
 
@@ -270,7 +270,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { ref: "totally_invalid_ref" },
           headers: headers
 
@@ -293,7 +293,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp"),
+    patch auth_org_sign_in_session_url(ri: "jp"),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -311,7 +311,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
     pt = "/settings"
 
-    patch sign_org_sign_in_session_url(ri: "jp", pt: pt),
+    patch auth_org_sign_in_session_url(ri: "jp", pt: pt),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -331,7 +331,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    patch sign_org_sign_in_session_url(ri: "jp", pt: "not-a-token"),
+    patch auth_org_sign_in_session_url(ri: "jp", pt: "not-a-token"),
           params: { revoke_refs: [active_token.signed_ref] },
           headers: headers
 
@@ -347,7 +347,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   # ===================================================================
 
   test "destroy without authentication redirects to login" do
-    delete sign_org_sign_in_session_url(ri: "jp"),
+    delete auth_org_sign_in_session_url(ri: "jp"),
            headers: browser_headers.merge(
              "Host" => @host,
              "Origin" => "http://#{@host}",
@@ -362,7 +362,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     active_token = create_active_session(@staff)
     headers = as_staff_headers_with_token(@staff, active_token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"), headers: headers
+    delete auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :forbidden
   end
@@ -375,7 +375,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"), headers: headers
+    delete auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     assert_match %r{/sign/in}, response.location
@@ -390,7 +390,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    post sign_org_sign_in_session_cancellation_url(ri: "jp"), headers: headers
+    post auth_org_sign_in_session_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     assert_match %r{/sign/in}, response.location
@@ -414,7 +414,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"),
+    delete auth_org_sign_in_session_url(ri: "jp"),
            params: { ref: active_token.signed_ref },
            headers: headers
 
@@ -434,7 +434,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     restricted_token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"),
+    delete auth_org_sign_in_session_url(ri: "jp"),
            params: { ref: restricted_token.signed_ref },
            headers: headers
 
@@ -449,7 +449,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     restricted_token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"),
+    delete auth_org_sign_in_session_url(ri: "jp"),
            params: { ref: "invalid_ref" },
            headers: headers
 
@@ -468,7 +468,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     restricted_token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, restricted_token, host: @host)
 
-    delete sign_org_sign_in_session_url(ri: "jp"),
+    delete auth_org_sign_in_session_url(ri: "jp"),
            params: { ref: other_token.signed_ref },
            headers: headers
 
@@ -486,7 +486,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     headers = as_staff_headers_with_token(@staff, token, host: @host, expires_at: 30.minutes.from_now)
 
     travel 14.minutes do
-      get sign_org_sign_in_session_url(ri: "jp"), headers: headers
+      get auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
       assert_response :success
     end
@@ -509,7 +509,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
                  logs << JSON.parse(message, symbolize_names: true) if message.present?
                end,
       ) do
-        get sign_org_sign_in_session_url(ri: "jp"), headers: headers
+        get auth_org_sign_in_session_url(ri: "jp"), headers: headers
       end
     end
 
@@ -532,7 +532,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    get acme_org_dashboard_url(ri: "jp", host: acme_host), headers: headers
+    get auth_org_dashboard_url(ri: "jp", host: acme_host), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

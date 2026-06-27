@@ -25,7 +25,7 @@ class Auth::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "sign settings telephones index renders sign settings authority" do
-    get sign_org_settings_telephones_url(ri: "jp"), headers: request_headers
+    get auth_org_settings_telephones_url(ri: "jp"), headers: request_headers
 
     assert_response :success
   end
@@ -37,12 +37,12 @@ class Auth::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
       staff_telephone_status_id: OperatorTelephoneStatus::VERIFIED,
     )
 
-    get edit_sign_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
+    get edit_auth_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select(
       "form[action=?]",
-      sign_org_settings_telephone_path(telephone.id, ri: "jp"),
+      auth_org_settings_telephone_path(telephone.id, ri: "jp"),
       count: 1,
     )
   end
@@ -61,14 +61,14 @@ class Auth::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     )
 
     assert_difference("OperatorTelephone.count", -1) do
-      delete sign_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
+      delete auth_org_settings_telephone_url(telephone.id, ri: "jp"), headers: request_headers
     end
 
-    assert_redirected_to sign_org_settings_telephones_url(ri: "jp")
+    assert_redirected_to auth_org_settings_telephones_url(ri: "jp")
   end
 
   test "legacy sign settings telephone new remains ceremony entry" do
-    get new_sign_org_settings_telephone_url(ri: "jp"), headers: request_headers
+    get new_auth_org_settings_telephone_url(ri: "jp"), headers: request_headers
 
     assert_response :success
   end
@@ -76,12 +76,12 @@ class Auth::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   test "legacy sign settings telephone create starts ceremony and redirects to registration edit" do
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("OperatorTelephone.count", 1) do
-        post sign_org_settings_telephones_url(ri: "jp"),
+        post auth_org_settings_telephones_url(ri: "jp"),
              params: { staff_telephone: { raw_number: "+10000000008" } },
              headers: request_headers
       end
     end
 
-    assert_redirected_to edit_sign_org_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_org_settings_telephones_registration_url(ri: "jp")
   end
 end

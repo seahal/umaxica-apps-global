@@ -16,10 +16,10 @@ module Auth
 
           AUTHENTICATION_MODE = :guest
 
-          SESSION_KEY = :sign_com_up_email_flow_state
-          EXISTING_EMAIL_SESSION_KEY = :sign_com_up_existing_visitor_email_id
-          EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :sign_com_up_existing_visitor_email_skip_otp
-          DUMMY_EXISTING_EMAIL_SESSION_KEY = :sign_com_up_dummy_existing_visitor_email
+          SESSION_KEY = :auth_com_up_email_flow_state
+          EXISTING_EMAIL_SESSION_KEY = :auth_com_up_existing_visitor_email_id
+          EXISTING_EMAIL_SKIP_OTP_SESSION_KEY = :auth_com_up_existing_visitor_email_skip_otp
+          DUMMY_EXISTING_EMAIL_SESSION_KEY = :auth_com_up_dummy_existing_visitor_email
 
           before_action :enforce_email_flow!
 
@@ -37,7 +37,7 @@ module Auth
             },
             store: rate_limit_store,
             name: "ip_burst",
-            scope: "sign_com_sign_up_email",
+            scope: "auth_com_sign_up_email",
             only: :create,
           )
           rate_limit(
@@ -56,7 +56,7 @@ module Auth
             },
             store: rate_limit_store,
             name: "email_sustained",
-            scope: "sign_com_sign_up_email",
+            scope: "auth_com_sign_up_email",
             only: :create,
           )
 
@@ -70,7 +70,7 @@ module Auth
             if @user_email.blank?
               reset_email_flow!
               redirect_to(
-                new_sign_com_sign_up_email_path(ri: params[:ri]),
+                new_auth_com_sign_up_email_path(ri: params[:ri]),
                 notice: t("sign.app.registration.email.edit.not_found"),
               )
               return
@@ -80,7 +80,7 @@ module Auth
 
             reset_email_flow!
             flash[:notice] = t("sign.app.registration.email.edit.session_expired")
-            redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
+            redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 
           def create
@@ -129,7 +129,7 @@ module Auth
             bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow? || dummy_existing_email_flow?
             progress_email_flow!(:create)
             flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
-            redirect_to(sign_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
+            redirect_to(auth_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
           end
 
           private
@@ -147,7 +147,7 @@ module Auth
             return if current == required
 
             flash[:alert] = t("sign.app.registration.email.flow.invalid")
-            redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
+            redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 
           def email_flow_state
@@ -172,7 +172,7 @@ module Auth
           def redirect_invalid_session
             reset_email_flow!
             flash[:notice] = t("sign.app.registration.email.edit.session_expired")
-            redirect_to(new_sign_com_sign_up_email_path(ri: params[:ri]))
+            redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 
           def valid_email_session?
@@ -379,7 +379,7 @@ module Auth
               )
               SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
             end
-            session[:sign_com_up_sequence_id] = cycle.public_id
+            session[:auth_com_up_sequence_id] = cycle.public_id
           end
 
           def sign_up_flow_locator

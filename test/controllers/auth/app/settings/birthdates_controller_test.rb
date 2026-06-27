@@ -18,55 +18,55 @@ module Auth::App::Settings
     end
 
     test "shows birthdate to signed in client" do
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "shows unset state" do
       @user.update!(birthdate: nil)
 
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "requires step-up when session freshness is stale" do
       @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
 
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "rejects generic verification step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
 
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "rejects unrelated step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: @headers
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "redirects when not signed in" do
-      get sign_app_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
+      get auth_app_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
 
-      assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
+      assert_redirected_to base_app_identity_birthdate_path(ri: "jp")
     end
 
     test "does not route mutation or edit actions" do
       assert_raises(NoMethodError) do
-        edit_sign_app_settings_birthdate_url(ri: "jp")
+        edit_auth_app_settings_birthdate_url(ri: "jp")
       end
 
-      patch sign_app_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
+      patch auth_app_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
         client: { birthdate: "2001-02-03" },
       }
 

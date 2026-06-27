@@ -4,8 +4,8 @@
   <h1><%= title t("sign.shared.sign_out.title") %></h1>
   <p><%= t("sign.shared.sign_out.confirm_description") %></p>
   <%= button_to t("sign.shared.sign_out.button"),
-                sign_com_sign_out_path(ri: params[:ri]),
+                auth_com_sign_out_path(ri: params[:ri]),
                 method: :post,
                 form: { data: { turbo: false } } %>
-  <p><%= link_to t("sign.shared.sign_out.home_link"), sign_com_root_path(ri: params[:ri]) %></p>
+  <p><%= link_to t("sign.shared.sign_out.home_link"), auth_com_root_path(ri: params[:ri]) %></p>
 </div>

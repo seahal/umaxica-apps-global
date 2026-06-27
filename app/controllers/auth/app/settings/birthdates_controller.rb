@@ -8,7 +8,7 @@ module Auth
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
 
-        def show = redirect_to(acme_app_identity_birthdate_path(ri: params[:ri]), status: :see_other)
+        def show = redirect_to(base_app_identity_birthdate_path(ri: params[:ri]), status: :see_other)
       end
     end
   end

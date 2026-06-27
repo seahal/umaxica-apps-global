@@ -16,7 +16,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params,
     )
 
-    get sign_app_sign_in_url(login_challenge: issuance.transaction.login_challenge),
+    get auth_app_sign_in_url(login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success
@@ -30,7 +30,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       params: authorize_params(screen_hint: "signup"),
     )
 
-    get sign_app_sign_up_url(login_challenge: issuance.transaction.login_challenge),
+    get auth_app_sign_up_url(login_challenge: issuance.transaction.login_challenge),
         headers: { "Host" => @sign_host }
 
     assert_response :success
@@ -38,7 +38,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
   end
 
   test "sign entry without login challenge normalizes to Acme authorize" do
-    get sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
+    get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -53,7 +53,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
   end
 
   test "sign up entry without login challenge normalizes to Acme authorize" do
-    get sign_app_sign_up_url(ri: "jp"), headers: { "Host" => @sign_host }
+    get auth_app_sign_up_url(ri: "jp"), headers: { "Host" => @sign_host }
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -72,7 +72,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
       client = OidcClientRegistry.find!("sign-rp")
 
-      get sign_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
+      get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
       assert_response :redirect
       authorize_uri = URI.parse(response.location)
@@ -122,7 +122,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
       assert_predicate callback_query["code"], :present?
       assert_equal authorize_query.fetch("state"), callback_query["state"]
 
-      token_url = acme_app_oauth_token_url(host: acme_host)
+      token_url = auth_app_oauth_token_url(host: acme_host)
       client_assertion = OidcClientAssertionJwt.issue(client_id: "sign-rp", token_url: token_url)
       post token_url,
            params: {

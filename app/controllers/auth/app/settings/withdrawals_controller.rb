@@ -15,9 +15,9 @@ module Auth
         before_action :authenticate_client!
         before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
 
-        def new = redirect_to(new_acme_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
+        def new = redirect_to(new_base_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
 
-        def edit = redirect_to(edit_acme_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
+        def edit = redirect_to(edit_base_app_identity_withdrawal_path(ri: params[:ri]), status: :see_other)
 
         def create = head(:gone)
 

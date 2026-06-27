@@ -6,7 +6,7 @@
   </div>
 
   <div>
-    <%= form_with model: @visitor_telephone, url: sign_com_sign_up_telephone_path(ri: params[:ri]), method: :post do |form| %>
+    <%= form_with model: @visitor_telephone, url: auth_com_sign_up_telephone_path(ri: params[:ri]), method: :post do |form| %>
       <% if @visitor_telephone.errors.any? %>
         <div>
           <ul role="list">
@@ -42,10 +42,10 @@
     <% end %>
 
     <div>
-      <%= link_to t("sign.app.registration.telephone.new.link_to_other_methods"), sign_com_sign_up_path(ri: params[:ri]) %>
+      <%= link_to t("sign.app.registration.telephone.new.link_to_other_methods"), auth_com_sign_up_path(ri: params[:ri]) %>
     </div>
     <div>
-      <%= link_to t("sign.app.registration.telephone.new.link_to_sign_in"), sign_com_sign_in_path(ri: params[:ri]) %>
+      <%= link_to t("sign.app.registration.telephone.new.link_to_sign_in"), auth_com_sign_in_path(ri: params[:ri]) %>
     </div>
   </div>
 </div>

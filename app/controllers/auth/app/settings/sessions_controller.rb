@@ -12,9 +12,9 @@ module Auth
 
         helper_method :current_session_record?
 
-        def index = redirect_to(acme_app_identity_sessions_path(ri: params[:ri]), status: :see_other)
+        def index = redirect_to(base_app_identity_sessions_path(ri: params[:ri]), status: :see_other)
 
-        def show = redirect_to(acme_app_identity_session_path(params.expect(:id), ri: params[:ri]), status: :see_other)
+        def show = redirect_to(base_app_identity_session_path(params.expect(:id), ri: params[:ri]), status: :see_other)
 
         def destroy = head(:gone)
 

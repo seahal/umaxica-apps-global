@@ -21,14 +21,14 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     satisfy_visitor_verification(token)
     host! host
 
-    get edit_sign_com_sign_out_url(ri: "jp", host: host), headers: {
+    get edit_auth_com_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
     assert_response :success
 
-    post sign_com_sign_out_url(ri: "jp", host: host), headers: {
+    post auth_com_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -41,7 +41,7 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal acme_host, location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_sign_com_sign_out_url(ri: "jp", host: host, protocol: "https"),
+    assert_equal complete_auth_com_sign_out_url(ri: "jp", host: host, protocol: "https"),
                  query["post_logout_redirect_uri"]
     assert_predicate query["state"], :present?
   end

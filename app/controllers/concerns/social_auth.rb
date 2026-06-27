@@ -490,12 +490,12 @@ module SocialAuth
 
   # Override this method to customize the failure redirect path
   def social_auth_failure_redirect_path
-    respond_to?(:sign_app_sign_in_path) ? sign_app_sign_in_path : "/"
+    respond_to?(:auth_app_sign_in_path) ? auth_app_sign_in_path : "/"
   end
 
   # Override this method to customize the success redirect path
   def social_auth_success_redirect_path
-    respond_to?(:sign_app_root_path) ? sign_app_root_path : "/"
+    respond_to?(:auth_app_root_path) ? auth_app_root_path : "/"
   end
 
   def validate_intent_ttl!(provider)
@@ -550,15 +550,15 @@ module SocialAuth
     provider = provider.presence || session[SOCIAL_PROVIDER_SESSION_KEY] || params[:provider] || provider_from_path
 
     if provider.to_s == "apple"
-      return sign_app_settings_apple_path if respond_to?(:sign_app_settings_apple_path, true)
-      if Rails.application.routes.url_helpers.respond_to?(:sign_app_settings_apple_path)
-        return Rails.application.routes.url_helpers.sign_app_settings_apple_path
+      return auth_app_settings_apple_path if respond_to?(:auth_app_settings_apple_path, true)
+      if Rails.application.routes.url_helpers.respond_to?(:auth_app_settings_apple_path)
+        return Rails.application.routes.url_helpers.auth_app_settings_apple_path
       end
     end
 
-    return sign_app_settings_path if respond_to?(:sign_app_settings_path, true)
-    if Rails.application.routes.url_helpers.respond_to?(:sign_app_settings_path)
-      return Rails.application.routes.url_helpers.sign_app_settings_path
+    return auth_app_settings_path if respond_to?(:auth_app_settings_path, true)
+    if Rails.application.routes.url_helpers.respond_to?(:auth_app_settings_path)
+      return Rails.application.routes.url_helpers.auth_app_settings_path
     end
 
     social_auth_failure_redirect_path

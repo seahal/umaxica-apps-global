@@ -40,7 +40,7 @@ module Auth
           tel_params = params(user_telephone: [:raw_number, :number])
           number = tel_params[:raw_number] || tel_params[:number]
           if initiate_visitor_telephone_verification(visitor, number, auto_accept_confirmations: true)
-            redirect_to(edit_sign_com_settings_telephones_registration_path(ri: params[:ri]))
+            redirect_to(edit_auth_com_settings_telephones_registration_path(ri: params[:ri]))
           else
             render :new, status: :unprocessable_content
           end
@@ -52,7 +52,7 @@ module Auth
 
           unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)
             redirect_to(
-              sign_com_settings_telephones_path(ri: params[:ri]),
+              auth_com_settings_telephones_path(ri: params[:ri]),
               alert: t("sign.app.settings.telephone.destroy.last_method"),
             )
             return
@@ -62,7 +62,7 @@ module Auth
           create_audit_event!(ClientChronicleEvent::TELEPHONE_REMOVED, subject: telephone)
 
           redirect_to(
-            sign_com_settings_telephones_path(ri: params[:ri]),
+            auth_com_settings_telephones_path(ri: params[:ri]),
             notice: t("sign.app.settings.telephone.destroy.success"),
             status: :see_other,
           )

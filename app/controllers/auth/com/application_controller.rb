@@ -25,6 +25,8 @@ module Auth
 
       AUTHENTICATION_MODE = :deny_all
 
+      layout "sign/com/application"
+
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
@@ -52,10 +54,10 @@ module Auth
         to: 300,
         within: 1.minute,
         by: -> { request.remote_ip },
-        scope: "sign_com_default_web",
+        scope: "auth_com_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "sign_com_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(rule_name: "auth_com_default_web", retry_after: 60) },
       )
       before_action :set_current_context
       before_action :reset_flash
@@ -122,24 +124,24 @@ module Auth
       end
 
       def actor_verification_path(attrs = {})
-        sign_com_verification_path(attrs)
+        auth_com_verification_path(attrs)
       end
 
       def verification_redirect_path(pt: nil, scope_override: nil)
         attrs = { ri: params[:ri], pt: pt }
         scope = scope_override.to_s.presence || verification_scope.to_s.presence
         attrs[:scope] = scope if scope
-        sign_com_verification_path(attrs)
+        auth_com_verification_path(attrs)
       end
 
       def verification_setup_redirect_path(pt: nil)
-        new_sign_com_verification_setup_path(ri: params[:ri], pt: pt || encoded_step_up_pt)
+        new_auth_com_verification_setup_path(ri: params[:ri], pt: pt || encoded_step_up_pt)
       end
 
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        sign_com_dashboard_path(ri: current_region_identifier)
+        auth_com_dashboard_path(ri: current_region_identifier)
       end
 
       def after_login_allows_other_host?
@@ -153,7 +155,7 @@ module Auth
         return if telephone_registration_allowed_path?
 
         redirect_to(
-          new_sign_com_settings_telephones_registration_path(ri: params[:ri]),
+          new_auth_com_settings_telephones_registration_path(ri: params[:ri]),
           notice: t("sign.app.registration.telephone.create.verification_code_sent"),
         )
       end

@@ -2,14 +2,18 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require_relative "../../support/auth_helpers"
 
 class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
+  include AuthHelpers
+
   fixtures :clients, :client_statuses, :operators
 
   setup do
-    @app_host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    @org_host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
-    @com_host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    @app_host = ENV.fetch("BASE_SERVICE_URL", hosts.base_service.host)
+    @org_host = ENV.fetch("BASE_STAFF_URL", hosts.base_staff.host)
+    @com_host = ENV.fetch("BASE_CORPORATE_URL", hosts.base_corporate.host)
   end
 
   # The app surface no longer exposes singular current self-service pages (/account, /avatar,
@@ -32,6 +36,12 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     token = OperatorToken.create!(staff: operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     select_token!(surface: :org, principal: operator, token: token)
     headers = as_staff_headers(operator, host: @org_host, session_public_id: token.public_id)
+    set_access_cookie(
+      jwt_access_token_for(
+        operator, host: @org_host, session_public_id: token.public_id,
+                  resource_type: "operator",
+      ),
+    )
 
     assert_self_service_page(base_org_avatar_url(ri: "jp", host: @org_host), headers: headers, title: "Avatar")
     assert_self_service_page(base_org_identity_url(ri: "jp", host: @org_host), headers: headers, title: "Identity")
@@ -82,6 +92,12 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     select_token!(surface: :com, principal: visitor, token: token)
     headers = as_visitor_headers(visitor, host: @com_host, session_public_id: token.public_id)
+    set_access_cookie(
+      jwt_access_token_for(
+        visitor, host: @com_host, session_public_id: token.public_id,
+                 resource_type: "visitor",
+      ),
+    )
 
     assert_self_service_page(base_com_identity_url(ri: "jp", host: @com_host), headers: headers, title: "Identity")
     assert_self_service_page(base_com_account_url(ri: "jp", host: @com_host), headers: headers, title: "Account")

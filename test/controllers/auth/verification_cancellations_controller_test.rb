@@ -11,12 +11,12 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     user = clients(:one)
     headers = as_user_headers(user, host: host)
     token = ClientToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
       actor: user, token: token, scope: "settings_email", return_to: return_to, surface: "app",
     )
 
-    get sign_app_verification_url(
+    get auth_app_verification_url(
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "app", session_nonce: token.public_id),
       ri: "jp",
@@ -24,7 +24,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     ),
         headers: headers
 
-    post sign_app_verification_cancellation_url(ri: "jp"), headers: headers
+    post auth_app_verification_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :success
     assert_includes response.body, "/verification/cancellation"
@@ -40,12 +40,12 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     )
     headers = as_visitor_headers(visitor, host: host)
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    return_to = sign_com_settings_emails_path(ri: "jp")
+    return_to = auth_com_settings_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
       actor: visitor, token: token, scope: "settings_email", return_to: return_to, surface: "com",
     )
 
-    get sign_com_verification_url(
+    get auth_com_verification_url(
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: token.public_id),
       ri: "jp",
@@ -53,7 +53,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     ),
         headers: headers
 
-    post sign_com_verification_cancellation_url(ri: "jp"), headers: headers
+    post auth_com_verification_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :success
     assert_includes response.body, "/verification/cancellation"
@@ -65,12 +65,12 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     staff = operators(:one)
     headers = as_staff_headers(staff, host: host)
     token = OperatorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    return_to = sign_org_settings_path(ri: "jp")
+    return_to = auth_org_settings_path(ri: "jp")
     grant = signed_step_up_grant_for(
       actor: staff, token: token, scope: "settings_email", return_to: return_to, surface: "org",
     )
 
-    get sign_org_verification_url(
+    get auth_org_verification_url(
       scope: "settings_email",
       pt: signed_step_up_pt_for(return_to, surface: "org", session_nonce: token.public_id),
       ri: "jp",
@@ -78,10 +78,10 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     ),
         headers: headers
 
-    post sign_org_verification_cancellation_url(ri: "jp"), headers: headers
+    post auth_org_verification_cancellation_url(ri: "jp"), headers: headers
 
     assert_response :see_other
-    assert_equal sign_org_settings_path(ri: "jp"), URI.parse(response.location).request_uri
+    assert_equal auth_org_settings_path(ri: "jp"), URI.parse(response.location).request_uri
     assert_nil token.reload.step_up_session
   end
 end

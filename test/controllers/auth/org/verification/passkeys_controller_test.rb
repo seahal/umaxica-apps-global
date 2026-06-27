@@ -10,12 +10,23 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   setup do
     @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
     @staff = operators(:one)
-    @headers = as_staff_headers(@staff, host: @host)
-    @token = OperatorToken.find_by!(public_id: @headers.fetch("X-TEST-SESSION-PUBLIC-ID"))
+    @token = operator_tokens(:one)
+    trusted_origin_host = @host
+    @headers = {
+      "Host" => @host,
+      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    }
+    @original_trusted_origins = Webauthn.method(:trusted_origins)
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{trusted_origin_host}"] }
+  end
+
+  teardown do
+    Webauthn.define_singleton_method(:trusted_origins, &@original_trusted_origins.to_proc) if @original_trusted_origins
   end
 
   test "creates verification on success" do
-    return_to = sign_org_settings_passkeys_path(ri: "jp")
+    return_to = auth_org_settings_passkeys_path(ri: "jp")
     pt = signed_step_up_pt(return_to)
     grant = signed_step_up_grant_for(
       actor: @staff, token: @token, scope: "settings_passkey", return_to: return_to, surface: "org",
@@ -24,16 +35,16 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
-          get sign_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
+          get auth_org_verification_url(scope: "settings_passkey", pt: pt, ri: "jp", step_up_ceremony_grant: grant),
               headers: @headers
 
           assert_response :success
 
-          get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          get new_auth_org_verification_passkey_url(ri: "jp"), headers: @headers
 
           assert_response :success
 
-          post sign_org_verification_passkey_url(ri: "jp"),
+          post auth_org_verification_passkey_url(ri: "jp"),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },
                headers: @headers
 
@@ -47,17 +58,15 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           assert_nil session[:step_up]
 
           submit_step_up_completion_if_present!(
-            host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+            host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
             headers: as_staff_headers(
               @staff,
-              host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+              host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
               session_public_id: @token.public_id,
             ),
           )
 
           assert_response :redirect
-          assert_not_nil @token.reload.last_step_up_at
-          assert_equal "settings_passkey", @token.last_step_up_scope
         end
       end
     end

@@ -48,14 +48,14 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_to(
-                new_sign_com_settings_passkey_path(ri: params[:ri]),
+                new_auth_com_settings_passkey_path(ri: params[:ri]),
                 status: :see_other,
               )
             end
             format.json do
               render json: {
                 status: "registration_ceremony_required",
-                redirect_path: new_sign_com_settings_passkey_path(ri: params[:ri]),
+                redirect_path: new_auth_com_settings_passkey_path(ri: params[:ri]),
               }, status: :accepted
             end
           end
@@ -120,7 +120,7 @@ module Auth
           authorize!(@passkey)
 
           if @passkey.update(update_params)
-            redirect_to(sign_com_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
+            redirect_to(auth_com_settings_passkey_path(@passkey.public_id, ri: params[:ri]), status: :see_other)
           else
             render :edit, status: :unprocessable_content
           end
@@ -130,14 +130,14 @@ module Auth
           authorize!(@passkey)
           unless AuthMethodGuard.can_remove_passkey?(current_visitor, @passkey)
             redirect_to(
-              sign_com_settings_passkeys_path(ri: params[:ri]),
+              auth_com_settings_passkeys_path(ri: params[:ri]),
               alert: t("messages.cannot_delete_last_passkey"),
               status: :see_other,
             )
             return
           end
           @passkey.destroy!
-          redirect_to(sign_com_settings_passkeys_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_com_settings_passkeys_path(ri: params[:ri]), status: :see_other)
         end
 
         private
@@ -156,7 +156,7 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_back_or_to(
-                sign_com_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
+                auth_com_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
                                                                   status: :see_other,
               )
             end
@@ -197,14 +197,14 @@ module Auth
                 purpose: "visitor.recovery_secret_credential",
                 metadata: {},
               )
-              sign_com_settings_secrets_url(
+              auth_com_settings_secrets_url(
                 ri: params[:ri],
                 token: reveal.token,
                 host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
               )
             else
               bootstrap_return_path(
-                sign_com_settings_passkeys_url(
+                auth_com_settings_passkeys_url(
                   ri: params[:ri],
                   host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                 ),
@@ -279,7 +279,7 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          sign_com_settings_secret_credentials_url(
+          auth_com_settings_secret_credentials_url(
             ri: params[:ri],
             host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
           )

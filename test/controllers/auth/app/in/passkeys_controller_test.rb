@@ -49,19 +49,19 @@ module Auth::App::In
       JitSecurityTurnstileVerifier.test_response = nil
     end
     test "should get new" do
-      get new_sign_app_sign_in_passkey_path(ri: "jp")
+      get new_auth_app_sign_in_passkey_path(ri: "jp")
 
       assert_response :success
-      assert_select "[data-passkey-authentication-options-url-value=?]", sign_app_sign_in_passkey_options_path(ri: "jp")
+      assert_select "[data-passkey-authentication-options-url-value=?]", auth_app_sign_in_passkey_options_path(ri: "jp")
       assert_select "[data-passkey-authentication-verification-url-value=?]",
-                    sign_app_sign_in_passkey_verification_path(ri: "jp")
+                    auth_app_sign_in_passkey_verification_path(ri: "jp")
       assert_select "[data-passkey-authentication-region-value=?]", "jp"
-      assert_select "a[href=?]", sign_app_sign_in_path(ri: "jp")
+      assert_select "a[href=?]", auth_app_sign_in_path(ri: "jp")
     end
 
     # Case F-1: Identifier does not exist
     test "options returns error if identifier not found" do
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: "unknown@example.com")
 
       assert_response :unprocessable_content
@@ -69,7 +69,7 @@ module Auth::App::In
     end
 
     test "options returns error if identifier missing" do
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: nil)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: nil)
 
       assert_response :unprocessable_content
       assert_includes response.body, I18n.t("errors.webauthn.pii_required")
@@ -80,7 +80,7 @@ module Auth::App::In
       user_no_passkey = clients(:two)
       user_no_passkey_email = ClientEmail.create!(user: user_no_passkey, address: "nopasskey@example.com")
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: user_no_passkey_email.address)
 
       assert_response :unprocessable_content
@@ -90,7 +90,7 @@ module Auth::App::In
     test "options returns challenge and allowCredentials for email identifier" do
       email = ClientEmail.find_by(user: @user).address
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
 
       assert_response :ok
       json = response.parsed_body
@@ -115,7 +115,7 @@ module Auth::App::In
     end
 
     test "options returns challenge and allowCredentials for telephone identifier" do
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_telephone.number)
 
       assert_response :ok
@@ -129,7 +129,7 @@ module Auth::App::In
     test "options returns valid Base64URL encoded challenge" do
       email = ClientEmail.find_by(user: @user).address
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
 
       assert_response :ok
       json = response.parsed_body
@@ -167,7 +167,7 @@ module Auth::App::In
       assert_not_nil @passkey, "Passkey must exist"
       # Get challenge
       email = ClientEmail.find_by(user: @user).address
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
       explanation = response.parsed_body
       challenge_id = explanation["challenge_id"]
 
@@ -191,7 +191,7 @@ module Auth::App::In
         }
 
         # Should log in
-        post sign_app_sign_in_passkey_verification_path(ri: "jp", pt: "/settings/emails"), params: params
+        post auth_app_sign_in_passkey_verification_path(ri: "jp", pt: "/settings/emails"), params: params
 
         assert_response :ok
         json = response.parsed_body
@@ -200,7 +200,7 @@ module Auth::App::In
         assert_not_nil json["access_token"]
         assert_equal "Bearer", json["token_type"]
         assert_equal AuthenticationBase::ACCESS_TOKEN_TTL.to_i, json["expires_in"]
-        assert_equal sign_app_sign_in_check_path(ri: "jp"), json["redirect_url"]
+        assert_equal auth_app_sign_in_check_path(ri: "jp"), json["redirect_url"]
 
         # Challenge verification updates sign count
         assert_equal 1, @passkey.reload.sign_count
@@ -216,7 +216,7 @@ module Auth::App::In
 
       # Get challenge
       email = ClientEmail.find_by(user: @user).address
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
       explanation = response.parsed_body
       challenge_id = explanation["challenge_id"]
 
@@ -239,24 +239,24 @@ module Auth::App::In
           },
         }
 
-        post sign_app_sign_in_passkey_verification_path(ri: "jp"), params: params
+        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: params
 
         assert_response :ok
         json = response.parsed_body
 
         assert_equal "session_restricted", json["status"]
-        assert_equal sign_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
+        assert_equal auth_app_sign_in_session_path(ri: "jp"), json["redirect_url"]
         assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
       end
     end
 
     test "verification returns same response for credential mismatch and missing verified pii" do
       # Baseline: credential mismatch
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_email.address)
       baseline_challenge_id = response.parsed_body["challenge_id"]
 
-      post sign_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+      post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
         challenge_id: baseline_challenge_id,
         credential: {
           id: Base64.urlsafe_encode64("unknown_credential", padding: false),
@@ -283,7 +283,7 @@ module Auth::App::In
       )
       email.update!(user_email_status_id: ClientEmailStatus::UNVERIFIED)
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email.address)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email.address)
       pii_challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -292,7 +292,7 @@ module Auth::App::In
       mock_credential.define_singleton_method(:verify) { |*_args| true }
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post sign_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
           challenge_id: pii_challenge_id,
           credential: {
             id: passkey.webauthn_id,
@@ -309,7 +309,7 @@ module Auth::App::In
     end
 
     test "verification returns unauthorized when challenge actor and passkey owner mismatch" do
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_email.address)
       challenge_id = response.parsed_body["challenge_id"]
 
@@ -329,7 +329,7 @@ module Auth::App::In
       mock_credential.define_singleton_method(:verify) { |*_args| true }
 
       WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post sign_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+        post auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
           challenge_id: challenge_id,
           credential: {
             id: other_passkey.webauthn_id,
@@ -346,7 +346,7 @@ module Auth::App::In
     end
 
     test "verification returns 422 when login result status is unknown" do
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_email.address)
       challenge_id = response.parsed_body["challenge_id"]
 
@@ -363,7 +363,7 @@ module Auth::App::In
       begin
         WebAuthn::Credential.stub(:from_get, mock_credential) do
           post(
-            sign_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+            auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
               challenge_id: challenge_id,
               credential: {
                 id: @passkey.webauthn_id,
@@ -385,7 +385,7 @@ module Auth::App::In
 
     test "verification returns bad request on challenge purpose mismatch" do
       email = ClientEmail.find_by(user: @user).address
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: options_params(identifier: email)
       challenge_id = response.parsed_body["challenge_id"]
       mismatch_error = SignWebauthn::ChallengePurposeMismatchError.new("purpose mismatch")
 
@@ -395,7 +395,7 @@ module Auth::App::In
       end
       begin
         post(
-          sign_app_sign_in_passkey_verification_path(ri: "jp"), params: {
+          auth_app_sign_in_passkey_verification_path(ri: "jp"), params: {
             challenge_id: challenge_id,
             credential: {
               id: @passkey.webauthn_id,
@@ -423,7 +423,7 @@ module Auth::App::In
       restricted = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::RESTRICTED)
       restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"),
+      post auth_app_sign_in_passkey_options_path(ri: "jp"),
            params: options_params(identifier: @user_email.address),
            as: :json
 
@@ -438,7 +438,7 @@ module Auth::App::In
       JitSecurityTurnstileVerifier.test_mode = false
       JitSecurityTurnstileVerifier.test_response = nil
 
-      post sign_app_sign_in_passkey_options_path(ri: "jp"), params: { identifier: @user_email.address }
+      post auth_app_sign_in_passkey_options_path(ri: "jp"), params: { identifier: @user_email.address }
 
       assert_response :unprocessable_content
       assert_equal I18n.t("turnstile_error"), response.parsed_body["error"]

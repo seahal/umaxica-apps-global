@@ -20,13 +20,13 @@ module Auth
         # Verification guards remain in place.
         before_action :authorize_telephone_registration!, only: %i(new create)
 
-        def index = redirect_to(acme_app_identity_telephones_path(ri: params[:ri]), status: :see_other)
+        def index = redirect_to(base_app_identity_telephones_path(ri: params[:ri]), status: :see_other)
 
-        def new = redirect_to(new_acme_app_identity_telephones_registration_path(ri: params[:ri]), status: :see_other)
+        def new = redirect_to(new_base_app_identity_telephones_registration_path(ri: params[:ri]), status: :see_other)
 
         def edit
           redirect_to(
-            edit_acme_app_identity_telephone_path(params.expect(:id), ri: params[:ri]),
+            edit_base_app_identity_telephone_path(params.expect(:id), ri: params[:ri]),
             status: :see_other,
           )
         end

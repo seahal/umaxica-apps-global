@@ -1,9 +1,9 @@
 <% content_for :page_title, t("controller.sign.app.setting.index.telephone") %>
-<%= link_to t("sign.org.settings.show.back"), sign_org_settings_path %>
+<%= link_to t("sign.org.settings.show.back"), auth_org_settings_path %>
 
 <div>
   <%= link_to t("sign.org.settings.telephone.index.new_link"),
-              new_sign_org_settings_telephones_registration_path %>
+              new_auth_org_settings_telephones_registration_path %>
 </div>
 
 <table>
@@ -27,7 +27,7 @@
         </td>
         <td>
           <%= link_to t("sign.org.settings.telephone.index.edit"),
-                      edit_sign_org_settings_telephone_path(telephone) %>
+                      edit_auth_org_settings_telephone_path(telephone) %>
         </td>
       </tr>
     <% end %>

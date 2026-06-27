@@ -10,7 +10,7 @@ module Auth
 
       def show
         authorize!(current_client, to: :show?)
-        redirect_to(acme_app_identity_url(ri: params[:ri]), status: :see_other)
+        redirect_to(base_app_identity_url(ri: params[:ri]), status: :see_other)
       end
     end
   end

@@ -34,7 +34,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "should get new" do
-    get new_sign_com_sign_up_telephone_url(ri: "jp"), headers: default_headers
+    get new_auth_com_sign_up_telephone_url(ri: "jp"), headers: default_headers
 
     assert_response :success
   end
@@ -46,18 +46,18 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get new_sign_com_sign_up_telephone_url(ri: "jp"),
+    get new_auth_com_sign_up_telephone_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
-    assert_redirected_to sign_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
   end
 
   test "create rejects when visitor is already logged in" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     assert_no_difference("VisitorTelephone.count") do
-      post sign_com_sign_up_telephone_url(ri: "jp"),
+      post auth_com_sign_up_telephone_url(ri: "jp"),
            params: {
              visitor_telephone: {
                raw_number: "+819012300099",
@@ -78,7 +78,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   test "create redirects to edit and creates pending visitor telephone" do
     assert_difference("Visitor.count", 1) do
       assert_difference("VisitorTelephone.count", 1) do
-        post sign_com_sign_up_telephone_url(ri: "jp"),
+        post auth_com_sign_up_telephone_url(ri: "jp"),
              params: {
                visitor_telephone: {
                  raw_number: "+819012300001",
@@ -99,7 +99,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "edit renders authentication code copy" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
+    post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300002",
@@ -110,7 +110,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
          },
          headers: default_headers
 
-    get sign_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
+    get auth_com_sign_up_check_telephone_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.registration.telephone.edit.page_title")
@@ -123,7 +123,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "create with invalid telephone fails" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
+    post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "not-a-phone",
@@ -141,7 +141,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert_enqueued_jobs 0, only: Outbound::SmsDeliveryJob do
       assert_no_difference("Visitor.count") do
         assert_no_difference("VisitorTelephone.count") do
-          post sign_com_sign_up_telephone_url(ri: "jp"),
+          post auth_com_sign_up_telephone_url(ri: "jp"),
                params: { "cf-turnstile-response": "test" },
                headers: default_headers
         end
@@ -154,7 +154,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   test "create with turnstile failure returns unprocessable content" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_sign_up_telephone_url(ri: "jp"),
+    post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300002",
@@ -169,7 +169,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "create rejects duplicate unverified telephone inside overwrite window" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
+    post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300004",
@@ -186,7 +186,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
 
     assert_no_difference("VisitorTelephone.count") do
       assert_no_difference("Visitor.count") do
-        post sign_com_sign_up_telephone_url(ri: "jp"),
+        post auth_com_sign_up_telephone_url(ri: "jp"),
              params: {
                visitor_telephone: {
                  raw_number: "+819012300004",
@@ -205,7 +205,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   test "create after overwrite window replaces duplicate unverified telephone" do
-    post sign_com_sign_up_telephone_url(ri: "jp"),
+    post auth_com_sign_up_telephone_url(ri: "jp"),
          params: {
            visitor_telephone: {
              raw_number: "+819012300005",
@@ -221,7 +221,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     first_visitor = first_telephone.visitor
 
     travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
-      post sign_com_sign_up_telephone_url(ri: "jp"),
+      post auth_com_sign_up_telephone_url(ri: "jp"),
            params: {
              visitor_telephone: {
                raw_number: "+819012300005",

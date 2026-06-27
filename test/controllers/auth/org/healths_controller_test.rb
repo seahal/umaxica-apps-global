@@ -7,7 +7,7 @@ class Auth::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot" do
     host! ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
 
-    get sign_org_health_url(ri: "jp")
+    get auth_org_health_url(ri: "jp")
 
     assert_response :success
     assert_equal "text/html", response.media_type

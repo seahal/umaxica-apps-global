@@ -4,7 +4,7 @@
   <h1><%= t("sign.app.in.mfa.passkey.title") %></h1>
   <p><%= t("sign.app.in.mfa.passkey.description") %></p>
 
-  <%= form_with url: sign_app_sign_in_challenge_passkey_path, method: :post, data: { turbo: false } do |f| %>
+  <%= form_with url: auth_app_sign_in_challenge_passkey_path, method: :post, data: { turbo: false } do |f| %>
     <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
     <div
       data-controller="step-up-passkey"
@@ -24,6 +24,6 @@
   <% end %>
 
   <div>
-    <%= link_to t("sign.app.in.mfa.passkey.back"), sign_app_sign_in_challenge_path %>
+    <%= link_to t("sign.app.in.mfa.passkey.back"), auth_app_sign_in_challenge_path %>
   </div>
 </div>

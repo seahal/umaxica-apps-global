@@ -19,7 +19,7 @@ class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get show" do
-    get sign_com_verification_url(ri: "jp"), headers: @headers
+    get auth_com_verification_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end
@@ -32,7 +32,7 @@ class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
     )
     headers = as_visitor_headers(visitor, host: @host)
 
-    get sign_com_verification_url(ri: "jp"), headers: headers
+    get auth_com_verification_url(ri: "jp"), headers: headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -44,7 +44,7 @@ class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
 
   test "show renders only email and passkey method links" do
     return_to = signed_return_target(
-      return_to: sign_com_settings_emails_path(ri: "jp"),
+      return_to: auth_com_settings_emails_path(ri: "jp"),
       flow: "step_up.bootstrap",
       surface: "com",
       session_nonce: @headers["X-TEST-SESSION-PUBLIC-ID"],
@@ -58,12 +58,12 @@ class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
       status_id: VisitorPasskeyStatus::ACTIVE,
     )
 
-    get sign_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
+    get auth_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     assert_response :success
-    assert_includes response.body, new_sign_com_verification_email_path(ri: "jp")
-    assert_includes response.body, new_sign_com_verification_passkey_path(ri: "jp")
+    assert_includes response.body, new_auth_com_verification_email_path(ri: "jp")
+    assert_includes response.body, new_auth_com_verification_passkey_path(ri: "jp")
   end
 
   private

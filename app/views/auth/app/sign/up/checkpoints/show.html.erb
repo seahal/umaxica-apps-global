@@ -7,7 +7,7 @@
     <h2><%= t("sign.app.registration.checkpoint.show.birthdate.title") %></h2>
     <p><%= t("sign.app.registration.checkpoint.show.birthdate.description") %></p>
 
-    <%= form_with url: public_send(:"sign_app_sign_up_check_#{@sign_up_ticket.entry_method}_birthdate_path", ri: params[:ri]),
+    <%= form_with url: public_send(:"auth_app_sign_up_check_#{@sign_up_ticket.entry_method}_birthdate_path", ri: params[:ri]),
                   method: :patch,
                   local: true,
                   data: { turbo: false } do %>
@@ -32,7 +32,7 @@
     <h2><%= t("sign.app.registration.checkpoint.show.passkey.title") %></h2>
     <p><%= t("sign.app.registration.checkpoint.show.passkey.description") %></p>
     <%= link_to t("sign.app.registration.checkpoint.show.passkey.action"),
-                sign_app_sign_up_check_telephone_passkey_path(
+                auth_app_sign_up_check_telephone_passkey_path(
                   ri: params[:ri],
                   pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
@@ -45,7 +45,7 @@
     <h2><%= t("sign.app.registration.checkpoint.show.passcode.title") %></h2>
     <p><%= t("sign.app.registration.checkpoint.show.passcode.description") %></p>
     <%= link_to t("sign.app.registration.checkpoint.show.passcode.action"),
-                sign_app_sign_up_check_telephone_passcode_path(
+                auth_app_sign_up_check_telephone_passcode_path(
                   ri: params[:ri],
                   pt: signed_pt_param,
                   checkpoint_version: @sign_up_ticket.checkpoint_version,
@@ -58,6 +58,6 @@
 <% end %>
 
 <%= button_to t("actions.cancel"),
-              public_send(:"sign_app_sign_up_check_#{@sign_up_ticket.entry_method}_cancellation_path", ri: params[:ri], pt: signed_pt_param),
-              method: :post,
+              public_send(:"auth_app_sign_up_check_#{@sign_up_ticket.entry_method}_path", ri: params[:ri], pt: signed_pt_param),
+              method: :delete,
               form: { data: { turbo: false } } %>

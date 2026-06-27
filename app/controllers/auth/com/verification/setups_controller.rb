@@ -11,14 +11,14 @@ module Auth
 
         def new
           @pt = params[:pt].to_s.presence
-          @pt_destination = setup_pt_path(@pt, root_path: sign_com_settings_path(ri: params[:ri]))
+          @pt_destination = setup_pt_path(@pt, root_path: auth_com_settings_path(ri: params[:ri]))
           @missing_methods = %i(email_otp passkey) - configured_step_up_methods
 
           return unless @missing_methods.empty?
 
           safe_redirect_to(
             verification_redirect_path(pt: @pt),
-            fallback: sign_com_root_path(ri: params[:ri]),
+            fallback: auth_com_root_path(ri: params[:ri]),
             status: :found,
           )
         end

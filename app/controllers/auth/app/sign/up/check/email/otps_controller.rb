@@ -38,7 +38,7 @@ module Auth
                 result = issue_otp_ceremony!
                 return render_otp_ceremony_result(result) unless result.success?
 
-                redirect_to(sign_app_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_app_sign_up_check_email_otp_path(ri: params[:ri], pt: signed_pt_param))
               end
 
               def update
@@ -73,7 +73,7 @@ module Auth
 
               def sign_up_ticket_class = ClientSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_app_up_sequence_id
+              def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
               def sign_up_family = "email"
 
@@ -130,13 +130,13 @@ module Auth
               def redirect_invalid_session
                 reset_email_flow!
                 redirect_to(
-                  new_sign_app_sign_up_email_path(ri: params[:ri]),
+                  new_auth_app_sign_up_email_path(ri: params[:ri]),
                   notice: t("sign.app.registration.email.edit.session_expired"),
                 )
               end
 
               def complete_update_and_redirect
-                redirect_to(sign_app_sign_up_check_email_birthdate_path(ri: params[:ri], pt: signed_pt_param))
+                redirect_to(auth_app_sign_up_check_email_birthdate_path(ri: params[:ri], pt: signed_pt_param))
               end
 
               def advance_sign_up_flow_after_email_otp!

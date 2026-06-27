@@ -35,7 +35,7 @@ class OidcLogoutTokenCodec
       )
     end
 
-    def decode(logout_token:, client_id:, resource_type:, replay_store: nil)
+    def decode(logout_token:, client_id:, resource_type:, _replay_store: nil)
       payload = decode_payload!(
         logout_token: logout_token,
         client_id: client_id,

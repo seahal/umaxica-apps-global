@@ -24,22 +24,22 @@ class Auth::Org::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   end
 
   test "challenge route uses mfa path" do
-    assert_equal "/settings/mfa/challenge", URI.parse(sign_org_settings_mfa_challenge_url(ri: "jp")).path
+    assert_equal "/settings/mfa/challenge", URI.parse(auth_org_settings_mfa_challenge_url(ri: "jp")).path
   end
 
   test "should get show" do
-    get sign_org_settings_mfa_challenge_url(ri: "jp"), headers: @headers
+    get auth_org_settings_mfa_challenge_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "h1", I18n.t("sign.app.settings.mfa.show.title")
     assert_select "p", text: I18n.t("sign.app.settings.mfa.show.reset_unavailable")
-    assert_select "form[action=?]", sign_org_settings_mfa_challenge_path(ri: "jp"), count: 0
+    assert_select "form[action=?]", auth_org_settings_mfa_challenge_path(ri: "jp"), count: 0
   end
 
   test "update route is not exposed" do
     @staff.update!(mfa_level_id: OperatorMfaLevel::NOTHING, mfa_level_enabled: false)
 
-    patch sign_org_settings_mfa_challenge_url(ri: "jp"),
+    patch auth_org_settings_mfa_challenge_url(ri: "jp"),
           params: { user: { mfa_level_id: OperatorMfaLevel::FULL.to_s } },
           headers: @headers
 

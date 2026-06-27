@@ -64,7 +64,7 @@ module Auth
             )
             flash[:notice] = redirect_params.delete(:notice)
             sanitize_redirect_params!(redirect_params)
-            redirect_to(edit_sign_com_settings_emails_registration_path(redirect_params))
+            redirect_to(edit_auth_com_settings_emails_registration_path(redirect_params))
           end
 
           def update
@@ -90,7 +90,7 @@ module Auth
                 @user_email.destroy!
                 reset_email_registration_flow!
                 flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
-                redirect_to(new_sign_com_settings_emails_registration_path(ri: params[:ri]))
+                redirect_to(new_auth_com_settings_emails_registration_path(ri: params[:ri]))
                 return
               end
 
@@ -110,7 +110,7 @@ module Auth
             session.delete(registration_email_session_key)
             redirect_to(
               email_registration_return_path(
-                sign_com_settings_emails_url(
+                auth_com_settings_emails_url(
                   ri: params[:ri],
                   host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                 ),
@@ -196,7 +196,7 @@ module Auth
             )
             flash[:notice] = redirect_params.delete(:notice)
             sanitize_redirect_params!(redirect_params)
-            new_sign_com_settings_emails_registration_path(redirect_params)
+            new_auth_com_settings_emails_registration_path(redirect_params)
           end
 
           def email_registration_return_path(default_path)

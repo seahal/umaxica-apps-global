@@ -55,18 +55,18 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:redirect_to_jump_url) { |url, **kwargs| redirects << [[url], kwargs] }
     controller.define_singleton_method(:safe_redirect_to) { |*args, **kwargs| safe_redirects << [args, kwargs] }
     controller.define_singleton_method(:render_session_limit_hard_reject) { |**kwargs| hard_rejects << kwargs }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_sign_up_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_up_path) { |ri: nil|
       "/sign/up#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
+    controller.define_singleton_method(:auth_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_sign_in_session_path) { "/sign/in/session" }
-    controller.define_singleton_method(:sign_app_sign_in_check_path) do |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_sign_in_session_path) { "/sign/in/session" }
+    controller.define_singleton_method(:auth_app_sign_in_check_path) do |ri: nil, pt: nil|
       "/sign/in/check?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     end
     sign_in_sequence_redirects = []
@@ -186,8 +186,8 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
       "/dashboard"
     end
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_settings_path) { |ri: nil| "/settings?ri=#{ri}" }
+    controller.define_singleton_method(:auth_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:establish_signed_in_session!) do |*args, **kwargs|
@@ -269,10 +269,10 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     }
     controller.define_singleton_method(:redirect_to_sign_in_sequence!) { |**_kwargs| "/dashboard" }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_dashboard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_dashboard_path) { |ri: nil, pt: nil|
       "/dashboard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil| "/sign/in#{ri ? "?ri=#{ri}" : ""}" }
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil| "/sign/in#{ri ? "?ri=#{ri}" : ""}" }
     controller.define_singleton_method(:establish_signed_in_session!) do |resource, **kwargs|
       login_resource = resource
       login_kwargs = kwargs
@@ -379,7 +379,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_sign_up_guard_path) { |ri: nil, pt: nil|
+    controller.define_singleton_method(:auth_app_sign_up_guard_path) { |ri: nil, pt: nil|
       "/sign/up/guard?ri=#{ri}#{pt ? "&pt=#{pt}" : ""}"
     }
     controller.define_singleton_method(:sign_up_flow_locator) { locator }
@@ -436,7 +436,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     assert_equal "/after-social", cycle.return_to
     assert_equal [cycle], issued_cycles
-    assert_equal cycle.public_id, session_hash[:sign_app_up_sequence_id]
+    assert_equal cycle.public_id, session_hash[:auth_app_up_sequence_id]
   end
 
   test "social sign up entry with existing identity rejects sign-side session creation" do
@@ -456,7 +456,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
     controller.define_singleton_method(:issue_bulletin!) { false }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
     sign_in_sequence_redirects = []
@@ -464,7 +464,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
       sign_in_sequence_redirects << kwargs
       "/dashboard"
     end
-    controller.define_singleton_method(:sign_app_sign_up_guard_path) {
+    controller.define_singleton_method(:auth_app_sign_up_guard_path) {
       raise StandardError, "should not continue sign up"
     }
     controller.define_singleton_method(:establish_signed_in_session!) { raise StandardError, "should not sign in" }
@@ -504,7 +504,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
       user_google_identity_status: client_google_identity_statuses(:active),
     )
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: "google") }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:redirect_to) { |*| nil }
@@ -527,10 +527,10 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(provider: "apple", message: "cancelled", strategy: "apple") }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
-    controller.define_singleton_method(:sign_app_sign_up_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_up_path) { |ri: nil|
       "/sign/up#{ri ? "?ri=#{ri}" : ""}"
     }
     controller.define_singleton_method(:clear_social_auth_intent!) { @cleared_for_test = true }
@@ -654,8 +654,8 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.request.env["omniauth.auth"] = auth
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp") }
     controller.define_singleton_method(:session) { {} }
-    controller.define_singleton_method(:sign_app_up_sequence_id) { cycle.public_id }
-    controller.define_singleton_method(:sign_app_sign_up_check_apple_confirmation_path) do |**kwargs|
+    controller.define_singleton_method(:auth_app_up_sequence_id) { cycle.public_id }
+    controller.define_singleton_method(:auth_app_sign_up_check_apple_confirmation_path) do |**kwargs|
       "/sign/up/check/apple/confirmation?#{kwargs.compact.to_query}"
     end
     controller.define_singleton_method(:sign_up_flow_locator) do
@@ -695,7 +695,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
     controller.define_singleton_method(:session) { session_hash }
     controller.define_singleton_method(:params) { ActionController::Parameters.new(ri: "jp", provider: provider) }
     controller.define_singleton_method(:redirect_to) { |*args, **kwargs| redirects << [args, kwargs] }
-    controller.define_singleton_method(:sign_app_sign_in_path) { |ri: nil|
+    controller.define_singleton_method(:auth_app_sign_in_path) { |ri: nil|
       "/sign/in#{ri ? "?ri=#{ri}" : ""}"
     }
     sign_in_sequence_redirects = []

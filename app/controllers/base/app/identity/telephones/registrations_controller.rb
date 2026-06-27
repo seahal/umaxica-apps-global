@@ -109,7 +109,11 @@ module Base
 
           def current_registration_telephone = ClientTelephone.find_by(id: session[registration_session_key])
 
-          def valid_registration_session? = @user_telephone.present? && @user_telephone.user_id == current_client.id && !@user_telephone.otp_expired? && @user_telephone.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED
+          def valid_registration_session?
+            @user_telephone.present? && @user_telephone.user_id == current_client.id &&
+              !@user_telephone.otp_expired? &&
+              @user_telephone.user_telephone_status_id == ClientTelephoneStatus::UNVERIFIED
+          end
 
           def registration_session_key = :settings_telephone_registration_id
 

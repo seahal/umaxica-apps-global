@@ -23,7 +23,7 @@ module AvatarAssignmentAuthorityProtection
       next if another_active_assignment_for_role?(role)
 
       add_last_role_error(role)
-      throw :abort
+      throw(:abort)
     end
   end
 
@@ -41,9 +41,9 @@ module AvatarAssignmentAuthorityProtection
 
   def another_active_assignment_for_role?(protected_role)
     self.class
-        .where(avatar_id: avatar_id, role: protected_role)
-        .where.not(id: id)
-        .exists?
+      .where(avatar_id: avatar_id, role: protected_role)
+      .where.not(id: id)
+      .exists?
   end
 
   def protected_role?(candidate_role)

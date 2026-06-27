@@ -6,14 +6,14 @@
 
 <p>
   <%= link_to t("sign.org.settings.operator_lifecycle_requests.index.new"),
-              new_sign_org_settings_operator_lifecycle_request_path %>
+              new_auth_org_settings_operator_lifecycle_request_path %>
 </p>
 
 <ul>
   <% @operator_lifecycle_requests.each do |request| %>
     <li>
       <%= link_to "#{request.action} / #{request.status}",
-                  sign_org_settings_operator_lifecycle_request_path(request) %>
+                  auth_org_settings_operator_lifecycle_request_path(request) %>
       <% if request.target_operator %>
         <span><%= request.target_operator.public_id %></span>
       <% elsif request.target_email.present? %>
@@ -25,5 +25,5 @@
 
 <p>
   <%= link_to t("sign.org.settings.show.back"),
-              sign_org_settings_path %>
+              auth_org_settings_path %>
 </p>

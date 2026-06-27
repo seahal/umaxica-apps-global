@@ -80,15 +80,15 @@ class Auth::App::Sign::Up::TelephonesControllerCoverageTest < ActiveSupport::Tes
       @sign_up_flow_locator ||= FakeFlow.new(current_flow, false)
     end
 
-    def sign_app_sign_up_check_telephone_otp_path(**kwargs)
+    def auth_app_sign_up_check_telephone_otp_path(**kwargs)
       "/sign/up/check/telephone/otp?#{kwargs.compact.to_query}"
     end
 
-    def sign_app_sign_up_telephone_path(**kwargs)
+    def auth_app_sign_up_telephone_path(**kwargs)
       "/sign/up/telephone/new?#{kwargs.compact.to_query}"
     end
 
-    def sign_app_sign_in_path(**kwargs)
+    def auth_app_sign_in_path(**kwargs)
       "/sign/in?#{kwargs.compact.to_query}"
     end
 

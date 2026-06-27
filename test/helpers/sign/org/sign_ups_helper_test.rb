@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::Org::SignUpsHelperTest < ActionView::TestCase
+class SignOrgSignUpsHelperTest < ActionView::TestCase
   setup do
     extend Sign::Org::SignUpsHelper
   end

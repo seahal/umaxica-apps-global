@@ -14,7 +14,7 @@ class SignComSettingsActivityLogTest < ActiveSupport::TestCase
   end
 
   setup do
-    @log = Sign::Com::Settings::ActivityLog.new(visitors(:reserved_visitor))
+    @log = Auth::Com::Settings::ActivityLog.new(visitors(:reserved_visitor))
   end
 
   test "occurred_at returns occurred_at when present" do

@@ -21,14 +21,14 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     satisfy_staff_verification(token)
     host! host
 
-    get edit_sign_org_sign_out_url(ri: "jp", host: host), headers: {
+    get edit_auth_org_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
     assert_response :success
 
-    post sign_org_sign_out_url(ri: "jp", host: host), headers: {
+    post auth_org_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -41,7 +41,7 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal acme_host, location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_sign_org_sign_out_url(ri: "jp", host: host, protocol: "https"),
+    assert_equal complete_auth_org_sign_out_url(ri: "jp", host: host, protocol: "https"),
                  query["post_logout_redirect_uri"]
     assert_predicate query["state"], :present?
   end

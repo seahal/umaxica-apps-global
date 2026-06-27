@@ -11,16 +11,16 @@
   </div>
 
   <div>
-    <%= link_to new_sign_org_sign_in_passkey_path(pt: pt, ri: params[:ri]) do %>
+    <%= link_to new_auth_org_sign_in_passkey_path(pt: pt, ri: params[:ri]) do %>
       <span><%= t("sign.org.authentication.new.links.passkey") %></span>
     <% end %>
 
-    <%= link_to new_sign_org_sign_in_secret_credential_path(pt: pt, ri: params[:ri]) do %>
+    <%= link_to new_auth_org_sign_in_secret_credential_path(pt: pt, ri: params[:ri]) do %>
       <span><%= t("sign.org.authentication.new.links.secret_credential") %></span>
     <% end %>
 
     <div>
-      <%= link_to acme_org_root_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")) do %>
+      <%= link_to auth_org_root_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")) do %>
         <span><%= t("sign.org.authentication.new.back_to_root") %></span>
       <% end %>
     </div>

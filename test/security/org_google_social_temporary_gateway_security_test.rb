@@ -34,8 +34,8 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   test "org sign in page exposes only local verifier entrypoints" do
     source = read("app/views/auth/org/sign_ins/new.html.erb")
 
-    assert_match(/new_sign_org_sign_in_passkey_path/, source)
-    assert_match(/new_sign_org_sign_in_secret_credential_path/, source)
+    assert_match(/new_auth_org_sign_in_passkey_path/, source)
+    assert_match(/new_auth_org_sign_in_secret_credential_path/, source)
     assert_no_match(/social_authentication|google|apple|microsoft/i, source)
   end
 

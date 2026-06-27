@@ -24,7 +24,7 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
   test "show renders the otp form" do
     start_email_signup!("email-show@example.com")
 
-    get sign_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+    get auth_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
@@ -36,12 +36,12 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     user_email = start_email_signup!("email-valid@example.com")
     cycle = current_sign_up_cycle
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { client_email: { pass_code: otp_code_for(user_email) } },
           headers: default_headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_sign_up_check_email_birthdate_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_email_birthdate_url(ri: "jp")
     assert_equal ClientEmailStatus::VERIFIED_WITH_SIGN_UP, user_email.reload.user_email_status_id
     assert_equal ClientSignUpFlowStatus::CHECKPOINT_PENDING, cycle.reload.status_id
     assert_equal "checkpoint", cycle.reload.step
@@ -53,30 +53,30 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     user_email = start_email_signup!("email-show-expired@example.com")
 
     travel_to(user_email.reload.otp_expires_at + 1.second) do
-      get sign_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+      get auth_app_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
     end
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_sign_up_email_url(ri: "jp")
+    assert_redirected_to new_auth_app_sign_up_email_url(ri: "jp")
   end
 
   test "patch with an expired otp redirects to the start" do
     user_email = start_email_signup!("email-expired@example.com")
 
     travel_to(user_email.reload.otp_expires_at + 1.second) do
-      patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
             params: { client_email: { pass_code: "000000" } },
             headers: default_headers
     end
 
     assert_response :redirect
-    assert_redirected_to new_sign_app_sign_up_email_url(ri: "jp")
+    assert_redirected_to new_auth_app_sign_up_email_url(ri: "jp")
   end
 
   test "patch with a blank otp returns a validation error" do
     start_email_signup!("email-blank@example.com")
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { client_email: { pass_code: "" } },
           headers: default_headers
 
@@ -87,7 +87,7 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
   test "patch with an invalid otp returns a validation error" do
     start_email_signup!("email-wrong@example.com")
 
-    patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+    patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
           params: { client_email: { pass_code: "000000" } },
           headers: default_headers
 
@@ -101,7 +101,7 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
     completed_requirements = cycle.completed_requirements.deep_dup
 
     Email::MAX_OTP_ATTEMPTS.times do
-      patch sign_app_sign_up_check_email_otp_url(ri: "jp"),
+      patch auth_app_sign_up_check_email_otp_url(ri: "jp"),
             params: { client_email: { pass_code: "000000" } },
             headers: default_headers
     end
@@ -118,7 +118,7 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest < ActionDispatch::In
 
   def start_email_signup!(email)
     post(
-      sign_app_sign_up_email_url(ri: "jp"),
+      auth_app_sign_up_email_url(ri: "jp"),
       params: {
         user_email: {
           raw_address: email,

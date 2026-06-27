@@ -47,7 +47,7 @@ module Auth::App::In
       end
 
       with_prosopite_paused do
-        get new_sign_app_sign_in_challenge_totp_path(ri: "jp")
+        get new_auth_app_sign_in_challenge_totp_path(ri: "jp")
       end
 
       assert_response :success
@@ -64,11 +64,11 @@ module Auth::App::In
 
     test "new redirects to sign in when pending_mfa is missing" do
       with_prosopite_paused do
-        get new_sign_app_sign_in_challenge_totp_path(ri: "jp")
+        get new_auth_app_sign_in_challenge_totp_path(ri: "jp")
       end
 
       assert_response :see_other
-      assert_redirected_to sign_app_sign_in_path(ri: "jp")
+      assert_redirected_to auth_app_sign_in_path(ri: "jp")
       assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
@@ -95,7 +95,7 @@ module Auth::App::In
       totp_code = ROTP::TOTP.new(@totp.private_key).now
 
       with_prosopite_paused do
-        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_totp_path(ri: "jp"), params: {
           totp_challenge_form: { token: totp_code },
         }
       end
@@ -122,7 +122,7 @@ module Auth::App::In
       end
 
       with_prosopite_paused do
-        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_totp_path(ri: "jp"), params: {
           totp_challenge_form: { token: "000000" },
         }
       end
@@ -141,7 +141,7 @@ module Auth::App::In
       totp_code = ROTP::TOTP.new(@totp.private_key).now
 
       with_prosopite_paused do
-        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_totp_path(ri: "jp"), params: {
           totp_challenge_form: { token: totp_code },
         }
       end
@@ -166,7 +166,7 @@ module Auth::App::In
       @totp.update!(last_otp_at: Time.zone.at(otp_window_at))
 
       with_prosopite_paused do
-        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_totp_path(ri: "jp"), params: {
           totp_challenge_form: { token: totp_code },
         }
       end
@@ -177,13 +177,13 @@ module Auth::App::In
 
     test "create without pending_mfa redirects to sign in" do
       with_prosopite_paused do
-        post sign_app_sign_in_challenge_totp_path(ri: "jp"), params: {
+        post auth_app_sign_in_challenge_totp_path(ri: "jp"), params: {
           totp_challenge_form: { token: "123456" },
         }
       end
 
       assert_response :see_other
-      assert_redirected_to sign_app_sign_in_path(ri: "jp")
+      assert_redirected_to auth_app_sign_in_path(ri: "jp")
     end
 
     private
@@ -191,7 +191,7 @@ module Auth::App::In
     def establish_pending_mfa_via_secret_credential!
       with_prosopite_paused do
         post(
-          sign_app_sign_in_secret_credential_path(ri: "jp"), params: {
+          auth_app_sign_in_secret_credential_path(ri: "jp"), params: {
             secret_credential_login_form: {
               identifier: @email,
               secret_credential_value: @raw_secret_credential,

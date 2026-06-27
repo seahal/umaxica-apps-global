@@ -9,6 +9,6 @@ class Auth::Org::Verification::CancellationsController < ::Auth::Org::Verificati
   private
 
   def verification_cancellation_fallback_path
-    sign_org_settings_path(ri: params[:ri])
+    auth_org_settings_path(ri: params[:ri])
   end
 end

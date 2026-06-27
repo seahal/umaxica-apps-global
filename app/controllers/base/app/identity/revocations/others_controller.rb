@@ -13,7 +13,9 @@ module Base
 
               AuthenticationSelectedSessionRevoker.call(
                 owner: current_client, token: token,
-                current_token: current_session, current_session_public_id: current_session_public_id, reason: "settings.session.revoke_others",
+                current_token: current_session,
+                current_session_public_id: current_session_public_id,
+                reason: "settings.session.revoke_others",
               )
             end
             redirect_to(base_app_identity_sessions_path(ri: params[:ri]), status: :see_other)

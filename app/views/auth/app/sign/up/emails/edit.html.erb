@@ -11,7 +11,7 @@
         </p>
       </div>
 
-      <%= form_with model: @user_email, url: sign_app_sign_up_check_email_otp_path(ri: params[:ri]), method: :patch do |form| %>
+      <%= form_with model: @user_email, url: auth_app_sign_up_check_email_otp_path(ri: params[:ri]), method: :patch do |form| %>
         <% pt = signed_pt_param %>
         <%= hidden_field_tag :pt, pt if pt.present? %>
 
@@ -41,7 +41,7 @@
       <p><%= t("sign.app.authentication.email.edit.delivery_help") %></p>
 
       <div>
-        <%= link_to t("sign.app.registration.email.edit.return_page"), sign_app_sign_up_path %>
+        <%= link_to t("sign.app.registration.email.edit.return_page"), auth_app_sign_up_path %>
       </div>
     </div>
   </div>

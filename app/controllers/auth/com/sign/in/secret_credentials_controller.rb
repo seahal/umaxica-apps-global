@@ -26,24 +26,24 @@ module Auth
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
+            scope: "auth_com_sign_in",
             name: "secret_credential_create_ip_burst",
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "sign_com_sign_in_secret_credential_create_ip_burst", retry_after: 60)
+              render_rate_limited(rule_name: "auth_com_sign_in_secret_credential_create_ip_burst", retry_after: 60)
             },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
+            scope: "auth_com_sign_in",
             name: "secret_credential_create_ip_sustained",
             store: rate_limit_store,
             only: :create,
             with: -> {
-              render_rate_limited(rule_name: "sign_com_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
+              render_rate_limited(rule_name: "auth_com_sign_in_secret_credential_create_ip_sustained", retry_after: 900)
             },
           )
           before_action :start_minimum_response_budget

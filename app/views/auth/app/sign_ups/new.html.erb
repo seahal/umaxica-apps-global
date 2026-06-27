@@ -5,27 +5,27 @@
 <ul>
   <li data-test-id="registration-method">
     <%= link_to t("sign.app.registration.new.methods.email.cta"),
-                new_sign_app_sign_up_email_path(ri: params[:ri]) %>
+                new_auth_app_sign_up_email_path(ri: params[:ri]) %>
   </li>
   <li data-test-id="registration-method">
     <%= link_to t("sign.app.registration.new.methods.telephone.cta"),
-                new_sign_app_sign_up_telephone_path(ri: params[:ri]) %>
+                new_auth_app_sign_up_telephone_path(ri: params[:ri]) %>
   </li>
 </ul>
 
 <ul>
   <li data-test-id="registration-method">
-    <%= link_to sign_app_social_google_sign_up_path,
+    <%= link_to auth_app_social_google_auth_up_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.registration.new.social.buttons.google") %>
     <% end %>
   </li>
   <li data-test-id="registration-method">
-    <%= link_to sign_app_social_apple_sign_up_path,
+    <%= link_to auth_app_social_apple_auth_up_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.registration.new.social.buttons.apple") %>
     <% end %>
   </li>
 </ul>
 
-<%= link_to t("sign.app.registration.new.links.sign_in"), sign_app_sign_in_path %>
+<%= link_to t("sign.app.registration.new.links.sign_in"), auth_app_sign_in_path %>

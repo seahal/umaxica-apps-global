@@ -14,7 +14,7 @@ class Auth::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   end
 
   test "index renders sign session inventory" do
-    get sign_org_settings_sessions_url(ri: "jp"), headers: session_headers
+    get auth_org_settings_sessions_url(ri: "jp"), headers: session_headers
 
     assert_response :success
     assert_includes response.body, @current_token.public_id
@@ -23,18 +23,18 @@ class Auth::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "selected revocation revokes other session" do
     other_token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
 
-    post sign_org_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
+    post auth_org_settings_session_revocation_url(other_token.public_id, ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_org_settings_sessions_path(ri: "jp")
+    assert_redirected_to auth_org_settings_sessions_path(ri: "jp")
     assert_not_predicate other_token.reload, :currently_usable?
   end
 
   test "others revocation preserves current session" do
     other_token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
 
-    post sign_org_settings_revocations_others_url(ri: "jp"), headers: session_headers
+    post auth_org_settings_revocations_others_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_org_settings_sessions_path(ri: "jp")
+    assert_redirected_to auth_org_settings_sessions_path(ri: "jp")
     assert_predicate @current_token.reload, :currently_usable?
     assert_not_predicate other_token.reload, :currently_usable?
   end
@@ -42,9 +42,9 @@ class Auth::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   test "revoke all revokes every session" do
     other_token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
 
-    post sign_org_settings_revocations_all_url(ri: "jp"), headers: session_headers
+    post auth_org_settings_revocations_all_url(ri: "jp"), headers: session_headers
 
-    assert_redirected_to sign_org_sign_out_path(ri: "jp")
+    assert_redirected_to auth_org_sign_out_path(ri: "jp")
     assert_not_predicate @current_token.reload, :currently_usable?
     assert_not_predicate other_token.reload, :currently_usable?
   end

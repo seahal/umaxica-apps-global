@@ -10,7 +10,7 @@
     </div>
   <% end %>
 
-  <%= form_with url: sign_org_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
+  <%= form_with url: auth_org_verification_passkey_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <% options_json = @passkey_request_options ? json_escape(@passkey_request_options.to_json) : "" %>
     <div
       data-controller="step-up-passkey"
@@ -30,6 +30,6 @@
   <% end %>
 
   <div>
-    <%= link_to t("sign.org.verification.edit.back"), sign_org_verification_path(ri: params[:ri]) %>
+    <%= link_to t("sign.org.verification.edit.back"), auth_org_verification_path(ri: params[:ri]) %>
   </div>
 </div>

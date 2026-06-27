@@ -88,7 +88,9 @@ module Base
 
         def authorize_secret_credentials! = authorize!(ClientSecretCredential, to: :index?)
 
-        def set_secret_credential = @secret_credential = current_client.client_secret_credentials.find_by!(public_id: params.expect(:id))
+        def set_secret_credential
+          @secret_credential = current_client.client_secret_credentials.find_by!(public_id: params.expect(:id))
+        end
 
         def secret_credential_params = params.fetch(:user_secret_credential, {}).permit(:name, :enabled)
       end

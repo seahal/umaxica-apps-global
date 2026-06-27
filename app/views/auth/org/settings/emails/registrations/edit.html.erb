@@ -3,7 +3,7 @@
 <h1><%= t("sign.app.authentication.email.edit.page_title") %></h1>
 <p><%= t("sign.app.authentication.email.edit.description") %></p>
 
-<%= form_with model: @staff_email, url: sign_org_settings_emails_registration_path, method: :patch, scope: :staff_email do |form| %>
+<%= form_with model: @staff_email, url: auth_org_settings_emails_registration_path, method: :patch, scope: :staff_email do |form| %>
   <% if @staff_email.errors.any? %>
     <div>
       <ul role="list">
@@ -37,5 +37,5 @@
 
 <div>
   <%= link_to t("sign.common.cancel"),
-              sign_org_settings_emails_path(ri: params[:ri]) %>
+              auth_org_settings_emails_path(ri: params[:ri]) %>
 </div>

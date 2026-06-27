@@ -21,24 +21,24 @@ module Auth
               to: 5,
               within: 1.minute,
               by: -> { request.remote_ip },
-              scope: "sign_app_sign_in",
+              scope: "auth_app_sign_in",
               name: "mfa_passkey_create_ip_burst",
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
+                render_rate_limited(rule_name: "auth_app_sign_in_mfa_passkey_create_ip_burst", retry_after: 60)
               },
             )
             rate_limit(
               to: 20,
               within: 15.minutes,
               by: -> { request.remote_ip },
-              scope: "sign_app_sign_in",
+              scope: "auth_app_sign_in",
               name: "mfa_passkey_create_ip_sustained",
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "sign_app_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
+                render_rate_limited(rule_name: "auth_app_sign_in_mfa_passkey_create_ip_sustained", retry_after: 900)
               },
             )
 
@@ -50,7 +50,7 @@ module Auth
 
               if passkeys.empty?
                 redirect_to(
-                  sign_app_sign_in_challenge_path,
+                  auth_app_sign_in_challenge_path,
                   alert: I18n.t("errors.webauthn.no_passkeys_available"),
                   status: :see_other,
                 )
@@ -66,7 +66,7 @@ module Auth
             rescue SignWebauthn::OriginValidationError => e
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", error: e.message))
               redirect_to(
-                sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.origin_invalid"),
+                auth_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.origin_invalid"),
                                                  status: :see_other,
               )
             end
@@ -74,7 +74,7 @@ module Auth
             def create
               unless cloudflare_turnstile_stealth_validation["success"]
                 redirect_to(
-                  new_sign_app_sign_in_challenge_passkey_path,
+                  new_auth_app_sign_in_challenge_passkey_path,
                   alert: I18n.t("session_limit.turnstile_failed"),
                   status: :see_other,
                 )
@@ -87,17 +87,17 @@ module Auth
             rescue SignWebauthn::ChallengeNotFoundError, SignWebauthn::ChallengeExpiredError,
                    SignWebauthn::ChallengePurposeMismatchError
               redirect_to(
-                sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.challenge_invalid"),
+                auth_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.challenge_invalid"),
                                                  status: :see_other,
               )
             rescue WebAuthn::SignCountVerificationError
               redirect_to(
-                sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.sign_count_mismatch"),
+                auth_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.sign_count_mismatch"),
                                                  status: :see_other,
               )
             rescue WebAuthn::Error
               redirect_to(
-                sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
+                auth_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
                                                  status: :see_other,
               )
             end
@@ -109,7 +109,7 @@ module Auth
 
               clear_pending_mfa!
               redirect_to(
-                sign_app_sign_in_path,
+                auth_app_sign_in_path,
                 alert: I18n.t("sign.app.in.mfa.session_expired"),
                 status: :see_other,
               )
@@ -138,7 +138,7 @@ module Auth
                                  reason: "mfa_passkey_mismatch",
                 )
                 redirect_to(
-                  sign_app_sign_in_challenge_path,
+                  auth_app_sign_in_challenge_path,
                   alert: I18n.t("errors.webauthn.credential_not_found"),
                   status: :see_other,
                 )
@@ -151,7 +151,7 @@ module Auth
               complete_mfa_login!(user)
             rescue JSON::ParserError
               redirect_to(
-                sign_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
+                auth_app_sign_in_challenge_path, alert: I18n.t("errors.webauthn.verification_failed"),
                                                  status: :see_other,
               )
             end
@@ -170,7 +170,7 @@ module Auth
                 )
               else
                 redirect_to(
-                  sign_app_sign_in_path,
+                  auth_app_sign_in_path,
                   alert: I18n.t("sign.app.in.mfa.verification_failed"),
                   status: :see_other,
                 )

@@ -22,21 +22,21 @@ module Auth
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
+            scope: "auth_com_sign_in",
             name: "email_create_ip_burst",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "sign_com_sign_in_email_create_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(rule_name: "auth_com_sign_in_email_create_ip_burst", retry_after: 60) },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_com_sign_in",
+            scope: "auth_com_sign_in",
             name: "email_create_ip_sustained",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "sign_com_sign_in_email_create_ip_sustained", retry_after: 900) },
+            with: -> { render_rate_limited(rule_name: "auth_com_sign_in_email_create_ip_sustained", retry_after: 900) },
           )
           declare_authentication_mode!(
             :guest,
@@ -91,7 +91,7 @@ module Auth
             preserve_pt
 
             flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-            redirect_to(edit_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
+            redirect_to(edit_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
           end
 
           private
@@ -107,7 +107,7 @@ module Auth
 
               unless @user_email
                 flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-                redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
+                redirect_to(new_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
                 return
               end
               @otp_resend_state = SignInOtpResendState.issue(kind: :email, target: @user_email.address)
@@ -119,7 +119,7 @@ module Auth
               )
             else
               flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-              redirect_to(new_sign_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
+              redirect_to(new_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
             end
           end
 

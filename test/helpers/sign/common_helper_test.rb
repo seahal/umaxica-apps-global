@@ -3,9 +3,9 @@
 
 require "test_helper"
 
-class Sign::CommonHelperTest < ActionView::TestCase
+class Auth::CommonHelperTest < ActionView::TestCase
   setup do
-    extend Sign::CommonHelper
+    extend Auth::CommonHelper
   end
 
   test "localized_session_timestamp falls back to strftime when short format is unavailable" do

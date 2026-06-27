@@ -44,7 +44,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
     get(
-      new_sign_com_settings_telephones_registration_url(
+      new_auth_com_settings_telephones_registration_url(
         ri: "jp",
       ),
       headers: request_headers_for(visitor, token),
@@ -62,7 +62,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
     get(
-      new_sign_com_settings_telephones_registration_url(ri: "jp"),
+      new_auth_com_settings_telephones_registration_url(ri: "jp"),
       headers: request_headers_for(visitor, token),
     )
 
@@ -73,21 +73,21 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
   test "create registers telephone for current visitor" do
     get(
-      new_sign_com_settings_telephones_registration_url(
+      new_auth_com_settings_telephones_registration_url(
         ri: "jp",
       ),
       headers: request_headers,
     )
     assert_enqueued_jobs 1, only: Outbound::SmsDeliveryJob do
       assert_difference("VisitorTelephone.count", 1) do
-        post sign_com_settings_telephones_registration_url(ri: "jp"),
+        post auth_com_settings_telephones_registration_url(ri: "jp"),
              params: { user_telephone: { raw_number: "+10000000039" } },
              headers: request_headers
       end
     end
 
     assert_response :redirect
-    assert_redirected_to edit_sign_com_settings_telephones_registration_url(ri: "jp")
+    assert_redirected_to edit_auth_com_settings_telephones_registration_url(ri: "jp")
 
     visitor_telephone = VisitorTelephone.order(created_at: :desc).first
 
@@ -97,7 +97,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
   test "new renders stealth turnstile" do
     get(
-      new_sign_com_settings_telephones_registration_url(
+      new_auth_com_settings_telephones_registration_url(
         ri: "jp",
       ),
       headers: request_headers,
@@ -118,7 +118,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     )
 
     with_current_registration_telephone(telephone) do
-      get edit_sign_com_settings_telephones_registration_url(ri: "jp"),
+      get edit_auth_com_settings_telephones_registration_url(ri: "jp"),
           headers: request_headers
     end
 
@@ -151,7 +151,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       end
 
       patch(
-        sign_com_settings_telephones_registration_url(ri: "jp"),
+        auth_com_settings_telephones_registration_url(ri: "jp"),
         params: { user_telephone: { pass_code: "123456" } },
         headers: request_headers,
       )
@@ -162,7 +162,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       )
     end
 
-    assert_redirected_to sign_com_settings_telephones_url(
+    assert_redirected_to auth_com_settings_telephones_url(
       ri: "jp",
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )

@@ -66,11 +66,11 @@ class Auth::Com::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   end
 
   test "challenge route uses mfa path" do
-    assert_equal "/settings/mfa/challenge", URI.parse(sign_com_settings_mfa_challenge_url(ri: "jp")).path
+    assert_equal "/settings/mfa/challenge", URI.parse(auth_com_settings_mfa_challenge_url(ri: "jp")).path
   end
 
   test "show renders current passkeys and secret_credentials" do
-    get sign_com_settings_mfa_challenge_url(ri: "jp"), headers: request_headers
+    get auth_com_settings_mfa_challenge_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_includes response.body, "MFA settings"
@@ -81,7 +81,7 @@ class Auth::Com::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   test "update route is not exposed" do
     @visitor.update!(mfa_level_id: VisitorMfaLevel::NOTHING, mfa_level_enabled: false)
 
-    patch sign_com_settings_mfa_challenge_url(ri: "jp"),
+    patch auth_com_settings_mfa_challenge_url(ri: "jp"),
           params: { user: { mfa_level_id: VisitorMfaLevel::FULL.to_s } },
           headers: request_headers
 

@@ -16,7 +16,7 @@ module Auth
           # (owner-self), mirroring the birthdate page. Step-up/verification guards remain below.
           before_action :authorize_mfa_challenge!, only: %i(show update)
 
-          def show = redirect_to(acme_app_identity_mfa_challenge_path(ri: params[:ri]), status: :see_other)
+          def show = redirect_to(base_app_identity_mfa_challenge_path(ri: params[:ri]), status: :see_other)
 
           def update = head(:gone)
 

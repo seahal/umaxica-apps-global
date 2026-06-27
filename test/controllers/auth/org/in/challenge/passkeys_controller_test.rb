@@ -58,9 +58,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   end
 
   test "new requires pending MFA session" do
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
-    assert_redirected_to sign_org_sign_in_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_path(ri: "jp")
     assert_equal I18n.t("sign.org.in.mfa.session_expired"), flash[:alert]
   end
 
@@ -68,16 +68,16 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     establish_pending_mfa!
     @staff.operator_passkeys.update_all(status_id: OperatorPasskeyStatus::REVOKED)
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_equal I18n.t("errors.webauthn.no_passkeys_available"), flash[:alert]
   end
 
   test "new renders page with challenge when MFA pending" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
     assert_response :success
     assert_not_nil session[:passkey_challenges]
@@ -92,9 +92,9 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     Webauthn.define_singleton_method(:trusted_origins) { [] }
 
     establish_pending_mfa!
-    get(new_sign_org_sign_in_challenge_passkey_path(ri: "jp"))
+    get(new_auth_org_sign_in_challenge_passkey_path(ri: "jp"))
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_predicate flash[:alert], :present?
   ensure
     ENV["WEBAUTHN_ORG_ORIGIN"] = original_org_origin if original_org_origin
@@ -105,38 +105,38 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     establish_pending_mfa!
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     session[:passkey_challenges] = { "test-id" => { "challenge" => "test", "purpose" => "authentication" } }
 
-    post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+    post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
       mfa_passkey_form: {
         challenge_id: "test-id",
         credential_json: { id: @passkey.webauthn_id, rawId: "test" }.to_json,
       },
     }
 
-    assert_redirected_to new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    assert_redirected_to new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     assert_predicate flash[:alert], :present?
   end
 
   test "create redirects on invalid challenge" do
     establish_pending_mfa!
 
-    post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+    post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
       mfa_passkey_form: {
         challenge_id: "invalid_challenge_id",
         credential_json: { id: @passkey.webauthn_id }.to_json,
       },
     }
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_equal I18n.t("errors.webauthn.challenge_invalid"), flash[:alert]
   end
 
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -146,7 +146,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"),
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -174,7 +174,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   test "create redirects when passkey credential mismatch" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -184,7 +184,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
         mfa_passkey_form: {
           challenge_id: challenge_id,
           credential_json: {
@@ -196,13 +196,13 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
       }
     end
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
   end
 
   test "create handles sign count verification error" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -214,7 +214,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     end
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
         mfa_passkey_form: {
           challenge_id: challenge_id,
           credential_json: {
@@ -226,14 +226,14 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
       }
     end
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_equal I18n.t("errors.webauthn.sign_count_mismatch"), flash[:alert]
   end
 
   test "create handles generic WebAuthn error" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -245,7 +245,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     end
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
         mfa_passkey_form: {
           challenge_id: challenge_id,
           credential_json: {
@@ -257,33 +257,33 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
       }
     end
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_equal I18n.t("errors.webauthn.verification_failed"), flash[:alert]
   end
 
   test "create handles challenge not found error" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
     # Clear challenge from session to simulate expired challenge
     session.delete(:passkey_challenges)
 
-    post sign_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
+    post auth_org_sign_in_challenge_passkey_path(ri: "jp"), params: {
       mfa_passkey_form: {
         challenge_id: "old-challenge-id",
         credential_json: { id: @passkey.webauthn_id }.to_json,
       },
     }
 
-    assert_redirected_to sign_org_sign_in_challenge_path(ri: "jp")
+    assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
     assert_equal I18n.t("errors.webauthn.challenge_invalid"), flash[:alert]
   end
 
   test "complete_mfa_login! handles session limit hard reject" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -293,7 +293,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"),
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -317,7 +317,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   test "complete_mfa_login! handles restricted session" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -327,7 +327,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp"),
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -351,7 +351,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   test "complete_mfa_login! handles bulletin issue" do
     establish_pending_mfa!
 
-    get new_sign_org_sign_in_challenge_passkey_path(ri: "jp")
+    get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
     challenge_id = session[:passkey_challenges].keys.first
 
     mock_credential = OpenStruct.new(
@@ -361,7 +361,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_org_sign_in_challenge_passkey_path(ri: "jp", pt: "/bulletin/path"),
+      post auth_org_sign_in_challenge_passkey_path(ri: "jp", pt: "/bulletin/path"),
            headers: { "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "new") },
            params: {
              mfa_passkey_form: {
@@ -386,7 +386,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
   def establish_pending_mfa!
     post(
-      sign_org_sign_in_secret_credential_url(ri: "jp"), params: {
+      auth_org_sign_in_secret_credential_url(ri: "jp"), params: {
         secret_credential_login_form: {
           identifier: @staff.public_id.downcase,
           secret_credential_value: @raw_secret_credential,

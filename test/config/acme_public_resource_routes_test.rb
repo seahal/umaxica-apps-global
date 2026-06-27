@@ -5,7 +5,7 @@ require "test_helper"
 
 class AcmePublicResourceRoutesTest < ActiveSupport::TestCase
   test "accounts and organizations routes are index/show only" do
-    route_file = Rails.root.join("config/routes/acme.rb").read
+    route_file = Rails.root.join("config/routes/base.rb").read
 
     assert_match(/resources :accounts, only: %i\(index show\)/, route_file)
     assert_match(/resources :organizations, only: %i\(index show\)/, route_file)

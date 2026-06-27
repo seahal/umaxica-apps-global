@@ -74,7 +74,7 @@ class Auth::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
     assert_predicate registration, :present?, "expected Secure-Session-Registration on check response"
     assert_equal registration, legacy_registration
     assert_includes registration, "(ES256 RS256);"
-    assert_includes registration, %(path="#{sign_app_edge_v0_token_dbsc_path}")
+    assert_includes registration, %(path="#{auth_app_edge_v0_token_dbsc_path}")
     assert_includes registration, "challenge="
   end
 

@@ -35,7 +35,7 @@ module RestrictedSessionGuard
 
     controller_path.end_with?("in/sessions", "in/session/cancellations") ||
       controller_path.match?(%r{\Asign/(?:app|com|org)/settings/sessions\z}) ||
-      controller_path == "sign/app/settings/mfa/resets"
+      controller_path == "auth/app/settings/mfa/resets"
   end
 
   def restricted_session_expired?

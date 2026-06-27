@@ -69,7 +69,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
     cookies["csrf_token"] = "test_csrf_token"
 
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          params: { "cf-turnstile-response": "test" },
          headers: browser_headers.merge("X-CSRF-Token" => "test_csrf_token")
 
@@ -84,7 +84,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case D-2: Logged in -> JSON options
   test "options returns challenge and options" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers
 
     assert_response :ok
@@ -111,7 +111,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   # Case D-2b: JSON response format validation (regression test for Base64URL encoding bugs)
   test "options returns valid Base64URL encoded values" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers
 
     assert_response :ok
@@ -160,7 +160,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     ENV["WEBAUTHN_APP_RP_ID"] = "log.umaxica.app"
     ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
     Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
-      post sign_app_settings_passkeys_options_path(ri: "jp"),
+      post auth_app_settings_passkeys_options_path(ri: "jp"),
            headers: @headers
     end
 
@@ -172,7 +172,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "options rejects untrusted origin" do
     # Temporarily remove trusted origins
     Webauthn.stub(:trusted_origins, []) do
-      post sign_app_settings_passkeys_options_path(ri: "jp"),
+      post auth_app_settings_passkeys_options_path(ri: "jp"),
            headers: @headers
 
       assert_response :forbidden
@@ -185,7 +185,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       challenge_id: "unknown",
       credential: { id: "cred_id", response: {} },
     }
-    post sign_app_settings_passkeys_verification_path(ri: "jp"),
+    post auth_app_settings_passkeys_verification_path(ri: "jp"),
          params: params,
          headers: @headers
 
@@ -197,7 +197,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Case E-3: Verify success
   test "verification creates passkey on success" do
     # Get challenge
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
@@ -224,7 +224,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       step_up_before = Time.current
 
       assert_difference("ClientPasskey.count", 1) do
-        post sign_app_settings_passkeys_verification_path(ri: "jp"),
+        post auth_app_settings_passkeys_verification_path(ri: "jp"),
              params: params,
              headers: @headers
       end
@@ -251,7 +251,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       session_public_id: token.public_id,
     )
 
-    post sign_app_settings_passkeys_options_path(
+    post auth_app_settings_passkeys_options_path(
       ri: "jp",
     ), headers: headers
     challenge_id = response.parsed_body["challenge_id"]
@@ -278,7 +278,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
             unverified_user.client_secret_credentials.where(user_secret_kind_id: ClientSecretCredentialKind::RECOVERY).count
           }, 8,
         ) do
-          post sign_app_settings_passkeys_verification_path(ri: "jp"),
+          post auth_app_settings_passkeys_verification_path(ri: "jp"),
                params: params,
                headers: headers
         end
@@ -291,7 +291,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "verification rejects duplicate webauthn_id" do
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
     duplicate_webauthn_id = @passkey_webauthn_id
@@ -315,7 +315,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post sign_app_settings_passkeys_verification_path(ri: "jp"),
+        post auth_app_settings_passkeys_verification_path(ri: "jp"),
              params: params,
              headers: @headers
       end
@@ -328,7 +328,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Case E-4: Verify failure
   test "verification fails on WebAuthn error" do
     # Get challenge
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers
     challenge_id = response.parsed_body["challenge_id"]
 
@@ -346,7 +346,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       }
 
       assert_no_difference("ClientPasskey.count") do
-        post sign_app_settings_passkeys_verification_path(ri: "jp"),
+        post auth_app_settings_passkeys_verification_path(ri: "jp"),
              params: params,
              headers: @headers
       end
@@ -358,7 +358,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Standard CRUD tests retained and updated to avoid conflicts or use as is
   test "should get index" do
     with_prosopite_paused do
-      get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+      get auth_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
@@ -367,32 +367,32 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "should show up link on index page" do
     with_prosopite_paused do
-      get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+      get auth_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", new_sign_app_settings_passkey_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_app_settings_passkey_path(ri: "jp")
   end
 
   test "should get new" do
     with_prosopite_paused do
-      get new_sign_app_settings_passkey_path(ri: "jp"),
+      get new_auth_app_settings_passkey_path(ri: "jp"),
           headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
+    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
   end
 
   test "new denies with zero unused usable recovery passcodes" do
     @user.client_secret_credentials.destroy_all
 
-    get new_sign_app_settings_passkey_path(ri: "jp"),
+    get new_auth_app_settings_passkey_path(ri: "jp"),
         headers: @headers
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, sign_app_settings_secret_credentials_url(
+    assert_includes response.body, auth_app_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
@@ -403,7 +403,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @user.client_secret_credentials.destroy_all
     create_client_recovery_passcode!(@user, name: "only recovery")
 
-    post sign_app_settings_passkeys_options_path(ri: "jp"),
+    post auth_app_settings_passkeys_options_path(ri: "jp"),
          headers: @headers,
          as: :json
 
@@ -426,7 +426,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     create_client_recovery_passcode!(@other_user, name: "other 2")
 
     assert_no_difference("ClientPasskey.count") do
-      post sign_app_settings_passkeys_verification_path(ri: "jp"),
+      post auth_app_settings_passkeys_verification_path(ri: "jp"),
            params: { challenge_id: "unknown", credential: { id: "cred-id" } },
            headers: @headers,
            as: :json
@@ -440,7 +440,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @passkey.update!(last_used_at: nil)
 
     with_prosopite_paused do
-      get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      get auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :ok
@@ -449,11 +449,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "show renders back link before passkey details" do
     with_prosopite_paused do
-      get sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      get auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
+    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
   end
 
   test "new allows bootstrap passkey registration with two recovery passcodes" do
@@ -475,7 +475,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     with_prosopite_paused do
-      get new_sign_app_settings_passkey_path(ri: "jp"), headers: headers
+      get new_auth_app_settings_passkey_path(ri: "jp"), headers: headers
     end
 
     assert_response :ok
@@ -499,7 +499,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_no_difference("ClientPasskey.count") do
       assert_no_difference("ClientChronicle.count") do
-        post sign_app_settings_passkeys_path(ri: "jp"),
+        post auth_app_settings_passkeys_path(ri: "jp"),
              params: {
                user_passkey: {
                  webauthn_id: "wk_#{SecureRandom.hex(8)}",
@@ -513,35 +513,35 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :see_other
-    assert_redirected_to new_sign_app_settings_passkey_path(ri: "jp")
+    assert_redirected_to new_auth_app_settings_passkey_path(ri: "jp")
   end
 
   test "should get edit with public_id" do
     with_prosopite_paused do
-      get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      get edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "form[action=?]", sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_select "form[action=?]", auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
     assert_equal @passkey.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
 
   test "edit shows back link to passkey list" do
     with_prosopite_paused do
-      get edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      get edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", sign_app_settings_passkeys_path(ri: "jp")
+    assert_select "a[href=?]", auth_app_settings_passkeys_path(ri: "jp")
   end
 
   test "should update description with public_id" do
-    patch sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
+    patch auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"),
           params: { client_passkey: { description: "Updated" } },
           headers: @headers
 
-    assert_redirected_to sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_redirected_to auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
     assert_equal "Updated", @passkey.reload.description
   end
 
@@ -555,10 +555,10 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     assert_difference("ClientPasskey.count", -1) do
-      delete sign_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      delete auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to sign_app_settings_passkeys_path(ri: "jp")
+    assert_redirected_to auth_app_settings_passkeys_path(ri: "jp")
   end
 
   test "should 404 when accessing other user's passkey" do
@@ -572,7 +572,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       )
 
     with_prosopite_paused do
-      get edit_sign_app_settings_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
+      get edit_auth_app_settings_passkey_path(other_passkey.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :not_found
@@ -580,11 +580,11 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   test "index uses public_id in edit link" do
     with_prosopite_paused do
-      get sign_app_settings_passkeys_path(ri: "jp"), headers: @headers
+      get auth_app_settings_passkeys_path(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", edit_sign_app_settings_passkey_path(@passkey.public_id, ri: "jp")
+    assert_select "a[href=?]", edit_auth_app_settings_passkey_path(@passkey.public_id, ri: "jp")
   end
 
   private

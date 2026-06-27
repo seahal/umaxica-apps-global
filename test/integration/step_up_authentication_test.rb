@@ -49,7 +49,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "fresh sign-in token does not satisfy step-up without recorded step-up" do
     @token.update!(created_at: 1.minute.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -72,7 +72,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "scope mismatch redirects to verification" do
     mark_step_up_satisfied!(@token, at: 3.minutes.ago, scope: "withdrawal")
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -86,7 +86,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "step-up older than 15 minutes redirects to verification" do
     mark_step_up_satisfied!(@token, at: 15.minutes.ago, scope: "settings_email")
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -99,7 +99,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(@token)
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :success
   end
@@ -118,7 +118,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     other_token.update!(created_at: 1.hour.ago)
     other_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => other_token.public_id)
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: other_headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: other_headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -131,7 +131,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(last_step_up_session_public_id: "other-session")
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -144,7 +144,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(discarded_at: 1.second.ago)
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -157,7 +157,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(last_step_up_at: nil, last_step_up_scope: nil, last_step_up_session_public_id: nil)
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -168,7 +168,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "missing session binding does not satisfy browser step-up" do
     @token.update!(last_step_up_at: 10.minutes.ago, last_step_up_scope: "settings_email")
 
-    get sign_app_settings_emails_url(ri: "jp"), headers: @headers
+    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)

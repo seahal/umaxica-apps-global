@@ -18,14 +18,14 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "sign settings emails index redirects to acme authority" do
-    get sign_org_settings_emails_url(ri: "jp"), headers: session_headers
+    get auth_org_settings_emails_url(ri: "jp"), headers: session_headers
 
     assert_response :success
     assert_select "table"
   end
 
   test "sign settings email edit redirects without loading email" do
-    get edit_sign_org_settings_email_url("missing", ri: "jp"), headers: session_headers
+    get edit_auth_org_settings_email_url("missing", ri: "jp"), headers: session_headers
 
     assert_response :not_found
   end
@@ -40,7 +40,7 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     assert_no_changes -> { email.reload.attributes.slice("promotional", "notifiable") } do
-      patch sign_org_settings_email_url(email.public_id, ri: "jp"),
+      patch auth_org_settings_email_url(email.public_id, ri: "jp"),
             params: { staff_email: { promotional: "0", notifiable: "0" } },
             headers: session_headers
     end
@@ -56,15 +56,15 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     )
 
     assert_no_difference("OperatorEmail.count") do
-      delete sign_org_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
+      delete auth_org_settings_email_url(email.public_id, ri: "jp"), headers: session_headers
     end
 
-    assert_redirected_to sign_org_settings_emails_url(ri: "jp")
+    assert_redirected_to auth_org_settings_emails_url(ri: "jp")
     assert_not_predicate email.reload, :destroyed?
   end
 
   test "sign email registration route remains on sign ceremony surface" do
-    get new_sign_org_settings_emails_registration_url(ri: "jp"), headers: session_headers
+    get new_auth_org_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_equal "sign/org/settings/emails/registrations", @request.path_parameters[:controller]
     assert_equal "new", @request.path_parameters[:action]

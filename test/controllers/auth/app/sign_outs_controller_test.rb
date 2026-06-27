@@ -10,10 +10,10 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "get sign out redirects to acme entry" do
-    get new_sign_app_sign_out_url(host: @host, ri: "jp")
+    get new_auth_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :see_other
-    assert_equal new_acme_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
+    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
                  response.location
   end
 
@@ -28,14 +28,18 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     )
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post sign_app_sign_out_url(host: @host, logout_token: raw_token), headers: browser_headers.merge(
+    post auth_app_sign_out_url(host: @host, logout_token: raw_token), headers: browser_headers.merge(
       "Host" => @host,
       **as_user_headers(user, host: @host, session_public_id: token.public_id),
     )
 
     assert_response :see_other
-    assert_equal complete_acme_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
-                 response.location
+    assert_equal(
+      complete_auth_app_sign_out_url(
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+      ),
+      response.location,
+    )
     assert_predicate transaction.reload.consumed_at, :present?
     assert_predicate token.reload, :revoked?
   end
@@ -49,15 +53,19 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     )
     transaction.update!(consumed_at: Time.current)
 
-    post sign_app_sign_out_url(host: @host, logout_token: raw_token)
+    post auth_app_sign_out_url(host: @host, logout_token: raw_token)
 
     assert_response :see_other
-    assert_equal complete_acme_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
-                 response.location
+    assert_equal(
+      complete_auth_app_sign_out_url(
+        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+      ),
+      response.location,
+    )
   end
 
   test "invalid token does not external redirect" do
-    post sign_app_sign_out_url(host: @host, logout_token: "invalid"), headers: browser_headers.merge("Host" => @host)
+    post auth_app_sign_out_url(host: @host, logout_token: "invalid"), headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
     uri = URI.parse(response.location)
@@ -67,10 +75,10 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "destroy shims to acme entry" do
-    delete sign_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
+    delete auth_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
-    assert_equal new_acme_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
+    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
                  response.location
   end
 end

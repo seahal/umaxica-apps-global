@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class Sign::App::WithdrawalsHelperTest < ActionView::TestCase
+class Auth::App::WithdrawalsHelperTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
 
   ClientStub =
@@ -14,7 +14,7 @@ class Sign::App::WithdrawalsHelperTest < ActionView::TestCase
     end
 
   setup do
-    extend Sign::App::WithdrawalsHelper
+    extend Auth::App::WithdrawalsHelper
   end
 
   def current_client

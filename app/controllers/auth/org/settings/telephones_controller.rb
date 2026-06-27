@@ -40,7 +40,7 @@ module Auth
             return
           end
 
-          redirect_to(edit_sign_org_settings_telephones_registration_path(ri: params[:ri]))
+          redirect_to(edit_auth_org_settings_telephones_registration_path(ri: params[:ri]))
         end
 
         def destroy
@@ -49,7 +49,7 @@ module Auth
 
           unless AuthMethodGuard.can_remove_telephone?(current_operator, telephone)
             redirect_to(
-              sign_org_settings_telephones_path(ri: params[:ri]),
+              auth_org_settings_telephones_path(ri: params[:ri]),
               alert: t("sign.org.settings.telephone.destroy.last_method"),
             )
             return
@@ -57,7 +57,7 @@ module Auth
 
           telephone.destroy!
           redirect_to(
-            sign_org_settings_telephones_path(ri: params[:ri]),
+            auth_org_settings_telephones_path(ri: params[:ri]),
             notice: t("sign.org.settings.telephone.destroy.success"),
             status: :see_other,
           )

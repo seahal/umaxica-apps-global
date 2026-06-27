@@ -38,7 +38,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "should get index" do
-    get sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+    get auth_org_settings_passkeys_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "table"
@@ -54,14 +54,14 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
+    get auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
 
     assert_response :success
     assert_includes response.body, "Test Passkey"
   end
 
   test "should get new" do
-    get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
+    get new_auth_org_settings_passkey_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "h1", I18n.t("sign.org.settings.passkeys.new.page_title")
@@ -70,7 +70,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   test "new allows bootstrap without recovery passcodes" do
     @staff.staff_secret_credentials.destroy_all
 
-    get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
+    get new_auth_org_settings_passkey_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_equal "text/html", response.media_type
@@ -89,7 +89,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     Prosopite.pause do
-      get new_sign_org_settings_passkey_url(ri: "jp"), headers: headers
+      get new_auth_org_settings_passkey_url(ri: "jp"), headers: headers
     end
 
     assert_response :success
@@ -107,7 +107,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
     @token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get new_sign_org_settings_passkey_url(ri: "jp"), headers: @headers
+    get new_auth_org_settings_passkey_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -119,7 +119,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "redirects unauthenticated staff to login" do
-    get sign_org_settings_passkeys_url(ri: "jp"), headers: @host_headers
+    get auth_org_settings_passkeys_url(ri: "jp"), headers: @host_headers
 
     assert_response :redirect
     uri = URI.parse(jump_rt_url_from_location(response.headers["Location"]))
@@ -140,7 +140,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get edit_sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
+    get edit_auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
 
     assert_response :success
   end
@@ -155,11 +155,11 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    patch sign_org_settings_passkey_url(passkey, ri: "jp"),
+    patch auth_org_settings_passkey_url(passkey, ri: "jp"),
           params: { operator_passkey: { description: "Updated Name" } },
           headers: @headers
 
-    assert_redirected_to sign_org_settings_passkey_path(passkey, ri: "jp")
+    assert_redirected_to auth_org_settings_passkey_path(passkey, ri: "jp")
     assert_equal "Updated Name", passkey.reload.description
   end
 
@@ -173,7 +173,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    patch sign_org_settings_passkey_url(passkey, ri: "jp"),
+    patch auth_org_settings_passkey_url(passkey, ri: "jp"),
           params: { staff_passkey: { description: "" } },
           headers: @headers
 
@@ -200,10 +200,10 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     assert_difference -> { OperatorPasskey.count }, -1 do
-      delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
+      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to sign_org_settings_passkeys_path(ri: "jp")
+    assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
   end
 
   test "other staff passkey returns not found" do
@@ -217,31 +217,31 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get sign_org_settings_passkey_url(other_passkey, ri: "jp"), headers: @headers
+    get auth_org_settings_passkey_url(other_passkey, ri: "jp"), headers: @headers
 
     assert_response :not_found
   end
 
   test "create redirects for html requests" do
     assert_no_difference("OperatorPasskey.count") do
-      post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers
+      post auth_org_settings_passkeys_url(ri: "jp"), headers: @headers
     end
 
-    assert_redirected_to new_sign_org_settings_passkey_path(ri: "jp")
+    assert_redirected_to new_auth_org_settings_passkey_path(ri: "jp")
   end
 
   test "create returns registration ceremony handoff for api clients" do
     assert_no_difference("OperatorPasskey.count") do
-      post sign_org_settings_passkeys_url(ri: "jp"), headers: @headers, as: :json
+      post auth_org_settings_passkeys_url(ri: "jp"), headers: @headers, as: :json
     end
 
     assert_response :accepted
     assert_equal "registration_ceremony_required", response.parsed_body["status"]
-    assert_equal new_sign_org_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
+    assert_equal new_auth_org_settings_passkey_path(ri: "jp"), response.parsed_body["redirect_path"]
   end
 
   test "verification rejects missing challenge id" do
-    post sign_org_settings_passkeys_verification_url(ri: "jp"),
+    post auth_org_settings_passkeys_verification_url(ri: "jp"),
          params: { credential: { id: "cred-id" } },
          headers: @headers,
          as: :json
@@ -260,12 +260,12 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    patch sign_org_settings_passkey_url(passkey, ri: "jp"),
+    patch auth_org_settings_passkey_url(passkey, ri: "jp"),
           params: { passkey: { description: "Updated Name" } },
           headers: @headers,
           as: :json
 
-    assert_redirected_to sign_org_settings_passkey_path(passkey, ri: "jp")
+    assert_redirected_to auth_org_settings_passkey_path(passkey, ri: "jp")
     assert_equal "Updated Name", passkey.reload.description
   end
 
@@ -288,10 +288,10 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     )
 
     assert_difference -> { OperatorPasskey.count }, -1 do
-      delete sign_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
+      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
     end
 
-    assert_redirected_to sign_org_settings_passkeys_path(ri: "jp")
+    assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
   end
 
   private

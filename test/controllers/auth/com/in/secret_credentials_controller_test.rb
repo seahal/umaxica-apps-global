@@ -42,15 +42,15 @@ class Auth::Com::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "should get new" do
-    get new_sign_com_sign_in_secret_credential_url(ri: "jp"), headers: { "Host" => @host }
+    get new_auth_com_sign_in_secret_credential_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_select "input[type='hidden'][name='ri'][value='jp']"
-    assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp")
   end
 
   test "create signs in with visitor identifier and secret credential" do
-    post sign_com_sign_in_secret_credential_url(ri: "jp"),
+    post auth_com_sign_in_secret_credential_url(ri: "jp"),
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,
@@ -61,12 +61,12 @@ class Auth::Com::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_com_sign_in_check_path(ri: "jp")
+    assert_includes response.headers["Location"], auth_com_sign_in_check_path(ri: "jp")
     assert_predicate @secret_credential.reload.last_used_at, :present?
   end
 
   test "create falls back to jp when ri is missing" do
-    post sign_com_sign_in_secret_credential_url,
+    post auth_com_sign_in_secret_credential_url,
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,
@@ -77,11 +77,11 @@ class Auth::Com::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_com_sign_in_check_path(ri: "jp")
+    assert_includes response.headers["Location"], auth_com_sign_in_check_path(ri: "jp")
   end
 
   test "create canonicalizes invalid ri" do
-    post sign_com_sign_in_secret_credential_url(ri: "https://evil.example"),
+    post auth_com_sign_in_secret_credential_url(ri: "https://evil.example"),
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,
@@ -92,14 +92,14 @@ class Auth::Com::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_includes response.headers["Location"], sign_com_sign_in_secret_credential_url(ri: "jp")
+    assert_includes response.headers["Location"], auth_com_sign_in_secret_credential_url(ri: "jp")
     assert_no_match(/evil\.example/, response.headers["Location"])
   end
 
   test "create requires successful turnstile" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_sign_in_secret_credential_url(ri: "jp"),
+    post auth_com_sign_in_secret_credential_url(ri: "jp"),
          params: {
            secret_credential_login_form: {
              identifier: @visitor.visitor_emails.first.address,

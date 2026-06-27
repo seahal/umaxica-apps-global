@@ -42,11 +42,11 @@ module SignVerificationCancellation
   def acme_step_up_cancellation_url_for(surface)
     case surface.to_s
     when "app"
-      cancellation_acme_app_verification_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      cancellation_base_app_verification_url(host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"))
     when "com"
-      cancellation_acme_com_verification_url(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      cancellation_base_com_verification_url(host: ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"))
     when "org"
-      cancellation_acme_org_verification_url(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+      cancellation_base_org_verification_url(host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"))
     else
       raise NotImplementedError, "unsupported step-up surface: #{surface}"
     end

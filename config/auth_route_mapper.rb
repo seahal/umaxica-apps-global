@@ -128,4 +128,59 @@ module AuthRouteMapper
       end
     end
   end
+
+  # Shared sign-up checkpoint routes for app/com.
+  #
+  # Each checkpoint owns its own destroy action so cancellation is expressed
+  # on the current step URL instead of a separate `cancellation` resource.
+  def auth_signup_check_routes(providers: %i(apple google email telephone))
+    namespace(:up) do
+      resource(:email, only: %i(new create))
+      resource(:telephone, only: %i(new create))
+
+      namespace(:guard) do
+        resource(:apple, only: :show)
+        resource(:google, only: :show)
+        resource(:email, only: :show)
+        resource(:telephone, only: :show)
+      end
+
+      namespace(:check) do
+        auth_signup_check_provider_routes(providers:)
+      end
+    end
+  end
+
+  def auth_signup_check_provider_routes(providers:)
+    if providers.include?(:apple)
+      namespace(:apple) do
+        resource(:confirmation, only: %i(show update destroy))
+        resource(:birthdate, only: %i(show update destroy))
+      end
+    end
+
+    if providers.include?(:google)
+      namespace(:google) do
+        resource(:confirmation, only: %i(show update destroy))
+        resource(:birthdate, only: %i(show update destroy))
+      end
+    end
+
+    if providers.include?(:email)
+      namespace(:email) do
+        resource(:otp, only: %i(show create update destroy))
+        resource(:birthdate, only: %i(show update destroy))
+      end
+    end
+
+    return unless providers.include?(:telephone)
+
+    namespace(:telephone) do
+      resource(:otp, only: %i(show create update destroy))
+      resource(:passkey, only: %i(show create update destroy))
+      resource(:passcode, only: %i(show update destroy))
+      resource(:birthdate, only: %i(show update destroy))
+    end
+
+  end
 end

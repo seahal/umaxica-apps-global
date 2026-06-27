@@ -1,9 +1,9 @@
-<%# Cookie preference editing lives on acme/www (adr/identity-authority-boundary.md).
-    Use the acme _url helper so the link resolves to the acme host even when this
+<%# Cookie preference editing lives on base/www (adr/identity-authority-boundary.md).
+    Use the base _url helper so the link resolves to the base host even when this
     banner renders on a sign page. %>
 <% cookie_settings_url =
      public_send(
-       "edit_acme_#{scope}_preference_cookie_url",
+       "edit_base_#{scope}_preference_cookie_url",
        request.query_parameters.slice("ri", "lx", "ct", "tz", "cu", "df", "tf", "mo", "dn", "ps"),
        **( local_assigns.key?(:acme_host) ? { host: acme_host } : {} ),
      ) %>

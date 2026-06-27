@@ -17,22 +17,22 @@ module Auth
               to: 5,
               within: 1.minute,
               by: -> { request.remote_ip },
-              scope: "sign_app_sign_in",
+              scope: "auth_app_sign_in",
               name: "mfa_totp_create_ip_burst",
               store: rate_limit_store,
               only: :create,
-              with: -> { render_rate_limited(rule_name: "sign_app_sign_in_mfa_totp_create_ip_burst", retry_after: 60) },
+              with: -> { render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_burst", retry_after: 60) },
             )
             rate_limit(
               to: 20,
               within: 15.minutes,
               by: -> { request.remote_ip },
-              scope: "sign_app_sign_in",
+              scope: "auth_app_sign_in",
               name: "mfa_totp_create_ip_sustained",
               store: rate_limit_store,
               only: :create,
               with: -> {
-                render_rate_limited(rule_name: "sign_app_sign_in_mfa_totp_create_ip_sustained", retry_after: 900)
+                render_rate_limited(rule_name: "auth_app_sign_in_mfa_totp_create_ip_sustained", retry_after: 900)
               },
             )
 
@@ -86,7 +86,7 @@ module Auth
 
               clear_pending_mfa!
               redirect_to(
-                sign_app_sign_in_path,
+                auth_app_sign_in_path,
                 alert: I18n.t("sign.app.in.mfa.session_expired"),
                 status: :see_other,
               )
@@ -144,7 +144,7 @@ module Auth
                 )
               else
                 redirect_to(
-                  sign_app_sign_in_path,
+                  auth_app_sign_in_path,
                   alert: I18n.t("sign.app.in.mfa.verification_failed"),
                   status: :see_other,
                 )

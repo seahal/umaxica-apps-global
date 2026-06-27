@@ -6,13 +6,13 @@
 
   <div>
     <%= link_to t("sign.org.settings.withdrawal.show.request_link"),
-                new_sign_org_settings_operator_lifecycle_request_path(
+                new_auth_org_settings_operator_lifecycle_request_path(
                   action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
                 ) %>
   </div>
 
   <div>
     <%= link_to t("sign.org.settings.show.back"),
-                sign_org_settings_path %>
+                auth_org_settings_path %>
   </div>
 </div>

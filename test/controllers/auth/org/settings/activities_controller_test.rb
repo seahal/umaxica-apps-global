@@ -15,7 +15,7 @@ class Auth::Org::Settings::ActivitiesControllerTest < ActionDispatch::Integratio
   end
 
   test "sign settings activities renders sign settings authority" do
-    get sign_org_settings_activities_url(ri: "jp"), headers: session_headers
+    get auth_org_settings_activities_url(ri: "jp"), headers: session_headers
 
     assert_response :success
   end

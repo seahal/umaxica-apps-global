@@ -9,6 +9,6 @@ class Auth::App::Verification::CancellationsController < ::Auth::App::Verificati
   private
 
   def verification_cancellation_fallback_path
-    sign_app_settings_path(ri: params[:ri])
+    auth_app_settings_path(ri: params[:ri])
   end
 end

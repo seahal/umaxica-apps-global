@@ -6,6 +6,7 @@ require "test_helper"
 class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     @bootstrap = bootstrap_and_select!(@user, @token)
@@ -15,7 +16,7 @@ class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     get base_app_accounts_url(ri: "jp", host: @host), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @host)
+    assert_oidc_authorize_redirect(response.location, host: @acme_host)
   end
 
   test "index lists accounts" do

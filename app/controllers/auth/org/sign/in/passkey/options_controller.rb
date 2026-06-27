@@ -18,20 +18,20 @@ module Auth
               to: 5,
               within: 1.minute,
               by: -> { request.remote_ip },
-              scope: "sign_org_sign_in",
+              scope: "auth_org_sign_in",
               name: "passkey_options_ip_burst",
               store: rate_limit_store,
-              with: -> { render_rate_limited(rule_name: "sign_org_sign_in_passkey_options_ip_burst", retry_after: 60) },
+              with: -> { render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_burst", retry_after: 60) },
             )
             rate_limit(
               to: 20,
               within: 15.minutes,
               by: -> { request.remote_ip },
-              scope: "sign_org_sign_in",
+              scope: "auth_org_sign_in",
               name: "passkey_options_ip_sustained",
               store: rate_limit_store,
               with: -> {
-                render_rate_limited(rule_name: "sign_org_sign_in_passkey_options_ip_sustained", retry_after: 900)
+                render_rate_limited(rule_name: "auth_org_sign_in_passkey_options_ip_sustained", retry_after: 900)
               },
             )
 
@@ -102,7 +102,7 @@ module Auth
                 issue_session_limit_gate!(pt: request.fullpath, flow: "in.passkeys.session")
                 render json: {
                   status: "session_limit_exceeded",
-                  redirect_url: new_sign_org_sign_in_passkey_path,
+                  redirect_url: new_auth_org_sign_in_passkey_path,
                 }, status: :ok
                 true
               else
@@ -113,16 +113,16 @@ module Auth
             def render_passkey_restricted_success(_result)
               render json: {
                 status: "session_restricted",
-                redirect_url: sign_org_sign_in_session_path,
+                redirect_url: auth_org_sign_in_session_path,
               }, status: :ok
             end
 
             def passkey_checkpoint_redirect_url
-              sign_org_sign_in_check_path(pt: retrieve_pt_for_checkpoint, ri: current_region_identifier)
+              auth_org_sign_in_check_path(pt: retrieve_pt_for_checkpoint, ri: current_region_identifier)
             end
 
             def passkey_default_redirect_url
-              sign_org_root_path(ri: current_region_identifier)
+              auth_org_root_path(ri: current_region_identifier)
             end
           end
         end

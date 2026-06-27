@@ -39,20 +39,20 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
   test "GET within 15 minutes skips verification" do
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_email")
 
-    return_to = Base64.urlsafe_encode64(sign_app_settings_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(auth_app_settings_path(ri: "jp"))
     get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     get new_sign_app_verification_totp_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to auth_app_settings_url(ri: "jp")
   end
 
   test "POST within 30 minutes skips verification" do
     @token.update!(last_step_up_at: 20.minutes.ago, last_step_up_scope: "settings_email")
 
-    return_to = Base64.urlsafe_encode64(sign_app_settings_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(auth_app_settings_path(ri: "jp"))
     get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
@@ -63,6 +63,6 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to sign_app_settings_url(ri: "jp")
+    assert_redirected_to auth_app_settings_url(ri: "jp")
   end
 end

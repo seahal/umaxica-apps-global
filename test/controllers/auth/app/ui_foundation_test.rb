@@ -15,7 +15,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "should render settings page with new UI foundation" do
     head = as_user_headers(@user, host: @sign_host)
-    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
 
@@ -27,7 +27,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
   end
 
   test "unauthenticated settings entry preserves settings as oidc return path" do
-    get sign_app_settings_url(ri: "jp", host: @sign_host)
+    get auth_app_settings_url(ri: "jp", host: @sign_host)
 
     assert_response :redirect
     assert_equal "/settings?ri=jp", session[:oidc_pt]
@@ -39,7 +39,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "PageHeader renders correct up_to link" do
     head = as_user_headers(@user, host: @sign_host)
-    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.settings.show.page_title")
@@ -49,15 +49,15 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
     sign_head = as_user_headers(@user, host: @host)
     pages = [
       {
-        path: sign_app_settings_secrets_url(ri: "jp", host: @sign_host),
+        path: auth_app_settings_secrets_url(ri: "jp", host: @sign_host),
         headers: sign_head,
       },
-      { path: sign_app_settings_mfa_challenge_path(ri: "jp"), headers: sign_head },
-      { path: sign_app_settings_google_path(ri: "jp"), headers: sign_head },
+      { path: auth_app_settings_mfa_challenge_path(ri: "jp"), headers: sign_head },
+      { path: auth_app_settings_google_path(ri: "jp"), headers: sign_head },
     ]
 
     Prosopite.pause do
-      get sign_app_settings_totps_url(ri: "jp", host: @sign_host),
+      get auth_app_settings_totps_url(ri: "jp", host: @sign_host),
           headers: acme_session_headers(scope: "settings_totp", host: @sign_host)
 
       assert_response :success
@@ -74,7 +74,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "session management renders on sign settings" do
     head = as_user_headers(@user, host: @host)
 
-    get sign_app_settings_sessions_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_sessions_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
     assert_select "table"
@@ -83,14 +83,14 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
   test "dark mode class is rendered based on cookie" do
     # Testing the theme_html_class helper's effect via integration
     headers = as_user_headers(@user, host: @sign_host)
-    get sign_app_settings_url(ri: "jp", ct: "dark", host: @sign_host), headers: headers
+    get auth_app_settings_url(ri: "jp", ct: "dark", host: @sign_host), headers: headers
 
     assert_response :success
 
     assert_includes response.body, 'class="theme-dark dark"'
 
     headers = as_user_headers(@user, host: @sign_host)
-    get sign_app_settings_url(ri: "jp", ct: "light", host: @sign_host), headers: headers
+    get auth_app_settings_url(ri: "jp", ct: "light", host: @sign_host), headers: headers
 
     assert_response :success
 
@@ -99,7 +99,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   test "UI components are used in the page" do
     head = as_user_headers(@user, host: @sign_host)
-    get sign_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
 
     assert_response :success
 

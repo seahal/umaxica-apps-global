@@ -24,6 +24,8 @@ module Auth
 
       AUTHENTICATION_MODE = :deny_all
 
+      layout "sign/org/application"
+
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,
@@ -55,10 +57,10 @@ module Auth
         to: 300,
         within: 1.minute,
         by: -> { request.remote_ip },
-        scope: "sign_org_default_web",
+        scope: "auth_org_default_web",
         name: "default_web",
         store: rate_limit_store,
-        with: -> { render_rate_limited(rule_name: "sign_org_default_web", retry_after: 60) },
+        with: -> { render_rate_limited(rule_name: "auth_org_default_web", retry_after: 60) },
       )
       before_action :set_current_context
       before_action :reset_flash
@@ -87,7 +89,7 @@ module Auth
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        sign_org_dashboard_path(ri: current_region_identifier)
+        auth_org_dashboard_path(ri: current_region_identifier)
       end
 
       def after_login_allows_other_host?

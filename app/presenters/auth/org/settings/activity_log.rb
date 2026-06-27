@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Sign::Org::Settings::ActivityLog
+class Auth::Org::Settings::ActivityLog
   VISIBLE_EVENT_IDS = [
     OperatorChronicleEvent::LOGGED_IN,
     OperatorChronicleEvent::LOGIN_SUCCESS,
@@ -29,9 +29,9 @@ class Sign::Org::Settings::ActivityLog
 
   def event_label(activity)
     key = EVENT_LABELS[activity.event_id]
-    return I18n.t("sign.org.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
+    return I18n.t("auth.org.settings.activity.events.unknown", event_id: activity.event_id) if key.blank?
 
-    translation_key = "sign.org.settings.activity.events.#{key}"
+    translation_key = "auth.org.settings.activity.events.#{key}"
     I18n.t(translation_key)
   end
 

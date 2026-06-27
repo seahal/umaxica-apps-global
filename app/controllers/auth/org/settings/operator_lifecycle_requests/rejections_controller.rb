@@ -33,12 +33,12 @@ module Auth
           def redirect_after_result(result)
             if result.success?
               redirect_to(
-                sign_org_settings_operator_lifecycle_request_path(result.request),
+                auth_org_settings_operator_lifecycle_request_path(result.request),
                 notice: t("sign.org.settings.operator_lifecycle_requests.reject.success"),
               )
             else
               redirect_to(
-                sign_org_settings_operator_lifecycle_request_path(result.request),
+                auth_org_settings_operator_lifecycle_request_path(result.request),
                 alert: result.error,
               )
             end

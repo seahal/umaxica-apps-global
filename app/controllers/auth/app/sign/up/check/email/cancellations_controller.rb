@@ -18,7 +18,7 @@ class Auth::App::Sign::Up::Check::Email::CancellationsController < ::Auth::App::
 
   def sign_up_ticket_class = ClientSignUpFlow
 
-  def sign_up_sequence_session_key = :sign_app_up_sequence_id
+  def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
   def sign_up_family = "email"
 

@@ -13,7 +13,7 @@
     </div>
   <% end %>
 
-  <%= form_with url: sign_app_verification_totp_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
+  <%= form_with url: auth_app_verification_totp_path(ri: params[:ri]), method: :post, data: { turbo: false } do |f| %>
     <%= f.hidden_field :scope, value: verification_scope, name: "verification[scope]" %>
     <%= f.hidden_field :pt, value: verification_pt, name: "verification[pt]" %>
     <div>
@@ -30,7 +30,7 @@
 
   <div>
     <%= link_to t("sign.app.verification.edit.back"),
-                sign_app_verification_path(
+                auth_app_verification_path(
                   ri: params[:ri],
                   scope: verification_scope,
                   pt: verification_pt

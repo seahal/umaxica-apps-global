@@ -16,7 +16,7 @@ class Auth::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
     cookies.delete(PreferenceCookieName.access)
 
     assert_no_difference -> { VisitorPreference.count } do
-      patch sign_com_web_v0_cookie_path, params: { consented: true }, as: :json
+      patch auth_com_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
     assert_response :ok

@@ -20,22 +20,22 @@ module Auth
               to: 5,
               within: 1.minute,
               by: -> { request.remote_ip },
-              scope: "sign_com_sign_in",
+              scope: "auth_com_sign_in",
               name: "passkey_verification_ip_burst",
               store: rate_limit_store,
               with: -> {
-                render_rate_limited(rule_name: "sign_com_sign_in_passkey_verification_ip_burst", retry_after: 60)
+                render_rate_limited(rule_name: "auth_com_sign_in_passkey_verification_ip_burst", retry_after: 60)
               },
             )
             rate_limit(
               to: 20,
               within: 15.minutes,
               by: -> { request.remote_ip },
-              scope: "sign_com_sign_in",
+              scope: "auth_com_sign_in",
               name: "passkey_verification_ip_sustained",
               store: rate_limit_store,
               with: -> {
-                render_rate_limited(rule_name: "sign_com_sign_in_passkey_verification_ip_sustained", retry_after: 900)
+                render_rate_limited(rule_name: "auth_com_sign_in_passkey_verification_ip_sustained", retry_after: 900)
               },
             )
 
@@ -132,20 +132,20 @@ module Auth
             def render_passkey_restricted_success(_result)
               render json: {
                 status: "session_restricted",
-                redirect_url: sign_com_sign_in_session_path,
+                redirect_url: auth_com_sign_in_session_path,
                 message: I18n.t("sign.app.in.session.restricted_notice"),
               }, status: :ok
             end
 
             def passkey_checkpoint_redirect_url
-              sign_com_sign_in_check_path(
+              auth_com_sign_in_check_path(
                 pt: retrieve_pt_for_checkpoint,
                 ri: current_region_identifier,
               )
             end
 
             def passkey_default_redirect_url
-              sign_com_settings_path(ri: current_region_identifier)
+              auth_com_settings_path(ri: current_region_identifier)
             end
           end
         end

@@ -35,7 +35,9 @@ module Base
 
           def email_registration_target_user = current_client
 
-          def after_email_registration_started_path(params = {}) = edit_base_app_identity_emails_registration_path(params)
+          def after_email_registration_started_path(params = {})
+            edit_base_app_identity_emails_registration_path(params)
+          end
 
           def new_email_registration_path(params = {}) = new_base_app_identity_emails_registration_path(params)
 

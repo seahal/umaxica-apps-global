@@ -70,22 +70,22 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "index show edit and new render on sign" do
-    get sign_com_settings_secret_credentials_url(ri: "jp"), headers: request_headers
+    get auth_com_settings_secret_credentials_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_includes response.body, @secret_credential.name
 
-    get sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"), headers: request_headers
+    get auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_includes response.body, @secret_credential.name
 
-    get new_sign_com_settings_secret_credential_url(ri: "jp"),
+    get new_auth_com_settings_secret_credential_url(ri: "jp"),
         headers: request_headers
 
     assert_response :success
 
-    get edit_sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+    get edit_auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
         headers: request_headers
 
     assert_response :success
@@ -105,20 +105,20 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "create persists secret_credential and redirects" do
-    get new_sign_com_settings_secret_credential_url(ri: "jp"),
+    get new_auth_com_settings_secret_credential_url(ri: "jp"),
         headers: request_headers
 
     assert_response :success
 
     assert_difference("VisitorSecretCredential.count", 1) do
-      post sign_com_settings_secret_credentials_url(ri: "jp"),
+      post auth_com_settings_secret_credentials_url(ri: "jp"),
            params: { visitor_secret_credential: { name: "New Secret", enabled: true },
                      "cf-turnstile-response": "test", },
            headers: request_headers
     end
 
     assert_response :redirect, response.body
-    assert_redirected_to sign_com_settings_secret_credentials_url(
+    assert_redirected_to auth_com_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
     )
@@ -127,13 +127,13 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "update changes secret_credential name and status" do
     AuthMethodGuard.stub(:last_method?, false) do
-      patch sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+      patch auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
             params: { visitor_secret_credential: { name: "Updated Secret", enabled: "0" },
                       "cf-turnstile-response": "test", },
             headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
     @secret_credential.reload
 
     assert_equal "Updated Secret", @secret_credential.name
@@ -142,23 +142,23 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "update does not disable last method" do
     AuthMethodGuard.stub(:last_method?, true) do
-      patch sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+      patch auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
             params: { visitor_secret_credential: { enabled: "0" }, "cf-turnstile-response": "test" },
             headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
   test "destroy redirects to acme when last recovery method would be removed" do
     AuthMethodGuard.stub(:can_remove_secret_credential?, false) do
-      delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+      delete auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_path(ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credentials_path(ri: "jp")
     assert_equal VisitorSecretCredentialStatus::ACTIVE, @secret_credential.reload.visitor_secret_credential_status_id
   end
 
@@ -182,7 +182,7 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     )
 
     assert_no_difference("VisitorSecretCredential.count") do
-      delete sign_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
+      delete auth_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "test" },
              headers: {
                "Host" => @host,
@@ -191,12 +191,12 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
              }
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_path(ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credentials_path(ri: "jp")
     assert_equal VisitorSecretCredentialStatus::DELETED,
                  secret_credential.reload.visitor_secret_credential_status_id
 
     I18n.backend.store_translations(:ja, messages: { not_implemented: "Not implemented" })
-    post sign_com_settings_secret_credential_rotation_url(secret_credential.public_id, ri: "jp"), headers: {
+    post auth_com_settings_secret_credential_rotation_url(secret_credential.public_id, ri: "jp"), headers: {
       "Host" => @host,
       "X-TEST-CURRENT-RESOURCE" => visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
@@ -207,7 +207,7 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "removal attempt uses visitor authentication and redirects to sign authority without local mutation" do
     assert_no_changes -> { @secret_credential.reload.visitor_secret_credential_status_id } do
-      post sign_com_settings_secret_credential_removal_url(@secret_credential.public_id, ri: "jp"),
+      post auth_com_settings_secret_credential_removal_url(@secret_credential.public_id, ri: "jp"),
            headers: request_headers
     end
 
@@ -223,7 +223,7 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     client_headers = as_user_headers(user, host: @host)
 
     assert_no_changes -> { @secret_credential.reload.visitor_secret_credential_status_id } do
-      post sign_com_settings_secret_credential_removal_url(@secret_credential.public_id, ri: "jp"),
+      post auth_com_settings_secret_credential_removal_url(@secret_credential.public_id, ri: "jp"),
            headers: client_headers
     end
 
@@ -236,11 +236,11 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   test "create requires successful stealth turnstile" do
-    get new_sign_com_settings_secret_credential_url(ri: "jp"), headers: request_headers
+    get new_auth_com_settings_secret_credential_url(ri: "jp"), headers: request_headers
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
     assert_no_difference("VisitorSecretCredential.count") do
-      post sign_com_settings_secret_credentials_url(ri: "jp"),
+      post auth_com_settings_secret_credentials_url(ri: "jp"),
            params: { visitor_secret_credential: { name: "Blocked Secret", enabled: true },
                      "cf-turnstile-response": "bad", },
            headers: request_headers
@@ -253,12 +253,12 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   test "update requires successful stealth turnstile" do
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
-    patch sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+    patch auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
           params: { visitor_secret_credential: { name: "Blocked Update", enabled: "1" },
                     "cf-turnstile-response": "bad", },
           headers: request_headers
 
-    assert_redirected_to sign_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: "jp")
     assert_equal "Blocked Update", @secret_credential.reload.name
   end
 
@@ -266,12 +266,12 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
     assert_no_difference("VisitorSecretCredential.count") do
-      delete sign_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
+      delete auth_com_settings_secret_credential_url(@secret_credential.public_id, ri: "jp"),
              params: { "cf-turnstile-response": "bad" },
              headers: request_headers
     end
 
-    assert_redirected_to sign_com_settings_secret_credentials_path(ri: "jp")
+    assert_redirected_to auth_com_settings_secret_credentials_path(ri: "jp")
     assert_equal VisitorSecretCredentialStatus::DELETED, @secret_credential.reload.visitor_secret_credential_status_id
   end
 

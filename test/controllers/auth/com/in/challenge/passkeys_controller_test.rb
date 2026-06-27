@@ -48,17 +48,17 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
   end
 
   test "new requires pending MFA session" do
-    get new_sign_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :redirect
 
-    assert_redirected_to sign_com_sign_in_path(ri: "jp")
+    assert_redirected_to auth_com_sign_in_path(ri: "jp")
   end
 
   test "create verifies passkey and redirects on success" do
     establish_pending_mfa!
 
-    get new_sign_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
+    get new_auth_com_sign_in_challenge_passkey_path(ri: "jp"), headers: @origin_headers
 
     assert_response :success
 
@@ -68,7 +68,7 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     mock_credential.define_singleton_method(:verify) { |*_args| true }
 
     WebAuthn::Credential.stub(:from_get, mock_credential) do
-      post sign_com_sign_in_challenge_passkey_path(ri: "jp"),
+      post auth_com_sign_in_challenge_passkey_path(ri: "jp"),
            params: {
              mfa_passkey_form: {
                challenge_id: challenge_id,
@@ -98,7 +98,7 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
   def establish_pending_mfa!
     post(
-      sign_com_sign_in_secret_credential_path(ri: "jp"), params: {
+      auth_com_sign_in_secret_credential_path(ri: "jp"), params: {
         secret_credential_login_form: {
           identifier: @visitor.visitor_emails.first.address,
           secret_credential_value: @raw_secret_credential,

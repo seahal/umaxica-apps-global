@@ -37,7 +37,7 @@ module Auth
             return if valid_telephone_session?
 
             redirect_to(
-              new_sign_app_sign_up_telephone_path,
+              new_auth_app_sign_up_telephone_path,
               notice: t("sign.app.registration.telephone.edit.session_expired"),
             )
           end
@@ -133,7 +133,7 @@ module Auth
               session[:user_telephone_registration] = result.session_payload
               bind_sign_up_flow_to_telephone!(@user_telephone)
               redirect_to(
-                sign_app_sign_up_check_telephone_otp_path,
+                auth_app_sign_up_check_telephone_otp_path,
                 notice: t("sign.app.registration.telephone.create.verification_code_sent"),
               )
             rescue ActiveRecord::RecordInvalid => e
@@ -190,7 +190,7 @@ module Auth
 
           def redirect_telephone_session_expired
             redirect_to(
-              new_sign_app_sign_up_telephone_path,
+              new_auth_app_sign_up_telephone_path,
               notice: t("sign.app.registration.telephone.edit.session_expired"),
             )
           end
@@ -244,9 +244,9 @@ module Auth
 
           def resend_redirect_path
             if @user_telephone || dummy_existing_telephone_flow?
-              sign_app_sign_up_check_telephone_otp_path(ri: params[:ri])
+              auth_app_sign_up_check_telephone_otp_path(ri: params[:ri])
             else
-              new_sign_app_sign_up_telephone_path(ri: params[:ri])
+              new_auth_app_sign_up_telephone_path(ri: params[:ri])
             end
           end
 
@@ -291,7 +291,7 @@ module Auth
             }
 
             redirect_to(
-              sign_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
+              auth_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
               notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           end
@@ -361,7 +361,7 @@ module Auth
               pending_contact_id: telephone.id,
             )
             SignUpStateMachine.call(ticket: cycle, event: :submit_contact, actor_context: Actor.authn)
-            session[:sign_app_up_sequence_id] = cycle.public_id
+            session[:auth_app_up_sequence_id] = cycle.public_id
           end
 
           def sign_up_flow_locator

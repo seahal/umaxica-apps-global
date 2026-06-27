@@ -5,7 +5,9 @@ require "test_helper"
 
 class OidcCallbackTestController < ApplicationController
   class << self
+    # rubocop:disable ThreadSafety/ClassAndModuleAttributes
     attr_accessor :login_result_for_test, :last_login_kwargs, :last_session_limit_gate_pt, :hard_reject_payload
+    # rubocop:enable ThreadSafety/ClassAndModuleAttributes
   end
 
   def self.declare_authentication_mode!(*)

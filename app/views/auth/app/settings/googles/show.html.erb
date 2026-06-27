@@ -1,6 +1,6 @@
 <% content_for :page_title, t("controller.sign.app.setting.index.google") %>
 
-<%= link_to t("sign.app.settings.show.back"), sign_app_settings_path %>
+<%= link_to t("sign.app.settings.show.back"), auth_app_settings_path %>
 
 <div>
   <h3><%= t("controller.sign.app.setting.index.google") %></h3>
@@ -12,5 +12,5 @@
       <%= t("views.sign.app.settings.googles.show.unlinked") %>
     <% end %>
   </p>
-  <%= link_to t("actions.edit"), edit_sign_app_settings_google_path(ri: params[:ri]) %>
+  <%= link_to t("actions.edit"), edit_auth_app_settings_google_path(ri: params[:ri]) %>
 </div>

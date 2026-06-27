@@ -30,7 +30,7 @@ module Auth
 
             def sign_up_ticket_class = ClientSignUpFlow
 
-            def sign_up_sequence_session_key = :sign_app_up_sequence_id
+            def sign_up_sequence_session_key = :auth_app_up_sequence_id
 
             def first_step
               SignUpRequirementRegistry.for_entry(

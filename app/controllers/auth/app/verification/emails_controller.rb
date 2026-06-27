@@ -19,7 +19,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
 
     nonce = ensure_email_nonce!
     redirect_to(
-      edit_sign_app_verification_email_path(
+      edit_auth_app_verification_email_path(
         nonce,
         ri: params[:ri],
         scope: current_step_up_scope,
@@ -50,7 +50,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
 
     nonce = ensure_email_nonce!
     redirect_to(
-      edit_sign_app_verification_email_path(
+      edit_auth_app_verification_email_path(
         nonce,
         ri: params[:ri],
         scope: current_step_up_scope,
@@ -109,8 +109,8 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
     end
 
     safe_redirect_to(
-      sign_app_verification_path(verification_recovery_redirect_params),
-      fallback: sign_app_verification_path(ri: params[:ri]),
+      auth_app_verification_path(verification_recovery_redirect_params),
+      fallback: auth_app_verification_path(ri: params[:ri]),
       alert: I18n.t("auth.step_up.invalid_request"),
     )
     false
@@ -122,7 +122,7 @@ class Auth::App::Verification::EmailsController < ::Auth::App::Verification::Bas
   end
 
   def verification_email_edit_path
-    edit_sign_app_verification_email_path(
+    edit_auth_app_verification_email_path(
       params[:id],
       ri: params[:ri],
       scope: @verification_scope,

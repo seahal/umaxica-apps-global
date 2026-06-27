@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::JwksControllerTest < ActionDispatch::IntegrationTest
   test "sign com well-known jwks remains public" do
-    get sign_com_well_known_jwks_url(host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"), ri: "jp")
+    get auth_com_well_known_jwks_url(host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"), ri: "jp")
 
     assert_response :ok
     assert_predicate response.parsed_body.fetch("keys"), :present?

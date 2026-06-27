@@ -22,41 +22,41 @@ module Auth
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "email_create_ip_burst",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_create_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_email_create_ip_burst", retry_after: 60) },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "email_create_ip_sustained",
             store: rate_limit_store,
             only: :create,
-            with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_create_ip_sustained", retry_after: 900) },
+            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_email_create_ip_sustained", retry_after: 900) },
           )
           rate_limit(
             to: 5,
             within: 1.minute,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "email_update_ip_burst",
             store: rate_limit_store,
             only: :update,
-            with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_update_ip_burst", retry_after: 60) },
+            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_email_update_ip_burst", retry_after: 60) },
           )
           rate_limit(
             to: 20,
             within: 15.minutes,
             by: -> { request.remote_ip },
-            scope: "sign_app_sign_in",
+            scope: "auth_app_sign_in",
             name: "email_update_ip_sustained",
             store: rate_limit_store,
             only: :update,
-            with: -> { render_rate_limited(rule_name: "sign_app_sign_in_email_update_ip_sustained", retry_after: 900) },
+            with: -> { render_rate_limited(rule_name: "auth_app_sign_in_email_update_ip_sustained", retry_after: 900) },
           )
           declare_authentication_mode!(
             :guest,
@@ -108,7 +108,7 @@ module Auth
             preserve_pt
 
             flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
-            redirect_to(edit_sign_app_sign_in_email_path(pt: peek_pt))
+            redirect_to(edit_auth_app_sign_in_email_path(pt: peek_pt))
           end
 
           def update
@@ -186,7 +186,7 @@ module Auth
 
           def redirect_to_email_session_expired
             flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
-            redirect_to(new_sign_app_sign_in_email_path(pt: peek_pt))
+            redirect_to(new_auth_app_sign_in_email_path(pt: peek_pt))
           end
 
           def process_email_authentication(normalized_address)

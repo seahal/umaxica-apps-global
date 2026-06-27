@@ -27,17 +27,17 @@ class Auth::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "creates verification on success" do
-    return_to = Base64.urlsafe_encode64(sign_com_settings_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(auth_com_settings_emails_path(ri: "jp"))
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get sign_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
+          get auth_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
               headers: @headers
 
           assert_response :success
 
-          get new_sign_com_verification_passkey_url(
+          get new_auth_com_verification_passkey_url(
             ri: "jp",
             scope: "settings_email",
             return_to: return_to,
@@ -45,28 +45,28 @@ class Auth::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
 
           assert_response :redirect
 
-          post sign_com_verification_passkey_url(ri: "jp"),
+          post auth_com_verification_passkey_url(ri: "jp"),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
                headers: @headers
 
           assert_response :redirect
-          assert_redirected_to sign_com_verification_url(ri: "jp")
+          assert_redirected_to auth_com_verification_url(ri: "jp")
         end
       end
     end
   end
 
   test "new keeps scope and return_to in form hidden fields" do
-    return_to = Base64.urlsafe_encode64(sign_com_settings_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(auth_com_settings_emails_path(ri: "jp"))
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
-        get sign_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
+        get auth_com_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
             headers: @headers
 
         assert_response :success
 
-        get new_sign_com_verification_passkey_url(
+        get new_auth_com_verification_passkey_url(
           ri: "jp",
           scope: "settings_email",
           return_to: return_to,

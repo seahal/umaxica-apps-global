@@ -20,7 +20,7 @@ module Side
         private
 
         def oidc_client_id
-          "side-rails-rp"
+          "base-rails-rp"
         end
       end
     end

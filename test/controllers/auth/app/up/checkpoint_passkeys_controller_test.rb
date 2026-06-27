@@ -38,17 +38,17 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      get sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      get auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :success
       assert_select "[data-controller='passkey-registration']"
-      begin_path = sign_app_sign_up_check_telephone_passkey_path(ri: "jp")
+      begin_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
       assert_select "[data-passkey-registration-begin-url-value='#{begin_path}']"
-      finish_path = sign_app_sign_up_check_telephone_passkey_path(ri: "jp")
+      finish_path = auth_app_sign_up_check_telephone_passkey_path(ri: "jp")
 
       assert_select "[data-passkey-registration-finish-url-value='#{finish_path}']"
-      passcode_path = sign_app_sign_up_check_telephone_passcode_path(ri: "jp")
+      passcode_path = auth_app_sign_up_check_telephone_passcode_path(ri: "jp")
 
       assert_select "[data-passkey-registration-success-redirect-url-value='#{passcode_path}']"
       assert_select "[data-passkey-registration-checkpoint-version-value='#{cycle.checkpoint_version}']"
@@ -57,7 +57,7 @@ module Auth::App::Up
     test "POST begin returns challenge and options" do
       verify_telephone_via_otp!
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :ok
       json = response.parsed_body
@@ -81,7 +81,7 @@ module Auth::App::Up
         sign_count: 0,
       )
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :ok
       excluded_ids = response.parsed_body.dig("options", "excludeCredentials").to_a.pluck("id")
@@ -90,13 +90,13 @@ module Auth::App::Up
     end
 
     test "POST begin returns not found when registration session is missing" do
-      post sign_app_sign_up_check_telephone_passkey_url, as: :json
+      post auth_app_sign_up_check_telephone_passkey_url, as: :json
 
       assert_response :not_found
     end
 
     test "GET show returns not found when registration session is missing" do
-      get sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      get auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
       assert_response :not_found
     end
@@ -105,7 +105,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       telephone.update!(user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED)
 
-      post sign_app_sign_up_check_telephone_passkey_url, as: :json
+      post auth_app_sign_up_check_telephone_passkey_url, as: :json
 
       assert_response :unprocessable_content
       assert_predicate response.parsed_body["error"], :present?
@@ -115,16 +115,16 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       telephone.update!(user_telephone_status_id: ClientTelephoneStatus::UNVERIFIED)
 
-      get sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      get auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
-      assert_redirected_to sign_app_sign_up_check_telephone_otp_path(ri: "jp")
+      assert_redirected_to auth_app_sign_up_check_telephone_otp_path(ri: "jp")
     end
 
     test "POST create saves passkey and returns checkpoint redirect on success" do
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -135,7 +135,7 @@ module Auth::App::Up
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         assert_difference("ClientPasskey.count", 1) do
-          patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             checkpoint_version: cycle.checkpoint_version,
             credential: {
@@ -149,7 +149,7 @@ module Auth::App::Up
 
       assert_response :created
       assert_equal "ok", response.parsed_body["status"]
-      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"), response.parsed_body["redirect_url"]
+      assert_equal auth_app_sign_up_check_telephone_passcode_path(ri: "jp"), response.parsed_body["redirect_url"]
       assert_predicate session[:user_telephone_registration], :present?
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
       assert cycle.reload.requirement_cleared?(:passkey)
@@ -161,7 +161,7 @@ module Auth::App::Up
       verify_telephone_via_otp!
       cycle = current_sign_up_flow(registration_telephone)
 
-      patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+      patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
         checkpoint_version: cycle.checkpoint_version,
         credential: {
           id: "new_webauthn_id",
@@ -177,7 +177,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -187,7 +187,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
           challenge_id: challenge_id,
           checkpoint_version: cycle.checkpoint_version,
           credential: {
@@ -201,10 +201,10 @@ module Auth::App::Up
       assert_response :created
 
       acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-      get acme_app_dashboard_url(ri: "jp", host: acme_host)
+      get auth_app_dashboard_url(ri: "jp", host: acme_host)
 
       assert_response :redirect
-      assert_not_equal acme_app_dashboard_url(ri: "jp", host: acme_host), response.location
+      assert_not_equal auth_app_dashboard_url(ri: "jp", host: acme_host), response.location
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 
@@ -212,7 +212,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -224,7 +224,7 @@ module Auth::App::Up
       pt = "/welcome?ri=jp"
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
           pt: pt,
           challenge_id: challenge_id,
           checkpoint_version: cycle.checkpoint_version,
@@ -237,7 +237,7 @@ module Auth::App::Up
       end
 
       assert_response :created
-      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"),
+      assert_equal auth_app_sign_up_check_telephone_passcode_path(ri: "jp"),
                    response.parsed_body["redirect_url"]
     end
 
@@ -245,7 +245,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -256,7 +256,7 @@ module Auth::App::Up
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         assert_no_difference("ClientChronicle.count") do
-          patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             checkpoint_version: cycle.checkpoint_version,
             credential: {
@@ -273,7 +273,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -283,7 +283,7 @@ module Auth::App::Up
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         assert_no_difference("ClientPasskey.count") do
-          patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             checkpoint_version: cycle.checkpoint_version,
             credential: {
@@ -301,7 +301,7 @@ module Auth::App::Up
     test "telephone sign up finalizes and establishes login after otp passkey passcode and birthdate" do
       telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("finalize")
 
-      patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+      patch auth_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
         requirement: "birthdate",
         birthdate: "2000-01-01",
         checkpoint_version: cycle.reload.checkpoint_version,
@@ -320,7 +320,7 @@ module Auth::App::Up
       travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
         telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("under16")
 
-        patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+        patch auth_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
           requirement: "birthdate",
           birthdate: "2010-06-26",
           checkpoint_version: cycle.reload.checkpoint_version,
@@ -339,7 +339,7 @@ module Auth::App::Up
       travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
         telephone, cycle = advance_telephone_signup_to_birthdate_checkpoint!("sixteen")
 
-        patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+        patch auth_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
           requirement: "birthdate",
           birthdate: "2010-06-25",
           checkpoint_version: cycle.reload.checkpoint_version,
@@ -355,7 +355,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -365,7 +365,7 @@ module Auth::App::Up
       mock_credential.define_singleton_method(:verify) { |_challenge| true }
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
-        patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+        patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
           challenge_id: challenge_id,
           checkpoint_version: cycle.checkpoint_version,
           credential: {
@@ -378,7 +378,7 @@ module Auth::App::Up
 
       assert_response :created
 
-      patch sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
+      patch auth_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
         checkpoint_version: cycle.reload.checkpoint_version,
       }
 
@@ -391,11 +391,11 @@ module Auth::App::Up
       user = telephone.user
       user.update_column(:status_id, ClientStatus::RESERVED)
 
-      get sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+      get auth_app_sign_up_check_telephone_birthdate_url(ri: "jp")
 
       assert_response :success
 
-      patch sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
+      patch auth_app_sign_up_check_telephone_birthdate_url(ri: "jp"), params: {
         requirement: "birthdate",
         birthdate: "2000-01-01",
         checkpoint_version: cycle.reload.checkpoint_version,
@@ -418,7 +418,7 @@ module Auth::App::Up
     test "POST create rejects stale checkpoint version before creating passkey" do
       verify_telephone_via_otp!
 
-      post sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      post auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -429,7 +429,7 @@ module Auth::App::Up
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         assert_no_difference("ClientPasskey.count") do
-          patch sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          patch auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             checkpoint_version: 999,
             credential: {
@@ -449,7 +449,7 @@ module Auth::App::Up
 
     def verify_telephone_via_otp!
       post(
-        sign_app_sign_up_telephone_url,
+        auth_app_sign_up_telephone_url,
         params: {
           user_telephone: {
             raw_number: "+1234567890",
@@ -466,18 +466,18 @@ module Auth::App::Up
       code = hotp.at(otp_data[:otp_counter])
 
       patch(
-        sign_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
+        auth_app_sign_up_check_telephone_otp_url(ri: "jp"), params: {
           user_telephone: { pass_code: code },
         },
       )
 
-      assert_redirected_to sign_app_sign_up_guard_telephone_url(ri: "jp")
+      assert_redirected_to auth_app_sign_up_guard_telephone_url(ri: "jp")
 
-      get(sign_app_sign_up_guard_telephone_url(ri: "jp"))
+      get(auth_app_sign_up_guard_telephone_url(ri: "jp"))
 
-      assert_redirected_to sign_app_sign_up_check_telephone_passkey_url(ri: "jp")
+      assert_redirected_to auth_app_sign_up_check_telephone_passkey_url(ri: "jp")
 
-      get(sign_app_sign_up_check_telephone_passkey_url(ri: "jp"))
+      get(auth_app_sign_up_check_telephone_passkey_url(ri: "jp"))
 
       assert_response :success
 
@@ -496,7 +496,7 @@ module Auth::App::Up
       telephone = verify_telephone_via_otp!
       cycle = current_sign_up_flow(telephone)
 
-      post(sign_app_sign_up_check_telephone_passkey_url(ri: "jp"))
+      post(auth_app_sign_up_check_telephone_passkey_url(ri: "jp"))
       challenge_id = response.parsed_body["challenge_id"]
 
       mock_credential = Object.new
@@ -507,7 +507,7 @@ module Auth::App::Up
 
       WebAuthn::Credential.stub(:from_create, mock_credential) do
         patch(
-          sign_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
+          auth_app_sign_up_check_telephone_passkey_url(ri: "jp"), params: {
             challenge_id: challenge_id,
             checkpoint_version: cycle.checkpoint_version,
             credential: {
@@ -520,20 +520,20 @@ module Auth::App::Up
       end
 
       assert_response :created
-      assert_equal sign_app_sign_up_check_telephone_passcode_path(ri: "jp"),
+      assert_equal auth_app_sign_up_check_telephone_passcode_path(ri: "jp"),
                    response.parsed_body["redirect_url"]
       assert cycle.reload.requirement_cleared?(:passkey)
 
       patch(
-        sign_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
+        auth_app_sign_up_check_telephone_passcode_url(ri: "jp"), params: {
           checkpoint_version: cycle.reload.checkpoint_version,
         },
       )
 
-      assert_redirected_to sign_app_sign_up_check_telephone_birthdate_url(ri: "jp")
+      assert_redirected_to auth_app_sign_up_check_telephone_birthdate_url(ri: "jp")
       assert cycle.reload.requirement_cleared?(:passcode)
 
-      get(sign_app_sign_up_check_telephone_birthdate_url(ri: "jp"))
+      get(auth_app_sign_up_check_telephone_birthdate_url(ri: "jp"))
 
       assert_response :success
 

@@ -72,7 +72,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should get index" do
     with_prosopite_paused do
-      get sign_app_settings_totps_url(ri: "jp"), headers: @headers
+      get auth_app_settings_totps_url(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
@@ -97,7 +97,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     with_prosopite_paused do
-      get sign_app_settings_totps_url(ri: "jp"), headers: headers
+      get auth_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
     assert_response :ok
@@ -127,7 +127,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
 
     with_prosopite_paused do
-      get sign_app_settings_totps_url(ri: "jp"), headers: headers
+      get auth_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
     assert_response :ok
@@ -136,21 +136,21 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should show up link on index page" do
     with_prosopite_paused do
-      get sign_app_settings_totps_url(ri: "jp"), headers: @headers
+      get auth_app_settings_totps_url(ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "a[href=?]", new_sign_app_settings_totp_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_app_settings_totp_path(ri: "jp")
   end
 
   test "should get new" do
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_settings_totps_path(ri: "jp")
-    assert_select "form[action=?]", sign_app_settings_totps_path(ri: "jp")
+    assert_select "a[href=?]", auth_app_settings_totps_path(ri: "jp")
+    assert_select "form[action=?]", auth_app_settings_totps_path(ri: "jp")
     assert_select "input[name='user_totp_credential[title]']"
     assert_select "input[name='user_totp_credential[first_token]'][pattern]", count: 0
     assert_select "label", text: I18n.t("views.sign.app.settings.totps.new.first_token_label")
@@ -167,11 +167,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @user.client_totp_credentials.destroy_all
     @user.client_secret_credentials.destroy_all
 
-    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+    get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_equal "text/html", response.media_type
-    assert_not_includes response.body, sign_app_settings_secret_credentials_url(
+    assert_not_includes response.body, auth_app_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
@@ -183,12 +183,12 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     create_client_recovery_passcode!(@user, name: "only recovery")
 
     with_mocked_totp do |secret_credential|
-      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       token = ROTP::TOTP.new(secret_credential).now
 
       assert_difference("ClientTotpCredential.count", 1) do
         assert_difference(-> { @user.reload.client_secret_credentials.count }, 9) do
-          post sign_app_settings_totps_url(ri: "jp"),
+          post auth_app_settings_totps_url(ri: "jp"),
                params: {
                  user_totp_credential: { first_token: token },
                },
@@ -210,41 +210,41 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       status_id: ClientSecretCredentialStatus::REVOKED,
     )
 
-    get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+    get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
 
     assert_response :forbidden
   end
 
   test "should get edit with public_id" do
     with_prosopite_paused do
-      get edit_sign_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
+      get edit_auth_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :ok
-    assert_select "form[action=?]", sign_app_settings_totp_path(@totp.public_id, ri: "jp")
+    assert_select "form[action=?]", auth_app_settings_totp_path(@totp.public_id, ri: "jp")
     assert_equal @totp.public_id, request.path_parameters[:id]
     assert_nil request.path_parameters[:public_id]
   end
 
   test "should update title with public_id" do
     with_prosopite_paused do
-      patch sign_app_settings_totp_url(@totp.public_id, ri: "jp"),
+      patch auth_app_settings_totp_url(@totp.public_id, ri: "jp"),
             params: { user_totp_credential: { title: "Updated TOTP" } },
             headers: @headers
     end
 
-    assert_redirected_to sign_app_settings_totp_path(@totp.public_id, ri: "jp")
+    assert_redirected_to auth_app_settings_totp_path(@totp.public_id, ri: "jp")
     assert_equal "Updated TOTP", @totp.reload.title
   end
 
   test "should destroy with public_id" do
     assert_difference("ClientTotpCredential.count", -1) do
       with_prosopite_paused do
-        delete sign_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
+        delete auth_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
       end
     end
 
-    assert_redirected_to sign_app_settings_totps_path(ri: "jp")
+    assert_redirected_to auth_app_settings_totps_path(ri: "jp")
   end
 
   test "should return 404 for other user's totp" do
@@ -258,7 +258,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     )
 
     with_prosopite_paused do
-      get edit_sign_app_settings_totp_url(other_totp.public_id, ri: "jp"), headers: @headers
+      get edit_auth_app_settings_totp_url(other_totp.public_id, ri: "jp"), headers: @headers
     end
 
     assert_response :not_found
@@ -271,7 +271,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+        get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -282,7 +282,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       assert_difference("ClientTotpCredential.count", 1) do
         assert_difference(-> { @user.reload.client_secret_credentials.count }, 10) do
           with_prosopite_paused do
-            post sign_app_settings_totps_url(ri: "jp"),
+            post auth_app_settings_totps_url(ri: "jp"),
                  params: { user_totp_credential: { first_token: token } },
                  headers: @headers
           end
@@ -305,7 +305,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+        get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       token = ROTP::TOTP.new(secret_credential).now
@@ -313,7 +313,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       assert_difference("ClientTotpCredential.count", 1) do
         assert_difference(-> { @user.reload.client_secret_credentials.count }, 5) do
           with_prosopite_paused do
-            post sign_app_settings_totps_url(ri: "jp"),
+            post auth_app_settings_totps_url(ri: "jp"),
                  params: { user_totp_credential: { first_token: token } },
                  headers: @headers
           end
@@ -330,7 +330,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+        get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -338,7 +338,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       token = ROTP::TOTP.new(secret_credential).now
 
       with_prosopite_paused do
-        post sign_app_settings_totps_url(ri: "jp"),
+        post auth_app_settings_totps_url(ri: "jp"),
              params: {
                user_totp_credential: { first_token: token, title: "New TOTP" },
              },
@@ -357,7 +357,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+        get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       raw_token = ROTP::TOTP.new(secret_credential).now
@@ -365,7 +365,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_difference("ClientTotpCredential.count", 1) do
         with_prosopite_paused do
-          post sign_app_settings_totps_url(ri: "jp"),
+          post auth_app_settings_totps_url(ri: "jp"),
                params: {
                  user_totp_credential: { first_token: pasted_token, title: "Pasted TOTP" },
                },
@@ -380,7 +380,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create totp with invalid token" do
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
@@ -388,7 +388,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
-        post sign_app_settings_totps_url(ri: "jp"),
+        post auth_app_settings_totps_url(ri: "jp"),
              params: { user_totp_credential: { first_token: "000000" } },
              headers: @headers
       end
@@ -399,14 +399,14 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create totp with empty token" do
     with_prosopite_paused do
-      get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+      get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
     end
 
     assert_response :success
 
     assert_no_difference("ClientTotpCredential.count") do
       with_prosopite_paused do
-        post sign_app_settings_totps_url(ri: "jp"),
+        post auth_app_settings_totps_url(ri: "jp"),
              params: { user_totp_credential: { first_token: "", title: "" } },
              headers: @headers
       end
@@ -419,7 +419,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   test "should not create totp when turnstile stealth fails" do
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(ri: "jp"), headers: @headers
+        get new_auth_app_settings_totp_url(ri: "jp"), headers: @headers
       end
 
       assert_response :success
@@ -430,7 +430,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_no_difference("ClientTotpCredential.count") do
         with_prosopite_paused do
-          post sign_app_settings_totps_url(ri: "jp"),
+          post auth_app_settings_totps_url(ri: "jp"),
                params: {
                  user_totp_credential: { first_token: token, title: "Blocked TOTP" },
                },
@@ -464,7 +464,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
 
     with_prosopite_paused do
-      get sign_app_settings_totps_url(ri: "jp"), headers: headers
+      get auth_app_settings_totps_url(ri: "jp"), headers: headers
     end
 
     assert_response :ok
@@ -494,7 +494,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     with_mocked_totp do |secret_credential|
       with_prosopite_paused do
-        get new_sign_app_settings_totp_url(
+        get new_auth_app_settings_totp_url(
           ri: "jp",
         ), headers: headers
       end
@@ -504,7 +504,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
       assert_difference("ClientTotpCredential.count", 1) do
         with_prosopite_paused do
-          post sign_app_settings_totps_url(ri: "jp"),
+          post auth_app_settings_totps_url(ri: "jp"),
                params: { user_totp_credential: { first_token: first_code } },
                headers: headers
         end

@@ -33,7 +33,9 @@ module Base
 
         def authorize_withdrawal! = authorize!(current_client, to: :"#{action_name}?", with: ClientWithdrawalPolicy)
 
-        def withdrawal_new_path(extra_params = {}) = new_base_app_identity_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
+        def withdrawal_new_path(extra_params = {})
+          new_base_app_identity_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
+        end
 
         def withdrawal_edit_path = edit_base_app_identity_withdrawal_path(ri: params[:ri])
 

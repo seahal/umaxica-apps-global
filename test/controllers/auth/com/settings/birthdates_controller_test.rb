@@ -22,18 +22,18 @@ module Auth::Com::Settings
     end
 
     test "shows birthdate to signed in visitor" do
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_select "[data-birthdate]", text: "2000-02-30"
-      assert_select "a[href=?]", sign_com_settings_path(ri: "jp")
+      assert_select "a[href=?]", auth_com_settings_path(ri: "jp")
       assert_select "input[name*='birthdate']", count: 0
     end
 
     test "shows unset state" do
       @visitor.update!(birthdate: nil)
 
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :success
       assert_includes response.body, I18n.t("sign.com.settings.birthdate.show.not_set")
@@ -42,7 +42,7 @@ module Auth::Com::Settings
     test "requires step-up when session freshness is stale" do
       @token.update!(last_step_up_at: nil, last_step_up_scope: nil)
 
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -51,7 +51,7 @@ module Auth::Com::Settings
     test "rejects generic verification step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "verification")
 
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -61,7 +61,7 @@ module Auth::Com::Settings
     test "rejects unrelated step-up scope" do
       @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: @headers
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: @headers
 
       assert_response :redirect
       assert_match(%r{/verification}, response.location)
@@ -69,7 +69,7 @@ module Auth::Com::Settings
     end
 
     test "redirects when not signed in" do
-      get sign_com_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
+      get auth_com_settings_birthdate_url(ri: "jp"), headers: { "Host" => @host }
 
       assert_response :redirect
       assert_oidc_authorize_redirect(
@@ -81,10 +81,10 @@ module Auth::Com::Settings
 
     test "does not route mutation or edit actions" do
       assert_raises(NoMethodError) do
-        edit_sign_com_settings_birthdate_url(ri: "jp")
+        edit_auth_com_settings_birthdate_url(ri: "jp")
       end
 
-      patch sign_com_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
+      patch auth_com_settings_birthdate_url(ri: "jp"), headers: @headers, params: {
         visitor: { birthdate: "2001-02-03" },
       }
 

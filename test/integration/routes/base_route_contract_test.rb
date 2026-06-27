@@ -69,11 +69,11 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/settings",
+      "http://#{BASE_APP_HOST}/identity/emails",
       method: :get,
     )
 
-    assert_equal "base/app/settings", recognized[:controller]
+    assert_equal "base/app/identity/emails", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -209,11 +209,11 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/settings",
+      "http://#{BASE_COM_HOST}/identity/emails",
       method: :get,
     )
 
-    assert_equal "base/com/settings", recognized[:controller]
+    assert_equal "base/com/identity/emails", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -349,11 +349,11 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/settings",
+      "http://#{BASE_ORG_HOST}/identity/emails",
       method: :get,
     )
 
-    assert_equal "base/org/settings", recognized[:controller]
+    assert_equal "base/org/identity/emails", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -433,12 +433,12 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
   test "base remains a rails control-plane surface without provider endpoints" do
     [BASE_APP_HOST, BASE_COM_HOST, BASE_ORG_HOST].each do |host|
       recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/settings",
+        "http://#{host}/identity/emails",
         method: :get,
       )
 
       assert_equal "show", recognized[:action]
-      assert_match(%r{\Abase/(app|com|org)/settings\z}, recognized[:controller])
+      assert_match(%r{\Abase/(app|com|org)/identity/emails\z}, recognized[:controller])
 
       %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
         assert_raises(ActionController::RoutingError) do

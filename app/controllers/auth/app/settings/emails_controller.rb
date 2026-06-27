@@ -14,11 +14,11 @@ module Auth
         before_action :authenticate_client!
         before_action :authorize_emails!, only: :index
 
-        def index = redirect_to(acme_app_identity_emails_path(ri: params[:ri]), status: :see_other)
+        def index = redirect_to(base_app_identity_emails_path(ri: params[:ri]), status: :see_other)
 
         def edit
           redirect_to(
-            edit_acme_app_identity_email_path(params.expect(:id), ri: params[:ri]),
+            edit_base_app_identity_email_path(params.expect(:id), ri: params[:ri]),
             status: :see_other,
           )
         end

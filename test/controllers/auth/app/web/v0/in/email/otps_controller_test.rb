@@ -22,7 +22,7 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
       memo: "purpose=in issued=#{Time.current.to_i}",
     )
 
-    post sign_app_web_v0_in_email_otp_path,
+    post auth_app_web_v0_in_email_otp_path,
          params: { state: state_for(email) },
          headers: { "Host" => @host },
          as: :json
@@ -48,7 +48,7 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
 
     assert_difference -> { ActionMailer::Base.deliveries.count }, 1 do
       perform_enqueued_jobs do
-        post sign_app_web_v0_in_email_otp_path,
+        post auth_app_web_v0_in_email_otp_path,
              params: { state: state_for(email) },
              headers: { "Host" => @host },
              as: :json
@@ -79,7 +79,7 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
     old_code = ROTP::HOTP.new(old_private_key).at(old_counter).to_s
     email_record.store_otp(old_private_key, old_counter, 12.minutes.from_now.to_i)
 
-    post sign_app_web_v0_in_email_otp_path,
+    post auth_app_web_v0_in_email_otp_path,
          params: { state: state_for(email_record.address) },
          headers: { "Host" => @host },
          as: :json

@@ -24,7 +24,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   test "update does not redirect signed-in clients away from the google birthdate checkpoint" do
     user = clients(:one)
 
-    patch sign_app_sign_up_check_google_birthdate_url(ri: "jp"),
+    patch auth_app_sign_up_check_google_birthdate_url(ri: "jp"),
           headers: as_user_headers(user, host: @host)
 
     assert_response :unprocessable_content
@@ -38,7 +38,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
 
       assert_predicate sign_up_state, :present?
 
-      patch sign_app_sign_up_check_google_confirmation_url(ri: "jp"),
+      patch auth_app_sign_up_check_google_confirmation_url(ri: "jp"),
             params: {
               :confirm_new_social_identity => "1",
               :checkpoint_version => flow.checkpoint_version,
@@ -46,9 +46,9 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
             },
             headers: social_callback_headers(@host)
 
-      assert_redirected_to sign_app_sign_up_check_google_birthdate_url(ri: "jp")
+      assert_redirected_to auth_app_sign_up_check_google_birthdate_url(ri: "jp")
 
-      patch sign_app_sign_up_check_google_birthdate_url(ri: "jp"),
+      patch auth_app_sign_up_check_google_birthdate_url(ri: "jp"),
             params: {
               requirement: "birthdate",
               checkpoint_version: flow.reload.checkpoint_version,
@@ -58,14 +58,14 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
 
       assert_response :success
       assert_includes response.body, "16歳"
-      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
       assert_equal ClientSignUpFlowStatus::FAILED, flow.reload.status_id
 
-      get sign_app_sign_up_check_google_birthdate_url(ri: "jp"), headers: social_callback_headers(@host)
+      get auth_app_sign_up_check_google_birthdate_url(ri: "jp"), headers: social_callback_headers(@host)
 
       assert_response :success
       assert_includes response.body, "16歳"
-      assert_select "form[action='#{sign_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
     end
   end
 
@@ -74,7 +74,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   def start_google_social_signup!
     setup_google_mock_auth(uid: "google-underage-#{SecureRandom.hex(4)}")
 
-    get(sign_app_social_google_sign_up_url(provider: "google", ri: "jp"))
+    get(auth_app_social_google_sign_up_url(provider: "google", ri: "jp"))
 
     assert_response :redirect
     state = social_auth_state_from_response
@@ -82,15 +82,15 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
     assert_predicate state, :present?
 
     get(
-      sign_app_social_google_callback_url(provider: "google", ri: "jp"),
+      auth_app_social_google_callback_url(provider: "google", ri: "jp"),
       params: { state: state },
       headers: social_callback_headers(@host),
     )
 
-    assert_redirected_to sign_app_sign_up_guard_google_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_guard_google_url(ri: "jp")
     follow_redirect!
 
-    assert_redirected_to sign_app_sign_up_check_google_confirmation_url(ri: "jp")
+    assert_redirected_to auth_app_sign_up_check_google_confirmation_url(ri: "jp")
     follow_redirect!
 
     assert_response :ok

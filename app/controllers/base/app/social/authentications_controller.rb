@@ -99,9 +99,9 @@ module Base
 
         def sign_social_settings_url_for(provider)
           if SocialIdentifiable.normalize_provider(provider) == "apple"
-            sign_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
+            auth_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
           else
-            sign_app_settings_google_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
+            auth_app_settings_google_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
           end
         end
 
@@ -171,7 +171,7 @@ module Base
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
           redirect_to(
             public_send(
-              :"sign_app_sign_up_guard_#{normalized_provider}_url",
+              :"auth_app_sign_up_guard_#{normalized_provider}_url",
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
               host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
@@ -319,7 +319,7 @@ module Base
 
         def social_sign_in_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          public_send(:"sign_app_social_#{normalized_provider}_sign_in_url", **params)
+          public_send(:"auth_app_social_#{normalized_provider}_sign_in_url", **params)
         end
       end
     end

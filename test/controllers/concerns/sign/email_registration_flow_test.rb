@@ -58,7 +58,7 @@ class SignEmailRegistrationFlowTest < ActiveSupport::TestCase
       "/emails/new?#{params.to_query}"
     end
 
-    def sign_app_settings_emails_url(**params)
+    def auth_app_settings_emails_url(**params)
       query = params.to_query
       query.present? ? "/settings/emails?#{query}" : "/settings/emails"
     end

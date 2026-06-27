@@ -22,19 +22,19 @@ module Auth
 
         def destroy
           revoke_selected_session!(@session) unless current_session_record?(@session)
-          redirect_to(sign_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
         end
 
         def others
           visible_sessions.find_each do |token|
             revoke_selected_session!(token) unless current_session_record?(token)
           end
-          redirect_to(sign_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_org_settings_sessions_path(ri: params[:ri]), status: :see_other)
         end
 
         def revoke_all
           logout_all_sessions_for!(resource: current_operator, reason: "settings.session.revoke_all")
-          redirect_to(sign_org_sign_out_path(ri: params[:ri]), status: :see_other)
+          redirect_to(auth_org_sign_out_path(ri: params[:ri]), status: :see_other)
         end
 
         private

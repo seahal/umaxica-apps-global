@@ -15,7 +15,7 @@ module Auth
 
         def show
           redirect_to(
-            acme_app_identity_recovery_secret_path(ri: params[:ri], token: params[:token]),
+            base_app_identity_recovery_secret_path(ri: params[:ri], token: params[:token]),
             status: :see_other,
           )
         end

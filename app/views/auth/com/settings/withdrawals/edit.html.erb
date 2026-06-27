@@ -13,7 +13,7 @@
     <p><%= t("sign.app.settings.withdrawal.recovery.available") %></p>
 
     <%= button_to t("sign.app.settings.withdrawal.recovery.submit"),
-                  sign_com_settings_withdrawal_path(ri: params[:ri]),
+                  auth_com_settings_withdrawal_path(ri: params[:ri]),
                   method: :post,
                   data: { turbo_confirm: t("sign.app.settings.withdrawal.recovery.confirm") } %>
   <% elsif @recovery_available_at.present? && Time.current < @recovery_available_at %>
@@ -24,7 +24,7 @@
 
   <% if @early_terminatable %>
     <%= button_to t("sign.app.settings.withdrawal.terminate.submit"),
-                  sign_com_settings_withdrawal_path(ri: params[:ri]),
+                  auth_com_settings_withdrawal_path(ri: params[:ri]),
                   method: :delete,
                   data: { turbo_confirm: t("sign.app.settings.withdrawal.terminate.confirm") } %>
   <% elsif @early_termination_available_at.present? %>
@@ -33,5 +33,5 @@
 <% end %>
 
 <p>
-  <%= link_to t("actions.back"), sign_com_settings_path(ri: params[:ri]) %>
+  <%= link_to t("actions.back"), auth_com_settings_path(ri: params[:ri]) %>
 </p>

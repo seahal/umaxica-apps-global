@@ -15,7 +15,7 @@ class Auth::Org::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
   end
 
   test "show renders sign withdrawal entry" do
-    get sign_org_settings_withdrawal_url(ri: "jp"), headers: session_headers
+    get auth_org_settings_withdrawal_url(ri: "jp"), headers: session_headers
 
     assert_response :success
   end

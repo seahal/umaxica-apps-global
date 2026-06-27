@@ -35,7 +35,7 @@ module Auth
 
               def sign_up_ticket_class = VisitorSignUpFlow
 
-              def sign_up_sequence_session_key = :sign_com_up_sequence_id
+              def sign_up_sequence_session_key = :auth_com_up_sequence_id
 
               def sign_up_family = "email"
 

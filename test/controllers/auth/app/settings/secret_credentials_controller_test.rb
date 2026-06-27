@@ -71,7 +71,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should get index" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
+      get auth_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
     assert_response :success
@@ -83,7 +83,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     cookies.delete(ClientVerification.cookie_name)
 
     with_prosopite_paused do
-      get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
+      get auth_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
     assert_response :success
@@ -91,7 +91,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should show back link on index page" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
+      get auth_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
     assert_response :success
@@ -100,19 +100,19 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "index renders destroy as delete form" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
+      get auth_app_settings_secret_credentials_url(ri: "jp"), headers: authenticated_headers
     end
 
     assert_response :success
     assert_select "form[action=?][method=?]",
-                  sign_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp"), "post" do
+                  auth_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp"), "post" do
       assert_select "input[name=?][value=?]", "_method", "delete"
     end
   end
 
   test "should get show" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      get auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -130,7 +130,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     )
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(ri: "jp"),
+      get new_auth_app_settings_secret_credential_url(ri: "jp"),
           headers: headers
     end
 
@@ -156,7 +156,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     )
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(ri: "jp"),
+      get new_auth_app_settings_secret_credential_url(ri: "jp"),
           headers: headers
     end
 
@@ -168,19 +168,19 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_secret_credential")
 
     with_prosopite_paused do
-      get new_sign_app_settings_secret_credential_url(
+      get new_auth_app_settings_secret_credential_url(
         ri: "jp",
       ), headers: authenticated_headers
     end
 
     assert_response :success
-    assert_select "a[href=?]", sign_app_settings_path(ri: "jp"),
+    assert_select "a[href=?]", auth_app_settings_path(ri: "jp"),
                   text: /#{Regexp.escape(I18n.t("actions.back"))}/
   end
 
   test "should get edit" do
     with_prosopite_paused do
-      get edit_sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      get edit_auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -189,7 +189,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should show back link on edit page" do
     with_prosopite_paused do
-      get edit_sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      get edit_auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -213,7 +213,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
         1,
       ) do
         with_prosopite_paused do
-          post sign_app_settings_secret_credentials_url(ri: "jp"),
+          post auth_app_settings_secret_credentials_url(ri: "jp"),
                params: { user_secret_credential: { name: "New Secret", enabled: true },
                          "cf-turnstile-response": "test", },
                headers: authenticated_headers
@@ -221,7 +221,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credentials_url(
+    assert_redirected_to auth_app_settings_secret_credentials_url(
       ri: "jp",
       host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
     )
@@ -242,7 +242,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
-        post sign_app_settings_secret_credentials_url(ri: "jp"),
+        post auth_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
                        "cf-turnstile-response": "test", },
              headers: headers
@@ -272,7 +272,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
-        post sign_app_settings_secret_credentials_url(ri: "jp"),
+        post auth_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
                        "cf-turnstile-response": "test", },
              headers: headers
@@ -295,13 +295,13 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       1,
     ) do
       with_prosopite_paused do
-        patch sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+        patch auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
               params: { user_secret_credential: { name: "Updated Secret", enabled: false } },
               headers: authenticated_headers
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp")
     @user_secret_credential.reload
 
     assert_equal "Updated Secret", @user_secret_credential.name
@@ -315,13 +315,13 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     # User has a verified email (aal1 remains after removing secret credential), so removal is allowed.
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
-        delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
+        delete auth_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
                headers: authenticated_headers
       end
     end
 
     assert_response :see_other
-    assert_redirected_to sign_app_settings_secret_credentials_path(ri: "jp")
+    assert_redirected_to auth_app_settings_secret_credentials_path(ri: "jp")
     # Soft-delete via discard_now! sets status to deleted.
     assert_equal ClientSecretCredentialStatus::DELETED,
                  @user_secret_credential.reload.user_identity_secret_status_id
@@ -329,7 +329,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "URL uses public_id not numeric ID" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      get auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -341,7 +341,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should access secret_credential by public_id" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      get auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -352,7 +352,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
   test "should not access secret_credential by numeric ID" do
     with_prosopite_paused do
-      get sign_app_settings_secret_credential_url(@user_secret_credential.id, ri: "jp"),
+      get auth_app_settings_secret_credential_url(@user_secret_credential.id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -370,7 +370,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     )
 
     with_prosopite_paused do
-      get sign_app_settings_secret_credential_url(other_secret_credential.public_id, ri: "jp"),
+      get auth_app_settings_secret_credential_url(other_secret_credential.public_id, ri: "jp"),
           headers: authenticated_headers
     end
 
@@ -394,7 +394,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     AuthMethodGuard.stub(:last_method?, true) do
       with_prosopite_paused do
-        patch sign_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
+        patch auth_app_settings_secret_credential_url(secret_credential.public_id, ri: "jp"),
               params: { user_secret_credential: { enabled: false }, "cf-turnstile-response": "test" },
               headers: {
                 "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost",
@@ -404,7 +404,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credential_path(secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_app_settings_secret_credential_path(secret_credential.public_id, ri: "jp")
     assert_nil flash[:alert]
     assert_equal ClientSecretCredentialStatus::ACTIVE, secret_credential.reload.user_identity_secret_status_id
   end
@@ -414,7 +414,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
-        post sign_app_settings_secret_credentials_url(ri: "jp"),
+        post auth_app_settings_secret_credentials_url(ri: "jp"),
              params: { user_secret_credential: { name: "Blocked Secret", enabled: true },
                        "cf-turnstile-response": "bad", },
              headers: authenticated_headers
@@ -429,13 +429,13 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     CloudflareTurnstile.validation_override_response = { "success" => false }
 
     with_prosopite_paused do
-      patch sign_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
+      patch auth_app_settings_secret_credential_url(@user_secret_credential.public_id, ri: "jp"),
             params: { user_secret_credential: { name: "Blocked Update", enabled: true },
                       "cf-turnstile-response": "bad", },
             headers: authenticated_headers
     end
 
-    assert_redirected_to sign_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp")
+    assert_redirected_to auth_app_settings_secret_credential_path(@user_secret_credential.public_id, ri: "jp")
     assert_equal "Blocked Update", @user_secret_credential.reload.name
   end
 
@@ -446,12 +446,12 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     # Count does not change because destroy uses soft-delete.
     assert_no_difference("ClientSecretCredential.count") do
       with_prosopite_paused do
-        delete sign_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
+        delete auth_app_settings_secret_credential_url(@user_secret_credential, ri: "jp"),
                headers: authenticated_headers
       end
     end
 
-    assert_redirected_to sign_app_settings_secret_credentials_path(ri: "jp")
+    assert_redirected_to auth_app_settings_secret_credentials_path(ri: "jp")
     assert_predicate @user_secret_credential.reload, :lapsed?
   end
 

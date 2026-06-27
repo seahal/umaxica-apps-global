@@ -29,7 +29,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "get new renders email form" do
-    get new_sign_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+    get new_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :success
     assert_includes response.body, I18n.t("sign.app.authentication.email.new.page_title")
@@ -39,7 +39,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "post create with unknown email redirects to edit without visitor email session id" do
     assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-      post sign_com_sign_in_email_url(ri: "jp"),
+      post auth_com_sign_in_email_url(ri: "jp"),
            params: {
              user_email: { address: "missing-visitor@example.com" },
              "cf-turnstile-response": "test",
@@ -56,7 +56,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     visitor = create_verified_visitor_with_email(email_address: "com-login-#{SecureRandom.hex(4)}@example.com")
     email = visitor.visitor_emails.last
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: {
            user_email: { address: email.address },
            "cf-turnstile-response": "test",
@@ -68,7 +68,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "post create with invalid email format" do
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: {
            user_email: { address: "invalid-email" },
            "cf-turnstile-response": "test",
@@ -79,7 +79,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "get edit redirects when session is expired" do
-    get edit_sign_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
+    get edit_auth_com_sign_in_email_url(ri: "jp"), headers: { "Host" => @host }
 
     assert_response :redirect
     assert_redirected_to %r{/sign/in/email/new}
@@ -89,13 +89,13 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     visitor = create_verified_visitor_with_email(email_address: "cooldown@example.com")
     email = visitor.visitor_emails.last
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
     assert_response :redirect
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
@@ -106,13 +106,13 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     visitor = create_verified_visitor_with_email(email_address: "cooldown-message@example.com")
     email = visitor.visitor_emails.last
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
     assert_response :redirect
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 
@@ -127,7 +127,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     travel CommonOtpPolicy::SEND_COOLDOWN + 1.second do
       assert_no_difference -> { ActionMailer::Base.deliveries.count } do
-        post sign_com_sign_in_email_url(ri: "jp"),
+        post auth_com_sign_in_email_url(ri: "jp"),
              params: { user_email: { address: email.address }, "cf-turnstile-response": "test" },
              headers: { "Host" => @host }
       end
@@ -140,7 +140,7 @@ class Auth::Com::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "post create with turnstile failure returns unprocessable content" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_sign_in_email_url(ri: "jp"),
+    post auth_com_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "test@example.com" }, "cf-turnstile-response": "test" },
          headers: { "Host" => @host }
 

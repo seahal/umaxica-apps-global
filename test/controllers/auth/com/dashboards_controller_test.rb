@@ -17,26 +17,26 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show_renders_sign_dashboard" do
-    get sign_com_dashboard_url(ri: "jp"), headers: request_headers
+    get auth_com_dashboard_url(ri: "jp"), headers: request_headers
 
     assert_response :success
     assert_select "h1", text: "Dashboard"
     assert_select "p", text: /Sign com signed-in landing/
-    assert_select "a[href=?]", sign_com_root_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_sign_up_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_settings_path(ri: "jp")
-    assert_select "a[href=?]", new_sign_com_sign_out_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_sign_in_guard_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_sign_in_check_path(ri: "jp")
-    assert_select "a[href=?]", sign_com_sign_in_challenge_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_root_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_up_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_settings_path(ri: "jp")
+    assert_select "a[href=?]", new_auth_com_sign_out_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_in_guard_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_in_check_path(ri: "jp")
+    assert_select "a[href=?]", auth_com_sign_in_challenge_path(ri: "jp")
     assert_select "li", text: "Selector: handled by the sign-in guard sequence, no direct dashboard route"
     assert_no_match(/<a[^>]+>Selector<\/a>/, response.body)
     assert_no_match(%r{(?://example|umaxica\.example|evil\.example)}, response.body)
   end
 
   test "show_redirects_when_logged_out" do
-    get sign_com_dashboard_url(ri: "jp"), headers: { "Host" => @host }
+    get auth_com_dashboard_url(ri: "jp"), headers: { "Host" => @host }
 
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)

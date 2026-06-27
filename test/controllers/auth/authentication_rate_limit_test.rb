@@ -18,42 +18,42 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
 
     5.times do
-      post sign_app_sign_in_secret_credential_url(ri: "jp"),
+      post auth_app_sign_in_secret_credential_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post sign_app_sign_in_secret_credential_url(ri: "jp"),
+    post auth_app_sign_in_secret_credential_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("sign_app_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited("auth_app_sign_in_secret_credential_create_ip_burst")
   end
 
   test "com secret credential sign-in hits explicit rails rate limit" do
     host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
 
     5.times do
-      post sign_com_sign_in_secret_credential_url(ri: "jp"),
+      post auth_com_sign_in_secret_credential_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post sign_com_sign_in_secret_credential_url(ri: "jp"),
+    post auth_com_sign_in_secret_credential_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("sign_com_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited("auth_com_sign_in_secret_credential_create_ip_burst")
   end
 
   test "org secret credential sign-in hits explicit rails rate limit" do
     host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
 
     5.times do
-      post sign_org_sign_in_secret_credential_url(ri: "jp"),
+      post auth_org_sign_in_secret_credential_url(ri: "jp"),
            params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
     end
 
-    post sign_org_sign_in_secret_credential_url(ri: "jp"),
+    post auth_org_sign_in_secret_credential_url(ri: "jp"),
          params: { secret_credential_login_form: { identifier: "", secret_credential_value: "" } }
 
-    assert_sign_rate_limited("sign_org_sign_in_secret_credential_create_ip_burst")
+    assert_sign_rate_limited("auth_org_sign_in_secret_credential_create_ip_burst")
   end
 
   test "app passkey options sign-in hits explicit rails rate limit" do
@@ -62,12 +62,12 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
     5.times do
-      post(sign_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
+      post(auth_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
     end
 
-    post(sign_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
+    post(auth_app_sign_in_passkey_options_url(ri: "jp"), params: { identifier: "" }, as: :json)
 
-    assert_sign_rate_limited("sign_app_sign_in_passkey_options_ip_burst")
+    assert_sign_rate_limited("auth_app_sign_in_passkey_options_ip_burst")
   ensure
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil

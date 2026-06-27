@@ -17,7 +17,7 @@ module Auth
           if email_otp_session_active?
             nonce = ensure_email_nonce!
             redirect_to(
-              edit_sign_com_verification_email_path(
+              edit_auth_com_verification_email_path(
                 nonce,
                 ri: params[:ri],
                 scope: current_step_up_scope,
@@ -34,7 +34,7 @@ module Auth
 
           nonce = ensure_email_nonce!
           redirect_to(
-            edit_sign_com_verification_email_path(
+            edit_auth_com_verification_email_path(
               nonce,
               ri: params[:ri],
               scope: current_step_up_scope,
@@ -58,7 +58,7 @@ module Auth
           if email_otp_session_active?
             nonce = ensure_email_nonce!
             redirect_to(
-              edit_sign_com_verification_email_path(
+              edit_auth_com_verification_email_path(
                 nonce,
                 ri: params[:ri],
                 scope: current_step_up_scope,
@@ -75,7 +75,7 @@ module Auth
 
           nonce = ensure_email_nonce!
           redirect_to(
-            edit_sign_com_verification_email_path(
+            edit_auth_com_verification_email_path(
               nonce,
               ri: params[:ri],
               scope: current_step_up_scope,
@@ -134,8 +134,8 @@ module Auth
           end
 
           safe_redirect_to(
-            sign_com_verification_path(verification_recovery_redirect_params),
-            fallback: sign_com_verification_path(ri: params[:ri]),
+            auth_com_verification_path(verification_recovery_redirect_params),
+            fallback: auth_com_verification_path(ri: params[:ri]),
             alert: I18n.t("auth.step_up.invalid_request"),
           )
           false
@@ -147,7 +147,7 @@ module Auth
         end
 
         def verification_email_edit_path
-          edit_sign_com_verification_email_path(
+          edit_auth_com_verification_email_path(
             params[:id],
             ri: params[:ri],
             scope: @verification_scope,

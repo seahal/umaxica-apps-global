@@ -29,7 +29,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "should get new" do
-    get new_sign_com_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "[data-controller='turnstile'][data-turnstile-mode-value='render']"
@@ -40,7 +40,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "edit renders authentication code copy" do
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "com-code-copy-#{SecureRandom.hex(4)}@example.com",
@@ -50,7 +50,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
          },
          headers: default_headers
 
-    get sign_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+    get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.app.authentication.email.edit.page_title")
@@ -68,17 +68,17 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
 
-    get new_sign_com_sign_up_email_url(ri: "jp"),
+    get new_auth_com_sign_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to sign_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
   end
 
   test "create rejects when visitor is already logged in" do
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_sign_up_email_url(ri: "jp"),
+      post auth_com_sign_up_email_url(ri: "jp"),
            params: {
              visitor_email: {
                raw_address: "logged-in-com@example.com",
@@ -93,21 +93,21 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "collection get is not routed" do
-    get sign_com_sign_up_email_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
+    get auth_com_sign_up_email_url(ri: "jp", hotwire_spark: true, reload: "123"), headers: default_headers
 
     assert_response :not_found
   end
 
   test "includes navigation link back to sign in" do
-    get new_sign_com_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_com_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
-    assert_select "a[href=?]", sign_com_sign_up_path(ri: "jp"), count: 1
-    assert_select "a[href=?]", sign_com_sign_in_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", auth_com_sign_up_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", auth_com_sign_in_path(ri: "jp"), count: 1
   end
 
   test "create redirects to edit and allows edit page" do
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "com-flow-step@example.com",
@@ -131,7 +131,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "create renders unprocessable when visitor_email param missing" do
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_sign_up_email_url(ri: "jp"),
+      post auth_com_sign_up_email_url(ri: "jp"),
            params: { "cf-turnstile-response": "test" },
            headers: default_headers
     end
@@ -144,7 +144,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
     assert_no_difference("VisitorEmail.count") do
-      post sign_com_sign_up_email_url(ri: "jp"),
+      post auth_com_sign_up_email_url(ri: "jp"),
            params: {
              visitor_email: {
                raw_address: "turnstile-failure@example.com",
@@ -171,7 +171,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_no_difference("Visitor.count") do
       assert_no_difference("VisitorEmail.count") do
         assert_enqueued_emails 0 do
-          post sign_com_sign_up_email_url(ri: "jp"),
+          post auth_com_sign_up_email_url(ri: "jp"),
                params: {
                  visitor_email: {
                    raw_address: existing_email.address,
@@ -191,14 +191,14 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "edit missing email resets flow and redirects to new" do
-    get sign_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+    get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
     assert_equal "ticket is required", response.body
   end
 
   test "edit with expired session renders form error without clearing requirements" do
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "expired-session@example.com",
@@ -215,7 +215,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     completed_requirements = cycle.completed_requirements.deep_dup
     flow_count = VisitorSignUpFlow.count
 
-    get sign_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
+    get auth_com_sign_up_check_email_otp_url(ri: "jp"), headers: default_headers
 
     assert_response :unprocessable_content
     assert_includes response.body, I18n.t("sign.app.registration.email.edit.session_expired")
@@ -224,7 +224,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with invalid email fails" do
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "invalid-email",
@@ -239,7 +239,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "create with unconfirmed policy fails" do
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: {
              raw_address: "com-flow-step-2@example.com",
@@ -255,7 +255,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "create with turnstile failure returns unprocessable content" do
     CloudflareTurnstile.test_validation_response = { "success" => false }
 
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: {
            visitor_email: { raw_address: "turnstile@example.com", confirm_policy: "1" },
            "cf-turnstile-response": "test",
@@ -269,7 +269,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     email_address = "cooldown-up@example.com"
 
     # First request
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
@@ -277,7 +277,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :redirect
 
     # Second request immediately should trigger the independent overwrite window
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
@@ -288,7 +288,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "create after overwrite window replaces unverified email" do
     email_address = "overwrite-window-com@example.com"
 
-    post sign_com_sign_up_email_url(ri: "jp"),
+    post auth_com_sign_up_email_url(ri: "jp"),
          params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                    "cf-turnstile-response": "test", },
          headers: default_headers
@@ -299,7 +299,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     first_visitor = first_email.visitor
 
     travel CommonOtpPolicy::REREGISTRATION_OVERWRITE_WINDOW + 1.second do
-      post sign_com_sign_up_email_url(ri: "jp"),
+      post auth_com_sign_up_email_url(ri: "jp"),
            params: { visitor_email: { raw_address: email_address, confirm_policy: "1" },
                      "cf-turnstile-response": "test", },
            headers: default_headers
