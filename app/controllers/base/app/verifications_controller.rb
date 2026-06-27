@@ -21,8 +21,8 @@ module Base
           token: current_session_token,
           allowed_scopes: StepUpScopeCatalog::APP,
           sign_url_builder: ->(**query) {
-            sign_app_verification_url(
-              query.merge(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+            auth_app_verification_url(
+              query.merge(host: ENV.fetch("AUTH_SERVICE_URL", "log.umaxica.app")),
             )
           },
         )

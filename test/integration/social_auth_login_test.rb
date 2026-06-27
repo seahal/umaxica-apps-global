@@ -51,7 +51,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "google", intent: "login")
 
     # Callback
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -85,12 +85,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     follow_redirect!
 
     assert_nil flash[:notice]
@@ -120,7 +120,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -193,7 +193,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "google", intent: "login")
 
     assert_no_difference("ClientSignInFlow.count") do
-      get sign_app_social_google_callback_url(ri: "jp"),
+      get auth_app_social_google_callback_url(ri: "jp"),
           params: { state: state },
           headers: browser_headers.merge(@callback_headers)
     end
@@ -208,7 +208,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     assert_equal "post", form["method"]
     assert_equal(
-      completion_acme_app_social_authentication_url(
+      completion_base_app_social_authentication_url(
         id: "google",
         host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
       ),
@@ -246,7 +246,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "google", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -278,7 +278,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "apple", intent: "login")
     setup_apple_mock_auth(uid: existing_uid)
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -311,7 +311,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal "apple", sign_up_cycle.entry_method
     assert_equal "social_callback", sign_up_cycle.step
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -344,7 +344,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                get sign_app_social_google_callback_url(ri: "jp"),
+                get auth_app_social_google_callback_url(ri: "jp"),
                     params: { state: state },
                     headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
@@ -439,7 +439,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -447,7 +447,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_not ClientGoogleIdentity.exists?(uid: new_uid)
 
-    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
+    get auth_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -457,7 +457,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   test "provider failure returns to sign up when social auth started from sign up" do
     start_social_auth_flow(provider: "google", intent: "login", entry: "sign_up")
 
-    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
+    get auth_app_social_failure_url(message: "invalid_credentials", strategy: "google"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -467,7 +467,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
   test "provider failure returns to sign in when social auth started from sign in" do
     start_social_auth_flow(provider: "apple", intent: "login")
 
-    get sign_app_social_failure_url(message: "invalid_credentials", strategy: "apple"),
+    get auth_app_social_failure_url(message: "invalid_credentials", strategy: "apple"),
         headers: browser_headers.merge("Host" => @host)
 
     assert_response :redirect
@@ -489,7 +489,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           assert_no_difference("Organization.count") do
             assert_no_difference("Avatar.count") do
               assert_no_difference("ClientToken.count") do
-                post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+                post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
                      params: { state: state },
                      headers: browser_headers.merge(@callback_headers)
                 submit_social_completion_if_present!
@@ -556,7 +556,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
@@ -595,7 +595,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "login")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!

@@ -1,9 +1,9 @@
 # typed: false
 # frozen_string_literal: true
 
-# Palm owns the native API surface.
+# Palm owns the native RP and API surface.
 scope module: :palm, as: :palm do
-  # App native API host.
+  # App native RP/API host.
   constraints host: [ENV["PALM_SERVICE_URL"], "palm.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
@@ -31,7 +31,7 @@ scope module: :palm, as: :palm do
       # Sitemap endpoint.
       resource :sitemap, only: :show, path: "sitemap.xml"
 
-      # RP login start: redirects to Acme /oauth/authorize.
+      # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
         resource :authorization, only: :show, to: "/palm/app/auth/authorizations#show"
       end
@@ -51,7 +51,7 @@ scope module: :palm, as: :palm do
         end
       end
 
-      # Compatibility callbacks only; Acme owns OAuth/OIDC.
+      # Compatibility callbacks only; Base owns OAuth/OIDC.
       namespace :oidc do
         # Generic native callback stub.
         resource :callback, only: :show, to: "/palm/app/oauth/callbacks#show"

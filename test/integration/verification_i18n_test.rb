@@ -32,7 +32,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
   test "verification view displays translated strings in Japanese" do
     ClientStepUpSession.delete_all
 
-    get sign_app_verification_url(ri: "jp"), headers: @headers
+    get auth_app_verification_url(ri: "jp"), headers: @headers
 
     assert_response :success
     assert_select "main h1", text: I18n.t("sign.app.verification.index.title", locale: :ja)
@@ -42,7 +42,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
   test "verification view displays translated strings in English" do
     ClientStepUpSession.delete_all
 
-    get sign_app_verification_url(ri: "us", lx: "en"), headers: @headers
+    get auth_app_verification_url(ri: "us", lx: "en"), headers: @headers
 
     assert_response :success
     assert_select "main h1", text: I18n.t("sign.app.verification.index.title", locale: :en)

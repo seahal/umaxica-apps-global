@@ -40,10 +40,10 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_email")
 
     return_to = Base64.urlsafe_encode64(auth_app_settings_path(ri: "jp"))
-    get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
-    get new_sign_app_verification_totp_url(ri: "jp"), headers: @headers
+    get new_auth_app_verification_totp_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     assert_redirected_to auth_app_settings_url(ri: "jp")
@@ -53,11 +53,11 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     @token.update!(last_step_up_at: 20.minutes.ago, last_step_up_scope: "settings_email")
 
     return_to = Base64.urlsafe_encode64(auth_app_settings_path(ri: "jp"))
-    get sign_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
+    get auth_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
 
     if true # Replaced STUB stub with real execution as per G1
-      post sign_app_verification_totp_url(ri: "jp"),
+      post auth_app_verification_totp_url(ri: "jp"),
            params: { verification: { code: "000000" } },
            headers: @headers
     end

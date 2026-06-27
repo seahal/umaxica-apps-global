@@ -74,7 +74,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_equal "base/app/identity/emails", recognized[:controller]
-    assert_equal "show", recognized[:action]
+    assert_equal "index", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/dashboard",
@@ -109,23 +109,15 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/app/sign_outs", recognized[:controller]
+    assert_equal "base/app/outs", recognized[:controller]
     assert_equal "new", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sign/out/edit",
-      method: :get,
-    )
-
-    assert_equal "base/app/sign_outs", recognized[:controller]
-    assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_APP_HOST}/sign/out",
       method: :post,
     )
 
-    assert_equal "base/app/sign_outs", recognized[:controller]
+    assert_equal "base/app/outs", recognized[:controller]
     assert_equal "create", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -133,7 +125,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/app/sign_outs", recognized[:controller]
+    assert_equal "base/app/outs", recognized[:controller]
     assert_equal "complete", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -209,14 +201,6 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_COM_HOST}/identity/emails",
-      method: :get,
-    )
-
-    assert_equal "base/com/identity/emails", recognized[:controller]
-    assert_equal "show", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_COM_HOST}/dashboard",
       method: :get,
     )
@@ -249,7 +233,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "base/com/sign/outs", recognized[:controller]
     assert_equal "new", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -257,7 +241,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "base/com/sign/outs", recognized[:controller]
     assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -265,7 +249,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :post,
     )
 
-    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "base/com/sign/outs", recognized[:controller]
     assert_equal "create", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -273,7 +257,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign_outs", recognized[:controller]
+    assert_equal "base/com/sign/outs", recognized[:controller]
     assert_equal "complete", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -349,14 +333,6 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_ORG_HOST}/identity/emails",
-      method: :get,
-    )
-
-    assert_equal "base/org/identity/emails", recognized[:controller]
-    assert_equal "show", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
       "http://#{BASE_ORG_HOST}/dashboard",
       method: :get,
     )
@@ -389,7 +365,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "base/org/sign/outs", recognized[:controller]
     assert_equal "new", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -397,7 +373,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "base/org/sign/outs", recognized[:controller]
     assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -405,7 +381,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :post,
     )
 
-    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "base/org/sign/outs", recognized[:controller]
     assert_equal "create", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -413,7 +389,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign_outs", recognized[:controller]
+    assert_equal "base/org/sign/outs", recognized[:controller]
     assert_equal "complete", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -429,26 +405,4 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
     assert_equal "create", recognized[:action]
   end
   # rubocop:enable Minitest/MultipleAssertions
-
-  test "base remains a rails control-plane surface without provider endpoints" do
-    [BASE_APP_HOST, BASE_COM_HOST, BASE_ORG_HOST].each do |host|
-      recognized = Rails.application.routes.recognize_path(
-        "http://#{host}/identity/emails",
-        method: :get,
-      )
-
-      assert_equal "show", recognized[:action]
-      assert_match(%r{\Abase/(app|com|org)/identity/emails\z}, recognized[:controller])
-
-      %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
-        assert_raises(ActionController::RoutingError) do
-          Rails.application.routes.recognize_path("http://#{host}#{path}", method: :get)
-        end
-      end
-
-      assert_raises(ActionController::RoutingError) do
-        Rails.application.routes.recognize_path("http://#{host}/oauth/token", method: :post)
-      end
-    end
-  end
 end

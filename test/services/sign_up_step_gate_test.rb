@@ -7,7 +7,7 @@ class SignUpStepGateTest < ActiveSupport::TestCase
   test "for_show falls back to the session sequence id when the locator payload is missing" do
     session = {}
     cycle = fake_cycle(public_id: "seq-123")
-    session[:sign_app_up_sequence_id] = cycle.public_id
+    session[:auth_app_up_sequence_id] = cycle.public_id
     controller = gate_controller(session)
 
     ClientSignUpFlow.stub(:find_by, cycle) do
@@ -57,7 +57,7 @@ class SignUpStepGateTest < ActiveSupport::TestCase
       end
 
       define_method(:sign_up_ticket_public_id) do
-        @session[:sign_app_up_sequence_id]
+        @session[:auth_app_up_sequence_id]
       end
 
       define_method(:sign_app_sign_up_check_google_confirmation_path) do |_args|

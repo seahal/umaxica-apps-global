@@ -59,9 +59,9 @@ module AuthRouteMapper
   # no `to:` indirection. Identical across all three surfaces.
   def auth_rp_oidc_routes
     namespace(:oidc) do
-      # RP login start: redirects to the Acme Authorization Server.
+      # RP login start: redirects to the Base Authorization Server.
       resource(:authorization, only: :show)
-      # RP callback from the Acme Authorization Server.
+      # RP callback from the Base Authorization Server.
       resource(:callback, only: :show)
 
       # RP back-channel logout receiver.

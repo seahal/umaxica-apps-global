@@ -73,7 +73,7 @@ scope module: :base, as: :base do
 
       # Context selector for the authenticated client: resolves which
       # account/organization context the principal acts in. This is identity/session
-      # context resolution (Acme authority), not a credential ceremony (Sign), and it
+      # context resolution (Base authority), not a credential ceremony (Auth), and it
       # runs on the :private tier -- identity-authenticated but context not yet selected.
       resource :selector, only: %i(show update)
 
@@ -133,7 +133,7 @@ scope module: :base, as: :base do
         end
       end
 
-      # Acme sign-in limitation ceremony for session-limit resolution.
+      # Base sign-in limitation ceremony for session-limit resolution.
       scope path: "sign/in", module: "sign/in", as: :sign_in do
         resource :limitation, only: %i(show update destroy)
       end
@@ -253,7 +253,7 @@ scope module: :base, as: :base do
 
       # Context selector for the authenticated visitor: resolves which
       # account/organization context the principal acts in. Identity/session context
-      # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
+      # resolution (Base authority), not a credential ceremony (Auth); runs on :private.
       resource :selector, only: %i(show update)
 
       # Post-login context switcher for selected actors on the com surface.
@@ -416,7 +416,7 @@ scope module: :base, as: :base do
 
       # Context selector for the authenticated operator: resolves which
       # account/organization context the principal acts in. Identity/session context
-      # resolution (Acme authority), not a credential ceremony (Sign); runs on :private.
+      # resolution (Base authority), not a credential ceremony (Auth); runs on :private.
       resource :selector, only: %i(show update)
 
       # Post-login context switcher for selected actors on the org surface.

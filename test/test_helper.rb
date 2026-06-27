@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] ||= "test"
-ENV["SIGN_SERVICE_URL"] = "log.umaxica.app"
-ENV["SIGN_STAFF_URL"] = "log.umaxica.org"
-ENV["SIGN_CORPORATE_URL"] = "log.umaxica.com"
+ENV["SIGN_SERVICE_URL"] ||= "sign.app.localhost"
+ENV["SIGN_STAFF_URL"] ||= "sign.org.localhost"
+ENV["SIGN_CORPORATE_URL"] ||= "sign.com.localhost"
 
 # Enable YJIT before Rails boots.
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)

@@ -6,23 +6,24 @@ require "ostruct"
 
 class SignRouteHostTest < ActionDispatch::IntegrationTest
   test "sign app routes match SIGN_SERVICE_URL" do
-    with_boot_config(sign_service_host: "sign.app.example.test") do
-      host!("sign.app.example.test")
+    with_boot_config(sign_service_host: "auth.app.example.test") do
+      host!("auth.app.example.test")
 
-      get("http://sign.app.example.test/")
+      route = Rails.application.routes.recognize_path("http://auth.app.example.test/", method: :get)
 
-      assert_not_equal 404, response.status
+      assert_equal "auth/app/roots", route[:controller]
+      assert_equal "index", route[:action]
     end
   ensure
     Rails.application.reload_routes!
   end
 
   test "sign com named root route points at sign/com/roots#index" do
-    with_boot_config(sign_corporate_host: "sign.com.example.test") do
+    with_boot_config(sign_corporate_host: "auth.com.example.test") do
       route = Rails.application.routes.named_routes[:auth_com_root]
 
       assert_equal "/", route.path.spec.to_s
-      assert_equal "sign/com/roots", route.defaults[:controller]
+      assert_equal "auth/com/roots", route.defaults[:controller]
       assert_equal "index", route.defaults[:action]
     end
   ensure
@@ -30,12 +31,13 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   test "sign org routes match SIGN_STAFF_URL" do
-    with_boot_config(sign_staff_host: "sign.org.example.test") do
-      host!("sign.org.example.test")
+    with_boot_config(sign_staff_host: "auth.org.example.test") do
+      host!("auth.org.example.test")
 
-      get("http://sign.org.example.test/")
+      route = Rails.application.routes.recognize_path("http://auth.org.example.test/", method: :get)
 
-      assert_not_equal 404, response.status
+      assert_equal "auth/org/roots", route[:controller]
+      assert_equal "index", route[:action]
     end
   ensure
     Rails.application.reload_routes!
@@ -43,16 +45,13 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
 
   test "sign routes accept internal origin and cloudflared public hosts" do
     {
-      "sign.app.localhost" => "sign/app/roots",
-      "sign.com.localhost" => "sign/com/roots",
-      "sign.org.localhost" => "sign/org/roots",
-      "log.umaxica.app" => "sign/app/roots",
-      "log.umaxica.com" => "sign/com/roots",
-      "log.umaxica.org" => "sign/org/roots",
+      "auth.app.localhost" => "auth/app/roots",
+      "auth.com.localhost" => "auth/com/roots",
+      "auth.org.localhost" => "auth/org/roots",
+      "log.umaxica.app" => "auth/app/roots",
+      "log.umaxica.com" => "auth/com/roots",
+      "log.umaxica.org" => "auth/org/roots",
     }.each do |host, controller|
-      get "/", headers: { "Host" => host }
-
-      assert_not_equal 404, response.status
       route = Rails.application.routes.recognize_path("http://#{host}/", method: :get)
 
       assert_equal controller, route[:controller]
@@ -78,12 +77,15 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
                        sign_corporate_host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
                        sign_staff_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
     hosts = OpenStruct.new(
+      auth_service: OpenStruct.new(host: sign_service_host),
+      auth_corporate: OpenStruct.new(host: sign_corporate_host),
+      auth_staff: OpenStruct.new(host: sign_staff_host),
       acme_service: OpenStruct.new(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
       acme_corporate: OpenStruct.new(host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
       acme_staff: OpenStruct.new(host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
-      sign_service: OpenStruct.new(host: sign_service_host),
-      sign_corporate: OpenStruct.new(host: sign_corporate_host),
-      sign_staff: OpenStruct.new(host: sign_staff_host),
+      sign_service: OpenStruct.new(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+      sign_corporate: OpenStruct.new(host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")),
+      sign_staff: OpenStruct.new(host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")),
       core_service: OpenStruct.new(host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
       core_corporate: OpenStruct.new(host: ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")),
       core_staff: OpenStruct.new(host: ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")),

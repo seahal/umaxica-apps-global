@@ -24,15 +24,15 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 
   def oidc_sign_host
-    "log.umaxica.app"
+    Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host
   end
 
   def oidc_acme_host
-    "www.umaxica.app"
+    Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
   end
 
   def oidc_callback_url
-    "https://www.umaxica.app/oidc/callback"
+    "https://#{Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host}/oidc/callback"
   end
 
   def jump_rt_issuer_namespace
@@ -57,21 +57,21 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
-      get "/oidc/sso", headers: { "Host" => "log.umaxica.app" }
+      get "/oidc/sso", headers: { "Host" => configured_host(:sign_service) }
     end
 
     assert_response :redirect
     location = response.location
     uri = URI.parse(location)
 
-    assert_equal "www.umaxica.app", uri.host
+    assert_equal configured_host(:acme_service), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
 
     authorize_params = Rack::Utils.parse_nested_query(uri.query)
 
     assert_equal "base-rails-rp", authorize_params.fetch("client_id")
-    assert_equal "https://www.umaxica.app/oidc/callback", authorize_params.fetch("redirect_uri")
+    assert_equal "https://#{configured_host(:acme_service)}/oidc/callback", authorize_params.fetch("redirect_uri")
     assert_predicate session[:oidc_code_verifier], :present?
     assert_predicate session[:oidc_state], :present?
     assert_equal "/oidc/sso", session[:oidc_pt]
@@ -91,7 +91,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   end
 
   test "authenticate! preserves the protected request query in oidc return path" do
-    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => "log.umaxica.app" }
+    get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => configured_host(:sign_service) }
 
     assert_response :redirect
     assert_equal "/oidc/sso?ri=jp", session[:oidc_pt]
@@ -104,60 +104,67 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   test "token endpoint uses local rails port for local public Acme hosts" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "log.umaxica.app",
+      "HTTP_HOST" => configured_host(:sign_service),
       "HTTPS" => "on",
     )
 
     with_env("PORT" => "3000") do
-      assert_equal "http://www.umaxica.app:3000/oauth/token", controller.send(:oidc_token_url)
+      assert_equal "http://#{configured_host(:acme_service)}:3000/oauth/token", controller.send(:oidc_token_url)
     end
   end
 
   test "token endpoint keeps public https origin outside local environments" do
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "log.umaxica.app",
+      "HTTP_HOST" => configured_host(:sign_service),
       "HTTPS" => "on",
     )
 
     Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
-      assert_equal "https://www.umaxica.app/oauth/token", controller.send(:oidc_token_url)
+      assert_equal "https://#{configured_host(:acme_service)}/oauth/token", controller.send(:oidc_token_url)
     end
   end
 
   test "token endpoint local rewrite is limited to configured Acme hosts" do
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www-jp.umaxica.app" }
+    unconfigured_acme_host = "acme-unconfigured.example.test"
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { unconfigured_acme_host }
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
-      "HTTP_HOST" => "log.umaxica.app",
+      "HTTP_HOST" => configured_host(:sign_service),
       "HTTPS" => "on",
     )
 
     with_env("PORT" => "3000") do
-      assert_equal "https://www-jp.umaxica.app/oauth/token", controller.send(:oidc_token_url)
+      assert_equal "https://#{unconfigured_acme_host}/oauth/token", controller.send(:oidc_token_url)
     end
   ensure
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.app" }
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) do
+      Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
+    end
   end
 
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.com" }
+    cross_site_acme_host = configured_host(:acme_corporate)
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { cross_site_acme_host }
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
-      "https://www.umaxica.com/oidc/callback"
+      "https://#{cross_site_acme_host}/oidc/callback"
     end
 
     io = StringIO.new
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
-      get("/oidc/sso", headers: { "Host" => "log.umaxica.app" })
+      get("/oidc/sso", headers: { "Host" => configured_host(:sign_service) })
     end
 
     assert_response :redirect
     assert_equal "jump.umaxica.net", URI.parse(response.location).host
     location = jump_rt_url_from_location(response.location)
 
-    assert_match %r{\Ahttps://www\.umaxica\.com/oauth/authorize\?}, location
+    uri = URI.parse(location)
+    assert_equal "https", uri.scheme
+    assert_equal cross_site_acme_host, uri.host
+    assert_equal "/oauth/authorize", uri.path
     assert_includes io.string, "oidc.sso.redirect_policy.jump"
     assert_includes io.string, "reason_code"
     assert_includes io.string, "site_mismatch"
@@ -165,9 +172,11 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_not_includes io.string, "nonce"
     assert_not_includes io.string, "code_challenge"
   ensure
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { "www.umaxica.app" }
+    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) do
+      Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
+    end
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
-      "https://www.umaxica.app/oidc/callback"
+      "https://#{Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host}/oidc/callback"
     end
   end
 
@@ -177,7 +186,11 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
     assert_equal "/", controller.send(:safe_oidc_pt, "http://attacker.example/evil")
     assert_equal "/", controller.send(:safe_oidc_pt, "https://attacker.example/evil")
-    assert_equal "/", controller.send(:safe_oidc_pt, "https://www.umaxica.app/oauth/authorize?client_id=base-rails-rp")
+    assert_equal "/",
+                 controller.send(
+                   :safe_oidc_pt,
+                   "https://#{configured_host(:acme_service)}/oauth/authorize?client_id=base-rails-rp",
+                 )
   end
 
   test "safe_oidc_pt rejects scheme based payloads" do

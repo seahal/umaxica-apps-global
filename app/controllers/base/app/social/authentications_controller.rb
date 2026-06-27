@@ -289,7 +289,7 @@ module Base
             raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
           end
           SignUpCycleLocator.new(session, surface: :app, cycle_class: ClientSignUpFlow).issue!(cycle)
-          session[:sign_app_up_sequence_id] = cycle.public_id
+          session[:auth_app_up_sequence_id] = cycle.public_id
         end
 
         # Extracts `session_ref` from the UNVERIFIED payload purely so it can be

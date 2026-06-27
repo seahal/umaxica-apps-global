@@ -33,12 +33,12 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     grant_session = seed_app_social_link_grant_session(provider: "google", user: user, ri: "jp")
 
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_social_google_callback_url(ri: "jp"),
+      get auth_app_social_google_callback_url(ri: "jp"),
           params: { state: grant_session.state },
           headers: @callback_headers.merge(grant_session.user_headers)
     end
 
-    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_redirected_to auth_app_settings_path(ri: "jp")
     assert_not_includes response.body.to_s, "social-completion-form"
     identity = ClientGoogleIdentity.find_by!(uid: uid)
 
@@ -49,7 +49,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   test "acme completion rejects a malformed social result without committing" do
     assert_no_difference("ClientGoogleIdentity.count") do
       assert_no_difference("ClientOidcAuthorizationTransaction.count") do
-        post completion_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
+        post completion_base_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
              params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
              headers: social_completion_browser_headers
       end
@@ -62,7 +62,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "acme social login start delegates to sign with a login ceremony grant" do
     assert_no_difference("Client.count") do
-      post continue_acme_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
+      post continue_base_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
            headers: { "Host" => @acme_host }
     end
 
@@ -89,7 +89,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "sign com and org surfaces expose no social routes" do
     # The app surface owns the social login route helper...
-    assert_respond_to self, :sign_app_social_google_sign_in_path
+    assert_respond_to self, :auth_app_social_google_auth_in_path
 
     # ...while com/org sign surfaces expose no social authentication route at all.
     %w(com org).each do |surface|

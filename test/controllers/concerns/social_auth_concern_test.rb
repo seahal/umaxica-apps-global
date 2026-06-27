@@ -54,13 +54,13 @@ class SocialAuthConcernTest < ActiveSupport::TestCase
 
     def resource_class = Client
 
-    def sign_app_settings_path = "/settings"
+    def auth_app_settings_path = "/settings"
 
-    def sign_app_settings_apple_path = "/settings/apple"
+    def auth_app_settings_apple_path = "/settings/apple"
 
-    def sign_app_sign_in_path = "/sign/in"
+    def auth_app_sign_in_path = "/sign/in"
 
-    def sign_app_root_path = "/"
+    def auth_app_root_path = "/"
   end
 
   test "prepare social auth intent stores slim login context and rejects invalid intent" do

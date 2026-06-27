@@ -15,7 +15,7 @@ module SignOrgVerificationBase
   end
 
   def verification_unavailable_redirect_path
-    sign_org_verification_path(ri: params[:ri])
+    auth_org_verification_path(ri: params[:ri])
   end
 
   def step_up_session_model = OperatorStepUpSession

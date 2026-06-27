@@ -28,7 +28,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "guest can access login page" do
-    get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
+    get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
 
     assert_response :ok
   end
@@ -42,7 +42,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     cookies[:auth_refresh] = refresh_plain
 
-    get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
+    get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in), headers: { "Host" => @host }
 
     # First response should be a redirect (ri=jp or guest_only)
     assert_response :redirect
@@ -81,7 +81,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     refresh_plain = token_record.rotate_refresh_token!
 
     cookies_header = "auth_refresh=#{refresh_plain}"
-    get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+    get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
         headers: { "Cookie" => cookies_header, "Host" => @host }
 
     # First response should be a redirect
@@ -118,7 +118,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
           events << payload
         end
 
-      get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+      get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
           headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect (auth succeeded despite audit failure)
@@ -147,7 +147,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
 
     AuthenticationAuditWriter.stub(:write, false) do
       cookies_header = "auth_refresh=#{refresh_plain}"
-      get sign_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
+      get auth_app_sign_in_path(login_challenge: login_challenge_for_sign_in),
           headers: { "Cookie" => cookies_header, "Host" => @host }
 
       # First response should be a redirect
@@ -178,7 +178,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
     token_id = token_record.id
 
     cookies_header = "auth_refresh=#{refresh_plain}"
-    get sign_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
+    get auth_app_sign_in_path, headers: { "Cookie" => cookies_header, "Host" => @host }
 
     # Refresh should fail due to inactive user
     # But token should still exist (only revoked, not destroyed)

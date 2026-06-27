@@ -38,7 +38,7 @@ module Base
         )
 
         redirect_to(
-          sign_app_sign_out_url(
+          base_app_sign_out_url(
             host: Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host,
             protocol: "https",
             logout_token: raw_token,

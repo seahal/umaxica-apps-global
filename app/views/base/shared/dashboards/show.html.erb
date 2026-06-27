@@ -2,7 +2,7 @@
 <% root_path = public_send("base_#{surface}_root_path", ri: params[:ri]) %>
 <% selector_path = public_send("base_#{surface}_selector_path", ri: params[:ri]) %>
 <% dashboard_path = public_send("base_#{surface}_dashboard_path", ri: params[:ri]) %>
-<% sign_settings_path = sign_app_settings_url(ri: "jp", host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")) if surface == "app" %>
+<% sign_settings_path = auth_app_settings_url(ri: "jp", host: ENV.fetch("AUTH_SERVICE_URL", "id.app.localhost")) if surface == "app" %>
 <% switcher_path = public_send("base_#{surface}_switcher_path", ri: params[:ri]) if surface == "app" %>
 <% sign_out_confirmation_path = public_send("new_base_#{surface}_sign_out_path", ri: params[:ri]) %>
 <% account_path =

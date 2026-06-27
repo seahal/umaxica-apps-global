@@ -17,19 +17,19 @@ class Auth::App::SignInBoundaryTest < ActiveSupport::TestCase
     ]
 
     paths = [
-      "app/controllers/sign/app/sign/in/emails_controller.rb",
-      "app/controllers/sign/app/sign/in/passkeys_controller.rb",
-      "app/controllers/sign/app/sign/in/passkey/options_controller.rb",
-      "app/controllers/sign/app/sign/in/passkey/verifications_controller.rb",
-      "app/controllers/sign/app/sign/in/secret_credentials_controller.rb",
-      "app/controllers/sign/app/sign/in/challenges_controller.rb",
-      "app/controllers/sign/app/sign/in/challenge/totps_controller.rb",
-      "app/controllers/sign/app/sign/in/challenge/passkeys_controller.rb",
-      "app/controllers/sign/app/sign/in/guards_controller.rb",
-      "app/controllers/sign/app/sign/in/session/cancellations_controller.rb",
-      "app/controllers/sign/app/sign/in/sessions_controller.rb",
-      "app/controllers/sign/app/social/authentications_controller.rb",
-      "app/controllers/sign/app/omniauth/omniauth_callbacks_controller.rb",
+      "app/controllers/auth/app/sign/in/emails_controller.rb",
+      "app/controllers/auth/app/sign/in/passkeys_controller.rb",
+      "app/controllers/auth/app/sign/in/passkey/options_controller.rb",
+      "app/controllers/auth/app/sign/in/passkey/verifications_controller.rb",
+      "app/controllers/auth/app/sign/in/secret_credentials_controller.rb",
+      "app/controllers/auth/app/sign/in/challenges_controller.rb",
+      "app/controllers/auth/app/sign/in/challenge/totps_controller.rb",
+      "app/controllers/auth/app/sign/in/challenge/passkeys_controller.rb",
+      "app/controllers/auth/app/sign/in/guards_controller.rb",
+      "app/controllers/auth/app/sign/in/session/cancellations_controller.rb",
+      "app/controllers/auth/app/sign/in/sessions_controller.rb",
+      "app/controllers/auth/app/social/authentications_controller.rb",
+      "app/controllers/auth/app/omniauth/omniauth_callbacks_controller.rb",
     ]
 
     matches =
@@ -52,13 +52,13 @@ class Auth::App::SignInBoundaryTest < ActiveSupport::TestCase
     ]
 
     paths = [
-      "app/controllers/sign/app/verification/base_controller.rb",
-      "app/controllers/sign/app/verification/cancellations_controller.rb",
-      "app/controllers/sign/app/verification/emails_controller.rb",
-      "app/controllers/sign/app/verification/passkeys_controller.rb",
-      "app/controllers/sign/app/verification/redeliveries_controller.rb",
-      "app/controllers/sign/app/verification/setups_controller.rb",
-      "app/controllers/sign/app/verification/totps_controller.rb",
+      "app/controllers/auth/app/verification/base_controller.rb",
+      "app/controllers/auth/app/verification/cancellations_controller.rb",
+      "app/controllers/auth/app/verification/emails_controller.rb",
+      "app/controllers/auth/app/verification/passkeys_controller.rb",
+      "app/controllers/auth/app/verification/redeliveries_controller.rb",
+      "app/controllers/auth/app/verification/setups_controller.rb",
+      "app/controllers/auth/app/verification/totps_controller.rb",
     ]
 
     matches =

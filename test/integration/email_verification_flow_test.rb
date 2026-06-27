@@ -32,7 +32,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
     # 1. Auth callback
     # We expect NO emails to be sent
     assert_no_emails do
-      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: social_callback_headers(@host)
     end

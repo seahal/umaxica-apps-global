@@ -64,7 +64,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: stale_step_up_headers
 
     assert_response :unauthorized
@@ -90,7 +90,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       updated_at: 2.hours.ago,
     )
 
-    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+    delete auth_app_settings_apple_url(ri: "jp", host: @host),
            headers: stale_step_up_headers
 
     assert_response :unauthorized
@@ -113,7 +113,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:active),
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :unprocessable_content
@@ -162,7 +162,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+    delete auth_app_settings_apple_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :unprocessable_content
@@ -192,7 +192,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -220,7 +220,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+    delete auth_app_settings_apple_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -254,7 +254,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
     email.destroy!
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -285,7 +285,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       description: "Test Passkey",
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -306,7 +306,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_apple_identity_status: client_apple_identity_statuses(:active),
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -323,7 +323,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
       user_google_identity_status: client_google_identity_statuses(:revoked),
     )
 
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :unprocessable_content
@@ -332,7 +332,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   test "unlink requires authentication" do
     # No auth header
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: { "Host" => @host }
 
     assert_response :redirect
@@ -367,7 +367,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Apple - should succeed because user has email as backup
-    delete sign_app_settings_apple_url(ri: "jp", host: @host),
+    delete auth_app_settings_apple_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :redirect
@@ -396,7 +396,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Try to unlink Google - should fail because it's the only ACTIVE identity
-    delete sign_app_settings_google_url(ri: "jp", host: @host),
+    delete auth_app_settings_google_url(ri: "jp", host: @host),
            headers: social_unlink_headers
 
     assert_response :unprocessable_content

@@ -18,8 +18,8 @@ module SignComInCheckControllerSupport
 
     refresh_bulletin_dimension!
     safe_redirect_to(
-      sign_com_sign_in_check_path(pt: signed_pt_param, ri: current_region_identifier),
-      fallback: sign_com_sign_in_check_path(ri: current_region_identifier),
+      auth_com_sign_in_check_path(pt: signed_pt_param, ri: current_region_identifier),
+      fallback: auth_com_sign_in_check_path(ri: current_region_identifier),
     )
   end
 

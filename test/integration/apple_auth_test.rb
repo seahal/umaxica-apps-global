@@ -39,7 +39,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
     end
@@ -93,7 +93,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
@@ -129,7 +129,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_redirected_to sign_app_sign_in_url(ri: "jp")
@@ -161,7 +161,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
              headers: browser_headers.merge(@callback_headers)
       end
     end
@@ -210,7 +210,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
       },
     )
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp", state: @social_state),
          headers: browser_headers.merge(@callback_headers)
 
     assert_response :redirect
@@ -256,7 +256,7 @@ class AppleAuthTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_social_google_callback_url(ri: "jp", state: @social_state),
+        get auth_app_social_google_callback_url(ri: "jp", state: @social_state),
             headers: browser_headers.merge(@callback_headers)
       end
     end

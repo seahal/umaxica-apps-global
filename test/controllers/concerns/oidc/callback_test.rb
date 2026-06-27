@@ -54,7 +54,7 @@ class OidcCallbackTestController < ApplicationController
   end
 
   def sign_in_url_with_pt(_return_to)
-    "https://id.app.localhost/sign/in"
+    "https://#{Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host}/sign/in"
   end
 
   def sign_app_sign_in_session_path
@@ -188,7 +188,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to "https://id.app.localhost/sign/in"
+    assert_redirected_to "https://#{configured_host(:sign_service)}/sign/in"
     assert_equal 1, logged.count { |entry| entry[:event] == "oidc.rp.callback.failed" }
   end
 

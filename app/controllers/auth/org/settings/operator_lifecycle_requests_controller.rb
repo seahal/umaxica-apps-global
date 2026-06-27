@@ -41,7 +41,7 @@ module Auth
           if result.success?
             redirect_to(
               auth_org_settings_operator_lifecycle_request_path(result.request),
-              notice: t(".success"),
+              notice: t(".success", default: "Request created"),
             )
           else
             @operator_lifecycle_request.errors.add(:base, result.error)

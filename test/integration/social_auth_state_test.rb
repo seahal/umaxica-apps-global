@@ -38,7 +38,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     user_count_before = Client.count
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         headers: social_callback_headers(@host)
 
     assert_response :forbidden
@@ -52,7 +52,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
 
     seed_social_auth_session(provider: "google", intent: "login", ri: "jp")
 
-    get sign_app_social_google_callback_url,
+    get auth_app_social_google_callback_url,
         headers: social_callback_headers(@host)
 
     assert_response :forbidden
@@ -63,7 +63,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     setup_apple_mock_auth(uid: "apple_link_missing_flow_#{SecureRandom.hex(4)}")
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
@@ -77,7 +77,7 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     state = social_auth_state_from_response
 
     travel_to 6.minutes.from_now do
-      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: social_callback_headers(@host).merge(as_user_headers(user, host: @host))
     end

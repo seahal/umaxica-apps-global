@@ -1,8 +1,9 @@
 # typed: false
 # frozen_string_literal: true
 
-# Auth owns the credential gateway surfaces. Acme is the sole IdP /
-# Authorization Server; every Auth surface is an OIDC relying party.
+# Auth owns the credential gateway surfaces. Base is the sole IdP /
+# Authorization Server; Auth surfaces handle credential ceremonies and do not
+# own RP authority.
 #
 # Route mapper macros (auth_routes/auth_surface/auth_public_gateway_routes/
 # auth_rp_oidc_routes/auth_app_social_routes) live in

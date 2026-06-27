@@ -28,7 +28,7 @@ module OidcClientStoresStaticClientStore
         token_endpoint_auth_method: "private_key_jwt",
         jwt_namespace: "SIGN_APP",
       },
-      # Shared browser RP client for Acme's local browser flow and Base launcher flows.
+      # Shared browser RP client for Base's local browser flow and launcher flows.
       "base-rails-rp" => {
         redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
           build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +

@@ -69,7 +69,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
     end
 
     def sign_up_sequence_session_key
-      :sign_app_up_sequence_id
+      :auth_app_up_sequence_id
     end
 
     def sign_up_policy_context
@@ -149,14 +149,14 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
           end
         end
       end
-    harness.session[:sign_app_up_sequence_id] = "ticket-123"
+    harness.session[:auth_app_up_sequence_id] = "ticket-123"
 
     harness.send(:load_sign_up_ticket)
 
     assert_equal "ticket-123", harness.instance_variable_get(:@sign_up_ticket).public_id
 
     harness.sign_up_flow_locator_value = Struct.new(:current).new(nil)
-    harness.session[:sign_app_up_sequence_id] = nil
+    harness.session[:auth_app_up_sequence_id] = nil
     harness.send(:load_sign_up_ticket)
 
     assert_equal :not_found, harness.rendered.last[:status]

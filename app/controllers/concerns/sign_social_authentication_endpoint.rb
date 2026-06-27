@@ -26,7 +26,7 @@ module SignSocialAuthenticationEndpoint
       entry: social_auth_entry,
       ri: params[:ri].presence,
     )
-    issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
+    issue_sign_up_flow!(provider) if social_auth_entry == "auth_up"
     if params[:social_ceremony_grant].present?
       store_social_ceremony_grant!(params[:social_ceremony_grant])
     elsif intent.to_s == "login"
@@ -100,10 +100,10 @@ module SignSocialAuthenticationEndpoint
   end
 
   def social_auth_entry
-    return "sign_up" if request.parameters["entry"].to_s == "sign_up"
+    return "auth_up" if request.parameters["entry"].to_s == "auth_up"
 
     referer_path = URI.parse(request.referer.to_s).path
-    return "sign_up" if referer_path == auth_app_sign_up_path
+    return "auth_up" if referer_path == auth_app_sign_up_path
 
     "sign_in"
   rescue URI::InvalidURIError
@@ -137,7 +137,7 @@ module SignSocialAuthenticationEndpoint
     raise SocialAuth::ProviderError.new("errors.social_auth.provider_error") unless result.status == :advanced
 
     sign_up_flow_locator.issue!(cycle)
-    session[:sign_app_up_sequence_id] = cycle.public_id
+    session[:auth_app_up_sequence_id] = cycle.public_id
     cycle
   end
 
@@ -181,9 +181,9 @@ module SignSocialAuthenticationEndpoint
   def social_unlink_settings_path(provider)
     case SocialIdentifiable.normalize_provider(provider)
     when "apple"
-      sign_app_settings_apple_path(ri: params[:ri])
+      auth_app_settings_apple_path(ri: params[:ri])
     else
-      sign_app_settings_google_path(ri: params[:ri])
+      auth_app_settings_google_path(ri: params[:ri])
     end
   end
 

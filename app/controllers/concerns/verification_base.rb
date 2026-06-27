@@ -498,14 +498,14 @@ module VerificationBase
   end
 
   def actor_verification_path(**args)
-    actor_operator? ? sign_org_verification_path(**args) : sign_app_verification_path(**args)
+    actor_operator? ? auth_org_verification_path(**args) : auth_app_verification_path(**args)
   end
 
   def actor_verification_setup_path(**args)
-    actor_operator? ? new_sign_org_verification_setup_path(**args) : new_sign_app_verification_setup_path(**args)
+    actor_operator? ? new_auth_org_verification_setup_path(**args) : new_auth_app_verification_setup_path(**args)
   end
 
   def actor_root_path(**args)
-    actor_operator? ? sign_org_root_path(**args) : sign_app_root_path(**args)
+    actor_operator? ? auth_org_root_path(**args) : auth_app_root_path(**args)
   end
 end

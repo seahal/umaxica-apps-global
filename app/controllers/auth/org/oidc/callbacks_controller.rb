@@ -4,7 +4,7 @@
 module Auth
   module Org
     module Oidc
-      # RP callback: completes the Acme OIDC session and provisions identity.
+      # RP callback: completes the Base OIDC session and provisions identity.
       class CallbacksController < ::Auth::Org::ApplicationController
         include ::OidcCallback
         include ::OidcRpIdentityProvisioning

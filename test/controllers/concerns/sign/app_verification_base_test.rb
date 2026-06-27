@@ -63,11 +63,11 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
 
     def session = session_hash
 
-    def sign_app_verification_path(params = {})
+    def auth_app_verification_path(params = {})
       "/verification?#{params.to_query}"
     end
 
-    def sign_app_settings_path(params = {})
+    def auth_app_settings_path(params = {})
       "/settings?#{params.to_query}"
     end
 
@@ -79,7 +79,7 @@ class SignAppVerificationBaseTest < ActiveSupport::TestCase
       "signed--#{value}"
     end
 
-    def sign_app_root_path(params = {})
+    def auth_app_root_path(params = {})
       "/?#{params.to_query}"
     end
 

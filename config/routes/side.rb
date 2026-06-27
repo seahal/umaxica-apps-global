@@ -42,7 +42,7 @@ scope module: :side, as: :side do
         get :complete, on: :collection
       end
 
-      # RP login start: redirects to Acme /oauth/authorize.
+      # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
         resource :authorization, only: :show, to: "/side/app/auth/authorizations#show"
         resource :callback, only: :show, to: "/side/app/auth/callbacks#show"
@@ -92,7 +92,7 @@ scope module: :side, as: :side do
         get :complete, on: :collection
       end
 
-      # RP login start: redirects to Acme /oauth/authorize.
+      # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
         resource :authorization, only: :show, to: "/side/com/auth/authorizations#show"
         resource :callback, only: :show, to: "/side/com/auth/callbacks#show"
@@ -142,7 +142,7 @@ scope module: :side, as: :side do
         get :complete, on: :collection
       end
 
-      # RP login start: redirects to Acme /oauth/authorize.
+      # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
         resource :authorization, only: :show, to: "/side/org/auth/authorizations#show"
         resource :callback, only: :show, to: "/side/org/auth/callbacks#show"

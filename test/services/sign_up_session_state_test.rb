@@ -52,7 +52,7 @@ class SignUpSessionStateTest < ActiveSupport::TestCase
     state.sequence_id = "seq-123"
 
     assert_equal "seq-123", state.sequence_id
-    assert_equal "seq-123", session[:sign_app_up_sequence_id]
+    assert_equal "seq-123", session[:auth_app_up_sequence_id]
 
     state.sequence_id = nil
 

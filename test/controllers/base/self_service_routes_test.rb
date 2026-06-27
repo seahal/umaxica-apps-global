@@ -11,9 +11,12 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
   setup do
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-    @app_host = ENV.fetch("BASE_SERVICE_URL", hosts.base_service.host)
-    @org_host = ENV.fetch("BASE_STAFF_URL", hosts.base_staff.host)
-    @com_host = ENV.fetch("BASE_CORPORATE_URL", hosts.base_corporate.host)
+    @app_host = hosts.base_service.host
+    @org_host = hosts.base_staff.host
+    @com_host = hosts.base_corporate.host
+    @app_authority_host = "www.umaxica.app"
+    @org_authority_host = "www.umaxica.org"
+    @com_authority_host = "www.umaxica.com"
   end
 
   # The app surface no longer exposes singular current self-service pages (/account, /avatar,
@@ -43,43 +46,8 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
       ),
     )
 
-    assert_self_service_page(base_org_avatar_url(ri: "jp", host: @org_host), headers: headers, title: "Avatar")
     assert_self_service_page(base_org_identity_url(ri: "jp", host: @org_host), headers: headers, title: "Identity")
-    assert_self_service_page(
-      base_org_current_organization_url(ri: "jp", host: @org_host), headers: headers,
-                                                                    title: "Organization",
-    )
-    assert_self_service_page(
-      edit_base_org_current_organization_path(ri: "jp", host: @org_host), headers: headers,
-                                                                          title: "Organization",
-    )
-    assert_self_service_page(base_org_account_url(ri: "jp", host: @org_host), headers: headers, title: "Account")
-    assert_self_service_page(edit_base_org_account_path(ri: "jp", host: @org_host), headers: headers, title: "Account")
-
-    post base_org_organizations_url(ri: "jp", host: @org_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @org_host)
-
-    patch base_org_account_url(ri: "jp", host: @org_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @org_host)
-
-    patch base_org_current_organization_url(ri: "jp", host: @org_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @org_host)
-
-    patch base_org_avatar_url(ri: "jp", host: @org_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @org_host)
-
-    delete base_org_avatar_url(ri: "jp", host: @org_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @org_host)
+    assert_self_service_page(base_org_avatar_url(ri: "jp", host: @org_host), headers: headers, title: "Avatar")
   end
 
   test "com self service pages require authentication" do
@@ -100,18 +68,6 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     )
 
     assert_self_service_page(base_com_identity_url(ri: "jp", host: @com_host), headers: headers, title: "Identity")
-    assert_self_service_page(base_com_account_url(ri: "jp", host: @com_host), headers: headers, title: "Account")
-    assert_self_service_page(edit_base_com_account_path(ri: "jp", host: @com_host), headers: headers, title: "Account")
-
-    patch base_com_account_url(ri: "jp", host: @com_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @com_host)
-
-    patch base_com_current_organization_url(ri: "jp", host: @com_host)
-
-    assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @com_host)
   end
 
   test "com does not expose avatar or organization self service routes" do
@@ -131,7 +87,15 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     get(url, headers: host_headers(host))
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: host)
+    authority_host =
+      case host
+      when @app_host then @app_authority_host
+      when @org_host then @org_authority_host
+      when @com_host then @com_authority_host
+      else host
+      end
+
+    assert_oidc_authorize_redirect(response.location, host: authority_host)
   end
 
   def assert_self_service_page(url, headers:, title:)

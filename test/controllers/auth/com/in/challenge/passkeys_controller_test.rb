@@ -89,7 +89,9 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
     assert_response :redirect
 
-    assert_match %r{\Ahttp://id\.umaxica\.com/sign/in/check}, response.location
+    uri = URI.parse(response.location)
+    assert_equal configured_host(:sign_corporate), uri.host
+    assert_equal auth_com_sign_in_check_path, uri.path
     assert_nil session[:pending_mfa]
     assert_equal 6, @passkey.reload.sign_count
   end

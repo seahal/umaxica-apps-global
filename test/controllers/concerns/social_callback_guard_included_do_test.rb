@@ -35,7 +35,7 @@ class SocialCallbackGuardIncludedDoTest < ActiveSupport::TestCase
       redirects << [args, kwargs]
     end
 
-    def sign_app_sign_in_path
+    def auth_app_sign_in_path
       "/sign/app/in"
     end
   end

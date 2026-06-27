@@ -13,7 +13,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       normalized: "google",
       model: ClientGoogleIdentity,
       active_status: ClientGoogleIdentityStatus::ACTIVE,
-      config_path: :sign_app_settings_path,
+      config_path: :auth_app_settings_path,
       token_prefix: "google",
     },
     apple: {
@@ -21,7 +21,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       normalized: "apple",
       model: ClientAppleIdentity,
       active_status: ClientAppleIdentityStatus::ACTIVE,
-      config_path: :sign_app_settings_apple_path,
+      config_path: :auth_app_settings_apple_path,
       token_prefix: "apple",
     },
   }.freeze
@@ -83,7 +83,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_redirected_to auth_app_settings_google_url(ri: "jp", host: @host)
     assert_not PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -95,7 +95,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to sign_app_settings_apple_path(ri: "jp")
+    assert_redirected_to auth_app_settings_apple_path(ri: "jp")
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
   end
@@ -107,7 +107,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
     delete_with_verified_session(user, PROVIDERS.fetch(:apple))
 
-    assert_redirected_to sign_app_settings_apple_path(ri: "jp")
+    assert_redirected_to auth_app_settings_apple_path(ri: "jp")
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
     assert_not PROVIDERS.fetch(:apple).fetch(:model).exists?(apple_identity.id)
 
@@ -126,7 +126,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_redirected_to auth_app_settings_path(ri: "jp")
     relinked_identity = ClientAppleIdentity.find_by!(uid: new_uid)
 
     assert_equal user.id, relinked_identity.user_id
@@ -195,7 +195,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     delete_with_verified_session(user, PROVIDERS.fetch(:google))
 
     assert_response :see_other
-    assert_redirected_to sign_app_settings_google_url(ri: "jp", host: @host)
+    assert_redirected_to auth_app_settings_google_url(ri: "jp", host: @host)
     assert PROVIDERS.fetch(:google).fetch(:model).exists?(google_identity.id)
   end
 
@@ -216,10 +216,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to public_send(:"sign_app_sign_up_guard_#{config.fetch(:normalized)}_url", ri: "jp")
+    assert_redirected_to public_send(:"auth_app_sign_up_guard_#{config.fetch(:normalized)}_url", ri: "jp")
     follow_redirect!
 
-    assert_redirected_to public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp")
+    assert_redirected_to public_send(:"auth_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp")
     follow_redirect!
 
     assert_response :ok
@@ -229,18 +229,18 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     cycle = ClientSignUpFlow.order(:id).last
 
     patch(
-      public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp"),
+      public_send(:"auth_app_sign_up_check_#{config.fetch(:normalized)}_confirmation_url", ri: "jp"),
       params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
       headers: browser_headers.merge(@callback_headers),
     )
 
-    assert_redirected_to public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
+    assert_redirected_to public_send(:"auth_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp")
     follow_redirect!
 
     assert_no_difference("Client.count") do
       assert_no_difference("#{config.fetch(:model)}.count") do
         patch(
-          public_send(:"sign_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
+          public_send(:"auth_app_sign_up_check_#{config.fetch(:normalized)}_birthdate_url", ri: "jp"),
           params: {
             requirement: "birthdate",
             birthdate: "2000-02-03",
@@ -293,7 +293,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: @acme_host)
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: @acme_host)
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -319,7 +319,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to sign_app_settings_path(ri: "jp")
+    assert_redirected_to auth_app_settings_path(ri: "jp")
     identity = config.fetch(:model).find_by!(uid: uid)
 
     assert_equal user.id, identity.user_id
@@ -360,10 +360,10 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
 
   def perform_social_callback(config, params:, headers:)
     if config.fetch(:provider) == "apple"
-      post(sign_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
+      post(auth_app_social_apple_callback_url(provider: "apple", ri: "jp"), params: params, headers: headers)
     else
       get(
-        sign_app_social_google_callback_url(provider: config.fetch(:provider), ri: "jp"),
+        auth_app_social_google_callback_url(provider: config.fetch(:provider), ri: "jp"),
         params: params,
         headers: headers,
       )
@@ -433,7 +433,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   def settings_url_for(config, **params)
-    public_send(:"sign_app_settings_#{config.fetch(:normalized)}_path", **params)
+    public_send(:"auth_app_settings_#{config.fetch(:normalized)}_path", **params)
   end
 
   def sign_user_headers(user, token)

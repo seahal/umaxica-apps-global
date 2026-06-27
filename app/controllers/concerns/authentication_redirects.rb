@@ -137,12 +137,12 @@ module AuthenticationRedirects
     safe_pt = signed_pt_token(pt)
     attrs[AuthIoKeys::Params::PT] = safe_pt if safe_pt.present?
 
-    if respond_to?(:sign_app_sign_in_check_path, true)
-      sign_app_sign_in_check_path(**attrs)
-    elsif respond_to?(:sign_org_sign_in_check_path, true)
-      sign_org_sign_in_check_path(**attrs)
-    elsif respond_to?(:sign_com_sign_in_check_path, true)
-      sign_com_sign_in_check_path(**attrs)
+    if respond_to?(:auth_app_sign_in_check_path, true)
+      auth_app_sign_in_check_path(**attrs)
+    elsif respond_to?(:auth_org_sign_in_check_path, true)
+      auth_org_sign_in_check_path(**attrs)
+    elsif respond_to?(:auth_com_sign_in_check_path, true)
+      auth_com_sign_in_check_path(**attrs)
     else
       "/sign/in/check"
     end
@@ -173,7 +173,7 @@ module AuthenticationRedirects
 
     case sign_in_surface
     when :app
-      acme_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      base_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     when :com
       acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
     when :org

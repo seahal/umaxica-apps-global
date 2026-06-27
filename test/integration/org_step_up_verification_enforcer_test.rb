@@ -36,7 +36,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to setup when configured methods are zero" do
     StepUpConfiguredMethods.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
-        get sign_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+        get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
 
@@ -51,7 +51,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUpConfiguredMethods.stub(:call, [:passkey]) do
       StepUpAvailableMethods.stub(:call, []) do
-        get sign_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+        get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
 
@@ -74,7 +74,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get sign_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+    get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -93,14 +93,14 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    post sign_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
+    post auth_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
     assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
   end
 
   test "successful verification enables protected POST and records audit" do
-    return_to = Base64.urlsafe_encode64(sign_org_settings_passkeys_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64(auth_org_settings_passkeys_path(ri: "jp"))
     OperatorPasskey.create!(
       staff: @staff,
       webauthn_id: "test",
@@ -118,9 +118,9 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
               headers: @headers
 
           assert_response :success
-          get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          get new_auth_org_verification_passkey_url(ri: "jp"), headers: @headers
 
-          post sign_org_verification_passkey_url(ri: "jp"),
+          post auth_org_verification_passkey_url(ri: "jp"),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
                headers: @headers
         end
@@ -128,7 +128,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_redirected_to sign_org_settings_url(ri: "jp")
+    assert_redirected_to auth_org_settings_url(ri: "jp")
     assert_not response_has_cookie?(OperatorVerification.cookie_name)
 
     assert_not OperatorVerification.active.exists?(staff_token_id: @token.id)
@@ -140,7 +140,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       subject_id: @staff.id,
     )
 
-    post sign_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
+    post auth_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
   end

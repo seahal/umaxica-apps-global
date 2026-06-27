@@ -48,7 +48,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientGoogleIdentity.count") do
-        get sign_app_social_google_callback_url(ri: "jp"),
+        get auth_app_social_google_callback_url(ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
       end
@@ -79,7 +79,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url,
+    get auth_app_social_google_callback_url,
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -106,7 +106,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
              params: { state: state },
              headers: social_callback_headers(@host)
       end
@@ -139,7 +139,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("Client.count") do
       assert_no_difference("ClientAppleIdentity.count") do
-        get sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+        get auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
             params: { state: state },
             headers: social_callback_headers(@host)
       end
@@ -186,7 +186,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
       },
     )
 
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: social_callback_headers(@host)
 
@@ -226,7 +226,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -237,7 +237,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
   end
 
   test "existing Google identity without birthdate stays on login side" do
@@ -266,7 +266,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -308,7 +308,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -340,7 +340,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 
@@ -382,7 +382,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google")
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         params: { state: state },
         headers: social_callback_headers(@host)
 

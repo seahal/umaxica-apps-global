@@ -4,7 +4,7 @@
 module Auth
   module Com
     module Oidc
-      # RP login start: redirects to the Acme Authorization Server.
+      # RP login start: redirects to the Base Authorization Server.
       class AuthorizationsController < ::Auth::Com::ApplicationController
         AUTHENTICATION_MODE = :open
 

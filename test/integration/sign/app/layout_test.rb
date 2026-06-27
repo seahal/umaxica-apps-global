@@ -15,7 +15,7 @@ class SignAppLayoutTest < ActionDispatch::IntegrationTest
   end
 
   test "layout links when not logged in" do
-    get new_sign_app_sign_up_email_url(ri: "jp"), headers: default_headers
+    get new_auth_app_sign_up_email_url(ri: "jp"), headers: default_headers
 
     assert_response :success
 

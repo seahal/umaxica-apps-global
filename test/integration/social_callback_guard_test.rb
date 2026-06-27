@@ -34,7 +34,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     prepare_callback_flow(provider: "google_app", user: user)
 
-    get sign_app_social_google_callback_url(ri: "jp"),
+    get auth_app_social_google_callback_url(ri: "jp"),
         headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
@@ -46,7 +46,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     prepare_callback_flow(provider: "google_app", user: user)
 
-    get sign_app_social_google_callback_url(ri: "jp", state: "invalid_state"),
+    get auth_app_social_google_callback_url(ri: "jp", state: "invalid_state"),
         headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
@@ -58,7 +58,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     state = prepare_callback_flow(provider: "google_app", user: user)
 
     travel_to 6.minutes.from_now do
-      get sign_app_social_google_callback_url(ri: "jp", state: state),
+      get auth_app_social_google_callback_url(ri: "jp", state: state),
           headers: callback_headers.merge(as_user_headers(user, host: @host))
     end
 
@@ -72,13 +72,13 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     create_google_identity!(user: user, uid: uid)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
-    get sign_app_social_google_callback_url(ri: "jp", state: state),
+    get auth_app_social_google_callback_url(ri: "jp", state: state),
         headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :redirect
 
     setup_google_mock_auth(uid: "callback_google_reused_state_2_#{SecureRandom.hex(4)}")
-    get sign_app_social_google_callback_url(ri: "jp", state: state),
+    get auth_app_social_google_callback_url(ri: "jp", state: state),
         headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :forbidden
@@ -89,7 +89,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
-    get sign_app_social_google_callback_url(ri: "jp", state: state),
+    get auth_app_social_google_callback_url(ri: "jp", state: state),
         headers: callback_headers(host: "#{@host}:444").merge(as_user_headers(user, host: "#{@host}:444"))
 
     assert_response :forbidden
@@ -100,7 +100,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
-    post sign_app_social_google_callback_url(ri: "jp", state: state),
+    post auth_app_social_google_callback_url(ri: "jp", state: state),
          headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :not_found
@@ -113,7 +113,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     create_google_identity!(user: user, uid: uid)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
-    get sign_app_social_google_callback_url(ri: "jp", state: state),
+    get auth_app_social_google_callback_url(ri: "jp", state: state),
         headers: callback_headers(origin: "https://accounts.google.com")
           .merge(as_user_headers(user, host: @host))
 
@@ -126,7 +126,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     state = prepare_callback_flow(provider: "google_app", user: user)
 
-    post sign_app_social_google_callback_url(ri: "jp", state: state),
+    post auth_app_social_google_callback_url(ri: "jp", state: state),
          headers: callback_headers.merge(as_user_headers(user, host: @host))
 
     assert_response :not_found

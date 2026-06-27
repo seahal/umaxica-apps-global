@@ -40,7 +40,7 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
 
       host! sign_host
       https!
-      get sign_app_settings_url(ri: "jp"), headers: browser_headers
+      get auth_app_settings_url(ri: "jp"), headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(response.location)
@@ -81,13 +81,13 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :redirect
-      assert_equal sign_app_settings_url(ri: "jp", host: sign_host), response.location
+      assert_equal auth_app_settings_url(ri: "jp", host: sign_host), response.location
       assert_includes response.headers["Set-Cookie"].to_s, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
       assert_includes response.headers["Set-Cookie"].to_s, "#{AuthenticationBase::REFRESH_COOKIE_KEY}="
       assert_equal root_token_count, ClientToken.where(user_id: @user.id).count
       assert_equal usage_count + 1, ClientTokenUsage.count
 
-      get sign_app_settings_url(ri: "jp"), headers: browser_headers
+      get auth_app_settings_url(ri: "jp"), headers: browser_headers
 
       assert_response :success
       assert_select "h1", "Settings"

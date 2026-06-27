@@ -336,7 +336,7 @@ module SocialCallbackGuard
       if respond_to?(:social_auth_failure_redirect_path, true)
         social_auth_failure_redirect_path
       else
-        sign_app_sign_in_path
+        auth_app_sign_in_path
       end
 
     Rails.logger.warn(

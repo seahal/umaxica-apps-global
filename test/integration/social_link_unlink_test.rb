@@ -60,7 +60,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
 
     delete(
-      sign_app_settings_apple_url(ri: "jp", host: @host),
+      auth_app_settings_apple_url(ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )
@@ -86,7 +86,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
     # Try to unlink Apple
     delete(
-      sign_app_settings_apple_url(ri: "jp", host: @host),
+      auth_app_settings_apple_url(ri: "jp", host: @host),
       headers: @headers,
       params: { "cf-turnstile-response": "test" },
     )

@@ -36,7 +36,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
     setup_apple_mock_auth(uid: apple_uid)
     assert_difference("ClientAppleIdentity.count", 1) do
-      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -60,7 +60,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     state = start_social_auth_flow(provider: "google", intent: "link", user: user)
     assert_difference("ClientGoogleIdentity.count", 1) do
-      get sign_app_social_google_callback_url(ri: "jp"),
+      get auth_app_social_google_callback_url(ri: "jp"),
           params: { state: state },
           headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -82,7 +82,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     2.times do
       state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
       setup_apple_mock_auth(uid: apple_uid)
-      post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
            params: { state: state },
            headers: @callback_headers.merge(as_user_headers(user, host: @host))
     end
@@ -116,7 +116,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     # Callback as userB must be rejected before any reassignment.
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user_b)
     setup_apple_mock_auth(uid: apple_uid)
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
 
@@ -144,7 +144,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     setup_apple_mock_auth(uid: apple_uid)
 
     # Callback without login (no headers)
-    post sign_app_social_apple_callback_url(provider: "apple", ri: "jp"),
+    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
          params: { state: state },
          headers: browser_headers.merge(@callback_headers)
 

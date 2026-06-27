@@ -4,7 +4,7 @@
 require "test_helper"
 
 class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_token_kinds
+  fixtures :clients, :client_token_kinds, :com_preference_binding_methods, :com_preferences
 
   SURFACES = [
     {

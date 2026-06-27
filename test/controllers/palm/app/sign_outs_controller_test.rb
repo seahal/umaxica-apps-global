@@ -93,7 +93,7 @@ module Palm
         assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_uri.host
         assert_equal "/sign/out", sign_uri.path
 
-        post sign_app_sign_out_url(
+        post base_app_sign_out_url(
           host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],

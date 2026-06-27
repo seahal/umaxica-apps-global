@@ -129,7 +129,7 @@ module SignAppVerificationBase
   end
 
   def verification_success_fallback_path
-    sign_app_verification_path(ri: params[:ri])
+    auth_app_verification_path(ri: params[:ri])
   end
 
   def verification_audit_event_class = ClientChronicleEvent

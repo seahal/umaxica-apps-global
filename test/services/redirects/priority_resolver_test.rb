@@ -5,13 +5,13 @@ require "test_helper"
 class RedirectsPriorityResolverTest < ActiveSupport::TestCase
   Routes =
     Struct.new(:calls) do
-      def sign_app_sign_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
+      def auth_app_sign_in_check_path(ri:) = "/sign/in/check?ri=#{ri}"
 
-      def sign_app_sign_in_path(ri:) = "/sign/in?ri=#{ri}"
+      def auth_app_sign_in_path(ri:) = "/sign/in?ri=#{ri}"
 
       def acme_app_dashboard_path(ri:) = "/dashboard?ri=#{ri}"
 
-      def sign_app_settings_path(ri:) = "/settings?ri=#{ri}"
+      def auth_app_settings_path(ri:) = "/settings?ri=#{ri}"
     end
 
   test "explicit nt wins over signed pt" do

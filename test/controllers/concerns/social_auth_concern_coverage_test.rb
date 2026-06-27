@@ -78,13 +78,13 @@ class SocialAuthConcernCoverageTest < ActiveSupport::TestCase
       yield if @json_mode
     end
 
-    def sign_app_settings_apple_path = "/apple"
+    def auth_app_settings_apple_path = "/apple"
 
-    def sign_app_settings_path = "/config"
+    def auth_app_settings_path = "/config"
 
-    def sign_app_sign_in_path = "/login"
+    def auth_app_sign_in_path = "/login"
 
-    def sign_app_root_path = "/"
+    def auth_app_root_path = "/"
   end
 
   StepUpToken =

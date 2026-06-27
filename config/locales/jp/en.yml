@@ -3059,3 +3059,36 @@ en:
     org:
       roots:
         message: "News API is available. Browser article pages are served outside Rails."
+  auth:
+    app:
+      settings:
+        activity:
+          events:
+            logged_in: Logged in
+            login_success: Login success
+            logged_out: Logged out
+            logout: Logged out
+            signed_up_with_apple: Signed up with Apple
+            signed_up_with_email: Signed up with email
+            signed_up_with_google: Signed up with Google
+            signed_up_with_telephone: Signed up with telephone
+            social_linked: Social account linked
+            social_unlinked: Social account unlinked
+            session_revoked: Session revoked
+            email_registered: Email address registered
+            email_removed: Email address removed
+            telephone_registered: Telephone number registered
+            telephone_removed: Telephone number removed
+            totp_enabled: Authenticator app registered
+            passkey_registered: Passkey registered
+            user_secret_credential_created: Secret created
+            recovery_codes_generated: Recovery codes generated
+            unknown: Unknown event (%{event_id})
+    org:
+      settings:
+        activity:
+          events:
+            logged_in: Logged in
+            login_success: Login success
+            social_unlinked: Social account unlinked
+            unknown: Unknown event (%{event_id})

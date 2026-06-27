@@ -20,7 +20,7 @@ Rails.application.routes.draw do
   # Side owns the Rails foundation/control-plane surface.
   draw :side
 
-  # Palm owns the native bearer-token API surface.
+  # Palm owns the native RP and bearer-token API surface.
   draw :palm
 
   # Help owns the public help content surface.

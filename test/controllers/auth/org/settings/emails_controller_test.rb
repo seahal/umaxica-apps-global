@@ -13,7 +13,13 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     @token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_email")
-    set_access_cookie(jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id))
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] =
+      AuthenticationToken.encode(
+        @staff,
+        host: @host,
+        session_public_id: @token.public_id,
+        jwt_issuer_id: jwt_issuer_id_for_test_host(@host, "operator"),
+      )
     host! @host
   end
 
@@ -66,7 +72,7 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "sign email registration route remains on sign ceremony surface" do
     get new_auth_org_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
-    assert_equal "sign/org/settings/emails/registrations", @request.path_parameters[:controller]
+    assert_equal "auth/org/settings/emails/registrations", @request.path_parameters[:controller]
     assert_equal "new", @request.path_parameters[:action]
   end
 

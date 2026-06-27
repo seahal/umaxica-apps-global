@@ -105,7 +105,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     assert_equal "/verification", redirect_uri.path
     assert_equal "withdrawal", redirect_query["scope"]
 
-    get sign_app_verification_url(scope: "withdrawal", pt: redirect_query.fetch("pt"), ri: "jp"), headers: @headers
+    get auth_app_verification_url(scope: "withdrawal", pt: redirect_query.fetch("pt"), ri: "jp"), headers: @headers
 
     assert_response :success
 

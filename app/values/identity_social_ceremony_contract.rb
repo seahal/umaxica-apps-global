@@ -132,7 +132,7 @@ module IdentitySocialCeremonyContract
 
   # Decodes the JWT WITHOUT signature verification. The returned payload is
   # attacker-controlled and MUST NOT be trusted: use it only to extract routing
-  # claims (the `surface` used to pick issuer/audience, and on the acme social
+  # claims (the `surface` used to pick issuer/audience, and on the Base social
   # path the `session_ref`/`operation` used for routing and fail-safe
   # rejection). Every authentication, authorization, account-link, identity
   # creation, signup-finalization, and final-commit decision must go through the

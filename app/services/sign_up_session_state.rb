@@ -17,7 +17,7 @@ class SignUpSessionState
   KEY_GROUPS = {
     app: {
       cycle_locator: :app_sign_up_flow_locator,
-      sequence_id: :sign_app_up_sequence_id,
+      sequence_id: :auth_app_up_sequence_id,
       telephone_otp: :user_telephone_registration,
       existing_email: :sign_up_existing_email_id,
       existing_email_skip_otp: :sign_up_existing_email_skip_otp,

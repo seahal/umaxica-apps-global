@@ -5,13 +5,13 @@ class RedirectsNavigationTargetResolver
   REGISTRY = {
     checkpoint: ->(routes, params) {
       routes.public_send(
-        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_check_path",
+        "auth_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_check_path",
         ri: params[:ri],
       )
     },
     selector: ->(routes, params) {
       routes.public_send(
-        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_path",
+        "auth_#{RedirectsNavigationTargetResolver.surface(params)}_sign_in_path",
         ri: params[:ri],
       )
     },
@@ -23,7 +23,7 @@ class RedirectsNavigationTargetResolver
     },
     settings_security: ->(routes, params) {
       routes.public_send(
-        "sign_#{RedirectsNavigationTargetResolver.surface(params)}_settings_path",
+        "auth_#{RedirectsNavigationTargetResolver.surface(params)}_settings_path",
         ri: params[:ri],
       )
     },

@@ -45,7 +45,9 @@ module Auth::App::In
       )
 
       @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://id.org.localhost"] }
+      sign_host = configured_host(:sign_service)
+      staff_host = configured_host(:sign_staff)
+      Webauthn.define_singleton_method(:trusted_origins) { ["http://#{sign_host}", "http://#{staff_host}"] }
     end
 
     teardown do
@@ -103,7 +105,9 @@ module Auth::App::In
       end
 
       assert_response :found
-      assert_match %r{\Ahttp://id\.umaxica\.app/sign/in/check}, response.location
+      uri = URI.parse(response.location)
+      assert_equal configured_host(:sign_service), uri.host
+      assert_equal auth_app_sign_in_check_path, uri.path
       assert_nil session[:pending_mfa]
       assert_nil session[:mfa_user_id]
       assert_not_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]

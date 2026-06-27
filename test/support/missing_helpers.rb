@@ -6,14 +6,14 @@ require "jwt"
 require "base64"
 require "sha3"
 
-ENV["ID_SERVICE_URL"] ||= "log.umaxica.app"
-ENV["SIGN_SERVICE_URL"] ||= "log.umaxica.app"
-ENV["MAIN_SERVICE_URL"] ||= "www.umaxica.app"
-ENV["ID_STAFF_URL"] ||= "log.umaxica.org"
-ENV["SIGN_STAFF_URL"] ||= "log.umaxica.org"
-ENV["MAIN_STAFF_URL"] ||= "www.umaxica.org"
-ENV["SIGN_CORPORATE_URL"] ||= "log.umaxica.com"
-ENV["MAIN_CORPORATE_URL"] ||= "www.umaxica.com"
+ENV["ID_SERVICE_URL"] ||= "sign.app.localhost"
+ENV["SIGN_SERVICE_URL"] ||= "sign.app.localhost"
+ENV["MAIN_SERVICE_URL"] ||= "acme.app.localhost"
+ENV["ID_STAFF_URL"] ||= "sign.org.localhost"
+ENV["SIGN_STAFF_URL"] ||= "sign.org.localhost"
+ENV["MAIN_STAFF_URL"] ||= "acme.org.localhost"
+ENV["SIGN_CORPORATE_URL"] ||= "sign.com.localhost"
+ENV["MAIN_CORPORATE_URL"] ||= "acme.com.localhost"
 
 ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret_credential"
 ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret_credential"
@@ -76,6 +76,20 @@ module MissingHelpers
   include PreferenceJwtHelper
 
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
+
+  def configured_host(surface_name)
+    Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
+  end
+
+  def assert_redirected_to_path(expected_path)
+    assert_response :redirect
+    assert_equal expected_path, URI.parse(response.location).path
+  end
+
+  def assert_redirected_to_host(expected_host)
+    assert_response :redirect
+    assert_equal expected_host, URI.parse(response.location).host
+  end
 
   def as_user_headers(user, host:, headers: {}, session_public_id: nil)
     authenticated_headers_for(user, host: host, headers: headers, session_public_id: session_public_id)
@@ -315,17 +329,17 @@ module MissingHelpers
   end
 
   def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
-    host = ENV.fetch("AUTH_SERVICE_URL", "log.umaxica.app")
+    host = ENV.fetch("AUTH_SERVICE_URL", configured_host(:sign_service))
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path =
       if intent.to_s == "link"
-        public_send(:"sign_app_settings_#{normalized_provider}_path", ri: ri)
+        public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"auth_app_social_#{normalized_provider}_sign_up_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_auth_up_path", ri: ri, rt: rt)
       else
-        public_send(:"auth_app_social_#{normalized_provider}_sign_in_path", ri: ri, rt: rt)
+        public_send(:"auth_app_social_#{normalized_provider}_auth_in_path", ri: ri, rt: rt)
       end
 
     with_social_auth_csrf_route do |csrf_path|
@@ -360,7 +374,7 @@ module MissingHelpers
   AppSocialLinkGrantSession = Struct.new(:state, :user_headers, :session_public_id, keyword_init: true)
 
   def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
-    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    host = ENV.fetch("SIGN_SERVICE_URL", configured_host(:sign_service))
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
 
@@ -379,7 +393,7 @@ module MissingHelpers
 
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path = public_send(
-      :"sign_app_settings_#{normalized_provider}_path",
+      :"auth_app_settings_#{normalized_provider}_path",
       ri: ri,
       social_ceremony_grant: issuance.grant,
     )
@@ -600,7 +614,6 @@ module MissingHelpers
 
     user = Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
     insert_verified_user_email!(user_id: user.id, address: email_address)
-    user.refresh_mfa_status! if user.respond_to?(:refresh_mfa_status!)
     user.reload
   end
 
@@ -831,19 +844,15 @@ module MissingHelpers
   end
 
   def insert_verified_user_email!(user_id:, address:)
-    ClientEmail.insert_all(
-      [{
-        user_id: user_id,
-        address: address,
-        address_digest: IdentifierBlindIndex.bidx_for_email(address),
-        user_email_status_id: ClientEmailStatus::VERIFIED,
-        otp_private_key: SecureRandom.base64(24),
-        otp_counter: "",
-        otp_attempts_count: 0,
-        public_id: SecureRandom.alphanumeric(21),
-        created_at: Time.current,
-        updated_at: Time.current,
-      }],
+    ClientEmail.create!(
+      user_id: user_id,
+      address: address,
+      address_digest: IdentifierBlindIndex.bidx_for_email(address),
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
     )
   end
 
