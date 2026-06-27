@@ -15,6 +15,7 @@ class Auth::Com::Settings::ActivityLog
 
   def activities
     ClientChronicle
+      .includes(:user_chronicle_event)
       .where(subject_type: "Visitor", subject_id: visitor.id, event_id: LOGIN_EVENT_IDS)
       .recent_activity_first
   end

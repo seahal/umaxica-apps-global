@@ -26,9 +26,12 @@ Rules:
 
 Current content-model references:
 
+- `docs/architecture/avatar-social-graph.md` records the Avatar-to-Avatar follow, block, and mute
+  boundary and the current implementation gaps.
 - `docs/architecture/acme-sign-core-base-port.md`
 - `docs/architecture/sns-subject-resource-grill.md`
 - `docs/architecture/sns-subject-resource-decision-record.md`
+- `docs/architecture/database-authority-placement.md`
 - `docs/identity/authority-boundary.md`
 - `docs/architecture/actor-naming.md`
 - `docs/architecture/current_context.md`

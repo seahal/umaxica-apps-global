@@ -19,6 +19,7 @@ module Auth
       include ActionPolicy::Controller
       include ::OidcSsoInitiator
       include ::RestrictedSessionGuard
+      include SurfaceRouteAliasHelper
       include ::ActorSupport
       include ::Finisher
 

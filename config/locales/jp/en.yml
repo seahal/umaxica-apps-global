@@ -787,6 +787,7 @@ en:
         authentication: Sign In
       social:
         sessions:
+          continue: Continue
           create:
             success: Registered with %{provider}.
             failure: Authentication failed. Please try again.
@@ -1243,6 +1244,15 @@ en:
         user: Client
         confirm_policy: Terms of service
         raw_address: Email address
+      avatar_follow:
+        follower_avatar_id: Follower avatar
+        followed_avatar_id: Followed avatar
+      avatar_block:
+        blocker_avatar_id: Blocker avatar
+        blocked_avatar_id: Blocked avatar
+      avatar_mute:
+        muter_avatar_id: Muter avatar
+        muted_avatar_id: Muted avatar
       user_passkey:
         description: Name
         created_at: Registered
@@ -3019,12 +3029,164 @@ en:
     app:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
+        back_to_settings: Back to settings
+        update_settings: Update Settings
+        submitting: Submitting...
+      preference:
+        cookie:
+          edit:
+            description: Cookie settings
+            h1: Cookie settings
+            accept_necessary_cookies: Allow necessary cookies (required)
+            accept_functional_cookies: Allow functional cookies
+            accept_performance_cookies: Allow performance cookies
+            accept_targeting_cookies: Allow targeting cookies
+            accept_consent_cookies: Allow cookie consent
+        language:
+          edit:
+            heading: Language Settings
+            description: Change the display language for the application.
+            language_label: Language
+          options:
+            ja: Japanese
+            en: English
+        currency:
+          edit:
+            heading: Currency Settings
+            description: Select the currency used for display.
+            option_label: Currency
+          options:
+            usd: US Dollar
+            jpy: Japanese Yen
+        timezone:
+          edit:
+            heading: Timezone Settings
+            description: Change the timezone used to display dates and times.
+            timezone_label: Timezone
+        locale:
+          edit:
+            title: Locale Settings
+            description: Manage language and timezone settings.
+            language_options:
+              ja: Japanese
+              en: English
+            language_label: Language
+            timezone_label: Timezone
+            timezone_options:
+              UTC: Coordinated Universal Time (UTC)
+              ETC_UTC: Coordinated Universal Time (UTC)
+              JST: Japan Standard Time (Asia/Tokyo)
+              ASIA_TOKYO: Japan Standard Time (Asia/Tokyo)
+              AMERICA_NEW_YORK: Eastern Time (US & Canada)
+              AMERICA_CHICAGO: Central Time (US & Canada)
+              AMERICA_DENVER: Mountain Time (US & Canada)
+              AMERICA_LOS_ANGELES: Pacific Time (US & Canada)
+              AMERICA_ANCHORAGE: Alaska Time
+              PACIFIC_HONOLULU: Hawaii Time
+            language_section: Language Settings
+            language_prompt: Choose your language...
+            timezone_section: Timezone Settings
+            timezone_prompt: Choose your timezone...
+            submit: Update Settings
+            cancel: Cancel
+        theme:
+          edit:
+            title: Theme Settings (Light/Dark Toggle)
+            description: Choose a display mode that fits your working environment.
+            legend: Theme of Choice
+            options:
+              light: Light - for bright environments
+              dark: Dark - easier on the eyes in low light
+              system: System - follow the device setting
+            hints:
+              light: Recommended for daytime work and shared spaces.
+              dark: Helps reduce eye strain during night shifts and long sessions.
+              system: Automatically follows the OS theme.
+            submit: Save Theme Settings
+        resets:
+          title: Reset Settings
+          description: Delete the settings data stored in this browser.
+          button: Reset Settings
+          confirm: Are you sure?
+          destroyed: Settings reset
+          back: Back to settings list
+        motion:
+          edit:
+            heading: Motion Settings
+            description: Select the amount of animation and movement on screen.
+            option_label: Motion
+          options:
+            standard: Standard motion
+            reduced: Reduced motion
+        density:
+          edit:
+            heading: Density Settings
+            description: Select how compactly information is shown on screen.
+            option_label: Density
+          options:
+            standard: Standard
+            compact: Compact
+        page_size:
+          edit:
+            heading: Page Size
+            description: Select how many items are shown at once in paginated lists.
+            option_label: Page Size
+          options:
+            "10": 10 items
+            "20": 20 items
+            "50": 50 items
+            "100": 100 items
+            infinity: Unlimited
+        date_format:
+          edit:
+            heading: Date Format
+            description: Select the date format used by the application.
+            option_label: Date Format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
     com:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        up_link: Back to top
+      preference:
+        resets:
+          title: Reset Settings
+          description: Delete the settings data stored in this browser.
+          button: Reset Settings
+          confirm: Are you sure?
+          destroyed: Settings reset
+          back: Back to settings list
     org:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        up_link: Back to top
+      preference:
+        resets:
+          title: Reset Settings
+          description: Delete the settings data stored in this browser.
+          button: Reset Settings
+          confirm: Are you sure?
+          destroyed: Settings reset
+          back: Back to settings list
   palm:
     app:
       roots:

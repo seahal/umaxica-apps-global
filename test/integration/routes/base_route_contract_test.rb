@@ -12,133 +12,135 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
 
   # rubocop:disable Minitest/MultipleAssertions
   test "base app route contract" do
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/",
-      method: :get,
-    )
+    ["base.app.localhost", "www.umaxica.app", BASE_APP_HOST].uniq.each do |host|
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/",
+        method: :get,
+      )
 
-    assert_equal "base/app/roots", recognized[:controller]
-    assert_equal "index", recognized[:action]
+      assert_equal "base/app/roots", recognized[:controller]
+      assert_equal "index", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/health",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/health",
+        method: :get,
+      )
 
-    assert_equal "base/app/healths", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/healths", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/health/liveness",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/health/liveness",
+        method: :get,
+      )
 
-    assert_equal "base/app/health/livenesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/health/livenesses", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/health/readiness",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/health/readiness",
+        method: :get,
+      )
 
-    assert_equal "base/app/health/readinesses", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/health/readinesses", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/health/startup",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/health/startup",
+        method: :get,
+      )
 
-    assert_equal "base/app/health/startups", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/health/startups", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/robots.txt",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/robots.txt",
+        method: :get,
+      )
 
-    assert_equal "base/app/robots", recognized[:controller]
-    assert_equal "index", recognized[:action]
+      assert_equal "base/app/robots", recognized[:controller]
+      assert_equal "index", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sitemap.xml",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/sitemap.xml",
+        method: :get,
+      )
 
-    assert_equal "base/app/sitemaps", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/sitemaps", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/identity/emails",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/identity/emails",
+        method: :get,
+      )
 
-    assert_equal "base/app/identity/emails", recognized[:controller]
-    assert_equal "index", recognized[:action]
+      assert_equal "base/app/identity/emails", recognized[:controller]
+      assert_equal "index", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/dashboard",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/dashboard",
+        method: :get,
+      )
 
-    assert_equal "base/app/dashboards", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/dashboards", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/oidc/authorization",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oidc/authorization",
+        method: :get,
+      )
 
-    assert_equal "base/app/auth/authorizations", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/auth/authorizations", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/oidc/callback",
-      method: :get,
-    )
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oidc/callback",
+        method: :get,
+      )
 
-    assert_equal "base/app/auth/callbacks", recognized[:controller]
-    assert_equal "show", recognized[:action]
+      assert_equal "base/app/auth/callbacks", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{BASE_APP_HOST}/oidc", method: :get)
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/oidc", method: :get)
+      end
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/sign/out/new",
+        method: :get,
+      )
+
+      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "new", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/sign/out",
+        method: :post,
+      )
+
+      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "create", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/sign/out/complete",
+        method: :get,
+      )
+
+      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "complete", recognized[:action]
+
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{host}/sign/out", method: :delete)
+      end
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/csp-violation-report",
+        method: :post,
+      )
+
+      assert_equal "base/app/csp_violation_reports", recognized[:controller]
+      assert_equal "create", recognized[:action]
     end
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sign/out/new",
-      method: :get,
-    )
-
-    assert_equal "base/app/outs", recognized[:controller]
-    assert_equal "new", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sign/out",
-      method: :post,
-    )
-
-    assert_equal "base/app/outs", recognized[:controller]
-    assert_equal "create", recognized[:action]
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/sign/out/complete",
-      method: :get,
-    )
-
-    assert_equal "base/app/outs", recognized[:controller]
-    assert_equal "complete", recognized[:action]
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{BASE_APP_HOST}/sign/out", method: :delete)
-    end
-
-    recognized = Rails.application.routes.recognize_path(
-      "http://#{BASE_APP_HOST}/csp-violation-report",
-      method: :post,
-    )
-
-    assert_equal "base/app/csp_violation_reports", recognized[:controller]
-    assert_equal "create", recognized[:action]
   end
   # rubocop:enable Minitest/MultipleAssertions
 

@@ -23,8 +23,8 @@ the binding explicit without turning it into ownership, authority, or a shared A
 6. The Phase 1 bridge is `Avatar <-> Persona`.
 7. `org` future support remains a later candidate through `Agent`, but it is not part of Phase 1.
 8. `com` remains Avatar-ineligible for now through `Individual`.
-9. `AvatarAssignment` remains the Avatar role / posting authority model and is not expanded to
-   cover the bridge.
+9. `AvatarAssignment` remains the Avatar role / posting authority model and is not expanded to cover
+   the bridge.
 10. `AvatarAssignment` and `AccountAssignment` stay separate and must not be merged.
 11. `AvatarMembership` remains a temporal / participation / history-like model and must not be
     repurposed as the bridge.
@@ -134,8 +134,8 @@ follow the bridge data model PR and before any cleanup that could strand the las
 
 - Direct `Avatar -> Persona` ownership FK. Rejected because it collapses bridge semantics into
   ownership and makes the relationship too brittle for backfill and lifecycle changes.
-- Shared Account abstraction or STI. Rejected because the surfaces remain concrete and
-  independently evolvable.
+- Shared Account abstraction or STI. Rejected because the surfaces remain concrete and independently
+  evolvable.
 - `AvatarAssignment` as the bridge. Rejected because authority and binding are separate concerns.
 - `AvatarMembership` as the bridge. Rejected because its actor semantics remain ambiguous and
   temporal history is a different boundary.

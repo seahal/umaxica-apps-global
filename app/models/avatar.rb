@@ -168,6 +168,16 @@ class Avatar < AvatarRecord
            through: :outgoing_blocks,
            source: :blocked_avatar
 
+  has_many :incoming_blocks,
+           class_name: "AvatarBlock",
+           foreign_key: :blocked_avatar_id,
+           inverse_of: :blocked_avatar,
+           dependent: :destroy
+
+  has_many :blocking_avatars,
+           through: :incoming_blocks,
+           source: :blocker_avatar
+
   # mutes
   has_many :outgoing_mutes,
            class_name: "AvatarMute",
@@ -178,6 +188,16 @@ class Avatar < AvatarRecord
   has_many :muted_avatars,
            through: :outgoing_mutes,
            source: :muted_avatar
+
+  has_many :incoming_mutes,
+           class_name: "AvatarMute",
+           foreign_key: :muted_avatar_id,
+           inverse_of: :muted_avatar,
+           dependent: :destroy
+
+  has_many :muting_avatars,
+           through: :incoming_mutes,
+           source: :muter_avatar
 
   validates :public_id, presence: true, uniqueness: true
   validates :capability_id, numericality: { only_integer: true, greater_than: 0 }

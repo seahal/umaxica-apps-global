@@ -106,6 +106,7 @@ module Auth::App::In
 
       assert_response :found
       uri = URI.parse(response.location)
+
       assert_equal configured_host(:sign_service), uri.host
       assert_equal auth_app_sign_in_check_path, uri.path
       assert_nil session[:pending_mfa]

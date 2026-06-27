@@ -5,6 +5,7 @@
 # surface tables consume them. Required here rather than from an initializer so
 # the macros exist regardless of initializer load order. See the file header.
 require_relative "auth_route_mapper"
+require_relative "../app/controllers/concerns/surface_route_alias_helper"
 ActionDispatch::Routing::Mapper.include(AuthRouteMapper)
 
 Rails.application.routes.draw do

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::OrganizationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    @host = configured_host(:base_corporate)
     @visitor = create_verified_visitor_with_email(email_address: "com-org@example.com")
     @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :com, principal: @visitor)
   end

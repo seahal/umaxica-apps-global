@@ -5,8 +5,8 @@ require "test_helper"
 
 class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @host = configured_host(:base_service)
+    @acme_host = configured_host(:acme_service)
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     @bootstrap = bootstrap_and_select!(@user, @token)

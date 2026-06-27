@@ -40,6 +40,25 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
+      assert_equal "Preferences", I18n.t("base.app.preferences.title")
+      assert_equal "Manage language, theme, and other preferences in one place.",
+                   I18n.t("base.app.preferences.description")
+      assert_equal "Region & Language Settings", I18n.t("base.app.preferences.region_settings")
+      assert_equal "Language Settings", I18n.t("base.app.preferences.language_settings")
+      assert_equal "Timezone Settings", I18n.t("base.app.preferences.timezone_settings")
+      assert_equal "Cookie Settings", I18n.t("base.app.preferences.cookie_settings")
+      assert_equal "Theme Settings", I18n.t("base.app.preferences.theme_settings")
+      assert_equal "Reset Settings", I18n.t("base.app.preferences.reset_settings")
+      assert_equal "Back to settings", I18n.t("base.app.preferences.back_to_settings")
+      assert_equal "Back to top", I18n.t("base.app.preferences.up_link")
+      assert_equal "Language Settings", I18n.t("base.app.preference.language.edit.heading")
+      assert_equal "Language", I18n.t("base.app.preference.language.edit.language_label")
+      assert_equal "Date Format", I18n.t("base.app.preference.date_format.edit.heading")
+      assert_equal "Reset Settings", I18n.t("base.app.preference.resets.title")
+      assert_equal "Reset Settings", I18n.t("base.app.preference.resets.button")
+      assert_equal "Back", I18n.t("base.app.preferences.regions.back_link")
+      assert_equal "Back", I18n.t("base.com.preferences.regions.back_link")
+      assert_equal "Back", I18n.t("base.org.preferences.regions.back_link")
       assert_equal "Language Settings", I18n.t("acme.app.preferences.language_settings")
       assert_equal "Manage language, theme, and other preferences in one place.",
                    I18n.t("acme.app.preferences.description")
@@ -62,6 +81,7 @@ class LocaleInitializerTest < ActiveSupport::TestCase
     assert_nothing_raised { reload_locale_initializer }
 
     I18n.with_locale(:en) do
+      assert_equal "Preferences", I18n.t("base.app.preferences.title")
       assert_equal "Region & Language Settings", I18n.t("acme.app.preferences.regions.title")
       assert_equal "Choose your region...", I18n.t("acme.app.preferences.regions.select_region_prompt")
       assert_equal "Region Settings", I18n.t("acme.app.preferences.regions.region_section")
@@ -131,12 +151,14 @@ class LocaleInitializerTest < ActiveSupport::TestCase
 
     %w(app com org).each do |surface|
       I18n.with_locale(:en) do
+        assert_equal "Preferences", I18n.t("base.app.preferences.title")
         assert_equal "Motion Settings", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "Density Settings", I18n.t("acme.#{surface}.preferences.density_settings")
         assert_equal "Page Size", I18n.t("acme.#{surface}.preferences.pagination_settings")
       end
 
       I18n.with_locale(:ja) do
+        assert_equal "設定", I18n.t("base.app.preferences.title")
         assert_equal "モーション設定", I18n.t("acme.#{surface}.preferences.motion_settings")
         assert_equal "表示密度設定", I18n.t("acme.#{surface}.preferences.density_settings")
         assert_equal "1ページあたりの表示件数", I18n.t("acme.#{surface}.preferences.pagination_settings")

@@ -1,0 +1,43 @@
+<%
+  tld = :com
+  title_site = "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (#{tld})"
+%>
+<!DOCTYPE html>
+<html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
+<head>
+  <%= display_meta_tags site: title_site, title: page_title %>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="turbo-refresh-method" content="morph">
+  <meta name="turbo-refresh-scroll" content="preserve">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
+  <%= vite_client_tag nonce: true %>
+  <%= vite_react_refresh_tag nonce: true %>
+  <%= vite_typescript_tag "application", nonce: true, "data-turbo-eval": "false" %>
+  <%= inertia_ssr_head %>
+  <%= yield :head %>
+</head>
+<body class="font-mono bg-white text-black min-h-screen flex flex-col p-2">
+  <div class="border-2 border-black flex-grow flex flex-col">
+    <header class="border-b-2 border-black p-2">
+      <nav class="flex flex-wrap gap-2 items-center justify-between mb-2 text-sm">
+        <div class="flex gap-2">
+          <%= render "layouts/shared/flash_messages" %>
+          <%= render "layouts/shared/current_banner", tld: tld, domain: :acme, region: :global %>
+        </div>
+      </nav>
+      <div class="flex items-center gap-2">
+        <span class="bg-black text-white px-1 font-bold text-xs">BASE</span>
+        <h1 class="text-lg font-bold">
+          <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), base_com_root_path %>
+          <span class="opacity-50 text-sm">(<%= tld %>)</span>
+        </h1>
+      </div>
+    </header>
+    <main class="p-2 flex-grow">
+      <%= yield %>
+    </main>
+  </div>
+</body>
+</html>

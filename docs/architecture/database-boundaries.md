@@ -9,6 +9,9 @@
 
 This document records the accepted database connection naming model for surface-owned data.
 
+The current database boundary names are not the same thing as the future authority placement target.
+See `docs/architecture/database-authority-placement.md` for the placement contract.
+
 ## Naming Model
 
 Surface-owned database connections use `surface_role` names.

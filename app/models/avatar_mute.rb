@@ -29,5 +29,18 @@ class AvatarMute < AvatarRecord
              class_name: "Avatar",
              inverse_of: :outgoing_mutes
   belongs_to :muted_avatar,
-             class_name: "Avatar"
+             class_name: "Avatar",
+             inverse_of: :incoming_mutes
+
+  validates :muted_avatar_id, uniqueness: { scope: :muter_avatar_id }
+  validate :muter_and_muted_must_differ
+
+  private
+
+  def muter_and_muted_must_differ
+    return if muter_avatar_id.blank? || muted_avatar_id.blank?
+    return if muter_avatar_id != muted_avatar_id
+
+    errors.add(:muted_avatar_id, "must differ from muter_avatar_id")
+  end
 end

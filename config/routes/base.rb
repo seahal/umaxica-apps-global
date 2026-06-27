@@ -6,7 +6,7 @@ scope module: :base, as: :base do
   boot_config = Rails.configuration.x.boot_config
 
   # App OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_service.host, "base.app.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).base_service.host, "base.app.localhost", "www.umaxica.app"].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -217,7 +217,7 @@ scope module: :base, as: :base do
   end
 
   # Corporate OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_corporate.host, "base.com.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).base_corporate.host, "base.com.localhost", "www.umaxica.com"].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -379,7 +379,7 @@ scope module: :base, as: :base do
   end
 
   # Staff OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_staff.host, "base.org.localhost"].compact do
+  constraints host: [boot_config.fetch(:hosts).base_staff.host, "base.org.localhost", "www.umaxica.org"].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

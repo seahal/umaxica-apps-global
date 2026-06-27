@@ -194,6 +194,15 @@ ja:
         raw_address: メールアドレス
         status: ステータス
         user: Client
+      avatar_follow:
+        follower_avatar_id: フォロワーAvatar
+        followed_avatar_id: フォロー対象Avatar
+      avatar_block:
+        blocker_avatar_id: ブロッカーAvatar
+        blocked_avatar_id: ブロック対象Avatar
+      avatar_mute:
+        muter_avatar_id: ミュート実行Avatar
+        muted_avatar_id: ミュート対象Avatar
       user_telephone:
         number: 電話番号
         status: ステータス
@@ -1698,6 +1707,11 @@ ja:
         up:
           invitations:
             create:
+              turnstile_failed: 検証に失敗しました。もう一度お試しください。
+      sign:
+        up:
+          invitations:
+            create:
               success: 招待を受諾しました。operator ID は %{public_id} です。招待メールアドレスの Google ログインを使うか、別の operator にログイン方法の設定を依頼してください。
               turnstile_failed: 検証に失敗しました。もう一度お試しください。
       verification:
@@ -1738,6 +1752,7 @@ ja:
           complete: 検証が完了しました
       social:
         sessions:
+          continue: 続行する
           create:
             success: "%{provider}で登録を開始しました"
       step_up:
@@ -3678,12 +3693,176 @@ ja:
     app:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: 設定
+        description: アカウントの設定を管理します。
+        up_link: うえへ
+        regions:
+          back_link: もどる
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        pagination_settings: 1ページあたりの表示件数
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        back_to_settings: 設定に戻る
+        cookie_settings: クッキー設定
+        update_settings: 設定を更新
+        submitting: 送信中...
+      preference:
+        cookie:
+          edit:
+            description: クッキー設定
+            h1: クッキー設定
+            accept_necessary_cookies: 必須クッキーを許可 (必須)
+            accept_functional_cookies: 機能性クッキーを許可
+            accept_performance_cookies: パフォーマンスクッキーを許可
+            accept_targeting_cookies: ターゲティングクッキーを許可
+            accept_consent_cookies: クッキー同意を許可
+        language:
+          edit:
+            heading: 言語設定
+            description: アプリケーションの表示言語を変更します。
+            language_label: 言語
+          options:
+            ja: 日本語
+            en: 英語 - English
+        currency:
+          edit:
+            heading: 通貨設定
+            description: 表示に使う通貨を選択します。
+            option_label: 通貨
+          options:
+            usd: 米国ドル
+            jpy: 日本円
+        timezone:
+          edit:
+            heading: タイムゾーン設定
+            description: 表示日時のタイムゾーンを変更します
+            timezone_label: タイムゾーン
+        locale:
+          edit:
+            title: ロケール設定
+            description: 言語とタイムゾーンの設定を管理します
+            language_options:
+              ja: 日本語
+              en: 英語 - English
+            language_label: 言語
+            timezone_label: タイムゾーン
+            timezone_options:
+              UTC: 協定世界時 (UTC)
+              ETC_UTC: 協定世界時 (UTC)
+              JST: 日本標準時 (Asia/Tokyo)
+              ASIA_TOKYO: 日本標準時 (Asia/Tokyo)
+              AMERICA_NEW_YORK: 東部時間 (米国・カナダ)
+              AMERICA_CHICAGO: 中部時間 (米国・カナダ)
+              AMERICA_DENVER: 山岳部時間 (米国・カナダ)
+              AMERICA_LOS_ANGELES: 太平洋時間 (米国・カナダ)
+              AMERICA_ANCHORAGE: アラスカ時間
+              PACIFIC_HONOLULU: ハワイ時間
+            language_section: 言語設定
+            language_prompt: 言語を選択してください…
+            timezone_section: タイムゾーン設定
+            timezone_prompt: タイムゾーンを選択してください…
+            submit: 設定を更新
+            cancel: キャンセル
+        theme:
+          edit:
+            title: テーマ設定（ライト／ダークの切り替え）
+            description: 表示モードを作業環境に合わせて選択します。
+            legend: テーマ of Choice
+            options:
+              light: ライト — 明るい環境向けの配色
+              dark: ダーク — 低照度環境で目に優しい配色
+              system: システム設定 — 端末の設定に追従
+            hints:
+              light: 日中作業や共有スペースでの利用におすすめです。
+              dark: 夜間の監視業務や長時間利用で目の負担を軽減します。
+              system: OSのテーマ変更にあわせて自動で切り替わります。
+            submit: テーマ設定を保存
+        resets:
+          title: 設定のリセット
+          description: このブラウザに保存された設定データを削除します。
+          button: 設定をリセットする
+          confirm: 本当によろしいですか？
+          destroyed: 設定をリセットしました
+          back: 設定一覧に戻る
+        motion:
+          edit:
+            heading: モーション設定
+            description: 画面内のアニメーションや動きの量を選択します。
+            option_label: モーション
+          options:
+            standard: 標準モーション
+            reduced: 控えめなモーション
+        density:
+          edit:
+            heading: 表示密度設定
+            description: 画面内の情報をどの程度コンパクトに表示するかを選択します。
+            option_label: 表示密度
+          options:
+            standard: 標準
+            compact: コンパクト
+        page_size:
+          edit:
+            heading: 1ページあたりの表示件数
+            description: ページ分割された一覧で一度に表示する件数を選択します。
+            option_label: 表示件数
+          options:
+            "10": 10件
+            "20": 20件
+            "50": 50件
+            "100": 100件
+            infinity: 無制限
+        date_format:
+          edit:
+            heading: 日付形式
+            description: アプリケーションで表示する日付形式を選択します。
+            option_label: 日付形式
+          options:
+            iso: ISO形式 (YYYY-MM-DD)
+            uk: 英国式 (DD/MM/YYYY)
+            us: 米国式 (MM/DD/YYYY)
     com:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: 設定
+        description: アカウントの設定を管理します。
+        up_link: うえへ
+        back_to_settings: 設定に戻る
+        cookie_settings: クッキー設定
+        update_settings: 設定を更新
+        submitting: 送信中...
+      preference:
+        resets:
+          title: 設定のリセット
+          description: このブラウザに保存された設定データを削除します。
+          button: 設定をリセットする
+          confirm: 本当によろしいですか？
+          destroyed: 設定をリセットしました
+          back: 設定一覧に戻る
     org:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: 設定
+        description: アカウントの設定を管理します。
+        up_link: うえへ
+        back_to_settings: 設定に戻る
+        cookie_settings: クッキー設定
+        update_settings: 設定を更新
+        submitting: 送信中...
+      preference:
+        resets:
+          title: 設定のリセット
+          description: このブラウザに保存された設定データを削除します。
+          button: 設定をリセットする
+          confirm: 本当によろしいですか？
+          destroyed: 設定をリセットしました
+          back: 設定一覧に戻る
   palm:
     app:
       roots:

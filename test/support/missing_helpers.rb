@@ -75,10 +75,34 @@ end
 module MissingHelpers
   include PreferenceJwtHelper
 
+  SURFACE_ROUTE_PREFIX_MAP = {
+    "sign_app_" => "auth_app_",
+    "sign_org_" => "auth_org_",
+    "sign_com_" => "auth_com_",
+    "acme_app_" => "base_app_",
+    "acme_org_" => "base_org_",
+    "acme_com_" => "base_com_",
+  }.freeze
+
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
   def configured_host(surface_name)
     Rails.configuration.x.boot_config.fetch(:hosts).public_send(surface_name).host
+  end
+
+  def method_missing(name, ...)
+    aliased_name = aliased_surface_route_helper_name(name)
+    return super if aliased_name.nil?
+    return public_send(aliased_name, ...) if respond_to?(aliased_name, true)
+
+    super
+  end
+
+  def respond_to_missing?(name, include_private = false)
+    aliased_name = aliased_surface_route_helper_name(name)
+    return true if aliased_name && respond_to?(aliased_name, include_private)
+
+    super
   end
 
   def assert_redirected_to_path(expected_path)
@@ -125,20 +149,20 @@ module MissingHelpers
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    acme_hosts = [
-      ENV.fetch("ACME_SERVICE_URL", nil),
-      ENV.fetch("ACME_CORPORATE_URL", nil),
-      ENV.fetch("ACME_STAFF_URL", nil),
-    ].compact
+    boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     service =
-      if normalized.include?("acme") || normalized.start_with?("www.") || acme_hosts.include?(normalized)
-        "ACME"
-      elsif normalized.include?("base")
-        "BASE"
-      elsif normalized.include?("core")
-        "CORE"
+      case normalized
+      when boot_hosts.acme_service.host, boot_hosts.acme_corporate.host, boot_hosts.acme_staff.host then "ACME"
+      when boot_hosts.base_service.host, boot_hosts.base_corporate.host, boot_hosts.base_staff.host then "BASE"
+      when boot_hosts.core_service.host, boot_hosts.core_corporate.host, boot_hosts.core_staff.host then "CORE"
+      when boot_hosts.sign_service.host, boot_hosts.sign_corporate.host, boot_hosts.sign_staff.host then "SIGN"
       else
-        "SIGN"
+        case configured_surface_family_for_test_host(normalized)
+        when :acme then "ACME"
+        when :base then "BASE"
+        when :core then "CORE"
+        else "SIGN"
+        end
       end
     surface =
       if %w(SIGN BASE).include?(service)
@@ -156,6 +180,29 @@ module MissingHelpers
       end
 
     "surface:#{service}_#{surface}"
+  end
+
+  def configured_surface_family_for_test_host(host)
+    boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    return :acme if [boot_hosts.acme_service.host, boot_hosts.acme_corporate.host,
+                     boot_hosts.acme_staff.host,].include?(host)
+    return :base if [boot_hosts.base_service.host, boot_hosts.base_corporate.host,
+                     boot_hosts.base_staff.host,].include?(host)
+    return :core if [boot_hosts.core_service.host, boot_hosts.core_corporate.host,
+                     boot_hosts.core_staff.host,].include?(host)
+    return :sign if [boot_hosts.sign_service.host, boot_hosts.sign_corporate.host,
+                     boot_hosts.sign_staff.host,].include?(host)
+
+    nil
+  end
+
+  def aliased_surface_route_helper_name(name)
+    helper_name = name.to_s
+    SURFACE_ROUTE_PREFIX_MAP.each do |source_prefix, target_prefix|
+      return helper_name.sub(source_prefix, target_prefix) if helper_name.start_with?(source_prefix)
+    end
+
+    nil
   end
 
   def assert_oidc_authorize_redirect(location, host:, client_id: "base-rails-rp")

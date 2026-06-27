@@ -23,6 +23,7 @@ module Auth
       # Note: RestrictedSessionGuard is still needed to enforce session expiration
       # and block expired restricted sessions on the session management page itself.
       include ::RestrictedSessionGuard
+      include SurfaceRouteAliasHelper
       include ::ActorSupport
       include ::Finisher
 

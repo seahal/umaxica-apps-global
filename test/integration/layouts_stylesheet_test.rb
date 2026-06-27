@@ -6,6 +6,9 @@ require "test_helper"
 class StylesheetTagsTest < ActiveSupport::TestCase
   VITE_LAYOUT_PATHS = [
     ["app/views/layouts/application.html.erb", "application"],
+    ["app/views/layouts/base/app/application.html.erb", "application"],
+    ["app/views/layouts/base/com/application.html.erb", "application"],
+    ["app/views/layouts/base/org/application.html.erb", "application"],
     ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
     ["app/views/layouts/acme/com/application.html.erb", "entrypoints/acme/com"],
     ["app/views/layouts/acme/org/application.html.erb", "entrypoints/acme/org"],

@@ -162,6 +162,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     location = jump_rt_url_from_location(response.location)
 
     uri = URI.parse(location)
+
     assert_equal "https", uri.scheme
     assert_equal cross_site_acme_host, uri.host
     assert_equal "/oauth/authorize", uri.path

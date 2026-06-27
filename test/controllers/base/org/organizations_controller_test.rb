@@ -7,7 +7,7 @@ class Base::Org::OrganizationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    @host = configured_host(:base_staff)
     @staff = operators(:one)
     @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: @staff)
   end

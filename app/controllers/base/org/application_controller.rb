@@ -26,6 +26,7 @@ module Base
       include ::RestrictedSessionGuard
 
       include ::OidcSsoInitiator
+      include SurfaceRouteAliasHelper
 
       include ::ActorSupport
 

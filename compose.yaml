@@ -69,12 +69,18 @@ services:
           - info.app.localhost
           - info.com.localhost
           - info.org.localhost
+          - auth.umaxica.app
+          - auth.umaxica.com
+          - auth.umaxica.org
           - log.umaxica.app
           - log.umaxica.com
           - log.umaxica.org
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org
+          - side-jp.umaxica.app
+          - side-jp.umaxica.com
+          - side-jp.umaxica.org
           - info.umaxica.app
           - info.umaxica.com
           - info.umaxica.org

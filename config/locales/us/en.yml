@@ -858,6 +858,7 @@ en:
         authentication: Sign In
       social:
         sessions:
+          continue: Continue
           create:
             success: Registered with %{provider}.
             failure: Authentication failed. Please try again.
@@ -1355,6 +1356,15 @@ en:
         user: Client
         confirm_policy: Terms of service
         raw_address: Email address
+      avatar_follow:
+        follower_avatar_id: Follower avatar
+        followed_avatar_id: Followed avatar
+      avatar_block:
+        blocker_avatar_id: Blocker avatar
+        blocked_avatar_id: Blocked avatar
+      avatar_mute:
+        muter_avatar_id: Muter avatar
+        muted_avatar_id: Muted avatar
       user_passkey:
         description: Name
         created_at: Registered
@@ -1941,6 +1951,15 @@ en:
             '50': 50 items
             '100': 100 items
             infinity: Unlimited
+        date_format:
+          edit:
+            heading: Date Format
+            description: Select the date format used by the application.
+            option_label: Date Format
+          options:
+            iso: ISO (YYYY-MM-DD)
+            uk: UK (DD/MM/YYYY)
+            us: US (MM/DD/YYYY)
         resets:
           title: Reset Preferences
           description: Remove saved preference cookies for this browser.
@@ -1970,6 +1989,7 @@ en:
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
         cookie_settings: Cookie Settings
         region_settings: Region & Language Settings
         language_settings: Language Settings
@@ -3529,6 +3549,36 @@ en:
             submit: Save preferences
     com:
       preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        back_to_settings: Back to Preferences
+      preference:
+        resets:
+          title: Reset Preferences
+          description: Remove saved preference cookies for this browser.
+          button: Clear preference data
+          confirm: This action deletes saved preference data for this browser. Continue?
+          destroyed: Preferences have been reset
+          back: Back to Preferences
+    org:
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        back_to_settings: Back to Preferences
+      preference:
+        resets:
+          title: Reset Preferences
+          description: Remove saved preference cookies for this browser.
+          button: Clear preference data
+          confirm: This action deletes saved preference data for this browser. Continue?
+          destroyed: Preferences have been reset
+          back: Back to Preferences
+    com:
+      preferences:
         title: Email Preferences
         description: Request a secure link to manage your email notifications without signing in.
         email_settings: Request email preferences
@@ -3592,9 +3642,39 @@ en:
     com:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        back_to_settings: Back to Preferences
+      preference:
+        resets:
+          title: Reset Preferences
+          description: Remove saved preference cookies for this browser.
+          button: Clear preference data
+          confirm: This action deletes saved preference data for this browser. Continue?
+          destroyed: Preferences have been reset
+          back: Back to Preferences
     org:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        back_to_settings: Back to Preferences
+      preference:
+        resets:
+          title: Reset Preferences
+          description: Remove saved preference cookies for this browser.
+          button: Clear preference data
+          confirm: This action deletes saved preference data for this browser. Continue?
+          destroyed: Preferences have been reset
+          back: Back to Preferences
   palm:
     app:
       roots:

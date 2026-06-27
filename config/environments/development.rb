@@ -130,6 +130,17 @@ Rails.application.configure do
     boot_hosts.palm_origins.map(&:host) +
     boot_hosts.info_origins.map(&:host) +
     %w(
+      auth.umaxica.app
+      auth.umaxica.com
+      auth.umaxica.org
+      www.umaxica.app
+      www.umaxica.com
+      www.umaxica.org
+      side-jp.umaxica.app
+      side-jp.umaxica.com
+      side-jp.umaxica.org
+    ) +
+    %w(
       sign.app.localhost
       sign.com.localhost
       sign.org.localhost

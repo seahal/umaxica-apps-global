@@ -90,6 +90,7 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     assert_response :redirect
 
     uri = URI.parse(response.location)
+
     assert_equal configured_host(:sign_corporate), uri.host
     assert_equal auth_com_sign_in_check_path, uri.path
     assert_nil session[:pending_mfa]

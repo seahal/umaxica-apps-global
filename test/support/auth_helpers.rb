@@ -119,13 +119,13 @@ module AuthHelpers
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     service =
-      if normalized.include?("acme")
-        "ACME"
-      elsif normalized.include?("base")
-        "BASE"
-      elsif normalized.include?("core")
-        "CORE"
+      case normalized
+      when boot_hosts.acme_service.host, boot_hosts.acme_corporate.host, boot_hosts.acme_staff.host then "ACME"
+      when boot_hosts.base_service.host, boot_hosts.base_corporate.host, boot_hosts.base_staff.host then "BASE"
+      when boot_hosts.core_service.host, boot_hosts.core_corporate.host, boot_hosts.core_staff.host then "CORE"
+      when boot_hosts.sign_service.host, boot_hosts.sign_corporate.host, boot_hosts.sign_staff.host then "SIGN"
       else
         "SIGN"
       end
