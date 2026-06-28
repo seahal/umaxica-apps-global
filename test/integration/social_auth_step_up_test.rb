@@ -7,7 +7,7 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_google_identity_statuses
 
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
     @user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: "soc_aal1_#{SecureRandom.hex(4)}",

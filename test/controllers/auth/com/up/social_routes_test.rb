@@ -6,7 +6,7 @@ require "test_helper"
 # Verifies that com sign-up social routes (Google, Apple) do not exist.
 # Per ADR sign-com-no-social-login.md, com supports only email and telephone sign-up.
 class Auth::Com::Sign::Up::SocialRoutesTest < ActiveSupport::TestCase
-  COM_HOST = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+  COM_HOST = Rails.configuration.x.boot_config.fetch(:hosts).sign_corporate.host
 
   test "com google sign-up guard route is unreachable" do
     assert_raises(ActionController::RoutingError) do

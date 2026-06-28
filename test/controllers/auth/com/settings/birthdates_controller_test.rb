@@ -6,7 +6,7 @@ require "test_helper"
 module Auth::Com::Settings
   class BirthdatesControllerTest < ActionDispatch::IntegrationTest
     setup do
-      @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+      @host = ENV.fetch("AUTH_CORPORATE_URL")
       @visitor = create_verified_visitor_with_email(email_address: "birthdate-#{SecureRandom.hex(4)}@example.com")
       VisitorTelephone.create!(
         visitor: @visitor,
@@ -74,7 +74,7 @@ module Auth::Com::Settings
       assert_response :redirect
       assert_oidc_authorize_redirect(
         response.location,
-        host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        host: ENV.fetch("ACME_CORPORATE_URL"),
         client_id: "sign-rp",
       )
     end

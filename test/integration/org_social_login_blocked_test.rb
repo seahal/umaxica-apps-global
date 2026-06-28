@@ -5,8 +5,8 @@ require "test_helper"
 
 class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   setup do
-    @staff_host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @service_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @staff_host = ENV.fetch("ID_STAFF_URL")
+    @service_host = ENV.fetch("ID_SERVICE_URL")
   end
 
   test "app Google provider request on staff host returns 404" do

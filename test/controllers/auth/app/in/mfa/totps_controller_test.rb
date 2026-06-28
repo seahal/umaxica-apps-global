@@ -9,7 +9,7 @@ module Auth::App::In
              :client_secret_credential_statuses, :client_email_statuses, :client_totp_credential_statuses
 
     setup do
-      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 

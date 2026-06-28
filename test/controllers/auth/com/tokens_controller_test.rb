@@ -7,7 +7,7 @@ class Auth::Com::TokensControllerTest < ActionDispatch::IntegrationTest
   test "sign com oauth token route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")}/oauth/token",
+        "https://#{ENV.fetch("AUTH_CORPORATE_URL")}/oauth/token",
         method: :post,
       )
     end

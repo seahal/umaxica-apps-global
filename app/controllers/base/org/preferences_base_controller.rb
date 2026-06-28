@@ -4,6 +4,7 @@
 module Base
   module Org
     class PreferencesBaseController < Base::Org::ApplicationController
+      include ::PreferenceCore
       include ::BasePreferenceViewRouteAliases
 
       AUTHENTICATION_MODE = :open

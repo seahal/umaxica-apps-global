@@ -8,7 +8,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   fixtures :clients
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL")
     host! @host
 
     @user = clients(:one)

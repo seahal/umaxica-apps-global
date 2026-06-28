@@ -8,7 +8,7 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   fixtures :clients, :client_tokens
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
   end
 

@@ -7,7 +7,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL")
   end
 
   test "direct entry normalizes to acme org authorization" do
@@ -18,7 +18,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("ACME_STAFF_URL"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
@@ -105,7 +105,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    assert_select "a[href=?]", auth_org_root_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    assert_select "a[href=?]", auth_org_root_url(ri: "jp", host: ENV.fetch("ACME_STAFF_URL"))
   end
 
   test "rejects direct entry when logged in" do

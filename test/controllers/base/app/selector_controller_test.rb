@@ -8,7 +8,7 @@ class Base::App::SelectorControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     set_access_cookie(

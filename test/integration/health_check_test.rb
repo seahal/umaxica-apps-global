@@ -5,7 +5,7 @@ require "test_helper"
 
 class HealthCheckTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
   end
 
   test "readiness returns ok when dependencies are healthy" do

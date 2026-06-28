@@ -7,8 +7,8 @@ class Auth::App::Web::V0::In::Email::OtpsControllerTest < ActionDispatch::Integr
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     ActionMailer::Base.deliveries.clear
   end
 

@@ -12,13 +12,13 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
 
   DOMAINS = [
     { name: "base_app",
-      host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      host: ENV.fetch("BASE_SERVICE_URL"),
       preference_url_method: :base_app_preference_url, },
     { name: "base_org",
-      host: ENV.fetch("BASE_STAFF_URL", "base.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       preference_url_method: :base_org_preference_url, },
     { name: "base_com",
-      host: ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
+      host: ENV.fetch("BASE_CORPORATE_URL"),
       preference_url_method: :base_com_preference_url, },
   ].freeze
 

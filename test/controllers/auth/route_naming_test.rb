@@ -4,10 +4,11 @@
 require "test_helper"
 
 class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
+  BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = {
-    app: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
-    com: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
-    org: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
+    app: BOOT_HOSTS.sign_service.host,
+    com: BOOT_HOSTS.sign_corporate.host,
+    org: BOOT_HOSTS.sign_staff.host,
   }.freeze
 
   test "sign entry helpers use explicit lifecycle resources" do

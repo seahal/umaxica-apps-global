@@ -174,11 +174,26 @@ module SignVerificationStepUpLifecycle
   def acme_step_up_completion_url_for(surface)
     case surface.to_s
     when "app"
-      completion_base_app_verification_url(host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"))
+      completion_base_app_verification_url(
+        host: ENV.fetch(
+          "PUBLIC_BASE_SERVICE_URL",
+          ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+        ),
+      )
     when "com"
-      completion_base_com_verification_url(host: ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"))
+      completion_base_com_verification_url(
+        host: ENV.fetch(
+          "PUBLIC_BASE_CORPORATE_URL",
+          ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"),
+        ),
+      )
     when "org"
-      completion_base_org_verification_url(host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"))
+      completion_base_org_verification_url(
+        host: ENV.fetch(
+          "PUBLIC_BASE_STAFF_URL",
+          ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
+        ),
+      )
     else
       raise NotImplementedError, "unsupported step-up surface: #{surface}"
     end

@@ -5,8 +5,8 @@ require "test_helper"
 
 class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
-    @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @acme_host = ENV.fetch("ACME_CORPORATE_URL")
     @visitor = create_verified_visitor_with_email(email_address: "dashboard-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",

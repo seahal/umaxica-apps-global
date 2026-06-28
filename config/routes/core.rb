@@ -4,7 +4,7 @@
 # Core owns the BFF surface.
 scope module: :core, as: :core do
   # Application BFF host.
-  constraints host: [ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
+  constraints host: [ENV["PUBLIC_CORE_SERVICE_URL"] || ENV["CORE_SERVICE_URL"], "core.app.localhost"].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -81,7 +81,7 @@ scope module: :core, as: :core do
   end
 
   # Corporate BFF host.
-  constraints host: [ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
+  constraints host: [ENV["PUBLIC_CORE_CORPORATE_URL"] || ENV["CORE_CORPORATE_URL"], "core.com.localhost"].compact do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -158,7 +158,7 @@ scope module: :core, as: :core do
   end
 
   # Staff BFF host.
-  constraints host: [ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
+  constraints host: [ENV["PUBLIC_CORE_STAFF_URL"] || ENV["CORE_STAFF_URL"], "core.org.localhost"].compact do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -238,7 +238,7 @@ scope module: :core, as: :core do
   end
 
   # Network utility host.
-  constraints host: [ENV["CORE_NETWORK_URL"], "core.net.localhost"].compact do
+  constraints host: [ENV["PRIVATE_CORE_NETWORK_URL"] || ENV["CORE_NETWORK_URL"], "core.net.localhost"].compact do
     scope module: :net, as: :network do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -257,7 +257,7 @@ scope module: :core, as: :core do
   end
 
   # Developer utility host.
-  constraints host: [ENV["CORE_DEVELOPER_URL"], "core.dev.localhost"].compact do
+  constraints host: [ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV["CORE_DEVELOPER_URL"], "core.dev.localhost"].compact do
     scope module: :dev, as: :developer do
       # Thin landing endpoint.
       root to: "roots#index"

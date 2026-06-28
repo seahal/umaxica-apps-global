@@ -6,21 +6,21 @@ require "test_helper"
 class CoreWebEdgeSurfaceSmokeTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
+      host: ENV.fetch("CORE_SERVICE_URL"),
       cookie_path: "/web/v0/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",
       edge_dbsc_path: "/edge/v0/dbsc",
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
+      host: ENV.fetch("CORE_CORPORATE_URL"),
       cookie_path: "/web/v0/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",
       edge_dbsc_path: "/edge/v0/dbsc",
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
+      host: ENV.fetch("CORE_STAFF_URL"),
       cookie_path: "/web/v0/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",

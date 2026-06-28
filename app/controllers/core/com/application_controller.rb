@@ -23,7 +23,7 @@ module Core
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"),
+                             ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")),
                            ),
                            with: :exception
 
@@ -73,11 +73,11 @@ module Core
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+        ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"))
       end
 
       def oidc_acme_host
-        ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+        ENV.fetch("PRIVATE_ACME_CORPORATE_URL", ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
       end
     end
   end

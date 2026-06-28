@@ -272,7 +272,7 @@ module SocialAuth
       locals: {
         completion_url: completion_base_app_social_authentication_url(
           id: auth_hash["provider"] || auth_hash[:provider],
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
         ),
         result_token: result_token,
         ri: params[:ri],

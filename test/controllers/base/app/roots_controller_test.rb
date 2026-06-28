@@ -7,7 +7,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   test "renders a thin landing page" do
-    host! ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("BASE_SERVICE_URL")
     get base_app_root_url(ri: "jp")
 
     assert_response :success
@@ -17,7 +17,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "auth authorize preserves app sign up and sign in screen hints" do
-    host! ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("BASE_SERVICE_URL")
 
     get base_app_oidc_authorization_url(ri: "jp", screen_hint: "signup")
 
@@ -39,7 +39,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("BASE_SERVICE_URL")
 
     assert_difference("AppPreference.count", 1) do
       get base_app_root_url(ri: "jp")
@@ -51,7 +51,7 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root when optional URL preferences are present" do
-    host! ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("BASE_SERVICE_URL")
 
     assert_difference("AppPreference.count", 1) do
       get base_app_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
@@ -63,13 +63,13 @@ class Base::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to dashboard when logged in" do
-    host! ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
 
     get base_app_root_url(ri: "jp"),
-        headers: as_user_headers(user, host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"))
+        headers: as_user_headers(user, host: ENV.fetch("BASE_SERVICE_URL"))
 
     assert_response :redirect
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL"))
   end
 end

@@ -7,8 +7,8 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
   fixtures :operators, :operator_statuses, :operator_email_statuses
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("AUTH_STAFF_URL")
     cookies["csrf_token"] = csrf_token_value
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
@@ -101,7 +101,7 @@ class Auth::Org::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
 
     assert_redirected_to auth_org_settings_emails_url(
       ri: "jp",
-      host: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
+      host: ENV.fetch("AUTH_STAFF_URL"),
     )
     assert_equal OperatorEmailStatus::VERIFIED, staff_email.reload.staff_email_status_id
   end

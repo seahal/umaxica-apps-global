@@ -12,7 +12,7 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
            :operator_token_dbsc_statuses
 
   setup do
-    host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    host = ENV.fetch("AUTH_STAFF_URL")
     host! host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

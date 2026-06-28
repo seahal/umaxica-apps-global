@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     CloudflareTurnstile.test_mode = true

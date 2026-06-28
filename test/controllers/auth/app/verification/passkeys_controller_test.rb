@@ -8,7 +8,7 @@ class Auth::App::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   fixtures :clients
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
     ClientEmail.create!(
       user: @user,

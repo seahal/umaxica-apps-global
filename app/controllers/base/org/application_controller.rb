@@ -82,7 +82,7 @@ module Base
       # FIXME: Resolve the URL issues before deploying.
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
+                             ENV.fetch("PUBLIC_BASE_STAFF_URL", ENV.fetch("BASE_STAFF_URL", "www.org.localhost")),
                            ),
                            with: :exception
 
@@ -94,15 +94,15 @@ module Base
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
+        ENV.fetch("PRIVATE_SIGN_STAFF_URL", ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))
       end
 
       def oidc_acme_host
-        ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+        ENV.fetch("PRIVATE_ACME_STAFF_URL", ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
       end
 
       def oidc_base_host
-        ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+        ENV.fetch("PUBLIC_BASE_STAFF_URL", ENV.fetch("BASE_STAFF_URL", "www.org.localhost"))
       end
 
       private

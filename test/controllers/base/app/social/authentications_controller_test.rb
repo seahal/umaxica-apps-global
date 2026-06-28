@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::App::Social::AuthenticationsControllerTest < ActionController::TestCase
   setup do
-    @request.host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @request.host = ENV.fetch("BASE_SERVICE_URL")
     @commit_user = Client.create!(
       status_id: ClientStatus::VERIFIED_WITH_SIGN_UP,
       visibility_id: ClientVisibility::USER,

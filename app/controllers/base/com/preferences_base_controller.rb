@@ -4,6 +4,7 @@
 module Base
   module Com
     class PreferencesBaseController < Base::Com::ApplicationController
+      include ::PreferenceCore
       include ::BasePreferenceViewRouteAliases
 
       AUTHENTICATION_MODE = :open

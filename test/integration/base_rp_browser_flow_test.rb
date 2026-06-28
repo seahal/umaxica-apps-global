@@ -6,17 +6,17 @@ require "test_helper"
 class BaseRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      host: ENV.fetch("BASE_SERVICE_URL"),
       client_id: "base-rails-rp",
       resource: -> { clients(:one) },
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL", "base.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       client_id: "base-rails-rp",
       resource: -> { operators(:one) },
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
+      host: ENV.fetch("BASE_CORPORATE_URL"),
       client_id: "base-rails-rp",
       resource: -> { create_verified_visitor_with_email(email_address: "base-rp-#{SecureRandom.hex(4)}@example.com") },
     },

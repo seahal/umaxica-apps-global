@@ -14,7 +14,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL")
     @staff = operators(:one)
     @token = OperatorToken.create!(
       staff: @staff,

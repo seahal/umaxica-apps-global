@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     host! @host
   end
 
@@ -13,7 +13,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     get new_auth_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :see_other
-    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
+    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL"), protocol: "https"),
                  response.location
   end
 
@@ -36,7 +36,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: ENV.fetch("ACME_SERVICE_URL"), protocol: "https",
       ),
       response.location,
     )
@@ -58,7 +58,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: ENV.fetch("ACME_SERVICE_URL"), protocol: "https",
       ),
       response.location,
     )
@@ -70,7 +70,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("ACME_SERVICE_URL"), uri.host
     assert_equal "/sign/out/complete", uri.path
   end
 

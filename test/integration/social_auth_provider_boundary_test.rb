@@ -8,7 +8,7 @@ class SocialAuthProviderBoundaryTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
     host! @host
     https! unless @host.include?("localhost")
   end

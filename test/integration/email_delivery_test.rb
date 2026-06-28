@@ -36,7 +36,7 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
              },
              "cf-turnstile-response": "test_token",
            },
-           headers: { "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost") }
+           headers: { "Host" => ENV.fetch("ID_SERVICE_URL") }
 
       assert_response :redirect
     end

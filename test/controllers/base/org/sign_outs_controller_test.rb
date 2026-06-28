@@ -7,7 +7,7 @@ class Base::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("BASE_STAFF_URL")
     @staff = operators(:one)
     host! @host
   end

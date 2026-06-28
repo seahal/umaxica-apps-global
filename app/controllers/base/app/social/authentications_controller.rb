@@ -26,7 +26,7 @@ module Base
               entry: social_entry_param,
               ri: params[:ri],
               social_ceremony_grant: issuance.grant,
-              host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+              host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
             ),
             status: :see_other,
             allow_other_host: cross_host_redirect_allowed?,
@@ -99,9 +99,19 @@ module Base
 
         def sign_social_settings_url_for(provider)
           if SocialIdentifiable.normalize_provider(provider) == "apple"
-            auth_app_settings_apple_url(ri: params[:ri], host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+            auth_app_settings_apple_url(
+              ri: params[:ri],
+              host: ENV.fetch(
+                "PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+              ),
+            )
           else
-            auth_app_settings_google_url(ri: params[:ri], host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+            auth_app_settings_google_url(
+              ri: params[:ri],
+              host: ENV.fetch(
+                "PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+              ),
+            )
           end
         end
 
@@ -144,7 +154,7 @@ module Base
 
         def social_session_limitation_url?(redirect_url)
           uri = URI.parse(redirect_url.to_s)
-          uri.host == ENV.fetch("BASE_SERVICE_URL", "www.app.localhost") &&
+          uri.host == ENV.fetch("PUBLIC_BASE_SERVICE_URL", ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")) &&
             uri.path == "/sign/in/limitation"
         rescue URI::InvalidURIError
           false
@@ -161,7 +171,7 @@ module Base
           base_app_sign_in_limitation_url(
             social_resolution: token,
             ri: params[:ri],
-            host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+            host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")),
           )
         end
 
@@ -174,7 +184,7 @@ module Base
               :"auth_app_sign_up_guard_#{normalized_provider}_url",
               ri: params[:ri],
               pt: signed_pt_token(commit.pt),
-              host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+              host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

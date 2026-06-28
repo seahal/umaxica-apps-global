@@ -5,8 +5,8 @@ require "test_helper"
 
 class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
-    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("ID_STAFF_URL")
+    @acme_host = ENV.fetch("ACME_STAFF_URL")
     host! @host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

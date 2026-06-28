@@ -8,7 +8,7 @@ class Auth::Org::Verification::SetupsControllerTest < ActionDispatch::Integratio
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL")
     host! @host
     @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
     @token = OperatorToken.create!(

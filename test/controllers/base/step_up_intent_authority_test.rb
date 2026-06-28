@@ -8,7 +8,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
            :operator_tokens, :operator_passkeys
 
   test "app base verification intent creates transaction and redirects to sign ceremony with grant" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     ClientEmail.create!(
       user: user,
@@ -44,7 +44,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion consumes result and commits freshness" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     return_to = auth_app_settings_emails_path(ri: "jp")
@@ -79,7 +79,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion route is post only" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("https://#{host}/verification/completion", method: :get)
@@ -92,7 +92,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion rejects missing csrf token when forgery protection is enabled" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     issuance = issue_step_up_grant!(
@@ -123,7 +123,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base intent supplies csrf token for sign completion post" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     ClientEmail.create!(
       user: user,
@@ -147,7 +147,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion ignores unsafe transaction return target" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     issuance = issue_step_up_grant!(
@@ -202,7 +202,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion rejects replay without refreshing token" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     issuance = issue_step_up_grant!(
@@ -235,7 +235,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base cancellation closes pending transaction and blocks completion" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     issuance = issue_step_up_grant!(
@@ -272,7 +272,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base completion rejects wrong session result" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     other_token = create_client_token!(user)
@@ -302,8 +302,8 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "sign ceremony accepts base issued grant without creating a compatibility transaction" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
+    sign_host = ENV.fetch("AUTH_SERVICE_URL")
     user = clients(:one)
     ClientEmail.create!(
       user: user,
@@ -327,7 +327,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base verification intent rejects arbitrary scope" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
@@ -341,7 +341,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "app base verification intent rejects mismatched return target" do
-    host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     user = clients(:one)
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
@@ -355,7 +355,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "com base verification intent creates visitor transaction" do
-    host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host = ENV.fetch("BASE_CORPORATE_URL")
     visitor = create_verified_visitor_with_email(email_address: "visitor-step-up-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     pt = signed_step_up_pt_for(sign_com_settings_emails_path(ri: "jp"), surface: "com", session_nonce: token.public_id)
@@ -373,7 +373,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "com base completion consumes result and commits freshness" do
-    host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host = ENV.fetch("BASE_CORPORATE_URL")
     visitor = create_verified_visitor_with_email(email_address: "visitor-completion-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     issuance = issue_step_up_grant!(
@@ -401,7 +401,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "org base verification intent creates operator transaction" do
-    host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host = ENV.fetch("BASE_STAFF_URL")
     operator = operators(:one)
     token = operator_tokens(:one)
     pt = signed_step_up_pt_for(sign_org_settings_emails_path(ri: "jp"), surface: "org", session_nonce: token.public_id)
@@ -419,7 +419,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "org base completion consumes result and commits freshness" do
-    host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host = ENV.fetch("BASE_STAFF_URL")
     operator = operators(:one)
     token = operator_tokens(:one)
     issuance = issue_step_up_grant!(

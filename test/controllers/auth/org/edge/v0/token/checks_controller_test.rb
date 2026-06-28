@@ -9,7 +9,7 @@ class Auth::Org::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @staff = operators(:one)
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL")
   end
 
   test "GET check with valid JWT access token returns 200" do

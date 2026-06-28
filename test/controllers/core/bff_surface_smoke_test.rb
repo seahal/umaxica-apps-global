@@ -8,20 +8,20 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
   SURFACES = [
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
-      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).core_service.host,
+      acme_host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
-      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).core_corporate.host,
+      acme_host: Rails.configuration.x.boot_config.fetch(:hosts).acme_corporate.host,
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
-      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).core_staff.host,
+      acme_host: Rails.configuration.x.boot_config.fetch(:hosts).acme_staff.host,
       backchannel_logout_path: "/oidc/backchannel/logout",
       token_refresh_path: "/api/v0/token/refresh",
     },
@@ -69,9 +69,9 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
   def complete_core_sign_out_url_for(host)
     case host
-    when ENV.fetch("CORE_SERVICE_URL", "core.app.localhost")
+    when ENV.fetch("CORE_SERVICE_URL")
       complete_core_app_sign_out_url(ri: "jp", host: host)
-    when ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost")
+    when ENV.fetch("CORE_CORPORATE_URL")
       complete_core_com_sign_out_url(ri: "jp", host: host)
     else
       complete_core_org_sign_out_url(ri: "jp", host: host)

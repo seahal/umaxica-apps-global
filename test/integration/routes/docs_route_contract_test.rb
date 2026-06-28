@@ -4,9 +4,9 @@
 require "test_helper"
 
 class DocsRouteContractTest < ActionDispatch::IntegrationTest
-  DOCS_APP_HOST = ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
-  DOCS_COM_HOST = ENV.fetch("DOCS_CORPORATE_URL", "docs.com.localhost")
-  DOCS_ORG_HOST = ENV.fetch("DOCS_STAFF_URL", "docs.org.localhost")
+  DOCS_APP_HOST = ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
+  DOCS_COM_HOST = ENV.fetch("PRIVATE_DOCS_CORPORATE_URL")
+  DOCS_ORG_HOST = ENV.fetch("PRIVATE_DOCS_STAFF_URL")
   PUBLIC_DOCS_HOSTS = {
     "docs.jp.umaxica.app" => "docs/app/roots",
     "docs.jp.umaxica.com" => "docs/com/roots",

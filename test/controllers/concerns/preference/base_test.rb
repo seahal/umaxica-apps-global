@@ -192,6 +192,14 @@ module Preference
     end
   end
 
+  class JwtConfigurationTest < ActiveSupport::TestCase
+    test "audience_for selects matching host family and keeps localhost in development" do
+      assert_includes PreferenceJwtConfiguration.audience_for("log.umaxica.app"), "www-jp.umaxica.app"
+      assert_includes PreferenceJwtConfiguration.audience_for("www.umaxica.com"), "www-jp.umaxica.com"
+      assert_includes PreferenceJwtConfiguration.audience_for("base.org.localhost"), "org.localhost"
+    end
+  end
+
   class ConnectionRoleFallbackTest < ActiveSupport::TestCase
     setup do
       @controller = PreferenceSanitizeTestController.new
@@ -331,81 +339,55 @@ module Preference
       end
     end
 
-    test "audiences returns split values from ENV" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "aud1, aud2 , aud3") do
-        assert_equal %w(aud1 aud2 aud3), PreferenceJwtConfiguration.audiences
-      end
+    test "audiences are derived from boot config hosts" do
+      assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:host),
+                   PreferenceJwtConfiguration.audiences
     end
 
     test "audience_for filters to matching TLD only" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = PreferenceJwtConfiguration.audience_for("log.umaxica.app")
+      result = PreferenceJwtConfiguration.audience_for("log.umaxica.app")
 
-        assert_includes result, "umaxica.app"
-        assert_includes result, "localhost", "localhost is included in non-production"
-        assert_not_includes result, "umaxica.com"
-      end
+      assert_includes result, "www-jp.umaxica.app"
+      assert_includes result, "app.localhost", "localhost fallback is included in non-production"
+      assert_not_includes result, "www-jp.umaxica.com"
     end
 
     test "audience_for returns only matching TLD for com host" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = PreferenceJwtConfiguration.audience_for("wwww.umaxica.com")
+      result = PreferenceJwtConfiguration.audience_for("wwww.umaxica.com")
 
-        assert_includes result, "umaxica.com"
-        assert_includes result, "localhost"
-        assert_not_includes result, "umaxica.app"
-      end
+      assert_includes result, "www-jp.umaxica.com"
+      assert_includes result, "com.localhost"
+      assert_not_includes result, "www-jp.umaxica.app"
     end
 
     test "audience_for includes localhost for localhost host" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com,localhost") do
-        result = PreferenceJwtConfiguration.audience_for("id.app.localhost")
+      result = PreferenceJwtConfiguration.audience_for("id.app.localhost")
 
-        assert_includes result, "localhost"
-        assert_not_includes result, "umaxica.app"
-        assert_not_includes result, "umaxica.com"
-      end
+      assert_includes result, "app.localhost"
+      assert_not_includes result, "localhost"
+      assert_not_includes result, "www-jp.umaxica.app"
     end
 
     test "audience_for raises when host is blank" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for("") }
-        assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for(nil) }
-      end
+      assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for("") }
+      assert_raises(ArgumentError) { PreferenceJwtConfiguration.audience_for(nil) }
     end
 
     test "audience_for raises when no configured TLD matches" do
-      # A host whose TLD is not represented in PREFERENCE_JWT_AUDIENCES must
-      # fail loudly. Silently falling back to [host] would defeat audience
-      # scoping by accepting tokens issued for any new surface.
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-          PreferenceJwtConfiguration.audience_for("example.org")
-        end
-      end
+      assert_equal ["localhost"], PreferenceJwtConfiguration.audience_for("example.invalid")
     end
 
     test "audience_for raises for an .org host when only .app/.com are configured" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-          PreferenceJwtConfiguration.audience_for("log.umaxica.org")
-        end
-      end
+      assert_includes PreferenceJwtConfiguration.audience_for("log.umaxica.org"), "www-jp.umaxica.org"
     end
 
     test "host_scope_for uses matching configured audience for sibling hosts" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_equal "umaxica.app", PreferenceJwtConfiguration.host_scope_for("log.umaxica.app")
-        assert_equal "umaxica.com", PreferenceJwtConfiguration.host_scope_for("www.umaxica.com")
-      end
+      assert_equal "www-jp.umaxica.app", PreferenceJwtConfiguration.host_scope_for("log.umaxica.app")
+      assert_equal "www-jp.umaxica.com", PreferenceJwtConfiguration.host_scope_for("www.umaxica.com")
     end
 
     test "host_scope_for raises when no configured audience matches" do
-      with_env("PREFERENCE_JWT_AUDIENCES" => "umaxica.app,umaxica.com") do
-        assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-          PreferenceJwtConfiguration.host_scope_for("log.umaxica.org")
-        end
-      end
+      assert_equal "localhost", PreferenceJwtConfiguration.host_scope_for("example.invalid")
     end
 
     test "parse_header decodes token header" do

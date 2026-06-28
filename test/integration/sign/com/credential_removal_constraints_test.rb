@@ -5,8 +5,8 @@ require "test_helper"
 
 class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+    @host = ENV.fetch("SIGN_CORPORATE_URL")
+    @acme_host = ENV.fetch("ACME_CORPORATE_URL")
     host! @host
     Prosopite.pause do
       VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)

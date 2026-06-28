@@ -8,7 +8,7 @@ class Base::App::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
     host! @host
   end
 

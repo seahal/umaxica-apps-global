@@ -7,7 +7,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
     host! @host
 
     @deactivated_user = Client.create!(
@@ -32,14 +32,14 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     BaseSelectorAuthority.prepare(surface: :app, principal: @deactivated_user, session: @token)
 
     @headers = {
-      "Host" => ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      "Host" => ENV.fetch("BASE_SERVICE_URL"),
       "X-TEST-CURRENT-USER" => @deactivated_user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
   end
 
   test "deactivated user accessing normal page redirects to withdrawal status" do
-    get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")),
+    get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL")),
         headers: @headers
 
     assert_response :redirect
@@ -47,19 +47,19 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "deactivated user can access allowlisted pages" do
-    get new_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")),
+    get new_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL")),
         headers: @headers
 
     assert_response :success
 
-    get edit_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")),
+    get edit_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL")),
         headers: @headers
 
     assert_response :success
   end
 
   test "deactivated user accessing API returns 403" do
-    get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")),
+    get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL")),
         headers: @headers.merge("Accept" => "application/json")
 
     assert_response :forbidden
@@ -85,12 +85,12 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     BaseSelectorAuthority.prepare(surface: :app, principal: normal_user, session: normal_token)
 
     headers = {
-      "Host" => ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      "Host" => ENV.fetch("BASE_SERVICE_URL"),
       "X-TEST-CURRENT-USER" => normal_user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => normal_token.public_id,
     }
 
-    get base_app_identity_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")), headers: headers
+    get base_app_identity_url(ri: "jp", host: ENV.fetch("BASE_SERVICE_URL")), headers: headers
 
     assert_response :success
   end

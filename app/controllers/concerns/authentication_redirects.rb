@@ -156,11 +156,20 @@ module AuthenticationRedirects
 
     case sign_in_surface
     when :app
-      acme_app_welcome_entry_url(**attrs, host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      acme_app_welcome_entry_url(
+        **attrs,
+        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+      )
     when :com
-      acme_com_welcome_entry_url(**attrs, host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      acme_com_welcome_entry_url(
+        **attrs,
+        host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
+      )
     when :org
-      acme_org_welcome_entry_url(**attrs, host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+      acme_org_welcome_entry_url(
+        **attrs,
+        host: ENV.fetch("PRIVATE_ACME_STAFF_URL", ENV.fetch("ACME_STAFF_URL", "www.org.localhost")),
+      )
     else
       path = "/welcome"
       query = attrs.compact.to_query
@@ -173,11 +182,29 @@ module AuthenticationRedirects
 
     case sign_in_surface
     when :app
-      base_app_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+      base_app_dashboard_url(
+        ri: params[:ri],
+        host: ENV.fetch(
+          "PUBLIC_BASE_SERVICE_URL",
+          ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+        ),
+      )
     when :com
-      acme_com_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
+      acme_com_dashboard_url(
+        ri: params[:ri],
+        host: ENV.fetch(
+          "PRIVATE_ACME_CORPORATE_URL",
+          ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+        ),
+      )
     when :org
-      acme_org_dashboard_url(ri: params[:ri], host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+      acme_org_dashboard_url(
+        ri: params[:ri],
+        host: ENV.fetch(
+          "PRIVATE_ACME_STAFF_URL",
+          ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+        ),
+      )
     else
       "/dashboard"
     end

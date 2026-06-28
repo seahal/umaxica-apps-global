@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    @host = ENV.fetch("BASE_CORPORATE_URL")
     @visitor = create_verified_visitor_with_email(email_address: "base-com-sign-out-#{SecureRandom.hex(4)}@example.com")
     host! @host
   end

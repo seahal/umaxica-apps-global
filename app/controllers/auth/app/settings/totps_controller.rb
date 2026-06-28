@@ -97,7 +97,7 @@ module Auth
             else
               auth_app_settings_totps_url(
                 ri: params[:ri],
-                host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+                host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
               )
             end
           redirect_to(
@@ -207,7 +207,7 @@ module Auth
         def recovery_passcode_setup_url
           auth_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
           )
         end
 
@@ -232,7 +232,7 @@ module Auth
           auth_app_settings_secrets_url(
             ri: params[:ri],
             token: reveal.token,
-            host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
           )
         end
       end

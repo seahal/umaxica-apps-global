@@ -53,7 +53,7 @@ class InfoApiStubTest < ActionDispatch::IntegrationTest
   end
 
   test "info api stub accepts unknown slugs without redirecting to sign in" do
-    host = ENV.fetch("INFO_SERVICE_URL", "info.app.localhost")
+    host = ENV.fetch("INFO_SERVICE_URL")
     host! host
 
     get "/api/v0/entries/anything", headers: { "Host" => host, "Accept" => "application/json" }, as: :json

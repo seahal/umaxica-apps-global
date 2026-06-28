@@ -63,6 +63,10 @@ class SignComVerificationBaseTest < ActiveSupport::TestCase
       "/verification?#{params.to_query}"
     end
 
+    def auth_com_verification_path(params = {})
+      "/verification?#{params.to_query}"
+    end
+
     def generate_hotp_code
       generated_hotp
     end

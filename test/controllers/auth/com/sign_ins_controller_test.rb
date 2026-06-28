@@ -7,7 +7,7 @@ module Auth
   module Com
     class AuthInsControllerTest < ActionDispatch::IntegrationTest
       setup do
-        @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+        @host = ENV.fetch("AUTH_CORPORATE_URL")
       end
 
       test "direct entry normalizes to acme com authorization" do
@@ -18,7 +18,7 @@ module Auth
         uri = URI.parse(response.location)
         query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-        assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), uri.host
+        assert_equal ENV.fetch("ACME_CORPORATE_URL"), uri.host
         assert_equal "/oauth/authorize", uri.path
         assert_not_equal "jump.umaxica.net", uri.host
         assert_equal "sign-rp", query["client_id"]

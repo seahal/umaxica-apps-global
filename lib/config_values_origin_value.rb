@@ -31,7 +31,7 @@ module ConfigValues
     raise ArgumentError, "missing origin" if raw.blank?
     raise ArgumentError, "invalid origin" if raw.match?(/[\x00-\x1F\x7F]/)
 
-    uri = URI.parse(raw)
+    uri = URI.parse(normalize_origin(raw))
     raise ArgumentError, "invalid origin" unless uri.is_a?(URI::HTTP)
     raise ArgumentError, "invalid origin" unless %w(http https).include?(uri.scheme)
     raise ArgumentError, "invalid origin" if uri.userinfo.present?
@@ -55,6 +55,12 @@ module ConfigValues
     OriginValue.new(uri.scheme, uri.host.downcase, uri.port, uri.path, uri.query, uri).freeze
   rescue URI::InvalidURIError
     raise ArgumentError, "invalid origin"
+  end
+
+  def normalize_origin(raw)
+    return raw if raw.match?(%r{\Ahttps?://}i)
+
+    "https://#{raw}"
   end
 end
 

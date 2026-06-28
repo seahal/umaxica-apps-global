@@ -6,10 +6,10 @@ require "test_helper"
 class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
-  BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
-  BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
-  PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
+  BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL")
+  BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL")
+  BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL")
+  PALM_HOST = ENV.fetch("PALM_SERVICE_URL")
 
   setup do
     load_jump_rt_env!
@@ -17,9 +17,9 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
 
   test "base auth entrypoints redirect to acme authorize with base callback and signup intent" do
     [
-      { host: BASE_APP_HOST, acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost") },
-      { host: BASE_COM_HOST, acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost") },
-      { host: BASE_ORG_HOST, acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost") },
+      { host: BASE_APP_HOST, acme_host: ENV.fetch("ACME_SERVICE_URL") },
+      { host: BASE_COM_HOST, acme_host: ENV.fetch("ACME_CORPORATE_URL") },
+      { host: BASE_ORG_HOST, acme_host: ENV.fetch("ACME_STAFF_URL") },
     ].each do |surface|
       host! surface.fetch(:host)
 
@@ -60,7 +60,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
       uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-      assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+      assert_equal ENV.fetch("ACME_SERVICE_URL"), uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_not_equal "jump.umaxica.net", uri.host
       assert_equal surface.fetch(:client_id), query.fetch("client_id")
@@ -81,7 +81,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("ACME_SERVICE_URL"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "app-ios-rp", query.fetch("client_id")

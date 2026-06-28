@@ -6,13 +6,14 @@ require "test_helper"
 class BaseRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
-  BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost")
-  BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL", "base.org.localhost")
+  BASE_APP_HOST = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
+  BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
+  BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL")
 
   # rubocop:disable Minitest/MultipleAssertions
   test "base app route contract" do
-    ["base.app.localhost", "www.umaxica.app", BASE_APP_HOST].uniq.each do |host|
+    [Rails.configuration.x.boot_config.fetch(:hosts).base_service.host, "www.umaxica.app",
+     BASE_APP_HOST,].uniq.each do |host|
       recognized = Rails.application.routes.recognize_path(
         "http://#{host}/",
         method: :get,
@@ -118,7 +119,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "base/app/sign/outs", recognized[:controller]
       assert_equal "new", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
@@ -126,7 +127,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :post,
       )
 
-      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "base/app/sign/outs", recognized[:controller]
       assert_equal "create", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
@@ -134,7 +135,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/outs", recognized[:controller]
+      assert_equal "base/app/sign/outs", recognized[:controller]
       assert_equal "complete", recognized[:action]
 
       assert_raises(ActionController::RoutingError) do

@@ -8,7 +8,7 @@ class Auth::App::Settings::ActivitiesControllerTest < ActionDispatch::Integratio
   fixtures :clients, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     host! @host

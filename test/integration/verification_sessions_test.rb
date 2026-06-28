@@ -9,7 +9,7 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL")
     host! @host
 
     @user = Client.create!(status_id: ClientStatus::NOTHING)

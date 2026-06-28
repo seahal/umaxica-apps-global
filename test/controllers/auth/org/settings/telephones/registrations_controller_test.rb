@@ -8,8 +8,8 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("AUTH_STAFF_URL")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(@token)
@@ -136,7 +136,7 @@ class Auth::Org::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
     assert_redirected_to auth_org_settings_telephones_url(
       ri: "jp",
-      host: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
+      host: ENV.fetch("AUTH_STAFF_URL"),
     )
     assert_equal OperatorTelephoneStatus::VERIFIED, tel.reload.staff_telephone_status_id
   end

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Org::IamControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL")
   end
 
   test "index redirects to acme org authority" do
@@ -14,7 +14,7 @@ class Auth::Org::IamControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("ACME_STAFF_URL"), uri.host
     assert_equal "/iam", uri.path
   end
 

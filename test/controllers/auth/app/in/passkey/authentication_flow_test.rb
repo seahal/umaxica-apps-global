@@ -10,7 +10,7 @@ module Auth::App::Sign::In::Passkey
              :client_totp_credential_statuses
 
     setup do
-      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
       JitSecurityTurnstileVerifier.test_mode = true

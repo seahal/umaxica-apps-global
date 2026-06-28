@@ -1,34 +1,82 @@
 <% surface = controller_path.split("/").second %>
-<% content_for :page_title, t(preference_base_i18n_key(:preferences, :title)) %>
+<% preference_i18n =
+     case surface
+     when "app"
+       {
+         title: "base.app.preferences.title",
+         description: "base.app.preferences.description",
+         up_link: "base.app.preferences.up_link",
+         region_settings: "base.app.preferences.region_settings",
+         timezone_settings: "base.app.preferences.timezone_settings",
+         language_settings: "base.app.preferences.language_settings",
+         motion_settings: "base.app.preferences.motion_settings",
+         density_settings: "base.app.preferences.density_settings",
+         pagination_settings: "base.app.preferences.pagination_settings",
+         theme_settings: "base.app.preferences.theme_settings",
+         cookie_settings: "base.app.preferences.cookie_settings",
+         reset_settings: "base.app.preferences.reset_settings",
+       }
+     when "org"
+       {
+         title: "base.org.preferences.title",
+         description: "base.org.preferences.description",
+         up_link: "base.org.preferences.up_link",
+         region_settings: "base.org.preferences.region_settings",
+         timezone_settings: "base.org.preferences.timezone_settings",
+         language_settings: "base.org.preferences.language_settings",
+         motion_settings: "base.org.preferences.motion_settings",
+         density_settings: "base.org.preferences.density_settings",
+         pagination_settings: "base.org.preferences.pagination_settings",
+         theme_settings: "base.org.preferences.theme_settings",
+         cookie_settings: "base.org.preferences.cookie_settings",
+         reset_settings: "base.org.preferences.reset_settings",
+       }
+     else
+       {
+         title: "base.com.preferences.title",
+         description: "base.com.preferences.description",
+         up_link: "base.com.preferences.up_link",
+         region_settings: "base.com.preferences.region_settings",
+         timezone_settings: "base.com.preferences.timezone_settings",
+         language_settings: "base.com.preferences.language_settings",
+         motion_settings: "base.com.preferences.motion_settings",
+         density_settings: "base.com.preferences.density_settings",
+         pagination_settings: "base.com.preferences.pagination_settings",
+         theme_settings: "base.com.preferences.theme_settings",
+         cookie_settings: "base.com.preferences.cookie_settings",
+         reset_settings: "base.com.preferences.reset_settings",
+       }
+     end %>
+<% content_for :page_title, t(preference_i18n.fetch(:title)) %>
 
 <section class="animate-fade-in-up">
   <div>
     <%= link_to public_send("base_#{surface}_root_path", ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo") do %>
-      <span><%= t(preference_base_i18n_key(:preferences, :up_link)) %></span>
+      <span><%= t(preference_i18n.fetch(:up_link)) %></span>
     <% end %>
   </div>
 
   <div>
     <div>
-      <h1><%= t(preference_base_i18n_key(:preferences, :title)) %></h1>
-      <p><%= t(preference_base_i18n_key(:preferences, :description)) %></p>
+      <h1><%= t(preference_i18n.fetch(:title)) %></h1>
+      <p><%= t(preference_i18n.fetch(:description)) %></p>
     </div>
 
     <div>
       <% {
-           region: "region_settings",
-           timezone: "timezone_settings",
-           language: "language_settings",
-           motion: "motion_settings",
-           density: "density_settings",
-           pagination: "pagination_settings",
-           theme: "theme_settings",
-           cookie: "cookie_settings",
-           reset: "reset_settings",
+           region: :region_settings,
+           timezone: :timezone_settings,
+           language: :language_settings,
+           motion: :motion_settings,
+           density: :density_settings,
+           pagination: :pagination_settings,
+           theme: :theme_settings,
+           cookie: :cookie_settings,
+           reset: :reset_settings,
          }.each do |screen, label_key| %>
         <%= link_to public_send("edit_base_#{surface}_preference_#{screen}_path") do %>
           <div>
-            <span><%= t(preference_base_i18n_key(:preferences, label_key)) %></span>
+            <span><%= t(preference_i18n.fetch(label_key)) %></span>
           </div>
         <% end %>
       <% end %>

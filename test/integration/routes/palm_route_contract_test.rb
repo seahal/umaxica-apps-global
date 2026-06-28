@@ -6,7 +6,7 @@ require "test_helper"
 class PalmRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
+  PALM_HOST = ENV.fetch("PALM_SERVICE_URL")
 
   test "palm does not expose a dashboard" do
     assert_raises(ActionController::RoutingError) do

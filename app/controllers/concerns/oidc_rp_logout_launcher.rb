@@ -135,11 +135,11 @@ module OidcRpLogoutLauncher
   def oidc_acme_host
     case sign_surface_name
     when "app"
-      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
     when "com"
-      ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
+      ENV.fetch("PRIVATE_ACME_CORPORATE_URL", ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"))
     when "org"
-      ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+      ENV.fetch("PRIVATE_ACME_STAFF_URL", ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
     end
   end
 

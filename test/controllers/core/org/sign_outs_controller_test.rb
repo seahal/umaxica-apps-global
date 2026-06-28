@@ -5,7 +5,7 @@ require "test_helper"
 
 class Core::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")
+    @host = ENV.fetch("CORE_STAFF_URL")
     host! @host
   end
 
@@ -45,7 +45,7 @@ class Core::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), location.host
+    assert_equal ENV.fetch("ACME_STAFF_URL"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
     assert_equal complete_core_org_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]

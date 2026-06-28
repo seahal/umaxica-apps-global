@@ -11,7 +11,7 @@ module JitIdHostEnv
   end
 
   def corporate_url
-    ENV["SIGN_CORPORATE_URL"].presence
+    ENV["PRIVATE_SIGN_CORPORATE_URL"].presence || ENV["SIGN_CORPORATE_URL"].presence
   end
 
   def staff_url

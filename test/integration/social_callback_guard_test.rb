@@ -10,7 +10,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("ID_SERVICE_URL")
     @previous_id_service_url = ENV["ID_SERVICE_URL"]
     ENV["ID_SERVICE_URL"] = @host
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
@@ -149,7 +149,7 @@ class SocialCallbackGuardTest < ActionDispatch::IntegrationTest
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
 
     begin
-      with_env("SIGN_SERVICE_URL" => "log.umaxica.app", "SIGN_STAFF_URL" => "log.umaxica.org") do
+      with_env("PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app", "SIGN_STAFF_URL" => "log.umaxica.org") do
         SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
 
         assert_includes SocialCallbackGuard.allowed_hosts, "log.umaxica.app"

@@ -7,7 +7,7 @@ module Palm
     module Api
       module V0
         class ProfilesControllerTest < ActionDispatch::IntegrationTest
-          HOST = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
+          HOST = ENV.fetch("PALM_SERVICE_URL")
 
           setup do
             host! HOST

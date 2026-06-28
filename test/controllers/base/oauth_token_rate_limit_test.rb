@@ -23,7 +23,7 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
 
   test "base app oauth token endpoint rate limits repeated requests" do
     assert_token_endpoint_rate_limit(
-      host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("BASE_SERVICE_URL"),
       url_helper: ->(host:) { base_app_oauth_token_url(host: host) },
       rule_name: "base_app_oauth_token_exchange_ip",
     )
@@ -31,7 +31,7 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
 
   test "base com oauth token endpoint rate limits repeated requests" do
     assert_token_endpoint_rate_limit(
-      host: ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"),
+      host: ENV.fetch("BASE_CORPORATE_URL"),
       url_helper: ->(host:) { base_com_oauth_token_url(host: host) },
       rule_name: "base_com_oauth_token_exchange_ip",
     )
@@ -39,7 +39,7 @@ class BaseOauthTokenRateLimitTest < ActionDispatch::IntegrationTest
 
   test "base org oauth token endpoint rate limits repeated requests" do
     assert_token_endpoint_rate_limit(
-      host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       url_helper: ->(host:) { base_org_oauth_token_url(host: host) },
       rule_name: "base_org_oauth_token_exchange_ip",
     )

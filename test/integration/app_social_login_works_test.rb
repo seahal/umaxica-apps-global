@@ -9,7 +9,7 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
   end
 
   test "POST /social/google on app host redirects to Google OAuth" do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL")
 
     post "/social/google"
 
@@ -19,7 +19,7 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
   end
 
   test "POST /social for org Google provider on app host is not registered" do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL")
 
     post "/social/google_#{"org"}"
 
@@ -27,7 +27,7 @@ class AppSocialLoginWorksTest < ActionDispatch::IntegrationTest
   end
 
   test "POST /social/apple on app host redirects to Apple Sign In" do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL")
 
     post "/social/apple"
 

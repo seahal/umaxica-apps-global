@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignOrgSignUpsHelperTest < ActionView::TestCase
   setup do
-    extend Sign::Org::SignUpsHelper
+    extend Auth::Org::SignUpsHelper
   end
 
   test "sign_org_recruit_contact_link uses safe configured direct message URL" do
@@ -22,7 +22,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
     define_singleton_method(:params) do
       ActionController::Parameters.new(ri: "jp", lx: "en")
     end
-    define_singleton_method(:acme_com_root_url) do |params|
+    define_singleton_method(:base_com_root_url) do |params|
       "https://com.example.test/?#{params.to_query}"
     end
 
@@ -32,7 +32,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
     ) do
       html = sign_org_recruit_contact_link
 
-      assert_includes html, "https://com.example.test/?host=www.com.localhost&amp;lx=en&amp;ri=jp"
+      assert_includes html, "https://com.example.test/?host=acme.com.localhost&amp;lx=en&amp;ri=jp"
       assert_not_includes html, "javascript:alert"
     end
   end
@@ -44,7 +44,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
     define_singleton_method(:params) do
       ActionController::Parameters.new(default_url_options)
     end
-    define_singleton_method(:acme_com_root_url) do |params|
+    define_singleton_method(:base_com_root_url) do |params|
       "https://com.example.test/?#{params.to_query}"
     end
 
@@ -55,7 +55,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
       html = sign_org_recruit_contact_link
 
       assert_includes html, I18n.t("sign.org.ups.new.recruit_link_text")
-      assert_includes html, "https://com.example.test/?host=www.com.localhost&amp;lx=en&amp;ri=jp"
+      assert_includes html, "https://com.example.test/?host=acme.com.localhost&amp;lx=en&amp;ri=jp"
       assert_includes html, "font-semibold text-slate-900 underline"
       assert_not_includes html, "ignored"
       assert_not_includes html, "ct=dr"

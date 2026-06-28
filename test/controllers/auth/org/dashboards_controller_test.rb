@@ -7,8 +7,8 @@ class Auth::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
-    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL")
+    @acme_host = ENV.fetch("ACME_STAFF_URL")
     @staff = operators(:one)
   end
 

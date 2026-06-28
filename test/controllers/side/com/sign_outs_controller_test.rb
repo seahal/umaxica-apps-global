@@ -7,7 +7,7 @@ class Side::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV.fetch("SIDE_CORPORATE_URL", "side.com.localhost")
+    host! ENV.fetch("SIDE_CORPORATE_URL")
   end
 
   test "get sign out renders confirmation without mutation" do
@@ -39,7 +39,7 @@ class Side::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"), location.host
+    assert_equal ENV.fetch("ACME_CORPORATE_URL"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
     assert_equal complete_side_com_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]

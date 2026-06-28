@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::Sign::In::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL")
     host! @host
     Prosopite.pause do
       VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)

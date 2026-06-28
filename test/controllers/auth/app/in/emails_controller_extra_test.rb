@@ -7,8 +7,8 @@ class Auth::App::Sign::In::EmailsControllerExtraTest < ActionDispatch::Integrati
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

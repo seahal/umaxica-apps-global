@@ -17,8 +17,8 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   test "issues ES384 jump rt jwt with expected claims" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "sign.example.test",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PRIVATE_SIGN_SERVICE_URL" => "sign.example.test",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, @private_key) do
         token = JumpRtIssuer.call(
@@ -50,7 +50,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   test "returns nil for url with invalid percent encoding" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, @private_key) do
         result = JumpRtIssuer.call(
@@ -139,7 +139,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   test "strips redirect-target query keys before signing the url" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "SIGN_SERVICE_URL" => "sign.example.test",
+      "PRIVATE_SIGN_SERVICE_URL" => "sign.example.test",
     ) do
       JumpRtKeyring.stub(:private_key, @private_key) do
         token = JumpRtIssuer.call(

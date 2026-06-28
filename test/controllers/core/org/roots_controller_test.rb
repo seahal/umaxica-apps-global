@@ -5,7 +5,7 @@ require "test_helper"
 
 class Core::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   test "renders a thin landing page" do
-    host! ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")
+    host! ENV.fetch("CORE_STAFF_URL")
     get core_org_root_url(ri: "jp")
 
     assert_response :success
@@ -14,7 +14,7 @@ class Core::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")
+    host! ENV.fetch("CORE_STAFF_URL")
 
     assert_difference("OrgPreference.count", 1) do
       get core_org_root_url(ri: "jp")

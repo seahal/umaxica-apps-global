@@ -9,7 +9,7 @@ class Auth::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @user = clients(:one)
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     host! @host
     ClientToken.where(user: @user).delete_all
   end

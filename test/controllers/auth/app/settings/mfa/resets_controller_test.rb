@@ -7,7 +7,7 @@ class Auth::App::Settings::Mfa::ResetsControllerTest < ActionDispatch::Integrati
   fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     host! @host
     @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)

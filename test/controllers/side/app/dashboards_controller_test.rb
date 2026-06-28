@@ -7,8 +7,8 @@ class Side::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   setup do
-    @host = ENV.fetch("SIDE_SERVICE_URL", "side.app.localhost")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("SIDE_SERVICE_URL")
+    @acme_host = ENV.fetch("ACME_SERVICE_URL")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token)

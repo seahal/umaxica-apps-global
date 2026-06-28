@@ -7,7 +7,7 @@ class Base::Org::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("BASE_STAFF_URL")
     @staff = operators(:one)
     @organization_public_id = "test-org-public-id"
   end

@@ -13,10 +13,10 @@ module Base
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
         COORDINATED_LOGOUT_TRUSTED_ORIGINS = JitHostOriginEnv.trusted_origins(
-          ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
-          ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
-          ENV.fetch("BASE_SERVICE_URL", "www-jp.umaxica.app"),
-          ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost"),
+          ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
+          ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
+          ENV.fetch("PUBLIC_BASE_SERVICE_URL", ENV.fetch("BASE_SERVICE_URL", "www-jp.umaxica.app")),
+          ENV.fetch("PRIVATE_PALM_SERVICE_URL", ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")),
         ).freeze
 
         protect_from_forgery using: :header_only,

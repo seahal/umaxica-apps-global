@@ -7,7 +7,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
   fixtures :clients, :operators, :client_tokens, :operator_tokens, :client_statuses, :operator_passkeys
 
   test "app cancellation clears local step-up session and renders acme cancellation handoff" do
-    host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host = ENV.fetch("AUTH_SERVICE_URL")
     user = clients(:one)
     headers = as_user_headers(user, host: host)
     token = ClientToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
@@ -32,7 +32,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
   end
 
   test "com cancellation clears local step-up session and renders acme cancellation handoff" do
-    host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    host = ENV.fetch("AUTH_CORPORATE_URL")
     visitor = create_verified_visitor_with_email(email_address: "cancel-com-#{SecureRandom.hex(4)}@example.com")
     visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
@@ -61,7 +61,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
   end
 
   test "org cancellation clears local step-up session and renders acme cancellation handoff" do
-    host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    host = ENV.fetch("AUTH_STAFF_URL")
     staff = operators(:one)
     headers = as_staff_headers(staff, host: host)
     token = OperatorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])

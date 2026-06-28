@@ -11,7 +11,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
     host! @host
     @expected_redirect = %r{\Ahttps?://#{Regexp.escape(@host)}/.*}.freeze
   end
@@ -237,7 +237,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
   end
 
   test "existing Google identity without birthdate stays on login side" do

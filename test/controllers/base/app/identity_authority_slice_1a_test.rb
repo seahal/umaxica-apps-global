@@ -7,7 +7,7 @@ class Base::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
     @user = clients(:one)
   end
 
@@ -21,7 +21,7 @@ class Base::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :revoked?
     location = URI.parse(response.location)
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"), location.host
+    assert_equal ENV.fetch("AUTH_SERVICE_URL"), location.host
     assert_equal "/sign/out", location.path
     assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
   end

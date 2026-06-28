@@ -8,7 +8,7 @@ module Palm
     class SignOutsControllerTest < ActionDispatch::IntegrationTest
       fixtures :clients, :client_token_kinds
 
-      PALM_HOST = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
+      PALM_HOST = ENV.fetch("PALM_SERVICE_URL")
 
       setup do
         host! PALM_HOST
@@ -65,7 +65,7 @@ module Palm
         logout_uri = URI.parse(payload["logout_url"])
         query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
-        assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), logout_uri.host
+        assert_equal ENV.fetch("ACME_SERVICE_URL"), logout_uri.host
         assert_equal "/oidc/logout", logout_uri.path
         assert_predicate query["logout_challenge"], :present?
         assert_nil query["actor_ref"]
@@ -73,12 +73,12 @@ module Palm
 
         browser_token = create_client_token(native_client)
         post acme_app_oidc_logout_url(
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("ACME_SERVICE_URL"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
         ), headers: as_user_headers(
           native_client,
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("ACME_SERVICE_URL"),
           session_public_id: browser_token.public_id,
           headers: {
             "Origin" => "https://#{PALM_HOST}",
@@ -90,19 +90,19 @@ module Palm
         sign_form = css_select("form#sign-out-handoff-form").first
         sign_uri = URI.parse(sign_form["action"])
 
-        assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), sign_uri.host
+        assert_equal ENV.fetch("PRIVATE_SIGN_SERVICE_URL"), sign_uri.host
         assert_equal "/sign/out", sign_uri.path
 
         post base_app_sign_out_url(
-          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+          host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
         ), headers: as_user_headers(
           native_client,
-          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+          host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"),
           session_public_id: browser_token.public_id,
           headers: {
-            "Origin" => "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}",
+            "Origin" => "https://#{ENV.fetch("ACME_SERVICE_URL")}",
             "Sec-Fetch-Site" => "same-site",
           },
         )

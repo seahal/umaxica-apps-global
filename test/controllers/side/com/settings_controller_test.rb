@@ -5,7 +5,7 @@ require "test_helper"
 
 class Side::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
   test "show renders" do
-    host! ENV.fetch("SIDE_CORPORATE_URL", "side.com.localhost")
+    host! ENV.fetch("SIDE_CORPORATE_URL")
 
     get "/settings"
 

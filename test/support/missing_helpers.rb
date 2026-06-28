@@ -6,20 +6,24 @@ require "jwt"
 require "base64"
 require "sha3"
 
-ENV["ID_SERVICE_URL"] ||= "sign.app.localhost"
-ENV["SIGN_SERVICE_URL"] ||= "sign.app.localhost"
-ENV["MAIN_SERVICE_URL"] ||= "acme.app.localhost"
-ENV["ID_STAFF_URL"] ||= "sign.org.localhost"
-ENV["SIGN_STAFF_URL"] ||= "sign.org.localhost"
-ENV["MAIN_STAFF_URL"] ||= "acme.org.localhost"
-ENV["SIGN_CORPORATE_URL"] ||= "sign.com.localhost"
-ENV["MAIN_CORPORATE_URL"] ||= "acme.com.localhost"
-ENV["AUTH_SERVICE_URL"] ||= "auth.app.localhost"
-ENV["AUTH_STAFF_URL"] ||= "auth.org.localhost"
-ENV["AUTH_CORPORATE_URL"] ||= "auth.com.localhost"
-ENV["BASE_SERVICE_URL"] ||= "base.app.localhost"
-ENV["BASE_STAFF_URL"] ||= "base.org.localhost"
-ENV["BASE_CORPORATE_URL"] ||= "base.com.localhost"
+ENV["PRIVATE_SIGN_SERVICE_URL"] ||= "sign.app.localhost"
+ENV["PRIVATE_SIGN_STAFF_URL"] ||= ENV["SIGN_STAFF_URL"] ||= "sign.org.localhost"
+ENV["PRIVATE_SIGN_CORPORATE_URL"] ||= ENV["SIGN_CORPORATE_URL"] ||= "sign.com.localhost"
+ENV["PRIVATE_ACME_SERVICE_URL"] ||= ENV["MAIN_SERVICE_URL"] ||= "acme.app.localhost"
+ENV["PRIVATE_ACME_STAFF_URL"] ||= ENV["MAIN_STAFF_URL"] ||= "acme.org.localhost"
+ENV["PRIVATE_ACME_CORPORATE_URL"] ||= ENV["MAIN_CORPORATE_URL"] ||= "acme.com.localhost"
+ENV["ACME_SERVICE_URL"] ||= ENV["PRIVATE_ACME_SERVICE_URL"]
+ENV["ACME_STAFF_URL"] ||= ENV["PRIVATE_ACME_STAFF_URL"]
+ENV["ACME_CORPORATE_URL"] ||= ENV["PRIVATE_ACME_CORPORATE_URL"]
+ENV["PUBLIC_AUTH_SERVICE_URL"] ||= ENV["AUTH_SERVICE_URL"] ||= "auth.app.localhost"
+ENV["PUBLIC_AUTH_STAFF_URL"] ||= ENV["AUTH_STAFF_URL"] ||= "auth.org.localhost"
+ENV["PUBLIC_AUTH_CORPORATE_URL"] ||= ENV["AUTH_CORPORATE_URL"] ||= "auth.com.localhost"
+ENV["PUBLIC_BASE_SERVICE_URL"] ||= ENV["BASE_SERVICE_URL"] ||= "base.app.localhost"
+ENV["PUBLIC_BASE_STAFF_URL"] ||= ENV["BASE_STAFF_URL"] ||= "base.org.localhost"
+ENV["PUBLIC_BASE_CORPORATE_URL"] ||= ENV["BASE_CORPORATE_URL"] ||= "base.com.localhost"
+ENV["BASE_SERVICE_URL"] ||= ENV["PUBLIC_BASE_SERVICE_URL"]
+ENV["BASE_STAFF_URL"] ||= ENV["PUBLIC_BASE_STAFF_URL"]
+ENV["BASE_CORPORATE_URL"] ||= ENV["PUBLIC_BASE_CORPORATE_URL"]
 
 ENV["EMAIL_ADDRESS_HMAC_SALT"] ||= "test-email-address-secret_credential"
 ENV["TELEPHONE_NUMBER_HMAC_SALT"] ||= "test-telephone-number-secret_credential"
@@ -382,7 +386,7 @@ module MissingHelpers
   end
 
   def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
-    host = ENV.fetch("AUTH_SERVICE_URL", configured_host(:sign_service))
+    host = configured_host(:sign_service)
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
@@ -427,7 +431,7 @@ module MissingHelpers
   AppSocialLinkGrantSession = Struct.new(:state, :user_headers, :session_public_id, keyword_init: true)
 
   def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
-    host = ENV.fetch("SIGN_SERVICE_URL", configured_host(:sign_service))
+    host = configured_host(:sign_service)
     host!(host) if respond_to?(:host!)
     https! if respond_to?(:https!) && host.exclude?("localhost")
 
@@ -486,15 +490,15 @@ module MissingHelpers
       form["action"],
       params: params,
       headers: {
-        "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-        "Origin" => "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}",
+        "Host" => configured_host(:acme_service),
+        "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },
     )
     cookies.to_hash.each_key { |key| cookies.delete(key) }
   end
 
-  def submit_step_up_completion_if_present!(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), headers: {})
+  def submit_step_up_completion_if_present!(host: configured_host(:acme_service), headers: {})
     return unless response.media_type == "text/html"
     return unless response.body.include?("step-up-completion-form")
 

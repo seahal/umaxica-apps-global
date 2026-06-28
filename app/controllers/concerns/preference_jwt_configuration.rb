@@ -8,8 +8,8 @@ require "openssl"
 require "jit_security_jwt_registry"
 
 # Resolves keysets, issuer, leeway and audience scoping for preference JWTs.
-# PREFERENCE_JWT_AUDIENCES is required; an empty or missing value causes
-# decoding to fail loudly rather than silently accepting any audience.
+# Audience hosts are derived from the configured boot hosts instead of a
+# standalone PREFERENCE_JWT_AUDIENCES env var.
 module PreferenceJwtConfiguration
   class MissingAudienceError < StandardError; end
 
@@ -27,12 +27,15 @@ module PreferenceJwtConfiguration
   end
 
   def self.audiences
-    raw = ENV["PREFERENCE_JWT_AUDIENCES"].to_s
-    list = raw.split(",").map(&:strip)
-    list.reject!(&:empty?)
-    raise MissingAudienceError, "PREFERENCE_JWT_AUDIENCES must be configured" if list.empty?
+    configured = audiences_from_boot_config
+    configured = fallback_localhost_audiences(configured) if Rails.env.local?
+    return configured if configured.present?
 
-    list
+    fallback_localhost_audiences([
+      env_host("PUBLIC_BASE_SERVICE_URL", "BASE_SERVICE_URL", "base.app.localhost"),
+      env_host("PUBLIC_BASE_CORPORATE_URL", "BASE_CORPORATE_URL", "base.com.localhost"),
+      env_host("PUBLIC_BASE_STAFF_URL", "BASE_STAFF_URL", "base.org.localhost"),
+    ].compact)
   end
 
   # Returns the audiences that may legitimately accept a token issued for
@@ -60,12 +63,18 @@ module PreferenceJwtConfiguration
   def self.host_scope_for(host)
     raise ArgumentError, "host is required" if host.blank?
 
-    matching_audience =
+    exact_or_nested =
       audience_for(host).sort_by { |aud| -aud.to_s.length }.find do |aud|
         host == aud || host.end_with?(".#{aud}")
       end
+    return exact_or_nested if exact_or_nested.present?
 
-    matching_audience || host
+    same_tld =
+      audiences.sort_by { |aud| -aud.to_s.length }.find do |aud|
+        aud.split(".").last == host.split(".").last
+      end
+
+    same_tld || (Rails.env.local? ? "localhost" : host)
   end
 
   def self.private_key_for_active(issuer_id = "preference")
@@ -111,4 +120,28 @@ module PreferenceJwtConfiguration
     nil
   end
   private_class_method :parse_keyset, :decode_key
+
+  def self.audiences_from_boot_config
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts, nil) rescue nil
+    return [] unless hosts
+
+    values = %i[base_service base_corporate base_staff].filter_map do |key|
+      host = hosts.public_send(key)&.host
+      host if host.present?
+    end
+    values.freeze
+  end
+  private_class_method :audiences_from_boot_config
+
+  def self.env_host(public_key, legacy_key, fallback)
+    ENV.fetch(public_key, ENV.fetch(legacy_key, fallback)).to_s
+  end
+  private_class_method :env_host
+
+  def self.fallback_localhost_audiences(values)
+    audiences = values.dup
+    audiences.concat(%w(app.localhost org.localhost com.localhost localhost))
+    audiences.uniq.freeze
+  end
+  private_class_method :fallback_localhost_audiences
 end

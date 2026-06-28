@@ -8,7 +8,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   fixtures :clients, :client_totp_credential_statuses
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
@@ -81,7 +81,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     submit_step_up_completion_if_present!(
       headers: as_user_headers(
         @user,
-        host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("ACME_SERVICE_URL"),
         session_public_id: @token.public_id,
       ),
     )
@@ -275,7 +275,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       submit_step_up_completion_if_present!(
         headers: as_user_headers(
           @user,
-          host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("ACME_SERVICE_URL"),
           session_public_id: @token.public_id,
         ),
       )

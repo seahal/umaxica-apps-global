@@ -30,6 +30,10 @@ module Jit
             assert_equal "auth-kid", issuers.fetch("auth").current_kid
             assert_equal %w(umaxica-api), issuers.fetch("auth").audiences
             assert_equal "pref-kid", issuers.fetch("preference").current_kid
+            assert_equal(
+              Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:to_s),
+              issuers.fetch("preference").audiences,
+            )
             assert_equal "sign-app-kid", issuers.fetch("surface:SIGN_APP").current_kid
             assert_predicate issuers.fetch("surface:SIGN_APP").jwks.fetch(:keys), :present?
             assert_equal 12, issuers.keys.grep(/\Aoidc_client:/).size
@@ -264,7 +268,6 @@ module Jit
           env = {
             "AUTH_JWT_ACTIVE_KID" => "auth-kid",
             "PREFERENCE_JWT_ACTIVE_KID" => "pref-kid",
-            "PREFERENCE_JWT_AUDIENCES" => "example.com",
             "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-kid",
             "JWT_SIGN_APP_PUBLIC_KEYSET" => JSON.generate([legacy_jwk]),
           }.merge(extra_env)

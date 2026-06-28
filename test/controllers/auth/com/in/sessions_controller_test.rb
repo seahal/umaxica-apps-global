@@ -5,8 +5,8 @@ require "test_helper"
 
 class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
-    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("AUTH_CORPORATE_URL")
     @visitor = create_verified_visitor_with_email(email_address: "sessions-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+10000000991",
@@ -123,7 +123,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     controller = Auth::Com::Sign::In::SessionsController.new
     controller.request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("COM_SERVICE_URL", "com.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("COM_SERVICE_URL"),
     )
     controller.response = ActionDispatch::TestResponse.new
     session_hash = {}

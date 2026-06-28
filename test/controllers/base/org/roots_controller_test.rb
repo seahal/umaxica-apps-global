@@ -7,7 +7,7 @@ class Base::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   test "should get index" do
-    host! ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host! ENV.fetch("BASE_STAFF_URL")
     get base_org_root_url(ri: "jp")
 
     assert_response :success
@@ -16,7 +16,7 @@ class Base::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host! ENV.fetch("BASE_STAFF_URL")
 
     assert_difference("OrgPreference.count", 1) do
       get base_org_root_url(ri: "jp")
@@ -28,7 +28,7 @@ class Base::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root when optional URL preferences are present" do
-    host! ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host! ENV.fetch("BASE_STAFF_URL")
 
     assert_difference("OrgPreference.count", 1) do
       get base_org_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
@@ -40,13 +40,13 @@ class Base::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to dashboard when logged in" do
-    host! ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    host! ENV.fetch("BASE_STAFF_URL")
     staff = operators(:one)
 
     get base_org_root_url(ri: "jp"),
-        headers: as_staff_headers(staff, host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"))
+        headers: as_staff_headers(staff, host: ENV.fetch("BASE_STAFF_URL"))
 
     assert_response :redirect
-    assert_redirected_to base_org_dashboard_url(ri: "jp", host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"))
+    assert_redirected_to base_org_dashboard_url(ri: "jp", host: ENV.fetch("BASE_STAFF_URL"))
   end
 end

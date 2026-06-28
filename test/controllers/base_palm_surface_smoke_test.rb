@@ -5,7 +5,7 @@ require "test_helper"
 
 class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   test "base app public endpoints respond on the control-plane surface" do
-    host = ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")
+    host = ENV.fetch("BASE_SERVICE_URL")
     host! host
 
     get "/", headers: { "Host" => host }
@@ -34,9 +34,9 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
 
   test "base public host family renders standalone homepages" do
     [
-      [ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"), "Base App", "base.app.roots.message"],
-      [ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"), "Base Com", "base.com.roots.message"],
-      [ENV.fetch("BASE_STAFF_URL", "base.org.localhost"), "Base Org", "base.org.roots.message"],
+      [ENV.fetch("BASE_SERVICE_URL"), "Base App", "base.app.roots.message"],
+      [ENV.fetch("BASE_CORPORATE_URL"), "Base Com", "base.com.roots.message"],
+      [ENV.fetch("BASE_STAFF_URL"), "Base Org", "base.org.roots.message"],
     ].each do |host, title, key|
       host! host
 
@@ -48,7 +48,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   test "palm app public endpoints and bearer profile api respond on the native surface" do
-    host = ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
+    host = ENV.fetch("PALM_SERVICE_URL")
     host! host
 
     get "/?ri=jp", headers: { "Host" => host }

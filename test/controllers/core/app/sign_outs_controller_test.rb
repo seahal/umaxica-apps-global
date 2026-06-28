@@ -7,7 +7,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")
+    host! ENV.fetch("CORE_SERVICE_URL")
   end
 
   test "get sign out renders confirmation without mutation" do
@@ -38,7 +38,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("ACME_SERVICE_URL"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate handoff_input_value("logout_challenge"), :present?
     assert_equal "jp", handoff_input_value("ri")
@@ -59,7 +59,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("ACME_SERVICE_URL"), location.host
     assert_equal "/oidc/logout", location.path
     assert_equal "us", handoff_input_value("ri")
     assert_includes query.fetch("post_logout_redirect_uri"), "ri=us"
@@ -126,7 +126,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("ACME_SERVICE_URL"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate handoff_input_value("logout_challenge"), :present?
     assert_equal RequestContextContract.default_region, handoff_input_value("ri")
@@ -146,18 +146,18 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     challenge = handoff_input_value("logout_challenge")
 
     post acme_app_oidc_logout_url(
-      host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), ri: "jp",
+      host: ENV.fetch("ACME_SERVICE_URL"), ri: "jp",
       logout_challenge: challenge,
     ), headers: {
-      "Host" => ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      "Origin" => "https://#{ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")}",
+      "Host" => ENV.fetch("ACME_SERVICE_URL"),
+      "Origin" => "https://#{ENV.fetch("CORE_SERVICE_URL")}",
       "Sec-Fetch-Site" => "same-site",
     }
 
     assert_response :success
     location = URI.parse(handoff_form["action"])
 
-    assert_equal ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"), location.host
+    assert_equal ENV.fetch("PRIVATE_SIGN_SERVICE_URL"), location.host
     assert_equal "/sign/out", location.path
     assert_equal challenge, handoff_input_value("logout_challenge")
     assert_equal "jp", handoff_input_value("ri")

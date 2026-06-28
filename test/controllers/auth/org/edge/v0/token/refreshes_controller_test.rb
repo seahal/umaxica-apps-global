@@ -7,7 +7,7 @@ class Auth::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::Inte
   test "sign org refresh route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")}/edge/v0/token/refresh",
+        "https://#{ENV.fetch("AUTH_STAFF_URL")}/edge/v0/token/refresh",
         method: :post,
       )
     end

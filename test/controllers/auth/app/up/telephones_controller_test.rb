@@ -13,7 +13,7 @@ module Auth::App::Up
     include ActiveSupport::Testing::TimeHelpers
 
     setup do
-      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL")
       cookies["csrf_token"] = csrf_token_value
       # Mock Cloudflare Turnstile validation
       CloudflareTurnstile.test_mode = true
@@ -35,7 +35,7 @@ module Auth::App::Up
       user = Client.create!(status_id: ClientStatus::VERIFIED_WITH_SIGN_UP)
 
       get new_auth_app_sign_up_telephone_url(ri: "jp"),
-          headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+          headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL"))
 
       assert_response :unauthorized
       assert_equal "すでにログインしています", response.body
@@ -54,7 +54,7 @@ module Auth::App::Up
                },
                "cf-turnstile-response": "test",
              },
-             headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+             headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL"))
       end
 
       assert_response :unauthorized

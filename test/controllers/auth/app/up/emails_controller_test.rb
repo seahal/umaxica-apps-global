@@ -7,7 +7,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL")
     reset_cookie_jar!
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
@@ -38,7 +38,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "direct email entry route no longer exists" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/sign/up/email",
+        "http://#{ENV.fetch("AUTH_SERVICE_URL")}/sign/up/email",
         method: :get,
       )
     end
@@ -639,7 +639,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     # Try to access registration page while logged in (using test header to inject current user)
     get new_auth_app_sign_up_email_url(ri: "jp"),
-        headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+        headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL"))
 
     assert_response :unauthorized
     assert_equal I18n.t("errors.messages.already_authenticated"), response.body
@@ -982,7 +982,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
+    assert_equal ENV.fetch("AUTH_SERVICE_URL"), uri.host
     assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
 
     user = user_email.reload.user
@@ -1225,7 +1225,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
+    assert_equal ENV.fetch("AUTH_SERVICE_URL"), uri.host
     assert_redirected_to auth_app_sign_in_check_path(ri: "jp")
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.reload.status_id
 

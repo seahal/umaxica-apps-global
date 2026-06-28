@@ -67,7 +67,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       published_at: 1.day.from_now,
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+    host! ENV.fetch("DOCS_SERVICE_URL")
     get docs_app_api_v0_entry_url(slug: published.slug, locale: published.locale)
 
     assert_response :success
@@ -108,7 +108,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       status: "archived",
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+    host! ENV.fetch("DOCS_SERVICE_URL")
 
     get docs_app_api_v0_entry_url(slug: published.slug, ri: "jp")
 
@@ -138,7 +138,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       locale: "en",
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost")
+    host! ENV.fetch("DOCS_SERVICE_URL")
 
     get docs_app_api_v0_entry_url(slug: published.slug, ri: "zz")
 

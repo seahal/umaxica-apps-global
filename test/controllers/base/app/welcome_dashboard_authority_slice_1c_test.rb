@@ -7,8 +7,8 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   fixtures :clients, :client_statuses
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    @sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
+    @sign_host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
     @user.update!(status_id: ClientStatus::ACTIVE)
   end

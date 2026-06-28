@@ -21,7 +21,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
   end
 
   test "content security policy and permissions policy are enforced" do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("ID_SERVICE_URL")
 
     get sign_app_health_liveness_url(ri: "jp")
 
@@ -32,19 +32,19 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"],
                     "form-action 'self' https://accounts.google.com https://appleid.apple.com"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")}"
+                    "https://#{ENV.fetch("ACME_SERVICE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")}"
+                    "https://#{ENV.fetch("ACME_CORPORATE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_STAFF_URL", "www.org.localhost")}"
+                    "https://#{ENV.fetch("ACME_STAFF_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
+                    "https://#{ENV.fetch("ID_SERVICE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("SIGN_SERVICE_URL", "sign.app.localhost")}"
+                    "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}"
     # The jump gateway must be a valid form-action target: sign-flow form submissions
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],
-                    ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
+                    ENV.fetch("JUMP_GATEWAY_URL")
     assert_includes response.headers["Content-Security-Policy"], "connect-src 'self' https: ws: wss:"
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' 'strict-dynamic'"
     assert_not_includes response.headers["Content-Security-Policy"], "script-src-elem"

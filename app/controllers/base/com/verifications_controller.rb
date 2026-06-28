@@ -22,7 +22,12 @@ module Base
           allowed_scopes: StepUpScopeCatalog::COM,
           sign_url_builder: ->(**query) {
             auth_com_verification_url(
-              query.merge(host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")),
+              query.merge(
+                host: ENV.fetch(
+                  "PUBLIC_AUTH_CORPORATE_URL",
+                  ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
+                ),
+              ),
             )
           },
         )

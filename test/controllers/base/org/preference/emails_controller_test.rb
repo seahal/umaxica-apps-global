@@ -10,7 +10,7 @@ module Base
         fixtures_only :operators, :operator_email_statuses
 
         setup do
-          @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+          @host = ENV.fetch("BASE_STAFF_URL")
           @operator = operators(:one)
           @email = OperatorEmail.create!(
             staff: @operator,

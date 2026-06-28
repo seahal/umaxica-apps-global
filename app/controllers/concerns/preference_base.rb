@@ -116,9 +116,9 @@ module PreferenceBase
   def cookie_banner_endpoint_available_for_request?
     expected_host =
       case ::CoreSurface.current(request)
-      when :app then ENV["ACME_SERVICE_URL"]
-      when :com then ENV["ACME_CORPORATE_URL"]
-      when :org then ENV["ACME_STAFF_URL"]
+      when :app then ENV["PRIVATE_ACME_SERVICE_URL"] || ENV["ACME_SERVICE_URL"]
+      when :com then ENV["PRIVATE_ACME_CORPORATE_URL"] || ENV["ACME_CORPORATE_URL"]
+      when :org then ENV["PRIVATE_ACME_STAFF_URL"] || ENV["ACME_STAFF_URL"]
       end
     return false if expected_host.blank?
 

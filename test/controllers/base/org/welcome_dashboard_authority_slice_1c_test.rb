@@ -7,7 +7,7 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   fixtures :operators
 
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("BASE_STAFF_URL")
     @staff = operators(:one)
   end
 

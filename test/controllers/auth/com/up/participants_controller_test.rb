@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::Sign::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL")
     cookies["csrf_token"] = csrf_token_value
   end
 

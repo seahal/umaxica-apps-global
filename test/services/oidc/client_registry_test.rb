@@ -21,7 +21,8 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_equal "core-next-rp", client.aud
     assert_equal "client", client.resource_type
     assert_equal "Core Next RP", client.name
-    assert_includes client.domains, ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")
+    assert_includes client.domains,
+                    ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"))
     assert_kind_of Array, client.redirect_uris
     assert client.redirect_uris.any? { |uri| uri.include?("/oidc/callback") }
   end
@@ -89,9 +90,13 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     com_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "visitor")
     org_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "operator")
 
-    assert_equal [ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")], app_uris.map { |uri| URI.parse(uri).host }
-    assert_equal [ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")], com_uris.map { |uri| URI.parse(uri).host }
-    assert_equal [ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")], org_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [ENV.fetch("PRIVATE_SIGN_SERVICE_URL", "id.app.localhost")], app_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"))], com_uris.map { |uri|
+      URI.parse(uri).host
+    }
+    assert_equal [ENV.fetch("PRIVATE_SIGN_STAFF_URL", ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"))], org_uris.map { |uri|
+      URI.parse(uri).host
+    }
   end
 
   test "native and content clients do not expose logout receiver uris" do
@@ -289,7 +294,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
   test "core client is registered to regional redirect hosts" do
     expectations = {
       "core-next-rp" => {
-        host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
+        host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
         aud: "core-next-rp",
         resource_type: "client",
       },
@@ -312,8 +317,8 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     redirect_hosts = client.redirect_uris.map { |uri| URI.parse(uri).host }
 
     [
-      ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+      ENV.fetch("PUBLIC_BASE_SERVICE_URL", ENV.fetch("BASE_SERVICE_URL", "base.app.localhost")),
     ].each do |host|
       assert_includes redirect_hosts, host
       assert_includes client.domains, host

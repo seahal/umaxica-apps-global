@@ -6,6 +6,7 @@ module Auth
     module Sign
       class UpsController < ::Auth::Org::ApplicationController
         AUTHENTICATION_MODE = :guest
+        helper Auth::Org::SignUpsHelper
         declare_authentication_mode! :guest, no_redirect: true
         skip_before_action :set_region, raise: false
 

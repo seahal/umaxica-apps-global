@@ -21,7 +21,7 @@ class Auth::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
       assert_response :see_other
       location = URI.parse(response.location)
 
-      assert_equal ENV.fetch("ACME_STAFF_URL", "www.umaxica.org"), location.host
+      assert_equal ENV.fetch("ACME_STAFF_URL"), location.host
       assert_equal path, location.path
     end
   end

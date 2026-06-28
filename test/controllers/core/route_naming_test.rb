@@ -4,10 +4,11 @@
 require "test_helper"
 
 class CoreRouteNamingTest < ActionDispatch::IntegrationTest
+  BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = {
-    app: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
-    com: ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"),
-    org: ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org"),
+    app: BOOT_HOSTS.core_service.host,
+    com: BOOT_HOSTS.core_corporate.host,
+    org: BOOT_HOSTS.core_staff.host,
   }.freeze
 
   test "robots sitemap csp and token refresh use the current core vocabulary" do

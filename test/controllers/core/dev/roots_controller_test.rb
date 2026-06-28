@@ -5,7 +5,7 @@ require "test_helper"
 
 class Core::Dev::RootsControllerTest < ActionDispatch::IntegrationTest
   test "renders the React Aria probe mount point on the developer host" do
-    host! ENV.fetch("CORE_DEVELOPER_URL", "core.dev.localhost")
+    host! ENV.fetch("CORE_DEVELOPER_URL")
 
     get core_developer_root_url(ri: "jp")
 

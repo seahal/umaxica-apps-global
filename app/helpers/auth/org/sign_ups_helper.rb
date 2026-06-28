@@ -14,8 +14,8 @@ module Auth::Org::SignUpsHelper
     configured = safe_recruit_contact_url(ENV["ORG_SIGN_UP_DIRECT_MESSAGE_URL"])
     return configured if configured.present?
 
-    acme_com_root_url(
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+    base_com_root_url(
+      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
       ri: params[:ri],
       lx: params[:lx],
     )

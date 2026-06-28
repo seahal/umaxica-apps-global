@@ -22,8 +22,8 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "sign app settings auth-required sso resolves an existing acme session and returns to settings" do # rubocop:disable Minitest/MultipleAssertions
     with_acme_oidc_client_key do
-      sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
-      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+      sign_host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+      acme_host = ENV.fetch("ACME_SERVICE_URL")
       email = "sign-oidc-browser-flow-#{SecureRandom.hex(4)}@example.com"
       @user = create_verified_user_with_email(email_address: email)
       current_session =

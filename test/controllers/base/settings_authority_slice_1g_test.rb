@@ -10,14 +10,14 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   test "base app settings shell route is removed" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")}/settings",
+        "http://#{ENV.fetch("BASE_SERVICE_URL")}/settings",
         method: :get,
       )
     end
   end
 
   test "base app activities list only current user entries" do
-    host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host = ENV.fetch("AUTH_SERVICE_URL")
     host! host
     user = clients(:one)
     other_user = clients(:two)
@@ -39,14 +39,14 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   test "base com and org settings shell routes are removed" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")}/settings",
+        "http://#{ENV.fetch("BASE_CORPORATE_URL")}/settings",
         method: :get,
       )
     end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_STAFF_URL", "www.org.localhost")}/settings",
+        "http://#{ENV.fetch("BASE_STAFF_URL")}/settings",
         method: :get,
       )
     end

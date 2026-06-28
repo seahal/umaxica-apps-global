@@ -7,7 +7,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    @host = configured_host(:sign_staff)
   end
 
   test "direct entry normalizes to acme org authorization" do
@@ -18,7 +18,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
@@ -86,7 +86,7 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    acme_host = ENV["ACME_CORPORATE_URL"].presence || "www.com.localhost"
+    acme_host = ENV["PRIVATE_ACME_CORPORATE_URL"].presence || ENV["ACME_CORPORATE_URL"].presence || "acme.com.localhost"
 
     assert_select "div a[href^=?]", "http://#{acme_host}/",
                   text: I18n.t("sign.org.ups.new.recruit_link_text")

@@ -9,7 +9,7 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
-    host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
+    host = ENV.fetch("AUTH_STAFF_URL")
     host! host
     JitSecurityTurnstileVerifier.test_mode = true
     JitSecurityTurnstileVerifier.test_response = { "success" => true }

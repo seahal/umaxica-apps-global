@@ -32,7 +32,10 @@ module Base
           def after_email_registration_verified_path
             email_registration_return_path(
               base_app_identity_emails_url(
-                ri: params[:ri], host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+                ri: params[:ri], host: ENV.fetch(
+                  "PUBLIC_BASE_SERVICE_URL",
+                  ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+                ),
               ),
             )
           end

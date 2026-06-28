@@ -4,9 +4,9 @@
 require "test_helper"
 
 class NewsRouteContractTest < ActionDispatch::IntegrationTest
-  NEWS_APP_HOST = ENV.fetch("NEWS_SERVICE_URL", "news.app.localhost")
-  NEWS_COM_HOST = ENV.fetch("NEWS_CORPORATE_URL", "news.com.localhost")
-  NEWS_ORG_HOST = ENV.fetch("NEWS_STAFF_URL", "news.org.localhost")
+  NEWS_APP_HOST = ENV.fetch("NEWS_SERVICE_URL")
+  NEWS_COM_HOST = ENV.fetch("NEWS_CORPORATE_URL")
+  NEWS_ORG_HOST = ENV.fetch("NEWS_STAFF_URL")
   PUBLIC_NEWS_HOSTS = {
     "news.jp.umaxica.app" => "news/app/roots",
     "news.jp.umaxica.com" => "news/com/roots",

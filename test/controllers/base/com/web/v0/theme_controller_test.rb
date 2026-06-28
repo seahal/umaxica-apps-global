@@ -9,7 +9,7 @@ class Base::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    @host = ENV.fetch("BASE_CORPORATE_URL")
     host! @host
   end
 

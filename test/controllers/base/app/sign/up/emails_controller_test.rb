@@ -7,7 +7,7 @@ class BaseAppSignUpEmailCompletionRouteTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
   end
 
   test "email sign-up completion route no longer exists" do

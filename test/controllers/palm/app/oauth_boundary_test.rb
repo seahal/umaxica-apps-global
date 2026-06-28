@@ -9,7 +9,7 @@ module Palm
       fixtures_none!
 
       test "palm app exposes only the generic reserved oidc callback stub and no issuer endpoints" do
-        host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
+        host = ENV.fetch("PALM_SERVICE_URL")
 
         assert_equal(
           "palm/app/oauth/callbacks#show",
@@ -41,7 +41,7 @@ module Palm
       end
 
       test "palm app exposes bearer profile api under the api namespace" do
-        host = ENV.fetch("PALM_SERVICE_URL", "palm-jp.umaxica.app")
+        host = ENV.fetch("PALM_SERVICE_URL")
 
         assert_equal(
           "palm/app/api/v0/profiles#show",
@@ -54,7 +54,7 @@ module Palm
 
         assert_empty native_ids
 
-        sign_host = ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")
+        sign_host = ENV.fetch("ID_SERVICE_URL")
         assert_raises(ActionController::RoutingError) do
           Rails.application.routes.recognize_path("https://#{sign_host}/oauth/authorize", method: :get)
         end

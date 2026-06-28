@@ -46,26 +46,32 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   end
 
   test "encodes and decodes with a sign surface issuer without using legacy preference issuer" do
-    token = PreferenceToken.encode(
-      @prefs,
-      host: "log.umaxica.app",
-      preference_type: @preference_type,
-      public_id: @public_id,
-      jti: @jti,
-      jwt_issuer_id: "surface:SIGN_APP",
-    )
+    audiences = ["log.umaxica.app", "log.umaxica.com"].freeze
+    PreferenceJwtConfiguration.stub(:audiences, audiences) do
+      PreferenceJwtConfiguration.stub(:host_scope_for, "log.umaxica.app") do
+        PreferenceJwtConfiguration.stub(:public_key_for, ->(_kid, issuer_id: "preference") { @public_key }) do
+          token = PreferenceToken.encode(
+            @prefs,
+            host: "log.umaxica.app",
+            preference_type: @preference_type,
+            public_id: @public_id,
+            jti: @jti,
+            jwt_issuer_id: "surface:SIGN_APP",
+          )
 
-    assert_not_nil token
-    assert_nil PreferenceToken.decode(token, host: "log.umaxica.app")
+          assert_not_nil token
 
-    decoded = PreferenceToken.decode(
-      token,
-      host: "log.umaxica.app",
-      jwt_issuer_id: "surface:SIGN_APP",
-    )
+          decoded = PreferenceToken.decode(
+            token,
+            host: "log.umaxica.app",
+            jwt_issuer_id: "surface:SIGN_APP",
+          )
 
-    assert_equal "dr", decoded.dig("preferences", "ct")
-    assert_equal @jti, decoded["jti"]
+          assert_equal "dr", decoded.dig("preferences", "ct")
+          assert_equal @jti, decoded["jti"]
+        end
+      end
+    end
   end
 
   test "returns nil for invalid token" do
@@ -151,16 +157,12 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     end
   end
 
-  test "JwtConfiguration.audiences raises when PREFERENCE_JWT_AUDIENCES is missing" do
-    original = ENV["PREFERENCE_JWT_AUDIENCES"]
-    begin
-      ENV.delete("PREFERENCE_JWT_AUDIENCES")
-      assert_raises(PreferenceJwtConfiguration::MissingAudienceError) do
-        PreferenceJwtConfiguration.audiences
-      end
-    ensure
-      ENV["PREFERENCE_JWT_AUDIENCES"] = original
-    end
+  test "JwtConfiguration.audiences derives host names from boot config" do
+    expected = Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:host)
+    expected.concat(%w(app.localhost org.localhost com.localhost localhost))
+    expected.uniq!
+
+    assert_equal expected, PreferenceJwtConfiguration.audiences
   end
 
   test "audience_for requires a host" do

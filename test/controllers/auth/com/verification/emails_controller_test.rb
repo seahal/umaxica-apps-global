@@ -8,7 +8,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   setup do
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL")
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "com-verified-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
@@ -103,10 +103,10 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
             # sign no longer writes freshness; acme commits it on completion (asserted below).
 
             submit_step_up_completion_if_present!(
-              host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+              host: ENV.fetch("ACME_CORPORATE_URL"),
               headers: as_visitor_headers(
                 @visitor,
-                host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+                host: ENV.fetch("ACME_CORPORATE_URL"),
                 session_public_id: @token.public_id,
               ),
             )

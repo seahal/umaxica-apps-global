@@ -6,58 +6,58 @@ require "test_helper"
 class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   ROBOTS_SURFACES = [
     {
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      host: ENV.fetch("ACME_CORPORATE_URL"),
       controller: "acme/com/robots",
     },
     {
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ACME_STAFF_URL"),
       controller: "acme/org/robots",
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
+      host: ENV.fetch("BASE_CORPORATE_URL"),
       controller: "base/com/robots",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL", "base.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       controller: "base/org/robots",
     },
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "core.app.localhost"),
+      host: ENV.fetch("CORE_SERVICE_URL"),
       controller: "core/app/robots",
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost"),
+      host: ENV.fetch("CORE_CORPORATE_URL"),
       controller: "core/com/robots",
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "core.org.localhost"),
+      host: ENV.fetch("CORE_STAFF_URL"),
       controller: "core/org/robots",
     },
     {
-      host: ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost"),
+      host: ENV.fetch("PALM_SERVICE_URL"),
       controller: "palm/app/robots",
     },
   ].freeze
 
   SITEMAP_SURFACES = [
     {
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      host: ENV.fetch("ACME_CORPORATE_URL"),
       controller: "acme/com/sitemaps",
     },
     {
-      host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("ACME_STAFF_URL"),
       controller: "acme/org/sitemaps",
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL", "base.com.localhost"),
+      host: ENV.fetch("BASE_CORPORATE_URL"),
       controller: "base/com/sitemaps",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL", "base.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       controller: "base/org/sitemaps",
     },
     {
-      host: ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost"),
+      host: ENV.fetch("PALM_SERVICE_URL"),
       controller: "palm/app/sitemaps",
     },
   ].freeze
@@ -93,7 +93,7 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "robots and sitemap responses set long cache headers" do
-    host! ENV.fetch("PALM_SERVICE_URL", "palm.app.localhost")
+    host! ENV.fetch("PALM_SERVICE_URL")
 
     get "/sitemap.xml"
 

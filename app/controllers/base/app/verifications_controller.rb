@@ -22,7 +22,7 @@ module Base
           allowed_scopes: StepUpScopeCatalog::APP,
           sign_url_builder: ->(**query) {
             auth_app_verification_url(
-              query.merge(host: ENV.fetch("AUTH_SERVICE_URL", "log.umaxica.app")),
+              query.merge(host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "log.umaxica.app"))),
             )
           },
         )

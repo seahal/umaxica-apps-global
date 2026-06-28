@@ -12,7 +12,7 @@ class Auth::App::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     host! @host
     @user = clients(:one)
     @token = ClientToken.create!(user_id: @user.id)

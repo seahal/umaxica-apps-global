@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL")
   end
 
   test "continue redirects to google oauth with valid provider" do

@@ -6,21 +6,21 @@ require "test_helper"
 class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
+      host: ENV.fetch("CORE_SERVICE_URL"),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+      acme_host: ENV.fetch("ACME_SERVICE_URL"),
       resource: -> { clients(:one) },
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org"),
+      host: ENV.fetch("CORE_STAFF_URL"),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
+      acme_host: ENV.fetch("ACME_STAFF_URL"),
       resource: -> { operators(:one) },
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"),
+      host: ENV.fetch("CORE_CORPORATE_URL"),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      acme_host: ENV.fetch("ACME_CORPORATE_URL"),
       resource: -> { create_visitor! },
     },
   ].freeze
@@ -45,9 +45,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "regional core callback routes are host constrained" do
     expectations = {
-      ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app") => "core/app/auth/callbacks",
-      ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com") => "core/com/auth/callbacks",
-      ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org") => "core/org/auth/callbacks",
+      ENV.fetch("CORE_SERVICE_URL") => "core/app/auth/callbacks",
+      ENV.fetch("CORE_CORPORATE_URL") => "core/com/auth/callbacks",
+      ENV.fetch("CORE_STAFF_URL") => "core/org/auth/callbacks",
       "core.app.localhost" => "core/app/auth/callbacks",
       "core.com.localhost" => "core/com/auth/callbacks",
       "core.org.localhost" => "core/org/auth/callbacks",
@@ -87,9 +87,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "core app browser flow reaches Acme token exchange without stubbing OP" do
     with_core_oidc_client_key do
-      core_host = ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")
-      acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
-      sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+      core_host = ENV.fetch("CORE_SERVICE_URL")
+      acme_host = ENV.fetch("ACME_SERVICE_URL")
+      sign_host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
       client = OidcClientRegistry.find!("core-next-rp")
       host! core_host
       https!

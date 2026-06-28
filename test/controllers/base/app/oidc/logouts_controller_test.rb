@@ -8,7 +8,7 @@ class Base::App::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("BASE_SERVICE_URL")
     @client = OidcClientRegistry.find!("sign-rp")
     @user = clients(:one)
     @token = ClientToken.create!(

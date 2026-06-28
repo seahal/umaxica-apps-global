@@ -9,7 +9,7 @@ class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
 
   setup do
     CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
     @user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 

@@ -7,9 +7,9 @@ class ContentSurfaceBoundaryTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   SURFACE_HOSTS = {
-    "docs" => ENV.fetch("DOCS_SERVICE_URL", "docs.app.localhost"),
-    "help" => ENV.fetch("HELP_SERVICE_URL", "help.app.localhost"),
-    "news" => ENV.fetch("NEWS_SERVICE_URL", "news.app.localhost"),
+    "docs" => ENV.fetch("DOCS_SERVICE_URL"),
+    "help" => ENV.fetch("HELP_SERVICE_URL"),
+    "news" => ENV.fetch("NEWS_SERVICE_URL"),
   }.freeze
 
   test "docs help and news entries remain public read-only json surfaces" do

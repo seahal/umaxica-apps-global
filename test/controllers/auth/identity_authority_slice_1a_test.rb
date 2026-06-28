@@ -7,21 +7,21 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   test "auth does not expose authorization-server authority routes" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oauth/token",
+        "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/oauth/token",
         method: :post,
       )
     end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oauth/userinfo",
+        "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/oauth/userinfo",
         method: :get,
       )
     end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oidc/jwks",
+        "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/oidc/jwks",
         method: :get,
       )
     end
@@ -29,7 +29,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "auth settings sessions route uses auth authority" do
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/sessions",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/settings/sessions",
       method: :get,
     )
 
@@ -39,7 +39,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "auth withdrawal resolves on auth settings authority" do
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/withdrawal/new",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/settings/withdrawal/new",
       method: :get,
     )
 
@@ -49,11 +49,11 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "auth sign in and sign up entry routes still resolve on auth" do
     sign_in = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/in",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/in",
       method: :get,
     )
     sign_up = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/up",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/up",
       method: :get,
     )
 
@@ -65,7 +65,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "auth sign out lifecycle routes use the explicit ceremony contract" do
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/new",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/out/new",
       method: :get,
     )
 
@@ -73,7 +73,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "new", route.fetch(:action)
 
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/edit",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/out/edit",
       method: :get,
     )
 
@@ -81,7 +81,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "edit", route.fetch(:action)
 
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/out",
       method: :post,
     )
 
@@ -89,7 +89,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "create", route.fetch(:action)
 
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/out",
       method: :delete,
     )
 
@@ -97,7 +97,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "destroy", route.fetch(:action)
 
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/sign/out/complete",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/sign/out/complete",
       method: :get,
     )
 
@@ -115,7 +115,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       method: :get,
     )
     sessions = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_SERVICE_URL")}/settings/sessions",
+      "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/settings/sessions",
       method: :get,
     )
 
@@ -128,14 +128,14 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oidc/logout",
+        "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/oidc/logout",
         method: :get,
       )
     end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_SERVICE_URL")}/oauth/token",
+        "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}/oauth/token",
         method: :post,
       )
     end

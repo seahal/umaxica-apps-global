@@ -7,7 +7,7 @@ class OrgConfigurationRoutesTest < ActiveSupport::TestCase
   ROUTES = {
     sign: {
       org_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
-      app_host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+      app_host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL", "id.app.localhost"),
       com_host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
       controller: "sign/org/configurations",
       helper: :auth_org_configuration_path,

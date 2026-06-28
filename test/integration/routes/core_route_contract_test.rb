@@ -6,11 +6,12 @@ require "test_helper"
 class CoreRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  CORE_APP_HOST = ENV.fetch("CORE_SERVICE_URL", "core.app.localhost")
-  CORE_COM_HOST = ENV.fetch("CORE_CORPORATE_URL", "core.com.localhost")
-  CORE_ORG_HOST = ENV.fetch("CORE_STAFF_URL", "core.org.localhost")
-  CORE_NET_HOST = ENV.fetch("CORE_NETWORK_URL", "core.net.localhost")
-  CORE_DEV_HOST = ENV.fetch("CORE_DEVELOPER_URL", "core.dev.localhost")
+  BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
+  CORE_APP_HOST = BOOT_HOSTS.core_service.host
+  CORE_COM_HOST = BOOT_HOSTS.core_corporate.host
+  CORE_ORG_HOST = BOOT_HOSTS.core_staff.host
+  CORE_NET_HOST = ENV["PRIVATE_CORE_NETWORK_URL"] || ENV["CORE_NETWORK_URL"] || "core.net.localhost"
+  CORE_DEV_HOST = ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV["CORE_DEVELOPER_URL"] || "core.dev.localhost"
 
   test "core surfaces do not expose dashboards" do
     [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST, CORE_NET_HOST, CORE_DEV_HOST].each do |host|

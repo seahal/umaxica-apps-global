@@ -9,13 +9,13 @@ class Base::EdgeV0TokenChecksTest < ActionDispatch::IntegrationTest
 
   SURFACES = [
     {
-      host: ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("BASE_SERVICE_URL"),
       actor: ->(test_case) { test_case.clients(:one) },
       build_token: ->(test_case) { ClientToken.create!(user: test_case.clients(:one)) },
       resource_type: "client",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("BASE_STAFF_URL"),
       actor: ->(test_case) { test_case.operators(:one) },
       build_token: ->(test_case) { OperatorToken.create!(staff: test_case.operators(:one)) },
       resource_type: "operator",

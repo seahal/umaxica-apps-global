@@ -32,4 +32,11 @@ class ConfigValuesOriginValueTest < ActiveSupport::TestCase
     assert_equal "https://example.com", value.to_s
     assert_equal "example.com", value.host
   end
+
+  test "accepts bare host origins by treating them as https" do
+    value = ConfigValues.build("jump.umaxica.net")
+
+    assert_equal "https://jump.umaxica.net", value.to_s
+    assert_equal "jump.umaxica.net", value.host
+  end
 end

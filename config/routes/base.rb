@@ -6,7 +6,8 @@ scope module: :base, as: :base do
   boot_config = Rails.configuration.x.boot_config
 
   # App OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_service.host, "base.app.localhost", "www.umaxica.app"].compact do
+  constraints host: [boot_config.fetch(:hosts).base_service.host,
+                     ENV["PUBLIC_BASE_SERVICE_URL"] || ENV["BASE_SERVICE_URL"], "www.umaxica.app",].compact do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -590,7 +591,7 @@ scope module: :base, as: :base do
   end
 
   # Network utility host.
-  constraints host: ENV["BASE_NETWORK_URL"] do
+  constraints host: ENV["PRIVATE_BASE_NETWORK_URL"] || ENV["BASE_NETWORK_URL"] do
     scope module: :net, as: :network do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -609,7 +610,7 @@ scope module: :base, as: :base do
   end
 
   # Developer utility host.
-  constraints host: ENV["BASE_DEVELOPER_URL"] do
+  constraints host: ENV["PRIVATE_BASE_DEVELOPER_URL"] || ENV["BASE_DEVELOPER_URL"] do
     scope module: :dev, as: :developer do
       # Thin landing endpoint.
       root to: "roots#index"

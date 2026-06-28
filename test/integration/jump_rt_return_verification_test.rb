@@ -63,7 +63,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     https!
     token = sign_return_token(
       aud: app_origin,
-      src: "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}",
+      src: "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}",
       url: "#{app_origin}/?ok=1",
     )
 
@@ -218,7 +218,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       nbf: iat,
       exp: iat + 60,
       jti: "jump-return-jti",
-      src: "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}",
+      src: "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}",
       dst: "internal",
       url: "https://www.app.localhost/",
     }.merge(overrides)
@@ -227,11 +227,11 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   end
 
   def acme_app_origin
-    "https://#{ENV.fetch("BASE_SERVICE_URL", "www.umaxica.app")}"
+    "https://#{ENV.fetch("BASE_SERVICE_URL")}"
   end
 
   def sign_app_origin
-    "https://#{ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")}"
+    "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}"
   end
 
   def sign_verifier_success(origin)

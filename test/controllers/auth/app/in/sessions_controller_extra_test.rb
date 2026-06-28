@@ -7,7 +7,7 @@ class Auth::App::Sign::In::SessionsControllerExtraTest < ActionDispatch::Integra
   fixtures :clients
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
     ClientToken.where(user: @user).delete_all
 

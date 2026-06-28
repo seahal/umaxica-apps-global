@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "callback routes keep google GET and apple GET or POST separate" do
-    host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    host = ENV.fetch("AUTH_SERVICE_URL")
     google_route = Rails.application.routes.recognize_path(
       "http://#{host}/social/google/callback",
       method: :get,
@@ -43,7 +43,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
       "REMOTE_ADDR" => "127.0.0.1",
     )
     controller.request = request
@@ -170,7 +170,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
@@ -256,7 +256,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
@@ -304,7 +304,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     controller.request = request
     controller.response = ActionDispatch::TestResponse.new
@@ -369,7 +369,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
@@ -445,7 +445,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     request.env["omniauth.auth"] = OpenStruct.new(provider: "google")
     controller.request = request
@@ -685,7 +685,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTP_HOST" => ENV.fetch("AUTH_SERVICE_URL"),
     )
     request.env["omniauth.auth"] = OpenStruct.new(provider: provider)
     controller.request = request

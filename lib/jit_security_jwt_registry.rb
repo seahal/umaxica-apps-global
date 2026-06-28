@@ -142,7 +142,7 @@ module JitSecurityJwtRegistry
       public_keyset_name: :PREFERENCE_JWT_PUBLIC_KEYSET,
       active_kid: source.fetch("PREFERENCE_JWT_ACTIVE_KID", nil),
       issuer: source.fetch("PREFERENCE_JWT_ISSUER", nil),
-      audiences: source.csv("PREFERENCE_JWT_AUDIENCES"),
+      audiences: preference_audiences(source: source),
       revoked_kids: source.csv("PREFERENCE_JWT_REVOKED_KIDS"),
     )
 
@@ -183,7 +183,7 @@ module JitSecurityJwtRegistry
       public_keyset_source: "JWT_#{namespace}_PUBLIC_KEYSET",
       revoked_kids: source.csv("JWT_#{namespace}_REVOKED_KIDS"),
       issuer: surface_issuer_origin(namespace),
-      audiences: [source.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")].freeze,
+      audiences: [source.fetch("PUBLIC_JUMP_GATEWAY_URL", source.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net"))].freeze,
     )
   rescue JitSecurityJwtIssuerBuilder::Error => e
     raise ConfigurationError, e.message
@@ -204,6 +204,29 @@ module JitSecurityJwtRegistry
     )
   rescue JitSecurityJwtIssuerBuilder::Error => e
     raise ConfigurationError, e.message
+  end
+
+  def preference_audiences(source:)
+    hosts = preference_hosts_from_boot_config
+    return hosts if hosts.present?
+
+    [
+      source.fetch("PUBLIC_BASE_SERVICE_URL", source.fetch("BASE_SERVICE_URL", "base.app.localhost")),
+      source.fetch("PUBLIC_BASE_CORPORATE_URL", source.fetch("BASE_CORPORATE_URL", "base.com.localhost")),
+      source.fetch("PUBLIC_BASE_STAFF_URL", source.fetch("BASE_STAFF_URL", "base.org.localhost")),
+    ].compact.map(&:to_s).freeze
+  end
+
+  def preference_hosts_from_boot_config
+    boot_config = Rails.configuration.x.boot_config rescue nil
+    hosts = boot_config&.fetch(:hosts, nil)
+    return [] unless hosts
+
+    values = %i[base_service base_corporate base_staff].filter_map do |key|
+      host = hosts.public_send(key)
+      host&.to_s
+    end
+    values.freeze
   end
 
   def validate!(records = issuers)

@@ -19,9 +19,9 @@ require "test_helper"
 class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest
   fixtures :operators, :clients
 
-  APP_HOST = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-  COM_HOST = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-  ORG_HOST = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+  APP_HOST = ENV.fetch("ID_SERVICE_URL")
+  COM_HOST = ENV.fetch("SIGN_CORPORATE_URL")
+  ORG_HOST = ENV.fetch("ID_STAFF_URL")
 
   setup do
     @client = clients(:one)

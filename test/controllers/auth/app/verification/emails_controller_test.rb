@@ -10,7 +10,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   setup do
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL")
     @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
@@ -291,10 +291,10 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
             # sign no longer writes freshness; acme commits it on completion (asserted below).
 
             submit_step_up_completion_if_present!(
-              host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+              host: ENV.fetch("ACME_SERVICE_URL"),
               headers: as_user_headers(
                 @user,
-                host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
+                host: ENV.fetch("ACME_SERVICE_URL"),
                 session_public_id: @token.public_id,
               ),
             )

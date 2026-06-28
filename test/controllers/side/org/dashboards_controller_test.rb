@@ -7,8 +7,8 @@ class Side::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("SIDE_STAFF_URL", "side.org.localhost")
-    @acme_host = ENV.fetch("ACME_STAFF_URL", "www.org.localhost")
+    @host = ENV.fetch("SIDE_STAFF_URL")
+    @acme_host = ENV.fetch("ACME_STAFF_URL")
     @operator = operators(:one)
     @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)

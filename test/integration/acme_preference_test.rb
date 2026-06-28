@@ -12,7 +12,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
   DOMAINS = [
     {
       name: "app",
-      host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      host: ENV.fetch("BASE_SERVICE_URL"),
       scope: "base.app.preferences",
       preference_model: AppPreference,
       audit_class: AppPreferenceChronicle,
@@ -20,7 +20,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "org",
-      host: ENV.fetch("ACME_STAFF_URL", "www.umaxica.org"),
+      host: ENV.fetch("ACME_STAFF_URL"),
       scope: "base.org.preferences",
       preference_model: OrgPreference,
       audit_class: OrgPreferenceChronicle,
@@ -28,7 +28,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "com",
-      host: ENV.fetch("ACME_CORPORATE_URL", "www.umaxica.com"),
+      host: ENV.fetch("ACME_CORPORATE_URL"),
       scope: "base.com.preferences",
       preference_model: ComPreference,
       audit_class: ComPreferenceChronicle,

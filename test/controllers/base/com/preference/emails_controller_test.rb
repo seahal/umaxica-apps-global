@@ -15,7 +15,7 @@ module Base
                       :visitor_telephone_statuses
 
         setup do
-          @host = ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+          @host = ENV.fetch("BASE_CORPORATE_URL")
           @visitor = create_verified_visitor_with_email(
             email_address: "visitor-unsubscribe-#{SecureRandom.hex(4)}@example.com",
           )

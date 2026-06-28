@@ -8,10 +8,7 @@ class RoutingEntrypointsTest < ActiveSupport::TestCase
     assert_nothing_raised { Rails.application.reload_routes! }
 
     root_route = Rails.application.routes.recognize_path(
-      "http://#{ENV.fetch(
-        "ACME_SERVICE_URL",
-        "www.app.localhost",
-      )}/",
+      "http://#{ENV.fetch("ACME_SERVICE_URL")}/",
     )
 
     assert_equal "acme/app/roots", root_route[:controller]

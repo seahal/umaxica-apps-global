@@ -16,8 +16,8 @@ class CrossSurfaceTokenTest < ActionDispatch::IntegrationTest
   CHECK_PATH = "/edge/v0/token/check"
 
   setup do
-    @app_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @org_host = ENV.fetch("ID_STAFF_URL", "test.umaxica.com")
+    @app_host = ENV.fetch("ID_SERVICE_URL")
+    @org_host = ENV.fetch("ID_STAFF_URL")
     @user = clients(:one)
     @staff = operators(:one)
     ClientToken.where(user: @user).delete_all

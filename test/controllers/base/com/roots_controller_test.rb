@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
-    host! ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host! ENV.fetch("BASE_CORPORATE_URL")
     get base_com_root_url(ri: "jp")
 
     assert_response :success
@@ -14,7 +14,7 @@ class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host! ENV.fetch("BASE_CORPORATE_URL")
 
     assert_difference("ComPreference.count", 1) do
       get base_com_root_url(ri: "jp")
@@ -26,7 +26,7 @@ class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root when optional URL preferences are present" do
-    host! ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host! ENV.fetch("BASE_CORPORATE_URL")
 
     assert_difference("ComPreference.count", 1) do
       get base_com_root_url(ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo")
@@ -38,7 +38,7 @@ class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to dashboard when logged in" do
-    host! ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost")
+    host! ENV.fetch("BASE_CORPORATE_URL")
     visitor = create_verified_visitor_with_email(email_address: "base-com-root-logged-in@example.com")
     visitor.visitor_telephones.create!(
       number: "+15550002226",
@@ -46,9 +46,9 @@ class Base::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     )
 
     get base_com_root_url(ri: "jp"),
-        headers: as_visitor_headers(visitor, host: ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"))
+        headers: as_visitor_headers(visitor, host: ENV.fetch("BASE_CORPORATE_URL"))
 
     assert_response :redirect
-    assert_redirected_to base_com_dashboard_url(ri: "jp", host: ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"))
+    assert_redirected_to base_com_dashboard_url(ri: "jp", host: ENV.fetch("BASE_CORPORATE_URL"))
   end
 end

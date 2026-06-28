@@ -40,18 +40,21 @@ class PreferenceOptionMappingTest < ActiveSupport::TestCase
 end
 
 class PreferenceJwtConfigurationTest < ActiveSupport::TestCase
-  test "jwt configuration reads environment values and normalizes audiences" do
+  test "jwt configuration reads environment values for leeway and issuer" do
     with_env(
       "PREFERENCE_JWT_ACTIVE_KID" => "kid-1",
       "PREFERENCE_JWT_LEEWAY_SECONDS" => "45",
       "PREFERENCE_JWT_ISSUER" => "jit-test",
-      "PREFERENCE_JWT_AUDIENCES" => "app.localhost, org.localhost , ,com.localhost",
     ) do
       assert_equal JitSecurityJwtRegistry.issuer("preference").current_kid,
                    PreferenceJwtConfiguration.active_kid
       assert_equal 45, PreferenceJwtConfiguration.leeway_seconds
       assert_equal "jit-test", PreferenceJwtConfiguration.issuer
-      assert_equal %w(app.localhost org.localhost com.localhost), PreferenceJwtConfiguration.audiences
+      expected = Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:host)
+      expected.concat(%w(app.localhost org.localhost com.localhost localhost))
+      expected.uniq!
+      assert_equal expected,
+                   PreferenceJwtConfiguration.audiences
     end
   end
 
@@ -115,8 +118,20 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   end
 
   test "token issued on id host decodes on same TLD sibling when audience is configured" do
-    previous = ENV["PREFERENCE_JWT_AUDIENCES"]
-    ENV["PREFERENCE_JWT_AUDIENCES"] = "umaxica.app"
+    token = PreferenceToken.encode(
+      { "lx" => "ja" },
+      host: "log.umaxica.app",
+      preference_type: "AppPreference",
+      public_id: "pref_123",
+      jti: "jti_123",
+    )
+
+    assert token
+    assert PreferenceToken.decode(token, host: "log.umaxica.app")
+    assert_nil PreferenceToken.decode(token, host: "log.umaxica.com")
+  end
+
+  test "token issued on id host can decode for the same host without ENV audience config" do
     token = PreferenceToken.encode(
       { "lx" => "ja" },
       host: "log.umaxica.app",
@@ -126,9 +141,7 @@ class PreferenceTokenTest < ActiveSupport::TestCase
     )
 
     assert PreferenceToken.decode(token, host: "log.umaxica.app")
-    assert PreferenceToken.decode(token, host: "www.umaxica.app")
-  ensure
-    ENV["PREFERENCE_JWT_AUDIENCES"] = previous
+    assert_nil PreferenceToken.decode(token, host: "log.umaxica.com")
   end
 
   test "audience_matches handles allowed and rejected audiences" do
