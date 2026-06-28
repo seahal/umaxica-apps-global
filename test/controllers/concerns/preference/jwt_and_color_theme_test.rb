@@ -53,6 +53,7 @@ class PreferenceJwtConfigurationTest < ActiveSupport::TestCase
       expected = Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:host)
       expected.concat(%w(app.localhost org.localhost com.localhost localhost))
       expected.uniq!
+
       assert_equal expected,
                    PreferenceJwtConfiguration.audiences
     end

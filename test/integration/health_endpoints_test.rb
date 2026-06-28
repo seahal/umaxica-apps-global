@@ -174,7 +174,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("CORE_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL")),
       controller: "core/app/healths",
       liveness_controller: "core/app/health/livenesses",
       readiness_controller: "core/app/health/readinesses",
@@ -182,7 +182,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL")),
       controller: "core/com/healths",
       liveness_controller: "core/com/health/livenesses",
       readiness_controller: "core/com/health/readinesses",
@@ -190,7 +190,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL")),
       controller: "core/org/healths",
       liveness_controller: "core/org/health/livenesses",
       readiness_controller: "core/org/health/readinesses",

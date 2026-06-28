@@ -7,7 +7,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV.fetch("CORE_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))
   end
 
   test "get sign out renders confirmation without mutation" do
@@ -150,7 +150,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       logout_challenge: challenge,
     ), headers: {
       "Host" => ENV.fetch("ACME_SERVICE_URL"),
-      "Origin" => "https://#{ENV.fetch("CORE_SERVICE_URL")}",
+      "Origin" => "https://#{ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))}",
       "Sec-Fetch-Site" => "same-site",
     }
 

@@ -222,10 +222,11 @@ module JitSecurityJwtRegistry
     hosts = boot_config&.fetch(:hosts, nil)
     return [] unless hosts
 
-    values = %i[base_service base_corporate base_staff].filter_map do |key|
-      host = hosts.public_send(key)
-      host&.to_s
-    end
+    values =
+      %i(base_service base_corporate base_staff).filter_map do |key|
+        host = hosts.public_send(key)
+        host&.to_s
+      end
     values.freeze
   end
 

@@ -3,7 +3,7 @@
 require "test_helper"
 
 class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
-  HOST = ENV.fetch("CORE_SERVICE_URL")
+HOST = ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))
 
   setup do
     @previous_flag = ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"]

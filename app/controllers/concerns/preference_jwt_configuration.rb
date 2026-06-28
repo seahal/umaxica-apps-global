@@ -31,11 +31,13 @@ module PreferenceJwtConfiguration
     configured = fallback_localhost_audiences(configured) if Rails.env.local?
     return configured if configured.present?
 
-    fallback_localhost_audiences([
-      env_host("PUBLIC_BASE_SERVICE_URL", "BASE_SERVICE_URL", "base.app.localhost"),
-      env_host("PUBLIC_BASE_CORPORATE_URL", "BASE_CORPORATE_URL", "base.com.localhost"),
-      env_host("PUBLIC_BASE_STAFF_URL", "BASE_STAFF_URL", "base.org.localhost"),
-    ].compact)
+    fallback_localhost_audiences(
+      [
+        env_host("PUBLIC_BASE_SERVICE_URL", "BASE_SERVICE_URL", "base.app.localhost"),
+        env_host("PUBLIC_BASE_CORPORATE_URL", "BASE_CORPORATE_URL", "base.com.localhost"),
+        env_host("PUBLIC_BASE_STAFF_URL", "BASE_STAFF_URL", "base.org.localhost"),
+      ].compact,
+    )
   end
 
   # Returns the audiences that may legitimately accept a token issued for
@@ -125,10 +127,11 @@ module PreferenceJwtConfiguration
     hosts = Rails.configuration.x.boot_config.fetch(:hosts, nil) rescue nil
     return [] unless hosts
 
-    values = %i[base_service base_corporate base_staff].filter_map do |key|
-      host = hosts.public_send(key)&.host
-      host if host.present?
-    end
+    values =
+      %i(base_service base_corporate base_staff).filter_map do |key|
+        host = hosts.public_send(key)&.host
+        host.presence
+      end
     values.freeze
   end
   private_class_method :audiences_from_boot_config

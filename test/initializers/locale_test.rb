@@ -61,6 +61,8 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Back", I18n.t("base.org.preferences.regions.back_link")
       assert_equal "Preferences", I18n.t("base.com.preferences.title")
       assert_equal "Preferences", I18n.t("base.org.preferences.title")
+      assert_equal "Timezone Settings", I18n.t("base.com.preferences.timezone_settings")
+      assert_equal "Timezone Settings", I18n.t("base.org.preferences.timezone_settings")
       assert_equal "Region & Language Settings", I18n.t("base.app.preferences.region_settings")
       assert_equal "Language Settings", I18n.t("acme.app.preferences.language_settings")
       assert_equal "Manage language, theme, and other preferences in one place.",

@@ -20,9 +20,9 @@ class OrgConfigurationRoutesTest < ActiveSupport::TestCase
       helper: :acme_org_configuration_path,
     },
     core: {
-      org_host: ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org"),
-      app_host: ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app"),
-      com_host: ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com"),
+      org_host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")),
+      app_host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
+      com_host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")),
       controller: "core/org/configurations",
       helper: :core_org_configuration_path,
     },

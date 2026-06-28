@@ -3565,6 +3565,7 @@ en:
         reset_settings: Reset Settings
         back_to_settings: Back to settings
         update_settings: Update Settings
+        update_success: Preferences updated successfully
         submitting: Submitting...
     org:
       preferences:
@@ -3584,6 +3585,7 @@ en:
         reset_settings: Reset Settings
         back_to_settings: Back to settings
         update_settings: Update Settings
+        update_success: Preferences updated successfully
         submitting: Submitting...
     com:
       preferences:
@@ -3592,6 +3594,7 @@ en:
         up_link: Back to top
         regions:
           back_link: Back
+        timezone_settings: Timezone Settings
         back_to_settings: Back to Preferences
       preference:
         resets:
@@ -3606,6 +3609,7 @@ en:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.
         up_link: Back to top
+        timezone_settings: Timezone Settings
         back_to_settings: Back to Preferences
       preference:
         resets:
@@ -3677,6 +3681,25 @@ en:
     app:
       roots:
         message: "Base services are available. See /settings."
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
+        back_to_settings: Back to settings
+        update_settings: Update Settings
+        update_success: Preferences updated successfully
+        submitting: Submitting...
     com:
       roots:
         message: "Base services are available. See /settings."
@@ -3686,6 +3709,15 @@ en:
         up_link: Back to top
         regions:
           back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
         back_to_settings: Back to Preferences
       preference:
         resets:
@@ -3704,6 +3736,15 @@ en:
         up_link: Back to top
         regions:
           back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
         back_to_settings: Back to Preferences
       preference:
         resets:
