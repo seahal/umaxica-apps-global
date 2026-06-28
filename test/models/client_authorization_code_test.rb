@@ -164,7 +164,7 @@ class ClientAuthorizationCodeTest < ActiveSupport::TestCase
   end
 
   test "verify_pkce" do
-    verifier = "test-verifier-123"
+    verifier = "A" * 43
     challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
 
     code = ClientAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
@@ -172,5 +172,19 @@ class ClientAuthorizationCodeTest < ActiveSupport::TestCase
     assert code.verify_pkce(verifier)
     assert_not code.verify_pkce("wrong-verifier")
     assert_not code.verify_pkce(nil)
+  end
+
+  test "verify_pkce rejects malformed verifiers and non S256 methods" do
+    verifier = "test-verifier-123"
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+    code = ClientAuthorizationCode.issue!(**@valid_params.merge(code_challenge: challenge))
+
+    assert_not code.verify_pkce("short")
+    assert_not code.verify_pkce("x" * 129)
+    assert_not code.verify_pkce("invalid*chars")
+
+    code.update_columns(code_challenge_method: "plain")
+
+    assert_not code.verify_pkce(verifier)
   end
 end

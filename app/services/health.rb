@@ -48,9 +48,9 @@ module Health
     end
 
     # Non-sensitive diagnostic metadata only. Never exception classes,
-    # messages, connection topology, or credentials.
+    # messages, connection topology, surface labels, or credentials.
     def details
-      details = { surface: surface, generated_at: generated_at.iso8601(3) }
+      details = { generated_at: generated_at.iso8601(3) }
       details[:revision] = revision if revision
       details[:status] = status.to_s unless status == :ok
       details

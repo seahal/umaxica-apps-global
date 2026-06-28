@@ -3,7 +3,7 @@
 
 require "test_helper"
 
-class SignRouteContractTest < ActionDispatch::IntegrationTest
+class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   SIGN_APP_HOST = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
@@ -18,71 +18,75 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   # rubocop:disable Minitest/MultipleAssertions
-  test "sign app route contract" do
+  test "auth app route contract" do
     assert_recognizes(
-      { controller: "sign/app/roots", action: "index" },
+      { controller: "auth/app/roots", action: "index" },
       { path: "http://#{SIGN_APP_HOST}/", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/well_known/jwks", action: "show" },
+      { controller: "auth/app/well_known/jwks", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/.well-known/jwks.json", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/healths", action: "show" },
+      { controller: "auth/app/healths", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/health", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/health/livenesses", action: "show" },
+      { controller: "auth/app/health/livenesses", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/health/liveness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/health/readinesses", action: "show" },
+      { controller: "auth/app/health/readinesses", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/health/readiness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/health/startups", action: "show" },
+      { controller: "auth/app/health/startups", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/health/startup", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/robots", action: "index" },
+      { controller: "auth/app/robots", action: "index" },
       { path: "http://#{SIGN_APP_HOST}/robots.txt", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sitemaps", action: "show" },
+      { controller: "auth/app/sitemaps", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sitemap.xml", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "new" },
+      { controller: "auth/app/sign/outs", action: "new" },
       { path: "http://#{SIGN_APP_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "edit" },
+      { controller: "auth/app/sign/outs", action: "edit" },
       { path: "http://#{SIGN_APP_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "create" },
+      { controller: "auth/app/sign/outs", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "complete" },
-      { path: "http://#{SIGN_APP_HOST}/sign/out/complete", method: :get },
+      { controller: "auth/app/sign/outs", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/outs", action: "destroy" },
-      { path: "http://#{SIGN_APP_HOST}/sign/out", method: :delete },
+      { controller: "auth/app/sign/outs", action: "complete" },
+      { path: "http://#{SIGN_APP_HOST}/sign/out/complete", method: :get },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/sign/out/cancellation", method: :post)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_APP_HOST}/oidc/logout", method: :get)
@@ -93,27 +97,27 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/oidc/backchannel/logouts", action: "create" },
+      { controller: "auth/app/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/oidc/backchannel/logout", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/csp_violation_reports", action: "create" },
+      { controller: "auth/app/csp_violation_reports", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/dashboards", action: "show" },
+      { controller: "auth/app/dashboards", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/dashboard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/oidc/callbacks", action: "show" },
+      { controller: "auth/app/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/oidc/authorizations", action: "show" },
+      { controller: "auth/app/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/oidc/authorization", method: :get },
     )
 
@@ -171,27 +175,27 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/sign/ins", action: "show" },
+      { controller: "auth/app/sign/ins", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/emails", action: "new" },
+      { controller: "auth/app/sign/in/emails", action: "new" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/email/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/emails", action: "create" },
+      { controller: "auth/app/sign/in/emails", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/email", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/emails", action: "edit" },
+      { controller: "auth/app/sign/in/emails", action: "edit" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/email/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/emails", action: "update" },
+      { controller: "auth/app/sign/in/emails", action: "update" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/email", method: :patch },
     )
 
@@ -206,65 +210,70 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/guards", action: "show" },
+      { controller: "auth/app/sign/in/guards", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/guard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/checks", action: "show" },
+      { controller: "auth/app/sign/in/checks", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/checks", action: "update" },
+      { controller: "auth/app/sign/in/checks", action: "update" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :patch },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/check/cancellations", action: "create" },
-      { path: "http://#{SIGN_APP_HOST}/sign/in/check/cancellation", method: :post },
+      { controller: "auth/app/sign/in/checks", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/check", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/app/verification/cancellations", action: "create" },
+      { controller: "auth/app/sign/in/sessions", action: "destroy" },
+      { path: "http://#{SIGN_APP_HOST}/sign/in/session", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/app/verification/cancellations", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/challenges", action: "show" },
+      { controller: "auth/app/sign/in/challenges", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/challenge", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/passkeys", action: "new" },
+      { controller: "auth/app/sign/in/passkeys", action: "new" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/passkey/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/passkey/options", action: "create" },
+      { controller: "auth/app/sign/in/passkey/options", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/passkey/options", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/passkey/verifications", action: "create" },
+      { controller: "auth/app/sign/in/passkey/verifications", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/passkey/verification", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/secret_credentials", action: "new" },
+      { controller: "auth/app/sign/in/secret_credentials", action: "new" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/secret_credential/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/sign/in/secret_credentials", action: "create" },
+      { controller: "auth/app/sign/in/secret_credentials", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/sign/in/secret_credential", method: :post },
     )
 
     [
-      { controller: "sign/app/settings", action: "show", path: "/settings" },
-      { controller: "sign/app/settings/passkeys", action: "index", path: "/settings/passkeys" },
-      { controller: "sign/app/settings/sessions", action: "index", path: "/settings/sessions" },
-      { controller: "sign/app/settings/activities", action: "index", path: "/settings/activities" },
+      { controller: "auth/app/settings", action: "show", path: "/settings" },
+      { controller: "auth/app/settings/passkeys", action: "index", path: "/settings/passkeys" },
+      { controller: "auth/app/settings/sessions", action: "index", path: "/settings/sessions" },
+      { controller: "auth/app/settings/activities", action: "index", path: "/settings/activities" },
     ].each do |route|
       assert_recognizes(
         { controller: route[:controller], action: route[:action] },
@@ -274,7 +283,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   end
   # rubocop:enable Minitest/MultipleAssertions
 
-  test "sign app-only route contract" do
+  test "auth app-only route contract" do
     %w(
       /social/apple/connection
       /social/apple/disconnection
@@ -290,22 +299,22 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "failure" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "failure" },
       { path: "http://#{SIGN_APP_HOST}/social/failure", method: :get },
     )
 
@@ -317,82 +326,82 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/social/authentications", action: "continue" },
+      { controller: "auth/app/social/authentications", action: "continue" },
       { path: "http://#{SIGN_APP_HOST}/social/google/sign/in", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/social/authentications", action: "continue" },
+      { controller: "auth/app/social/authentications", action: "continue" },
       { path: "http://#{SIGN_APP_HOST}/social/google/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/social/authentications", action: "continue" },
+      { controller: "auth/app/social/authentications", action: "continue" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/sign/in", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/social/authentications", action: "continue" },
+      { controller: "auth/app/social/authentications", action: "continue" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/sign/up", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/google/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/omniauth/omniauth_callbacks", action: "omniauth" },
+      { controller: "auth/app/omniauth/omniauth_callbacks", action: "omniauth" },
       { path: "http://#{SIGN_APP_HOST}/social/apple/callback", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/totps", action: "index" },
+      { controller: "auth/app/settings/totps", action: "index" },
       { path: "http://#{SIGN_APP_HOST}/settings/totps", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/apples", action: "show" },
+      { controller: "auth/app/settings/apples", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/apples", action: "edit" },
+      { controller: "auth/app/settings/apples", action: "edit" },
       { path: "http://#{SIGN_APP_HOST}/settings/apple/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/apples", action: "create" },
+      { controller: "auth/app/settings/apples", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/apples", action: "destroy" },
+      { controller: "auth/app/settings/apples", action: "destroy" },
       { path: "http://#{SIGN_APP_HOST}/settings/apple", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/googles", action: "show" },
+      { controller: "auth/app/settings/googles", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/settings/google", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/googles", action: "edit" },
+      { controller: "auth/app/settings/googles", action: "edit" },
       { path: "http://#{SIGN_APP_HOST}/settings/google/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/googles", action: "create" },
+      { controller: "auth/app/settings/googles", action: "create" },
       { path: "http://#{SIGN_APP_HOST}/settings/google", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/app/settings/googles", action: "destroy" },
+      { controller: "auth/app/settings/googles", action: "destroy" },
       { path: "http://#{SIGN_APP_HOST}/settings/google", method: :delete },
     )
 
@@ -403,77 +412,81 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/app/settings/secret_credentials", action: "index" },
+      { controller: "auth/app/settings/secret_credentials", action: "index" },
       { path: "http://#{SIGN_APP_HOST}/settings/secret_credentials", method: :get },
     )
   end
 
   # rubocop:disable Minitest/MultipleAssertions
-  test "sign com route contract" do
+  test "auth com route contract" do
     assert_recognizes(
-      { controller: "sign/com/roots", action: "index" },
+      { controller: "auth/com/roots", action: "index" },
       { path: "http://#{SIGN_COM_HOST}/", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/well_known/jwks", action: "show" },
+      { controller: "auth/com/well_known/jwks", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/.well-known/jwks.json", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/healths", action: "show" },
+      { controller: "auth/com/healths", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/health", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/health/livenesses", action: "show" },
+      { controller: "auth/com/health/livenesses", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/health/liveness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/health/readinesses", action: "show" },
+      { controller: "auth/com/health/readinesses", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/health/readiness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/health/startups", action: "show" },
+      { controller: "auth/com/health/startups", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/health/startup", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/robots", action: "index" },
+      { controller: "auth/com/robots", action: "index" },
       { path: "http://#{SIGN_COM_HOST}/robots.txt", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sitemaps", action: "show" },
+      { controller: "auth/com/sitemaps", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sitemap.xml", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "new" },
+      { controller: "auth/com/sign/outs", action: "new" },
       { path: "http://#{SIGN_COM_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "edit" },
+      { controller: "auth/com/sign/outs", action: "edit" },
       { path: "http://#{SIGN_COM_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "create" },
+      { controller: "auth/com/sign/outs", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "complete" },
-      { path: "http://#{SIGN_COM_HOST}/sign/out/complete", method: :get },
+      { controller: "auth/com/sign/outs", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/outs", action: "destroy" },
-      { path: "http://#{SIGN_COM_HOST}/sign/out", method: :delete },
+      { controller: "auth/com/sign/outs", action: "complete" },
+      { path: "http://#{SIGN_COM_HOST}/sign/out/complete", method: :get },
     )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/sign/out/cancellation", method: :post)
+    end
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{SIGN_COM_HOST}/oidc/logout", method: :get)
@@ -484,27 +497,27 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/com/oidc/backchannel/logouts", action: "create" },
+      { controller: "auth/com/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/oidc/backchannel/logout", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/csp_violation_reports", action: "create" },
+      { controller: "auth/com/csp_violation_reports", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/dashboards", action: "show" },
+      { controller: "auth/com/dashboards", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/dashboard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/oidc/callbacks", action: "show" },
+      { controller: "auth/com/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/oidc/authorizations", action: "show" },
+      { controller: "auth/com/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/oidc/authorization", method: :get },
     )
 
@@ -552,22 +565,22 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/com/sign/ins", action: "show" },
+      { controller: "auth/com/sign/ins", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/emails", action: "new" },
+      { controller: "auth/com/sign/in/emails", action: "new" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/email/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/emails", action: "create" },
+      { controller: "auth/com/sign/in/emails", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/email", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/emails", action: "edit" },
+      { controller: "auth/com/sign/in/emails", action: "edit" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/email/edit", method: :get },
     )
 
@@ -578,65 +591,70 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/guards", action: "show" },
+      { controller: "auth/com/sign/in/guards", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/guard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/checks", action: "show" },
+      { controller: "auth/com/sign/in/checks", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/checks", action: "update" },
+      { controller: "auth/com/sign/in/checks", action: "update" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :patch },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/check/cancellations", action: "create" },
-      { path: "http://#{SIGN_COM_HOST}/sign/in/check/cancellation", method: :post },
+      { controller: "auth/com/sign/in/checks", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/check", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/com/verification/cancellations", action: "create" },
+      { controller: "auth/com/sign/in/sessions", action: "destroy" },
+      { path: "http://#{SIGN_COM_HOST}/sign/in/session", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/com/verification/cancellations", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/challenges", action: "show" },
+      { controller: "auth/com/sign/in/challenges", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/challenge", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/passkeys", action: "new" },
+      { controller: "auth/com/sign/in/passkeys", action: "new" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/passkey/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/passkey/options", action: "create" },
+      { controller: "auth/com/sign/in/passkey/options", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/passkey/options", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/passkey/verifications", action: "create" },
+      { controller: "auth/com/sign/in/passkey/verifications", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/passkey/verification", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/secret_credentials", action: "new" },
+      { controller: "auth/com/sign/in/secret_credentials", action: "new" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/secret_credential/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/com/sign/in/secret_credentials", action: "create" },
+      { controller: "auth/com/sign/in/secret_credentials", action: "create" },
       { path: "http://#{SIGN_COM_HOST}/sign/in/secret_credential", method: :post },
     )
 
     [
-      { controller: "sign/com/settings", action: "show", path: "/settings" },
-      { controller: "sign/com/settings/passkeys", action: "index", path: "/settings/passkeys" },
-      { controller: "sign/com/settings/sessions", action: "index", path: "/settings/sessions" },
-      { controller: "sign/com/settings/activities", action: "index", path: "/settings/activities" },
+      { controller: "auth/com/settings", action: "show", path: "/settings" },
+      { controller: "auth/com/settings/passkeys", action: "index", path: "/settings/passkeys" },
+      { controller: "auth/com/settings/sessions", action: "index", path: "/settings/sessions" },
+      { controller: "auth/com/settings/activities", action: "index", path: "/settings/activities" },
     ].each do |route|
       assert_recognizes(
         { controller: route[:controller], action: route[:action] },
@@ -647,69 +665,74 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   # rubocop:enable Minitest/MultipleAssertions
 
   # rubocop:disable Minitest/MultipleAssertions
-  test "sign org route contract" do
+  test "auth org route contract" do
     assert_recognizes(
-      { controller: "sign/org/roots", action: "index" },
+      { controller: "auth/org/roots", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/well_known/jwks", action: "show" },
+      { controller: "auth/org/well_known/jwks", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/.well-known/jwks.json", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/healths", action: "show" },
+      { controller: "auth/org/healths", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/health", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/health/livenesses", action: "show" },
+      { controller: "auth/org/health/livenesses", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/health/liveness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/health/readinesses", action: "show" },
+      { controller: "auth/org/health/readinesses", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/health/readiness", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/health/startups", action: "show" },
+      { controller: "auth/org/health/startups", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/health/startup", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/robots", action: "index" },
+      { controller: "auth/org/robots", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/robots.txt", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sitemaps", action: "show" },
+      { controller: "auth/org/sitemaps", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sitemap.xml", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/outs", action: "new" },
+      { controller: "auth/org/sign/outs", action: "new" },
       { path: "http://#{SIGN_ORG_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/outs", action: "edit" },
+      { controller: "auth/org/sign/outs", action: "edit" },
       { path: "http://#{SIGN_ORG_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/outs", action: "create" },
+      { controller: "auth/org/sign/outs", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/outs", action: "complete" },
+      { controller: "auth/org/sign/outs", action: "destroy" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/out", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/org/sign/outs", action: "complete" },
       { path: "http://#{SIGN_ORG_HOST}/sign/out/complete", method: :get },
     )
 
     assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/out", method: :delete)
+      Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}/sign/out/cancellation", method: :post)
     end
 
     assert_raises(ActionController::RoutingError) do
@@ -721,32 +744,32 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/org/oidc/backchannel/logouts", action: "create" },
+      { controller: "auth/org/oidc/backchannel/logouts", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/backchannel/logout", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/csp_violation_reports", action: "create" },
+      { controller: "auth/org/csp_violation_reports", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/csp-violation-report", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/dashboards", action: "show" },
+      { controller: "auth/org/dashboards", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/dashboard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/oidc/callbacks", action: "show" },
+      { controller: "auth/org/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/oidc/authorizations", action: "show" },
+      { controller: "auth/org/oidc/authorizations", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/ups", action: "show" },
+      { controller: "auth/org/sign/ups", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up", method: :get },
     )
 
@@ -755,17 +778,17 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/org/sign/ins", action: "show" },
+      { controller: "auth/org/sign/ins", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/up/invitations", action: "new" },
+      { controller: "auth/org/sign/up/invitations", action: "new" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up/invitations/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/up/invitations", action: "create" },
+      { controller: "auth/org/sign/up/invitations", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/up/invitations", method: :post },
     )
 
@@ -776,119 +799,124 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/guards", action: "show" },
+      { controller: "auth/org/sign/in/guards", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/guard", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/checks", action: "show" },
+      { controller: "auth/org/sign/in/checks", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/checks", action: "update" },
+      { controller: "auth/org/sign/in/checks", action: "update" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :patch },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/check/cancellations", action: "create" },
-      { path: "http://#{SIGN_ORG_HOST}/sign/in/check/cancellation", method: :post },
+      { controller: "auth/org/sign/in/checks", action: "destroy" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in/check", method: :delete },
     )
 
     assert_recognizes(
-      { controller: "sign/org/verification/cancellations", action: "create" },
+      { controller: "auth/org/sign/in/sessions", action: "destroy" },
+      { path: "http://#{SIGN_ORG_HOST}/sign/in/session", method: :delete },
+    )
+
+    assert_recognizes(
+      { controller: "auth/org/verification/cancellations", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/verification/cancellation", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/challenges", action: "show" },
+      { controller: "auth/org/sign/in/challenges", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/challenge", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/passkeys", action: "new" },
+      { controller: "auth/org/sign/in/passkeys", action: "new" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/passkey/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/passkey/options", action: "create" },
+      { controller: "auth/org/sign/in/passkey/options", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/passkey/options", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/passkey/verifications", action: "create" },
+      { controller: "auth/org/sign/in/passkey/verifications", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/passkey/verification", method: :post },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/secret_credentials", action: "new" },
+      { controller: "auth/org/sign/in/secret_credentials", action: "new" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/secret_credential/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/sign/in/secret_credentials", action: "create" },
+      { controller: "auth/org/sign/in/secret_credentials", action: "create" },
       { path: "http://#{SIGN_ORG_HOST}/sign/in/secret_credential", method: :post },
     )
   end
 
-  test "sign org route contract (continued)" do
+  test "auth org route contract (continued)" do
     assert_recognizes(
-      { controller: "sign/org/settings", action: "show" },
+      { controller: "auth/org/settings", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/settings", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/settings/passkeys", action: "index" },
+      { controller: "auth/org/settings/passkeys", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/settings/passkeys", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/settings/sessions", action: "index" },
+      { controller: "auth/org/settings/sessions", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/settings/sessions", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/settings/activities", action: "index" },
+      { controller: "auth/org/settings/activities", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/settings/activities", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/configurations", action: "show" },
+      { controller: "auth/org/configurations", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/configuration", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/accounts", action: "index" },
+      { controller: "auth/org/accounts", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/accounts", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/iam", action: "index" },
+      { controller: "auth/org/iam", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/iam", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/system", action: "index" },
+      { controller: "auth/org/system", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/system", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/audit", action: "index" },
+      { controller: "auth/org/audit", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/audit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/support", action: "index" },
+      { controller: "auth/org/support", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/support", method: :get },
     )
 
     assert_recognizes(
-      { controller: "sign/org/billing", action: "index" },
+      { controller: "auth/org/billing", action: "index" },
       { path: "http://#{SIGN_ORG_HOST}/billing", method: :get },
     )
   end
 
-  test "sign negative route contract" do
+  test "auth negative route contract" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{SIGN_APP_HOST}/sso/authorize",
@@ -1038,7 +1066,7 @@ class SignRouteContractTest < ActionDispatch::IntegrationTest
   end
   # rubocop:enable Minitest/MultipleAssertions
 
-  test "sign remains a relying party and does not expose oauth provider endpoints" do
+  test "auth remains a relying party and does not expose oauth provider endpoints" do
     [SIGN_APP_HOST, SIGN_COM_HOST, SIGN_ORG_HOST].each do |host|
       %w(/authorize /token /userinfo /jwks /oauth/authorize /oauth/token /oauth/userinfo /oauth/jwks).each do |path|
         assert_raises(ActionController::RoutingError) do

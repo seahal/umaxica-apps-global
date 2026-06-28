@@ -28,6 +28,13 @@ Current content-model references:
 
 - `docs/architecture/avatar-social-graph.md` records the Avatar-to-Avatar follow, block, and mute
   boundary and the current implementation gaps.
+- `docs/architecture/model-database-inventory.md` is the current-state model/database placement map
+  used for future authority and placement decisions.
+- `docs/architecture/principal-zenith-membership-organization-placement.md` audits the ambiguous
+  `Member` / `ClientMembership` / `Organization` cluster and the related runtime actor and OIDC
+  connection rows.
+- `adr/member-client-membership-organization-decomposition-before-placement.md` establishes the
+  decomposition-first rule before any placement migration for that cluster.
 - `docs/architecture/acme-sign-core-base-port.md`
 - `docs/architecture/sns-subject-resource-grill.md`
 - `docs/architecture/sns-subject-resource-decision-record.md`

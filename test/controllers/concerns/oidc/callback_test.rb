@@ -26,11 +26,21 @@ class OidcCallbackTestController < ApplicationController
         "code_verifier" => params[:pending_code_verifier],
         "nonce" => params[:pending_nonce],
         "pt" => params[:pending_pt],
-        "created_at" => Time.current.to_i,
+        "created_at" => params.fetch(:pending_created_at, Time.current.to_i),
       }
     end
 
     head :no_content
+  end
+
+  def snapshot
+    render json: {
+      oidc_code_verifier: session[:oidc_code_verifier],
+      oidc_state: session[:oidc_state],
+      oidc_nonce: session[:oidc_nonce],
+      oidc_pt: session[:oidc_pt],
+      oidc_pending_flows: session["oidc_pending_flows"],
+    }
   end
 
   def oidc_client_id
@@ -61,8 +71,9 @@ class OidcCallbackTestController < ApplicationController
     "/sign/in/session"
   end
 
-  def provision_rp_account_from_id_token!(payload)
-    Struct.new(:id).new(payload.fetch("sub"))
+  def provision_rp_account_from_id_token_payload!(payload, _canonical_audience)
+    claim_payload = payload.respond_to?(:payload) ? payload.payload : payload
+    Struct.new(:id).new(claim_payload.fetch("sub"))
   end
 
   def log_in(resource, **kwargs)
@@ -90,6 +101,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
 
     Rails.application.routes.draw do
       get "/oidc/callback/session" => "oidc_callback_test#seed"
+      get "/oidc/callback/snapshot" => "oidc_callback_test#snapshot"
       get "/oidc/callback" => "oidc_callback_test#show"
     end
   end
@@ -163,6 +175,90 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to "/settings?ri=jp"
     assert_equal "older-verifier", token_call.fetch(:code_verifier)
+  end
+
+  test "show rejects expired pending state before token exchange and preserves other pending flows" do
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "expired-state",
+          pending_code_verifier: "expired-verifier",
+          pending_nonce: "expired-nonce",
+          pending_pt: "/expired",
+          pending_created_at: 11.minutes.ago.to_i,
+        }
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "valid-state",
+          pending_code_verifier: "valid-verifier",
+          pending_nonce: "valid-nonce",
+          pending_pt: "/valid",
+          pending_created_at: 1.minute.ago.to_i,
+        }
+
+    OidcRpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for expired state") }) do
+      get "/oidc/callback", params: { code: "abc", state: "expired-state" }
+    end
+
+    assert_response :unprocessable_content
+
+    get "/oidc/callback/snapshot"
+    snapshot = JSON.parse(response.body)
+
+    assert_nil snapshot["oidc_code_verifier"]
+    assert_nil snapshot["oidc_state"]
+    assert_nil snapshot["oidc_nonce"]
+    assert_nil snapshot["oidc_pt"]
+    assert_includes snapshot.fetch("oidc_pending_flows").keys, "valid-state"
+    assert_not_includes snapshot.fetch("oidc_pending_flows").keys, "expired-state"
+  end
+
+  test "show deletes consumed pending state without disturbing other pending flows" do
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "consumed-state",
+          pending_code_verifier: "consumed-verifier",
+          pending_nonce: "consumed-nonce",
+          pending_pt: "/consumed",
+          pending_created_at: 1.minute.ago.to_i,
+        }
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "other-state",
+          pending_code_verifier: "other-verifier",
+          pending_nonce: "other-nonce",
+          pending_pt: "/other",
+          pending_created_at: 1.minute.ago.to_i,
+        }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "consumed-nonce" },
+      error: nil,
+    )
+
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "consumed-state" }
+      end
+    end
+
+    assert_response :redirect
+
+    get "/oidc/callback/snapshot"
+    snapshot = JSON.parse(response.body)
+
+    assert_nil snapshot["oidc_code_verifier"]
+    assert_nil snapshot["oidc_state"]
+    assert_nil snapshot["oidc_nonce"]
+    assert_nil snapshot["oidc_pt"]
+    assert_includes snapshot.fetch("oidc_pending_flows").keys, "other-state"
+    assert_not_includes snapshot.fetch("oidc_pending_flows").keys, "consumed-state"
   end
 
   test "show redirects to sign in on failed exchange" do

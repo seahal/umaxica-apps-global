@@ -118,7 +118,7 @@ module Auth
         private
 
         def social_auth_entry
-          return "sign_up" if request.parameters["entry"].to_s == "sign_up"
+          return "sign_up" if %w(sign_up auth_up).include?(request.parameters["entry"].to_s)
 
           referer_path = URI.parse(request.referer.to_s).path
           return "sign_up" if referer_path == auth_app_sign_up_path

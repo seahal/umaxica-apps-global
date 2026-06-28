@@ -14,8 +14,8 @@ module OidcRpIdentityProvisioning
 
   private
 
-  def provision_rp_account_from_id_token!(payload)
-    claims = rp_identity_claims(payload)
+  def provision_rp_account_from_id_token_payload!(payload, canonical_audience)
+    claims = rp_identity_claims(payload, expected_audience: canonical_audience)
     actor = actor_from_existing_identity(claims) || actor_from_public_subject_claim(claims)
 
     ensure_rp_identity_for(actor, claims)
@@ -24,11 +24,16 @@ module OidcRpIdentityProvisioning
     actor
   end
 
-  def rp_identity_claims(payload)
+  def rp_identity_claims(payload, expected_audience:)
+    audience = payload.fetch("aud")
+    raise ArgumentError, "invalid audience type" unless audience.is_a?(Array)
+    raise ArgumentError, "invalid audience size" unless audience.size == 1
+    raise ArgumentError, "invalid audience value" unless audience.first.to_s == expected_audience.to_s
+
     {
       issuer: payload.fetch("iss").to_s,
       subject: payload.fetch("sub").to_s,
-      audience: payload.fetch("aud").to_s,
+      audience: expected_audience.to_s,
     }
   end
 

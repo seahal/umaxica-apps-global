@@ -7,9 +7,10 @@
 #
 # Route mapper macros (auth_routes/auth_surface/auth_public_gateway_routes/
 # auth_rp_oidc_routes/auth_app_social_routes) live in
-# config/initializers/auth_route_mapper.rb. Protocol/public fixed paths and
-# the social `to:`/`defaults:` wiring are isolated there so the surface
-# groups below read as a contract table.
+# config/auth_route_mapper.rb and are loaded from config/routes.rb before this
+# file is drawn. Protocol/public fixed paths and the social `to:`/`defaults:`
+# wiring are isolated there so the surface groups below read as a contract
+# table.
 auth_routes do
   hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
@@ -80,16 +81,8 @@ auth_routes do
         resource :secret_credential, only: %i(new create)
         resource :session, only: %i(show update destroy)
 
-        namespace :session do
-          resource :cancellation, only: :create
-        end
-
         resource :guard, only: :show
-        resource :check, only: %i(show update)
-
-        namespace :check do
-          resource :cancellation, only: :create
-        end
+        resource :check, only: %i(show update destroy)
 
         resource :challenge, only: :show
         namespace :challenge do
@@ -240,16 +233,8 @@ auth_routes do
         resource :secret_credential, only: %i(new create)
         resource :session, only: %i(show update destroy)
 
-        namespace :session do
-          resource :cancellation, only: :create
-        end
-
         resource :guard, only: :show
-        resource :check, only: %i(show update)
-
-        namespace :check do
-          resource :cancellation, only: :create
-        end
+        resource :check, only: %i(show update destroy)
 
         resource :challenge, only: :show
 
@@ -346,7 +331,7 @@ auth_routes do
     namespace :sign do
       resource :up, only: :show
       resource :in, only: :show
-      resource :out, only: %i(new edit create) do
+      resource :out, only: %i(new edit create destroy) do
         get :complete, on: :collection
       end
     end
@@ -390,16 +375,8 @@ auth_routes do
         resource :secret_credential, only: %i(new create)
         resource :session, only: %i(show update destroy)
 
-        namespace :session do
-          resource :cancellation, only: :create
-        end
-
         resource :guard, only: :show
-        resource :check, only: %i(show update)
-
-        namespace :check do
-          resource :cancellation, only: :create
-        end
+        resource :check, only: %i(show update destroy)
 
         resource :challenge, only: :show
 

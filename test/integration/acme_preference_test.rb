@@ -683,6 +683,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
           pref.reload
 
           assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
+          get public_send("edit_acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+
+          assert_select "select[name='#{param_scope}[option_id]'] option[selected='selected'][value='#{expected_id}']",
+                        count: 1
         end
       end
     end

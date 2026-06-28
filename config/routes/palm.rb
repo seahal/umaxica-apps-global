@@ -3,8 +3,10 @@
 
 # Palm owns the native RP and API surface.
 scope module: :palm, as: :palm do
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+
   # App native RP/API host.
-  constraints host: [ENV["PALM_SERVICE_URL"], "palm.app.localhost"].compact do
+  constraints host: [boot_hosts.palm_service.host, "palm.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.

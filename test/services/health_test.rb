@@ -35,7 +35,7 @@ class HealthTest < ActiveSupport::TestCase
     assert_equal "ok", json[:status]
     assert_equal "readiness", json[:check]
     assert_equal({ "database" => "ok" }, json[:dependencies])
-    assert_equal "fake", json.dig(:details, :surface)
+    assert_not_includes json[:details].keys, :surface
   end
 
   test "check result collapses non-ok status to unavailable and keeps internal status in details" do
@@ -45,6 +45,7 @@ class HealthTest < ActiveSupport::TestCase
     assert_equal 503, result.http_status
     assert_equal "unavailable", result.as_public_json[:status]
     assert_equal "unready", result.as_public_json.dig(:details, :status)
+    assert_not_includes result.as_public_json[:details].keys, :surface
   end
 
   test "check result rejects unknown statuses" do

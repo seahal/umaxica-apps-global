@@ -78,6 +78,14 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       assert_equal "index", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/groups",
+        method: :get,
+      )
+
+      assert_equal "base/app/groups", recognized[:controller]
+      assert_equal "index", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
         "http://#{host}/dashboard",
         method: :get,
       )

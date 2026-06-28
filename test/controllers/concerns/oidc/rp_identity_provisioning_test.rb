@@ -17,11 +17,12 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     controller = Core::App::Auth::CallbacksController.new
 
     actor = controller.send(
-      :provision_rp_account_from_id_token!, {
+      :provision_rp_account_from_id_token_payload!, {
         "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("core-next-rp")),
         "sub" => OidcSubject.for(client, resource_type: "client"),
-        "aud" => "core-next-rp",
+        "aud" => ["core-next-rp"],
       },
+      "core-next-rp",
     )
 
     identity = ClientIdentity.find_by!(source_record_id: client.id)
@@ -50,11 +51,12 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     controller = Core::App::Auth::CallbacksController.new
 
     actor = controller.send(
-      :provision_rp_account_from_id_token!, {
+      :provision_rp_account_from_id_token_payload!, {
         "iss" => "umaxica-auth:client",
         "sub" => "opaque-idp-subject",
-        "aud" => "core-next-rp",
+        "aud" => ["core-next-rp"],
       },
+      "core-next-rp",
     )
 
     assert_equal client, actor
@@ -75,11 +77,12 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     controller = Base::App::Auth::CallbacksController.new
 
     actor = controller.send(
-      :provision_rp_account_from_id_token!, {
+      :provision_rp_account_from_id_token_payload!, {
         "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
         "sub" => OidcSubject.for(client, resource_type: "client"),
-        "aud" => "base-rails-rp",
+        "aud" => ["base-rails-rp"],
       },
+      "base-rails-rp",
     )
 
     assert_equal client, actor
@@ -93,11 +96,12 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     controller = Base::Com::Auth::CallbacksController.new
 
     actor = controller.send(
-      :provision_rp_account_from_id_token!, {
+      :provision_rp_account_from_id_token_payload!, {
         "iss" => OidcIssuer.for_client(OidcClientRegistry.find!("base-rails-rp")),
         "sub" => OidcSubject.for(visitor, resource_type: "visitor"),
-        "aud" => "base-rails-rp",
+        "aud" => ["base-rails-rp"],
       },
+      "base-rails-rp",
     )
 
     identity = VisitorIdentity.find_by!(source_record_id: visitor.id)
@@ -106,5 +110,43 @@ class OidcRpIdentityProvisioningTest < ActiveSupport::TestCase
     assert_equal "base-rails-rp", identity.audience
     assert_equal VisitorIdentityState::ACTIVE, identity.status_id
     assert_nil CoreComVisitorBridge.find_by(visitor_id: visitor.id)
+  end
+
+  test "rp identity claims reject multi aud and scalar aud" do
+    dummy_class =
+      Class.new(ApplicationController) do
+        def self.declare_authentication_mode!(*)
+        end
+
+        include OidcRpIdentityProvisioning
+
+        define_method(:oidc_client_id) { "core-next-rp" }
+      end
+
+    controller = dummy_class.new
+
+    assert_raises(ArgumentError) do
+      controller.send(
+        :rp_identity_claims,
+        { "iss" => "issuer", "sub" => "sub", "aud" => ["evil", "core-next-rp"] },
+        expected_audience: "core-next-rp",
+      )
+    end
+
+    assert_raises(ArgumentError) do
+      controller.send(
+        :rp_identity_claims,
+        { "iss" => "issuer", "sub" => "sub", "aud" => "core-next-rp" },
+        expected_audience: "core-next-rp",
+      )
+    end
+
+    claims = controller.send(
+      :rp_identity_claims,
+      { "iss" => "issuer", "sub" => "sub", "aud" => ["core-next-rp"] },
+      expected_audience: "core-next-rp",
+    )
+
+    assert_equal "core-next-rp", claims.fetch(:audience)
   end
 end

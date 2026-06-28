@@ -5,14 +5,14 @@ class OidcIdTokenIssuer < ApplicationService
   TOKEN_TTL = SecurityJwtOidcIdTokenCodec::TOKEN_TTL
   TOKEN_TYPE = SecurityJwtOidcIdTokenCodec::TOKEN_TYPE
 
-  def initialize(resource:, client:, nonce:, issued_at: Time.current, expires_at: nil, acr: nil, amr: nil,
+  def initialize(resource:, client:, nonce:, issued_at: Time.current.utc, expires_at: nil, acr: nil, amr: nil,
                  jwt_issuer_id: nil, issuer: nil, subject: nil, sid: nil, auth_time: nil, step_up_until: nil)
     super()
     @resource = resource
     @client = client
     @nonce = nonce
-    @issued_at = issued_at
-    @expires_at = expires_at || (issued_at + TOKEN_TTL)
+    @issued_at = issued_at.utc
+    @expires_at = (expires_at || (@issued_at + TOKEN_TTL)).utc
     @acr = acr
     @amr = amr
     @jwt_issuer_id = jwt_issuer_id
@@ -25,6 +25,7 @@ class OidcIdTokenIssuer < ApplicationService
 
   def call
     raise ArgumentError, "nonce is required" if nonce.blank?
+    raise ArgumentError, "invalid id token time ordering" if issued_at > expires_at
 
     SecurityJwtOidcIdTokenCodec.encode(payload, issuer_id: resolved_jwt_issuer_id)
   end

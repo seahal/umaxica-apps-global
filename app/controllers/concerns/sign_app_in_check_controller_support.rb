@@ -31,7 +31,9 @@ module SignAppInCheckControllerSupport
 
     pt_param = signed_pt_param
     consume_bulletin!
-    redirect_after_checkpoint_sequence!(pt: pt_param)
+    return head :no_content if request.format.json?
+
+    redirect_after_checkpoint_sequence!(pt: pt_param, status: :see_other)
   end
 
   private

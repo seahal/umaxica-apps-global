@@ -3,8 +3,10 @@
 
 # Side owns the Rails control-plane surface.
 scope module: :side, as: :side do
+  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+
   # App control-plane host.
-  constraints host: [ENV["SIDE_SERVICE_URL"], "side.app.localhost"].compact do
+  constraints host: [boot_hosts.side_service.host, "side.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.
@@ -54,7 +56,7 @@ scope module: :side, as: :side do
   end
 
   # Corporate control-plane host.
-  constraints host: [ENV["SIDE_CORPORATE_URL"], "side.com.localhost"].compact do
+  constraints host: [boot_hosts.side_corporate.host, "side.com.localhost"].compact do
     # Corporate surface controllers.
     scope module: :com, as: :com do
       # Thin landing endpoint.
@@ -104,7 +106,7 @@ scope module: :side, as: :side do
   end
 
   # Staff control-plane host.
-  constraints host: [ENV["SIDE_STAFF_URL"], "side.org.localhost"].compact do
+  constraints host: [boot_hosts.side_staff.host, "side.org.localhost"].compact do
     # Staff surface controllers.
     scope module: :org, as: :org do
       # Thin landing endpoint.

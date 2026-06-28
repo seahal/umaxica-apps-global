@@ -74,11 +74,69 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "/sign/out/complete", uri.path
   end
 
-  test "destroy shims to acme entry" do
-    delete auth_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
+  test "destroy cancels the pending logout and keeps the current session" do
+    user = create_verified_user_with_email(email_address: "sign-cancel@example.com")
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(
+          origin_surface: "sign",
+          ri: "jp",
+          surface: "app",
+        ),
+        surface: "app",
+        ri: "jp",
+      ).transaction
+
+    delete auth_app_sign_out_url(ri: "jp", host: @host, logout_challenge: transaction.logout_challenge),
+           headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
-    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
-                 response.location
+    assert_equal auth_app_root_url(ri: "jp", host: @host), response.location
+    assert_predicate token.reload, :currently_usable?
+    assert_predicate transaction.reload, :failed?
+
+    delete auth_app_sign_out_url(ri: "jp", host: @host, logout_challenge: transaction.logout_challenge),
+           headers: browser_headers.merge("Host" => @host)
+
+    assert_response :see_other
+    assert_equal auth_app_root_url(ri: "jp", host: @host), response.location
+    assert_predicate token.reload, :currently_usable?
+    assert_predicate transaction.reload, :failed?
+  end
+
+  test "destroy returns no content for json without revoking the current session" do
+    user = create_verified_user_with_email(email_address: "sign-json-cancel@example.com")
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
+    transaction =
+      AcmeLogoutTransactionCoordinator.issue!(
+        origin_surface: "sign",
+        initiating_client_id: "sign-rp",
+        completion_url: AcmeLogoutTransactionCoordinator.completion_url_for(
+          origin_surface: "sign",
+          ri: "jp",
+          surface: "app",
+        ),
+        surface: "app",
+        ri: "jp",
+      ).transaction
+
+    delete auth_app_sign_out_url(ri: "jp", host: @host, format: :json, logout_challenge: transaction.logout_challenge),
+           headers: browser_headers.merge("Host" => @host)
+
+    assert_response :no_content
+    assert_predicate token.reload, :currently_usable?
+    assert_predicate transaction.reload, :failed?
+
+    delete auth_app_sign_out_url(ri: "jp", host: @host, format: :json, logout_challenge: transaction.logout_challenge),
+           headers: browser_headers.merge("Host" => @host)
+
+    assert_response :no_content
+    assert_predicate token.reload, :currently_usable?
+    assert_predicate transaction.reload, :failed?
   end
 end

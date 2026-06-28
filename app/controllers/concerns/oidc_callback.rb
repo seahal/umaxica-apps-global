@@ -8,6 +8,7 @@ module OidcCallback
 
   InvalidCallbackState = Class.new(StandardError)
   OIDC_PENDING_FLOWS_SESSION_KEY = "oidc_pending_flows"
+  OIDC_PENDING_FLOW_TTL = 10.minutes
 
   def show
     response.set_header("Cache-Control", "no-store")
@@ -18,7 +19,7 @@ module OidcCallback
     id_token_result = verify_id_token!(token_result.token_response[:id_token])
     return render_callback_failure(id_token_result.error) unless id_token_result.success?
 
-    resource = provision_rp_account_from_id_token!(id_token_result.payload)
+    resource = provision_rp_account_from_id_token!(id_token_result)
     login_result =
       ActiveRecord::Base.connected_to(role: :writing) do
         log_in(
@@ -49,7 +50,8 @@ module OidcCallback
 
   def validate_state!
     actual = params[:state].to_s
-    @current_oidc_flow = consume_oidc_pending_flow(actual)
+    @current_oidc_flow, @current_oidc_flow_expired = consume_oidc_pending_flow(actual)
+    raise InvalidCallbackState, "OIDC state expired" if @current_oidc_flow_expired
     clear_legacy_oidc_flow_if_current!(actual) if @current_oidc_flow.present?
     expected = @current_oidc_flow.present? ? actual : session.delete(:oidc_state).to_s
     @oidc_invalid_state_context = oidc_invalid_state_context(expected: expected, actual: actual)
@@ -201,9 +203,19 @@ module OidcCallback
     flows = session[OIDC_PENDING_FLOWS_SESSION_KEY]
     return nil unless flows.is_a?(Hash)
 
-    flow = flows.delete(state)
+    flow = flows[state]
+    return [nil, false] unless flow.is_a?(Hash)
+
+    created_at = Time.at(flow["created_at"].to_i).utc
+    if created_at.blank? || created_at + OIDC_PENDING_FLOW_TTL < Time.current.utc
+      flows.delete(state)
+      session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
+      return [nil, true]
+    end
+
+    flows.delete(state)
     session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
-    flow if flow.is_a?(Hash)
+    [flow, false]
   end
 
   def oidc_flow_value(key)
@@ -256,7 +268,19 @@ module OidcCallback
     raise NotImplementedError, "controller must define oidc_client_id"
   end
 
-  def provision_rp_account_from_id_token!(_payload)
+  def provision_rp_account_from_id_token!(verification_result)
+    payload = verification_result.respond_to?(:payload) ? verification_result.payload : verification_result
+    canonical_audience =
+      if verification_result.respond_to?(:canonical_audience)
+        verification_result.canonical_audience
+      else
+        oidc_client_id
+      end
+
+    provision_rp_account_from_id_token_payload!(payload, canonical_audience)
+  end
+
+  def provision_rp_account_from_id_token_payload!(_payload, _canonical_audience)
     raise NotImplementedError, "controller must provision RP account"
   end
 end

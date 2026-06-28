@@ -97,8 +97,8 @@
   <% end %>
 
   <%= button_to t("sign.app.in.session.cancel_logout"),
-                auth_app_sign_in_session_cancellation_path,
-                method: :post,
+                auth_app_sign_in_session_path,
+                method: :delete,
                 form: {
                   data: {
                     turbo: false,

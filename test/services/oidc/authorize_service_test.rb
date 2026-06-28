@@ -75,6 +75,30 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
     assert_equal "invalid_request", result.error
   end
 
+  test "rejects malicious redirect_uri values" do
+    malicious_redirect_uris = [
+      "https://evil.example",
+      "//evil.example",
+      "%2f%2fevil.example",
+      "https://rp.example.com.evil.example",
+      "https://rp.example.com@evil.example",
+      "https://evil.example/rp.example.com",
+      "javascript:alert(1)",
+      "data:text/html,...",
+      "\\evil.example",
+    ]
+
+    malicious_redirect_uris.each do |redirect_uri|
+      result = authorize_service_call(
+        params: valid_params.merge(redirect_uri: redirect_uri),
+        resource: @user,
+      )
+
+      assert_not result.success?, redirect_uri
+      assert_equal "invalid_request", result.error
+    end
+  end
+
   test "fails without code_challenge" do
     result = authorize_service_call(
       params: valid_params.except(:code_challenge),
@@ -104,6 +128,16 @@ class OidcAuthorizeCoordinatorTest < ActiveSupport::TestCase
     assert_not result.success?
     assert_equal "invalid_request", result.error
     assert_equal "scope must include openid", result.error_description
+  end
+
+  test "fails for comma-delimited scope" do
+    result = authorize_service_call(
+      params: valid_params.merge(scope: "openid,email"),
+      resource: @user,
+    )
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
   end
 
   test "fails when non-Palm client requests disallowed scopes" do

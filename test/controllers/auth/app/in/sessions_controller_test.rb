@@ -67,7 +67,11 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_select "input[type=checkbox][name='revoke_refs[]']", false
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
     assert_select "form[data-turbo=false][method=post][action=?]",
-                  auth_app_sign_in_session_cancellation_path(ri: "jp")
+                  auth_app_sign_in_session_path(ri: "jp")
+    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
+                  auth_app_sign_in_session_path(ri: "jp")
+    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
+                  auth_app_sign_in_session_path(ri: "jp")
   end
 
   test "show counts only usable active sessions" do
@@ -476,6 +480,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     delete auth_app_sign_in_session_url(ri: "jp"), headers: headers
 
+    assert_response :see_other
     assert_redirected_to auth_app_sign_in_url(ri: "jp")
 
     token.reload
@@ -484,13 +489,28 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal ClientTokenStatus::REVOKED, token.user_token_status_id
   end
 
-  test "session cancellation route cancels restricted session and redirects to login" do
+  test "delete session route cancels restricted session and redirects to login" do
     token = create_restricted_session(@user)
     headers = as_user_headers_with_token(@user, token, host: @host)
 
-    post auth_app_sign_in_session_cancellation_url(ri: "jp"), headers: headers
+    delete auth_app_sign_in_session_url(ri: "jp"), headers: headers
 
+    assert_response :see_other
     assert_redirected_to auth_app_sign_in_url(ri: "jp")
+
+    token.reload
+
+    assert_not token.currently_usable?
+    assert_equal ClientTokenStatus::REVOKED, token.user_token_status_id
+  end
+
+  test "delete session route returns no content for json" do
+    token = create_restricted_session(@user)
+    headers = as_user_headers_with_token(@user, token, host: @host)
+
+    delete auth_app_sign_in_session_url(ri: "jp", format: :json), headers: headers
+
+    assert_response :no_content
 
     token.reload
 

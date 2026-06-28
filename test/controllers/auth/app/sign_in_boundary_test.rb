@@ -26,7 +26,6 @@ class Auth::App::SignInBoundaryTest < ActiveSupport::TestCase
       "app/controllers/auth/app/sign/in/challenge/totps_controller.rb",
       "app/controllers/auth/app/sign/in/challenge/passkeys_controller.rb",
       "app/controllers/auth/app/sign/in/guards_controller.rb",
-      "app/controllers/auth/app/sign/in/session/cancellations_controller.rb",
       "app/controllers/auth/app/sign/in/sessions_controller.rb",
       "app/controllers/auth/app/social/authentications_controller.rb",
       "app/controllers/auth/app/omniauth/omniauth_callbacks_controller.rb",

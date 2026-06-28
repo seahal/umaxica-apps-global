@@ -53,5 +53,13 @@ module Auth::Com
 
       assert_includes around_filters, :with_actor_lifecycle
     end
+
+    test "telephone registration gate keeps sign out reachable for ceremony cancellation" do
+      controller = ApplicationController.new
+
+      controller.define_singleton_method(:controller_path) { "auth/com/sign/outs" }
+
+      assert controller.send(:telephone_registration_allowed_path?)
+    end
   end
 end

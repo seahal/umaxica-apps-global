@@ -23,8 +23,6 @@
       <dl>
         <dt>Status</dt>
         <dd><%= snapshot[:status] %></dd>
-        <dt>Surface</dt>
-        <dd><%= snapshot.dig(:details, :surface) %></dd>
         <dt>Generated at</dt>
         <dd><time datetime="<%= snapshot.dig(:details, :generated_at) %>"><%= snapshot.dig(:details, :generated_at) %></time></dd>
         <% if snapshot.dig(:details, :revision).present? %>

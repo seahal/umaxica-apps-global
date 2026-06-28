@@ -171,6 +171,8 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
   # RuboCop i18n rules.
   gem "rubocop-i18n", require: false
+  # Locale auditing and normalization.
+  gem "i18n-tasks", require: false
   # RuboCop RubyCW rules.
   gem "rubocop-rubycw", require: false
   # RuboCop Rails rules.

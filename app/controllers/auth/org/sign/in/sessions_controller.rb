@@ -91,17 +91,23 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
       load_session_data
       render :show
     else
-      # Cancel: revoke current restricted session and logout
-      AuthenticationLogoutCurrentSession.call(
-        resource: @current_operator,
-        token: current_session,
-        reason: "session_limit_cancelled",
-      ) if current_session&.restricted?
       current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
       consume_session_limit_gate!
       session.delete(:pending_login_staff_id)
-      log_out
-      redirect_to(auth_org_sign_in_path, notice: I18n.t("session_limit.cancelled"))
+
+      if current_session&.restricted?
+        # Cancel: revoke the restricted session and leave the user signed out.
+        AuthenticationLogoutCurrentSession.call(
+          resource: @current_operator,
+          token: current_session,
+          reason: "session_limit_cancelled",
+        )
+        log_out
+      end
+
+      return head :no_content if request.format.json?
+
+      redirect_to(auth_org_sign_in_path, notice: I18n.t("session_limit.cancelled"), status: :see_other)
     end
   end
 
@@ -135,6 +141,7 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
     redirect_to(
       auth_org_sign_in_path,
       alert: I18n.t("session_limit.login_required"),
+      status: :see_other,
     )
   end
 

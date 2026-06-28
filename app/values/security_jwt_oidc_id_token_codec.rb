@@ -36,13 +36,18 @@ class SecurityJwtOidcIdTokenCodec
 
     def build_payload(resource:, client:, nonce:, issued_at:, expires_at:, acr:, amr:, issuer:, subject:, sid:,
                       auth_time:, step_up_until:)
+      issued_at = normalize_time!(issued_at)
+      expires_at = normalize_time!(expires_at)
+      raise ArgumentError, "invalid id token time ordering" if issued_at > expires_at
+
       token_resource_type = resource_type_for_resource(resource)
       {
         "iss" => issuer.presence || OidcIssuer.for_client(client),
         "sub" => subject.presence || OidcSubject.for(resource, resource_type: token_resource_type),
-        "aud" => client.client_id,
-        "exp" => Integer(expires_at.to_i),
-        "iat" => Integer(issued_at.to_i),
+        "aud" => [client.client_id],
+        "exp" => expires_at.to_i,
+        "iat" => issued_at.to_i,
+        "nbf" => issued_at.to_i,
         "jti" => JitSecurityJwtJtiGenerator.generate,
         "typ" => TOKEN_TYPE,
         "act" => token_resource_type,
@@ -74,15 +79,27 @@ class SecurityJwtOidcIdTokenCodec
     def decode_options(client_id:, resource_type:, issuer:)
       {
         algorithms: [JWT_ALGORITHM],
-        required_claims: %w(iss aud exp iat sub nonce jti typ act),
+        required_claims: %w(iss aud exp iat nbf sub nonce jti typ act),
         leeway: AuthenticationJwtConfiguration.leeway_seconds,
         verify_iat: true,
         verify_exp: true,
+        verify_nbf: true,
         verify_iss: true,
         iss: issuer.presence || OidcIssuer.for_resource_type(resource_type),
         verify_aud: true,
         aud: client_id,
       }
+    end
+
+    def normalize_time!(value)
+      case value
+      when Time
+        value.utc
+      when ActiveSupport::TimeWithZone
+        value.utc
+      else
+        Time.at(value.to_i).utc
+      end
     end
   end
 end

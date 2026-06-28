@@ -16,15 +16,20 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
 
     assert_predicate result, :success?
     assert_equal @issuer, result.payload.fetch("iss")
-    assert_equal @client.client_id, result.payload.fetch("aud")
+    assert_equal [@client.client_id], result.payload.fetch("aud")
     assert_equal "client", result.payload.fetch("act")
     assert_equal @nonce, result.payload.fetch("nonce")
+    assert_equal result.payload.fetch("iat"), result.payload.fetch("nbf")
   end
 
   test "rejects wrong issuer audience nonce and actor type" do
     assert_invalid id_token(issuer: "https://evil.example")
 
-    assert_invalid token_with_claims("aud" => "base-rails-rp")
+    assert_invalid token_with_claims("aud" => [])
+    assert_invalid token_with_claims("aud" => ["base-rails-rp"])
+    assert_invalid token_with_claims("aud" => ["evil", @client.client_id])
+    assert_invalid token_with_claims("aud" => [@client.client_id, "evil"])
+    assert_invalid token_with_claims("aud" => @client.client_id)
 
     nonce_mismatch = verify(id_token, expected_nonce: "wrong-nonce")
 
@@ -34,8 +39,16 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
     assert_invalid token_with_claims("act" => "operator")
   end
 
+  test "accepts exactly one expected audience" do
+    result = verify(id_token)
+
+    assert_predicate result, :success?
+    assert_equal [@client.client_id], result.payload.fetch("aud")
+    assert_equal @client.client_id, result.canonical_audience
+  end
+
   test "rejects expired tokens and unknown key ids" do
-    assert_invalid id_token(expires_at: 1.minute.ago)
+    assert_invalid id_token(issued_at: 10.minutes.ago, expires_at: 1.minute.ago)
 
     private_key = OpenSSL::PKey::EC.generate("secp384r1")
     forged = JWT.encode(valid_claims, private_key, "ES384", { typ: OidcIdTokenIssuer::TOKEN_TYPE, kid: "unknown" })
@@ -50,16 +63,27 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
     forged = JWT.encode(valid_claims, private_key, "ES256", { typ: OidcIdTokenIssuer::TOKEN_TYPE, kid: "kid" })
 
     assert_invalid forged
+
+    none_token = JWT.encode(valid_claims, nil, "none", { typ: OidcIdTokenIssuer::TOKEN_TYPE, kid: "kid" })
+
+    assert_invalid none_token
+  end
+
+  test "rejects missing nbf and invalid time ordering" do
+    assert_invalid token_with_claims_without("nbf")
+    assert_invalid token_with_claims("iat" => 5.minutes.from_now.to_i, "nbf" => 5.minutes.from_now.to_i)
+    assert_invalid token_with_claims("nbf" => 10.minutes.from_now.to_i)
   end
 
   private
 
-  def id_token(issuer: @issuer, expires_at: 5.minutes.from_now)
+  def id_token(issuer: @issuer, issued_at: Time.current.utc, expires_at: 5.minutes.from_now)
     OidcIdTokenIssuer.call(
       resource: @user,
       client: @client,
       nonce: @nonce,
       issuer: issuer,
+      issued_at: issued_at,
       expires_at: expires_at,
       jwt_issuer_id: @jwt_issuer_id,
     )
@@ -69,14 +93,21 @@ class OidcIdTokenVerifierTest < ActiveSupport::TestCase
     JitSecurityJwtKeyring.encode(valid_claims.merge(overrides), issuer_id: @jwt_issuer_id)
   end
 
+  def token_with_claims_without(*keys)
+    claims = valid_claims
+    keys.each { |key| claims.delete(key) }
+    JitSecurityJwtKeyring.encode(claims, issuer_id: @jwt_issuer_id)
+  end
+
   def valid_claims
-    now = Time.current.to_i
+    now = Time.current.utc.to_i
     {
       "iss" => @issuer,
       "sub" => OidcSubject.for(@user, resource_type: "client"),
-      "aud" => @client.client_id,
+      "aud" => [@client.client_id],
       "exp" => 5.minutes.from_now.to_i,
       "iat" => now,
+      "nbf" => now,
       "jti" => SecureRandom.uuid,
       "typ" => OidcIdTokenIssuer::TOKEN_TYPE,
       "act" => "client",

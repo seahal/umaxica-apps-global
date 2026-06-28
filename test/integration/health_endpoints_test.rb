@@ -264,19 +264,30 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
     assert_no_match(/setInterval|setTimeout|EventSource|WebSocket/i, response.body)
   end
 
-  test "health snapshot is available as json with nested probe dependencies" do
+  test "health snapshot does not serve json on any declared surface" do
+    SURFACES.each do |surface|
+      host! surface[:host]
+
+      get "/health.json"
+
+      assert_not_predicate response, :successful?
+
+      get "/health", headers: { "Accept" => "application/json" }
+
+      assert_not_predicate response, :successful?
+    end
+  end
+
+  test "health snapshot is available as html with nested probe dependencies" do
     host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
 
-    get "/health.json"
+    get "/health"
 
-    assert_equal "application/json", response.media_type
-    assert_equal "health", response.parsed_body["check"]
-    assert_equal %w(liveness readiness startup), response.parsed_body["dependencies"].keys
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Health Snapshot"
+    assert_includes response.body, "Generated at"
 
-    get "/health", headers: { "Accept" => "application/json" }
-
-    assert_equal "application/json", response.media_type
-    assert_equal "health", response.parsed_body["check"]
+    assert_no_match(/health\.json/i, response.body)
   end
 
   test "json probes render json regardless of accept header and html suffix" do
@@ -451,11 +462,12 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       Health::LivenessCheck.stub(:call, liveness) do
         Health::ReadinessCheck.stub(:call, readiness) do
           Health::StartupCheck.stub(:call, startup) do
-            Health::SnapshotCheck.stub(:call, snapshot) do
-              get "/health.json"
+              Health::SnapshotCheck.stub(:call, snapshot) do
+              get "/health"
 
               assert_response :success
-              assert_equal "application/json", response.media_type
+              assert_equal "text/html", response.media_type
+              assert_includes response.body, "Health Snapshot"
 
               %w(liveness readiness startup).each do |probe|
                 get "/health/#{probe}"
@@ -463,6 +475,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
                 assert_response :success
                 assert_equal "application/json", response.media_type
                 assert_equal probe, response.parsed_body["check"]
+                assert_nil response.parsed_body.dig("details", "surface")
               end
             end
           end

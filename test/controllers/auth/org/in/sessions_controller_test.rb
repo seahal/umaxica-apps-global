@@ -67,7 +67,9 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_select "input[type=checkbox][name='revoke_session_ids[]']", false
     assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
     assert_select "form[data-turbo=false][method=post][action=?]",
-                  auth_org_sign_in_session_cancellation_path(ri: "jp")
+                  auth_org_sign_in_session_path(ri: "jp")
+    assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
+                  auth_org_sign_in_session_path(ri: "jp")
     rendered_ref = css_select("input[type=radio][name=ref]").first["value"]
 
     assert_equal active_token, OperatorToken.find_from_signed_ref(rendered_ref)
@@ -377,7 +379,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     delete auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
-    assert_response :redirect
+    assert_response :see_other
     assert_match %r{/sign/in}, response.location
 
     token.reload
@@ -386,13 +388,13 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal OperatorTokenStatus::REVOKED, token.staff_token_status_id
   end
 
-  test "session cancellation route cancels restricted session and redirects to login" do
+  test "delete session route cancels restricted session and redirects to login" do
     token = create_restricted_session(@staff)
     headers = as_staff_headers_with_token(@staff, token, host: @host)
 
-    post auth_org_sign_in_session_cancellation_url(ri: "jp"), headers: headers
+    delete auth_org_sign_in_session_url(ri: "jp"), headers: headers
 
-    assert_response :redirect
+    assert_response :see_other
     assert_match %r{/sign/in}, response.location
 
     token.reload

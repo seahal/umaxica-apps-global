@@ -82,6 +82,8 @@ module SignUpExplicitStepControllerSupport
     return render_sign_up_result(result) unless result.success?
 
     sign_up_session_state.clear_all!
+    return head :no_content if request.format.json?
+
     redirect_to(sign_up_restart_path, status: :see_other)
   end
 

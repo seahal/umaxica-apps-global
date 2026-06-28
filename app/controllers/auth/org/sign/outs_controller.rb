@@ -7,6 +7,7 @@ module Auth
       class OutsController < ::Auth::Org::ApplicationController
         include ::AuthenticationLogoutable
         include ::SignOutNotice
+        include ::SignOutCancellation
         include ::OidcRpLogoutLauncher
 
         AUTHENTICATION_MODE = :open

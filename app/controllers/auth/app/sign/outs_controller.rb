@@ -7,6 +7,7 @@ module Auth
       class OutsController < ::Auth::App::ApplicationController
         include ::AuthenticationLogoutable
         include ::SignOutNotice
+        include ::SignOutCancellation
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
@@ -48,17 +49,6 @@ module Auth
 
           redirect_to(
             complete_auth_app_sign_out_url(
-              host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
-              protocol: "https",
-            ),
-            status: :see_other,
-            allow_other_host: true,
-          )
-        end
-
-        def destroy
-          redirect_to(
-            new_auth_app_sign_out_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
               protocol: "https",
             ),

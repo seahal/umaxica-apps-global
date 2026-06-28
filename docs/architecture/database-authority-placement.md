@@ -31,6 +31,21 @@ it is reserved for non-authority application data where appropriate.
 
 This is a database placement migration, not a database rename.
 
+## Retained Principal Storage Role
+
+The `principal` database name is retained for compatibility and is not renamed in this phase.
+
+`principal` is not required to become empty. New placement decisions must not infer Principal
+authority ownership from the name `principal`.
+
+After authority placement is clarified, `principal` may serve as a regional-ready application data
+store. That data should be structured so it can later be extracted into explicit regional
+databases or regional shards.
+
+This is a semantic redefinition of the retained storage role, not a database rename. It does not
+restore `principal` as the canonical store for Principal / Identity / Account / Organization
+authority data.
+
 ## Avatar Boundary
 
 Avatar remains a separate actor-authority boundary in the current code and in this phase.
@@ -95,11 +110,25 @@ Relevant file paths:
 ## Ambiguities
 
 - `Member` vs `ClientMembership` vs `Organization` remains the weakest boundary.
+- `Client`, `Visitor`, and `Operator` runtime actor rows still carry credentials, contact,
+  recovery, and lifecycle state. Those rows are not resolved by the retained principal role.
 - `ClientOidcConnection`, `OperatorOidcConnection`, and `VisitorOidcConnection` may be future
   candidates, but they are not settled here.
 - `representing_organization_id` on `Avatar` remains semantically unclear.
 - `AvatarAssignment`, `AvatarMembership`, `AvatarOwnershipPeriod`, and `AvatarPersonaBinding` remain
   unresolved beyond the current "stay in avatar" phase.
+
+## Design Rules
+
+- New regional-ready models placed in `principal` should be designed for later extraction. They
+  should have an explicit regional or extraction-friendly scope where appropriate, avoid accidental
+  global uniqueness requirements, and avoid depending on `principal` as a canonical authority
+  boundary.
+- Do not place new global authority models in `principal` merely because the retained database name
+  is `principal`. Authority ownership must be decided from the semantic role of the data, not from
+  the database name.
+- Do not use the retained `principal` role to reclassify Avatar authority, ticket/session/ceremony
+  data, preference/settings data, or OIDC transaction rows.
 
 ## Future Implementation Sequence
 

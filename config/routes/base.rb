@@ -212,6 +212,9 @@ scope module: :base, as: :base do
         resources :memberships, only: %i(index new create edit update destroy), module: :organizations
       end
 
+      # Group resource surface for Avatar containers.
+      resources :groups, only: %i(index)
+
       resources :avatars, only: %i(index new create show edit update)
     end
   end

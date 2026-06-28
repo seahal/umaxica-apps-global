@@ -3,7 +3,7 @@
 
 class OidcIdTokenVerifier < ApplicationService
   Result =
-    Data.define(:success, :payload, :error) do
+    Data.define(:success, :payload, :canonical_audience, :error) do
       def success? = success
     end
 
@@ -22,9 +22,10 @@ class OidcIdTokenVerifier < ApplicationService
     return failure("missing_nonce") if expected_nonce.blank?
 
     payload = decode!
+    canonical_audience = validate_audience!(payload)
     return failure("nonce_mismatch") unless secure_equal?(payload["nonce"], expected_nonce)
 
-    Result.new(success: true, payload: payload, error: nil)
+    Result.new(success: true, payload: payload, canonical_audience: canonical_audience, error: nil)
   rescue JWT::DecodeError, JWT::VerificationError, OpenSSL::PKey::PKeyError, ArgumentError, TypeError
     failure("invalid_id_token")
   end
@@ -52,10 +53,21 @@ class OidcIdTokenVerifier < ApplicationService
   end
 
   def failure(error)
-    Result.new(success: false, payload: nil, error: error)
+    Result.new(success: false, payload: nil, canonical_audience: nil, error: error)
   end
 
   def resolved_jwt_issuer_id
     jwt_issuer_id.presence || OidcIssuer.jwt_issuer_id_for_resource_type(resource_type)
+  end
+
+  def validate_audience!(payload)
+    aud = payload.fetch("aud")
+    raise ArgumentError, "invalid audience type" unless aud.is_a?(Array)
+    raise ArgumentError, "invalid audience size" unless aud.size == 1
+
+    canonical_audience = aud.first.to_s
+    raise ArgumentError, "invalid audience value" unless secure_equal?(canonical_audience, client_id)
+
+    canonical_audience
   end
 end

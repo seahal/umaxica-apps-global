@@ -17,10 +17,9 @@ module HealthCheckRendering
   def render_snapshot(result)
     @health_snapshot = result
 
-    respond_to do |format|
-      format.html { render "shared/health/show", formats: :html, status: result.http_status }
-      format.json { render json: result.as_public_json, status: result.http_status }
-    end
+    return head :not_acceptable unless request.format.html?
+
+    render "shared/health/show", formats: :html, status: result.http_status
   end
 
   private

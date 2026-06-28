@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 8e9c920f828e3222aa6acd4c3b023c61fa79da4e
+  revision: f93bb195c9445d2664f23e76212ad49e2c89b12f
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -118,7 +118,7 @@ GEM
       public_suffix (>= 2.0.2, < 8.0)
     aes_key_wrap (1.1.0)
     android_key_attestation (0.3.0)
-    annotaterb (4.22.0)
+    annotaterb (4.23.0)
       activerecord (>= 6.0.0)
       activesupport (>= 6.0.0)
     anonymous_loader (0.1.2)
@@ -360,6 +360,8 @@ GEM
       logger
     heapy (0.2.0)
       thor
+    highline (3.1.2)
+      reline
     hotwire-spark (0.1.13)
       listen
       rails (>= 7.0.0)
@@ -369,6 +371,18 @@ GEM
       http-2 (>= 1.2.0)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
+    i18n-tasks (1.1.2)
+      activesupport (>= 4.0.2)
+      ast (>= 2.1.0)
+      erubi
+      highline (>= 3.0.0)
+      i18n
+      parser (>= 3.2.2.1)
+      prism
+      rails-i18n
+      rainbow (>= 2.2.2, < 4.0)
+      ruby-progressbar (~> 1.8, >= 1.8.1)
+      terminal-table (>= 1.5.1)
     image_processing (2.0.2)
     importmap-rails (2.2.3)
       actionpack (>= 6.0.0)
@@ -824,6 +838,9 @@ GEM
     rails-html-sanitizer (1.7.0)
       loofah (~> 2.25)
       nokogiri (>= 1.15.7, != 1.16.7, != 1.16.6, != 1.16.5, != 1.16.4, != 1.16.3, != 1.16.2, != 1.16.1, != 1.16.0.rc1, != 1.16.0)
+    rails-i18n (8.1.0)
+      i18n (>= 0.7, < 2)
+      railties (>= 8.0.0, < 9)
     rails-pg-extras (5.7.0)
       actionpack
       activerecord
@@ -963,7 +980,7 @@ GEM
       logger
     sexp_processor (4.17.5)
     sha3 (2.2.4)
-    shrine (3.7.1)
+    shrine (3.8.0)
       content_disposition (~> 1.0)
       down (~> 5.1)
     signet (0.22.0)
@@ -1020,7 +1037,7 @@ GEM
     store_model (4.6.0)
       activerecord (>= 7.0)
     stringio (3.2.0)
-    stripe (19.2.1)
+    stripe (19.3.0)
       bigdecimal
       logger
     strong_migrations (2.8.0)
@@ -1127,6 +1144,7 @@ DEPENDENCIES
   flog
   foreman
   hotwire-spark
+  i18n-tasks
   image_processing
   inertia_rails
   jbuilder
@@ -1232,7 +1250,7 @@ CHECKSUMS
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
   aes_key_wrap (1.1.0) sha256=b935f4756b37375895db45669e79dfcdc0f7901e12d4e08974d5540c8e0776a5
   android_key_attestation (0.3.0) sha256=467eb01a99d2bb48ef9cf24cc13712669d7056cba5a52d009554ff037560570b
-  annotaterb (4.22.0) sha256=66fc40e5f48d5b82ae82013da1e5b43aaaad41ee9bd3d0cf803048efc0a70286
+  annotaterb (4.23.0) sha256=0fc59b1d40e07bec75d9d9b0cd479493631ce8901e4b59fefc561689f22b4600
   anonymous_loader (0.1.2) sha256=8ccf77c3f0812fb93d47956fdd6f30344a3835864e3cb1431ca597905985efc2
   ansi (1.6.0) sha256=ac9ea0c0ea8d32fb4e271348e609963ac78882f34b73836c2a02b3622e666658
   argon2 (2.3.3) sha256=535276457cabf71940f21ac31b49b9d3b0d0a4640fe9db2b46b9677e2838453d
@@ -1322,10 +1340,12 @@ CHECKSUMS
   googleauth (1.17.1) sha256=0f7e6fc70e204cee1b2d71f1e1de2d3b349d432404197fe68ebf7fa23d0821b9
   hashie (5.1.0) sha256=c266471896f323c446ea8207f8ffac985d2718df0a0ba98651a3057096ca3870
   heapy (0.2.0) sha256=74141e845d61ffc7c1e8bf8b127c8cf94544ec7a1181aec613288682543585ea
+  highline (3.1.2) sha256=67cbd34d19f6ef11a7ee1d82ffab5d36dfd5b3be861f450fc1716c7125f4bb4a
   hotwire-spark (0.1.13) sha256=0a24799b0942fc9b7ea3e560a5aba3f4dd9a6086958a25929894340f920fb499
   http-2 (1.2.0) sha256=5bed923379ae67895d3bde440502219543da2885104b46ed7d604f5990efad1c
   httpx (1.8.0) sha256=10b300875be99cbc3497397278cf99632262567886f3582ee25ce492bdadbe2a
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
+  i18n-tasks (1.1.2) sha256=4dcfba49e52a623f30661cb316cb80d84fbba5cb8c6d88ef5e02545fffa3637a
   image_processing (2.0.2) sha256=d0cf990f862d64efb1a14916044bf4b5bb2bccc7e235022413cde46019799cfa
   importmap-rails (2.2.3) sha256=7101be2a4dc97cf1558fb8f573a718404c5f6bcfe94f304bf1f39e444feeb16a
   inertia_rails (3.21.2) sha256=8806b2b2e230a994c1359d4578b4fb30b7eccdbdaf7fd11e9db718341b8e73aa
@@ -1493,6 +1513,7 @@ CHECKSUMS
   rails (8.2.0.alpha)
   rails-dom-testing (2.3.0) sha256=8acc7953a7b911ca44588bf08737bc16719f431a1cc3091a292bca7317925c1d
   rails-html-sanitizer (1.7.0) sha256=28b145cceaf9cc214a9874feaa183c3acba036c9592b19886e0e45efc62b1e89
+  rails-i18n (8.1.0) sha256=52d5fd6c0abef28d84223cc05647f6ae0fd552637a1ede92deee9545755b6cf3
   rails-pg-extras (5.7.0) sha256=9e16d43d32bb293d206f07eb80cd51bfaf0d6aad0a168cea1066660c7370021a
   rails_db (2.5.0) sha256=b9bc18f216cad57affbb3d3bfc88ca23bb589e402fad3883ecbe61478168b137
   rails_live_reload (0.5.0) sha256=9f869b57c8ce414215dd55e61b161b836b1711b8d5aed59892ead30cba38fa73
@@ -1545,7 +1566,7 @@ CHECKSUMS
   sentry-ruby (6.6.2) sha256=a64aaf757d10058598fe5871de925b2a5a3d78273feb9bca23fff843accc6cd6
   sexp_processor (4.17.5) sha256=ae2b48ba98353d5d465ce8759836b7a05f2e12c5879fcd14d7815b026de32f0e
   sha3 (2.2.4) sha256=2a3c7b8c8fd5ba2571f8f21b51935c8c513c1036f1e472181e8275c469b16bc7
-  shrine (3.7.1) sha256=963d44c0e7cab2abb71c5dd514ba5c62ab039c2a0ccdccebe0fbcd376274d747
+  shrine (3.8.0) sha256=658cc1fe1c5ec836a6c10bace7f214313e7d878acea09b6b658fe15fa19ea109
   signet (0.22.0) sha256=b76d495ccb07ad35dbc89f3e920665a9d8ed717141955034005d7843dcfe4780
   simple_form (5.4.1) sha256=58c3d229034c7e5545035c3271b6f030ef730c340b9d7d8eb730e0a385b20808
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
@@ -1568,7 +1589,7 @@ CHECKSUMS
   store_attribute (2.1.1) sha256=de53611c01d3fb4c91e0d7af4208861bd18d017c4cee682ed0473d0e4496f5b8
   store_model (4.6.0) sha256=13646cf65b7620919ebbe19e363d3e8943b752add1f51c24136902deffeeb149
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
-  stripe (19.2.1) sha256=21bdf5fd766ff912cf1a21e8706b27b83896750d7a5750699464e34daae6e369
+  stripe (19.3.0) sha256=fcc356a2a552f8b0402dac78dfc439b6deaa77ad0203e80959558130e47e74bf
   strong_migrations (2.8.0) sha256=cb9c0f8160e60f3e9c0e76098d57a6f61825b9618e8eb41cebbd1c1079874439
   tapioca (0.19.1) sha256=5de94d458950897ffe3d4e86a21eec48bb6a8775af85f80b1486b7ae7ba51823
   terminal-table (4.0.0) sha256=f504793203f8251b2ea7c7068333053f0beeea26093ec9962e62ea79f94301d2

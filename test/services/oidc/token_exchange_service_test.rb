@@ -1225,7 +1225,7 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     assert_predicate id_token, :success?
     assert_equal OidcIssuer.for_client(@client), id_token.payload.fetch("iss")
     assert_equal OidcSubject.for(@user, resource_type: "client"), id_token.payload.fetch("sub")
-    assert_equal "core-next-rp", id_token.payload.fetch("aud")
+    assert_equal ["core-next-rp"], id_token.payload.fetch("aud")
     assert_equal OidcIssuer.for_client(@client), access_token.fetch("iss")
     assert_equal OidcSubject.for(@user, resource_type: "client"), access_token.fetch("sub")
     assert_equal [@client.aud], Array(access_token.fetch("aud"))
@@ -1239,6 +1239,85 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
 
     assert_includes acme_kids, access_header.fetch("kid")
     assert_includes acme_kids, id_header.fetch("kid")
+  end
+
+  test "rejects malformed PKCE verifiers and plain method" do
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeCoordinator.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: "test-client-assertion",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+          code_verifier: "short",
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeCoordinator.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: "test-client-assertion",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+          code_verifier: "x" * 129,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+
+    code_record = issue_code!(scope: "openid profile")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeCoordinator.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: "test-client-assertion",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+          code_verifier: "invalid*chars-invalid*chars-invalid*chars-invalid*chars",
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
+
+    code_record = issue_code!(scope: "openid profile")
+    code_record.update_columns(code_challenge_method: "plain")
+
+    result =
+      with_authenticated_client do
+        OidcTokenExchangeCoordinator.call(
+          grant_type: "authorization_code",
+          code: code_record.code,
+          redirect_uri: @redirect_uri,
+          client_id: "core-next-rp",
+          client_assertion_type: OidcClientAssertionJwt::ASSERTION_TYPE,
+          client_assertion: "test-client-assertion",
+          token_endpoint_uri: "https://log.umaxica.app/oauth/token",
+          code_verifier: @code_verifier,
+        )
+      end
+
+    assert_not result.success?
+    assert_equal "invalid_request", result.error
   end
 
   test "public palm audience exchange issues access token accepted by palm resource server" do

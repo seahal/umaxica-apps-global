@@ -55,6 +55,8 @@ Use these `.agents/harnesses/rules/` files as task-specific instructions:
   `docs/architecture/controller-lifecycle.md`
 - User-facing feedback, notices, alerts, or notification UI:
   `.agents/harnesses/rules/generic/no-flash-messages.mdc`
+- Technical research, debugging, implementation, design, or explanation that uses external
+  information sources: `.agents/harnesses/rules/generic/source-policy.mdc`
 - Non-trivial implementation decisions, plan deviations, or handoff notes:
   `.agents/harnesses/rules/generic/implementation-notes.mdc`,
   `.agents/harnesses/rules/project/repository-knowledge-tree.mdc`

@@ -68,18 +68,25 @@ module Auth
               load_session_data
               render :show
             else
-              AuthenticationLogoutCurrentSession.call(
-                resource: @current_visitor,
-                token: current_session,
-                reason: "session_limit_cancelled",
-              ) if current_session&.restricted?
               current_db_sign_in_flow_for_sequence&.fail_sign_in! if pending_session_limit_cycle?
               consume_session_limit_gate!
               session.delete(:pending_login_visitor_id)
-              log_out
+
+              if current_session&.restricted?
+                AuthenticationLogoutCurrentSession.call(
+                  resource: @current_visitor,
+                  token: current_session,
+                  reason: "session_limit_cancelled",
+                )
+                log_out
+              end
+
+              return head :no_content if request.format.json?
+
               redirect_to(
                 auth_com_sign_in_path(ri: current_region_identifier),
                 notice: I18n.t("sign.app.in.session.cancelled"),
+                status: :see_other,
               )
             end
           end
@@ -107,6 +114,7 @@ module Auth
             redirect_to(
               auth_com_sign_in_path(ri: current_region_identifier),
               alert: I18n.t("sign.app.in.session.login_required"),
+              status: :see_other,
             )
           end
 

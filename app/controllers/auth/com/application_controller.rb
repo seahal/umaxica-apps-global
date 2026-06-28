@@ -161,9 +161,12 @@ module Auth
       end
 
       def telephone_registration_allowed_path?
+        # `auth/com/sign/outs` must stay reachable even when telephone
+        # registration is required so a user can cancel the current ceremony
+        # or abort a pending logout before they are forced into registration.
         allowed = [
           "sign/com/settings/telephones/registrations",
-          "sign/com/sign/outs",
+          "auth/com/sign/outs",
         ]
         allowed.include?(controller_path)
       end

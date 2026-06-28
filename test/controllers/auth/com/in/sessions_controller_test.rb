@@ -93,16 +93,16 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     delete auth_com_sign_in_session_url(ri: "jp"), headers: headers
 
-    assert_response :redirect
+    assert_response :see_other
     assert_match %r{/sign/in\?ri=jp}, response.location
   end
 
-  test "session cancellation route logs out and redirects to login" do
+  test "delete session route logs out and redirects to login" do
     headers = request_headers(@token)
 
-    post auth_com_sign_in_session_cancellation_url(ri: "jp"), headers: headers
+    delete auth_com_sign_in_session_url(ri: "jp"), headers: headers
 
-    assert_response :redirect
+    assert_response :see_other
     assert_match %r{/sign/in\?ri=jp}, response.location
     assert_not_predicate @token.reload, :currently_usable?
     assert_equal VisitorTokenStatus::REVOKED, @token.visitor_token_status_id

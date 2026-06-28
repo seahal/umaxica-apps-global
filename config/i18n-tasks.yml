@@ -1,0 +1,37 @@
+# i18n-tasks configuration for the current locale layout.
+#
+# Japanese is the base locale in config/initializers/locale.rb, and English
+# strings fall back to Japanese until dedicated translations exist.
+base_locale: ja
+
+data:
+  # Read all locale files under config/locales/ while preserving the existing
+  # region/locale split (for example config/locales/jp/en.yml).
+  read:
+    - config/locales/**/*.yml
+  # Keep existing files stable when normalizing or writing keys.
+  router: conservative_router
+  yaml:
+    write:
+      line_width: -1
+
+search:
+  # Scan the application, library code, and tests that assert translation keys.
+  paths:
+    - app/
+    - lib/
+    - test/
+  # Dynamic keys are common in preference and ceremony flows, so let the
+  # scanner infer key patterns instead of treating interpolated calls as opaque.
+  strict: false
+
+# Keep known dynamic namespaces in the audit report until a dedicated hint is
+# added near the call site. These are interpolated by surface, type, or action
+# and would otherwise be easy to delete by mistake.
+ignore_unused:
+  - 'acme.{app,com,org}.preference.*'
+  - 'acme.{app,com,org}.preferences.*'
+  - 'base.{app,com,org}.preference.*'
+  - 'base.{app,com,org}.preferences.*'
+  - 'auth.{app,com,org}.settings.activity.events.*'
+  - 'sign.org.settings.operator_lifecycle_requests.actions.*'

@@ -18,6 +18,8 @@ module Auth
           def show = super
 
           def update = super
+
+          def destroy = super
         end
       end
     end

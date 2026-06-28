@@ -178,7 +178,7 @@ class OidcTokenExchangeCoordinator < ApplicationService
         refresh_plain = issue_or_rotate_usage_refresh_token!(usage)
         authorization_code.consume!
 
-        now = Time.current
+        now = Time.current.utc
         access_expires_at = now + AuthenticationBase::ACCESS_TOKEN_TTL
         resource_type = resource_type_for(authorization_code)
         client = client_for_resource_type(client, resource_type)
