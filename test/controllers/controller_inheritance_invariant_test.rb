@@ -11,7 +11,7 @@ require "test_helper"
 # If this test fails with a new violation, the PR must either fix the inheritance
 # or add an explicit entry to KNOWN_VIOLATIONS with a documented reason.
 class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   # Pre-existing controller-to-controller inheritance violations that have not yet
   # been refactored. Each entry is the controller source path relative to Rails.root.

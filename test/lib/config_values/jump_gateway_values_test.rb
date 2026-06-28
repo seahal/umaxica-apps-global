@@ -50,7 +50,7 @@ class ConfigValuesJumpGatewayValuesTest < ActiveSupport::TestCase
     assert_predicate values.revoked_kids, :frozen?
   end
 
-  test "build in production mode raises KeyError when JUMP_GATEWAY_URL is missing" do
+  test "build in production mode raises KeyError when PUBLIC_JUMP_GATEWAY_URL is missing" do
     assert_raises(KeyError) do
       ConfigValues::JumpGatewayValues.build(env: {}, production: true)
     end

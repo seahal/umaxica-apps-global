@@ -8,7 +8,7 @@ module Jit
   module Security
     module Jwt
       class KeyringTest < ActiveSupport::TestCase
-        fixtures_none!
+        self.fixture_table_names = []
 
         def with_active_kid_env(value)
           previous_value = ENV["AUTH_JWT_ACTIVE_KID"]

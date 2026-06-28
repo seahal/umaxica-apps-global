@@ -5,7 +5,7 @@ require "test_helper"
 
 class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_STAFF_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     host! @host
     OrgPrincipalRecord.connected_to(role: :writing) do
       OperatorStatus.insert_missing_fixed_ids!(

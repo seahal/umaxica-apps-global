@@ -7,7 +7,7 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV["SIDE_SERVICE_URL"] || "side.app.localhost"
+    host! ENV["PUBLIC_SIDE_SERVICE_URL"] || "side.app.localhost"
   end
 
   test "get sign out renders confirmation without mutation" do
@@ -130,14 +130,15 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
       logout_challenge: challenge,
     ), headers: {
       "Host" => ENV["PRIVATE_ACME_SERVICE_URL"] || ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
-      "Origin" => "https://#{ENV["SIDE_SERVICE_URL"] || "side.app.localhost"}",
+      "Origin" => "https://#{ENV["PUBLIC_SIDE_SERVICE_URL"] || "side.app.localhost"}",
       "Sec-Fetch-Site" => "same-site",
     }
 
     assert_response :success
     location = URI.parse(handoff_form["action"])
 
-    assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost") || ENV["SIGN_SERVICE_URL"] || "sign.app.localhost", location.host
+    assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost") || ENV["SIGN_SERVICE_URL"] || "sign.app.localhost",
+                 location.host
     assert_equal "/sign/out", location.path
     assert_equal challenge, handoff_input_value("logout_challenge")
     assert_equal "jp", handoff_input_value("ri")

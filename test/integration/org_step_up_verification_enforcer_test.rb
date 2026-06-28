@@ -9,7 +9,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
            :operator_token_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     @staff = Operator.create!(
       status_id: OperatorStatus::ACTIVE,
       visibility_id: OperatorVisibility::STAFF,

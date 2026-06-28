@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AcmeLogoutTransactionTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "logout challenge is an opaque public identifier" do
     transaction = build_transaction(origin_surface: "sign")

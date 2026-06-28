@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ActorContextTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     Actor.reset

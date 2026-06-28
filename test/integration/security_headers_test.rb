@@ -21,7 +21,7 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
   end
 
   test "content security policy and permissions policy are enforced" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     get sign_app_health_liveness_url(ri: "jp")
 
@@ -38,13 +38,13 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"],
                     "https://#{ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ID_SERVICE_URL")}"
+                    "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
                     "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}"
     # The jump gateway must be a valid form-action target: sign-flow form submissions
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],
-                    ENV.fetch("JUMP_GATEWAY_URL")
+                    ENV.fetch("PUBLIC_JUMP_GATEWAY_URL")
     assert_includes response.headers["Content-Security-Policy"], "connect-src 'self' https: ws: wss:"
     assert_includes response.headers["Content-Security-Policy"], "script-src 'self' 'strict-dynamic'"
     assert_not_includes response.headers["Content-Security-Policy"], "script-src-elem"

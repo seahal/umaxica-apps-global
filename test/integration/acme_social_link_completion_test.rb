@@ -71,7 +71,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     location = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(location.query)
 
-    assert_equal ENV.fetch("ID_SERVICE_URL"), location.host
+    assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL"), location.host
     assert_equal "/social/google/sign/in", location.path
     assert_equal "sign_in", query["entry"]
     assert_equal "jp", query["ri"]

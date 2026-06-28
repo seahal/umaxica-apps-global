@@ -1129,14 +1129,14 @@ module Preference
 
     test "cookie banner endpoint resolves helper on expected host" do
       old = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
-      ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost") = "id.app.localhost"
+      ENV["PRIVATE_ACME_SERVICE_URL"] = "id.app.localhost"
       @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "id.app.localhost")
       @controller.define_singleton_method(:acme_app_web_v0_cookie_url) { "https://id.app.localhost/web/v0/cookie" }
 
       assert @controller.send(:cookie_banner_endpoint_available_for_request?)
       assert_equal "https://id.app.localhost/web/v0/cookie", @controller.send(:cookie_banner_endpoint_url)
     ensure
-      ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost") = old
+      ENV["PRIVATE_ACME_SERVICE_URL"] = old
     end
 
     test "preference class mapping and option fallback helpers cover unknown branches" do

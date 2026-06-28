@@ -217,20 +217,20 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
   end
 
   test "jump_gateway_url fails fast in production when host is missing" do
-    with_env("JUMP_GATEWAY_URL" => nil) do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => nil) do
       Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
         error =
           assert_raises(KeyError) do
             JumpRtReturnVerifier.allocate.send(:jump_gateway_url)
           end
 
-        assert_equal 'key not found: "JUMP_GATEWAY_URL"', error.message
+        assert_equal 'key not found: "PUBLIC_JUMP_GATEWAY_URL"', error.message
       end
     end
   end
 
   test "jump_gateway_url allows local default outside production" do
-    with_env("JUMP_GATEWAY_URL" => nil) do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => nil) do
       Rails.stub(:env, ActiveSupport::StringInquirer.new("test")) do
         assert_equal "https://jump.umaxica.net", JumpRtReturnVerifier.allocate.send(:jump_gateway_url)
       end
@@ -252,7 +252,7 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
     )
 
     with_env(
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "JUMP_GATEWAY_JWKS_URL" => "not a valid url",
     ) do
       error = assert_raises(ArgumentError) { verifier.send(:fetch_jwks) }

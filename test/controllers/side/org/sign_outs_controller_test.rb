@@ -7,7 +7,7 @@ class Side::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    host! ENV.fetch("SIDE_STAFF_URL")
+    host! ENV.fetch("PUBLIC_SIDE_STAFF_URL")
   end
 
   test "get sign out renders confirmation without mutation" do

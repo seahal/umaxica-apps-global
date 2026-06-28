@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_STAFF_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     @acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
     host! @host
     CloudflareTurnstile.test_mode = true

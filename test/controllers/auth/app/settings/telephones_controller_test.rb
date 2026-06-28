@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "../../../../support/auth_helpers"
+require "helpers/auth_helpers"
 
 # Auth::App::Settings::TelephonesController is now a redirect shim.
 # Read actions redirect to base/app/identity/telephones/*.

@@ -5,7 +5,7 @@ require "test_helper"
 require "concurrent"
 
 class LogoutTransactionTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "issue creates an opaque token and stores only the digest" do
     transaction, raw_token = LogoutTransaction.issue!(

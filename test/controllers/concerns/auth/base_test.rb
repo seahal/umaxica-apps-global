@@ -7,7 +7,7 @@ require "test_helper"
 
 module Auth
   class BaseTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     class HeaderKeyHarness
       class MockCookies

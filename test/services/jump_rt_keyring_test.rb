@@ -3,7 +3,7 @@
 require "test_helper"
 
 class JumpRtKeyringTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     @private_key = OpenSSL::PKey::EC.generate("secp384r1")

@@ -27,8 +27,8 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
 
   test "rails issued rt can round trip through a stubbed jump gateway and return verifier" do
     with_env(
-      "ID_SERVICE_URL" => "www.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PRIVATE_AUTH_SERVICE_URL" => "www.umaxica.app",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:active_kid, "acme-app-test") do
         JumpRtKeyring.stub(:private_key, @rails_private_key) do

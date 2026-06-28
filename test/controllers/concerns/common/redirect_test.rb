@@ -146,7 +146,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
-    with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
       controller.send(:redirect_to_jump_rt, token)
     end
 
@@ -178,7 +178,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
         controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
@@ -240,7 +240,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
         Rails.stub(:logger, logger) do
@@ -286,7 +286,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
         controller.send(
@@ -323,7 +323,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "RP_APP_URL" => "https://rp.example",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -353,7 +353,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(
         :redirect_to_jump_url,
@@ -376,7 +376,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:request) { request }
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
-    with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "http://jump.example") do
       JumpRtIssuer.stub(:call, "aaa.bbb.ccc") do
         controller.send(
           :redirect_to_jump_url,
@@ -413,7 +413,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtIssuer.stub(:call, nil) do
         Rails.stub(:logger, logger) do
@@ -457,7 +457,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
     fake_token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
 
-    with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "http://jump.example") do
       Rails.stub(:logger, logger) do
         JumpRtIssuer.stub(:call, fake_token) do
           controller.send(
@@ -488,7 +488,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")
     end

@@ -8,7 +8,7 @@ module Jit
   module Security
     module Jwt
       class RegistryTest < ActiveSupport::TestCase
-        fixtures_none!
+        self.fixture_table_names = []
 
         setup do
           @original_issuers = JitSecurityJwtRegistry.instance_variable_get(:@issuers)

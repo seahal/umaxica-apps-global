@@ -5,7 +5,7 @@ require "test_helper"
 
 module Security
   class AuthenticationModeInventoryTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     class ParentController < ApplicationController
       include AuthenticationBase

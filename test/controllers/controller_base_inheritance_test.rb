@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ControllerBaseInheritanceTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   BARE_CONTROLLERS = [
     Auth::App::BareController,

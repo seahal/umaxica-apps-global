@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AuthPreferencesBaseControllerTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "preference bases use surface application controllers and ActorSupport" do
     [

@@ -6,7 +6,7 @@ require "test_helper"
 module Security
   module Invariants
     class ControllerLifecycleOrderInvariantTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       AUTHENTICATED_SURFACE_CONTROLLERS = [
         Auth::App::ApplicationController,

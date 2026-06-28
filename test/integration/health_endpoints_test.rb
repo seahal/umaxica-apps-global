@@ -54,7 +54,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::SignApp,
     },
     {
-      host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+      host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
       controller: "sign/com/healths",
       liveness_controller: "sign/com/health/livenesses",
       readiness_controller: "sign/com/health/readinesses",
@@ -62,7 +62,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::SignCom,
     },
     {
-      host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+      host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
       controller: "sign/org/healths",
       liveness_controller: "sign/org/health/livenesses",
       readiness_controller: "sign/org/health/readinesses",
@@ -94,7 +94,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("PALM_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/healths",
       liveness_controller: "palm/app/health/livenesses",
       readiness_controller: "palm/app/health/readinesses",
@@ -102,7 +102,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("HELP_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_HELP_SERVICE_URL"),
       controller: "help/app/healths",
       liveness_controller: "help/app/health/livenesses",
       readiness_controller: "help/app/health/readinesses",
@@ -110,7 +110,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("HELP_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_HELP_CORPORATE_URL"),
       controller: "help/com/healths",
       liveness_controller: "help/com/health/livenesses",
       readiness_controller: "help/com/health/readinesses",
@@ -118,7 +118,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("HELP_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_HELP_STAFF_URL"),
       controller: "help/org/healths",
       liveness_controller: "help/org/health/livenesses",
       readiness_controller: "help/org/health/readinesses",
@@ -126,7 +126,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("DOCS_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_DOCS_SERVICE_URL"),
       controller: "docs/app/healths",
       liveness_controller: "docs/app/health/livenesses",
       readiness_controller: "docs/app/health/readinesses",
@@ -134,7 +134,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("DOCS_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_DOCS_CORPORATE_URL"),
       controller: "docs/com/healths",
       liveness_controller: "docs/com/health/livenesses",
       readiness_controller: "docs/com/health/readinesses",
@@ -142,7 +142,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("DOCS_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_DOCS_STAFF_URL"),
       controller: "docs/org/healths",
       liveness_controller: "docs/org/health/livenesses",
       readiness_controller: "docs/org/health/readinesses",
@@ -150,7 +150,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("NEWS_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_NEWS_SERVICE_URL"),
       controller: "news/app/healths",
       liveness_controller: "news/app/health/livenesses",
       readiness_controller: "news/app/health/readinesses",
@@ -158,7 +158,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("NEWS_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_NEWS_CORPORATE_URL"),
       controller: "news/com/healths",
       liveness_controller: "news/com/health/livenesses",
       readiness_controller: "news/com/health/readinesses",
@@ -166,7 +166,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("NEWS_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_NEWS_STAFF_URL"),
       controller: "news/org/healths",
       liveness_controller: "news/org/health/livenesses",
       readiness_controller: "news/org/health/readinesses",

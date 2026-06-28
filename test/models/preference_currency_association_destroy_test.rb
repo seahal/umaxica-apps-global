@@ -4,7 +4,7 @@
 require "test_helper"
 
 class PreferenceCurrencyAssociationDestroyTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     ensure_reference_defaults!

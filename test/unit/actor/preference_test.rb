@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Actor::PreferenceTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "NULL returns safe defaults" do
     pref = Actor::Preference::NULL

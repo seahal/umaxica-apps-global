@@ -12,7 +12,7 @@ class AuthenticationLogoutResolverRoundTripTest < ActiveSupport::TestCase
   fixtures :clients, :client_token_statuses, :client_token_kinds
 
   test "access token stops resolving a resource after current-session logout" do
-    host = ENV.fetch("ID_SERVICE_URL")
+    host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     user = clients(:one)
 
     headers = authenticated_headers_for(user, host: host)
@@ -49,7 +49,7 @@ class AuthenticationLogoutResolverRoundTripTest < ActiveSupport::TestCase
 
   test "current-session logout revokes a fallback device session that has no current refresh token" do
     user = clients(:one)
-    headers = authenticated_headers_for(user, host: ENV.fetch("ID_SERVICE_URL"))
+    headers = authenticated_headers_for(user, host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL"))
     token = ClientToken.find_by(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     device_session = token.device_session
 

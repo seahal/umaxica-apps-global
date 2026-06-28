@@ -7,7 +7,7 @@ module Base
   module App
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
-        fixtures_none!
+        self.fixture_table_names = []
 
         setup do
           @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")

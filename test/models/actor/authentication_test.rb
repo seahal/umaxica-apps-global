@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Actor::AuthenticationTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "exposes minimal signed-in authentication facts" do
     auth = Actor::Authentication.new(

@@ -5,7 +5,7 @@ require "test_helper"
 require "ostruct"
 
 class JumpRtIssuerTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   HostSet = Struct.new(:sign_service)
   BootConfig = Struct.new(:hosts, :jump)

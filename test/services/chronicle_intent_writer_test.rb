@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ChronicleIntentWriterTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     @policy = ChronicleRetentionPolicy.create!(

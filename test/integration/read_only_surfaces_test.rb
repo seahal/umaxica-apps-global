@@ -8,31 +8,31 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
     ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", "Base services are available"],
     ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "Base services are available"],
     ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "Base services are available"],
-    ["palm_app_root_url", "PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
+    ["palm_app_root_url", "PUBLIC_PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
   ].freeze
 
   CONTENT_SURFACES = [
-    ["help_app_root_url", "HELP_SERVICE_URL", "help.app.localhost", "Help API is available"],
-    ["help_com_root_url", "HELP_CORPORATE_URL", "help.com.localhost", "Help API is available"],
-    ["help_org_root_url", "HELP_STAFF_URL", "help.org.localhost", "Help API is available"],
-    ["docs_app_root_url", "DOCS_SERVICE_URL", "docs.app.localhost", "Docs API is available"],
-    ["docs_com_root_url", "DOCS_CORPORATE_URL", "docs.com.localhost", "Docs API is available"],
-    ["docs_org_root_url", "DOCS_STAFF_URL", "docs.org.localhost", "Docs API is available"],
-    ["news_app_root_url", "NEWS_SERVICE_URL", "news.app.localhost", "News API is available"],
-    ["news_com_root_url", "NEWS_CORPORATE_URL", "news.com.localhost", "News API is available"],
-    ["news_org_root_url", "NEWS_STAFF_URL", "news.org.localhost", "News API is available"],
+    ["help_app_root_url", "PRIVATE_HELP_SERVICE_URL", "help.app.localhost", "Help API is available"],
+    ["help_com_root_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", "Help API is available"],
+    ["help_org_root_url", "PRIVATE_HELP_STAFF_URL", "help.org.localhost", "Help API is available"],
+    ["docs_app_root_url", "PRIVATE_DOCS_SERVICE_URL", "docs.app.localhost", "Docs API is available"],
+    ["docs_com_root_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", "Docs API is available"],
+    ["docs_org_root_url", "PRIVATE_DOCS_STAFF_URL", "docs.org.localhost", "Docs API is available"],
+    ["news_app_root_url", "PRIVATE_NEWS_SERVICE_URL", "news.app.localhost", "News API is available"],
+    ["news_com_root_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", "News API is available"],
+    ["news_org_root_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", "News API is available"],
   ].freeze
 
   CONTENT_API_SURFACES = [
-    ["help_app_api_v0_entry_url", "HELP_SERVICE_URL", "help.app.localhost", HelpAppContentEntry, "help", "app"],
-    ["help_com_api_v0_entry_url", "HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help", "com"],
-    ["help_org_api_v0_entry_url", "HELP_STAFF_URL", "help.org.localhost", HelpOrgContentEntry, "help", "org"],
-    ["docs_app_api_v0_entry_url", "DOCS_SERVICE_URL", "docs.app.localhost", DocsAppContentEntry, "docs", "app"],
-    ["docs_com_api_v0_entry_url", "DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs", "com"],
-    ["docs_org_api_v0_entry_url", "DOCS_STAFF_URL", "docs.org.localhost", DocsOrgContentEntry, "docs", "org"],
-    ["news_app_api_v0_entry_url", "NEWS_SERVICE_URL", "news.app.localhost", NewsAppContentEntry, "news", "app"],
-    ["news_com_api_v0_entry_url", "NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news", "com"],
-    ["news_org_api_v0_entry_url", "NEWS_STAFF_URL", "news.org.localhost", NewsOrgContentEntry, "news", "org"],
+    ["help_app_api_v0_entry_url", "PRIVATE_HELP_SERVICE_URL", "help.app.localhost", HelpAppContentEntry, "help", "app"],
+    ["help_com_api_v0_entry_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help", "com"],
+    ["help_org_api_v0_entry_url", "PRIVATE_HELP_STAFF_URL", "help.org.localhost", HelpOrgContentEntry, "help", "org"],
+    ["docs_app_api_v0_entry_url", "PRIVATE_DOCS_SERVICE_URL", "docs.app.localhost", DocsAppContentEntry, "docs", "app"],
+    ["docs_com_api_v0_entry_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs", "com"],
+    ["docs_org_api_v0_entry_url", "PRIVATE_DOCS_STAFF_URL", "docs.org.localhost", DocsOrgContentEntry, "docs", "org"],
+    ["news_app_api_v0_entry_url", "PRIVATE_NEWS_SERVICE_URL", "news.app.localhost", NewsAppContentEntry, "news", "app"],
+    ["news_com_api_v0_entry_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news", "com"],
+    ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", NewsOrgContentEntry, "news", "org"],
   ].freeze
 
   test "static base and palm roots respond without auth redirects" do
@@ -67,7 +67,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       published_at: 1.day.from_now,
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
     get docs_app_api_v0_entry_url(slug: published.slug, locale: published.locale)
 
     assert_response :success
@@ -108,7 +108,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       status: "archived",
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
 
     get docs_app_api_v0_entry_url(slug: published.slug, ri: "jp")
 
@@ -138,7 +138,7 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
       locale: "en",
     )
 
-    host! ENV.fetch("DOCS_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_DOCS_SERVICE_URL")
 
     get docs_app_api_v0_entry_url(slug: published.slug, ri: "zz")
 

@@ -8,7 +8,7 @@ module Jit
   module Security
     module Jwt
       class LocalKeysetInstallerTest < ActiveSupport::TestCase
-        fixtures_none!
+        self.fixture_table_names = []
 
         setup do
           @store_path = Rails.root.join("tmp/tests/local_jwt_keysets_#{SecureRandom.hex(8)}.json")

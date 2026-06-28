@@ -4,7 +4,7 @@
 require "test_helper"
 
 class CoreRouteContractTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   CORE_APP_HOST = BOOT_HOSTS.core_service.host

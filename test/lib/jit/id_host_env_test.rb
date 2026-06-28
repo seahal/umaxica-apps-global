@@ -8,10 +8,10 @@ module Jit
   class IdHostEnvTest < ActiveSupport::TestCase
     def setup
       @original_env = {
-        "ID_SERVICE_URL" => ENV["ID_SERVICE_URL"],
-        "PRIVATE_SIGN_CORPORATE_URL" => ENV["PRIVATE_SIGN_CORPORATE_URL"],
-        "SIGN_CORPORATE_URL" => ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
-        "ID_STAFF_URL" => ENV["ID_STAFF_URL"],
+        "PRIVATE_AUTH_SERVICE_URL" => ENV["PRIVATE_AUTH_SERVICE_URL"],
+        "PRIVATE_AUTH_CORPORATE_URL" => ENV["PRIVATE_AUTH_CORPORATE_URL"],
+        "SIGN_CORPORATE_URL" => ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
+        "PRIVATE_AUTH_STAFF_URL" => ENV["PRIVATE_AUTH_STAFF_URL"],
       }
     end
 
@@ -23,40 +23,40 @@ module Jit
       end
     end
 
-    test "service_url returns ID_SERVICE_URL" do
-      ENV["ID_SERVICE_URL"] = "http://id.app.localhost"
+    test "service_url returns PRIVATE_AUTH_SERVICE_URL" do
+      ENV["PRIVATE_AUTH_SERVICE_URL"] = "http://id.app.localhost"
 
       assert_equal "http://id.app.localhost", JitIdHostEnv.service_url
     end
 
     test "corporate_url returns SIGN_CORPORATE_URL" do
-      ENV["PRIVATE_SIGN_CORPORATE_URL"] = "http://id.com.localhost"
+      ENV["PRIVATE_AUTH_CORPORATE_URL"] = "http://id.com.localhost"
 
       assert_equal "http://id.com.localhost", JitIdHostEnv.corporate_url
     end
 
-    test "staff_url returns ID_STAFF_URL" do
-      ENV["ID_STAFF_URL"] = "http://id.org.localhost"
+    test "staff_url returns PRIVATE_AUTH_STAFF_URL" do
+      ENV["PRIVATE_AUTH_STAFF_URL"] = "http://id.org.localhost"
 
       assert_equal "http://id.org.localhost", JitIdHostEnv.staff_url
     end
 
     test "validate! raises error when env is missing" do
-      ENV["ID_SERVICE_URL"] = nil
-      ENV["PRIVATE_SIGN_CORPORATE_URL"] = "present"
-      ENV["ID_STAFF_URL"] = "present"
+      ENV["PRIVATE_AUTH_SERVICE_URL"] = nil
+      ENV["PRIVATE_AUTH_CORPORATE_URL"] = "present"
+      ENV["PRIVATE_AUTH_STAFF_URL"] = "present"
 
       error =
         assert_raises(JitIdHostEnv::MissingHostError) do
           JitIdHostEnv.validate!
         end
-      assert_match(/Missing required id host env: ID_SERVICE_URL/, error.message)
+      assert_match(/Missing required id host env: PRIVATE_AUTH_SERVICE_URL/, error.message)
     end
 
     test "validate! does not raise error when all env are present" do
-      ENV["ID_SERVICE_URL"] = "present"
-      ENV["PRIVATE_SIGN_CORPORATE_URL"] = "present"
-      ENV["ID_STAFF_URL"] = "present"
+      ENV["PRIVATE_AUTH_SERVICE_URL"] = "present"
+      ENV["PRIVATE_AUTH_CORPORATE_URL"] = "present"
+      ENV["PRIVATE_AUTH_STAFF_URL"] = "present"
 
       assert_nothing_raised do
         JitIdHostEnv.validate!

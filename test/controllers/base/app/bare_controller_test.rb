@@ -13,7 +13,7 @@ module Base
     # fail so the addition gets explicit review instead of silently inheriting
     # the relaxed boundary.
     class BareControllerTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       REQUIRED_DESCENDANTS = %w(
         Base::App::CspViolationReportsController

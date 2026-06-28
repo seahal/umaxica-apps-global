@@ -5,7 +5,7 @@ require "test_helper"
 
 class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
+    @host = ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")
     @acme_host = ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")
     host! @host
     Prosopite.pause do

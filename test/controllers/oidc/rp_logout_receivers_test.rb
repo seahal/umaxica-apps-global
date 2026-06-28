@@ -5,11 +5,13 @@ require "test_helper"
 
 class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
   SURFACES = [
-    { host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), client_id: "sign-rp", resource_type: "client" },
-    { host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+    { host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
+      client_id: "sign-rp",
+      resource_type: "client", },
+    { host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
       client_id: "sign-rp",
       resource_type: "visitor", },
-    { host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+    { host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
       client_id: "sign-rp",
       resource_type: "operator", },
     { host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),

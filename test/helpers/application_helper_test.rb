@@ -155,7 +155,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host resolves staff edge host for staff surface" do
-    stub_request_host(ENV["SIDE_STAFF_URL"])
+    stub_request_host(ENV["PUBLIC_SIDE_STAFF_URL"])
 
     with_edge_env("PUBLIC_EDGE_STAFF_URL" => "edge.org.localhost", "EDGE_STAFF_URL" => nil) do
       assert_equal "edge.com.localhost", edge_host
@@ -163,7 +163,7 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   test "edge_host resolves corporate edge host for client surface" do
-    stub_request_host(ENV["DOCS_CORPORATE_URL"])
+    stub_request_host(ENV["PRIVATE_DOCS_CORPORATE_URL"])
 
     with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => "http://edge.com.localhost", "EDGE_CORPORATE_URL" => nil) do
       assert_equal "edge.com.localhost", edge_host

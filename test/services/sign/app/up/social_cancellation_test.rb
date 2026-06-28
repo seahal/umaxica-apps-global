@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SignAppUpSocialCancellationTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     ClientStatus.ensure_defaults!

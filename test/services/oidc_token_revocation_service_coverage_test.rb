@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcTokenRevokerCoverageTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   Token =
     Struct.new(:oidc_client_id, :oidc_jti) do

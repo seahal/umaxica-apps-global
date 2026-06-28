@@ -5,7 +5,7 @@ require "test_helper"
 require "rake"
 
 class IdentityGraphRepairTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     Rails.application.load_tasks unless Rake::Task.task_defined?("environment")

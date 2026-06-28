@@ -9,7 +9,7 @@ class Auth::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationT
            :client_totp_credential_statuses, :client_passkey_statuses
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     host! @host
     CloudflareTurnstile.test_mode = true

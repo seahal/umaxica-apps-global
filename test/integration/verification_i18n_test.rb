@@ -7,7 +7,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     host! @host
     @user = clients(:one)
     @token = ClientToken.create!(

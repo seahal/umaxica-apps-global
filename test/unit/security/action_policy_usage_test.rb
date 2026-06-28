@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ActionPolicyUsageTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   SURFACE_AUTHORIZATION_CONTEXTS = {
     Auth::App::ApplicationController => { actor: :current_actor, user: :current_policy_user },

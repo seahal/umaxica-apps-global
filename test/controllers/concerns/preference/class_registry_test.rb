@@ -5,7 +5,7 @@ require "test_helper"
 
 module Preference
   class ClassRegistryTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     test "resolves preference class from controller path" do
       assert_equal AppPreference, PreferenceClassRegistry.for_controller_path("core/app/edge/v0/preferences")

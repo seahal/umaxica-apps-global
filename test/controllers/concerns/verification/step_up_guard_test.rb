@@ -8,7 +8,7 @@ module Verification
   # is exercised by the step-up integration tests; here we assert that the DSL
   # forwards the right arguments to the existing require_step_up! helpers.
   class StepUpGuardTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     # Builds a throwaway controller-like class that records before_action
     # registrations and stubs the underlying step-up helpers.

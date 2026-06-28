@@ -6,7 +6,7 @@ require "test_helper"
 class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host_env: "HELP_SERVICE_URL",
+      host_env: "PRIVATE_HELP_SERVICE_URL",
       host_fallback: "help.app.localhost",
       label: "Help",
       root_path: "/",
@@ -16,7 +16,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       expected_body: "Help API is available",
     },
     {
-      host_env: "DOCS_SERVICE_URL",
+      host_env: "PRIVATE_DOCS_SERVICE_URL",
       host_fallback: "docs.app.localhost",
       label: "Docs",
       root_path: "/",
@@ -26,7 +26,7 @@ class HelpDocsNewsSurfaceSmokeTest < ActionDispatch::IntegrationTest
       expected_body: "Docs API is available",
     },
     {
-      host_env: "NEWS_SERVICE_URL",
+      host_env: "PRIVATE_NEWS_SERVICE_URL",
       host_fallback: "news.app.localhost",
       label: "News",
       root_path: "/",

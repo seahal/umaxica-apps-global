@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcAccessTokenAuthenticatorCoverageTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   class TokenRecordFake
     attr_reader :oidc_client_id, :oidc_jti

@@ -12,7 +12,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_tokens
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @user = clients(:one)
     ClientEmail.create!(user: @user, address: "vf_#{SecureRandom.hex(4)}@example.com", user_email_status_id: ClientEmailStatus::VERIFIED)
     @token = ClientToken.create!(

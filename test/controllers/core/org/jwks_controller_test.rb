@@ -6,7 +6,7 @@ require "test_helper"
 module Core
   module Org
     class JwksControllerTest < ActionDispatch::IntegrationTest
-      fixtures_none!
+      self.fixture_table_names = []
 
       test "GET jwks endpoint returns JSON with keys" do
         host! ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")

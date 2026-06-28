@@ -6,7 +6,7 @@ require "openssl"
 require_relative "../../app/controllers/concerns/preference_base"
 
 class PreferenceTokenModelTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     @host = "example.com".freeze

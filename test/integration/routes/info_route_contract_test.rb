@@ -4,9 +4,9 @@
 require "test_helper"
 
 class InfoRouteContractTest < ActionDispatch::IntegrationTest
-  INFO_APP_HOST = ENV.fetch("INFO_SERVICE_URL")
-  INFO_COM_HOST = ENV.fetch("INFO_CORPORATE_URL")
-  INFO_ORG_HOST = ENV.fetch("INFO_STAFF_URL")
+  INFO_APP_HOST = ENV.fetch("PRIVATE_INFO_SERVICE_URL")
+  INFO_COM_HOST = ENV.fetch("PRIVATE_INFO_CORPORATE_URL")
+  INFO_ORG_HOST = ENV.fetch("PRIVATE_INFO_STAFF_URL")
 
   test "info internal origin and cloudflared public hosts route to matching surfaces" do
     {

@@ -7,7 +7,7 @@ class Side::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("SIDE_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_SIDE_STAFF_URL")
     @operator = operators(:one)
     @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)

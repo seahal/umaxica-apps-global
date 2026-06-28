@@ -6,7 +6,7 @@ require "test_helper"
 class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
-  fixtures_none!
+  self.fixture_table_names = []
   self.use_transactional_tests = false
 
   setup do

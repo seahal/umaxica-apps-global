@@ -2,12 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "../../../../support/auth_helpers"
+require "helpers/auth_helpers"
 
 class Base::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")

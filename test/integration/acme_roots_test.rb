@@ -70,7 +70,7 @@ class SurfaceHealthEndpointTest < ActionDispatch::IntegrationTest
   end
 
   test "sign org health responds successfully" do
-    get "/health", headers: { "Host" => ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost") }
+    get "/health", headers: { "Host" => ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost") }
     follow_redirect! if response.redirect?
 
     assert_response :success

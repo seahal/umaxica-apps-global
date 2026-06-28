@@ -4,7 +4,7 @@
 require "test_helper"
 
 class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     https!
@@ -351,8 +351,8 @@ class PreferenceGlobalParamContextTest < ActionDispatch::IntegrationTest
   def internal_links_for(host)
     allowed_hosts = [
       host,
-      ENV["ID_SERVICE_URL"],
-      ENV["ID_STAFF_URL"],
+      ENV["PRIVATE_AUTH_SERVICE_URL"],
+      ENV["PRIVATE_AUTH_STAFF_URL"],
       ENV["EDGE_SERVICE_URL"],
       ENV["EDGE_STAFF_URL"],
     ].compact

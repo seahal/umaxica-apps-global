@@ -4,7 +4,7 @@
 require "test_helper"
 
 class OidcClientRegistryTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "find returns client config as visitor account" do
     client = OidcClientRegistry.find("base-rails-rp")

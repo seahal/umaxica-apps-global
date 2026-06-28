@@ -48,7 +48,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   end
 
   test "palm app public endpoints and bearer profile api respond on the native surface" do
-    host = ENV.fetch("PALM_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_PALM_SERVICE_URL")
     host! host
 
     get "/?ri=jp", headers: { "Host" => host }

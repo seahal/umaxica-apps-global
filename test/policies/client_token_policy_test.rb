@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ClientTokenPolicyTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   def setup
     @user = nil

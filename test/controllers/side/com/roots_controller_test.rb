@@ -5,7 +5,7 @@ require "test_helper"
 
 class Side::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIDE_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_SIDE_CORPORATE_URL")
   end
 
   test "renders anonymous root" do

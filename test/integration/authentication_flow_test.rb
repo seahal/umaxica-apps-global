@@ -7,7 +7,7 @@ class AuthenticationFlowTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @user = clients(:one)
     # Ensure master data needed for audit
     ClientChronicleEvent.ensure_defaults! if ClientChronicleEvent.respond_to?(:ensure_defaults!)

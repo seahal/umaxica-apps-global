@@ -18,7 +18,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
 
     @user = Client.create!(

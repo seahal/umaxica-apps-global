@@ -7,7 +7,7 @@ class SignAppLayoutTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   def default_headers
-    { "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost" }
+    { "Host" => ENV["PRIVATE_AUTH_SERVICE_URL"] || "id.app.localhost" }
   end
 
   def login_headers(user)

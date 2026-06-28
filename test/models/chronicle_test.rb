@@ -45,7 +45,7 @@
 require "test_helper"
 
 class ChronicleTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "permanent policy rejects erasable_at" do
     policy = ChronicleRetentionPolicy.create!(

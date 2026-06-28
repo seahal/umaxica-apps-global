@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require_relative "../../../../support/auth_helpers"
+require "helpers/auth_helpers"
 
 class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers

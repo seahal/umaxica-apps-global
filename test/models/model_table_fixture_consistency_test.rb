@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ModelTableFixtureConsistencyTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   IGNORED_MODEL_NAMES = %w(
     DocsAppContentEntry

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AuthenticationAccessPolicyTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   Context = AuthenticationBase::AccessPolicyContext
 

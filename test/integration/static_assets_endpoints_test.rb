@@ -34,7 +34,7 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
       controller: "core/org/robots",
     },
     {
-      host: ENV.fetch("PALM_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/robots",
     },
   ].freeze
@@ -57,7 +57,7 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
       controller: "base/org/sitemaps",
     },
     {
-      host: ENV.fetch("PALM_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
       controller: "palm/app/sitemaps",
     },
   ].freeze
@@ -93,7 +93,7 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "robots and sitemap responses set long cache headers" do
-    host! ENV.fetch("PALM_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_PALM_SERVICE_URL")
 
     get "/sitemap.xml"
 

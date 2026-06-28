@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ChronicleFallbackRecorderTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "call logs a formatted error event" do
     logged = nil

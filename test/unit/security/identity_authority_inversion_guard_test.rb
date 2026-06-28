@@ -4,7 +4,7 @@
 require "test_helper"
 
 class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "sign routes do not expose oidc provider endpoints" do
     source = file_content("config/routes/sign.rb")

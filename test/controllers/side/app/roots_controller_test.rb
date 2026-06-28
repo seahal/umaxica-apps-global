@@ -7,7 +7,7 @@ class Side::App::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   setup do
-    @host = ENV.fetch("SIDE_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_SIDE_SERVICE_URL")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token)

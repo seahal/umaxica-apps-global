@@ -12,9 +12,9 @@ class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
       ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
-      ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+      ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
       ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
-      ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+      ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
     ].each do |host|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{host}/edge/v0/health", method: :get)
@@ -24,9 +24,9 @@ class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
 
   test "legacy sign web health routes are not routed" do
     [
-      ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+      ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
       ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
-      ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+      ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
     ].each do |host|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{host}/web/v0/health", method: :get)
@@ -45,9 +45,9 @@ class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
       ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
-      ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+      ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
       ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
-      ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+      ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
     ].each do |host|
       %w(/health/live /health/ready).each do |path|
         assert_raises(ActionController::RoutingError, "#{host}#{path} should not be routed") do

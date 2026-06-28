@@ -91,7 +91,7 @@ class OidcCallbackTestController < ApplicationController
 end
 
 class OidcCallbackTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     OidcCallbackTestController.login_result_for_test = nil

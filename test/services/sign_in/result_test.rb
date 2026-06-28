@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SignInResultTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "maps successful session hash to common result" do
     result = SignInResult.from_session_result(

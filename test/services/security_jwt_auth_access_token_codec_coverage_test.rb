@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "encode rejects blank inputs and accepts a stubbed success path" do
     assert_nil SecurityJwtAuthAccessTokenCodec.encode(nil, host: "app.example.test")

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SignOutNoticeTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   class Harness
     class << self

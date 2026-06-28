@@ -34,7 +34,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "protected settings sessions requires authentication" do
     with_env(
-      "ID_SERVICE_URL" => "auth.app.localhost",
+      "PRIVATE_AUTH_SERVICE_URL" => "auth.app.localhost",
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "ACME_SERVICE_URL" => "www.umaxica.app",
     ) do

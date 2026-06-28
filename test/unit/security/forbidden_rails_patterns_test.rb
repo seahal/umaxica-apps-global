@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   FORBIDDEN_PATTERNS = {
     "mass-assignment permit!" => /\bpermit!\b/,

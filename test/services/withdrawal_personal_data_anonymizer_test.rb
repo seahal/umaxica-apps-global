@@ -3,7 +3,7 @@
 require "test_helper"
 
 class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   AnonymizedRecord =
     Struct.new(:id, :updated_attrs, :discarded_at, :model_class) do

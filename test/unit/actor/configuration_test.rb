@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Actor::ConfigurationTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "bracket access uses fetch to access values" do
     config = Actor::Configuration.new(foo: "bar", baz: 42)

@@ -5,9 +5,9 @@ require "test_helper"
 
 class InfoApiStubTest < ActionDispatch::IntegrationTest
   SURFACES = [
-    ["INFO_SERVICE_URL", "info.app.localhost", "app"],
-    ["INFO_CORPORATE_URL", "info.com.localhost", "com"],
-    ["INFO_STAFF_URL", "info.org.localhost", "org"],
+    ["PRIVATE_INFO_SERVICE_URL", "info.app.localhost", "app"],
+    ["PRIVATE_INFO_CORPORATE_URL", "info.com.localhost", "com"],
+    ["PRIVATE_INFO_STAFF_URL", "info.org.localhost", "org"],
   ].freeze
 
   test "info api stub routes respond with sample json on every host" do
@@ -53,7 +53,7 @@ class InfoApiStubTest < ActionDispatch::IntegrationTest
   end
 
   test "info api stub accepts unknown slugs without redirecting to sign in" do
-    host = ENV.fetch("INFO_SERVICE_URL")
+    host = ENV.fetch("PRIVATE_INFO_SERVICE_URL")
     host! host
 
     get "/api/v0/entries/anything", headers: { "Host" => host, "Accept" => "application/json" }, as: :json

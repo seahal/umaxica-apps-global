@@ -5,7 +5,7 @@ require "test_helper"
 require "ostruct"
 
 class SignRouteHostTest < ActionDispatch::IntegrationTest
-  test "sign app routes match PRIVATE_SIGN_SERVICE_URL" do
+  test "sign app routes match PRIVATE_AUTH_SERVICE_URL" do
     with_boot_config(sign_service_host: "auth.app.example.test") do
       host!("auth.app.example.test")
 
@@ -74,8 +74,8 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
   end
 
   def with_boot_config(sign_service_host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
-                       sign_corporate_host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
-                       sign_staff_host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"))
+                       sign_corporate_host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
+                       sign_staff_host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"))
     hosts = OpenStruct.new(
       auth_service: OpenStruct.new(host: sign_service_host),
       auth_corporate: OpenStruct.new(host: sign_corporate_host),
@@ -84,23 +84,23 @@ class SignRouteHostTest < ActionDispatch::IntegrationTest
       acme_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")),
       acme_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")),
       sign_service: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")),
-      sign_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")),
-      sign_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost")),
+      sign_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")),
+      sign_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost")),
       core_service: OpenStruct.new(host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       core_corporate: OpenStruct.new(host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       core_staff: OpenStruct.new(host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
       base_service: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
       base_corporate: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")),
       base_staff: OpenStruct.new(host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")),
-      palm_service: OpenStruct.new(host: ENV.fetch("PALM_SERVICE_URL")),
-      palm_corporate: OpenStruct.new(host: ENV.fetch("PALM_CORPORATE_URL")),
-      palm_staff: OpenStruct.new(host: ENV.fetch("PALM_STAFF_URL")),
-      help_service: OpenStruct.new(host: ENV.fetch("HELP_SERVICE_URL")),
-      help_corporate: OpenStruct.new(host: ENV.fetch("HELP_CORPORATE_URL")),
-      help_staff: OpenStruct.new(host: ENV.fetch("HELP_STAFF_URL")),
-      info_service: OpenStruct.new(host: ENV.fetch("INFO_SERVICE_URL")),
-      info_corporate: OpenStruct.new(host: ENV.fetch("INFO_CORPORATE_URL")),
-      info_staff: OpenStruct.new(host: ENV.fetch("INFO_STAFF_URL")),
+      palm_service: OpenStruct.new(host: ENV.fetch("PUBLIC_PALM_SERVICE_URL")),
+      palm_corporate: OpenStruct.new(host: Rails.configuration.x.boot_config.fetch(:hosts).palm_corporate.host),
+      palm_staff: OpenStruct.new(host: Rails.configuration.x.boot_config.fetch(:hosts).palm_staff.host),
+      help_service: OpenStruct.new(host: ENV.fetch("PRIVATE_HELP_SERVICE_URL")),
+      help_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_HELP_CORPORATE_URL")),
+      help_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_HELP_STAFF_URL")),
+      info_service: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_SERVICE_URL")),
+      info_corporate: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_CORPORATE_URL")),
+      info_staff: OpenStruct.new(host: ENV.fetch("PRIVATE_INFO_STAFF_URL")),
     )
 
     Rails.configuration.x.stub(:boot_config, BootConfig.new(hosts)) do

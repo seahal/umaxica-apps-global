@@ -32,7 +32,7 @@ module AuthHelpers
       end
 
     surface =
-      if %w[SIGN BASE].include?(service)
+      if %w(SIGN BASE).include?(service)
         case resource_type
         when "operator" then "ORG"
         when "visitor" then "COM"

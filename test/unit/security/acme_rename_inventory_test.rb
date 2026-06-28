@@ -5,7 +5,7 @@ require "test_helper"
 
 module Security
   class AcmeRenameInventoryTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     SEARCH_ROOTS = %w(app config lib test docs adr plans notes .github).freeze
     DNS_APEX_ALLOWLIST = [

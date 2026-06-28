@@ -8,7 +8,7 @@ module Palm
     class SignOutsControllerTest < ActionDispatch::IntegrationTest
       fixtures :clients, :client_token_kinds
 
-      PALM_HOST = ENV.fetch("PALM_SERVICE_URL")
+      PALM_HOST = ENV.fetch("PUBLIC_PALM_SERVICE_URL")
 
       setup do
         host! PALM_HOST

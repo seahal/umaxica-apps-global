@@ -4,7 +4,7 @@ require "test_helper"
 require "chain_seal"
 
 class ChainSealTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     @private_key = OpenSSL::PKey::EC.generate("secp384r1")

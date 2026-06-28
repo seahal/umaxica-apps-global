@@ -4,7 +4,7 @@
 require "test_helper"
 
 class PreferenceExplicitModelRegistryTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   PREFIXES = %w(App Com Org Client Operator Visitor).freeze
   TYPES = %i(currency date_format time_format motion density page_size).freeze

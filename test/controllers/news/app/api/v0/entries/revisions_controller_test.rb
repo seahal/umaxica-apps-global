@@ -5,7 +5,7 @@ require "test_helper"
 
 class News::App::Api::V0::Entries::RevisionsControllerTest < ActionDispatch::IntegrationTest
   test "index renders empty json" do
-    host! ENV.fetch("NEWS_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_NEWS_SERVICE_URL")
 
     get "/api/v0/entries/example/revisions"
 
@@ -14,7 +14,7 @@ class News::App::Api::V0::Entries::RevisionsControllerTest < ActionDispatch::Int
   end
 
   test "show renders empty json" do
-    host! ENV.fetch("NEWS_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_NEWS_SERVICE_URL")
 
     get "/api/v0/entries/example/revisions/rev-1"
 

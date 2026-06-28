@@ -4,7 +4,7 @@
 require "test_helper"
 
 class StandardErrorRescueInventoryTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   REVIEWED_RESCUES = {
     "app/controllers/concerns/actor_support.rb" => {

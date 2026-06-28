@@ -4,7 +4,7 @@
 require "test_helper"
 
 class AcmeLogoutTransactionCoordinatorTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "issue! persists an allowlisted completion url and public challenge" do
     completion_url = AcmeLogoutTransactionCoordinator.completion_url_for(origin_surface: "core")

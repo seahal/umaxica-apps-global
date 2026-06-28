@@ -123,7 +123,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     controller = Auth::Com::Sign::In::SessionsController.new
     controller.request = ActionDispatch::TestRequest.create(
       "REQUEST_METHOD" => "GET",
-      "HTTP_HOST" => ENV.fetch("COM_SERVICE_URL"),
+      "HTTP_HOST" => ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
     )
     controller.response = ActionDispatch::TestResponse.new
     session_hash = {}

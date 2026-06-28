@@ -7,7 +7,7 @@ module Jit
   module Security
     module Jwt
       class KeySourceTest < ActiveSupport::TestCase
-        fixtures_none!
+        self.fixture_table_names = []
 
         test "reads env values before credentials" do
           source = JitSecurityJwtKeySource.new(

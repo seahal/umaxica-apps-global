@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/root_theme_cookie_helper"
+require "helpers/root_theme_cookie_helper"
 
 class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses

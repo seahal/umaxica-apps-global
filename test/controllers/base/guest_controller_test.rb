@@ -4,7 +4,7 @@
 require "test_helper"
 
 class BaseGuestControllerTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "base surfaces do not define guest controller boundaries" do
     assert_not Base::App.const_defined?(:GuestController, false)

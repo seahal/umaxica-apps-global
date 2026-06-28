@@ -4,7 +4,7 @@
 require "test_helper"
 
 class RouteTargetContractTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   SURFACE_CONTROLLER_PREFIX = %r{\A(?:acme|sign|core|base|palm|help|docs|news)/}
 

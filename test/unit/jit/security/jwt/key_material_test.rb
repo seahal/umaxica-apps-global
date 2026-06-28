@@ -7,7 +7,7 @@ module Jit
   module Security
     module Jwt
       class KeyMaterialTest < ActiveSupport::TestCase
-        fixtures_none!
+        self.fixture_table_names = []
 
         setup do
           @key = OpenSSL::PKey::EC.generate("secp384r1")

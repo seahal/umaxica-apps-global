@@ -18,7 +18,7 @@ end
 module Security
   module Invariants
     class CookieSecurityInvariantTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       # This test pins properties that were reviewed as "No issue found".
       # Update SECURITY_INVARIANTS.md before intentionally changing them.

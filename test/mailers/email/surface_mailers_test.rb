@@ -51,9 +51,9 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
     [
       [Email::App::OtpMailer, "mail-app-public-id", "app-token", ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost"),
        "/settings/emails/registration/edit",],
-      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "log.umaxica.com"),
+      [Email::Com::OtpMailer, "mail-com-public-id", "com-token", ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "log.umaxica.com"),
        "/settings/emails/registration/edit",],
-      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("ID_STAFF_URL", "log.umaxica.org"),
+      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("PRIVATE_AUTH_STAFF_URL", "log.umaxica.org"),
        "/settings/emails/registration/edit",],
     ].each do |mailer, public_id, token, host, path|
       mail = mailer.with(

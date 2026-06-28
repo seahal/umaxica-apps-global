@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/preference_jwt_helper"
+require "helpers/preference_jwt_helper"
 
 class Auth::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper

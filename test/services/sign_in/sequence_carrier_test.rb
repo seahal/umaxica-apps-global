@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SignInSequenceCarrierTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   ClientStub = Struct.new(:id)
 

@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Auth::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup do
     host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")

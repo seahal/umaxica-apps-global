@@ -7,7 +7,7 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
-    @sign_host = ENV.fetch("ID_SERVICE_URL")
+    @sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)

@@ -12,8 +12,8 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-    @previous_id_service_url = ENV["ID_SERVICE_URL"]
-    ENV["ID_SERVICE_URL"] = @host
+    @previous_id_service_url = ENV["PRIVATE_AUTH_SERVICE_URL"]
+    ENV["PRIVATE_AUTH_SERVICE_URL"] = @host
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, nil)
   end
@@ -22,9 +22,9 @@ class SocialAuthStateTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:google] = nil
     OmniAuth.config.mock_auth[:apple] = nil
     if @previous_id_service_url.nil?
-      ENV.delete("ID_SERVICE_URL")
+      ENV.delete("PRIVATE_AUTH_SERVICE_URL")
     else
-      ENV["ID_SERVICE_URL"] = @previous_id_service_url
+      ENV["PRIVATE_AUTH_SERVICE_URL"] = @previous_id_service_url
     end
     SocialCallbackGuard.instance_variable_set(:@allowed_hosts, nil)
     SocialCallbackGuard.instance_variable_set(:@allowed_request_origins, nil)

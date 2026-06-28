@@ -6,7 +6,7 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     host! @host
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff)

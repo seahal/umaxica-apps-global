@@ -5,7 +5,7 @@ require "test_helper"
 
 module Authentication
   class CookieNameTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     test "returns non production cookie names without secure prefix" do
       assert_equal "auth_access", AuthenticationCookieName.access(production: false)

@@ -91,10 +91,10 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     org_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "operator")
 
     assert_equal [ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "id.app.localhost")], app_uris.map { |uri| URI.parse(uri).host }
-    assert_equal [ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "id.com.localhost"))], com_uris.map { |uri|
+    assert_equal [ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"))], com_uris.map { |uri|
       URI.parse(uri).host
     }
-    assert_equal [ENV.fetch("PRIVATE_SIGN_STAFF_URL", ENV.fetch("PRIVATE_SIGN_STAFF_URL", "id.org.localhost"))], org_uris.map { |uri|
+    assert_equal [ENV.fetch("PRIVATE_AUTH_STAFF_URL", ENV.fetch("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"))], org_uris.map { |uri|
       URI.parse(uri).host
     }
   end

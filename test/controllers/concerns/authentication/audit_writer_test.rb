@@ -5,7 +5,7 @@ require "test_helper"
 
 module Authentication
   class AuditWriterTest < ActiveSupport::TestCase
-    fixtures_none!
+    self.fixture_table_names = []
 
     setup do
       @user = Client.create!(

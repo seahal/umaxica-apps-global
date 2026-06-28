@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ActorAttributesTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   setup { Actor.reset }
   teardown { Actor.reset }

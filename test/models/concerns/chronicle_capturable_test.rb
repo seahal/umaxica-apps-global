@@ -4,7 +4,7 @@
 require "test_helper"
 
 class ChronicleCapturableTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   class FakeChronicle
     attr_reader :id

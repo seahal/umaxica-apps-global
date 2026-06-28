@@ -4,7 +4,7 @@
 require "test_helper"
 
 class Actor::SelectedContextTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "NULL context is not selected" do
     assert_not Actor::SelectedContext::NULL.selected?

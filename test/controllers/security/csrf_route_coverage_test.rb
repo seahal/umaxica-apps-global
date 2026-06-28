@@ -2,13 +2,13 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/csrf_route_coverage_helper"
+require "helpers/csrf_route_coverage_helper"
 
 module Security
   class CsrfRouteCoverageTest < ActiveSupport::TestCase
     include CsrfRouteCoverageHelper
 
-    fixtures_none!
+    self.fixture_table_names = []
 
     NULL_SESSION_STRATEGY = ActionController::RequestForgeryProtection::ProtectionMethods::NullSession
     PROTOCOL_ENDPOINTS = [

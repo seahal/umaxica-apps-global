@@ -4,7 +4,7 @@
 require "test_helper"
 
 class HasBirthdateTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   MODEL_CLASSES = [Operator, Visitor, Client].freeze
 

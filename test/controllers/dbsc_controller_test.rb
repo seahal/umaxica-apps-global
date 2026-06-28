@@ -17,7 +17,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: returns unauthorized when no token record exists" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     post sign_app_edge_v0_token_dbsc_path,
          headers: { AuthIoKeys::Headers::DBSC_SESSION_ID => %("fake-session-id") }
@@ -26,7 +26,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration with valid proof" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -67,7 +67,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration failure with invalid proof" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -94,7 +94,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles registration failure without challenge" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -123,7 +123,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles refresh challenge when proof is missing" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -153,7 +153,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles refresh verification failure" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -181,7 +181,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: handles successful refresh verification" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -225,7 +225,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: returns unauthorized when bound record does not exist" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     token = ClientToken.create!(
@@ -249,7 +249,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: returns unauthorized when no token record exists" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     post sign_org_edge_v0_token_dbsc_path,
          headers: { AuthIoKeys::Headers::SECURE_DBSC_SESSION_ID => %("fake-session-id") }
@@ -258,7 +258,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration with valid proof" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -299,7 +299,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration failure with invalid proof" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -326,7 +326,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles registration failure without challenge" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -355,7 +355,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles refresh challenge when proof is missing" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -384,7 +384,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles refresh verification failure" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -412,7 +412,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: handles successful refresh verification" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -456,7 +456,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::Org: returns unauthorized when bound record does not exist" do
-    host! ENV.fetch("ID_STAFF_URL")
+    host! ENV.fetch("PRIVATE_AUTH_STAFF_URL")
 
     staff = operators(:one)
     token = OperatorToken.create!(
@@ -480,7 +480,7 @@ class DbscControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Sign::App: token_from_refresh_cookie returns nil when parsing fails" do
-    host! ENV.fetch("ID_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
 
     user = clients(:one)
     ClientToken.create!(

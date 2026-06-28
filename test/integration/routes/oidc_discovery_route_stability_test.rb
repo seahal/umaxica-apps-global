@@ -12,7 +12,7 @@ require "test_helper"
 #   - test/services/oidc/discovery_document_test.rb  (content structure)
 #   - test/integration/routes/acme_route_contract_test.rb  (literal paths)
 class OidcDiscoveryRouteStabilityTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   SURFACES = [
     { resource_type: "client",   host_env: "ACME_SERVICE_URL",   default_host: "www.app.localhost" },

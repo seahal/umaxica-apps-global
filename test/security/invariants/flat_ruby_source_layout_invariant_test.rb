@@ -6,7 +6,7 @@ require "test_helper"
 module Security
   module Invariants
     class FlatRubySourceLayoutInvariantTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       FLAT_ROOTS = %w(
         app/services

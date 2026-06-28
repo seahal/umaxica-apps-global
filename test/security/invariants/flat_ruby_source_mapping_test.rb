@@ -7,7 +7,7 @@ require "test_helper"
 module Security
   module Invariants
     class FlatRubySourceMappingTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       Target = Data.define(:root, :concern)
       Mapping = Data.define(:old_path, :old_constant, :new_path, :new_constant, :reference_count)

@@ -5,8 +5,8 @@ require "test_helper"
 
 class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   setup do
-    @corporate_host = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
-    @service_host = ENV.fetch("ID_SERVICE_URL")
+    @corporate_host = ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")
+    @service_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
   end
 
   test "POST /social/google on corporate host returns 404" do

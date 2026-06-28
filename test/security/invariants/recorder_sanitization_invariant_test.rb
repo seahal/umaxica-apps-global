@@ -6,7 +6,7 @@ require "test_helper"
 module Security
   module Invariants
     class RecorderSanitizationInvariantTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       # This test pins properties that were reviewed as "No issue found".
       # Update SECURITY_INVARIANTS.md before intentionally changing them.

@@ -4,12 +4,12 @@
 require "test_helper"
 
 class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
-  fixtures_none!
+  self.fixture_table_names = []
 
   BASE_APP_HOST = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
   BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
   BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
-  PALM_HOST = ENV.fetch("PALM_SERVICE_URL")
+  PALM_HOST = ENV.fetch("PUBLIC_PALM_SERVICE_URL")
 
   setup do
     load_jump_rt_env!

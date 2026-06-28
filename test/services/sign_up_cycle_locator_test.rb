@@ -4,7 +4,7 @@
 require "test_helper"
 
 class SignUpCycleLocatorTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "raises for unsupported surface" do
     assert_raises(ArgumentError, match: "unsupported sign-up cycle surface") do

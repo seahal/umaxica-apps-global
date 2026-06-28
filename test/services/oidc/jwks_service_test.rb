@@ -5,7 +5,7 @@ require "test_helper"
 require "json"
 
 class OidcJwksServiceTest < ActiveSupport::TestCase
-  fixtures_none!
+  self.fixture_table_names = []
 
   test "jwk_set returns a hash with keys array" do
     result = OidcJwksService.jwk_set

@@ -6,7 +6,7 @@ require "test_helper"
 module Security
   module Invariants
     class ActorContextInvariantTest < ActiveSupport::TestCase
-      fixtures_none!
+      self.fixture_table_names = []
 
       test "app owned current attributes subclass is only Actor" do
         Rails.application.eager_load!

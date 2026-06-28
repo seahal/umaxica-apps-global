@@ -13,7 +13,7 @@ module Palm
         # rubocop:enable I18n/RailsI18n/DecorateString
 
         test "reserved callback stub returns static no-store response without authentication" do
-          host = ENV.fetch("PALM_SERVICE_URL")
+          host = ENV.fetch("PUBLIC_PALM_SERVICE_URL")
 
           get palm_app_oidc_callback_url(host: host)
 
@@ -25,7 +25,7 @@ module Palm
         end
 
         test "platform callback paths do not route" do
-          host = ENV.fetch("PALM_SERVICE_URL")
+          host = ENV.fetch("PUBLIC_PALM_SERVICE_URL")
 
           assert_no_oauth_mutation do
             OidcTokenExchangeCoordinator.stub(:call, ->(**) { flunk("Palm callback must not call token exchange") }) do

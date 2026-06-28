@@ -7,10 +7,10 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("ID_SERVICE_URL")
-    @service_host = ENV.fetch("ID_SERVICE_URL")
-    @staff_host = ENV.fetch("ID_STAFF_URL")
-    @corporate_host = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
+    @service_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
+    @staff_host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
+    @corporate_host = ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

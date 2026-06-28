@@ -6,9 +6,9 @@ require "test_helper"
 class OrgConfigurationRoutesTest < ActiveSupport::TestCase
   ROUTES = {
     sign: {
-      org_host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "id.org.localhost"),
+      org_host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"),
       app_host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "id.app.localhost"),
-      com_host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "id.com.localhost"),
+      com_host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
       controller: "sign/org/configurations",
       helper: :auth_org_configuration_path,
     },

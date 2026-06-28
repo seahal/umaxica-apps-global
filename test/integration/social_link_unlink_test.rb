@@ -9,7 +9,7 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("ID_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     host! @host
     @user = create_verified_user_with_email(email_address: "social_link_test@example.com")
     # Ensure @user has at least one auth method to start (e.g. password secret_credential)
