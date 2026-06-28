@@ -411,7 +411,7 @@ module SignOidcLogout
   def sign_service_host
     case sign_surface_name
     when "app"
-      ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+      ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     when "com"
       ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
     when "org"

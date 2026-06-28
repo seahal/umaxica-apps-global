@@ -5,9 +5,9 @@ require "test_helper"
 
 class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   SURFACES = {
-    app: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
-    com: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-    org: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+    app: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
+    com: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
+    org: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
   }.freeze
 
   test "sign entry helpers use explicit lifecycle resources" do

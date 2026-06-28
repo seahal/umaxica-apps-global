@@ -17,7 +17,7 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
       purged_at: 2.days.from_now,
     )
 
-    controller = Sign::App::Edge::V0::Token::ChecksController.new
+    controller = Auth::App::Edge::V0::Token::ChecksController.new
     controller.instance_variable_set(:@_response, ActionDispatch::Response.new)
     controller.define_singleton_method(:token_dbsc_path) { "/edge/v0/token/dbsc" }
 
@@ -65,7 +65,7 @@ class DbscRegistrationHeaderFormatTest < ActiveSupport::TestCase
       dbsc_session_id: nil,
     )
 
-    controller = Sign::App::Edge::V0::Token::ChecksController.new
+    controller = Auth::App::Edge::V0::Token::ChecksController.new
 
     assert_nil controller.send(:dbsc_cookie_value_for, token)
   end

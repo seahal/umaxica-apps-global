@@ -3554,6 +3554,44 @@ en:
         up_link: Back to top
         regions:
           back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
+        back_to_settings: Back to settings
+        update_settings: Update Settings
+        submitting: Submitting...
+    org:
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
+        region_settings: Region & Language Settings
+        language_settings: Language Settings
+        timezone_settings: Timezone Settings
+        cookie_settings: Cookie Settings
+        motion_settings: Motion Settings
+        density_settings: Density Settings
+        pagination_settings: Page Size
+        theme_settings: Theme Settings
+        reset_settings: Reset Settings
+        back_to_settings: Back to settings
+        update_settings: Update Settings
+        submitting: Submitting...
+    com:
+      preferences:
+        title: Preferences
+        description: Manage language, theme, and other preferences in one place.
+        up_link: Back to top
+        regions:
+          back_link: Back
         back_to_settings: Back to Preferences
       preference:
         resets:

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot without redirect" do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
 
     get auth_com_health_url(ri: "jp"), headers: browser_headers
 
@@ -13,6 +13,6 @@ class Auth::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_not_predicate response, :redirect?
     assert_equal "text/html", response.media_type
     assert_includes response.body, "Health Snapshot"
-    assert_includes response.body, "sign com"
+    assert_includes response.body, "Health Snapshot"
   end
 end

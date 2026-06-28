@@ -38,7 +38,7 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       path: :auth_app_root_path,
       label: "sign app root",
       ri: "jp",
@@ -48,9 +48,9 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
   test "GET / redirects to dashboard when logged in" do
     user = clients(:one)
     get auth_app_root_url(ri: "jp"),
-        headers: as_user_headers(user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+        headers: as_user_headers(user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_app_dashboard_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    assert_redirected_to auth_app_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
   end
 end

@@ -8,8 +8,8 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   setup do
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
-    @host = ENV["ID_SERVICE_URL"]
-    @sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV["AUTH_SERVICE_URL"]
+    @sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
   end
 

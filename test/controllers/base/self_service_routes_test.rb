@@ -14,9 +14,9 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     @app_host = hosts.base_service.host
     @org_host = hosts.base_staff.host
     @com_host = hosts.base_corporate.host
-    @app_authority_host = "www.umaxica.app"
-    @org_authority_host = "www.umaxica.org"
-    @com_authority_host = "www.umaxica.com"
+    @app_authority_host = hosts.acme_service.host
+    @org_authority_host = hosts.acme_staff.host
+    @com_authority_host = hosts.acme_corporate.host
   end
 
   # The app surface no longer exposes singular current self-service pages (/account, /avatar,

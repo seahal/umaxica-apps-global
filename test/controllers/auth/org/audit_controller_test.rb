@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Org::AuditControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
   end
 
   test "index redirects to acme org authority" do

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::HealthsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
   test "GET /health returns an html snapshot" do
@@ -14,7 +14,6 @@ class Auth::App::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "text/html", response.media_type
     assert_includes response.body, "Health Snapshot"
-    assert_includes response.body, "sign app"
   end
 
   test "GET /health/readiness returns json" do

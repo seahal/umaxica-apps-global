@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     @acme_host = ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "settings-emails-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
@@ -77,7 +77,7 @@ class Auth::Com::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   test "sign email registration route remains on sign ceremony surface" do
     get new_auth_com_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
-    assert_equal "sign/com/settings/emails/registrations", @request.path_parameters[:controller]
+    assert_equal "auth/com/settings/emails/registrations", @request.path_parameters[:controller]
     assert_equal "new", @request.path_parameters[:action]
   end
 

@@ -3711,6 +3711,48 @@ ja:
         cookie_settings: クッキー設定
         update_settings: 設定を更新
         submitting: 送信中...
+    com:
+      roots:
+        message: "Base services are available. See /settings."
+      preferences:
+        title: 設定
+        description: アカウントの設定を管理します。
+        up_link: うえへ
+        regions:
+          back_link: もどる
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        pagination_settings: 1ページあたりの表示件数
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        back_to_settings: 設定に戻る
+        cookie_settings: クッキー設定
+        update_settings: 設定を更新
+        submitting: 送信中...
+    org:
+      roots:
+        message: "Base services are available. See /settings."
+      preferences:
+        title: 設定
+        description: アカウントの設定を管理します。
+        up_link: うえへ
+        regions:
+          back_link: もどる
+        region_settings: 地域と言語の設定
+        language_settings: 言語設定
+        timezone_settings: タイムゾーン設定
+        motion_settings: モーション設定
+        density_settings: 表示密度設定
+        pagination_settings: 1ページあたりの表示件数
+        theme_settings: テーマ設定
+        reset_settings: 設定のリセット
+        back_to_settings: 設定に戻る
+        cookie_settings: クッキー設定
+        update_settings: 設定を更新
+        submitting: 送信中...
       preference:
         cookie:
           edit:
@@ -3832,6 +3874,7 @@ ja:
         title: 設定
         description: アカウントの設定を管理します。
         up_link: うえへ
+        region_settings: 地域と言語の設定
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
@@ -3851,6 +3894,7 @@ ja:
         title: 設定
         description: アカウントの設定を管理します。
         up_link: うえへ
+        region_settings: 地域と言語の設定
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新

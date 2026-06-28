@@ -7,7 +7,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   fixtures :clients
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     # Clean up any existing tokens for this user
     ClientToken.where(user: @user).delete_all
@@ -34,7 +34,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "protected settings sessions requires authentication" do
     with_env(
-      "ID_SERVICE_URL" => "id.app.localhost",
+      "ID_SERVICE_URL" => "auth.app.localhost",
       "SIGN_SERVICE_URL" => "log.umaxica.app",
       "ACME_SERVICE_URL" => "www.umaxica.app",
     ) do

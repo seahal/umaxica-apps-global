@@ -10,7 +10,7 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
   setup do
     @previous_cache_store = Rails.cache
     Rails.cache = ActiveSupport::Cache::MemoryStore.new
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])

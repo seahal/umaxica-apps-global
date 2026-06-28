@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::OidcLogoutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
   test "sign oidc logout route is retired" do

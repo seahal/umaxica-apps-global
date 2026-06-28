@@ -5,7 +5,7 @@ require "jwt"
 
 class JumpRtIssuer
   ALGORITHM = SecurityJwtJumpRtTokenCodec::ALGORITHM
-  AUDIENCE_ENV = "JUMP_GATEWAY_URL"
+  AUDIENCE_ENV = "PUBLIC_JUMP_GATEWAY_URL"
   TTL_ENV = "JUMP_RT_TTL_SECONDS"
   DEFAULT_AUDIENCE = "https://jump.umaxica.net"
   DEFAULT_TTL = SecurityTokenLifetimes::JUMP_RT_TTL

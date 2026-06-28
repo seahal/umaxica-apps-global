@@ -12,7 +12,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
                 :operator_token_dbsc_statuses
 
   setup do
-    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
     @staff.staff_secret_credentials.destroy_all
@@ -22,7 +22,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     @token.rotate_refresh_token!
     satisfy_staff_verification(@token)
     @token.update!(last_step_up_at: Time.current, last_step_up_scope: "settings_passkey")
-    @host_headers = { "Host" => ENV["ID_STAFF_URL"] || "id.org.localhost" }.freeze
+    @host_headers = { "Host" => ENV["ID_STAFF_URL"] || "auth.org.localhost" }.freeze
     @headers = @host_headers.merge(
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,

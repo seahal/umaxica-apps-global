@@ -8,7 +8,7 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
 
   setup do
     @host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    @sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    @sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @user.update!(status_id: ClientStatus::ACTIVE)
   end

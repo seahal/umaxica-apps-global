@@ -316,13 +316,13 @@ module Auth
               auth_app_settings_secrets_url(
                 ri: params[:ri],
                 token: reveal.token,
-                host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+                host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
               )
             else
               bootstrap_return_path(
                 auth_app_settings_passkeys_url(
                   ri: params[:ri],
-                  host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+                  host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
                 ),
               )
             end
@@ -372,7 +372,7 @@ module Auth
         def recovery_passcode_setup_url
           auth_app_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
           )
         end
       end

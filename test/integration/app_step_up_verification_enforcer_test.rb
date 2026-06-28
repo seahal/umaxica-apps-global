@@ -7,7 +7,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_totp_credential_statuses, :client_chronicle_events, :client_chronicle_levels
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @email = ClientEmail.create!(
       address: "step-up-enforcer-#{SecureRandom.hex(4)}@example.com",
@@ -30,7 +30,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     StepUpConfiguredMethods.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
-        get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
+        get edit_auth_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -45,7 +45,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUpConfiguredMethods.stub(:call, [:email_otp]) do
       StepUpAvailableMethods.stub(:call, []) do
-        get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
+        get edit_auth_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
       end
     end
 
@@ -65,7 +65,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    get edit_sign_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
+    get edit_auth_app_settings_email_url(@email.public_id, ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -81,7 +81,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
+    post auth_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :unauthorized
     assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
@@ -96,7 +96,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       last_otp_at: Time.zone.at(0),
     )
 
-    get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
+    get new_auth_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
@@ -113,7 +113,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     # longer self-issues grants; it can only emit a result against an acme-issued ceremony.
     signed_step_up_grant_for(
       actor: @user, token: @token, scope: "withdrawal",
-      return_to: new_sign_app_settings_withdrawal_path(ri: "jp"), surface: "app",
+      return_to: new_auth_app_settings_withdrawal_path(ri: "jp"), surface: "app",
     )
 
     code = ROTP::TOTP.new(private_key).at(Time.current.to_i)
@@ -141,7 +141,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       ),
     )
 
-    post sign_app_settings_withdrawal_url(ri: "jp"), headers: @headers
+    post auth_app_settings_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_not_equal 401, response.status
   end

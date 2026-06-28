@@ -7,6 +7,10 @@ require "support/root_theme_cookie_helper"
 class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   include RootThemeCookieHelper
 
+  setup do
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+  end
+
   test "GET / renders root page" do
     get auth_com_root_url(ri: "jp")
 
@@ -27,7 +31,7 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"),
+      host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
       path: :auth_com_root_path,
       label: "sign com root",
       ri: "jp",
@@ -42,9 +46,9 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     )
 
     get auth_com_root_url(ri: "jp"),
-        headers: as_visitor_headers(visitor, host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+        headers: as_visitor_headers(visitor, host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"))
   end
 end

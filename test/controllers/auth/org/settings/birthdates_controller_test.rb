@@ -8,7 +8,7 @@ module Auth::Org::Settings
     fixtures :operators, :operator_statuses
 
     setup do
-      @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+      @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
       host! @host
       @staff = operators(:one)
       @staff.update!(birthdate: "1990-12-31")

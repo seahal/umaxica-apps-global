@@ -1,5 +1,8 @@
 import { createInertiaApp } from "@inertiajs/react";
 
+import "@styles/application.css";
+import "../theme_cookie";
+
 void createInertiaApp({
   pages: "../pages",
 

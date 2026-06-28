@@ -17,7 +17,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   end
 
   test "base app activities list only current user entries" do
-    host = ENV.fetch("SIGN_SERVICE_URL", "log.umaxica.app")
+    host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     host! host
     user = clients(:one)
     other_user = clients(:two)

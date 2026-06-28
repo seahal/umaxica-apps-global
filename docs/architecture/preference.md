@@ -191,6 +191,18 @@ Supported optional request values:
 - `dn`: `st`, `cp`, or their long forms `standard`, `compact`
 - `ps`: valid page size option values
 
+## Public And Private URL Boundaries
+
+Preference token validation is sensitive to the difference between a browser-visible host and an
+internal Rails origin.
+
+- `PUBLIC_` should be used for the host or URL the browser sees.
+- `PRIVATE_` should be used for the host or URL Rails or a pod uses internally.
+
+The preference access-token cookie path must keep these boundaries aligned. If Rails issues a token
+for one boundary and immediately validates against the other, the browser can end up with a freshly
+issued cookie that is then deleted on the same response.
+
 Examples:
 
 - `/preference?ri=jp&lx=en` uses English for that request.

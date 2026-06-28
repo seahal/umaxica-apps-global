@@ -7,8 +7,8 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "registration-#{SecureRandom.hex(4)}@example.com")
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(@token)
@@ -164,7 +164,7 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
 
     assert_redirected_to auth_com_settings_telephones_url(
       ri: "jp",
-      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+      host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
     )
     assert_equal VisitorTelephoneStatus::VERIFIED, telephone.reload.visitor_telephone_status_id
   end

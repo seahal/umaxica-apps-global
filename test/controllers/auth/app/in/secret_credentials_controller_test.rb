@@ -9,7 +9,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            :client_telephone_statuses
 
   setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @raw_email = "secret_credential_login_#{SecureRandom.hex(4)}@example.com".freeze
     @email = @user.client_emails.create!(address: @raw_email, user_email_status_id: ClientEmailStatus::VERIFIED)
@@ -379,7 +379,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_equal ClientSecretCredentialStatus::USED, one_time_secret_credential.user_secret_status_id
 
     reset!
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
@@ -517,7 +517,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
   end
 
   def default_headers
-    { "Host" => ENV["ID_SERVICE_URL"] || "id.app.localhost" }
+    { "Host" => ENV["AUTH_SERVICE_URL"] || "auth.app.localhost" }
   end
 
   def capture_sql_queries

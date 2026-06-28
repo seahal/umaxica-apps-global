@@ -7,7 +7,7 @@ require "ostruct"
 
 class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     CloudflareTurnstile.test_mode = true
@@ -15,7 +15,7 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
 
     host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://id.app.localhost"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host_value}", "http://auth.app.localhost"] }
 
     @visitor = create_verified_visitor_with_email(email_address: "com_mfa_passkey_#{SecureRandom.hex(4)}@example.com")
     @visitor.update!(mfa_level_enabled: true)

@@ -4,6 +4,12 @@ ENV["RAILS_ENV"] ||= "test"
 ENV["SIGN_SERVICE_URL"] ||= "sign.app.localhost"
 ENV["SIGN_STAFF_URL"] ||= "sign.org.localhost"
 ENV["SIGN_CORPORATE_URL"] ||= "sign.com.localhost"
+ENV["AUTH_SERVICE_URL"] ||= "auth.app.localhost"
+ENV["AUTH_STAFF_URL"] ||= "auth.org.localhost"
+ENV["AUTH_CORPORATE_URL"] ||= "auth.com.localhost"
+ENV["BASE_SERVICE_URL"] ||= "base.app.localhost"
+ENV["BASE_STAFF_URL"] ||= "base.org.localhost"
+ENV["BASE_CORPORATE_URL"] ||= "base.com.localhost"
 
 # Enable YJIT before Rails boots.
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)

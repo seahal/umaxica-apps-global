@@ -54,14 +54,14 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign discovery route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/.well-known/openid-configuration",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/.well-known/openid-configuration",
         method: :get,
       )
     end
   end
 
   test "sign jwks remains public compatibility metadata only" do
-    get sign_app_well_known_jwks_url(host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    get sign_app_well_known_jwks_url(host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :ok
     response.parsed_body.fetch("keys").each do |key|
@@ -135,7 +135,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign token endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/token",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/token",
         method: :post,
       )
     end
@@ -262,7 +262,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign userinfo endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/userinfo",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/userinfo",
         method: :get,
       )
     end
@@ -291,7 +291,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign revocation endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/revoke",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/revoke",
         method: :post,
       )
     end
@@ -456,7 +456,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_equal ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
     assert_equal "/sign/in", uri.path
     assert_predicate query["login_challenge"], :present?
 
@@ -552,7 +552,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     uri = URI.parse(jump_rt_url_from_location(response.location))
 
-    assert_equal ENV.fetch("ID_SERVICE_URL", "id.app.localhost"), uri.host
+    assert_equal ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
     assert_equal "/sign/up", uri.path
   end
 

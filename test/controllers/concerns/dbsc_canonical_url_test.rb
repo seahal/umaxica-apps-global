@@ -43,7 +43,7 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
   end
 
   test "token_dbsc_path strips context params injected by default_url_options" do
-    controller = Sign::App::Edge::V0::Token::ChecksController.new
+    controller = Auth::App::Edge::V0::Token::ChecksController.new
     controller.define_singleton_method(:resource_type) { "client" }
     # Simulate PreferenceGlobal#default_url_options leaking the region param into the
     # generated route helper.
@@ -55,7 +55,7 @@ class DbscCanonicalUrlTest < ActiveSupport::TestCase
   end
 
   test "token_dbsc_url strips context params so the audience stays stable" do
-    controller = Sign::App::Edge::V0::Token::ChecksController.new
+    controller = Auth::App::Edge::V0::Token::ChecksController.new
     controller.define_singleton_method(:resource_type) { "client" }
     controller.define_singleton_method(:sign_app_edge_v0_token_dbsc_url) do
       "https://log.umaxica.app/edge/v0/token/dbsc?ri=jp&lx=ja"

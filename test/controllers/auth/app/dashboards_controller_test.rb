@@ -7,7 +7,7 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
   end

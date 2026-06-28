@@ -15,7 +15,7 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
   end
 
   test "app secret credential sign-in hits explicit rails rate limit" do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
 
     5.times do
       post auth_app_sign_in_secret_credential_url(ri: "jp"),
@@ -29,7 +29,7 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
   end
 
   test "com secret credential sign-in hits explicit rails rate limit" do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
 
     5.times do
       post auth_com_sign_in_secret_credential_url(ri: "jp"),
@@ -43,7 +43,7 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
   end
 
   test "org secret credential sign-in hits explicit rails rate limit" do
-    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
 
     5.times do
       post auth_org_sign_in_secret_credential_url(ri: "jp"),
@@ -57,7 +57,7 @@ class AuthAuthenticationRateLimitTest < ActionDispatch::IntegrationTest
   end
 
   test "app passkey options sign-in hits explicit rails rate limit" do
-    host!(ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+    host!(ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 

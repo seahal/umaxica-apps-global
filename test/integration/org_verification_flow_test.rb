@@ -58,7 +58,7 @@ class OrgVerificationFlowTest < ActionDispatch::IntegrationTest
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("webauthn_id_1")) do
           get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
               headers: @headers
-          get new_sign_org_verification_passkey_url(ri: "jp"), headers: @headers
+          get new_auth_org_verification_passkey_url(ri: "jp"), headers: @headers
 
           post sign_org_verification_passkey_url(ri: "jp"),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"webauthn_id_1"}' } },

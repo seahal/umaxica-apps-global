@@ -12,8 +12,8 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
   DOMAINS = [
     {
       name: "app",
-      host: ENV.fetch("ACME_SERVICE_URL", "www.umaxica.app"),
-      scope: "acme.app.preferences",
+      host: ENV.fetch("BASE_SERVICE_URL", "base.app.localhost"),
+      scope: "base.app.preferences",
       preference_model: AppPreference,
       audit_class: AppPreferenceChronicle,
       audit_event_class: AppPreferenceChronicleEvent,
@@ -21,7 +21,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     {
       name: "org",
       host: ENV.fetch("ACME_STAFF_URL", "www.umaxica.org"),
-      scope: "acme.org.preferences",
+      scope: "base.org.preferences",
       preference_model: OrgPreference,
       audit_class: OrgPreferenceChronicle,
       audit_event_class: OrgPreferenceChronicleEvent,
@@ -29,7 +29,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     {
       name: "com",
       host: ENV.fetch("ACME_CORPORATE_URL", "www.umaxica.com"),
-      scope: "acme.com.preferences",
+      scope: "base.com.preferences",
       preference_model: ComPreference,
       audit_class: ComPreferenceChronicle,
       audit_event_class: ComPreferenceChronicleEvent,
@@ -64,17 +64,17 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       # Visit URL without ri parameter
-      get public_send("acme_#{domain[:name]}_preference_url")
+      get public_send("base_#{domain[:name]}_preference_url")
 
       # Should redirect to include ri=jp
-      assert_redirected_to public_send("acme_#{domain[:name]}_preference_url", ri: "jp")
+      assert_redirected_to public_send("base_#{domain[:name]}_preference_url", ri: "jp")
     end
 
     test "#{domain[:name]} domain does not redirect when ri param present" do
       host!(domain[:host])
 
       # Visit URL with ri parameter
-      get public_send("acme_#{domain[:name]}_preference_url", ri: "us")
+      get public_send("base_#{domain[:name]}_preference_url", ri: "us")
 
       # Should not redirect
       assert_response :success
@@ -84,7 +84,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
 
       # Visit URL with lx=en and ri=us
-      get public_send("edit_acme_#{domain[:name]}_preference_cookie_url", lx: "en", ri: "us")
+      get public_send("edit_base_#{domain[:name]}_preference_cookie_url", lx: "en", ri: "us")
 
       # Should not redirect and locale should be set to English
       assert_response :success
@@ -117,11 +117,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       state = { ri: "us" }
 
-      get public_send("edit_acme_#{domain[:name]}_preference_region_url", state)
+      get public_send("edit_base_#{domain[:name]}_preference_region_url", state)
 
       assert_response :success
 
-      patch public_send("acme_#{domain[:name]}_preference_region_url", state),
+      patch public_send("base_#{domain[:name]}_preference_region_url", state),
             params: { preference_region: { option_id: "JP" } }
 
       assert_response :redirect
@@ -146,14 +146,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(ri: "us")
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_acme_#{domain[:name]}_preference_region_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_region_url", state)
 
         assert_response :success
 
-        patch public_send("acme_#{domain[:name]}_preference_region_url", state),
+        patch public_send("base_#{domain[:name]}_preference_region_url", state),
               params: { preference_region: { option_id: "US" } }
 
-        assert_redirected_to public_send("edit_acme_#{domain[:name]}_preference_region_url", state)
+        assert_redirected_to public_send("edit_base_#{domain[:name]}_preference_region_url", state)
       end
 
       pref.reload
@@ -166,7 +166,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} domain region edit renders a submit button inside the form" do
       host!(domain[:host])
 
-      get public_send("edit_acme_#{domain[:name]}_preference_region_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_region_url", default_state)
 
       assert_response :success
       assert_select "form" do
@@ -199,15 +199,15 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(tz: "etc/utc")
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_acme_#{domain[:name]}_preference_timezone_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_timezone_url", state)
 
         assert_response :success
 
-        patch public_send("acme_#{domain[:name]}_preference_timezone_url", state),
+        patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
               params: { preference_timezone: { option_id: "Etc/UTC" } }
 
         assert_redirected_to public_send(
-          "edit_acme_#{domain[:name]}_preference_timezone_url",
+          "edit_base_#{domain[:name]}_preference_timezone_url",
           default_state.merge(tz: nil),
         )
       end
@@ -224,7 +224,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       state = default_state.merge(lx: "en", tz: "Asia/Tokyo")
 
-      patch public_send("acme_#{domain[:name]}_preference_timezone_url", state),
+      patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Pacific/Honolulu" } }
 
       location = URI.parse(response.headers.fetch("Location"))
@@ -260,15 +260,15 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(lx: "en")
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_acme_#{domain[:name]}_preference_language_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_language_url", state)
 
         assert_response :success
 
-        patch public_send("acme_#{domain[:name]}_preference_language_url", state),
+        patch public_send("base_#{domain[:name]}_preference_language_url", state),
               params: { preference_language: { option_id: "EN" } }
 
         assert_redirected_to public_send(
-          "edit_acme_#{domain[:name]}_preference_language_url",
+          "edit_base_#{domain[:name]}_preference_language_url",
           default_state.merge(lx: nil),
         )
       end
@@ -285,11 +285,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Update language to English
       state = default_state.merge(lx: "en")
-      patch public_send("acme_#{domain[:name]}_preference_language_url", state),
+      patch public_send("base_#{domain[:name]}_preference_language_url", state),
             params: { preference_language: { option_id: "EN" } }
 
       # Visit a page without language param to verify DB preference is applied
-      get public_send("acme_#{domain[:name]}_preference_url", ri: "jp")
+      get public_send("base_#{domain[:name]}_preference_url", ri: "jp")
 
       assert_response :success
 
@@ -303,11 +303,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Update language to Japanese
       state = default_state.merge(lx: "ja")
-      patch public_send("acme_#{domain[:name]}_preference_language_url", state),
+      patch public_send("base_#{domain[:name]}_preference_language_url", state),
             params: { preference_language: { option_id: "JA" } }
 
       # Visit a page without language param to verify DB preference is applied
-      get public_send("acme_#{domain[:name]}_preference_url", ri: "jp")
+      get public_send("base_#{domain[:name]}_preference_url", ri: "jp")
 
       assert_response :success
 
@@ -331,7 +331,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       # a transient ?lx=en overlay. The page must render in the *saved* language so
       # the displayed language matches the option pre-selected in the form, instead
       # of showing an English page with the Japanese option selected.
-      get public_send("edit_acme_#{domain[:name]}_preference_language_url", default_state.merge(lx: "en"))
+      get public_send("edit_base_#{domain[:name]}_preference_language_url", default_state.merge(lx: "en"))
 
       assert_response :success
       assert_equal :ja, I18n.locale
@@ -347,7 +347,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} domain falls back to Japanese when lx invalid" do
       host!(domain[:host])
 
-      get public_send("acme_#{domain[:name]}_preference_url", ri: "jp", lx: "ex")
+      get public_send("base_#{domain[:name]}_preference_url", ri: "jp", lx: "ex")
       follow_redirect! if response.redirect?
 
       assert_response :success
@@ -361,22 +361,22 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Update timezone to UTC
       state = default_state.merge(tz: "etc/utc")
-      patch public_send("acme_#{domain[:name]}_preference_timezone_url", state),
+      patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
       # Visit a page to verify DB preference is applied to Time.zone
-      get public_send("edit_acme_#{domain[:name]}_preference_timezone_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
       assert_equal "Etc/UTC", Time.zone.name
 
       # Update timezone to Asia/Tokyo
       state = default_state.merge(tz: "asia/tokyo")
-      patch public_send("acme_#{domain[:name]}_preference_timezone_url", state),
+      patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Asia/Tokyo" } }
 
       # Visit a page to verify DB preference is applied to Time.zone
-      get public_send("edit_acme_#{domain[:name]}_preference_timezone_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
       assert_equal "Asia/Tokyo", Time.zone.name
@@ -387,11 +387,11 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       pref, = assert_preference_created(domain)
 
-      patch public_send("acme_#{domain[:name]}_preference_timezone_url", ri: "us"),
+      patch public_send("base_#{domain[:name]}_preference_timezone_url", ri: "us"),
             params: { preference_timezone: { option_id: "Etc/UTC" } }
 
       assert_redirected_to public_send(
-        "edit_acme_#{domain[:name]}_preference_timezone_url",
+        "edit_base_#{domain[:name]}_preference_timezone_url",
         ri: "us",
       )
       follow_redirect!
@@ -405,7 +405,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     test "#{domain[:name]} domain language select uses localized options" do
       host!(domain[:host])
-      get public_send("edit_acme_#{domain[:name]}_preference_language_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_language_url", default_state)
 
       # Acme renders language option names in the current page locale.
       assert_select "select[name='preference_language[option_id]']" do
@@ -421,7 +421,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       reset!
       host!(domain[:host])
-      get public_send("edit_acme_#{domain[:name]}_preference_language_url", ri: "us")
+      get public_send("edit_base_#{domain[:name]}_preference_language_url", ri: "us")
 
       assert_response :success
       assert_select "html[lang='en']"
@@ -458,14 +458,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_acme_#{domain[:name]}_preference_theme_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_theme_url", state)
 
         assert_response :success
 
-        patch public_send("acme_#{domain[:name]}_preference_theme_url", state),
+        patch public_send("base_#{domain[:name]}_preference_theme_url", state),
               params: { preference_theme: { option_id: "dr" } }
 
-        assert_redirected_to public_send("edit_acme_#{domain[:name]}_preference_theme_url", state)
+        assert_redirected_to public_send("edit_base_#{domain[:name]}_preference_theme_url", state)
       end
 
       pref.reload
@@ -475,7 +475,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     test "#{domain[:name]} domain timezone select omits blank option" do
       host!(domain[:host])
-      get public_send("edit_acme_#{domain[:name]}_preference_timezone_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_select "select[name='preference_timezone[option_id]'] option[value='']", count: 0
     end
@@ -504,14 +504,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state
 
       assert_no_difference -> { domain[:preference_model].count } do
-        get public_send("edit_acme_#{domain[:name]}_preference_cookie_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_cookie_url", state)
 
         assert_response :success
 
-        patch public_send("acme_#{domain[:name]}_preference_cookie_url", state),
+        patch public_send("base_#{domain[:name]}_preference_cookie_url", state),
               params: { preference_cookie: { functional: "1", performant: "0", targetable: "0" } }
 
-        assert_redirected_to public_send("edit_acme_#{domain[:name]}_preference_cookie_url", state)
+        assert_redirected_to public_send("edit_base_#{domain[:name]}_preference_cookie_url", state)
       end
 
       pref.reload
@@ -523,17 +523,17 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       pref, old_token, cookie_name = assert_preference_created(domain)
 
-      get public_send("edit_acme_#{domain[:name]}_preference_reset_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_reset_url", default_state)
 
       assert_response :success
 
       delete(
-        public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
       assert_response :see_other
-      assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
+      assert_equal public_send("base_#{domain[:name]}_preference_url"), response.location
 
       assert_equal I18n.t("acme." + domain[:name] + ".preference.resets.destroyed"), flash[:notice]
 
@@ -551,17 +551,17 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       state = default_state.merge(ri: "us")
 
       assert_difference -> { domain[:preference_model].count }, 1 do
-        get public_send("edit_acme_#{domain[:name]}_preference_reset_url", state)
+        get public_send("edit_base_#{domain[:name]}_preference_reset_url", state)
 
         assert_response :success
 
         delete(
-          public_send("acme_#{domain[:name]}_preference_reset_url", state),
+          public_send("base_#{domain[:name]}_preference_reset_url", state),
           params: { confirm_reset: "1" },
         )
 
         assert_response :see_other
-        assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
+        assert_equal public_send("base_#{domain[:name]}_preference_url"), response.location
       end
 
       pref.reload
@@ -575,7 +575,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       pref, _token, cookie_name = assert_preference_created(domain)
 
       delete(
-        public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -584,10 +584,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       assert_not_nil new_pref
       assert_not_equal pref.id, new_pref.id
 
-      get public_send("acme_#{domain[:name]}_preference_url")
+      get public_send("base_#{domain[:name]}_preference_url")
 
       assert_response :redirect
-      assert_equal public_send("acme_#{domain[:name]}_preference_url", ri: "jp"), response.location
+      assert_equal public_send("base_#{domain[:name]}_preference_url", ri: "jp"), response.location
 
       pref.reload
 
@@ -597,28 +597,28 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     test "#{domain[:name]} domain surfaces localized timezone errors" do
       host!(domain[:host])
       state = { ri: "jp" }
-      patch public_send("acme_#{domain[:name]}_preference_timezone_url", state),
+      patch public_send("base_#{domain[:name]}_preference_timezone_url", state),
             params: { preference_timezone: { option_id: "Invalid/Zone" } }
 
       # Expect redirect back to edit with current params
-      assert_redirected_to public_send("edit_acme_#{domain[:name]}_preference_timezone_url", state)
+      assert_redirected_to public_send("edit_base_#{domain[:name]}_preference_timezone_url", state)
       assert_equal I18n.t("errors.messages.preference_operation_failed"), flash[:alert]
     end
 
     test "#{domain[:name]} domain timezone edit links to region edit" do
       host!(domain[:host])
 
-      get public_send("edit_acme_#{domain[:name]}_preference_timezone_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_timezone_url", default_state)
 
       assert_response :success
 
-      assert_select "a[href^=?]", public_send("edit_acme_#{domain[:name]}_preference_region_path")
+      assert_select "a[href^=?]", public_send("edit_base_#{domain[:name]}_preference_region_path")
     end
 
     test "#{domain[:name]} domain language edit links to region edit" do
       host!(domain[:host])
 
-      get public_send("edit_acme_#{domain[:name]}_preference_language_url", default_state)
+      get public_send("edit_base_#{domain[:name]}_preference_language_url", default_state)
 
       assert_response :success
 
@@ -626,7 +626,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_equal 1, links.size
       assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], public_send("edit_acme_#{domain[:name]}_preference_region_path")
+      assert_includes links.first["href"], public_send("edit_base_#{domain[:name]}_preference_region_path")
       assert_includes links.first["href"], "ri=jp"
     end
 
@@ -634,14 +634,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       host!(domain[:host])
       state = { ri: "jp", lx: "ja" }
 
-      get public_send("edit_acme_#{domain[:name]}_preference_region_url", state)
+      get public_send("edit_base_#{domain[:name]}_preference_region_url", state)
 
       assert_response :success
 
       assert_select "a[href=?]",
-                    public_send("edit_acme_#{domain[:name]}_preference_timezone_path", state)
+                    public_send("edit_base_#{domain[:name]}_preference_timezone_path", state)
       assert_select "a[href=?]",
-                    public_send("edit_acme_#{domain[:name]}_preference_language_path", state)
+                    public_send("edit_base_#{domain[:name]}_preference_language_path", state)
     end
 
     if domain[:name] == "app"
@@ -649,7 +649,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
         host!(domain[:host])
         state = { ri: "jp", lx: "ja" }
 
-        get edit_acme_app_preference_currency_url(state)
+        get edit_base_app_preference_currency_url(state)
 
         assert_response :success
         assert_select "select[name='preference_currency[option_id]'] option", text: "米国ドル (USD)"
@@ -670,20 +670,20 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
           [:density, :preference_density, :density, "compact", 2],
           [:pagination, :preference_page_size, :page_size, "50", 3],
         ].each do |route_suffix, param_scope, association_suffix, submitted_value, expected_id|
-          get public_send("edit_acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+          get public_send("edit_base_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
           assert_response :success
           assert_select "select[name='#{param_scope}[option_id]'] option[value='']", count: 0
 
-          patch public_send("acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
+          patch public_send("base_#{domain[:name]}_preference_#{route_suffix}_url", default_state),
                 params: { param_scope => { option_id: submitted_value } }
 
-          assert_redirected_to public_send("edit_acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+          assert_redirected_to public_send("edit_base_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
           pref.reload
 
           assert_equal expected_id, pref.public_send("#{domain[:name]}_preference_#{association_suffix}").option_id
-          get public_send("edit_acme_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
+          get public_send("edit_base_#{domain[:name]}_preference_#{route_suffix}_url", default_state)
 
           assert_select "select[name='#{param_scope}[option_id]'] option[selected='selected'][value='#{expected_id}']",
                         count: 1
@@ -699,9 +699,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     state = { ri: "us", lx: "ja" }
 
     [
-      edit_acme_org_preference_currency_url(state),
-      edit_acme_org_preference_calendar_url(state),
-      edit_acme_org_preference_clock_url(state),
+      edit_base_org_preference_currency_url(state),
+      edit_base_org_preference_calendar_url(state),
+      edit_base_org_preference_clock_url(state),
     ].each do |url|
       get url
 
@@ -710,7 +710,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_equal 1, links.size
       assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], edit_acme_org_preference_region_path
+      assert_includes links.first["href"], edit_base_org_preference_region_path
       assert_includes links.first["href"], "ri=us"
       assert_includes links.first["href"], "lx=ja"
     end
@@ -722,19 +722,19 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     headers = as_user_headers(user, host: DOMAINS.first[:host])
 
     [
-      edit_acme_app_preference_motion_url(ri: "jp"),
-      edit_acme_app_preference_density_url(ri: "jp"),
-      edit_acme_app_preference_pagination_url(ri: "jp"),
+      edit_base_app_preference_motion_url(ri: "jp"),
+      edit_base_app_preference_density_url(ri: "jp"),
+      edit_base_app_preference_pagination_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
       assert_response :success
-      assert_not_equal acme_app_dashboard_path, URI.parse(request.path).path
+      assert_not_equal base_app_dashboard_path, URI.parse(request.path).path
     end
 
     [
-      edit_acme_app_preference_motion_url(ri: "jp"),
-      edit_acme_app_preference_density_url(ri: "jp"),
+      edit_base_app_preference_motion_url(ri: "jp"),
+      edit_base_app_preference_density_url(ri: "jp"),
     ].each do |url|
       get url, headers: headers
 
@@ -742,7 +742,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_equal 1, links.size
       assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], acme_app_preference_path
+      assert_includes links.first["href"], base_app_preference_path
       assert_includes links.first["href"], "ri=jp"
     end
   end
@@ -753,9 +753,9 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
     Prosopite.pause do
       [
-        [:app_preference_currency, edit_acme_app_preference_currency_url(ri: "jp")],
-        [:app_preference_date_format, edit_acme_app_preference_calendar_url(ri: "jp")],
-        [:app_preference_time_format, edit_acme_app_preference_clock_url(ri: "jp")],
+        [:app_preference_currency, edit_base_app_preference_currency_url(ri: "jp")],
+        [:app_preference_date_format, edit_base_app_preference_calendar_url(ri: "jp")],
+        [:app_preference_time_format, edit_base_app_preference_clock_url(ri: "jp")],
       ].each do |association, url|
         pref.public_send(association).destroy!
         pref.reload
@@ -778,7 +778,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_preference_created(domain)
 
-      get public_send("edit_acme_#{domain[:name]}_preference_reset_url", ri: "jp")
+      get public_send("edit_base_#{domain[:name]}_preference_reset_url", ri: "jp")
 
       assert_response :success
 
@@ -786,7 +786,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       assert_equal 1, links.size
       assert_equal "もどる", links.first.text
-      assert_includes links.first["href"], public_send("acme_#{domain[:name]}_preference_path")
+      assert_includes links.first["href"], public_send("base_#{domain[:name]}_preference_path")
       assert_includes links.first["href"], "ri=jp"
       assert_select "a", text: I18n.t(["acme", domain[:name], "preference.resets.back"].join(".")), count: 0
       assert_select "input[type='checkbox'][name='confirm_reset'][required]"
@@ -803,12 +803,12 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Submit reset form with confirmation
       delete(
-        public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
       assert_response :see_other
-      assert_equal public_send("acme_#{domain[:name]}_preference_url"), response.location
+      assert_equal public_send("base_#{domain[:name]}_preference_url"), response.location
 
       # Verify database changes; the old preference is retired and a fresh one is issued.
       pref.reload
@@ -834,7 +834,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       cookies[PreferenceBase::TIMEZONE_COOKIE_KEY] = "etc/utc"
 
       delete(
-        public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
         params: { confirm_reset: "1" },
       )
 
@@ -851,7 +851,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       # Submit reset form WITHOUT confirmation
       delete(
-        public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+        public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
         params: { confirm_reset: "0" },
       )
 
@@ -879,7 +879,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
       begin
         delete(
-          public_send("acme_#{domain[:name]}_preference_reset_url", ri: "jp"),
+          public_send("base_#{domain[:name]}_preference_reset_url", ri: "jp"),
           params: { confirm_reset: "1" },
         )
       ensure
@@ -912,7 +912,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
   end
 
   def assert_preference_created(domain, state = { ri: "jp" })
-    get(public_send("edit_acme_#{domain[:name]}_preference_region_url", state))
+    get(public_send("edit_base_#{domain[:name]}_preference_region_url", state))
 
     assert_response :success
 
@@ -958,14 +958,14 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
   def assert_preference_update(domain, kind, params, state)
     suffix = preference_route_suffix(kind)
-    get(public_send("edit_acme_#{domain[:name]}_preference_#{suffix}_url", state))
+    get(public_send("edit_base_#{domain[:name]}_preference_#{suffix}_url", state))
 
     assert_response :success
 
-    patch(public_send("acme_#{domain[:name]}_preference_#{suffix}_url", state), params: params)
+    patch(public_send("base_#{domain[:name]}_preference_#{suffix}_url", state), params: params)
 
     assert_redirected_to public_send(
-      "edit_acme_#{domain[:name]}_preference_#{suffix}_url",
+      "edit_base_#{domain[:name]}_preference_#{suffix}_url",
       preference_write_redirect_state(kind, state, params),
     )
     follow_redirect!

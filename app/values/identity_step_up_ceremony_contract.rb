@@ -71,6 +71,8 @@ module IdentityStepUpCeremonyContract
 
   def acme_issuer_id(surface) = "surface:ACME_#{surface.to_s.upcase}"
 
+  def base_issuer_id(surface) = acme_issuer_id(surface)
+
   def fetch_surface_value(values, surface)
     values.fetch(surface.to_s)
   rescue KeyError

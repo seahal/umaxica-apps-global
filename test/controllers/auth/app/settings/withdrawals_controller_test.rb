@@ -7,7 +7,7 @@ class Auth::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
   fixtures :clients, :client_tokens
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     @user = clients(:one)
     @token = client_tokens(:one)

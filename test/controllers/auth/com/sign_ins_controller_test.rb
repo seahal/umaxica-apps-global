@@ -7,7 +7,7 @@ module Auth
   module Com
     class AuthInsControllerTest < ActionDispatch::IntegrationTest
       setup do
-        @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+        @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
       end
 
       test "direct entry normalizes to acme com authorization" do

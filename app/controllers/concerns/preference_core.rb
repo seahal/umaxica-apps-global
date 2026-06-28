@@ -7,6 +7,10 @@ module PreferenceCore
   include PreferenceBase
   include PreferenceResourceSync
 
+  included do
+    helper_method :preference_base_i18n_key, :preference_acme_i18n_key
+  end
+
   COOKIE_EXPIRY = 400.days
 
   def set_region_preferences_edit
@@ -800,6 +804,14 @@ module PreferenceCore
 
   def preference_translation_scope
     "acme.#{preference_surface_key}.preferences"
+  end
+
+  def preference_base_i18n_key(*segments)
+    ["base", preference_surface_key, *segments].join(".")
+  end
+
+  def preference_acme_i18n_key(*segments)
+    ["acme", preference_surface_key, *segments].join(".")
   end
 
   def preference_edit_url_helper_name(screen)

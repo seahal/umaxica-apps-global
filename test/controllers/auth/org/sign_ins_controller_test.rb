@@ -7,7 +7,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
   end
 
   test "direct entry normalizes to acme org authorization" do

@@ -10,14 +10,14 @@ module Auth::App::Sign::In::Passkey
              :client_totp_credential_statuses
 
     setup do
-      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
       JitSecurityTurnstileVerifier.test_mode = true
       JitSecurityTurnstileVerifier.test_response = { "success" => true }
       # Mock TRUSTED_ORIGINS
       @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://id.org.localhost"] }
+      Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://auth.org.localhost"] }
 
       @user = clients(:one)
       ClientEmail.create!(

@@ -6,7 +6,7 @@ require "test_helper"
 module Auth::Com::Settings
   class BirthdatesControllerTest < ActionDispatch::IntegrationTest
     setup do
-      @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+      @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
       @visitor = create_verified_visitor_with_email(email_address: "birthdate-#{SecureRandom.hex(4)}@example.com")
       VisitorTelephone.create!(
         visitor: @visitor,

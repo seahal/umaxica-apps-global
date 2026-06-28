@@ -7,7 +7,7 @@ class Auth::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   fixtures :clients, :client_email_statuses, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)

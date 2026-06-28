@@ -40,7 +40,7 @@ class RedirectsJumpGatewayUrl
   attr_reader :token, :source
 
   def gateway_origin
-    ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net")
+    ENV.fetch("PUBLIC_JUMP_GATEWAY_URL", ENV.fetch("JUMP_GATEWAY_URL", "https://jump.umaxica.net"))
   end
 
   def local_origin_allowed?(uri)

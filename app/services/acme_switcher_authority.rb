@@ -96,3 +96,5 @@ class AcmeSwitcherAuthority
     }
   end
 end
+
+BaseSwitcherAuthority = AcmeSwitcherAuthority

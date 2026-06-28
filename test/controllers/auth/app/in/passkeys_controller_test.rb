@@ -10,7 +10,7 @@ module Auth::App::In
     fixtures :clients, :client_statuses, :client_email_statuses, :client_telephone_statuses
 
     setup do
-      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
       JitSecurityTurnstileVerifier.test_mode = true
@@ -36,7 +36,7 @@ module Auth::App::In
 
       # Mock TRUSTED_ORIGINS
       @original_trusted_origins = Webauthn.method(:trusted_origins)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://id.org.localhost"] }
+      Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://auth.org.localhost"] }
     end
 
     teardown do

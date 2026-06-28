@@ -16,7 +16,7 @@ module Security
       setup do
         ensure_client_token_reference_records!
         ClientToken.skip_callback(:validation, :before, :ensure_device_session_record)
-        @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+        @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
         host! @host
       end
 
@@ -27,18 +27,18 @@ module Security
       test "closing resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:closing)
 
-        get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+        get auth_app_settings_sessions_url(ri: "jp", host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
             headers: headers
 
         assert_predicate user.reload, :closing?
         assert_response :redirect
-        assert_redirected_to edit_sign_app_settings_withdrawal_path(ri: "jp")
+        assert_redirected_to edit_auth_app_settings_withdrawal_path(ri: "jp")
       end
 
       test "suspended resource gets withdrawal required on json protected routes" do
         _user, headers = withdrawal_user_and_headers(:suspended)
 
-        get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+        get auth_app_settings_sessions_url(ri: "jp", host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
             headers: headers.merge("Accept" => "application/json")
 
         assert_response :forbidden
@@ -48,18 +48,18 @@ module Security
       test "terminated resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:terminated)
 
-        get sign_app_settings_sessions_url(ri: "jp", host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")),
+        get auth_app_settings_sessions_url(ri: "jp", host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
             headers: headers
 
         assert_predicate user.reload, :terminated?
         assert_response :redirect
-        assert_redirected_to edit_sign_app_settings_withdrawal_path(ri: "jp")
+        assert_redirected_to edit_auth_app_settings_withdrawal_path(ri: "jp")
       end
 
       test "withdrawal allowlist route remains reachable" do
         _user, headers = withdrawal_user_and_headers(:closing)
 
-        get new_sign_app_settings_withdrawal_url(ri: "jp"), headers: headers
+        get new_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
         assert_response :success
       end

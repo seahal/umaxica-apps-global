@@ -13,11 +13,11 @@ application data before any later regional extraction.
 `zenith` is the target canonical placement for Principal / Identity / Account / Organization
 authority data.
 
-`Member`, `ClientMembership`, and `Organization` are the highest-risk ambiguous placement cluster
-in the current codebase. Their current storage does not determine semantic ownership. Each model
-mixes authority-like, bridge, transitional, lifecycle, and in some cases regional-ready concerns.
-Moving any of them wholesale would risk moving non-authority operational state into `zenith` or
-leaving authority state incorrectly in `principal`.
+`Member`, `ClientMembership`, and `Organization` are the highest-risk ambiguous placement cluster in
+the current codebase. Their current storage does not determine semantic ownership. Each model mixes
+authority-like, bridge, transitional, lifecycle, and in some cases regional-ready concerns. Moving
+any of them wholesale would risk moving non-authority operational state into `zenith` or leaving
+authority state incorrectly in `principal`.
 
 ### Member
 
@@ -28,16 +28,15 @@ portions, but those portions are not yet decomposed.
 
 ### ClientMembership
 
-`ClientMembership` currently lives in `app_principal`. It joins `Client` to a raw `workspace_id`
-and stores `joined_at` / `left_at`. It overlaps only loosely with `PersonaMembership` and does not
-equal `PersonaAssignment`. Its `workspace_id` meaning must be resolved before any placement
-decision.
+`ClientMembership` currently lives in `app_principal`. It joins `Client` to a raw `workspace_id` and
+stores `joined_at` / `left_at`. It overlaps only loosely with `PersonaMembership` and does not equal
+`PersonaAssignment`. Its `workspace_id` meaning must be resolved before any placement decision.
 
 ### Organization
 
 `Organization` currently lives in `org_principal`. It has organization-authority shape and legacy
-workspace/container responsibilities. Its authority portion may later map toward `Bureau`, while
-its operational/container portion may remain retained `principal`-side or become future regional
+workspace/container responsibilities. Its authority portion may later map toward `Bureau`, while its
+operational/container portion may remain retained `principal`-side or become future regional
 application state, but that split is not established yet.
 
 ### Runtime actors
@@ -125,57 +124,55 @@ Before any placement migration involving `Member`, `ClientMembership`, or `Organ
 
 ## Alternatives Considered
 
-1. Move `Member`, `ClientMembership`, and `Organization` wholesale to `zenith`.
-   Rejected: they contain mixed transitional and operational concerns, and wholesale movement could
-   move non-authority state into canonical authority storage.
+1. Move `Member`, `ClientMembership`, and `Organization` wholesale to `zenith`. Rejected: they
+   contain mixed transitional and operational concerns, and wholesale movement could move
+   non-authority state into canonical authority storage.
 
-2. Leave everything in `principal` permanently.
-   Rejected: `principal` is no longer canonical authority storage, and this would keep authority
-   placement ambiguous while blocking future regional extraction.
+2. Leave everything in `principal` permanently. Rejected: `principal` is no longer canonical
+   authority storage, and this would keep authority placement ambiguous while blocking future
+   regional extraction.
 
-3. Empty `principal` completely.
-   Rejected: `principal` is retained compatibility storage and may host regional-ready application
-   data. Emptying it is not required and would create unnecessary churn.
+3. Empty `principal` completely. Rejected: `principal` is retained compatibility storage and may
+   host regional-ready application data. Emptying it is not required and would create unnecessary
+   churn.
 
-4. Immediately create regional databases.
-   Rejected for now: regional extraction should happen after classification and decomposition.
-   `principal` can serve as a retained regional-ready staging boundary first.
+4. Immediately create regional databases. Rejected for now: regional extraction should happen after
+   classification and decomposition. `principal` can serve as a retained regional-ready staging
+   boundary first.
 
-5. Treat `ClientMembership` as equivalent to `PersonaMembership`.
-   Rejected: `ClientMembership` uses raw `workspace_id` and lacks `PersonaMembership`'s current
-   account-to-enterprise/unit semantics.
+5. Treat `ClientMembership` as equivalent to `PersonaMembership`. Rejected: `ClientMembership` uses
+   raw `workspace_id` and lacks `PersonaMembership`'s current account-to-enterprise/unit semantics.
 
-6. Treat `Organization` as directly equivalent to `Bureau`.
-   Rejected or deferred: `Organization` has legacy `org_principal` workspace/container semantics
-   that must be separated before mapping.
+6. Treat `Organization` as directly equivalent to `Bureau`. Rejected or deferred: `Organization` has
+   legacy `org_principal` workspace/container semantics that must be separated before mapping.
 
 ## Placement Rules Established by This ADR
 
-| item | rule |
-| --- | --- |
-| Member | transitional; no wholesale move; decompose before placement |
-| ClientMembership | transitional membership / bridge; resolve `workspace_id` before placement |
-| Organization | decompose authority hierarchy vs operational container before placement |
-| Client / Visitor / Operator | decompose runtime actor vs authority / credential / lifecycle / session responsibilities |
-| OIDC connection rows | separate audit; not settled here |
-| Avatar rows | excluded; stay Avatar in this phase |
-| Ticket / session / ceremony / OAuth transaction rows | excluded |
-| Preference / settings rows | excluded |
-| New global authority models | do not place in `principal` merely because of database name |
-| New regional-ready models | may use retained `principal` only if designed for later regional extraction |
+| item                                                 | rule                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Member                                               | transitional; no wholesale move; decompose before placement                              |
+| ClientMembership                                     | transitional membership / bridge; resolve `workspace_id` before placement                |
+| Organization                                         | decompose authority hierarchy vs operational container before placement                  |
+| Client / Visitor / Operator                          | decompose runtime actor vs authority / credential / lifecycle / session responsibilities |
+| OIDC connection rows                                 | separate audit; not settled here                                                         |
+| Avatar rows                                          | excluded; stay Avatar in this phase                                                      |
+| Ticket / session / ceremony / OAuth transaction rows | excluded                                                                                 |
+| Preference / settings rows                           | excluded                                                                                 |
+| New global authority models                          | do not place in `principal` merely because of database name                              |
+| New regional-ready models                            | may use retained `principal` only if designed for later regional extraction              |
 
 ## Required Follow-up Work
 
 - [ ] Write a Member decomposition plan.
 - [ ] Decide whether Member maps to Persona, retires, or remains as compatibility / regional state.
 - [ ] Map `ClientMembership.workspace_id` to an explicit domain concept or declare it legacy
-  compatibility state.
+      compatibility state.
 - [ ] Decide whether ClientMembership maps to `PersonaMembership`, regional membership, or bridge
-  state.
+      state.
 - [ ] Write an Organization decomposition plan.
 - [ ] Decide whether Organization authority maps to `Bureau` or another `zenith` organization model.
 - [ ] Identify which Organization operational / container portions remain retained `principal` or
-  future regional.
+      future regional.
 - [ ] Audit `Client`, `Visitor`, and `Operator` decomposition separately.
 - [ ] Audit OIDC connection rows separately from OAuth transactions.
 - [ ] Create a migration ADR only after the above classification is accepted.

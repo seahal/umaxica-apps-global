@@ -17,7 +17,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     }
     @original_webauthn_env.each_key { |key| ENV.delete(key) }
 
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = create_verified_user_with_email(email_address: "passkey_config_test_user@example.com")
     @other_user = create_verified_user_with_email(email_address: "other_passkey_config_test_user@example.com")
     @user.client_secret_credentials.destroy_all
@@ -25,18 +25,18 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     create_client_recovery_passcode!(@user, name: "recovery 2")
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token, scope: "settings_passkey")
-    @headers = as_user_headers(@user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost")).merge(
+    @headers = as_user_headers(@user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")).merge(
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     ).freeze
 
     # Mock TRUSTED_ORIGINS
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     allowed_origins = [
-      "http://id.app.localhost",
-      "http://id.org.localhost",
+      "http://auth.app.localhost",
+      "http://auth.org.localhost",
       "http://www.example.com",
-      "http://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
-      "https://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
+      "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}",
+      "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}",
     ].uniq
     Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
 
@@ -66,7 +66,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   # Case D-1: Not logged in
   test "options rejects invalid unauthenticated request" do
     reset!
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     cookies["csrf_token"] = "test_csrf_token"
 
     post auth_app_settings_passkeys_options_path(ri: "jp"),
@@ -157,15 +157,15 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "options uses configured app rp id" do
-    ENV["WEBAUTHN_APP_RP_ID"] = "log.umaxica.app"
-    ENV["WEBAUTHN_APP_ORIGIN"] = "http://id.app.localhost"
-    Webauthn.stub(:trusted_origins, ["http://id.app.localhost"]) do
+    ENV["WEBAUTHN_APP_RP_ID"] = "auth.app.localhost"
+    ENV["WEBAUTHN_APP_ORIGIN"] = "http://auth.app.localhost"
+    Webauthn.stub(:trusted_origins, ["http://auth.app.localhost"]) do
       post auth_app_settings_passkeys_options_path(ri: "jp"),
            headers: @headers
     end
 
     assert_response :ok
-    assert_equal "log.umaxica.app", response.parsed_body.dig("options", "rp", "id")
+    assert_equal "auth.app.localhost", response.parsed_body.dig("options", "rp", "id")
   end
 
   # Case D-3: Untrusted origin
@@ -247,7 +247,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     satisfy_user_verification(token, scope: "settings_passkey")
     headers = as_user_headers(
       unverified_user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
 
@@ -394,7 +394,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal "text/html", response.media_type
     assert_includes response.body, auth_app_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
     )
     assert_empty flash.to_hash
   end
@@ -462,14 +462,14 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     satisfy_user_verification(token, scope: "settings_passkey")
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = AuthenticationToken.encode(
       unverified_user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = as_user_headers(
       unverified_user,
       host: ENV.fetch(
-        "ID_SERVICE_URL",
-        "id.app.localhost",
+        "AUTH_SERVICE_URL",
+        "auth.app.localhost",
       ),
       session_public_id: token.public_id,
     )
@@ -488,12 +488,12 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     satisfy_user_verification(token, scope: "settings_passkey")
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = AuthenticationToken.encode(
       unverified_user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = as_user_headers(
       unverified_user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
 

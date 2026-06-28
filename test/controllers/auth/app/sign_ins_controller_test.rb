@@ -7,7 +7,7 @@ module Auth
   module App
     class AuthInsControllerTest < ActionDispatch::IntegrationTest
       setup do
-        @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+        @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
       test "direct entry normalizes to acme app authorization" do

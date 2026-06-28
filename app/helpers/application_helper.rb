@@ -6,14 +6,15 @@ module ApplicationHelper
   # No need to define them here - they're already available via helper_method
 
   EDGE_HOST_ENV_KEYS = {
-    app: "EDGE_SERVICE_URL",
-    org: "EDGE_STAFF_URL",
-    com: "EDGE_CORPORATE_URL",
+    app: %w(PUBLIC_EDGE_SERVICE_URL EDGE_SERVICE_URL),
+    org: %w(PUBLIC_EDGE_STAFF_URL EDGE_STAFF_URL),
+    com: %w(PUBLIC_EDGE_CORPORATE_URL EDGE_CORPORATE_URL),
   }.freeze
 
   def page_title(title = nil)
     if title.present?
       content_for(:page_title, title)
+      title
     else
       content_for(:page_title) || t("meta.default_title")
     end
@@ -73,8 +74,10 @@ module ApplicationHelper
   def edge_host
     surface = request.respond_to?(:host) ? CoreSurface.current(request) : CoreSurface::DEFAULT
     env_key = EDGE_HOST_ENV_KEYS.fetch(surface, EDGE_HOST_ENV_KEYS.fetch(CoreSurface::DEFAULT))
+    env_value = env_key.find { |key| ENV[key].present? }
+    return nil unless env_value
 
-    CoreHostNormalization.normalize(ENV[env_key])
+    CoreHostNormalization.normalize(ENV[env_value])
   end
 
   private

@@ -5,7 +5,7 @@ require "test_helper"
 
 class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
   setup do
-    @sign_host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    @sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     ClientIdentityState.ensure_defaults!
   end
 

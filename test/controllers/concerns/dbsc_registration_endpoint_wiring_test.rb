@@ -5,8 +5,8 @@ require "test_helper"
 
 class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
   test "sign dbsc controllers use shared registration endpoint concern" do
-    assert_includes Sign::App::Edge::V0::Token::DbscController, SignDbscRegistrationEndpoint
-    assert_includes Sign::Org::Edge::V0::Token::DbscController, SignDbscRegistrationEndpoint
+    assert_includes Auth::App::Edge::V0::Token::DbscController, SignDbscRegistrationEndpoint
+    assert_includes Auth::Org::Edge::V0::Token::DbscController, SignDbscRegistrationEndpoint
   end
 
   test "acme dbsc controllers use shared preference registration endpoint concern" do
@@ -17,8 +17,8 @@ class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
 
   test "controllers do not redefine dbsc registration internals locally" do
     sign_controllers = [
-      Sign::App::Edge::V0::Token::DbscController,
-      Sign::Org::Edge::V0::Token::DbscController,
+      Auth::App::Edge::V0::Token::DbscController,
+      Auth::Org::Edge::V0::Token::DbscController,
     ]
     acme_controllers = [
       Base::App::Edge::V0::DbscController,

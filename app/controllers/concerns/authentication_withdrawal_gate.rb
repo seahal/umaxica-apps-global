@@ -43,10 +43,10 @@ module AuthenticationWithdrawalGate
 
   def withdrawal_controller_allowlisted?
     %w(
-      sign/app/settings/withdrawals
-      sign/com/settings/withdrawals
-      sign/org/settings/withdrawals
-      acme/app/identity/withdrawals
+      auth/app/settings/withdrawals
+      auth/com/settings/withdrawals
+      auth/org/settings/withdrawals
+      base/app/identity/withdrawals
     ).include?(controller_path) && %w(show new edit update create destroy).include?(action_name)
   end
 
@@ -60,10 +60,10 @@ module AuthenticationWithdrawalGate
 
   def withdrawal_gate_redirect_path
     ri = params[AuthIoKeys::Params::RI]
-    return edit_sign_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
-    return edit_sign_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
-    return sign_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
-    return edit_acme_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("acme/app/")
+    return edit_auth_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
+    return edit_auth_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
+    return auth_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/org/")
+    return edit_base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
 
     acme_withdrawal_gate_redirect_path
   rescue StandardError => e
@@ -78,15 +78,15 @@ module AuthenticationWithdrawalGate
 
   def withdrawal_gate_api_redirect_path
     ri = params[AuthIoKeys::Params::RI]
-    return sign_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/app/")
-    return sign_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/com/")
-    return sign_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("sign/org/")
-    return acme_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("acme/app/")
+    return auth_app_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
+    return auth_com_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
+    return auth_org_settings_withdrawal_path(ri: ri) if controller_path.start_with?("auth/org/")
+    return base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
 
-    acme_app_identity_withdrawal_path(ri: ri)
+    base_app_identity_withdrawal_path(ri: ri)
   end
 
   def acme_withdrawal_gate_redirect_path
-    edit_acme_app_identity_withdrawal_path(ri: params[AuthIoKeys::Params::RI])
+    edit_base_app_identity_withdrawal_path(ri: params[AuthIoKeys::Params::RI])
   end
 end

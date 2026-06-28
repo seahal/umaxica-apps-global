@@ -47,7 +47,7 @@ class Base::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   test "validated logout request is staged through shared confirmation" do
     redirect_uri =
       @client.post_logout_redirect_uris.find do |uri|
-        URI.parse(uri).host == ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")
+        URI.parse(uri).host == ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
       end
 
     get base_org_oidc_logout_url(host: @host),

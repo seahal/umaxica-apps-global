@@ -7,7 +7,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
   fixtures :operator_statuses, :operator_secret_credential_statuses, :operator_secret_credential_kinds
 
   setup do
-    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @staff = Operator.create!(
       status_id: OperatorStatus::ACTIVE,
     )
@@ -103,7 +103,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      host: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
     )
     assert_predicate flash[:notice], :present?
     assert_nil flash[:raw_secret_credential], "raw secret_credential must not be exposed in flash"
@@ -134,7 +134,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      host: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
     )
     assert_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end
@@ -202,7 +202,7 @@ class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_redirected_to auth_org_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ID_STAFF_URL", "id.org.localhost"),
+      host: ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost"),
     )
     assert_equal OperatorSecretCredentialStatus::DELETED, @staff_secret_credential.reload.staff_secret_status_id
   end

@@ -12,13 +12,13 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
            :operator_token_dbsc_statuses
 
   setup do
-    host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     host! host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://id.app.localhost"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://#{host}", "http://auth.app.localhost"] }
 
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE, mfa_level_enabled: true)

@@ -7,7 +7,7 @@ class Auth::App::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   test "sign app oauth authorize route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}/oauth/authorize",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/authorize",
         method: :get,
       )
     end

@@ -4,23 +4,12 @@
 module Auth
   module App
     module Settings
+      # Redirect shim: all read actions forward to base/app/identity/secrets/*.
+      # Write actions return 410 Gone; the actual CRUD lives at base/app/identity/secrets.
       class SecretCredentialsController < ::Auth::App::ApplicationController
-        include ::VerificationClient
-
-        include ::SignSettingsSecretCredentialTurnstileGuard
-
-        include ::SignSettingsSecretCredentialCacheControl
-        include ::SignAuthorityRedirect
-        include ::SignSettingsSecretCredentialRegistration
-
         AUTHENTICATION_MODE = :private
 
         before_action :authenticate_client!
-        before_action :set_no_store_for_secret_credential_pages
-        step_up only: %i(new create)
-        before_action :set_secret_credential, only: :regenerate
-        before_action :ensure_verified_recovery_identity_for_registration!, only: [:new]
-        before_action :verify_secret_credential_turnstile!, only: :create
 
         def index = redirect_to(base_app_identity_secrets_path(ri: params[:ri]), status: :see_other)
 
@@ -40,20 +29,6 @@ module Auth
         def update = head(:gone)
 
         def destroy = head(:gone)
-
-        # Reserved for future secret_credential rotation support.
-        def regenerate
-          authorize!(@secret_credential)
-          redirect_to(
-            auth_app_settings_secret_credential_path(@secret_credential.public_id),
-            alert: t("messages.not_implemented"),
-            status: :see_other,
-          )
-        end
-
-        private
-
-        def verification_required_action? = false
       end
     end
   end

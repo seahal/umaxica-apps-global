@@ -16,7 +16,7 @@ class SignEdgeV0JsonApiIncludedDoTest < ActiveSupport::TestCase
   end
 
   test "edge token controllers own json callback explicitly" do
-    filters = Sign::App::Edge::V0::Token::ChecksController._process_action_callbacks.map(&:filter)
+    filters = Auth::App::Edge::V0::Token::ChecksController._process_action_callbacks.map(&:filter)
 
     assert_includes filters, :ensure_json_request
   end

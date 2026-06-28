@@ -5,7 +5,7 @@ require "test_helper"
 
 class OidcTokenExchangeBoundaryTest < ActiveSupport::TestCase
   test "token exchange service does not mint actor-root sessions" do
-    source = Rails.root.join("app/services/oidc_token_exchange_service.rb").read
+    source = Rails.root.join("app/services/oidc_token_exchange_coordinator.rb").read
 
     assert_no_match(/ClientToken\.create!?/, source)
     assert_no_match(/OperatorToken\.create!?/, source)
@@ -15,7 +15,7 @@ class OidcTokenExchangeBoundaryTest < ActiveSupport::TestCase
   end
 
   test "token exchange service does not rotate the root refresh token directly" do
-    source = Rails.root.join("app/services/oidc_token_exchange_service.rb").read
+    source = Rails.root.join("app/services/oidc_token_exchange_coordinator.rb").read
 
     assert_no_match(/root_token\.rotate_refresh_token!/, source)
   end

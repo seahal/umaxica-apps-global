@@ -8,10 +8,13 @@ module Base
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
 
+      layout "base/app/inertia"
+
       before_action :authenticate_client!
 
       def index
         authorize!(current_client, to: :show?)
+        render inertia: true, props: { title: "Groups" }
       end
     end
   end

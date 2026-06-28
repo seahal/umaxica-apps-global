@@ -5,8 +5,8 @@ require "test_helper"
 
 class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "sessions-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+10000000991",
@@ -25,7 +25,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "protected settings sessions requires authentication" do
     with_env(
-      "SIGN_CORPORATE_URL" => "id.com.localhost",
+      "SIGN_CORPORATE_URL" => "auth.com.localhost",
       "ACME_CORPORATE_URL" => "log.umaxica.com",
     ) do
       Rails.application.reload_routes!

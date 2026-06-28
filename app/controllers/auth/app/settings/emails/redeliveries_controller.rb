@@ -40,7 +40,7 @@ module Auth
             email_registration_return_path(
               auth_app_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+                host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
               ),
             )
           end

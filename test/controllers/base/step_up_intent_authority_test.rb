@@ -18,7 +18,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_difference -> { ClientStepUpCeremonyTransaction.count }, 1 do
       get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -47,7 +47,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    return_to = sign_app_settings_emails_path(ri: "jp")
+    return_to = auth_app_settings_emails_path(ri: "jp")
     issuance = issue_step_up_grant!(
       surface: "app",
       actor_ref: user.public_id,
@@ -101,7 +101,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_app_settings_emails_path(ri: "jp"),
+      return_to: auth_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -133,7 +133,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -211,7 +211,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_app_settings_emails_path(ri: "jp"),
+      return_to: auth_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -244,12 +244,12 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_app_settings_emails_path(ri: "jp"),
+      return_to: auth_app_settings_emails_path(ri: "jp"),
     )
 
     post cancellation_base_app_verification_url(ri: "jp", host: host),
          headers: app_session_headers(host, token, user),
-         params: { scope: "settings_email", return_to: sign_app_settings_emails_path(ri: "jp") }
+         params: { scope: "settings_email", return_to: auth_app_settings_emails_path(ri: "jp") }
 
     assert_response :see_other
     assert_predicate issuance.transaction.reload, :canceled?
@@ -282,7 +282,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: other_token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_app_settings_emails_path(ri: "jp"),
+      return_to: auth_app_settings_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -303,7 +303,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
 
   test "sign ceremony accepts base issued grant without creating a compatibility transaction" do
     host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
-    sign_host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    sign_host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     user = clients(:one)
     ClientEmail.create!(
       user: user,
@@ -313,7 +313,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -330,7 +330,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get base_app_verification_url(scope: "admin", pt: pt, ri: "jp", host: host),
@@ -344,7 +344,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(sign_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get base_app_verification_url(scope: "settings_telephone", pt: pt, ri: "jp", host: host),

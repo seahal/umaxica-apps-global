@@ -8,7 +8,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     cookies["csrf_token"] = csrf_token_value
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -50,7 +50,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
-    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"))
+    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"))
   end
 
   test "create rejects when visitor is already logged in" do
@@ -248,7 +248,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
   end
 
   def host
-    ENV["SIGN_CORPORATE_URL"] || "id.com.localhost"
+    ENV["AUTH_CORPORATE_URL"] || "auth.com.localhost"
   end
 
   def otp_code_for(telephone)

@@ -7,7 +7,7 @@ class Auth::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_tokens, :operator_passkeys
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @headers = as_staff_headers(@staff, host: @host)
     @token = operator_tokens(:one)

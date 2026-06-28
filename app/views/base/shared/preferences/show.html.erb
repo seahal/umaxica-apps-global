@@ -1,17 +1,17 @@
 <% surface = controller_path.split("/").second %>
-<% content_for :page_title, t("base.#{surface}.preferences.title") %>
+<% content_for :page_title, t(preference_base_i18n_key(:preferences, :title)) %>
 
 <section class="animate-fade-in-up">
   <div>
     <%= link_to public_send("base_#{surface}_root_path", ct: "dr", lx: "en", ri: "us", tz: "asia/tokyo") do %>
-      <span><%= t("base.#{surface}.preferences.up_link") %></span>
+      <span><%= t(preference_base_i18n_key(:preferences, :up_link)) %></span>
     <% end %>
   </div>
 
   <div>
     <div>
-      <h1><%= t("base.#{surface}.preferences.title") %></h1>
-      <p><%= t("base.#{surface}.preferences.description") %></p>
+      <h1><%= t(preference_base_i18n_key(:preferences, :title)) %></h1>
+      <p><%= t(preference_base_i18n_key(:preferences, :description)) %></p>
     </div>
 
     <div>
@@ -28,7 +28,7 @@
          }.each do |screen, label_key| %>
         <%= link_to public_send("edit_base_#{surface}_preference_#{screen}_path") do %>
           <div>
-            <span><%= t("base.#{surface}.preferences.#{label_key}") %></span>
+            <span><%= t(preference_base_i18n_key(:preferences, label_key)) %></span>
           </div>
         <% end %>
       <% end %>

@@ -9,7 +9,7 @@ class Auth::Com::Edge::V0::Token::ChecksControllerTest < ActionDispatch::Integra
 
   setup do
     @visitor = visitors(:reserved_visitor)
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
   end
 
   test "GET check without access token returns 401" do

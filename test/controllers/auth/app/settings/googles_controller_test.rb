@@ -8,9 +8,9 @@ module Auth::App::Settings
     fixtures :clients, :client_statuses, :client_google_identity_statuses
 
     setup do
-      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       @user = clients(:one)
-      @headers = as_user_headers(@user, host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"))
+      @headers = as_user_headers(@user, host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
     end
 
     test "show is read only" do
@@ -81,24 +81,24 @@ module Auth::App::Settings
 
     test "settings route uses create and destroy" do
       route = Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
+        "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/settings/google",
         method: :post,
       )
 
-      assert_equal "sign/app/settings/googles", route[:controller]
+      assert_equal "auth/app/settings/googles", route[:controller]
       assert_equal "create", route[:action]
 
       route = Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
+        "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/settings/google",
         method: :delete,
       )
 
-      assert_equal "sign/app/settings/googles", route[:controller]
+      assert_equal "auth/app/settings/googles", route[:controller]
       assert_equal "destroy", route[:action]
 
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path(
-          "http://#{ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")}/settings/google",
+          "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}/settings/google",
           method: :patch,
         )
       end

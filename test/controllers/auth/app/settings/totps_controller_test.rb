@@ -17,7 +17,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
            :client_chronicle_levels
 
   setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     # Clear existing TOTPs to avoid limit error
     @user.client_totp_credentials.destroy_all
@@ -35,11 +35,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
     access_token = AuthenticationToken.encode(
       @user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: @token.public_id,
     )
     @headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Host" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
@@ -85,11 +85,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
     access_token = AuthenticationToken.encode(
       user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Host" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -115,11 +115,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     token.update!(created_at: 1.hour.ago, last_step_up_at: nil, last_step_up_scope: nil)
     access_token = AuthenticationToken.encode(
       user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Host" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -173,7 +173,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "text/html", response.media_type
     assert_not_includes response.body, auth_app_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
     )
   end
 
@@ -451,11 +451,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
     access_token = AuthenticationToken.encode(
       user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Host" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
@@ -480,11 +480,11 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(token)
     access_token = AuthenticationToken.encode(
       user,
-      host: ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       session_public_id: token.public_id,
     )
     headers = {
-      "Host" => ENV.fetch("ID_SERVICE_URL", "id.app.localhost"),
+      "Host" => ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }

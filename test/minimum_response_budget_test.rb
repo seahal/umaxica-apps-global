@@ -92,9 +92,9 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
 
   test "sign-in secret credential controllers enable the budget only for create" do
     [
-      Sign::App::Sign::In::SecretCredentialsController,
-      Sign::Com::Sign::In::SecretCredentialsController,
-      Sign::Org::Sign::In::SecretCredentialsController,
+      Auth::App::Sign::In::SecretCredentialsController,
+      Auth::Com::Sign::In::SecretCredentialsController,
+      Auth::Org::Sign::In::SecretCredentialsController,
     ].each do |controller_class|
       controller = controller_class.new
       controller.define_singleton_method(:action_name) { "create" }

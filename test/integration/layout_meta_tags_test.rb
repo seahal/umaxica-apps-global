@@ -6,6 +6,7 @@ require "test_helper"
 class LayoutMetaTagsTest < ActiveSupport::TestCase
   LAYOUT_PATHS = {
     "Base::App" => "app/views/layouts/acme/app/application.html.erb",
+    "Base::App::Inertia" => "app/views/layouts/base/app/inertia.html.erb",
     "Base::Com" => "app/views/layouts/acme/com/application.html.erb",
     "Base::Org" => "app/views/layouts/acme/org/application.html.erb",
     "Sign::App" => "app/views/layouts/sign/app/application.html.erb",
@@ -33,5 +34,14 @@ class LayoutMetaTagsTest < ActiveSupport::TestCase
         "Expected title tag in #{name} layout (#{path})",
       )
     end
+  end
+
+  test "inertia layout includes lang and theme markers" do
+    content = Rails.root.join("app/views/layouts/base/app/inertia.html.erb").read
+
+    assert_includes content, 'lang="<%= get_language %>"'
+    assert_includes content, 'data-theme="<%= theme_cookie_value %>"'
+    assert_includes content, 'class="<%= theme_html_class %>"'
+    assert_includes content, "page_title(page&.dig(:props, :title))"
   end
 end

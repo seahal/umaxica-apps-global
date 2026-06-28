@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
   end
 

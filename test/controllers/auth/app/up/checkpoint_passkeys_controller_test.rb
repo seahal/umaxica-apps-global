@@ -11,18 +11,18 @@ module Auth::App::Up
              :client_chronicle_events, :client_chronicle_levels
 
     setup do
-      host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
 
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
 
       @original_trusted_origins = Webauthn.method(:trusted_origins)
       allowed_origins = [
-        "http://id.app.localhost",
-        "http://id.org.localhost",
+        "http://auth.app.localhost",
+        "http://auth.org.localhost",
         "http://www.example.com",
-        "http://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
-        "https://#{ENV.fetch("ID_SERVICE_URL", "log.umaxica.app")}",
+        "http://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}",
+        "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}",
       ].uniq
       Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
     end

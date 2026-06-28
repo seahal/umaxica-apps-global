@@ -154,8 +154,8 @@ scope module: :base, as: :base do
       end
 
       # Canonical browser sign-out flow.
-      scope path: :sign do
-        resource :out, only: %i(new create), as: :sign_out do
+      scope path: :sign, module: :sign do
+        resource :out, only: %i(new edit create), as: :sign_out do
           get :complete, on: :collection
         end
       end

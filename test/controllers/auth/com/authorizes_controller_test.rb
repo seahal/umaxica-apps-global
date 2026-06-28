@@ -7,7 +7,7 @@ class Auth::Com::AuthorizesControllerTest < ActionDispatch::IntegrationTest
   test "sign com oauth authorize route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")}/oauth/authorize",
+        "https://#{ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")}/oauth/authorize",
         method: :get,
       )
     end

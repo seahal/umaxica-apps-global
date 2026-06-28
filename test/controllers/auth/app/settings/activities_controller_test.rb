@@ -3,21 +3,22 @@
 
 require "test_helper"
 
+# Auth::App::Settings::ActivitiesController is a redirect shim to base/app/identity/activities.
 class Auth::App::Settings::ActivitiesControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     host! @host
   end
 
-  test "sign settings activities renders activity log" do
+  test "sign settings activities redirects to base identity activities" do
     get auth_app_settings_activities_url(ri: "jp"), headers: session_headers
 
-    assert_response :success
+    assert_response :see_other
+    assert_redirected_to base_app_identity_activities_path(ri: "jp")
   end
 
   private

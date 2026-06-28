@@ -462,7 +462,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       Health::LivenessCheck.stub(:call, liveness) do
         Health::ReadinessCheck.stub(:call, readiness) do
           Health::StartupCheck.stub(:call, startup) do
-              Health::SnapshotCheck.stub(:call, snapshot) do
+            Health::SnapshotCheck.stub(:call, snapshot) do
               get "/health"
 
               assert_response :success

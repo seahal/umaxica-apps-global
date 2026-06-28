@@ -23,8 +23,16 @@ Rails Engines.
 
 ## Canonical ENV Naming
 
-Host and origin environment variables should name the surface or service directly. Current route
-fragments use variables such as:
+URL environment variables should use the smallest boundary name that makes the ownership clear.
+
+- `PUBLIC_*` means a browser-visible or externally reachable URL.
+- `PRIVATE_*` means a Rails-internal, pod-internal, or service-internal URL.
+
+Current runtime code still contains surface/service names for compatibility, but new docs and new
+runtime config should prefer the public/private boundary language instead of inventing another
+surface-prefixed URL family.
+
+Examples of the older compatibility style that still exists in code:
 
 - `ACME_SERVICE_URL`
 - `ACME_STAFF_URL`

@@ -5,8 +5,8 @@ require "test_helper"
 
 class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     Prosopite.pause do
       VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
       VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
@@ -120,7 +120,7 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :redirect, response.body
     assert_redirected_to auth_com_settings_secret_credentials_url(
       ri: "jp",
-      host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+      host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
     )
     assert_predicate flash[:notice], :present?
   end
@@ -214,7 +214,7 @@ class Auth::Com::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"), uri.host
+    assert_equal ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"), uri.host
     assert_equal "/settings/secret_credentials/#{@secret_credential.public_id}?ri=jp", uri.request_uri
   end
 

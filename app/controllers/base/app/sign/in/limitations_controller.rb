@@ -53,7 +53,7 @@ module Base
 
             if social_resolution?
               return redirect_to(
-                auth_app_sign_in_url(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+                auth_app_sign_in_url(host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
                 allow_other_host: cross_host_redirect_allowed?,
                 status: :see_other,
               )
@@ -61,7 +61,7 @@ module Base
 
             @resolution.cancel!
             redirect_to(
-              auth_app_sign_in_url(host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")),
+              auth_app_sign_in_url(host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
               allow_other_host: cross_host_redirect_allowed?,
               status: :see_other,
             )

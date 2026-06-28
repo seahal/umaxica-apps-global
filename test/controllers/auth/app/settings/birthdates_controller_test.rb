@@ -8,7 +8,7 @@ module Auth::App::Settings
     fixtures :clients, :client_statuses
 
     setup do
-      @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       host! @host
       @user = clients(:one)
       @user.update!(birthdate: "2000-02-03")

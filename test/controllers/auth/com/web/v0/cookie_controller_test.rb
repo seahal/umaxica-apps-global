@@ -8,7 +8,7 @@ class Auth::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   include PreferenceJwtHelper
 
   setup do
-    @host = JitIdHostEnv.corporate_url || "id.com.localhost"
+    @host = JitIdHostEnv.corporate_url || "auth.com.localhost"
     host! @host
   end
 

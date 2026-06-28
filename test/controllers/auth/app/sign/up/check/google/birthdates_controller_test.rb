@@ -7,7 +7,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear
@@ -74,7 +74,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   def start_google_social_signup!
     setup_google_mock_auth(uid: "google-underage-#{SecureRandom.hex(4)}")
 
-    get(auth_app_social_google_sign_up_url(provider: "google", ri: "jp"))
+    get(auth_app_social_google_auth_up_url(provider: "google", ri: "jp"))
 
     assert_response :redirect
     state = social_auth_state_from_response

@@ -26,7 +26,7 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
   def passkey_registration_passkeys = current_client.client_passkeys
 
   def passkey_registration_redirect_url
-    auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
+    auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
   end
 
   def passkey_registration_log_prefix = "sign.webauthn.registration"
@@ -53,10 +53,10 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
         auth_app_settings_secrets_url(
           ri: params[:ri],
           token: reveal.token,
-          host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+          host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
         )
       else
-        auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"))
+        auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
       end
 
     render json: {
@@ -80,7 +80,7 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
   def recovery_passcode_setup_url
     auth_app_settings_secrets_url(
       ri: params[:ri],
-      host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
     )
   end
 
@@ -92,7 +92,7 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
     auth_app_settings_secrets_url(
       ri: params[:ri],
       token: token,
-      host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+      host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
     )
   end
 end

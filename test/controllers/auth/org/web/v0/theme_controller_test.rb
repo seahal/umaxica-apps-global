@@ -9,7 +9,7 @@ class Auth::Org::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     _ = PreferenceBase # ensure autoload of JwtConfiguration/Token defined in same file
-    @host = JitIdHostEnv.staff_url || "id.org.localhost"
+    @host = JitIdHostEnv.staff_url || "auth.org.localhost"
     host! @host
   end
 

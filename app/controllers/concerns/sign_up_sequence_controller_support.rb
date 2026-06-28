@@ -756,7 +756,7 @@ module SignUpSequenceControllerSupport
         reveal_url: ->(token) {
           sign_app_settings_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+            host: ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
           )
         },
       }

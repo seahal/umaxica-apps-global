@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "minitest/autorun"
+require "test_helper"
 
-class AcmePublicResourceRoutesTest < Minitest::Test
+class AcmePublicResourceRoutesTest < ActiveSupport::TestCase
   def test_accounts_and_organizations_routes_are_index_show_only
     route_file = File.read(File.expand_path("../../config/routes/base.rb", __dir__))
 

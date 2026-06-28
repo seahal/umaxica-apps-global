@@ -7,7 +7,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
     @staff = operators(:one)
     # Clean up any existing tokens for this staff
@@ -34,7 +34,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "protected settings sessions requires authentication" do
     with_env(
-      "ID_STAFF_URL" => "id.org.localhost",
+      "ID_STAFF_URL" => "auth.org.localhost",
       "SIGN_STAFF_URL" => "log.umaxica.org",
       "ACME_STAFF_URL" => "www.umaxica.org",
     ) do

@@ -111,20 +111,17 @@ module SocialCallbackGuard
       begin
         hosts =
           %w(
-            SIGN_SERVICE_URL
-            SIGN_SERVICE_URL
-            SIGN_STAFF_URL
-            SIGN_STAFF_URL
-            SIGN_CORPORATE_URL
+            AUTH_SERVICE_URL
+            AUTH_SERVICE_URL
+            AUTH_STAFF_URL
+            AUTH_STAFF_URL
+            AUTH_CORPORATE_URL
           ).filter_map { |key| normalize_host_port(ENV[key]) }
 
         if Rails.env.local?
-          hosts << "sign.app.localhost"
-          hosts << "id.com.localhost"
-          hosts << "sign.org.localhost"
-          hosts << "id.org.localhost"
-          hosts << "sign.com.localhost"
-          hosts << "id.app.localhost"
+          hosts << "auth.app.localhost"
+          hosts << "auth.com.localhost"
+          hosts << "auth.org.localhost"
         end
 
         hosts.uniq

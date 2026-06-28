@@ -7,6 +7,7 @@ class StylesheetTagsTest < ActiveSupport::TestCase
   VITE_LAYOUT_PATHS = [
     ["app/views/layouts/application.html.erb", "application"],
     ["app/views/layouts/base/app/application.html.erb", "application"],
+    ["app/views/layouts/base/app/inertia.html.erb", "entrypoints/inertia"],
     ["app/views/layouts/base/com/application.html.erb", "application"],
     ["app/views/layouts/base/org/application.html.erb", "application"],
     ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
@@ -37,6 +38,22 @@ class StylesheetTagsTest < ActiveSupport::TestCase
                       "React refresh preamble must carry a CSP nonce in #{path}"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
                       "missing Vite entrypoint in #{path}"
+    end
+  end
+
+  test "mailer layouts remain on the legacy stylesheet path" do
+    mailer_layouts = [
+      "app/views/layouts/mailer/app/mailer.html.erb",
+      "app/views/layouts/mailer/com/mailer.html.erb",
+      "app/views/layouts/mailer/org/mailer.html.erb",
+    ]
+
+    mailer_layouts.each do |path|
+      contents = Rails.root.join(path).read
+
+      assert_includes contents, "stylesheet_link_tag", "mailer layout #{path} must keep legacy stylesheets"
+      assert_not_includes contents, "vite_typescript_tag", "mailer layout #{path} must not load Vite"
+      assert_not_includes contents, "inertia_ssr_head", "mailer layout #{path} must not use Inertia"
     end
   end
 
@@ -142,11 +159,11 @@ class StylesheetTagsTest < ActiveSupport::TestCase
 
   test "step up passkey views use vite stimulus identifier" do
     paths = [
-      "app/views/sign/app/verification/passkeys/new.html.erb",
-      "app/views/sign/com/verification/passkeys/new.html.erb",
-      "app/views/sign/org/verification/passkeys/new.html.erb",
-      "app/views/sign/app/sign/in/challenge/passkeys/new.html.erb",
-      "app/views/sign/org/sign/in/challenge/passkeys/new.html.erb",
+      "app/views/auth/app/verification/passkeys/new.html.erb",
+      "app/views/auth/com/verification/passkeys/new.html.erb",
+      "app/views/auth/org/verification/passkeys/new.html.erb",
+      "app/views/auth/app/sign/in/challenge/passkeys/new.html.erb",
+      "app/views/auth/org/sign/in/challenge/passkeys/new.html.erb",
     ]
 
     paths.each do |path|

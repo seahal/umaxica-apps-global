@@ -61,15 +61,15 @@ module Auth::App
     end
 
     test "sign-in controllers declare guest-only policy on concrete controller" do
-      assert_equal :guest, Auth::In::EmailsController.authentication_mode_for(:new)
+      assert_equal :guest, Auth::App::Sign::In::EmailsController.authentication_mode_for(:new)
     end
 
     test "sign-up controllers declare guest-only policy on concrete controller" do
-      assert_equal :guest, Auth::Up::EmailsController.authentication_mode_for(:new)
+      assert_equal :guest, Auth::App::Sign::Up::EmailsController.authentication_mode_for(:new)
     end
 
     test "email sign-in controller overrides guest-only response" do
-      rules = Auth::In::EmailsController.local_authentication_mode_rules
+      rules = Auth::App::Sign::In::EmailsController.local_authentication_mode_rules
 
       assert_equal :guest, rules.last[:mode]
       assert_equal :bad_request, rules.last[:options][:status]

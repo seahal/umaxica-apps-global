@@ -52,6 +52,7 @@ module OidcCallback
     actual = params[:state].to_s
     @current_oidc_flow, @current_oidc_flow_expired = consume_oidc_pending_flow(actual)
     raise InvalidCallbackState, "OIDC state expired" if @current_oidc_flow_expired
+
     clear_legacy_oidc_flow_if_current!(actual) if @current_oidc_flow.present?
     expected = @current_oidc_flow.present? ? actual : session.delete(:oidc_state).to_s
     @oidc_invalid_state_context = oidc_invalid_state_context(expected: expected, actual: actual)

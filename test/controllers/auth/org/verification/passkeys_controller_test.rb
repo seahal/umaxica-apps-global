@@ -8,7 +8,7 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   fixtures :operators, :operator_tokens
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @token = operator_tokens(:one)
     trusted_origin_host = @host
@@ -18,7 +18,7 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{trusted_origin_host}"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.org.localhost", "http://#{trusted_origin_host}"] }
   end
 
   teardown do

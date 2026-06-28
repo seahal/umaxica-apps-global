@@ -69,7 +69,7 @@ class AuthInSessionCancellationsControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:log_out) { nil }
     controller.define_singleton_method(:redirect_to) { |path| redirects << path }
     controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
-    controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }
+    controller.define_singleton_method(:url_options) { { host: "auth.app.localhost" } }
 
     controller.create
 
@@ -101,7 +101,7 @@ class AuthInSessionCancellationsControllerTest < ActiveSupport::TestCase
     controller.define_singleton_method(:log_out) { nil }
     controller.define_singleton_method(:redirect_to) { |path| redirects << path }
     controller.define_singleton_method(:resolve_session_limit_cancellation_actor) { actor }
-    controller.define_singleton_method(:url_options) { { host: "id.app.localhost" } }
+    controller.define_singleton_method(:url_options) { { host: "auth.app.localhost" } }
 
     controller.create
 

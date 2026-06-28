@@ -8,7 +8,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   fixtures :clients, :client_totp_credential_statuses
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @headers = as_user_headers(@user, host: @host)
     @token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])

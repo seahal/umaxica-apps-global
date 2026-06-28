@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::Sign::Up::Check::Google::ConfirmationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear

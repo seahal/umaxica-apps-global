@@ -8,7 +8,7 @@ class Auth::Org::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   include ActiveJob::TestHelper
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_status_id: OperatorTokenStatus::ACTIVE)

@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    @host = ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
     CloudflareTurnstile.test_mode = true
@@ -28,7 +28,7 @@ class Auth::Com::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host_value}"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://#{host_value}"] }
   end
 
   teardown do

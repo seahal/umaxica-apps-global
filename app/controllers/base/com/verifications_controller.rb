@@ -21,8 +21,8 @@ module Base
           token: current_session_token,
           allowed_scopes: StepUpScopeCatalog::COM,
           sign_url_builder: ->(**query) {
-            sign_com_verification_url(
-              query.merge(host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")),
+            auth_com_verification_url(
+              query.merge(host: ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")),
             )
           },
         )

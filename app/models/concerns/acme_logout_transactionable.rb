@@ -4,7 +4,7 @@
 module AcmeLogoutTransactionable
   extend ActiveSupport::Concern
 
-  ORIGIN_SURFACES = %w(sign acme core side palm).freeze
+  ORIGIN_SURFACES = %w(sign acme base core side palm).freeze
   STATUS_INITIATED = "initiated"
   STATUS_IN_PROGRESS = "in_progress"
   STATUS_FINALIZED = "finalized"
@@ -35,7 +35,7 @@ module AcmeLogoutTransactionable
       case origin_surface.to_s
       when "sign"
         [STEP_ORIGIN_CLEARED, STEP_ACME_CLEARED]
-      when "acme"
+      when "acme", "base"
         [STEP_ORIGIN_CLEARED, STEP_SIGN_CLEARED]
       when "core", "side", "palm"
         [STEP_ORIGIN_CLEARED, STEP_ACME_CLEARED, STEP_SIGN_CLEARED]

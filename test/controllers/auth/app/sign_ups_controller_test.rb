@@ -137,7 +137,7 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def host
-    ENV["ID_SERVICE_URL"] || "id.app.localhost"
+    ENV["AUTH_SERVICE_URL"] || "auth.app.localhost"
   end
 
   def brand_name

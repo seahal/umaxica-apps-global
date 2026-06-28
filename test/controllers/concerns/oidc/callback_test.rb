@@ -202,7 +202,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
 
     get "/oidc/callback/snapshot"
-    snapshot = JSON.parse(response.body)
+    snapshot = response.parsed_body
 
     assert_nil snapshot["oidc_code_verifier"]
     assert_nil snapshot["oidc_state"]
@@ -251,7 +251,7 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     get "/oidc/callback/snapshot"
-    snapshot = JSON.parse(response.body)
+    snapshot = response.parsed_body
 
     assert_nil snapshot["oidc_code_verifier"]
     assert_nil snapshot["oidc_state"]

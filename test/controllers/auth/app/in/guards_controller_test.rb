@@ -7,7 +7,7 @@ class Auth::App::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTes
   fixtures :clients, :client_tokens, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     ClientSignInFlowStatus.ensure_defaults!
   end
@@ -15,7 +15,7 @@ class Auth::App::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTes
   test "route resolves to guard controller" do
     route = Rails.application.routes.recognize_path("https://#{@host}/sign/in/guard", method: :get)
 
-    assert_equal "sign/app/sign/in/guards", route.fetch(:controller)
+    assert_equal "auth/app/sign/in/guards", route.fetch(:controller)
     assert_equal "show", route.fetch(:action)
   end
 

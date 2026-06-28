@@ -7,7 +7,7 @@ class Auth::App::Sign::Up::ParticipantsControllerTest < ActionDispatch::Integrat
   fixtures_none!
 
   setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     cookies["csrf_token"] = csrf_token_value
     ClientSignUpFlowStatus.ensure_defaults!
   end

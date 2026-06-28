@@ -70,13 +70,13 @@ module AuthenticationClient
 
   def sign_app_redirect_host
     configured_hosts =
-      %w(SIGN_SERVICE_URL).filter_map do |key|
+      %w(AUTH_SERVICE_URL).filter_map do |key|
         CommonRedirect.normalize_host(ENV[key])
       end
 
     request_host = CommonRedirect.normalize_host(request.host_with_port)
     return request_host if configured_hosts.include?(request_host)
 
-    configured_hosts.first || "id.app.localhost"
+    configured_hosts.first || "auth.app.localhost"
   end
 end

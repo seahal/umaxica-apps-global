@@ -42,8 +42,8 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     # assert_equal I18n.t("sign.app.authentication.email.new.you_have_already_logged_in"), response.body
   end
   setup do
-    host! ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
-    @host = ENV["ID_SERVICE_URL"] || "id.app.localhost"
+    host! ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV["AUTH_SERVICE_URL"] || "auth.app.localhost"
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
   end

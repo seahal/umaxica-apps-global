@@ -34,11 +34,11 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
   end
 
   test "moved sign mutation routes return gone" do
-    patch sign_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
+    patch auth_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
 
     assert_response :gone
 
-    delete sign_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
+    delete auth_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
 
     assert_response :gone
 

@@ -92,7 +92,7 @@ module Base
         trusted_origins = ApplicationController.forgery_protection_trusted_origins
 
         assert_includes trusted_origins, "https://#{ENV.fetch("BASE_SERVICE_URL", "www.app.localhost")}"
-        assert_includes trusted_origins, "https://#{ENV.fetch("ID_SERVICE_URL", "id.app.localhost")}"
+        assert_includes trusted_origins, "https://#{ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")}"
       end
     end
   end

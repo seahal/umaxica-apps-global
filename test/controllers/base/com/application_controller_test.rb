@@ -78,7 +78,7 @@ module Base
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_sign_host
-        assert_equal ENV.fetch("SIGN_CORPORATE_URL", "log.umaxica.com"), controller.send(:oidc_sign_host)
+        assert_equal ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"), controller.send(:oidc_sign_host)
       end
 
       test "has oidc_base_host method" do

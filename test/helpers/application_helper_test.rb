@@ -23,7 +23,8 @@ class ApplicationHelperTest < ActionView::TestCase
   end
 
   def with_edge_env(overrides)
-    keys = %w(EDGE_SERVICE_URL EDGE_STAFF_URL EDGE_CORPORATE_URL)
+    keys = %w(PUBLIC_EDGE_SERVICE_URL PUBLIC_EDGE_STAFF_URL PUBLIC_EDGE_CORPORATE_URL EDGE_SERVICE_URL EDGE_STAFF_URL
+              EDGE_CORPORATE_URL)
     previous = keys.index_with { |key| ENV[key] }
 
     overrides.each do |key, value|
@@ -140,7 +141,7 @@ class ApplicationHelperTest < ActionView::TestCase
   test "edge_host returns nil when matching edge env is unset" do
     stub_request_host(ENV["MAIN_CORPORATE_URL"])
 
-    with_edge_env("EDGE_CORPORATE_URL" => nil) do
+    with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => nil, "EDGE_CORPORATE_URL" => nil) do
       assert_nil edge_host
     end
   end
@@ -148,7 +149,7 @@ class ApplicationHelperTest < ActionView::TestCase
   test "edge_host resolves service edge host for user surface" do
     stub_request_host(ENV["MAIN_SERVICE_URL"])
 
-    with_edge_env("EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
+    with_edge_env("PUBLIC_EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
       assert_equal "edge.app.localhost", edge_host
     end
   end
@@ -156,15 +157,15 @@ class ApplicationHelperTest < ActionView::TestCase
   test "edge_host resolves staff edge host for staff surface" do
     stub_request_host(ENV["SIDE_STAFF_URL"])
 
-    with_edge_env("EDGE_STAFF_URL" => "edge.org.localhost") do
-      assert_equal "jp.umaxica.com", edge_host
+    with_edge_env("PUBLIC_EDGE_STAFF_URL" => "edge.org.localhost", "EDGE_STAFF_URL" => nil) do
+      assert_equal "edge.com.localhost", edge_host
     end
   end
 
   test "edge_host resolves corporate edge host for client surface" do
     stub_request_host(ENV["DOCS_CORPORATE_URL"])
 
-    with_edge_env("EDGE_CORPORATE_URL" => "http://edge.com.localhost") do
+    with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => "http://edge.com.localhost", "EDGE_CORPORATE_URL" => nil) do
       assert_equal "edge.com.localhost", edge_host
     end
   end

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @acme_host = ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
     host! @host
   end

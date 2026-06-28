@@ -4,83 +4,38 @@
 require "test_helper"
 
 module Auth::App::Settings
-  # Characterizes the recovery-secret reveal page. The owner-self object authorization
-  # (ClientPolicy#show?) is additive on top of authenticate_client! + the one-time reveal token,
-  # so the allowed-actor behavior must stay unchanged.
+  # Auth::App::Settings::SecretsController is a redirect shim to base/app/identity/recovery-secret.
   class SecretsControllerTest < ActionDispatch::IntegrationTest
     fixtures :clients, :client_statuses
 
     setup do
-      @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+      @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       host! @host
       @user = clients(:one)
       @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
       satisfy_user_verification(@token)
-      access_token = AuthenticationToken.encode(
-        @user,
-        host: @host,
-        session_public_id: @token.public_id,
-      )
-      @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id).merge(
-        "Authorization" => "Bearer #{access_token}",
-      )
-      @session_public_id = @token.public_id
+      @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id)
     end
 
-    test "renders the missing state for a signed-in owner without a reveal token" do
+    test "show redirects to base identity recovery secret" do
       get auth_app_settings_secrets_url(ri: "jp"), headers: @headers
 
-      assert_response :success
-      assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
-      assert_select "a[href=?]", auth_app_settings_path(ri: "jp")
-      assert_not_includes response.body, "<pre>"
+      assert_response :see_other
+      assert_redirected_to base_app_identity_recovery_secret_path(ri: "jp")
+    end
+
+    test "show with token redirects preserving token" do
+      token_param = "test-token-value"
+      get auth_app_settings_secrets_url(ri: "jp", token: token_param), headers: @headers
+
+      assert_response :see_other
+      assert_redirected_to base_app_identity_recovery_secret_path(ri: "jp", token: token_param)
     end
 
     test "redirects when not signed in" do
       get auth_app_settings_secrets_url(ri: "jp"), headers: { "Host" => @host }
 
       assert_response :redirect
-    end
-
-    test "reveals multiple recovery passcodes once" do
-      issued = IdentityOneTimeReveal.issue!(
-        actor: @user,
-        session_nonce: @user.public_id,
-        value: %w(recovery-1 recovery-2 recovery-3),
-        purpose: "client.recovery_secret_credential",
-      )
-
-      assert_equal %w(recovery-1 recovery-2 recovery-3),
-                   IdentityOneTimeReveal.consume!(
-                     actor: @user,
-                     session_nonce: @user.public_id,
-                     token: issued.token,
-                     purpose: "client.recovery_secret_credential",
-                   ).value
-
-      issued = IdentityOneTimeReveal.issue!(
-        actor: @user,
-        session_nonce: @user.public_id,
-        value: %w(recovery-1 recovery-2 recovery-3),
-        purpose: "client.recovery_secret_credential",
-      )
-
-      get auth_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
-
-      assert_response :success
-      assert_select "title", text: /#{I18n.t("sign.recovery_passcodes.show.title")}/
-      assert_includes response.body, "recovery-1"
-      assert_includes response.body, "recovery-2"
-      assert_includes response.body, "recovery-3"
-      assert_includes response.body,
-                      I18n.t("sign.recovery_passcodes.show.one_time_notice")
-
-      get auth_app_settings_secrets_url(ri: "jp", token: issued.token), headers: @headers
-
-      assert_response :success
-      assert_includes response.body,
-                      I18n.t("sign.recovery_passcodes.show.missing")
-      assert_not_includes response.body, "recovery-1"
     end
   end
 end

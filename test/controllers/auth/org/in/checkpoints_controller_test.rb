@@ -8,7 +8,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   fixtures :operators
 
   setup do
-    @host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    @host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     OperatorSignInFlowStatus.ensure_defaults!
   end

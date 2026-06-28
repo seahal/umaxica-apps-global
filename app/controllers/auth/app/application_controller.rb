@@ -35,8 +35,8 @@ module Auth
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV["SIGN_SERVICE_URL"],
-                             ENV.fetch("SIGN_SERVICE_URL"),
+                             ENV["AUTH_SERVICE_URL"],
+                             ENV.fetch("AUTH_SERVICE_URL"),
                            ),
                            with: :exception
 
@@ -110,11 +110,11 @@ module Auth
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+        ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
       def oidc_acme_host
-        ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")
+        ENV.fetch("ACME_SERVICE_URL", "acme.app.localhost")
       end
 
       def oidc_authorization_login_challenge

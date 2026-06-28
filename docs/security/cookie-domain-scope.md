@@ -44,6 +44,10 @@ Preference credential cookies are host-only and use the role names in the table 
 record separation is resolved from host/surface context and the database preference record, not from
 the cookie name.
 
+Browser-visible hosts and internal Rails/pod origins should be described with the `PUBLIC_` and
+`PRIVATE_` boundary vocabulary in docs and config. That keeps cookie transport discussions separate
+from host-ownership discussions.
+
 ## Compatibility Window
 
 New writes use only `preference_access`, `preference_refresh`, and `preference_dbsc` in insecure

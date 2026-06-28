@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")
+    host! ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost")
   end
 
   test "direct entry normalizes to acme com authorization" do
@@ -101,7 +101,7 @@ class Auth::Com::SignUpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def host
-    ENV["SIGN_CORPORATE_URL"] || "id.com.localhost"
+    ENV["AUTH_CORPORATE_URL"] || "auth.com.localhost"
   end
 
   def with_env(values)

@@ -39,8 +39,8 @@ The `principal` database name is retained for compatibility and is not renamed i
 authority ownership from the name `principal`.
 
 After authority placement is clarified, `principal` may serve as a regional-ready application data
-store. That data should be structured so it can later be extracted into explicit regional
-databases or regional shards.
+store. That data should be structured so it can later be extracted into explicit regional databases
+or regional shards.
 
 This is a semantic redefinition of the retained storage role, not a database rename. It does not
 restore `principal` as the canonical store for Principal / Identity / Account / Organization
@@ -110,8 +110,8 @@ Relevant file paths:
 ## Ambiguities
 
 - `Member` vs `ClientMembership` vs `Organization` remains the weakest boundary.
-- `Client`, `Visitor`, and `Operator` runtime actor rows still carry credentials, contact,
-  recovery, and lifecycle state. Those rows are not resolved by the retained principal role.
+- `Client`, `Visitor`, and `Operator` runtime actor rows still carry credentials, contact, recovery,
+  and lifecycle state. Those rows are not resolved by the retained principal role.
 - `ClientOidcConnection`, `OperatorOidcConnection`, and `VisitorOidcConnection` may be future
   candidates, but they are not settled here.
 - `representing_organization_id` on `Avatar` remains semantically unclear.

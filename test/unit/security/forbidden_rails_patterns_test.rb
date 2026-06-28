@@ -87,22 +87,22 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
     /skip_before_action\s+:(?:enforce_verification_if_required|enforce_step_up_prereqs!|authenticate_client!)/
 
   SENSITIVE_SKIP_ALLOWLIST = %w(
-    app/controllers/acme/app/edge/v0/cookies_controller.rb
-    app/controllers/acme/app/edge/v0/dbsc_controller.rb
-    app/controllers/acme/com/edge/v0/cookies_controller.rb
-    app/controllers/acme/com/edge/v0/dbsc_controller.rb
-    app/controllers/acme/org/edge/v0/cookies_controller.rb
-    app/controllers/acme/org/edge/v0/dbsc_controller.rb
+    app/controllers/auth/app/verification/base_controller.rb
+    app/controllers/auth/app/verification/emails_controller.rb
+    app/controllers/auth/com/verification/base_controller.rb
+    app/controllers/auth/org/verification/base_controller.rb
+    app/controllers/base/app/edge/v0/cookies_controller.rb
+    app/controllers/base/app/edge/v0/dbsc_controller.rb
+    app/controllers/base/com/edge/v0/cookies_controller.rb
+    app/controllers/base/com/edge/v0/dbsc_controller.rb
+    app/controllers/base/org/edge/v0/cookies_controller.rb
+    app/controllers/base/org/edge/v0/dbsc_controller.rb
     app/controllers/core/app/edge/v0/cookies_controller.rb
     app/controllers/core/app/edge/v0/dbsc_controller.rb
     app/controllers/core/com/edge/v0/cookies_controller.rb
     app/controllers/core/com/edge/v0/dbsc_controller.rb
     app/controllers/core/org/edge/v0/cookies_controller.rb
     app/controllers/core/org/edge/v0/dbsc_controller.rb
-    app/controllers/sign/app/verification/base_controller.rb
-    app/controllers/sign/app/verification/emails_controller.rb
-    app/controllers/sign/com/verification/base_controller.rb
-    app/controllers/sign/org/verification/base_controller.rb
   ).freeze
 
   test "verification and client-auth before_actions are skipped only in the reviewed allowlist" do

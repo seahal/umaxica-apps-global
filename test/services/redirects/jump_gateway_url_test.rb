@@ -5,7 +5,7 @@ require "test_helper"
 
 class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
   test "builds jump gateway url with rt query" do
-    with_env("JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net") do
       token = "#{"a" * 22}.#{"b" * 22}.#{"c" * 22}"
       result = RedirectsJumpGatewayUrl.call(token)
 
@@ -40,7 +40,7 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
       "SIGN_SERVICE_URL" => "log.umaxica.app",
-      "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
         token = JumpRtIssuer.call(namespace: "SIGN_APP", url: "https://www.umaxica.app/dashboard")
@@ -53,7 +53,7 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
   end
 
   test "rejects invalid gateway origin URI" do
-    with_env("JUMP_GATEWAY_URL" => "://invalid") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "://invalid") do
       result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
 
       assert_not result.ok?
@@ -62,7 +62,7 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
   end
 
   test "rejects unsafe gateway origins" do
-    with_env("JUMP_GATEWAY_URL" => "http://jump.example") do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => "http://jump.example") do
       result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
 
       assert_not result.ok?

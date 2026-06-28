@@ -8,7 +8,7 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients
 
   setup do
-    @host = ENV.fetch("ID_SERVICE_URL", "id.app.localhost")
+    @host = ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @headers = as_user_headers(@user, host: @host)
     ClientEmail.create!(

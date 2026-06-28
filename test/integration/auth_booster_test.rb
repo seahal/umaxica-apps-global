@@ -40,6 +40,10 @@ class AuthBoosterTest < ActionDispatch::IntegrationTest
       "/dummy/dbsc"
     end
 
+    def auth_app_edge_v0_token_dbsc_path
+      "/dummy/dbsc"
+    end
+
     def login_action
       user = Client.first
       result = log_in(user, record_login_audit: false, token_kind_id: "BROWSER_WEB", require_totp_check: false)

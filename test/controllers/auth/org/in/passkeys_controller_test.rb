@@ -9,14 +9,14 @@ class Auth::Org::Sign::In::PasskeysControllerTest < ActionDispatch::IntegrationT
   fixtures :operators, :operator_statuses, :operator_passkeys, :operator_passkey_statuses
 
   setup do
-    host = ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host = ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     host! host
     JitSecurityTurnstileVerifier.test_mode = true
     JitSecurityTurnstileVerifier.test_response = { "success" => true }
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.app.localhost", "http://#{host}"] }
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.app.localhost", "http://#{host}"] }
 
     # Setup active staff with email and passkey
     @staff = operators(:one)

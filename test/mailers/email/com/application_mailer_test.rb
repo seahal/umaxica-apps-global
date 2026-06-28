@@ -54,7 +54,7 @@ class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
       end
 
     email = mailer.with(email_record: email_record).sample
-    expected_url = Rails.application.routes.url_helpers.auth_com_preference_email_url(
+    expected_url = Rails.application.routes.url_helpers.base_com_preference_email_url(
       email_record,
       token: email_record.promotional_unsubscribe_token,
       host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),

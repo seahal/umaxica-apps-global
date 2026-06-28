@@ -88,7 +88,7 @@ module Base
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
-                             ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost"),
+                             ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
                            ),
                            with: :exception
 
@@ -100,7 +100,7 @@ module Base
       end
 
       def oidc_sign_host
-        ENV.fetch("SIGN_SERVICE_URL", "id.app.localhost")
+        ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
       def oidc_acme_host

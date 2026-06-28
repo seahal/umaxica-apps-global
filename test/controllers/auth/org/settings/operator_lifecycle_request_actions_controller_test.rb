@@ -8,7 +8,7 @@ class Auth::Org::Settings::OperatorLifecycleRequestActionsControllerTest < Actio
            :operator_token_kinds, :operator_token_binding_methods, :operator_token_dbsc_statuses
 
   setup do
-    host! ENV.fetch("ID_STAFF_URL", "id.org.localhost")
+    host! ENV.fetch("AUTH_STAFF_URL", "auth.org.localhost")
     @operator = operators(:two)
     @token = operator_tokens(:two)
     satisfy_staff_verification(@token)
