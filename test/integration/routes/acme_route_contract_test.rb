@@ -6,9 +6,9 @@ require "test_helper"
 class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  BASE_APP_HOST = ENV.fetch("BASE_SERVICE_URL")
-  BASE_COM_HOST = ENV.fetch("BASE_CORPORATE_URL")
-  BASE_ORG_HOST = ENV.fetch("BASE_STAFF_URL")
+  BASE_APP_HOST = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+  BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+  BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
 
   test "acme routes accept internal origin and cloudflared public hosts" do
     {

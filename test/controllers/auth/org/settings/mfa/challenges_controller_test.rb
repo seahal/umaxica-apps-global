@@ -7,7 +7,7 @@ class Auth::Org::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL")
+    host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
     @token = OperatorToken.create!(

@@ -10,7 +10,7 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
     host! ENV.fetch("ID_SERVICE_URL")
     @service_host = ENV.fetch("ID_SERVICE_URL")
     @staff_host = ENV.fetch("ID_STAFF_URL")
-    @corporate_host = ENV.fetch("SIGN_CORPORATE_URL")
+    @corporate_host = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
 
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }

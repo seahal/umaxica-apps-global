@@ -10,8 +10,8 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
   CORE_APP_HOST = BOOT_HOSTS.core_service.host
   CORE_COM_HOST = BOOT_HOSTS.core_corporate.host
   CORE_ORG_HOST = BOOT_HOSTS.core_staff.host
-  CORE_NET_HOST = ENV["PRIVATE_CORE_NETWORK_URL"] || ENV["CORE_NETWORK_URL"] || "core.net.localhost"
-  CORE_DEV_HOST = ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV["CORE_DEVELOPER_URL"] || "core.dev.localhost"
+  CORE_NET_HOST = ENV["PRIVATE_CORE_NETWORK_URL"] || ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost")
+  CORE_DEV_HOST = ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost")
 
   test "core surfaces do not expose dashboards" do
     [CORE_APP_HOST, CORE_COM_HOST, CORE_ORG_HOST, CORE_NET_HOST, CORE_DEV_HOST].each do |host|

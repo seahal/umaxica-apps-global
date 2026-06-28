@@ -9,7 +9,7 @@ module Base
       fixtures_none!
 
       test "GET jwks endpoint returns JSON with keys" do
-        host! ENV.fetch("BASE_STAFF_URL")
+        host! ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
 
         get base_org_well_known_jwks_url
 

@@ -2,14 +2,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/auth_helpers"
+require "helpers/auth_helpers"
 
 class Auth::Com::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest
   fixtures :visitors
 
   setup do
     @visitor = visitors(:reserved_visitor)
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
   end
 
   test "GET check without access token returns 401" do

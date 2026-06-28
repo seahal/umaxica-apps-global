@@ -9,7 +9,7 @@ module Auth::App::Settings
     fixtures :clients, :client_statuses
 
     setup do
-      @host = ENV.fetch("AUTH_SERVICE_URL")
+      @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       host! @host
       @user = clients(:one)
       @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)

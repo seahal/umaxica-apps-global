@@ -8,7 +8,7 @@ class Auth::App::Settings::Mfa::ChallengesControllerTest < ActionDispatch::Integ
   fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     @user.update_columns(purged_at: Retainable::SENTINEL) if @user.purged_at.blank?
     @headers = as_user_headers(@user, host: host)

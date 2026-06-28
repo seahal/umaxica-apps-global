@@ -108,12 +108,6 @@ Rails.application.configure do
     # Rails' fixture FK validation deadlocks under this multi-DB test suite; the
     # database constraints still enforce integrity when fixtures are loaded.
     ActiveRecord.verify_foreign_keys_for_fixtures = false
-
-    require Rails.root.join("test/support/missing_helpers")
-    ActiveSupport.on_load(:active_support_test_case) do
-      include MissingHelpers
-    end
-    Minitest::Test.include(MissingHelpers) if defined?(Minitest::Test)
   end
 
   # Log slow queries over 100ms.

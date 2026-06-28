@@ -2,20 +2,20 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/auth_helpers"
+require "helpers/auth_helpers"
 
 class Base::EdgeV0TokenChecksTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :visitors
 
   SURFACES = [
     {
-      host: ENV.fetch("BASE_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       actor: ->(test_case) { test_case.clients(:one) },
       build_token: ->(test_case) { ClientToken.create!(user: test_case.clients(:one)) },
       resource_type: "client",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       actor: ->(test_case) { test_case.operators(:one) },
       build_token: ->(test_case) { OperatorToken.create!(staff: test_case.operators(:one)) },
       resource_type: "operator",

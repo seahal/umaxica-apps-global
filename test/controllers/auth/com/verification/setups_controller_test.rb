@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::Com::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     ensure_visitor_reference_records!
     ensure_visitor_token_reference_records!

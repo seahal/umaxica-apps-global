@@ -23,7 +23,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     end
 
   test "base app well-known discovery advertises base issuer and protocol endpoints" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     get base_app_well_known_discovery_url(host: host)
 
     assert_response :ok
@@ -40,12 +40,12 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base com and org well-known discovery advertise surface-specific base issuers" do
-    get base_com_well_known_discovery_url(host: ENV.fetch("BASE_CORPORATE_URL"))
+    get base_com_well_known_discovery_url(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("visitor"), response.parsed_body["issuer"]
 
-    get base_org_well_known_discovery_url(host: ENV.fetch("BASE_STAFF_URL"))
+    get base_org_well_known_discovery_url(host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("operator"), response.parsed_body["issuer"]
@@ -54,14 +54,14 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign discovery route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}/.well-known/openid-configuration",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}/.well-known/openid-configuration",
         method: :get,
       )
     end
   end
 
   test "sign jwks remains public compatibility metadata only" do
-    get sign_app_well_known_jwks_url(host: ENV.fetch("AUTH_SERVICE_URL"))
+    get sign_app_well_known_jwks_url(host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :ok
     response.parsed_body.fetch("keys").each do |key|
@@ -71,9 +71,10 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "oidc issuer uses base hosts and signing namespaces" do
-    assert_equal ENV.fetch("BASE_SERVICE_URL"), OidcIssuer.host_for_resource_type("client")
-    assert_equal ENV.fetch("BASE_CORPORATE_URL"), OidcIssuer.host_for_resource_type("visitor")
-    assert_equal ENV.fetch("BASE_STAFF_URL"), OidcIssuer.host_for_resource_type("operator")
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), OidcIssuer.host_for_resource_type("client")
+    assert_equal ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+                 OidcIssuer.host_for_resource_type("visitor")
+    assert_equal ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), OidcIssuer.host_for_resource_type("operator")
     assert_equal "surface:BASE_APP", OidcIssuer.jwt_issuer_id_for_resource_type("client")
     assert_equal "surface:BASE_COM", OidcIssuer.jwt_issuer_id_for_resource_type("visitor")
     assert_equal "surface:BASE_ORG", OidcIssuer.jwt_issuer_id_for_resource_type("operator")
@@ -87,7 +88,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     )
 
     OidcTokenExchangeCoordinator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      post base_app_oauth_token_url(host: ENV.fetch("BASE_SERVICE_URL")),
+      post base_app_oauth_token_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
            params: {
              grant_type: "authorization_code",
              code: "code",
@@ -103,7 +104,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal "proof", captured[:dpop_proof]
     assert_equal "POST", captured[:request_method]
     assert_includes captured[:token_endpoint_uri], "/oauth/token"
-    assert_includes captured[:token_endpoint_uri], ENV.fetch("BASE_SERVICE_URL")
+    assert_includes captured[:token_endpoint_uri], ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     assert_equal "no-store", response.headers["Cache-Control"]
     assert_equal "no-cache", response.headers["Pragma"]
   end
@@ -116,7 +117,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     )
 
     OidcTokenExchangeCoordinator.stub(:call, ->(**) { result }) do
-      post base_app_oauth_token_url(host: ENV.fetch("BASE_SERVICE_URL")),
+      post base_app_oauth_token_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
            params: {
              grant_type: "authorization_code",
              code: "bad-code",
@@ -135,7 +136,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign token endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}/oauth/token",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/token",
         method: :post,
       )
     end
@@ -143,21 +144,21 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
   test "base well-known discovery uses the external openid configuration path" do
     assert_recognizes_base_route(
-      ENV.fetch("BASE_SERVICE_URL"),
+      ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       "/.well-known/openid-configuration",
       :get,
       "base/app/well_known/discoveries",
       "show",
     )
     assert_recognizes_base_route(
-      ENV.fetch("BASE_CORPORATE_URL"),
+      ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       "/.well-known/openid-configuration",
       :get,
       "base/com/well_known/discoveries",
       "show",
     )
     assert_recognizes_base_route(
-      ENV.fetch("BASE_STAFF_URL"),
+      ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       "/.well-known/openid-configuration",
       :get,
       "base/org/well_known/discoveries",
@@ -168,14 +169,14 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "base token endpoint rejects get" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_SERVICE_URL")}/oauth/token",
+        "http://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")}/oauth/token",
         method: :get,
       )
     end
   end
 
   test "base authorize endpoint uses request windows and ignores old token history" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
 
     create_old_client_tokens(count: 25)
@@ -196,7 +197,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       client_redirect_host: RateLimitProfiles::Profile.new(to: 100, within: 10.minutes, retry_after: 600),
     )
 
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
 
     logs = []
@@ -229,13 +230,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     result = AuthResult.new(success: false, error: "invalid_token")
 
     OidcAccessTokenAuthenticator.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      get base_app_oauth_userinfo_url(host: ENV.fetch("BASE_SERVICE_URL")),
+      get base_app_oauth_userinfo_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
           headers: { "Authorization" => "Bearer access", "DPoP" => "proof" }
     end
 
     assert_response :unauthorized
     assert_equal "client", captured[:resource_type]
-    assert_equal ENV.fetch("BASE_SERVICE_URL"), captured[:host]
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), captured[:host]
     assert_equal "Bearer", captured[:authorization_scheme]
     assert_equal "proof", captured[:dpop_proof]
   end
@@ -245,14 +246,14 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     insufficient_result = AuthResult.new(success: false, error: "insufficient_scope")
 
     OidcAccessTokenAuthenticator.stub(:call, ->(**) { invalid_result }) do
-      get base_app_oauth_userinfo_url(host: ENV.fetch("BASE_SERVICE_URL"))
+      get base_app_oauth_userinfo_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"))
 
       assert_response :unauthorized
       assert_equal 'Bearer error="invalid_token"', response.headers["WWW-Authenticate"]
     end
 
     OidcAccessTokenAuthenticator.stub(:call, ->(**) { insufficient_result }) do
-      get base_app_oauth_userinfo_url(host: ENV.fetch("BASE_SERVICE_URL"))
+      get base_app_oauth_userinfo_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"))
 
       assert_response :forbidden
       assert_equal 'Bearer error="insufficient_scope", scope="openid"', response.headers["WWW-Authenticate"]
@@ -262,7 +263,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "sign userinfo endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}/oauth/userinfo",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/userinfo",
         method: :get,
       )
     end
@@ -273,7 +274,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     result = RevocationResult.new(success: true)
 
     OidcTokenRevoker.stub(:call, ->(**kwargs) { captured = kwargs; result }) do
-      post base_app_oauth_revocation_url(host: ENV.fetch("BASE_SERVICE_URL")),
+      post base_app_oauth_revocation_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
            params: {
              token: "refresh",
              client_id: "core-next-rp",
@@ -285,13 +286,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal "refresh", captured[:token]
     assert_equal "core-next-rp", captured[:client_id]
-    assert_equal ENV.fetch("BASE_SERVICE_URL"), captured[:host]
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), captured[:host]
   end
 
   test "sign revocation endpoint is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}/oauth/revoke",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/revoke",
         method: :post,
       )
     end
@@ -300,7 +301,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "base edge token refresh is post only and does not accept url-only mutation" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_SERVICE_URL")}/edge/v0/token/refresh",
+        "http://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")}/edge/v0/token/refresh",
         method: :get,
       )
     end
@@ -308,14 +309,14 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_equal(
       "base/app/edge/v0/token/refreshes#create",
       Rails.application.routes.recognize_path(
-        "http://#{ENV.fetch("BASE_SERVICE_URL")}/edge/v0/token/refresh",
+        "http://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")}/edge/v0/token/refresh",
         method: :post,
       ).values_at(:controller, :action).join("#"),
     )
   end
 
   test "base app token check authenticates a valid client session" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     token_record = ClientToken.create!(user: user)
     token_record.rotate_refresh_token!
@@ -342,7 +343,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base org token check authenticates a valid operator session" do
-    host = ENV.fetch("BASE_STAFF_URL")
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     staff = operators(:one)
     token_record = OperatorToken.create!(staff: staff)
     token_record.rotate_refresh_token!
@@ -369,7 +370,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base app token check without credentials returns unauthorized" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
     host!(host)
     get "/edge/v0/token/check", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
@@ -380,7 +381,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
   test "base edge token refresh rejects missing refresh token without rotation" do
     BaseRefreshTokenIssuer.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
-      post base_app_edge_v0_token_refresh_url(host: ENV.fetch("BASE_SERVICE_URL")),
+      post base_app_edge_v0_token_refresh_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
            as: :json
     end
 
@@ -400,7 +401,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oidc logout consumes signed request and completes on base sign out" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     token = ClientToken.create!(
       user: user,
@@ -447,7 +448,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oauth authorize starts sign in ceremony on unauthenticated requests" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
 
     get "/oauth/authorize", params: oidc_authorize_params, headers: browser_headers
@@ -456,7 +457,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL"), uri.host
+    assert_equal ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
     assert_equal "/sign/in", uri.path
     assert_predicate query["login_challenge"], :present?
 
@@ -470,7 +471,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "base oauth authorize issues a code immediately for an already authenticated browser session" do
     [
       {
-        host: ENV.fetch("BASE_SERVICE_URL"),
+        host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
         actor: clients(:one),
         token: ->(actor) do
           ClientToken.create!(
@@ -485,7 +486,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         end,
       },
       {
-        host: ENV.fetch("BASE_STAFF_URL"),
+        host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
         actor: operators(:one),
         token: ->(actor) do
           OperatorToken.create!(
@@ -500,7 +501,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         end,
       },
       {
-        host: ENV.fetch("BASE_CORPORATE_URL"),
+        host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
         actor: create_visitor!,
         token: ->(actor) do
           VisitorToken.create!(
@@ -544,7 +545,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oauth authorize starts sign up ceremony when screen_hint requests signup" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
 
     get "/oauth/authorize", params: oidc_authorize_params(screen_hint: "signup"), headers: browser_headers
@@ -552,12 +553,12 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     uri = URI.parse(jump_rt_url_from_location(response.location))
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL"), uri.host
+    assert_equal ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"), uri.host
     assert_equal "/sign/up", uri.path
   end
 
   test "base oauth authorize rejects requests without openid scope" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
 
     assert_no_difference "ClientOidcAuthorizationTransaction.count" do
@@ -570,7 +571,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oauth authorize rejects scopes outside the client allowlist" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
 
     assert_no_difference "ClientOidcAuthorizationTransaction.count" do
@@ -582,7 +583,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oauth authorize consumes login challenge once" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
     issuance = OidcAuthorizationTransactionCoordinator.issue!(
       surface: "app", intent: "sign_in",
@@ -614,7 +615,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base oauth authorize rejects expired login challenge" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host!(host)
     issuance =
       OidcAuthorizationTransactionCoordinator.issue!(

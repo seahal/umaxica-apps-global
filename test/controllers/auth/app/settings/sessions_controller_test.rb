@@ -7,8 +7,8 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   fixtures :clients, :client_statuses, :client_token_statuses, :client_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
   end

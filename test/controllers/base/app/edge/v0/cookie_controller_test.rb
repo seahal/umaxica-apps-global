@@ -8,7 +8,7 @@ class Base::App::Edge::V0::CookieControllerTest < ActionDispatch::IntegrationTes
   include PreferenceJwtHelper
 
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! @host
   end
 

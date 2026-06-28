@@ -7,7 +7,7 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_totp_credential_statuses, :client_chronicle_events, :client_chronicle_levels
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @user = Client.create!(status_id: ClientStatus::NOTHING)
     @email = ClientEmail.create!(
       address: "step-up-enforcer-#{SecureRandom.hex(4)}@example.com",
@@ -133,10 +133,10 @@ class AppStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     )
 
     submit_step_up_completion_if_present!(
-      host: ENV.fetch("ACME_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
       headers: as_user_headers(
         @user,
-        host: ENV.fetch("ACME_SERVICE_URL"),
+        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
         session_public_id: @token.public_id,
       ),
     )

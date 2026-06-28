@@ -19,7 +19,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @host = ENV.fetch("ID_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
 
     @user = Client.create!(
       status_id: ClientStatus::NOTHING,

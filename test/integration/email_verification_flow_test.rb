@@ -4,12 +4,12 @@
 require "test_helper"
 
 class EmailVerificationFlowTest < ActionDispatch::IntegrationTest
-  fixtures_only :client_statuses, :client_apple_identity_statuses, :client_visibilities, :client_mfa_levels,
-                :client_mfa_statuses
+  fixtures :client_statuses, :client_apple_identity_statuses, :client_visibilities, :client_mfa_levels,
+           :client_mfa_statuses
 
   setup do
     CloudflareTurnstile.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @user = Client.create!(status_id: ClientStatus::UNVERIFIED_WITH_SIGN_UP)
   end
 

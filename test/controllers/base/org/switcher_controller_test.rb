@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Org::SwitcherControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     @operator = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
     @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
   end

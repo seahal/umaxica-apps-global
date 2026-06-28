@@ -7,7 +7,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
     @staff = operators(:one)
     # Clean up any existing tokens for this staff
@@ -527,7 +527,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "restricted session is blocked on non-session acme org routes" do
     token = create_restricted_session(@staff)
-    acme_host = ENV.fetch("ACME_STAFF_URL")
+    acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
     headers = {
       "Host" => acme_host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,

@@ -8,7 +8,7 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   fixtures :operators, :operator_tokens
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @token = operator_tokens(:one)
     trusted_origin_host = @host
@@ -58,10 +58,10 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
           assert_nil session[:step_up]
 
           submit_step_up_completion_if_present!(
-            host: ENV.fetch("BASE_STAFF_URL"),
+            host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
             headers: as_staff_headers(
               @staff,
-              host: ENV.fetch("BASE_STAFF_URL"),
+              host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
               session_public_id: @token.public_id,
             ),
           )

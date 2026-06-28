@@ -7,15 +7,15 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   test "sign org sign-out ceremony routes are retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_STAFF_URL")}/sign/out/confirmation",
+        "https://#{ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")}/sign/out/confirmation",
         method: :get,
       )
     end
   end
 
   test "get sign out renders confirmation and post starts RP logout" do
-    host = ENV.fetch("AUTH_STAFF_URL")
-    acme_host = ENV.fetch("ACME_STAFF_URL")
+    host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
+    acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
     staff = operators(:one)
     token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(token)
@@ -48,7 +48,7 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "delete sign out cancels the pending logout and keeps the current session" do
-    host = ENV.fetch("AUTH_STAFF_URL")
+    host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     staff = operators(:one)
     token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(token)

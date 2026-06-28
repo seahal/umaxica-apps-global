@@ -6,9 +6,9 @@ require "test_helper"
 class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
-  SIGN_APP_HOST = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
-  SIGN_COM_HOST = ENV.fetch("SIGN_CORPORATE_URL")
-  SIGN_ORG_HOST = ENV.fetch("SIGN_STAFF_URL")
+  SIGN_APP_HOST = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+  SIGN_COM_HOST = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
+  SIGN_ORG_HOST = ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost")
 
   def assert_recognizes(expected, options)
     route = Rails.application.routes.recognize_path(options.fetch(:path), method: options.fetch(:method))

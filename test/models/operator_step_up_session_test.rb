@@ -30,8 +30,8 @@
 require "test_helper"
 
 class OperatorStepUpSessionTest < ActiveSupport::TestCase
-  fixtures_only :operator_statuses, :operator_visibilities, :operator_mfa_levels,
-                :operator_mfa_statuses
+  fixtures :operator_statuses, :operator_visibilities, :operator_mfa_levels,
+           :operator_mfa_statuses
 
   setup do
     OperatorTokenStatus.find_or_create_by!(id: OperatorTokenStatus::ACTIVE)

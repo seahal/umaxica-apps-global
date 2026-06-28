@@ -8,9 +8,9 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   setup do
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
-    @host = ENV["AUTH_SERVICE_URL"]
-    @sign_host = ENV.fetch("AUTH_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
   end
 
   test "should render settings page with new UI foundation" do

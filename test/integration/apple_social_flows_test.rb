@@ -9,7 +9,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
 
@@ -155,7 +155,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to base_app_dashboard_url(
       ri: "jp",
-      host: ENV.fetch("ACME_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
     )
   end
 

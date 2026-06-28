@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::FullAccessGateTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-full-access@example.com")
   end
 

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::Organizations::MembershipsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-memberships@example.com")
     @organization_public_id = "test-org-public-id"
   end

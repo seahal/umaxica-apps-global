@@ -10,7 +10,7 @@ class Base::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   fixtures_none!
 
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     @client = OidcClientRegistry.find!("sign-rp")
     @operator = Operator.create!(
       status_id: OperatorStatus::ACTIVE,
@@ -47,7 +47,7 @@ class Base::Org::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   test "validated logout request is staged through shared confirmation" do
     redirect_uri =
       @client.post_logout_redirect_uris.find do |uri|
-        URI.parse(uri).host == ENV.fetch("AUTH_STAFF_URL")
+        URI.parse(uri).host == ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
       end
 
     get base_org_oidc_logout_url(host: @host),

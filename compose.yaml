@@ -123,8 +123,6 @@ services:
         condition: service_started
       valkey:
         condition: service_healthy
-      otel-collector:
-        condition: service_started
   primary:
     build:
       context: ./docker/psql-pub
@@ -252,14 +250,25 @@ services:
       start_period: 30s
   loki:
     image: grafana/loki:latest
+    # Rootless podman creates named volumes as the host user. Running these
+    # opt-in observability services as container root keeps their data
+    # directories writable without changing host ownership.
+    user: root
+    profiles:
+    - observability
     command: "-config.file=/etc/loki/local-config.yaml"
     volumes:
     - loki-volume:/tmp/loki
     networks:
     - observability
-    restart: unless-stopped
+    restart: "no"
   tempo:
     image: grafana/tempo:2.10.5
+    # See loki: rootless podman named-volume ownership needs the container
+    # writer to map back to the host user.
+    user: root
+    profiles:
+    - observability
     command:
     - "-config.file=/etc/tempo.yaml"
     # Host port publishing lives in the devcontainer override.
@@ -268,9 +277,14 @@ services:
     - tempo-volume:/var/tempo
     networks:
     - observability
-    restart: unless-stopped
+    restart: "no"
   grafana:
     image: grafana/grafana:latest
+    # Grafana writes SQLite migrations under /var/lib/grafana; with rootless
+    # podman the named volume can otherwise appear read-only to Grafana's UID.
+    user: root
+    profiles:
+    - observability
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -284,24 +298,31 @@ services:
     - loki
     - tempo
     - prometheus
-    restart: unless-stopped
+    restart: "no"
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
+    profiles:
+    - observability
     volumes:
     - "./docker/otel-collector/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro,z"
     networks:
     - observability
     depends_on:
     - tempo
-    restart: unless-stopped
+    restart: "no"
   prometheus:
     image: prom/prometheus:latest
+    # Prometheus writes its TSDB under /prometheus; keep rootless podman named
+    # volumes writable when the observability profile is explicitly enabled.
+    user: root
+    profiles:
+    - observability
     volumes:
     - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,z"
     - prometheus-volume:/prometheus
     networks:
     - observability
-    restart: unless-stopped
+    restart: "no"
   pgadmin:
     image: dpage/pgadmin4
     # `user: root` lets the entrypoint chmod the bind-mounted pgpass to 0600

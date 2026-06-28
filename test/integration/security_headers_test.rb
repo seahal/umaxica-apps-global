@@ -32,15 +32,15 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"],
                     "form-action 'self' https://accounts.google.com https://appleid.apple.com"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_SERVICE_URL")}"
+                    "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_CORPORATE_URL")}"
+                    "https://#{ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("ACME_STAFF_URL")}"
+                    "https://#{ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
                     "https://#{ENV.fetch("ID_SERVICE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}"
+                    "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}"
     # The jump gateway must be a valid form-action target: sign-flow form submissions
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],

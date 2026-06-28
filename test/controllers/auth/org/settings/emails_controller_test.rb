@@ -8,7 +8,7 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)

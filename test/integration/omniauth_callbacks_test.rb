@@ -4,14 +4,14 @@
 require "test_helper"
 
 class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
-  fixtures_only :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses,
-                :client_totp_credential_statuses
+  fixtures :client_google_identity_statuses, :client_apple_identity_statuses, :client_statuses,
+           :client_totp_credential_statuses
 
   setup do
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     @expected_redirect = %r{\Ahttps?://#{Regexp.escape(@host)}/.*}.freeze
   end
@@ -237,7 +237,12 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
+    assert_redirected_to base_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
   end
 
   test "existing Google identity without birthdate stays on login side" do

@@ -20,7 +20,7 @@ class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest
   fixtures :operators, :clients
 
   APP_HOST = ENV.fetch("ID_SERVICE_URL")
-  COM_HOST = ENV.fetch("SIGN_CORPORATE_URL")
+  COM_HOST = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
   ORG_HOST = ENV.fetch("ID_STAFF_URL")
 
   setup do

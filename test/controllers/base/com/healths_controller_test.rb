@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot without redirect" do
-    host! ENV.fetch("BASE_CORPORATE_URL")
+    host! ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
 
     get base_com_health_url(ri: "jp"), headers: browser_headers
 

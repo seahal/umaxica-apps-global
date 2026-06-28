@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     @operator = operators(:one)
     @operator_token = OperatorToken.where(staff_id: @operator.id).first ||
       OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
@@ -24,7 +24,10 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("BASE_SERVICE_URL")}/support/clients/#{clients(:one).id}/sessions/purge",
+        "https://#{ENV.fetch(
+          "PUBLIC_BASE_SERVICE_URL",
+          "base.app.localhost",
+        )}/support/clients/#{clients(:one).id}/sessions/purge",
         method: :delete,
       )
     end

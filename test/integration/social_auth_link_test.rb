@@ -22,7 +22,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("ID_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
 
     # Create test users

@@ -65,7 +65,7 @@ module Palm
         logout_uri = URI.parse(payload["logout_url"])
         query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
-        assert_equal ENV.fetch("ACME_SERVICE_URL"), logout_uri.host
+        assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), logout_uri.host
         assert_equal "/oidc/logout", logout_uri.path
         assert_predicate query["logout_challenge"], :present?
         assert_nil query["actor_ref"]
@@ -73,12 +73,12 @@ module Palm
 
         browser_token = create_client_token(native_client)
         post acme_app_oidc_logout_url(
-          host: ENV.fetch("ACME_SERVICE_URL"),
+          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
         ), headers: as_user_headers(
           native_client,
-          host: ENV.fetch("ACME_SERVICE_URL"),
+          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
           session_public_id: browser_token.public_id,
           headers: {
             "Origin" => "https://#{PALM_HOST}",
@@ -90,19 +90,19 @@ module Palm
         sign_form = css_select("form#sign-out-handoff-form").first
         sign_uri = URI.parse(sign_form["action"])
 
-        assert_equal ENV.fetch("PRIVATE_SIGN_SERVICE_URL"), sign_uri.host
+        assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), sign_uri.host
         assert_equal "/sign/out", sign_uri.path
 
         post base_app_sign_out_url(
-          host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"),
+          host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
         ), headers: as_user_headers(
           native_client,
-          host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"),
+          host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
           session_public_id: browser_token.public_id,
           headers: {
-            "Origin" => "https://#{ENV.fetch("ACME_SERVICE_URL")}",
+            "Origin" => "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}",
             "Sec-Fetch-Site" => "same-site",
           },
         )

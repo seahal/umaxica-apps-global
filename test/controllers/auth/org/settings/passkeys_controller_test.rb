@@ -4,15 +4,15 @@
 require "test_helper"
 
 class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationTest
-  fixtures_only :operators, :operator_statuses, :operator_passkey_statuses,
-                :operator_mfa_levels, :operator_secret_credential_kinds,
-                :operator_secret_credential_statuses, :operator_mfa_statuses,
-                :operator_visibilities, :operator_token_binding_methods,
-                :operator_token_kinds, :operator_token_statuses,
-                :operator_token_dbsc_statuses
+  fixtures :operators, :operator_statuses, :operator_passkey_statuses,
+           :operator_mfa_levels, :operator_secret_credential_kinds,
+           :operator_secret_credential_statuses, :operator_mfa_statuses,
+           :operator_visibilities, :operator_token_binding_methods,
+           :operator_token_kinds, :operator_token_statuses,
+           :operator_token_dbsc_statuses
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL")
+    host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     @staff.update!(status_id: OperatorStatus::ACTIVE)
     @staff.staff_secret_credentials.destroy_all
@@ -125,7 +125,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     uri = URI.parse(jump_rt_url_from_location(response.headers["Location"]))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ACME_STAFF_URL"), uri.host
+    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_equal "sign-rp", query["client_id"]
   end

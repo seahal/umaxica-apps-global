@@ -177,7 +177,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -239,7 +239,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -285,7 +285,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do
@@ -322,7 +322,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "RP_APP_URL" => "https://rp.example",
     ) do
@@ -352,7 +352,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(
@@ -412,7 +412,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     controller.define_singleton_method(:redirect_to) { |path, **kwargs| redirects << [path, kwargs] }
 
     with_env(
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtIssuer.stub(:call, nil) do
@@ -487,7 +487,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
 
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => nil,
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       controller.send(:redirect_to_jump_url, "https://www.umaxica.app/dashboard")

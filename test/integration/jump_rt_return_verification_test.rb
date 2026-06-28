@@ -63,7 +63,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
     https!
     token = sign_return_token(
       aud: app_origin,
-      src: "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}",
+      src: "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}",
       url: "#{app_origin}/?ok=1",
     )
 
@@ -218,7 +218,7 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
       nbf: iat,
       exp: iat + 60,
       jti: "jump-return-jti",
-      src: "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}",
+      src: "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}",
       dst: "internal",
       url: "https://www.app.localhost/",
     }.merge(overrides)
@@ -227,11 +227,11 @@ class JumpRtReturnVerificationTest < ActionDispatch::IntegrationTest
   end
 
   def acme_app_origin
-    "https://#{ENV.fetch("BASE_SERVICE_URL")}"
+    "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")}"
   end
 
   def sign_app_origin
-    "https://#{ENV.fetch("PRIVATE_SIGN_SERVICE_URL")}"
+    "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}"
   end
 
   def sign_verifier_success(origin)

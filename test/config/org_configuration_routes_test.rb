@@ -6,23 +6,23 @@ require "test_helper"
 class OrgConfigurationRoutesTest < ActiveSupport::TestCase
   ROUTES = {
     sign: {
-      org_host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
-      app_host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL", "id.app.localhost"),
-      com_host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+      org_host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "id.org.localhost"),
+      app_host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "id.app.localhost"),
+      com_host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "id.com.localhost"),
       controller: "sign/org/configurations",
       helper: :auth_org_configuration_path,
     },
     acme: {
-      org_host: ENV.fetch("ACME_STAFF_URL", "www.org.localhost"),
-      app_host: ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"),
-      com_host: ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
+      org_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+      app_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+      com_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
       controller: "acme/org/configurations",
       helper: :acme_org_configuration_path,
     },
     core: {
-      org_host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL", "jpx.umaxica.org")),
-      app_host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL", "jpx.umaxica.app")),
-      com_host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL", "jpx.umaxica.com")),
+      org_host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org")),
+      app_host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "jpx.umaxica.app")),
+      com_host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "jpx.umaxica.com")),
       controller: "core/org/configurations",
       helper: :core_org_configuration_path,
     },

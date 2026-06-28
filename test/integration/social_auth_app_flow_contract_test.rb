@@ -30,8 +30,8 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end

@@ -7,7 +7,7 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     cookies["csrf_token"] = csrf_token_value
     Rails.configuration.x.rate_limit.fetch(:store).clear

@@ -7,7 +7,7 @@ class Auth::App::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTes
   fixtures :clients, :client_tokens, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @user = clients(:one)
     ClientSignInFlowStatus.ensure_defaults!
   end

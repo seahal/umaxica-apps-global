@@ -7,15 +7,15 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   test "sign com sign-out ceremony routes are retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_CORPORATE_URL")}/sign/out/confirmation",
+        "https://#{ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")}/sign/out/confirmation",
         method: :get,
       )
     end
   end
 
   test "get sign out renders confirmation and post starts RP logout" do
-    host = ENV.fetch("AUTH_CORPORATE_URL")
-    acme_host = ENV.fetch("ACME_CORPORATE_URL")
+    host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
+    acme_host = ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "sign-com-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)
@@ -48,7 +48,7 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "delete sign out cancels the pending logout and keeps the current session" do
-    host = ENV.fetch("AUTH_CORPORATE_URL")
+    host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "sign-com-cancel-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)

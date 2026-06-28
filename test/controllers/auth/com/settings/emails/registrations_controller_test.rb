@@ -5,8 +5,8 @@ require "test_helper"
 
 class Auth::Com::Settings::Emails::RegistrationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    host! ENV.fetch("AUTH_CORPORATE_URL")
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     @visitor = create_verified_visitor_with_email(
       email_address: "com-config-registration-#{SecureRandom.hex(4)}@example.com",
     )

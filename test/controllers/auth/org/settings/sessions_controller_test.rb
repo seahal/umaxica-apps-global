@@ -7,7 +7,7 @@ class Auth::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
   fixtures :operators, :operator_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
     OperatorToken.where(staff: @staff).delete_all
     @current_token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)

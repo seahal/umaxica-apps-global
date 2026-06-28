@@ -2,14 +2,14 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/auth_helpers"
+require "helpers/auth_helpers"
 
 class Auth::App::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients
 
   setup do
     @user = clients(:one)
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     ClientToken.where(user: @user).delete_all
   end

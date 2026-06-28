@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! @host
   end
 
@@ -34,7 +34,7 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     location = URI.parse(response.location)
 
-    assert_equal ENV.fetch("AUTH_SERVICE_URL"), location.host
+    assert_equal ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"), location.host
     assert_equal "/sign/out", location.path
     assert_predicate Rack::Utils.parse_nested_query(location.query.to_s)["logout_token"], :present?
     assert_predicate token.reload, :revoked?

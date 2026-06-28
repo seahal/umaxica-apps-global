@@ -78,7 +78,7 @@ module Base
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_base_host
-        assert_equal ENV.fetch("BASE_STAFF_URL"), controller.send(:oidc_base_host)
+        assert_equal ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), controller.send(:oidc_base_host)
       end
     end
   end

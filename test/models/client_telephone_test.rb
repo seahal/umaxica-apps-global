@@ -40,8 +40,8 @@
 require "test_helper"
 
 class ClientTelephoneTest < ActiveSupport::TestCase
-  fixtures_only :clients, :client_statuses, :client_visibilities, :client_mfa_levels,
-                :client_mfa_statuses, :client_telephone_statuses
+  fixtures :clients, :client_statuses, :client_visibilities, :client_mfa_levels,
+           :client_mfa_statuses, :client_telephone_statuses
   uses_transaction \
     :test_concurrent_creates_for_same_normalized_number_commit_at_most_one_active_telephone,
     :test_concurrent_creates_for_equivalent_formatted_number_commit_at_most_one_active_telephone,

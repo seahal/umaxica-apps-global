@@ -9,7 +9,7 @@ module Core
       fixtures_none!
 
       test "GET jwks endpoint returns JSON with keys" do
-        host! ENV.fetch("CORE_STAFF_URL")
+        host! ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")
 
         get core_org_well_known_jwks_url
 

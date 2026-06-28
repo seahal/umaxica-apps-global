@@ -6,7 +6,7 @@ require "test_helper"
 module Auth::Org
   class ApplicationControllerTest < ActionDispatch::IntegrationTest
     setup do
-      host! ENV.fetch("AUTH_STAFF_URL")
+      host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
       @controller = ::Auth::Org::ApplicationController.new
       @controller.request = ActionDispatch::TestRequest.create(
         "rack.session" => {},

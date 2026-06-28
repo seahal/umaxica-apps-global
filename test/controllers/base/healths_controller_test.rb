@@ -5,7 +5,7 @@ require "test_helper"
 
 class BaseHealthsControllerTest < ActionDispatch::IntegrationTest
   test "network host GET /health returns OK response without redirect" do
-    host! ENV["BASE_NETWORK_URL"]
+    host! ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost")
 
     get base_network_health_url, headers: browser_headers
 
@@ -15,7 +15,7 @@ class BaseHealthsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "network host health probes return OK without redirect" do
-    host! ENV["BASE_NETWORK_URL"]
+    host! ENV.fetch("PRIVATE_BASE_NETWORK_URL", "base.net.localhost")
 
     get base_network_health_liveness_url, headers: browser_headers
 
@@ -31,7 +31,7 @@ class BaseHealthsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "developer host GET /health returns OK response without redirect" do
-    host! ENV["BASE_DEVELOPER_URL"]
+    host! ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost")
 
     get base_developer_health_url, headers: browser_headers
 
@@ -41,7 +41,7 @@ class BaseHealthsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "developer host health probes return OK without redirect" do
-    host! ENV["BASE_DEVELOPER_URL"]
+    host! ENV.fetch("PRIVATE_BASE_DEVELOPER_URL", "base.dev.localhost")
 
     get base_developer_health_liveness_url, headers: browser_headers
 

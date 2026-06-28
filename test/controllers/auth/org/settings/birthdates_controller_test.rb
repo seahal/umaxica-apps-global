@@ -8,7 +8,7 @@ module Auth::Org::Settings
     fixtures :operators, :operator_statuses
 
     setup do
-      @host = ENV.fetch("AUTH_STAFF_URL")
+      @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
       host! @host
       @staff = operators(:one)
       @staff.update!(birthdate: "1990-12-31")
@@ -71,7 +71,7 @@ module Auth::Org::Settings
       assert_response :redirect
       assert_oidc_authorize_redirect(
         response.location,
-        host: ENV.fetch("ACME_STAFF_URL"),
+        host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
         client_id: "sign-rp",
       )
     end

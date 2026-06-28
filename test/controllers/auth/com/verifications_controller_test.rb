@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(
       email_address: "com-verification-#{SecureRandom.hex(4)}@example.com",

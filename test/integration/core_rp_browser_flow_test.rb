@@ -6,21 +6,21 @@ require "test_helper"
 class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL")),
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_SERVICE_URL"),
+      acme_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
       resource: -> { clients(:one) },
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL")),
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_STAFF_URL"),
+      acme_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
       resource: -> { operators(:one) },
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL")),
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("ACME_CORPORATE_URL"),
+      acme_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
       resource: -> { create_visitor! },
     },
   ].freeze
@@ -45,9 +45,18 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "regional core callback routes are host constrained" do
     expectations = {
-      ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL")) => "core/app/auth/callbacks",
-      ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL")) => "core/com/auth/callbacks",
-      ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL")) => "core/org/auth/callbacks",
+      ENV.fetch(
+        "PUBLIC_CORE_SERVICE_URL",
+        ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
+      ) => "core/app/auth/callbacks",
+      ENV.fetch(
+        "PUBLIC_CORE_CORPORATE_URL",
+        ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
+      ) => "core/com/auth/callbacks",
+      ENV.fetch(
+        "PUBLIC_CORE_STAFF_URL",
+        ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
+      ) => "core/org/auth/callbacks",
       "core.app.localhost" => "core/app/auth/callbacks",
       "core.com.localhost" => "core/com/auth/callbacks",
       "core.org.localhost" => "core/org/auth/callbacks",
@@ -87,9 +96,9 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "core app browser flow reaches Acme token exchange without stubbing OP" do
     with_core_oidc_client_key do
-      core_host = ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))
-      acme_host = ENV.fetch("ACME_SERVICE_URL")
-      sign_host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+      core_host = ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))
+      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
       client = OidcClientRegistry.find!("core-next-rp")
       host! core_host
       https!

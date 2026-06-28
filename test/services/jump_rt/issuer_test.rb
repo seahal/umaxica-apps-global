@@ -17,7 +17,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   test "issues ES384 jump rt jwt with expected claims" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "sign.example.test",
+      "PRIVATE_AUTH_SERVICE_URL" => "sign.example.test",
       "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, @private_key) do
@@ -139,7 +139,7 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
   test "strips redirect-target query keys before signing the url" do
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "sign.example.test",
+      "PRIVATE_AUTH_SERVICE_URL" => "sign.example.test",
     ) do
       JumpRtKeyring.stub(:private_key, @private_key) do
         token = JumpRtIssuer.call(

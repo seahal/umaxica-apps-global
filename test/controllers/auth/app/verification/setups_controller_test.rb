@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::App::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
   test "new shows a settings back link above registration methods when pt is present" do
-    host = ENV.fetch("AUTH_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     user = Client.create!
     headers = as_user_headers(user, host: host)
     pt = Base64.urlsafe_encode64(auth_app_settings_telephones_path(ri: "jp"))

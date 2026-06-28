@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot without redirect" do
-    host! ENV.fetch("AUTH_CORPORATE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
 
     get auth_com_health_url(ri: "jp"), headers: browser_headers
 

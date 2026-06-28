@@ -86,7 +86,10 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    acme_host = ENV["PRIVATE_ACME_CORPORATE_URL"].presence || ENV["ACME_CORPORATE_URL"].presence || "acme.com.localhost"
+    acme_host = ENV["PRIVATE_ACME_CORPORATE_URL"].presence || ENV.fetch(
+      "PRIVATE_ACME_CORPORATE_URL",
+      "www.com.localhost",
+    ).presence || "acme.com.localhost"
 
     assert_select "div a[href^=?]", "http://#{acme_host}/",
                   text: I18n.t("sign.org.ups.new.recruit_link_text")

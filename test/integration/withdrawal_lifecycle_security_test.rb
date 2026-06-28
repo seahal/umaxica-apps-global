@@ -4,7 +4,7 @@ require "test_helper"
 
 class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     host! @host
     @user = create_verified_user_with_email(email_address: "withdrawal-p0-#{SecureRandom.hex(4)}@example.com")
     @user.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)

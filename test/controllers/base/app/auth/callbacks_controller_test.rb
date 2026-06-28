@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::App::Auth::CallbacksControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_SERVICE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
   end
 
   test "returns the shared browser RP client_id" do

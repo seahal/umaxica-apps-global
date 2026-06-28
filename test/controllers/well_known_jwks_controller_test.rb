@@ -13,15 +13,15 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   ENDPOINTS = [
-    ["acme app", "ACME_APP", normalized_host(ENV.fetch("ACME_SERVICE_URL"))],
-    ["acme com", "ACME_COM", normalized_host(ENV.fetch("ACME_CORPORATE_URL"))],
-    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("ACME_STAFF_URL"))],
-    ["core app", "CORE_APP", normalized_host(ENV.fetch("CORE_SERVICE_URL"))],
-    ["core com", "CORE_COM", normalized_host(ENV.fetch("CORE_CORPORATE_URL"))],
-    ["core org", "CORE_ORG", normalized_host(ENV.fetch("CORE_STAFF_URL"))],
-    ["sign app", "SIGN_APP", normalized_host(ENV.fetch("PRIVATE_SIGN_SERVICE_URL"))],
-    ["sign com", "SIGN_COM", normalized_host(ENV.fetch("SIGN_CORPORATE_URL"))],
-    ["sign org", "SIGN_ORG", normalized_host(ENV.fetch("SIGN_STAFF_URL"))],
+    ["acme app", "ACME_APP", normalized_host(ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"))],
+    ["acme com", "ACME_COM", normalized_host(ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"))],
+    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"))],
+    ["core app", "CORE_APP", normalized_host(ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))],
+    ["core com", "CORE_COM", normalized_host(ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"))],
+    ["core org", "CORE_ORG", normalized_host(ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"))],
+    ["sign app", "SIGN_APP", normalized_host(ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"))],
+    ["sign com", "SIGN_COM", normalized_host(ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"))],
+    ["sign org", "SIGN_ORG", normalized_host(ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"))],
   ].freeze
 
   setup do

@@ -11,7 +11,7 @@ module Auth::App::Up
              :client_chronicle_events, :client_chronicle_levels
 
     setup do
-      host! ENV.fetch("AUTH_SERVICE_URL")
+      host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
 
       CloudflareTurnstile.test_mode = true
       CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -21,8 +21,8 @@ module Auth::App::Up
         "http://auth.app.localhost",
         "http://auth.org.localhost",
         "http://www.example.com",
-        "http://#{ENV.fetch("AUTH_SERVICE_URL")}",
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}",
+        "http://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}",
       ].uniq
       Webauthn.define_singleton_method(:trusted_origins) { allowed_origins }
     end
@@ -200,7 +200,7 @@ module Auth::App::Up
 
       assert_response :created
 
-      acme_host = ENV.fetch("ACME_SERVICE_URL")
+      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
       get auth_app_dashboard_url(ri: "jp", host: acme_host)
 
       assert_response :redirect

@@ -8,7 +8,7 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @visitor = create_verified_visitor_with_email(email_address: "telephones-#{SecureRandom.hex(4)}@example.com")
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)

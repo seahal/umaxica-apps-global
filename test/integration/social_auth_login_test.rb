@@ -16,7 +16,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
 
@@ -90,7 +90,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
+    assert_redirected_to base_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
     follow_redirect!
 
     assert_nil flash[:notice]
@@ -128,7 +133,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL"), redirect_uri.host
+    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), redirect_uri.host
     assert_equal "/sign/in/limitation", redirect_uri.path
     social_resolution = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)["social_resolution"]
 
@@ -146,7 +151,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     session_ref = css_select("input[name=session_ref]").first["value"]
     selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
 
-    patch acme_app_sign_in_limitation_url(host: ENV.fetch("ACME_SERVICE_URL")),
+    patch acme_app_sign_in_limitation_url(host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")),
           params: {
             social_resolution: social_resolution,
             session_ref: session_ref,
@@ -154,7 +159,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
           headers: browser_headers
 
     assert_predicate selected_session.reload, :revoked?
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
+    assert_redirected_to acme_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
   end
 
   def create_active_user_session_for_limit(user)
@@ -210,7 +220,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal(
       completion_base_app_social_authentication_url(
         id: "google",
-        host: ENV.fetch("ACME_SERVICE_URL"),
+        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
       ),
       form["action"],
     )
@@ -251,7 +261,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
+    assert_redirected_to acme_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
@@ -316,7 +331,12 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(ri: "jp", host: ENV.fetch("ACME_SERVICE_URL"))
+    assert_redirected_to acme_app_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+      ),
+    )
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first

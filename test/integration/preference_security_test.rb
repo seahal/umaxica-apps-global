@@ -14,7 +14,7 @@ require "sha3"
 class PreferenceSecurityTest < ActionDispatch::IntegrationTest
   setup do
     https!
-    host! ENV.fetch("BASE_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
   end
 
   COOKIE_NAME = -> { PreferenceCookieName.refresh(production: false, surface: :app) }
@@ -31,7 +31,7 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
     # Switch session and try to ride a stolen refresh token through ?refresh_token=.
     reset!
     https!
-    host! ENV.fetch("BASE_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     get edit_base_app_preference_region_url(ri: "jp", refresh_token: legitimate_token)
 
     assert_response :success

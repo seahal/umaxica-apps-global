@@ -6,7 +6,7 @@ require "base64"
 
 class Auth::Com::Sign::In::CheckpointsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("AUTH_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     ApplicationRecord.clear_fixed_id_seed_cache!
     VisitorSignInFlowStatus.ensure_defaults!
     @visitor = create_verified_visitor_with_email(email_address: "checkpoint-#{SecureRandom.hex(4)}@example.com")

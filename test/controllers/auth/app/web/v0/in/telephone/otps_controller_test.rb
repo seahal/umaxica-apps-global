@@ -7,8 +7,8 @@ class Auth::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::In
   include ActiveJob::TestHelper
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL")
-    @host = ENV.fetch("AUTH_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     clear_enqueued_jobs
     clear_performed_jobs
   end

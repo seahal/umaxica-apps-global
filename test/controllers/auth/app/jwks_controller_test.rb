@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::App::JwksControllerTest < ActionDispatch::IntegrationTest
   test "sign app well-known jwks remains public" do
-    get auth_app_well_known_jwks_url(host: ENV.fetch("AUTH_SERVICE_URL"), ri: "jp")
+    get auth_app_well_known_jwks_url(host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"), ri: "jp")
 
     assert_response :ok
     assert_predicate response.parsed_body.fetch("keys"), :present?
@@ -14,7 +14,7 @@ class Auth::App::JwksControllerTest < ActionDispatch::IntegrationTest
   test "sign app oauth jwks route is retired" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "https://#{ENV.fetch("AUTH_SERVICE_URL")}/oauth/jwks",
+        "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}/oauth/jwks",
         method: :get,
       )
     end

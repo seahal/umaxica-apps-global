@@ -15,7 +15,7 @@
 require "test_helper"
 
 class VisitorPreferenceThemeOptionTest < ActiveSupport::TestCase
-  fixtures_only :visitor_preference_theme_options
+  fixtures :visitor_preference_theme_options
 
   test "has correct constants" do
     assert_equal 0, VisitorPreferenceThemeOption::SYSTEM

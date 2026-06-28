@@ -39,7 +39,7 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
     private_key = OpenSSL::PKey::EC.generate("secp384r1")
     with_env(
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-es384-test-a",
-      "PRIVATE_SIGN_SERVICE_URL" => "log.umaxica.app",
+      "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
     ) do
       JumpRtKeyring.stub(:private_key, private_key) do

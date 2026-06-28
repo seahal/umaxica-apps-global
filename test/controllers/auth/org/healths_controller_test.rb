@@ -5,7 +5,7 @@ require "test_helper"
 
 class Auth::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot" do
-    host! ENV.fetch("AUTH_STAFF_URL")
+    host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
 
     get auth_org_health_url(ri: "jp")
 

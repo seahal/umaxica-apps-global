@@ -12,7 +12,7 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
            :client_chronicle_events, :client_chronicle_levels
 
   setup do
-    host! ENV.fetch("AUTH_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @user = Client.create!(
       status_id: ClientStatus::NOTHING,
       public_id: "scu_#{SecureRandom.hex(4)}",

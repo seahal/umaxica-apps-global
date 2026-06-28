@@ -85,14 +85,14 @@ module Base
         controller = ApplicationController.new
 
         assert_respond_to controller, :oidc_base_host
-        assert_equal ENV.fetch("BASE_SERVICE_URL"), controller.send(:oidc_base_host)
+        assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), controller.send(:oidc_base_host)
       end
 
       def test_trusts_sign_origin_for_same_site_ceremony_posts
         trusted_origins = ApplicationController.forgery_protection_trusted_origins
 
-        assert_includes trusted_origins, "https://#{ENV.fetch("BASE_SERVICE_URL")}"
-        assert_includes trusted_origins, "https://#{ENV.fetch("AUTH_SERVICE_URL")}"
+        assert_includes trusted_origins, "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")}"
+        assert_includes trusted_origins, "https://#{ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")}"
       end
     end
   end

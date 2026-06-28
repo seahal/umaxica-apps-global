@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "support/auth_helpers"
+require "helpers/auth_helpers"
 
 # Surface boundary: an access token minted for one surface (app/com/org) must
 # never authenticate on another surface's endpoint, even though every surface

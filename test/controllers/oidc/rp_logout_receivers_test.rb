@@ -5,14 +5,22 @@ require "test_helper"
 
 class OidcRpLogoutReceiversTest < ActionDispatch::IntegrationTest
   SURFACES = [
-    { host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"), client_id: "sign-rp", resource_type: "client" },
-    { host: ENV.fetch("SIGN_CORPORATE_URL"), client_id: "sign-rp", resource_type: "visitor" },
-    { host: ENV.fetch("SIGN_STAFF_URL"), client_id: "sign-rp", resource_type: "operator" },
-    { host: ENV.fetch("CORE_SERVICE_URL"), client_id: "core-next-rp", resource_type: "client" },
-    { host: ENV.fetch("CORE_CORPORATE_URL"),
+    { host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), client_id: "sign-rp", resource_type: "client" },
+    { host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
+      client_id: "sign-rp",
+      resource_type: "visitor", },
+    { host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
+      client_id: "sign-rp",
+      resource_type: "operator", },
+    { host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
+      client_id: "core-next-rp",
+      resource_type: "client", },
+    { host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
       client_id: "core-next-rp",
       resource_type: "visitor", },
-    { host: ENV.fetch("CORE_STAFF_URL"), client_id: "core-next-rp", resource_type: "operator" },
+    { host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
+      client_id: "core-next-rp",
+      resource_type: "operator", },
   ].freeze
 
   test "back-channel receiver revokes a matching RP session" do

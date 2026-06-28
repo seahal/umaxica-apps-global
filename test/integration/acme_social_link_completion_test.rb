@@ -15,8 +15,8 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
 

@@ -7,7 +7,7 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
   include ActiveSupport::Testing::TimeHelpers
 
   setup do
-    host! ENV.fetch("AUTH_CORPORATE_URL")
+    host! ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     cookies["csrf_token"] = csrf_token_value
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -71,7 +71,12 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to auth_com_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_CORPORATE_URL"))
+    assert_redirected_to auth_com_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost",
+      ),
+    )
   end
 
   test "create rejects when visitor is already logged in" do

@@ -16,19 +16,19 @@ class Auth::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
 
   test "sign org residual authority routes redirect to acme org" do
     ROUTES.each do |helper, path|
-      get public_send(helper, host: ENV.fetch("SIGN_STAFF_URL"), ri: "jp")
+      get public_send(helper, host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"), ri: "jp")
 
       assert_response :see_other
       location = URI.parse(response.location)
 
-      assert_equal ENV.fetch("ACME_STAFF_URL"), location.host
+      assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), location.host
       assert_equal path, location.path
     end
   end
 
   test "sign ceremony entry routes remain on sign" do
     route = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("SIGN_STAFF_URL")}/sign/in",
+      "https://#{ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost")}/sign/in",
       method: :get,
     )
 

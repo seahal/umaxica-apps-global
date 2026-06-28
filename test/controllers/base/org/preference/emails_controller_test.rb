@@ -7,10 +7,10 @@ module Base
   module Org
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
-        fixtures_only :operators, :operator_email_statuses
+        fixtures :operators, :operator_email_statuses
 
         setup do
-          @host = ENV.fetch("BASE_STAFF_URL")
+          @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
           @operator = operators(:one)
           @email = OperatorEmail.create!(
             staff: @operator,

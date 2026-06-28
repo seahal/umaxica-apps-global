@@ -6,7 +6,7 @@ require "test_helper"
 class HealthEndpointsTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("ACME_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
       controller: "acme/app/healths",
       liveness_controller: "acme/app/health/livenesses",
       readiness_controller: "acme/app/health/readinesses",
@@ -14,7 +14,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("ACME_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
       controller: "acme/com/healths",
       liveness_controller: "acme/com/health/livenesses",
       readiness_controller: "acme/com/health/readinesses",
@@ -22,7 +22,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("ACME_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
       controller: "acme/org/healths",
       liveness_controller: "acme/org/health/livenesses",
       readiness_controller: "acme/org/health/readinesses",
@@ -30,7 +30,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("ACME_NETWORK_URL"),
+      host: ENV.fetch("PRIVATE_ACME_NETWORK_URL", "www.umaxica.net"),
       controller: "acme/net/healths",
       liveness_controller: "acme/net/health/livenesses",
       readiness_controller: "acme/net/health/readinesses",
@@ -38,7 +38,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("ACME_DEVELOPER_URL"),
+      host: ENV.fetch("PRIVATE_ACME_DEVELOPER_URL", "developer.umaxica.net"),
       controller: "acme/dev/healths",
       liveness_controller: "acme/dev/health/livenesses",
       readiness_controller: "acme/dev/health/readinesses",
@@ -46,7 +46,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("PRIVATE_SIGN_SERVICE_URL"),
+      host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
       controller: "sign/app/healths",
       liveness_controller: "sign/app/health/livenesses",
       readiness_controller: "sign/app/health/readinesses",
@@ -54,7 +54,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::SignApp,
     },
     {
-      host: ENV.fetch("SIGN_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
       controller: "sign/com/healths",
       liveness_controller: "sign/com/health/livenesses",
       readiness_controller: "sign/com/health/readinesses",
@@ -62,7 +62,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::SignCom,
     },
     {
-      host: ENV.fetch("SIGN_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_SIGN_STAFF_URL", "sign.org.localhost"),
       controller: "sign/org/healths",
       liveness_controller: "sign/org/health/livenesses",
       readiness_controller: "sign/org/health/readinesses",
@@ -70,7 +70,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::SignOrg,
     },
     {
-      host: ENV.fetch("BASE_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       controller: "base/app/healths",
       liveness_controller: "base/app/health/livenesses",
       readiness_controller: "base/app/health/readinesses",
@@ -78,7 +78,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/healths",
       liveness_controller: "base/com/health/livenesses",
       readiness_controller: "base/com/health/readinesses",
@@ -86,7 +86,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       controller: "base/org/healths",
       liveness_controller: "base/org/health/livenesses",
       readiness_controller: "base/org/health/readinesses",
@@ -174,7 +174,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL")),
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       controller: "core/app/healths",
       liveness_controller: "core/app/health/livenesses",
       readiness_controller: "core/app/health/readinesses",
@@ -182,7 +182,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("CORE_CORPORATE_URL")),
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       controller: "core/com/healths",
       liveness_controller: "core/com/health/livenesses",
       readiness_controller: "core/com/health/readinesses",
@@ -190,7 +190,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Com,
     },
     {
-      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("CORE_STAFF_URL")),
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
       controller: "core/org/healths",
       liveness_controller: "core/org/health/livenesses",
       readiness_controller: "core/org/health/readinesses",
@@ -198,7 +198,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::Org,
     },
     {
-      host: ENV.fetch("CORE_NETWORK_URL"),
+      host: ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost"),
       controller: "core/net/healths",
       liveness_controller: "core/net/health/livenesses",
       readiness_controller: "core/net/health/readinesses",
@@ -206,7 +206,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
       profile: Health::Profiles::App,
     },
     {
-      host: ENV.fetch("CORE_DEVELOPER_URL"),
+      host: ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost"),
       controller: "core/dev/healths",
       liveness_controller: "core/dev/health/livenesses",
       readiness_controller: "core/dev/health/readinesses",
@@ -251,7 +251,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "health html is server rendered snapshot without javascript polling" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
 
@@ -279,7 +279,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "health snapshot is available as html with nested probe dependencies" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     get "/health"
 
@@ -291,7 +291,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "json probes render json regardless of accept header and html suffix" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     %w(liveness readiness startup).each do |probe|
       [nil, "text/html", "*/*"].each do |accept|
@@ -320,7 +320,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "liveness remains dependency free" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     Health::ReadinessCheck.stub(:call, ->(_profile:) { raise RuntimeError, "readiness loaded" }) do
       ActiveRecord::Base.stub(:connection, -> { raise RuntimeError, "database touched" }) do
@@ -340,19 +340,19 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "readiness does not raise prosopite n plus one errors" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     assert_health_request_has_no_prosopite_n_plus_one("/health/readiness")
   end
 
   test "health snapshot does not raise prosopite n plus one errors" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     assert_health_request_has_no_prosopite_n_plus_one("/health")
   end
 
   test "startup remains dependency light" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     Health::Checks::Database.stub(:new, ->(*) { raise RuntimeError, "database check built" }) do
       get "/health/startup"
@@ -363,19 +363,19 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "app readiness ignores org-only dependencies" do
-    host! ENV.fetch("ACME_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
 
     assert_readiness_does_not_build(OrgTicketRecord)
   end
 
   test "sign readiness ignores acme-only dependencies" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     assert_readiness_does_not_build(AppRpRecord)
   end
 
   test "new database base classes do not affect existing surfaces by default" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     new_record_base = Class.new(ApplicationRecord)
 
@@ -383,7 +383,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "status codes come from result status" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
 
     assert_probe_status(:ok, :success)
     assert_probe_status(:degraded_acceptable, :success)
@@ -391,7 +391,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "public responses omit topology and exception details" do
-    host! ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    host! ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     result = Health::CheckResult.new(
       check: :readiness,
       status: :unready,

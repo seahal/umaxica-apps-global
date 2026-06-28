@@ -5,7 +5,7 @@ require "test_helper"
 
 class Base::Com::SwitcherControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
     @token = VisitorToken.create!(visitor: @visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
   end

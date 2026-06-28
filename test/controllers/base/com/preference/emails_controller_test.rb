@@ -7,15 +7,15 @@ module Base
   module Com
     module Preference
       class EmailsControllerTest < ActionDispatch::IntegrationTest
-        fixtures_only :visitor_statuses,
-                      :visitor_visibilities,
-                      :visitor_mfa_levels,
-                      :visitor_mfa_statuses,
-                      :visitor_email_statuses,
-                      :visitor_telephone_statuses
+        fixtures :visitor_statuses,
+                 :visitor_visibilities,
+                 :visitor_mfa_levels,
+                 :visitor_mfa_statuses,
+                 :visitor_email_statuses,
+                 :visitor_telephone_statuses
 
         setup do
-          @host = ENV.fetch("BASE_CORPORATE_URL")
+          @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
           @visitor = create_verified_visitor_with_email(
             email_address: "visitor-unsubscribe-#{SecureRandom.hex(4)}@example.com",
           )

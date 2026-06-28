@@ -136,7 +136,7 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "ordinary state-changing endpoint still rejects tokenless post when forgery protection is enabled" do
-    host! ENV.fetch("BASE_SERVICE_URL")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
     with_forgery_protection do
       post base_app_sign_out_url(ri: "jp")
@@ -155,9 +155,9 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
        :acme_com_csp_violation_report_path,],
       [configured_host(:acme_staff),
        :acme_org_csp_violation_report_path,],
-      [ENV["PRIVATE_ACME_NETWORK_URL"] || ENV["ACME_NETWORK_URL"] || "acme.net.localhost",
+      [ENV["PRIVATE_ACME_NETWORK_URL"] || ENV.fetch("PRIVATE_ACME_NETWORK_URL", "acme.net.localhost"),
        :acme_network_csp_violation_report_path,],
-      [ENV["PRIVATE_ACME_DEVELOPER_URL"] || ENV["ACME_DEVELOPER_URL"] || "acme.dev.localhost",
+      [ENV["PRIVATE_ACME_DEVELOPER_URL"] || ENV.fetch("PRIVATE_ACME_DEVELOPER_URL", "acme.dev.localhost"),
        :acme_developer_csp_violation_report_path,],
       [configured_host(:sign_service),
        :auth_app_csp_violation_report_path,],
@@ -171,9 +171,9 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
        :core_com_csp_violation_report_path,],
       [configured_host(:core_staff),
        :core_org_csp_violation_report_path,],
-      [ENV["PRIVATE_CORE_NETWORK_URL"] || ENV["CORE_NETWORK_URL"] || "core.net.localhost",
+      [ENV["PRIVATE_CORE_NETWORK_URL"] || ENV.fetch("PRIVATE_CORE_NETWORK_URL", "core.net.localhost"),
        :core_network_csp_violation_report_path,],
-      [ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV["CORE_DEVELOPER_URL"] || "core.dev.localhost",
+      [ENV["PRIVATE_CORE_DEVELOPER_URL"] || ENV.fetch("PRIVATE_CORE_DEVELOPER_URL", "core.dev.localhost"),
        :core_developer_csp_violation_report_path,],
       [configured_host(:base_service),
        :base_app_csp_violation_report_path,],

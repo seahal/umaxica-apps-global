@@ -10,7 +10,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   include RootThemeCookieHelper
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL")
+    host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
   test "GET / renders root page" do
@@ -33,7 +33,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("AUTH_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"),
       path: :auth_org_root_path,
       label: "sign org root",
       ri: "jp",
@@ -44,9 +44,14 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     staff = operators(:one)
 
     get auth_org_root_url(ri: "jp"),
-        headers: as_staff_headers(staff, host: ENV.fetch("AUTH_STAFF_URL"))
+        headers: as_staff_headers(staff, host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_org_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_STAFF_URL"))
+    assert_redirected_to auth_org_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+      ),
+    )
   end
 end

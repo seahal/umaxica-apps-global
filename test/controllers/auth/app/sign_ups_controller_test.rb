@@ -14,7 +14,7 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("ACME_SERVICE_URL"), uri.host
+    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_equal "sign-rp", query["client_id"]
     assert_equal "signup", query["screen_hint"]
@@ -137,7 +137,7 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   private
 
   def host
-    ENV["AUTH_SERVICE_URL"] || "auth.app.localhost"
+    ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
   def brand_name

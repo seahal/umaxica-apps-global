@@ -7,7 +7,7 @@ class Auth::Org::Sign::Up::InvitationsControllerTest < ActionDispatch::Integrati
   fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_visibilities
 
   setup do
-    host! ENV.fetch("AUTH_STAFF_URL")
+    host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @invitation = OrganizationInvitation.create!(

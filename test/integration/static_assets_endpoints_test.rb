@@ -6,31 +6,31 @@ require "test_helper"
 class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   ROBOTS_SURFACES = [
     {
-      host: ENV.fetch("ACME_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
       controller: "acme/com/robots",
     },
     {
-      host: ENV.fetch("ACME_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
       controller: "acme/org/robots",
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/robots",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       controller: "base/org/robots",
     },
     {
-      host: ENV.fetch("CORE_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
       controller: "core/app/robots",
     },
     {
-      host: ENV.fetch("CORE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"),
       controller: "core/com/robots",
     },
     {
-      host: ENV.fetch("CORE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"),
       controller: "core/org/robots",
     },
     {
@@ -41,19 +41,19 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
 
   SITEMAP_SURFACES = [
     {
-      host: ENV.fetch("ACME_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
       controller: "acme/com/sitemaps",
     },
     {
-      host: ENV.fetch("ACME_STAFF_URL"),
+      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
       controller: "acme/org/sitemaps",
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/sitemaps",
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       controller: "base/org/sitemaps",
     },
     {

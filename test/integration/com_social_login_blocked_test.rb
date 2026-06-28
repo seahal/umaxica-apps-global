@@ -5,7 +5,7 @@ require "test_helper"
 
 class ComSocialLoginBlockedTest < ActionDispatch::IntegrationTest
   setup do
-    @corporate_host = ENV.fetch("SIGN_CORPORATE_URL")
+    @corporate_host = ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost")
     @service_host = ENV.fetch("ID_SERVICE_URL")
   end
 

@@ -5,7 +5,7 @@ require "test_helper"
 
 class Core::App::RootsControllerTest < ActionDispatch::IntegrationTest
   test "renders a thin landing page" do
-    host! ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))
+    host! ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))
     get core_app_root_url(ri: "jp")
 
     assert_response :success
@@ -14,7 +14,7 @@ class Core::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    host! ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("CORE_SERVICE_URL"))
+    host! ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))
 
     assert_difference("AppPreference.count", 1) do
       get core_app_root_url(ri: "jp")

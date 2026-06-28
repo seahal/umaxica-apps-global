@@ -8,7 +8,7 @@ class SocialLoginRobustnessTest < ActionDispatch::IntegrationTest
 
   setup do
     OmniAuth.config.test_mode = true
-    @host = ENV.fetch("PRIVATE_SIGN_SERVICE_URL")
+    @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
   end
 
   teardown do

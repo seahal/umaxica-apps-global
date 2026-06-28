@@ -4,12 +4,12 @@
 require "test_helper"
 
 class DbscControllerTest < ActionDispatch::IntegrationTest
-  fixtures_only :clients, :client_statuses, :client_mfa_levels, :client_mfa_statuses,
-                :client_tokens, :client_token_kinds, :client_token_statuses, :client_token_binding_methods,
-                :client_token_dbsc_statuses, :operators, :operator_statuses,
-                :operator_mfa_levels, :operator_mfa_statuses, :operator_tokens,
-                :operator_token_kinds, :operator_token_statuses, :operator_token_binding_methods,
-                :operator_token_dbsc_statuses
+  fixtures :clients, :client_statuses, :client_mfa_levels, :client_mfa_statuses,
+           :client_tokens, :client_token_kinds, :client_token_statuses, :client_token_binding_methods,
+           :client_token_dbsc_statuses, :operators, :operator_statuses,
+           :operator_mfa_levels, :operator_mfa_statuses, :operator_tokens,
+           :operator_token_kinds, :operator_token_statuses, :operator_token_binding_methods,
+           :operator_token_dbsc_statuses
 
   setup do
     @ec_key = OpenSSL::PKey::EC.generate("prime256v1")

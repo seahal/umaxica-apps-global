@@ -8,7 +8,7 @@ class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   include AuthHelpers
 
   setup do
-    @host = ENV.fetch("BASE_CORPORATE_URL")
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @client = OidcClientRegistry.find!("sign-rp")
     @visitor = visitors(:reserved_visitor)
     @token = VisitorToken.create!(
@@ -42,7 +42,7 @@ class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
   test "validated logout request is staged through shared confirmation" do
     redirect_uri =
       @client.post_logout_redirect_uris.find do |uri|
-        URI.parse(uri).host == ENV.fetch("AUTH_CORPORATE_URL")
+        URI.parse(uri).host == ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
       end
 
     get base_com_oidc_logout_url(host: @host),

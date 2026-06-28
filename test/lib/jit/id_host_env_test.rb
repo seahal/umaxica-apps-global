@@ -10,7 +10,7 @@ module Jit
       @original_env = {
         "ID_SERVICE_URL" => ENV["ID_SERVICE_URL"],
         "PRIVATE_SIGN_CORPORATE_URL" => ENV["PRIVATE_SIGN_CORPORATE_URL"],
-        "SIGN_CORPORATE_URL" => ENV["SIGN_CORPORATE_URL"],
+        "SIGN_CORPORATE_URL" => ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", "sign.com.localhost"),
         "ID_STAFF_URL" => ENV["ID_STAFF_URL"],
       }
     end

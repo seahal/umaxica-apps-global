@@ -9,7 +9,7 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            :operator_token_statuses, :operator_token_dbsc_statuses, :operator_email_statuses
 
   setup do
-    @host = ENV.fetch("AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     host! @host
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
@@ -113,7 +113,12 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to auth_org_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_STAFF_URL"))
+    assert_redirected_to auth_org_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+      ),
+    )
 
     assert_equal OperatorSecretCredentialStatus::ACTIVE, @secret_credential.reload.staff_secret_status_id
   end
@@ -139,7 +144,12 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to auth_org_dashboard_url(ri: "jp", host: ENV.fetch("AUTH_STAFF_URL"))
+    assert_redirected_to auth_org_dashboard_url(
+      ri: "jp",
+      host: ENV.fetch(
+        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+      ),
+    )
   end
 
   test "create rejects blank form" do

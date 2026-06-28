@@ -126,10 +126,10 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     challenge = handoff_input_value("logout_challenge")
 
     post acme_app_oidc_logout_url(
-      host: ENV.fetch("ACME_SERVICE_URL"), ri: "jp",
+      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), ri: "jp",
       logout_challenge: challenge,
     ), headers: {
-      "Host" => ENV["PRIVATE_ACME_SERVICE_URL"] || ENV["ACME_SERVICE_URL"],
+      "Host" => ENV["PRIVATE_ACME_SERVICE_URL"] || ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
       "Origin" => "https://#{ENV["SIDE_SERVICE_URL"] || "side.app.localhost"}",
       "Sec-Fetch-Site" => "same-site",
     }
@@ -137,7 +137,7 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     location = URI.parse(handoff_form["action"])
 
-    assert_equal ENV["PRIVATE_SIGN_SERVICE_URL"] || ENV["SIGN_SERVICE_URL"] || "sign.app.localhost", location.host
+    assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost") || ENV["SIGN_SERVICE_URL"] || "sign.app.localhost", location.host
     assert_equal "/sign/out", location.path
     assert_equal challenge, handoff_input_value("logout_challenge")
     assert_equal "jp", handoff_input_value("ri")

@@ -10,7 +10,7 @@ module Base
         fixtures_none!
 
         setup do
-          @host = ENV.fetch("BASE_SERVICE_URL")
+          @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
           email_address = "client-unsubscribe-#{SecureRandom.hex(4)}@example.com"
           @user = create_verified_user_with_email(email_address: email_address)
           @email = @user.client_emails.first

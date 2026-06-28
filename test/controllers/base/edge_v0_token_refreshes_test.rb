@@ -8,15 +8,15 @@ class Base::EdgeV0TokenRefreshesTest < ActionDispatch::IntegrationTest
 
   SURFACES = [
     {
-      host: ENV.fetch("BASE_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       build_token: ->(test_case) { ClientToken.create!(user: test_case.clients(:one)) },
     },
     {
-      host: ENV.fetch("BASE_CORPORATE_URL"),
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       build_token: ->(test_case) { VisitorToken.create!(visitor: test_case.visitors(:reserved_visitor)) },
     },
     {
-      host: ENV.fetch("BASE_STAFF_URL"),
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       build_token: ->(test_case) { OperatorToken.create!(staff: test_case.operators(:one)) },
     },
   ].freeze

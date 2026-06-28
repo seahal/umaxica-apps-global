@@ -100,7 +100,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   test "base org preference region edit posts to base host" do
-    host = ENV.fetch("BASE_STAFF_URL")
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     host! host
 
     get edit_base_org_preference_region_url(ri: "jp", host: host)
@@ -145,7 +145,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   test "base org preference timezone edit posts to base host" do
-    host = ENV.fetch("BASE_STAFF_URL")
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     host! host
 
     get edit_base_org_preference_timezone_url(ri: "jp", host: host)
@@ -160,7 +160,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   test "base app preference timezone edit renders localized timezone option labels" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host
 
     get edit_base_app_preference_timezone_url(ri: "us", lx: "ja", host: host)
@@ -180,7 +180,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   test "base preference write updates app user preference" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
@@ -196,7 +196,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
   end
 
   test "base preference reset remains destructive and removes app user preference" do
-    host = ENV.fetch("BASE_SERVICE_URL")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)

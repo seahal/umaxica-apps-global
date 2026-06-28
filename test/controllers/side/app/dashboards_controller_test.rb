@@ -8,7 +8,7 @@ class Side::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("SIDE_SERVICE_URL")
-    @acme_host = ENV.fetch("ACME_SERVICE_URL")
+    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     satisfy_user_verification(@token)
