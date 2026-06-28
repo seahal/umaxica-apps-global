@@ -1,0 +1,23 @@
+<%
+  tld = :app
+  title_site = "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (#{tld})"
+%>
+<!DOCTYPE html>
+<html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
+<head>
+  <%= display_meta_tags site: title_site, title: page_title(inertia_page&.dig(:props, :title)) %>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="turbo-refresh-method" content="morph">
+  <meta name="turbo-refresh-scroll" content="preserve">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= vite_client_tag nonce: true %>
+  <%= vite_react_refresh_tag nonce: true %>
+  <%= vite_typescript_tag "entrypoints/inertia", nonce: true, "data-turbo-eval": "false" %>
+  <%= inertia_ssr_head %>
+  <%= yield :head %>
+</head>
+<body>
+  <%= inertia_root %>
+</body>
+</html>
