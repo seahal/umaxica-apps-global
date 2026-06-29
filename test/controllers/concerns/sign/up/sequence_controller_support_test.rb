@@ -269,7 +269,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       events << :finalize_side_effect
       :accepted
     end
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
 
       case event
@@ -329,7 +329,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
       Struct.new(:pending_actor).new(sign_up_pending_actor_value)
     end
     harness.define_singleton_method(:finalize_sign_up_side_effect!) { :accepted }
-    harness.define_singleton_method(:perform_sign_up_event) do |event, _payload: {}|
+    harness.define_singleton_method(:perform_sign_up_event) do |event, payload: {}|
       events << event
       Struct.new(:success?, :status, :next_event).new(true, :ok, nil)
     end

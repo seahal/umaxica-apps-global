@@ -70,7 +70,7 @@ module AuthenticationOperator
 
   def sign_org_redirect_host
     configured_hosts =
-      %w(AUTH_STAFF_URL).filter_map do |key|
+      %w(PRIVATE_AUTH_STAFF_URL).filter_map do |key|
         CommonRedirect.normalize_host(ENV.fetch(key))
       end
 

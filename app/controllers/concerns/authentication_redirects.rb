@@ -158,17 +158,17 @@ module AuthenticationRedirects
     when :app
       acme_app_welcome_entry_url(
         **attrs,
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL"),
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
       )
     when :com
       acme_com_welcome_entry_url(
         **attrs,
-        host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL"),
+        host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
       )
     when :org
       acme_org_welcome_entry_url(
         **attrs,
-        host: ENV.fetch("PRIVATE_ACME_STAFF_URL"),
+        host: ENV.fetch("PRIVATE_BASE_STAFF_URL"),
       )
     else
       path = "/welcome"
@@ -189,12 +189,12 @@ module AuthenticationRedirects
     when :com
       acme_com_dashboard_url(
         ri: params[:ri],
-        host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL"),
+        host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
       )
     when :org
       acme_org_dashboard_url(
         ri: params[:ri],
-        host: ENV.fetch("PRIVATE_ACME_STAFF_URL"),
+        host: ENV.fetch("PRIVATE_BASE_STAFF_URL"),
       )
     else
       "/dashboard"

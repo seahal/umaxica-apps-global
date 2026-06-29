@@ -93,7 +93,7 @@ module Base
               redirect_to(
                 base_app_identity_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch("BASE_SERVICE_URL"),
+                  host: preferred_base_service_host,
                 ), notice: t("sign.app.registration.telephone.update.success"), status: :see_other,
               )
             when :session_expired
@@ -105,6 +105,10 @@ module Base
             else
               render :edit, status: :unprocessable_content
             end
+          end
+
+          def preferred_base_service_host
+            ENV.fetch("PUBLIC_BASE_SERVICE_URL")
           end
 
           def current_registration_telephone = ClientTelephone.find_by(id: session[registration_session_key])

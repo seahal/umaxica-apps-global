@@ -23,7 +23,7 @@ module CoreCookieOptions
   end
 
   def resolve_secure(request)
-    Rails.env.production? || ENV.fetch("FORCE_SECURE_COOKIES").present? || request.ssl?
+    Rails.env.production? || ENV["FORCE_SECURE_COOKIES"] == "1" || request.ssl?
   end
   private_class_method :resolve_secure
 end

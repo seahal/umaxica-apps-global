@@ -22,8 +22,12 @@ module Palm
           client_id_param
         end
 
+        def oidc_base_authority_host
+          ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+        end
+
         def oidc_acme_host
-          ENV.fetch("PRIVATE_ACME_SERVICE_URL")
+          oidc_base_authority_host
         end
 
         def client_id_param

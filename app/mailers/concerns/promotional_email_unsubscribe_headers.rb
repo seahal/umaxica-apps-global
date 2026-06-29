@@ -4,26 +4,26 @@
 module PromotionalEmailUnsubscribeHeaders
   extend ActiveSupport::Concern
 
-  # Promotional unsubscribe links point at acme/www, which owns the preference and
+  # Promotional unsubscribe links point at base/www, which owns the preference and
   # email-unsubscribe boundary (adr/identity-authority-boundary.md). The legacy sign/id
   # preference endpoints have been removed.
   SURFACE_OPTIONS = {
     client: {
       edit_route: :edit_base_app_preference_email_url,
       one_click_route: :base_app_preference_email_url,
-      host_env: "ACME_SERVICE_URL",
+      host_envs: ["PUBLIC_BASE_SERVICE_URL"],
       default_host: "www.app.localhost",
     },
     visitor: {
       edit_route: :edit_base_com_preference_email_url,
       one_click_route: :base_com_preference_email_url,
-      host_env: "ACME_CORPORATE_URL",
+      host_env: "PUBLIC_BASE_CORPORATE_URL",
       default_host: "www.com.localhost",
     },
     operator: {
       edit_route: :edit_base_org_preference_email_url,
       one_click_route: :base_org_preference_email_url,
-      host_env: "ACME_STAFF_URL",
+      host_envs: ["PUBLIC_BASE_STAFF_URL"],
       default_host: "www.org.localhost",
     },
   }.freeze
@@ -49,7 +49,15 @@ module PromotionalEmailUnsubscribeHeaders
       options.fetch(route),
       email_record,
       token: token,
-      host: ENV.fetch(options.fetch(:host_env)),
+      host: configured_promotional_unsubscribe_host(options.fetch(:host_envs)),
     )
+  end
+
+  def configured_promotional_unsubscribe_host(env_keys)
+    env_keys.each do |key|
+      return ENV.fetch(key) if ENV.key?(key)
+    end
+
+    ENV.fetch(env_keys.first)
   end
 end

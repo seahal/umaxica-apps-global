@@ -187,6 +187,10 @@ module Auth
         ENV.fetch("PRIVATE_ACME_CORPORATE_URL")
       end
 
+      def base_authority_host
+        acme_authority_host
+      end
+
       def oidc_authorization_login_challenge
         session[:oidc_authorization_login_challenge]
       end

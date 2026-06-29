@@ -141,6 +141,10 @@ module Auth
       def acme_authority_host
         oidc_acme_host
       end
+
+      def base_authority_host
+        acme_authority_host
+      end
     end
   end
 end

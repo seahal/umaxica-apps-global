@@ -5,7 +5,15 @@
      public_send(
        "edit_base_#{scope}_preference_cookie_url",
        request.query_parameters.slice("ri", "lx", "ct", "tz", "cu", "df", "tf", "mo", "dn", "ps"),
-       **( local_assigns.key?(:acme_host) ? { host: acme_host } : {} ),
+       **(
+         if local_assigns.key?(:base_host)
+           { host: base_host }
+         elsif local_assigns.key?(:acme_host)
+           { host: acme_host }
+         else
+           {}
+         end
+       ),
      ) %>
 
 <div

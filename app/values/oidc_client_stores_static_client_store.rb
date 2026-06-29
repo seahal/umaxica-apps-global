@@ -11,15 +11,15 @@ module OidcClientStoresStaticClientStore
     {
       # Sign credential gateway as RP. This is an RP client-auth key only; Sign remains non-OP.
       "sign-rp" => {
-        redirect_uris: build_redirect_uris("AUTH_SERVICE_URL", "id.app.localhost") +
-          build_redirect_uris("AUTH_STAFF_URL", "id.org.localhost") +
-          build_redirect_uris("AUTH_CORPORATE_URL", "id.com.localhost"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("AUTH_SERVICE_URL", "id.app.localhost") +
-          build_post_logout_redirect_uris("AUTH_STAFF_URL", "id.org.localhost") +
-          build_post_logout_redirect_uris("AUTH_CORPORATE_URL", "id.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("AUTH_SERVICE_URL", "id.app.localhost", "backchannel/logout") +
-          build_logout_uris("AUTH_STAFF_URL", "id.org.localhost", "backchannel/logout") +
-          build_logout_uris("AUTH_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
+        redirect_uris: build_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
+          build_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
+          build_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
+        post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
+          build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
+          build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
+        backchannel_logout_uris: build_logout_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost", "backchannel/logout") +
+          build_logout_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost", "backchannel/logout") +
+          build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
         backchannel_logout_session_required: true,
         aud: "sign-rp",
         resource_type: "client",
@@ -206,9 +206,9 @@ module OidcClientStoresStaticClientStore
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     host =
       case env_key
-      when "AUTH_SERVICE_URL" then hosts.sign_service.to_s
-      when "AUTH_STAFF_URL" then hosts.sign_staff.to_s
-      when "AUTH_CORPORATE_URL" then hosts.sign_corporate.to_s
+      when "PUBLIC_AUTH_SERVICE_URL" then hosts.sign_service.to_s
+      when "PRIVATE_AUTH_STAFF_URL" then hosts.sign_staff.to_s
+      when "PRIVATE_AUTH_CORPORATE_URL" then hosts.sign_corporate.to_s
       when "ACME_SERVICE_URL" then hosts.acme_service.to_s
       when "ACME_STAFF_URL" then hosts.acme_staff.to_s
       when "ACME_CORPORATE_URL" then hosts.acme_corporate.to_s

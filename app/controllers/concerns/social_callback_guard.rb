@@ -111,11 +111,11 @@ module SocialCallbackGuard
       begin
         hosts =
           %w(
-            AUTH_SERVICE_URL
-            AUTH_SERVICE_URL
-            AUTH_STAFF_URL
-            AUTH_STAFF_URL
-            AUTH_CORPORATE_URL
+            PUBLIC_AUTH_SERVICE_URL
+            PUBLIC_AUTH_SERVICE_URL
+            PRIVATE_AUTH_STAFF_URL
+            PRIVATE_AUTH_STAFF_URL
+            PRIVATE_AUTH_CORPORATE_URL
           ).filter_map { |key| normalize_host_port(ENV.fetch(key)) }
 
         if Rails.env.local?

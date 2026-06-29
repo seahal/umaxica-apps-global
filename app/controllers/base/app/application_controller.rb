@@ -103,8 +103,12 @@ module Base
         ENV.fetch("PUBLIC_AUTH_SERVICE_URL")
       end
 
+      def oidc_base_authority_host
+        ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+      end
+
       def oidc_acme_host
-        ENV.fetch("PRIVATE_ACME_SERVICE_URL")
+        oidc_base_authority_host
       end
 
       def oidc_base_host

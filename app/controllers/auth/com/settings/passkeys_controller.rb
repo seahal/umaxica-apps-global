@@ -200,13 +200,13 @@ module Auth
               auth_com_settings_secrets_url(
                 ri: params[:ri],
                 token: reveal.token,
-                host: ENV.fetch("AUTH_CORPORATE_URL"),
+                host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
               )
             else
               bootstrap_return_path(
                 auth_com_settings_passkeys_url(
                   ri: params[:ri],
-                  host: ENV.fetch("AUTH_CORPORATE_URL"),
+                  host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
                 ),
               )
             end
@@ -281,7 +281,7 @@ module Auth
         def recovery_passcode_setup_url
           auth_com_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("AUTH_CORPORATE_URL"),
+            host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
           )
         end
       end

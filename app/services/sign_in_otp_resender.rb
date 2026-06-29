@@ -117,14 +117,14 @@ class SignInOtpResender
 
     otp_code = generate_otp_for(target)
 
-    if @kind == "telephone"
-      SignTelephoneOtpDelivery.deliver!(target, otp_code)
-    else
-      Email::App::OtpMailer.with(
+    OtpDeliveryAdapter
+      .for(surface: :app, channel: @kind.to_sym)
+      .deliver(
         encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
         email_address: target.address,
-      ).create.deliver_later
-    end
+        record: target,
+        otp_code: otp_code,
+      )
   end
 
   def target_records(normalized_target)

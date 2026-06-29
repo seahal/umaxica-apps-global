@@ -116,9 +116,9 @@ module PreferenceBase
   def cookie_banner_endpoint_available_for_request?
     expected_host =
       case ::CoreSurface.current(request)
-      when :app then ENV.fetch("PRIVATE_ACME_SERVICE_URL") || ENV.fetch("ACME_SERVICE_URL")
-      when :com then ENV.fetch("PRIVATE_ACME_CORPORATE_URL") || ENV.fetch("ACME_CORPORATE_URL")
-      when :org then ENV.fetch("PRIVATE_ACME_STAFF_URL") || ENV.fetch("ACME_STAFF_URL")
+      when :app then ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+      when :com then ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
+      when :org then ENV.fetch("PRIVATE_BASE_STAFF_URL")
       end
     return false if expected_host.blank?
 

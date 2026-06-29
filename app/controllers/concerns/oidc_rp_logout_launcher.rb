@@ -126,21 +126,25 @@ module OidcRpLogoutLauncher
     region = RequestContextContract.normalize_region(query.delete(:ri).presence || rp_logout_region)
     public_send(
       "base_#{sign_surface_name}_oidc_logout_url",
-      host: oidc_acme_host,
+      host: oidc_base_authority_host,
       ri: region,
       **query,
     )
   end
 
-  def oidc_acme_host
+  def oidc_base_authority_host
     case sign_surface_name
     when "app"
-      ENV.fetch("PRIVATE_ACME_SERVICE_URL")
+      ENV.fetch("PRIVATE_BASE_SERVICE_URL")
     when "com"
-      ENV.fetch("PRIVATE_ACME_CORPORATE_URL")
+      ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
     when "org"
-      ENV.fetch("PRIVATE_ACME_STAFF_URL")
+      ENV.fetch("PRIVATE_BASE_STAFF_URL")
     end
+  end
+
+  def oidc_acme_host
+    oidc_base_authority_host
   end
 
   def render_oidc_rp_logout_unavailable

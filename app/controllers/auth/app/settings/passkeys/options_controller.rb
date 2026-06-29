@@ -40,7 +40,7 @@ class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::Applicatio
   def passkey_registration_passkeys = current_client.client_passkeys
 
   def passkey_registration_redirect_url
-    auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("AUTH_SERVICE_URL"))
+    auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"))
   end
 
   def passkey_registration_log_prefix = "sign.webauthn.registration"
@@ -59,7 +59,7 @@ class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::Applicatio
   def recovery_passcode_setup_url
     auth_app_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("AUTH_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
     )
   end
 
@@ -71,7 +71,7 @@ class Auth::App::Settings::Passkeys::OptionsController < ::Auth::App::Applicatio
     auth_app_settings_secrets_url(
       ri: params[:ri],
       token: token,
-      host: ENV.fetch("AUTH_SERVICE_URL"),
+      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
     )
   end
 end

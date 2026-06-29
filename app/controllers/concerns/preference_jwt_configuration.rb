@@ -33,9 +33,9 @@ module PreferenceJwtConfiguration
 
     fallback_localhost_audiences(
       [
-        env_host("PUBLIC_BASE_SERVICE_URL", "BASE_SERVICE_URL", "base.app.localhost"),
-        env_host("PUBLIC_BASE_CORPORATE_URL", "BASE_CORPORATE_URL", "base.com.localhost"),
-        env_host("PUBLIC_BASE_STAFF_URL", "BASE_STAFF_URL", "base.org.localhost"),
+        env_host("PUBLIC_BASE_SERVICE_URL"),
+        env_host("PUBLIC_BASE_CORPORATE_URL"),
+        env_host("PUBLIC_BASE_STAFF_URL"),
       ].compact,
     )
   end
@@ -136,7 +136,7 @@ module PreferenceJwtConfiguration
   end
   private_class_method :audiences_from_boot_config
 
-  def self.env_host(public_key, _legacy_key, _fallback)
+  def self.env_host(public_key)
     ENV.fetch(public_key).to_s
   end
   private_class_method :env_host

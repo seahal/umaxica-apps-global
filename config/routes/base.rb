@@ -3,11 +3,8 @@
 
 # Base owns the OP/Authorization Server and durable identity/session authority.
 scope module: :base, as: :base do
-  boot_config = Rails.configuration.x.boot_config
-
   # App OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_service.host,
-                     ENV["PUBLIC_BASE_SERVICE_URL"] || ENV["BASE_SERVICE_URL"], "www.umaxica.app",].compact do
+  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_SERVICE_URL")).host do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -84,7 +81,7 @@ scope module: :base, as: :base do
       resource :switcher, only: %i(show update)
 
       # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
-      resource :welcome, only: :show, as: :welcome_entry
+      resource :welcome, only: :show, as: :welcome_entry # FIXME: remove :as statement.
 
       # Signed-in dashboard.
       resource :dashboard, only: :show
@@ -119,8 +116,8 @@ scope module: :base, as: :base do
 
       # RP OIDC entrypoints.
       namespace :oidc do
-        resource :authorization, only: :show, to: "/base/app/auth/authorizations#show"
-        resource :callback, only: :show, to: "/base/app/auth/callbacks#show"
+        resource :authorization, only: :show, to: "/base/app/auth/authorizations#show" # FIXME: Remove :to statement.
+        resource :callback, only: :show, to: "/base/app/auth/callbacks#show" # FIXME: Remove :to statement.
         resource :logout, only: %i(show create)
       end
 
@@ -135,6 +132,7 @@ scope module: :base, as: :base do
       end
 
       # Base sign-in limitation ceremony for session-limit resolution.
+      # FIXME: Remove :to statement.
       scope path: "sign/in", module: "sign/in", as: :sign_in do
         resource :limitation, only: %i(show update destroy)
       end
@@ -155,6 +153,7 @@ scope module: :base, as: :base do
       end
 
       # Canonical browser sign-out flow.
+      # FIXME: Remove :sign and :as statement.
       scope path: :sign, module: :sign do
         resource :out, only: %i(new edit create), as: :sign_out do
           get :complete, on: :collection
@@ -179,25 +178,30 @@ scope module: :base, as: :base do
         end
 
         resource :birthdate, only: :show
-        resource :recovery_secret, only: :show, path: "recovery-secret"
 
+        # FIXME: rename to secrets, and remove path: statement.
+        resource :recovery_secret, only: :show, path: "recovery-secret"
         resources :secrets, only: %i(index show new edit create update destroy) do
           resource :rotation, only: :create
           resource :removal, only: :create
         end
 
+        # TODO: Check controller code.
         resources :sessions, only: %i(index show) do
           resource :revocation, only: :create
         end
 
+        # TODO: Check controller code.
         namespace :revocations do
           resource :others, only: :create
           resource :all, only: :create
         end
 
         resources :activities, only: :index
+
         resource :withdrawal, only: %i(new create edit update destroy)
 
+        # TODO: what is these routing?
         namespace :mfa do
           resource :challenge, only: %i(show update)
           resource :reset, only: %i(show create)
@@ -216,12 +220,13 @@ scope module: :base, as: :base do
       # Group resource surface for Avatar containers.
       resources :groups, only: %i(index)
 
+      # Avatars
       resources :avatars, only: %i(index new create show edit update)
     end
   end
 
   # Corporate OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_corporate.host, "base.com.localhost", "www.umaxica.com"].compact do
+  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_CORPORATE_URL")).host do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -365,7 +370,7 @@ scope module: :base, as: :base do
       resource :identity, only: :show
 
       # Current organization entrypoint.
-      resource :organization, only: %i(show edit update), as: :current_organization
+      resource :organization, only: %i(show edit update), as: :current_organization # FIXME: Remove this :as statement.
 
       # Current account entrypoint.
       resource :account, only: %i(show edit update)
@@ -383,7 +388,7 @@ scope module: :base, as: :base do
   end
 
   # Staff OP/AS host.
-  constraints host: [boot_config.fetch(:hosts).base_staff.host, "base.org.localhost", "www.umaxica.org"].compact do
+  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_STAFF_URL")).host do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

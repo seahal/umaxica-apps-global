@@ -97,8 +97,12 @@ module Base
         ENV.fetch("PRIVATE_AUTH_STAFF_URL")
       end
 
+      def oidc_base_authority_host
+        ENV.fetch("PRIVATE_BASE_STAFF_URL")
+      end
+
       def oidc_acme_host
-        ENV.fetch("PRIVATE_ACME_STAFF_URL")
+        oidc_base_authority_host
       end
 
       def oidc_base_host

@@ -915,13 +915,6 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   test "acme retired routes do not resolve" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{BASE_APP_HOST}/__dev/r18/gate",
-        method: :get,
-      )
-    end
-
-    assert_raises(ActionController::RoutingError) do
-      Rails.application.routes.recognize_path(
         "http://#{BASE_APP_HOST}/oauth/user_info",
         method: :get,
       )

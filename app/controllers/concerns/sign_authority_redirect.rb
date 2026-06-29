@@ -19,11 +19,11 @@ module SignAuthorityRedirect
     )
   end
 
-  def redirect_to_acme_authority!(path, query: nil)
+  def redirect_to_base_authority!(path, query: nil)
     redirect_to(
       URI::Generic.build(
         scheme: request.scheme,
-        host: acme_authority_host,
+        host: base_authority_host,
         path: path,
         query: sign_authority_query(query),
       ).to_s,
@@ -51,13 +51,21 @@ module SignAuthorityRedirect
     end
   end
 
-  def acme_authority_host
+  def base_authority_host
     case self.class.name
-    when /\ASign::App::/ then ENV.fetch("PRIVATE_ACME_SERVICE_URL")
-    when /\ASign::Com::/ then ENV.fetch("PRIVATE_ACME_CORPORATE_URL")
-    when /\ASign::Org::/ then ENV.fetch("PRIVATE_ACME_STAFF_URL")
+    when /\ASign::App::/ then ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+    when /\ASign::Com::/ then ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
+    when /\ASign::Org::/ then ENV.fetch("PRIVATE_BASE_STAFF_URL")
     else
       request.host
     end
+  end
+
+  def redirect_to_acme_authority!(path, query: nil)
+    redirect_to_base_authority!(path, query: query)
+  end
+
+  def acme_authority_host
+    base_authority_host
   end
 end

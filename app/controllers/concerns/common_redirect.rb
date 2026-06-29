@@ -150,8 +150,8 @@ module CommonRedirect
   def oidc_authorize_host_allowed?(host)
     allowed_hosts =
       %w(
-        AUTH_SERVICE_URL AUTH_CORPORATE_URL AUTH_STAFF_URL
-        BASE_SERVICE_URL BASE_CORPORATE_URL BASE_STAFF_URL
+        PUBLIC_AUTH_SERVICE_URL PRIVATE_AUTH_CORPORATE_URL PRIVATE_AUTH_STAFF_URL
+        PUBLIC_BASE_SERVICE_URL PUBLIC_BASE_CORPORATE_URL PUBLIC_BASE_STAFF_URL
       ).filter_map do |key|
         Oidc::AcmeServiceOrigin.host_from(ENV.fetch(key)) || CommonRedirect.normalize_host(ENV.fetch(key))
       end

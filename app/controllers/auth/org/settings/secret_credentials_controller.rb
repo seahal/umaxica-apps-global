@@ -62,7 +62,7 @@ module Auth
           redirect_to(
             auth_org_settings_secret_credentials_url(
               ri: params[:ri],
-              host: ENV.fetch("AUTH_STAFF_URL"),
+              host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

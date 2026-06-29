@@ -165,7 +165,7 @@ module Auth
               bootstrap_return_path(
                 auth_org_settings_emails_url(
                   ri: params[:ri],
-                  host: ENV.fetch("AUTH_STAFF_URL"),
+                  host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
                 ),
               ),
               notice: t("sign.org.registration.email.update.success"),

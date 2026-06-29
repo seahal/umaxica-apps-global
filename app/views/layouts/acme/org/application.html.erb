@@ -30,7 +30,7 @@
   <div>
     <span>ACME</span>
     <h1>
-      <a href="<%= "#{request.protocol}#{ENV.fetch('ACME_STAFF_URL')}#{request.port_string}/" %>"><%= ENV.fetch("BRAND_NAME") %></a>
+      <a href="<%= "#{request.protocol}#{ENV.fetch('PUBLIC_BASE_STAFF_URL')}#{request.port_string}/" %>"><%= ENV.fetch("BRAND_NAME") %></a>
       <span>(org)</span>
     </h1>
   </div>
@@ -43,8 +43,8 @@
 <footer>
   <nav>
     <ul>
-      <li><a href="<%= "#{request.protocol}#{ENV.fetch('ACME_STAFF_URL')}#{request.port_string}/" %>"><%= t('acme.org.preferences.footer.home') %></a></li>
-      <li><%= link_to t('acme.org.preferences.footer.preference'), acme_org_preference_url(host: ENV.fetch('ACME_STAFF_URL')) %></li>
+      <li><a href="<%= "#{request.protocol}#{ENV.fetch('PUBLIC_BASE_STAFF_URL')}#{request.port_string}/" %>"><%= t('acme.org.preferences.footer.home') %></a></li>
+      <li><%= link_to t('acme.org.preferences.footer.preference'), acme_org_preference_url(host: ENV.fetch('PUBLIC_BASE_STAFF_URL')) %></li>
     </ul>
   </nav>
   <%= render "layouts/shared/footer_cookie_controls", scope: :org %>

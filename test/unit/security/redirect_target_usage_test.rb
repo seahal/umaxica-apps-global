@@ -25,8 +25,6 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
   ).freeze
 
   RAW_PT_ALLOWLIST_PATTERNS = [
-    %r{\Aapp/controllers/.*/r18/},
-    %r{\Aapp/controllers/acme/app/dev/r18/},
     %r{\Aapp/controllers/.*/verification/},
     %r{\Aapp/controllers/concerns/verification/},
     %r{\Aapp/controllers/concerns/sign/.*verification},

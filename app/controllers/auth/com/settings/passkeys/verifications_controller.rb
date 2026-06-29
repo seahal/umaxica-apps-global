@@ -26,7 +26,7 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
   def passkey_registration_passkeys = current_visitor.visitor_passkeys
 
   def passkey_registration_redirect_url
-    auth_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("AUTH_CORPORATE_URL"))
+    auth_com_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"))
   end
 
   def recovery_passcode_requirement_active_strong_credential_count
@@ -40,7 +40,7 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
   def recovery_passcode_setup_url
     auth_com_settings_secret_credentials_url(
       ri: params[:ri],
-      host: ENV.fetch("AUTH_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
     )
   end
 
@@ -52,7 +52,7 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
     auth_com_settings_secrets_url(
       ri: params[:ri],
       token: token,
-      host: ENV.fetch("AUTH_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
     )
   end
 end

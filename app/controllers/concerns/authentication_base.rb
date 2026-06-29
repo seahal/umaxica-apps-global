@@ -116,6 +116,8 @@ module AuthenticationBase
   end
 
   def params(*filters)
+    return ActionController::Parameters.new if request.blank?
+
     raw_params = super()
     return raw_params if filters.empty?
 

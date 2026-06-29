@@ -36,7 +36,7 @@ module Auth
 
           protect_from_forgery using: :header_or_legacy_token,
                                trusted_origins: JitHostOriginEnv.trusted_origins(
-                                 ENV.fetch("AUTH_STAFF_URL"),
+                                 ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
                                ),
                                with: :exception
 

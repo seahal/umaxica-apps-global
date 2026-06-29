@@ -6,7 +6,7 @@ class RedirectsExternalTargetResolver
 
   REGISTRY = {
     rp_app: { env: "RP_APP_URL", default: "https://rp.app.localhost" },
-    idp: { env: "AUTH_CORPORATE_URL", default: "https://id.com.localhost" },
+    idp: { env: "PRIVATE_AUTH_CORPORATE_URL", default: "https://id.com.localhost" },
     jump: { env: "JUMP_GATEWAY_URL", default: "https://jump.umaxica.net" },
   }.freeze
 

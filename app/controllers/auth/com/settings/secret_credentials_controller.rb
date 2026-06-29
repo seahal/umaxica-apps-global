@@ -63,7 +63,7 @@ module Auth
           redirect_to(
             auth_com_settings_secret_credentials_url(
               ri: params[:ri],
-              host: ENV.fetch("AUTH_CORPORATE_URL"),
+              host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
             ),
             allow_other_host: cross_host_redirect_allowed?,
           )

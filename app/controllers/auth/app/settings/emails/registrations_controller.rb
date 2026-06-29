@@ -65,7 +65,7 @@ module Auth
             email_registration_return_path(
               auth_app_settings_emails_url(
                 ri: params[:ri],
-                host: ENV.fetch("AUTH_SERVICE_URL"),
+                host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
               ),
             )
           end

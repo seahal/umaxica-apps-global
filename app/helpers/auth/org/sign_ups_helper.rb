@@ -15,7 +15,7 @@ module Auth::Org::SignUpsHelper
     return configured if configured.present?
 
     base_com_root_url(
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL"),
+      host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
       ri: params[:ri],
       lx: params[:lx],
     )

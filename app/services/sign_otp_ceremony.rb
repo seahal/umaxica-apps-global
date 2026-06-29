@@ -155,20 +155,14 @@ class SignOtpCeremony
   end
 
   def deliver!(record, otp_code)
-    case [surface, channel]
-    when [:app, :email]
-      Email::App::OtpMailer.with(
+    OtpDeliveryAdapter
+      .for(surface: surface, channel: channel)
+      .deliver(
         encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
         email_address: record.address,
-      ).create.deliver_later
-    when [:com, :email]
-      Email::Com::OtpMailer.with(
-        encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-        email_address: record.address,
-      ).create.deliver_later
-    when [:app, :telephone], [:com, :telephone]
-      SignTelephoneOtpDelivery.deliver!(record, otp_code)
-    end
+        record: record,
+        otp_code: otp_code,
+      )
   end
 
   def result(success, status, record: nil, code: nil, error: nil)

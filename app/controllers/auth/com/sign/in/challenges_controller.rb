@@ -21,8 +21,9 @@ module Auth
             return unless !pending_mfa_valid? || pending_mfa_user.nil?
 
             clear_pending_mfa!
+            ri = params[:ri].presence || current_region_identifier
             redirect_to(
-              auth_com_sign_in_path(ri: current_region_identifier),
+              auth_com_sign_in_path(ri: ri),
               alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )

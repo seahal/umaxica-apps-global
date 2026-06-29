@@ -128,6 +128,7 @@ services:
       PRIVATE_PALM_SERVICE_URL: palm.app.localhost
       # --- JWT leeway ---
       PREFERENCE_JWT_LEEWAY_SECONDS: "30"
+      AUTH_JWT_LEEWAY_SECONDS: '30'
       # --- Vite ---
       VITE_RUBY_PACKAGE_MANAGER: pnpm
       VITE_RUBY_HOST: "0.0.0.0"
@@ -174,21 +175,12 @@ services:
       backend: {}
       frontend:
         aliases:
-          - sign.app.localhost
-          - sign.com.localhost
-          - sign.org.localhost
-          - acme.app.localhost
-          - acme.com.localhost
-          - acme.org.localhost
           - info.app.localhost
           - info.com.localhost
           - info.org.localhost
           - auth.umaxica.app
           - auth.umaxica.com
           - auth.umaxica.org
-          - log.umaxica.app
-          - log.umaxica.com
-          - log.umaxica.org
           - www.umaxica.app
           - www.umaxica.com
           - www.umaxica.org
@@ -198,34 +190,22 @@ services:
           - info.umaxica.app
           - info.umaxica.com
           - info.umaxica.org
-          - www-jp.umaxica.app
-          - www-jp.umaxica.com
-          - www-jp.umaxica.org
+          - core-jp.umaxica.app
+          - core-jp.umaxica.com
+          - core-jp.umaxica.org
           - jpx.umaxica.app
           - jpx.umaxica.com
           - jpx.umaxica.org
           - palm-jp.umaxica.app
-          - palm-jp.umaxica.com
-          - palm-jp.umaxica.org
-          - docs.jp.umaxica.app
-          - docs.jp.umaxica.com
-          - docs.jp.umaxica.org
-          - help.jp.umaxica.app
-          - help.jp.umaxica.com
-          - help.jp.umaxica.org
-          - news.jp.umaxica.app
-          - news.jp.umaxica.com
-          - news.jp.umaxica.org
-          - core.app.localhost
-          - core.com.localhost
-          - core.org.localhost
-          - acme.app.localhost
-          - acme.com.localhost
-          - acme.org.localhost
-          - base.app.localhost
-          - base.com.localhost
-          - base.org.localhost
-          - palm.app.localhost
+          - docs-jp.umaxica.app
+          - docs-jp.umaxica.com
+          - docs-jp.umaxica.org
+          - help-jp.umaxica.app
+          - help-jp.umaxica.com
+          - help-jp.umaxica.org
+          - news-jp.umaxica.app
+          - news-jp.umaxica.com
+          - news-jp.umaxica.org
       observability: {}
       outer:
         aliases:

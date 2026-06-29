@@ -99,10 +99,10 @@ class SignRiskEmitter
   end
 
   def self.feature_enabled?
-    return false if ENV.fetch("RISK_ENFORCEMENT_DISABLED") == "true"
+    return false if ENV["RISK_ENFORCEMENT_DISABLED"] == "true"
 
     enabled_config = Rails.configuration.try(:x).try(:risk_enforcement).try(:enabled)
-    enabled_config || ENV.fetch("RISK_ENFORCEMENT_ENABLED") == "true" || Rails.env.production?
+    enabled_config || ENV["RISK_ENFORCEMENT_ENABLED"] == "true" || Rails.env.production?
   end
 
   def self.hmac_email(email)

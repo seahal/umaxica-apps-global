@@ -26,7 +26,7 @@ module Email::Org
 
       Rails.application.routes.url_helpers.edit_sign_org_settings_emails_registration_url(
         token: @verification_token,
-        host: ENV.fetch("AUTH_STAFF_URL"),
+        host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
       )
     end
   end
