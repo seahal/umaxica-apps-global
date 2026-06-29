@@ -58,4 +58,10 @@ class OrganizationTest < ActiveSupport::TestCase
 
     assert_predicate organization, :valid?
   end
+  private
+
+  def assert_invalid_attribute(record, attribute)
+    assert_not_predicate record, :valid?, "expected #{record.class.name} to be invalid"
+    assert_includes record.errors.attribute_names, attribute
+  end
 end

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Core::Org::RootsControllerTest < ActionDispatch::IntegrationTest
   test "renders a thin landing page" do

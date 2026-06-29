@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class ClientPasskeyPolicyTest < ActiveSupport::TestCase
   def test_index_denied_for_nil_user

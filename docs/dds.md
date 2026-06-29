@@ -17,7 +17,7 @@ collaborates to satisfy the SRS.
 ### 1.2 Scope
 
 - All Rails namespaces within `app/controllers`
-- Front-end bundles in `app/javascript`
+- Front-end bundles in `src`
 - Data models spanning the multi-database setup defined in `config/database.yml`
 - Supporting services (`app/services`, `app/consumers`, ActionMailer, Sms providers)
 - Observability, configuration, and deployment mechanisms (pnpm-managed JS tooling, Compose,
@@ -52,7 +52,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 | Layer          | Components                                                                                |
 | -------------- | ----------------------------------------------------------------------------------------- |
-| Presentation   | Namespaced controllers and Turbo/React views under `app/javascript`                       |
+| Presentation   | Namespaced controllers and Turbo/React views under `src`                                  |
 | Domain Logic   | Concerns in `app/controllers/concerns`, services in `app/services`, models per DB         |
 | Integration    | `app/mailers`, `Outbound::Sms`, OTEL instrumentation                                      |
 | Infrastructure | Compose services (Postgres, Valkey, MinIO, Loki, Tempo, Grafana), pnpm/Tailwind toolchain |
@@ -95,8 +95,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 - `Preference::*` controllers (region, cookie, theme, reset) provide UI for personalization and
   ePrivacy. Data stored inside signed cookies named `root_<scope>_preferences` and
   `root_<scope>_theme`.
-- Views interact with JS entrypoints in `app/javascript/views/www/**` to show localized text,
-  doc/help/news URLs, etc.
+- Views interact with JS entrypoints in `src/pages/**` to show localized text, doc/help/news URLs,
+  etc.
 
 ### 3.4 Sign Namespace
 
@@ -142,8 +142,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ### 3.6 Docs & News Namespaces
 
 - Mirror the top namespace with simpler controller sets (root + health endpoints).
-- React/Turbo entrypoints under `app/javascript/views/docs/**` and `views/news/**` hydrate
-  placeholder content.
+- React/Turbo entrypoints under `src/pages/docs/**` and `src/pages/news/**` hydrate placeholder
+  content.
 
 ### 3.7 API Namespace
 
@@ -165,10 +165,9 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 3.9 Front-End Bundles
 
-- `app/javascript/entrypoints/application.js` imports Turbo, Stimulus controllers, and shared
-  browser helpers.
-- Additional Vite entrypoints live under `app/javascript/entrypoints`, with page modules under
-  `app/javascript/pages`.
+- `src/entrypoints/application.ts` imports Turbo, Stimulus controllers, shared browser helpers, and
+  the single Vite stylesheet graph.
+- Additional Vite entrypoints live under `src/entrypoints`, with page modules under `src/pages`.
 - JavaScript is bundled through Vite Rails; pnpm and Vite Plus manage linting, formatting, tests,
   and build tooling.
 - Tailwind CSS is compiled through the Vite-backed frontend pipeline and surfaced through `bin/dev`.
@@ -221,7 +220,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ### 4.3 Help Contact Submission
 
 1. User visits `help.umaxica.com/contacts/new`.
-2. Form ensures policy consent via `views/www/app/inquiry/before_submit.js`.
+2. Form ensures policy consent via `src/pages/app/inquiry/before_submit.js`.
 3. `#create` builds `ServiceSiteContact`, ensures Turnstile passes, encrypts PII, and stores IP
    address.
 4. Send immediate email through the surface-specific alert mailer.
@@ -348,7 +347,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 - **Local**: Compose + Foreman; pnpm handles JS lint/format tasks.
 - **CI**: GitHub Actions pipeline runs bundler install, database setup, Rails tests, pnpm linting,
-  Brakeman, Bundler Audit, Biome (via `lefthook.yml`).
+  Brakeman, Bundler Audit, and Vite Plus checks.
 - **Staging/Production**:
   - Rails server deployed to Google Cloud Run (per README) or equivalent.
   - Fastly/Cloudflare handle DNS & TLS; `EDGE_*` hostnames define redirect targets.

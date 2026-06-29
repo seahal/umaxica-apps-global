@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class OrgOperatorLifecycleInvitationAcceptanceTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses, :operator_email_statuses, :operator_visibilities

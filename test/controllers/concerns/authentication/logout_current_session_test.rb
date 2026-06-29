@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AuthenticationLogoutCurrentSessionTest < ActiveSupport::TestCase
   fixtures :clients, :client_token_statuses, :client_token_kinds

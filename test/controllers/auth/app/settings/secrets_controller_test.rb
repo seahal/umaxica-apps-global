@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 module Auth::App::Settings
   # Auth::App::Settings::SecretsController is a redirect shim to base/app/identity/recovery-secret.

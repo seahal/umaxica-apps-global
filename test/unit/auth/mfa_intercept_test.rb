@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Unit tests for the MFA intercept logic in AuthenticationBase.
 # Tests mfa_required_for?, establish_signed_in_session!, and related helpers.

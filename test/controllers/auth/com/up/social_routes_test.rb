@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Verifies that com sign-up social routes (Google, Apple) do not exist.
 # Per ADR sign-com-no-social-login.md, com supports only email and telephone sign-up.

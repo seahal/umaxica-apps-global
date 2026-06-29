@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class I18nRuntimeDefaultCleanupTest < ActiveSupport::TestCase
   LOCALES = %i(ja en).freeze

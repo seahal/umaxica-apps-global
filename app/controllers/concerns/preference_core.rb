@@ -504,15 +504,6 @@ module PreferenceCore
     session[:language] = option_id_to_language(@preference_language.option_id, preference_prefix)
   end
 
-  def updated_region_redirect_params
-    return {} if @preference_region&.option_id.blank?
-
-    region = option_id_to_region(@preference_region.option_id, preference_prefix)
-    preference_context_redirect_params.merge(
-      ri: region,
-    )
-  end
-
   def update_region_and_language_preferences!
     region_attributes = sanitize_option_id(preference_region_params, option_type: :region)
     language_attributes = {

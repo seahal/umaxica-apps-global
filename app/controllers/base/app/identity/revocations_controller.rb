@@ -5,6 +5,9 @@ module Base
   module App
     module Identity
       class RevocationsController < BaseController
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         before_action :authenticate_client!
         before_action :set_session, only: :create
 

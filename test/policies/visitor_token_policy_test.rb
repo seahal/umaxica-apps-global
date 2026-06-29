@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Object-level authorization for the com (visitor) session listing.
 # index? allows only the owning actor type (Visitor); all other defaults stay deny-all.

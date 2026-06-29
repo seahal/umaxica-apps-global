@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SurfaceRootsControllerTest < ActionDispatch::IntegrationTest
   test "acme app root responds successfully" do

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class BaseHealthsControllerTest < ActionDispatch::IntegrationTest
   test "network host GET /health returns OK response without redirect" do

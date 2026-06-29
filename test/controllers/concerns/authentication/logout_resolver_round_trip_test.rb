@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Reproduction probe: does an ordinary sign-out actually make the access token
 # stop resolving a current resource on the *next* request? This exercises the

@@ -11,6 +11,7 @@ class PreferenceToken
   JWT_ALGORITHM = SecurityJwtPreferenceTokenCodec::JWT_ALGORITHM
   ACCESS_TOKEN_TTL = SecurityJwtPreferenceTokenCodec::ACCESS_TOKEN_TTL
   TOKEN_TYPE = SecurityJwtPreferenceTokenCodec::TOKEN_TYPE
+  AudienceMismatchError = SecurityJwtPreferenceTokenCodec::AudienceMismatchError
 
   class << self
     def encode(preferences, host:, preference_type:, public_id:, jti:, jwt_issuer_id: nil)
@@ -24,8 +25,13 @@ class PreferenceToken
       )
     end
 
-    def decode(token, host:, jwt_issuer_id: nil)
-      codec.decode(token, host: host, jwt_issuer_id: jwt_issuer_id)
+    def decode(token, host:, jwt_issuer_id: nil, raise_on_audience_mismatch: false)
+      codec.decode(
+        token,
+        host: host,
+        jwt_issuer_id: jwt_issuer_id,
+        raise_on_audience_mismatch: raise_on_audience_mismatch,
+      )
     end
 
     def extract_preferences(payload) = codec.extract_preferences(payload)

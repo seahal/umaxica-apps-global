@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class StepUpRequirementTest < ActiveSupport::TestCase
   test "build from hash merges attributes" do

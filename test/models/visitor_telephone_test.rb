@@ -139,4 +139,13 @@ class VisitorTelephoneTest < ActiveSupport::TestCase
 
     assert_equal expected, telephone.number_digest
   end
+  private
+
+  def ensure_visitor_reference_records!
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::UNVERIFIED)
+    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::DELETED)
+  end
 end

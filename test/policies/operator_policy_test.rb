@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class OperatorPolicyTest < ActiveSupport::TestCase
   def test_index_returns_false_by_default

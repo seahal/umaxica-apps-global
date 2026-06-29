@@ -28,6 +28,7 @@ module PreferenceWebThemeEndpoint
     requested = requested_theme_value
     return nil if requested.nil?
 
+    ensure_preference_access_token_audience_for_write!
     persist_theme!(requested)
     requested
   rescue StandardError => e

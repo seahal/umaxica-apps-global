@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class TurnstileFormsTest < ActionDispatch::IntegrationTest
   def setup
@@ -11,7 +12,8 @@ class TurnstileFormsTest < ActionDispatch::IntegrationTest
       { name: "Sign::App registration email", env_key: "PRIVATE_AUTH_SERVICE_URL", path: "/sign/up/email/new" },
       { name: "Sign::App authentication email", env_key: "PRIVATE_AUTH_SERVICE_URL", path: "/sign/in/email/new" },
       # { name: "Sign::Org registration emails", env_key: "PRIVATE_AUTH_STAFF_URL", path: "/registration/emails/new" },
-      # { name: "Sign::Org registration passkeys", env_key: "PRIVATE_AUTH_STAFF_URL", path: "/registration/passkeys/new" },
+      # { name: "Sign::Org registration passkeys",
+      #   env_key: "PRIVATE_AUTH_STAFF_URL", path: "/registration/passkeys/new" },
     ]
   end
 

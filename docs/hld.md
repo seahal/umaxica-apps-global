@@ -18,7 +18,7 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
 
 - Rails application located at `/home/mslo/ghq/github.com/seahal/umaxica-app-jit`
 - Namespaced controllers for `Top`, `Sign`, `Help`, `Docs`, `News`, `Bff`, and `Api` surfaces
-- Turbo/React front-end with pnpm-managed tooling (`app/javascript/**`)
+- Turbo/React front-end with pnpm-managed tooling (`src/**`)
 - Multi-database Active Record setup (`app_principal`, `org_ticket`, `com_setting`, etc.)
 - Supporting infrastructure: PostgreSQL primary/replica pairs, Valkey, MinIO, Grafana/Loki/Tempo
 - CI/CD automation (GitHub Actions, Lefthook) and local workflows (Foreman + Docker Compose)
@@ -57,8 +57,8 @@ host—marketing, authentication, docs/news, help/support, BFF, and API—consis
   `allow_browser versions: :modern` guard every entry point.
 - **Observability-first**: All HTTP, Redis, and ActionMailer operations are instrumented;
   `/health` + `/v1/health` exist for every host.
-- **Composable tooling**: pnpm-managed JavaScript tooling (Biome), Vite-backed CSS entrypoints,
-  Foreman + Docker Compose for orchestration, GitHub Actions for CI.
+- **Composable tooling**: pnpm-managed JavaScript tooling, Vite-backed CSS entrypoints, Foreman +
+  Docker Compose for orchestration, GitHub Actions for CI.
 
 ### 2.3 Constraints
 
@@ -103,9 +103,9 @@ concerns scoped.
 ### 3.3 Layered components
 
 1. **Presentation**: ActionController namespaces + Turbo/React bundles. Entry file
-   `app/javascript/application.js` imports per-surface view scripts (e.g.,
-   `views/sign/app/application.ts`, `views/passkey.js`). Layouts load compiled bundles from
-   `app/assets/builds`.
+   `src/entrypoints/application.ts` imports Turbo, Stimulus controllers, shared browser helpers, and
+   the Vite stylesheet graph. Surface layouts load explicit entrypoint wrappers from
+   `src/entrypoints`.
 2. **Domain Logic**: Concerns handle cross-cutting rules (auth, region, theme, cookie consent,
    Turnstile, rate limiting, redirect sanitization). Models inherit from base records
    (`IdentitiesRecord`, `ComPrincipalRecord`, etc.) to target specific DB clusters. Services (e.g.,
@@ -127,7 +127,7 @@ concerns scoped.
   `system/dark/light`, map shorthand codes, and update preference cookies.
 - `Preference::CookieController` (`Cookie` concern) captures ePrivacy choices, storing
   `accept_*_cookies` flags as signed, permanent cookies.
-- Views can hydrate React micro front-ends defined in `app/javascript/views/www/**`.
+- Views can hydrate React micro front-ends defined in `src/pages/**`.
 
 ### 4.2 Sign (identity & security)
 
@@ -152,14 +152,14 @@ concerns scoped.
   guarantees either email or phone exists.
 - Turnstile result is logged; failures add model errors and re-render the form.
 - On success, controller redirects to `new` after immediate email notification handling.
-- VisitorAccount-side guard (`app/javascript/views/www/app/inquiry/before_submit.js`) prevents
-  submission when policy checkbox unchecked.
+- VisitorAccount-side guard (`src/pages/app/inquiry/before_submit.js`) prevents submission when
+  policy checkbox unchecked.
 
 ### 4.4 Docs & News
 
 - Each namespace exposes `root`, `/health`, `/v1/health` with host constraints; upcoming roadmap
-  will hydrate documentation/newsroom content via React views (see `app/javascript/views/docs/**`
-  and `views/news/**`).
+  will hydrate documentation/newsroom content via React views (see `src/pages/docs/**` and
+  `src/pages/news/**`).
 
 ### 4.5 API & BFF
 
@@ -226,7 +226,7 @@ Sensitive columns leverage Active Record encryption.
   Tempo, Grafana. Ports default to `5435-5436` (Postgres), `56379` (Valkey), `9000/9001` (MinIO),
   `33100/3200/4317` (observability), `8000` (Grafana).
 - `bin/dev` is the unified local entrypoint; it wraps `foreman start -f Procfile.dev` to orchestrate
-  Rails, Vite, and jobs. JavaScript tooling (Biome) runs via pnpm when linting/formatting.
+  Rails, Vite, and jobs. JavaScript tooling runs via Vite Plus when linting/formatting.
 
 ### 6.2 CI/CD
 

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require "helpers/auth_helpers"
 
 class Auth::Com::Edge::V0::Token::ChecksControllerTest < ActionDispatch::IntegrationTest

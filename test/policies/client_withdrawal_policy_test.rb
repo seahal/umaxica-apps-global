@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # The withdrawal flow is owner-self only: a client may drive their own withdrawal, never another's.
 class ClientWithdrawalPolicyTest < ActiveSupport::TestCase

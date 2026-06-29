@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::TokenCsrfTest < ActionDispatch::IntegrationTest
   test "sign oauth token routes are retired instead of csrf-exempt provider endpoints" do

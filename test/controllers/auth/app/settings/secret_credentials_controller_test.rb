@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Auth::App::Settings::SecretCredentialsController is now a redirect shim.
 # Read actions (index/show/new/edit) redirect to base/app/identity/secrets/*.

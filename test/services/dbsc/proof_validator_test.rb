@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DbscProofValidatorTest < ActiveSupport::TestCase
   # Builds a validator whose `proof` is signed by `key` with `algorithm`, so

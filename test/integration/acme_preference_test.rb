@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require "sha3"
 
 class AcmePreferenceTest < ActionDispatch::IntegrationTest
@@ -111,7 +112,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
                    pref.try("#{domain[:name]}_preference_language").option_id
     end
 
-    test "#{domain[:name]} domain updates language when region changes to Japan" do
+    test "#{domain[:name]} domain keeps request region context when saved region changes to Japan" do
       host!(domain[:host])
       pref, = assert_preference_created(domain, ri: "us")
 
@@ -129,7 +130,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
       location = URI.parse(response.headers.fetch("Location"))
       query = Rack::Utils.parse_query(location.query)
 
-      assert_equal "jp", query["ri"]
+      assert_equal "us", query["ri"]
       assert_not query.key?("lx")
 
       pref.reload
@@ -996,19 +997,10 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
 
   def preference_write_redirect_state(kind, state, params = {})
     if kind == :region
-      region = region_context_from_preference_params(params)
-      return state.merge(ri: region).except(:lx)
+      return state.slice(:ri).except(:lx)
     end
 
     state.slice(:ri).merge(preference_context_key_for_kind(kind) => nil)
-  end
-
-  def region_context_from_preference_params(params)
-    option_id = params.dig(:preference_region, :option_id).to_s
-    return "jp" if option_id.casecmp("JP").zero? || option_id == "2"
-    return "us" if option_id.casecmp("US").zero? || option_id == "1"
-
-    "jp"
   end
 
   def preference_context_key_for_kind(kind)

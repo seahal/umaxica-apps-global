@@ -6,6 +6,9 @@ module Base
     module Identity
       module Revocations
         class AllsController < BaseController
+          AUTHENTICATION_MODE = :private
+          declare_authentication_mode! :private
+
           before_action :authenticate_client!
           def create
             AuthenticationSessionRevoker.revoke_all_for(current_client)

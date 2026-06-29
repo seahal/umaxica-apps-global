@@ -30,4 +30,11 @@ class VisitorOccurrenceStatusTest < ActiveSupport::TestCase
   test "has many association with visitor occurrences" do
     assert_status_association(VisitorOccurrenceStatus, :visitor_occurrences)
   end
+  private
+
+  def assert_status_association(status_class, association_name)
+    reflection = status_class.reflect_on_association(association_name)
+
+    assert_not_nil reflection
+  end
 end

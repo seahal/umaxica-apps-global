@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class IdentityTelephoneCeremonyContractTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers

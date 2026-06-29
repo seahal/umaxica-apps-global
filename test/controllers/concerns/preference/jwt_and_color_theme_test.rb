@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class PreferenceJwtAndColorThemeTest < ActiveSupport::TestCase
   test "THEME_SHORT_MAP contains correct mappings" do

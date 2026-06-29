@@ -133,37 +133,34 @@ Rails.application.configure do
       auth.umaxica.app
       auth.umaxica.com
       auth.umaxica.org
-      www.umaxica.app
-      www.umaxica.com
-      www.umaxica.org
+      base.umaxica.app
+      base.umaxica.com
+      base.umaxica.org
       side-jp.umaxica.app
       side-jp.umaxica.com
       side-jp.umaxica.org
-    ) +
-    %w(
-      sign.app.localhost
-      sign.com.localhost
-      sign.org.localhost
-      acme.app.localhost
-      acme.com.localhost
-      acme.org.localhost
-      info.app.localhost
-      info.com.localhost
-      info.org.localhost
-      info.umaxica.app
-      info.umaxica.com
-      info.umaxica.org
-      www-jp.umaxica.app
-      www-jp.umaxica.com
-      www-jp.umaxica.org
-      base-jp.umaxica.app
-      base-jp.umaxica.com
-      base-jp.umaxica.org
-      jpx.umaxica.app
-      jpx.umaxica.com
-      jpx.umaxica.org
-      palm-jp.umaxica.app
-      palm.app.localhost
+      auth.app.localhost:3000
+      acme.com.localhost:3000
+      acme.org.localhost:3000
+      base.app.localhost:3000
+      base.org.localhost:3000
+      base.com.localhost:3000
+      info.com.localhost:3000
+      info.org.localhost:3000
+      info.app.localhost:3000
+      help.com.localhost:3000
+      help.org.localhost:3000
+      help.app.localhost:3000
+      core.com.localhost:3000
+      core.org.localhost:3000
+      core.app.localhost:3000
+      docs.com.localhost:3000
+      docs.org.localhost:3000
+      docs.app.localhost:3000
+      news.com.localhost:3000
+      news.org.localhost:3000
+      news.app.localhost:3000
+      palm.app.localhost:3000
     )
   config.hosts.concat(
     ENV.values_at(

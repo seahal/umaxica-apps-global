@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class ProsopiteInitializerTest < ActiveSupport::TestCase
   TEST_QUERY = 'SELECT "app_preferences"."id" FROM "app_preferences" ' \

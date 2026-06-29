@@ -5,13 +5,13 @@
 #
 # This initializer sets up WebAuthn for Passkey authentication.
 #
-# IMPORTANT: TRUSTED_ORIGINS must be configured in environment variables.
-# The application will fail to start if TRUSTED_ORIGINS is not set or empty.
+# IMPORTANT: WebAuthn trusted origins are derived from public Auth hosts.
+# The application will fail to start if no public Auth host or explicit origin is configured.
 #
 # Environment Variables:
-# - TRUSTED_ORIGINS: Comma-separated list of allowed origins (required)
-#   - Development: http://id.app.localhost:3000,http://id.org.localhost:3000
-#   - Production: https://id.app.example.com,https://id.org.example.com
+# - PUBLIC_AUTH_SERVICE_URL / PUBLIC_AUTH_CORPORATE_URL / PUBLIC_AUTH_STAFF_URL:
+#   Public browser hosts for the Auth surfaces (required unless explicit WebAuthn origins are set).
+# - TRUSTED_ORIGINS: Optional comma-separated additional origins.
 # - WEBAUTHN_APP_RP_ID / WEBAUTHN_COM_RP_ID / WEBAUTHN_ORG_RP_ID: Public RP IDs.
 # - WEBAUTHN_APP_ORIGIN / WEBAUTHN_COM_ORIGIN / WEBAUTHN_ORG_ORIGIN: Public origins.
 # - WEBAUTHN_RP_ID / WEBAUTHN_ORIGIN: Shared fallback values.
@@ -19,6 +19,8 @@
 # Note: rp_id is NOT configured on the global gem object. It is dynamically
 # determined per-request in SignWebauthn, with environment overrides for
 # deployments where Rails sees an internal host behind a proxy.
+
+require "jit_host_origin_env"
 
 module Webauthn
   class TrustedOriginsNotConfiguredError < StandardError; end
@@ -63,29 +65,23 @@ module Webauthn
     private
 
     def parse_trusted_origins
-      origins = []
-      origins.concat(ENV["TRUSTED_ORIGINS"].to_s.strip.split(","))
-      origins.concat(
-        [
-          ENV["WEBAUTHN_APP_ORIGIN"],
-          ENV["WEBAUTHN_COM_ORIGIN"],
-          ENV["WEBAUTHN_ORG_ORIGIN"],
-          ENV["WEBAUTHN_ORIGIN"],
-        ],
+      origins = JitHostOriginEnv.trusted_origins(
+        ENV["PUBLIC_AUTH_SERVICE_URL"],
+        ENV["PUBLIC_AUTH_CORPORATE_URL"],
+        ENV["PUBLIC_AUTH_STAFF_URL"],
+        ENV["WEBAUTHN_APP_ORIGIN"],
+        ENV["WEBAUTHN_COM_ORIGIN"],
+        ENV["WEBAUTHN_ORG_ORIGIN"],
+        ENV["WEBAUTHN_ORIGIN"],
+        ENV["TRUSTED_ORIGINS"].to_s.split(","),
       )
-      origins.compact!
-      origins.map! { |origin| origin.to_s.strip }
-      origins.reject!(&:empty?)
-      origins.uniq!
 
       if origins.empty?
         raise TrustedOriginsNotConfiguredError,
-              "TRUSTED_ORIGINS environment variable is required but not set. " \
-              "Please configure it with comma-separated origin URLs. " \
-              "Example for development: TRUSTED_ORIGINS=http://id.app.localhost:3000, " \
-              "http://id.org.localhost:3000. " \
-              "Example for production: TRUSTED_ORIGINS=https://id.app.example.com, " \
-              "https://id.org.example.com"
+              "WebAuthn trusted origins are not configured. " \
+              "Configure PUBLIC_AUTH_SERVICE_URL, PUBLIC_AUTH_CORPORATE_URL, " \
+              "and PUBLIC_AUTH_STAFF_URL with public Auth hosts. " \
+              "TRUSTED_ORIGINS may be set only for additional explicit origins."
       end
 
       origins.each do |origin|
@@ -115,7 +111,7 @@ module Webauthn
   TRUSTED_ORIGINS = parse_trusted_origins
 end
 
-# Fail-fast: Validate TRUSTED_ORIGINS at application startup
+# Fail-fast: Validate WebAuthn trusted origins at application startup
 Webauthn.trusted_origins
 
 # Fail-fast: Validate RP_ID configuration at application startup

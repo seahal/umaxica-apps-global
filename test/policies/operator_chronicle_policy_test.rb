@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Object-level authorization for OperatorChronicle activity-log listings (org surface).
 # index?/show? allow only the owning actor type (Operator) and deny everyone else.

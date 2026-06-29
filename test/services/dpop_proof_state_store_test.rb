@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DpopProofStateStoreTest < ActiveSupport::TestCase
   test "for resolves operator, visitor, and default client" do

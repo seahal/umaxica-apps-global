@@ -12,9 +12,10 @@ module PreferenceSignScreenActions
   end
 
   def update_region_preference_screen
+    ensure_preference_access_token_audience_for_write!
     set_region_preferences_update
     redirect_to(
-      preference_edit_url(:region, updated_region_redirect_params),
+      preference_edit_url(:region, preference_write_redirect_params),
       notice: preference_update_notice,
     )
   end
@@ -24,6 +25,7 @@ module PreferenceSignScreenActions
   end
 
   def update_language_preference_screen
+    ensure_preference_access_token_audience_for_write!
     set_language_preferences_update
     apply_language_preference_to_session
     redirect_to(
@@ -37,6 +39,7 @@ module PreferenceSignScreenActions
   end
 
   def update_timezone_preference_screen
+    ensure_preference_access_token_audience_for_write!
     set_timezone_preferences_update
     redirect_to(
       preference_edit_url(:timezone, preference_write_redirect_params(except: :tz)),
@@ -54,6 +57,7 @@ module PreferenceSignScreenActions
   end
 
   def update_theme_preference_screen
+    ensure_preference_access_token_audience_for_write!
     set_theme_preferences_update
     return render_preference_update_response if request.format.json?
 
@@ -68,6 +72,7 @@ module PreferenceSignScreenActions
   end
 
   def update_cookie_preference_screen
+    ensure_preference_access_token_audience_for_write!
     set_cookie_preferences_update
     return render_preference_update_response if request.format.json?
 
@@ -82,6 +87,7 @@ module PreferenceSignScreenActions
   end
 
   def destroy_reset_preference_screen
+    ensure_preference_access_token_audience_for_write!
     @preference = @preferences
     @preference.require_reset_confirmation(params[:confirm_reset])
 
@@ -104,6 +110,7 @@ module PreferenceSignScreenActions
   end
 
   def update_selectable_preference_screen(screen)
+    ensure_preference_access_token_audience_for_write!
     set_selectable_preference_update(screen)
     return render_preference_update_response if request.format.json?
 

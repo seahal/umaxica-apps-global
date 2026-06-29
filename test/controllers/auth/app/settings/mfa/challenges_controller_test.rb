@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Auth::App::Settings::Mfa::ChallengesController is a redirect shim to base/app/identity/mfa/challenge.
 class Auth::App::Settings::Mfa::ChallengesControllerTest < ActionDispatch::IntegrationTest

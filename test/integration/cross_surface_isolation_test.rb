@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Characterization test (pre-enforcement baseline) -- cross-surface actor isolation.
 #

@@ -210,11 +210,14 @@ module JitSecurityJwtRegistry
     hosts = preference_hosts_from_boot_config
     return hosts if hosts.present?
 
-    [
+    audiences = [
       source.fetch("PUBLIC_BASE_SERVICE_URL", source.fetch("BASE_SERVICE_URL", "base.app.localhost")),
       source.fetch("PUBLIC_BASE_CORPORATE_URL", source.fetch("BASE_CORPORATE_URL", "base.com.localhost")),
       source.fetch("PUBLIC_BASE_STAFF_URL", source.fetch("BASE_STAFF_URL", "base.org.localhost")),
-    ].compact.map(&:to_s).freeze
+    ]
+    audiences.compact!
+    audiences.map!(&:to_s)
+    audiences.freeze
   end
 
   def preference_hosts_from_boot_config

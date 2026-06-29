@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class CloudflareTurnstileStealthPartialTest < ActionView::TestCase
   test "renders widget controls without loading the api script" do

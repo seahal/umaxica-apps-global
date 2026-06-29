@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::App::Web::V0::In::Telephone::OtpsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper

@@ -4,12 +4,14 @@
 require "test_helper"
 
 class StylesheetTagsTest < ActiveSupport::TestCase
+  self.fixture_table_names = []
+
   VITE_LAYOUT_PATHS = [
-    ["app/views/layouts/application.html.erb", "application"],
-    ["app/views/layouts/base/app/application.html.erb", "application"],
+    ["app/views/layouts/application.html.erb", "entrypoints/application"],
+    ["app/views/layouts/base/app/application.html.erb", "entrypoints/base/app"],
     ["app/views/layouts/base/app/inertia.html.erb", "entrypoints/inertia"],
-    ["app/views/layouts/base/com/application.html.erb", "application"],
-    ["app/views/layouts/base/org/application.html.erb", "application"],
+    ["app/views/layouts/base/com/application.html.erb", "entrypoints/base/com"],
+    ["app/views/layouts/base/org/application.html.erb", "entrypoints/base/org"],
     ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
     ["app/views/layouts/acme/com/application.html.erb", "entrypoints/acme/com"],
     ["app/views/layouts/acme/org/application.html.erb", "entrypoints/acme/org"],
@@ -38,6 +40,16 @@ class StylesheetTagsTest < ActiveSupport::TestCase
                       "React refresh preamble must carry a CSP nonce in #{path}"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
                       "missing Vite entrypoint in #{path}"
+    end
+  end
+
+  test "layouts declare a single vite typescript entrypoint" do
+    VITE_LAYOUT_PATHS.each do |path, _entrypoint|
+      contents = Rails.root.join(path).read
+
+      assert_equal 1, contents.scan("vite_typescript_tag").size,
+                   "layout #{path} must load exactly one Vite entrypoint"
+      assert_not_includes contents, "vite_javascript_tag", "layout #{path} must not mix Vite JS helpers"
     end
   end
 
@@ -122,6 +134,9 @@ class StylesheetTagsTest < ActiveSupport::TestCase
 
   test "surface entrypoints proxy to the shared application entrypoint" do
     paths = [
+      "src/entrypoints/base/app.ts",
+      "src/entrypoints/base/com.ts",
+      "src/entrypoints/base/org.ts",
       "src/entrypoints/acme/app.ts",
       "src/entrypoints/acme/com.ts",
       "src/entrypoints/acme/org.ts",

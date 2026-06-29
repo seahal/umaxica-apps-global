@@ -4,6 +4,7 @@
 # rubocop:disable Rails/I18nLocaleTexts
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
   test "applies default from address" do

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AppConfigRuntimeModulesTest < ActiveSupport::TestCase
   test "app config does not contain runtime Ruby modules" do

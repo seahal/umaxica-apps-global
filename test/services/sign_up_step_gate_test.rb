@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignUpStepGateTest < ActiveSupport::TestCase
   test "for_show falls back to the session sequence id when the locator payload is missing" do

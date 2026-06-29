@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::VerificationCancellationsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :client_tokens, :operator_tokens, :client_statuses, :operator_passkeys

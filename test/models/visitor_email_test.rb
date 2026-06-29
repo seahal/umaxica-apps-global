@@ -141,4 +141,40 @@ class VisitorEmailTest < ActiveSupport::TestCase
     assert_not extra.valid?
     assert_not_empty extra.errors[:base]
   end
+  private
+
+  def create_verified_visitor_with_email(email_address: "visitor-#{SecureRandom.hex(4)}@example.com")
+    ensure_visitor_reference_records!
+
+    visitor = Visitor.create!(status_id: VisitorStatus::NOTHING, visibility_id: VisitorVisibility::VISITOR)
+    insert_verified_visitor_email!(visitor_id: visitor.id, address: email_address)
+    visitor.refresh_mfa_status! if visitor.respond_to?(:refresh_mfa_status!)
+    visitor.reload
+  end
+
+  def ensure_visitor_reference_records!
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
+    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
+    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+  end
+
+  def insert_verified_visitor_email!(visitor_id:, address:)
+    VisitorEmail.insert_all(
+      [{
+        visitor_id: visitor_id,
+        address: address,
+        address_digest: IdentifierBlindIndex.bidx_for_email(address),
+        visitor_email_status_id: VisitorEmailStatus::VERIFIED,
+        otp_private_key: SecureRandom.base64(24),
+        otp_counter: "",
+        otp_attempts_count: 0,
+        public_id: SecureRandom.alphanumeric(21),
+        created_at: Time.current,
+        updated_at: Time.current,
+      }],
+    )
+  end
 end

@@ -332,6 +332,9 @@ to the database or JWT.
   is missing, the system redirects to a valid `ri` value; optional context keys are not backfilled
   into URLs. `lx`, `ct`, and `tz` are optional; when valid and present they affect only the current
   request's `Actor.preferences` overlay.
+- Region preference writes persist the saved region but do not rewrite the current request context.
+  A `/preference/region` update must redirect with the incoming `ri` instead of deriving `ri` from
+  the saved region value.
 - Preference-changing HTML and JSON actions that update language, region, timezone, theme, currency,
   date format, time format, motion, density, items per page, cookie consent, or explicit resets must
   reload the shared preference record and reissue the preference access token before returning the

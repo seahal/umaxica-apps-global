@@ -19,16 +19,17 @@ and subdomain matter in both development and production.
   - Solid Queue
 - Valkey/Redis
 - Vite Rails + Stimulus + Turbo
-- Tailwind CSS via `tailwindcss-rails`
+- Tailwind CSS via Vite
 - Propshaft
 - Vite Plus and `pnpm` for JavaScript build, linting, formatting, and tests
 
 ## Frontend and Assets
 
-- JavaScript entrypoints are bundled through Vite Rails from `app/javascript/entrypoints`
-- Stimulus controllers live in `app/javascript/controllers`
-- CSS is built by `tailwindcss-rails`
-- Static assets are served by Propshaft
+- JavaScript entrypoints are bundled through Vite Rails from `src/entrypoints`
+- Stimulus controllers live in `src/controllers`
+- JavaScript tests live in `spec/` and run with Vitest through Vite Plus
+- Browser CSS is imported once through the Vite stylesheet graph in `src/styles/application.css`
+- Static non-browser assets are served by Propshaft
 
 Useful commands:
 
@@ -53,7 +54,7 @@ Start the local stack, install dependencies, and boot the app:
 docker compose up
 bundle install
 pnpm install
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/setup
+bin/setup
 ```
 
 `docker compose up` starts the `core` service with `bin/dev`. The PostgreSQL services use Compose
@@ -70,15 +71,16 @@ POSTGRESQL_REPLICATION_PASSWORD=development_replication_password
 The values above are local defaults only. Override them in your shell or local Compose environment
 when you need different credentials.
 
-`TRUSTED_ORIGINS` is required for boot because WebAuthn origin validation fails fast when it is
-missing.
-
-`docker/core/env` defaults `TRUSTED_ORIGINS` to production sign domains, so override it locally in
-your shell or dev env file, for example:
+WebAuthn trusted origins are derived from the public Auth host variables used by browser-facing
+links:
 
 ```bash
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000
+PUBLIC_AUTH_SERVICE_URL=auth.umaxica.app
+PUBLIC_AUTH_CORPORATE_URL=auth.umaxica.com
+PUBLIC_AUTH_STAFF_URL=auth.umaxica.org
 ```
+
+`TRUSTED_ORIGINS` remains available only for additional explicit origins.
 
 `bin/setup` installs Ruby gems, runs `bin/rails db:prepare`, clears logs and temp files, then starts
 `bin/dev`. It does not install JavaScript packages, so run `pnpm install` first.
@@ -86,7 +88,7 @@ TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000
 If dependencies are already installed, you can start development directly:
 
 ```bash
-TRUSTED_ORIGINS=http://sign.app.localhost:3000,http://sign.org.localhost:3000 bin/dev
+bin/dev
 ```
 
 `bin/dev` is the unified local entrypoint. It runs `bin/rails db:prepare` unless
@@ -200,8 +202,8 @@ vp test --watch                            # Watch mode
 pnpm test:coverage
 ```
 
-JavaScript tests are located in `test/javascript/` and use Vitest with Vite Plus. Coverage reports
-are written to `coverage/vite/`.
+JavaScript tests are located in `spec/` and use Vitest with Vite Plus. Coverage reports are written
+under `coverage/`.
 
 ## Security and Quality Checks
 
@@ -246,11 +248,11 @@ These checks cover formatting, linting, security audits, database consistency, a
 | :--------------------------------------- | :-------------------------------------------------------- |
 | Tailwind changes are not reflected       | Run `bin/rails assets:clobber` and restart `bin/dev`      |
 | Tests fail because databases are missing | Run `bin/rails db:prepare`                                |
-| `bin/dev` stops during boot              | Check `TRUSTED_ORIGINS` and database availability         |
+| `bin/dev` stops during boot              | Check `PUBLIC_AUTH_*_URL` and database availability       |
 | Credentials cannot be decrypted          | Use the shared Rails credentials key for this environment |
 
 ## Acknowledgement
 
 - Secrets must stay in Rails credentials; do not commit plaintext secrets.
-- WebAuthn origins are controlled by `TRUSTED_ORIGINS`.
+- WebAuthn origins are derived from `PUBLIC_AUTH_*_URL`; `TRUSTED_ORIGINS` is additive only.
 - Public availability of this repository is not guaranteed permanently.

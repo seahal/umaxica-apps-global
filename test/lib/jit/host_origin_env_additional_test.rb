@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class JitHostOriginEnvTest < ActiveSupport::TestCase
   test "trusted_origins flattens and deduplicates origins" do

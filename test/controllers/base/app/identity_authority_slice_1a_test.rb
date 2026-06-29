@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Base::App::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses

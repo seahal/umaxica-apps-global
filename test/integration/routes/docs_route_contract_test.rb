@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DocsRouteContractTest < ActionDispatch::IntegrationTest
   DOCS_APP_HOST = ENV.fetch("PRIVATE_DOCS_SERVICE_URL")

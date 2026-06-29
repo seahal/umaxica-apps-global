@@ -6,6 +6,9 @@ module Base
     module Identity
       module Mfa
         class ResetsController < BaseController
+          AUTHENTICATION_MODE = :private
+          declare_authentication_mode! :private
+
           before_action :authenticate_client!
           def show = (authorize!(current_client, to: :show?); render "auth/app/settings/mfa/resets/show")
 

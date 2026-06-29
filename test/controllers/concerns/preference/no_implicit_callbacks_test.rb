@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class PreferenceNoImplicitCallbacksTest < ActiveSupport::TestCase
   test "preference concerns do not register callbacks through included blocks" do

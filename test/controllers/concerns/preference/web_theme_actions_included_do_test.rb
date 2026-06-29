@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class PreferenceWebThemeActionsIncludedDoTest < ActiveSupport::TestCase
   test "including web theme actions does not include endpoint implicitly" do

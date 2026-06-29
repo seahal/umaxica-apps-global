@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class ClientSecretCredentialsDestroyTest < ActiveSupport::TestCase
   fixtures :client_statuses, :client_email_statuses, :client_secret_credential_statuses

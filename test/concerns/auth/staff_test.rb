@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AuthStaffTest < ActiveSupport::TestCase
   fixtures :operators, :operator_statuses, :operator_tokens, :operator_token_kinds, :operator_token_statuses

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require "helpers/preference_jwt_helper"
 
 class Base::Com::Web::V0::ThemeControllerTest < ActionDispatch::IntegrationTest

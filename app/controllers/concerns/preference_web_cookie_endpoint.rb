@@ -53,6 +53,8 @@ module PreferenceWebCookieEndpoint
     requested = requested_cookie_consent_attrs
     return false if requested.blank?
 
+    ensure_preference_access_token_audience_for_write!
+
     if decoded_preference_payload&.dig("public_id").blank?
       apply_buffer_only_cookie_consent!(requested)
       return true

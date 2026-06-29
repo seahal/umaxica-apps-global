@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   test "sign org sign-out ceremony routes are retired" do

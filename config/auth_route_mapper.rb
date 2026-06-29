@@ -139,10 +139,10 @@ module AuthRouteMapper
       resource(:telephone, only: %i(new create))
 
       namespace(:guard) do
-        resource(:apple, only: :show)
-        resource(:google, only: :show)
-        resource(:email, only: :show)
-        resource(:telephone, only: :show)
+        resource(:apple, only: :show) if providers.include?(:apple)
+        resource(:google, only: :show) if providers.include?(:google)
+        resource(:email, only: :show) if providers.include?(:email)
+        resource(:telephone, only: :show) if providers.include?(:telephone)
       end
 
       namespace(:check) do

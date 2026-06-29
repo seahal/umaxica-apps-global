@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SecurityHeadersTest < ActionDispatch::IntegrationTest
   test "production-like ssl middleware emits conservative hsts header" do

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require Rails.root.join("lib/config_values_origin_value").to_s
 
 class ConfigValuesOriginValueTest < ActiveSupport::TestCase

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::Settings::Mfa::ChallengesControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_token_statuses, :operator_token_kinds

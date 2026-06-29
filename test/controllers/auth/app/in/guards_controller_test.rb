@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::App::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_tokens, :client_google_identity_statuses, :client_apple_identity_statuses

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class WithdrawalPersonalDataAnonymizerTest < ActiveSupport::TestCase
   self.fixture_table_names = []

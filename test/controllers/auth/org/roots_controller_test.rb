@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require "helpers/root_theme_cookie_helper"
 
 class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest

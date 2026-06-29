@@ -48,4 +48,38 @@ class RefreshTokenConcurrencyTest < ActiveSupport::TestCase
     threads.each(&:join)
     2.times.map { results.pop }
   end
+  private
+
+  def create_verified_user_with_email(email_address: "user-#{SecureRandom.hex(4)}@example.com")
+    ensure_user_reference_records!
+
+    user = Client.create!(status_id: ClientStatus::NOTHING, visibility_id: ClientVisibility::USER)
+    insert_verified_user_email!(user_id: user.id, address: email_address)
+    user.reload
+  end
+
+  def ensure_user_reference_records!
+    ClientStatus.find_or_create_by!(id: ClientStatus::NOTHING)
+    ClientVisibility.find_or_create_by!(id: ClientVisibility::USER)
+    ClientMfaLevel.find_or_create_by!(id: ClientMfaLevel::NOTHING)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::NOTHING)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::ACTIVE)
+    ClientMfaStatus.find_or_create_by!(id: ClientMfaStatus::UNCONFIGURED)
+    ClientEmailStatus.find_or_create_by!(id: ClientEmailStatus::VERIFIED)
+    ClientTelephoneStatus.find_or_create_by!(id: ClientTelephoneStatus::VERIFIED)
+    ClientPasskeyStatus.find_or_create_by!(id: ClientPasskeyStatus::ACTIVE)
+  end
+
+  def insert_verified_user_email!(user_id:, address:)
+    ClientEmail.create!(
+      user_id: user_id,
+      address: address,
+      address_digest: IdentifierBlindIndex.bidx_for_email(address),
+      user_email_status_id: ClientEmailStatus::VERIFIED,
+      otp_private_key: SecureRandom.base64(24),
+      otp_counter: "",
+      otp_attempts_count: 0,
+      public_id: SecureRandom.alphanumeric(21),
+    )
+  end
 end

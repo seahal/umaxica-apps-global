@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignComRouteAliasHelperTest < ActiveSupport::TestCase
   test "including into a class defines app aliases as instance methods" do

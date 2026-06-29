@@ -64,6 +64,7 @@ Current content-model references:
 - `docs/security/redirect-vs-ceremony-result.md`
 - `docs/qa/identity-authority-regression-checklist.md`
 - `docs/security/credential-abuse-rate-limits.md`
+- `docs/security/public-entrypoints.md`
 - `docs/security/chain_seal.md`
 - `docs/security/observability-boundary.md`
 - `docs/security/security-headers.md`

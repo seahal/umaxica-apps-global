@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Object-level authorization for the com (visitor) secret-credential management.
 # Listing/registration allow any visitor actor; per-record actions require visitor ownership

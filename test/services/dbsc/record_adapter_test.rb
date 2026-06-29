@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DbscRecordAdapterTest < ActiveSupport::TestCase
   test "binding_method_attribute delegates to model metadata" do

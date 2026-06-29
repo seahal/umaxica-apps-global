@@ -5,6 +5,7 @@
 # rubocop:disable I18n/RailsI18n/DecorateStringFormattingUsingInterpolation
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class LocaleInitializerTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
@@ -51,11 +52,6 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Reset Settings", I18n.t("base.app.preferences.reset_settings")
       assert_equal "Back to settings", I18n.t("base.app.preferences.back_to_settings")
       assert_equal "Back to top", I18n.t("base.app.preferences.up_link")
-      assert_equal "Language Settings", I18n.t("acme.app.preference.language.edit.heading")
-      assert_equal "Language", I18n.t("acme.app.preference.language.edit.language_label")
-      assert_equal "Date Format", I18n.t("acme.app.preference.date_format.edit.heading")
-      assert_equal "Reset Preferences", I18n.t("acme.app.preference.resets.title")
-      assert_equal "Clear preference data", I18n.t("acme.app.preference.resets.button")
       assert_equal "Back", I18n.t("base.app.preferences.regions.back_link")
       assert_equal "Back", I18n.t("base.com.preferences.regions.back_link")
       assert_equal "Back", I18n.t("base.org.preferences.regions.back_link")
@@ -63,6 +59,18 @@ class LocaleInitializerTest < ActiveSupport::TestCase
       assert_equal "Preferences", I18n.t("base.org.preferences.title")
       assert_equal "Timezone Settings", I18n.t("base.com.preferences.timezone_settings")
       assert_equal "Timezone Settings", I18n.t("base.org.preferences.timezone_settings")
+    end
+  end
+
+  test "provides english labels for acme preference screen and language names" do
+    assert_nothing_raised { reload_locale_initializer }
+
+    I18n.with_locale(:en) do
+      assert_equal "Language Settings", I18n.t("acme.app.preference.language.edit.heading")
+      assert_equal "Language", I18n.t("acme.app.preference.language.edit.language_label")
+      assert_equal "Date Format", I18n.t("acme.app.preference.date_format.edit.heading")
+      assert_equal "Reset Preferences", I18n.t("acme.app.preference.resets.title")
+      assert_equal "Clear preference data", I18n.t("acme.app.preference.resets.button")
       assert_equal "Region & Language Settings", I18n.t("base.app.preferences.region_settings")
       assert_equal "Language Settings", I18n.t("acme.app.preferences.language_settings")
       assert_equal "Manage language, theme, and other preferences in one place.",

@@ -414,7 +414,8 @@ SIer MUST NOT implement any social linking flow that uses email address as the l
 ## Passkey / WebAuthn
 
 - ES256 / ES384.
-- `TRUSTED_ORIGINS` must be configured in production. Relaxing origin constraints is prohibited.
+- Public Auth hosts must configure WebAuthn trusted origins in production. Relaxing origin
+  constraints is prohibited.
 - SIer MUST NOT modify challenge generation or origin validation.
 
 ## TOTP (NR-002)

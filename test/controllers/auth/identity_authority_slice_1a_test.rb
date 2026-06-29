@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
   test "auth does not expose authorization-server authority routes" do

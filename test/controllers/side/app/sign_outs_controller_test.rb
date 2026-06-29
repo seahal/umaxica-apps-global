@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_token_kinds
@@ -137,8 +138,12 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     location = URI.parse(handoff_form["action"])
 
-    assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost") || ENV["SIGN_SERVICE_URL"] || "sign.app.localhost",
-                 location.host
+    assert_equal(
+      ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost") ||
+        ENV["SIGN_SERVICE_URL"] ||
+        "sign.app.localhost",
+      location.host,
+    )
     assert_equal "/sign/out", location.path
     assert_equal challenge, handoff_input_value("logout_challenge")
     assert_equal "jp", handoff_input_value("ri")

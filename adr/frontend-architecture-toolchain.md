@@ -6,13 +6,12 @@ This document records the architecture for browser JavaScript and asset tooling.
 
 ## Decision
 
-- **JavaScript runtime delivery**: Vite Rails bundles browser entrypoints from
-  `app/javascript/entrypoints`.
+- **JavaScript runtime delivery**: Vite Rails bundles browser entrypoints from `src/entrypoints`.
 - **JavaScript layer**: Turbo, Stimulus, and React/Inertia modules are imported through npm packages
   and bundled by Vite.
-- **CSS and static assets**: Vite-managed browser stylesheets are the default path for app UI CSS
-  while Rails continues to serve images, fonts, and other non-browser assets unless a feature
-  explicitly needs a different delivery path.
+- **CSS and static assets**: Vite-managed browser stylesheets are the default path for app UI CSS.
+  Browser assets that participate in the Vite graph live under `src`; Rails continues to serve
+  non-browser assets unless a feature explicitly needs a different delivery path.
 - **Development toolchain**: pnpm and Vite Plus (`vp`) provide dependency install, linting,
   formatting, JavaScript tests, and Vite build support.
 - **Importmap**: The application no longer uses `javascript_importmap_tags`, `config/importmap.rb`,
@@ -26,7 +25,7 @@ This document records the architecture for browser JavaScript and asset tooling.
 - **Benefit**: Avoids maintaining the same Turbo, Stimulus, controller, and local module graph in
   both importmap pins and Vite imports.
 - **Impact**:
-  - Layouts load JavaScript through `vite_javascript_tag`.
+  - Layouts load one explicit Vite entrypoint through `vite_typescript_tag`.
   - npm dependencies are resolved by the same toolchain used for JavaScript tests.
   - Importmap audit and pin maintenance are removed from application CI.
 
@@ -34,7 +33,7 @@ This document records the architecture for browser JavaScript and asset tooling.
 
 - **Benefit**: JavaScript migration does not force images, fonts, or non-CSS Rails assets into Vite.
 - **Impact**:
-  - Propshaft continues to serve static assets.
+  - Propshaft continues to serve static assets that do not participate in the Vite graph.
   - App UI stylesheets are imported from Vite entrypoints such as `src/entrypoints/application.ts`.
   - Mailer layouts and other non-Vite delivery paths may continue to use `stylesheet_link_tag` where
     that is still the right transport.

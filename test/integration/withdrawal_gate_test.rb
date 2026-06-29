@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class WithdrawalGateTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
@@ -47,13 +48,21 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   end
 
   test "deactivated user can access allowlisted pages" do
-    get new_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
-        headers: @headers
+    get(
+      new_base_app_identity_withdrawal_url(
+        ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      ),
+      headers: @headers,
+    )
 
     assert_response :success
 
-    get edit_base_app_identity_withdrawal_url(ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
-        headers: @headers
+    get(
+      edit_base_app_identity_withdrawal_url(
+        ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      ),
+      headers: @headers,
+    )
 
     assert_response :success
   end

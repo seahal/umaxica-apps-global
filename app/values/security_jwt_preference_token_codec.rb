@@ -5,6 +5,7 @@ class SecurityJwtPreferenceTokenCodec
   JWT_ALGORITHM = "ES384"
   ACCESS_TOKEN_TTL = SecurityTokenLifetimes::PREFERENCE_JWT_TTL
   TOKEN_TYPE = "preference-access-token"
+  AudienceMismatchError = Class.new(StandardError)
 
   class << self
     def encode(preferences, host:, preference_type:, public_id:, jti:, jwt_issuer_id: nil)
@@ -23,7 +24,7 @@ class SecurityJwtPreferenceTokenCodec
       nil
     end
 
-    def decode(token, host:, jwt_issuer_id: nil)
+    def decode(token, host:, jwt_issuer_id: nil, raise_on_audience_mismatch: false)
       return nil if token.blank? || host.blank?
 
       header = jwt_configuration.parse_header(token)
@@ -58,6 +59,12 @@ class SecurityJwtPreferenceTokenCodec
         reason: "EXPIRED",
       )
       Rails.logger.debug("PreferenceToken.decode failed: token expired")
+      nil
+    rescue JWT::InvalidAudError => e
+      report_audience_mismatch(host: host, header: header, token: token, error: e)
+      Rails.logger.debug { "PreferenceToken.decode invalid audience: #{e.class}: #{e.message}" }
+      raise AudienceMismatchError, e.message if raise_on_audience_mismatch
+
       nil
     rescue JWT::InvalidIssuerError, JWT::InvalidIatError, JWT::ImmatureSignature => e
       report_claim_error(host: host, header: header, error: e)
@@ -217,6 +224,25 @@ class SecurityJwtPreferenceTokenCodec
         reason: reason,
         error: error,
       )
+    end
+
+    def report_audience_mismatch(host:, header:, token:, error:)
+      JitSecurityJwtAnomalyReporter.report_preference(
+        host: host,
+        header: header,
+        payload: unverified_diagnostic_claims(token),
+        reason: "AUD_MISMATCH",
+        error: error,
+      )
+    end
+
+    def unverified_diagnostic_claims(token)
+      payload, = JWT.decode(token, nil, false)
+      return {} unless payload.is_a?(Hash)
+
+      payload.slice("iss", "aud", "typ", "jti")
+    rescue JWT::DecodeError
+      {}
     end
 
     def report_decode_error(host:, header:, error:)

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Guards the invariant that the social ceremony's UNVERIFIED JWT decode is used
 # only for routing/extraction. Untrusted decoding must stay confined to the

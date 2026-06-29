@@ -44,7 +44,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 | --------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Product Owner         | Defines feature scope, localization priorities, and compliance targets                                                | Roadmap, Notion/Jira                                      |
 | Tech Lead / Architect | Owns multi-surface Rails architecture, multi-DB strategy, and integration points (Valkey, SMS, email)                 | Rails, Docker Compose                                     |
-| Front-End Engineer    | Builds Turbo/React views in `app/javascript`, owns theme and preference UX                                            | pnpm, Biome, Tailwind, Turbo                              |
+| Front-End Engineer    | Builds Turbo/React views in `src`, owns theme and preference UX                                                       | pnpm, Vite Plus, Tailwind, Turbo                          |
 | Back-End Engineer     | Implements controller logic (e.g., `config/routes/*.rb` namespaces), models, encryption, OTP/passkey workflows        | Rails 8, PostgreSQL, Valkey                               |
 | Platform/DevOps       | Manages Compose stack (PostgreSQL shards, Valkey, MinIO, Grafana/Loki/Tempo), CI (`integration.yml`), and deployments | Docker, Foreman, GitHub Actions                           |
 | QA Engineer           | Designs Minitest/spec + JS/TS tests (via pnpm), Rswag/OpenAPI verification, smoke/load tests                          | `bin/rails test`, `pnpm test` (when added), Playwright/k6 |
@@ -58,8 +58,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   separation (identity, universal, guest, profile, token, etc.) backed by PostgreSQL 18 (primary +
   replica).
 - **Frontend toolchain**: Vite Rails with pnpm-managed Vite Plus tooling for Turbo/Stimulus/React
-  entrypoints under `app/javascript`; browser CSS is bundled through Vite entrypoints while Rails
-  still serves non-browser static assets.
+  entrypoints under `src`; browser CSS is bundled through Vite entrypoints while Rails still serves
+  non-browser static assets.
 - **Caching & session adjuncts**: Valkey (Redis-compatible) powers request rate limiting, `Memorize`
   ephemeral storage, signed preference cookies, and Rack session backing for Action Cable.
 - **Security & identity**: JWT auth cookies (ES256) via the `Authn` concern, WebAuthn passkeys,
@@ -143,7 +143,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   remain observable through application logs and traces.
 - **FR-17**: News and Docs namespaces must redirect to content-specific roots and expose health
   status; they are placeholders for static/dynamic content served through Rails/Turbo (React slots
-  defined in `app/javascript/views`).
+  defined in `src/pages`).
 
 ### 4.5 API and BFF services
 
@@ -260,7 +260,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 - Repository guides: `README.md`, `AGENTS.md`, `docs/checklist.md`
 - Infrastructure: `compose.yml`, `Procfile.dev`
 - Security: `SECURITY.md`, `CODE_OF_CONDUCT.md`
-- Testing assets: `test/`, `test/javascript/`, `rswag` configuration
+- Testing assets: `test/`, `spec/`, `rswag` configuration
 - Change log: tracked via Git history and PR descriptions
 
 > **Note:** This SRS is internal-facing and must be updated whenever routes, data stores, or

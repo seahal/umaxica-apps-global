@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class ClientTokenPolicyTest < ActiveSupport::TestCase
   self.fixture_table_names = []

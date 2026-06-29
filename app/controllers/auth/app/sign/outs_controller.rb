@@ -11,7 +11,7 @@ module Auth
 
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
-        skip_before_action :set_region, only: %i(new edit create destroy)
+        skip_before_action :set_region, only: %i(new edit create)
 
         after_action :sign_out_notice_cache_headers!, only: %i(create)
 

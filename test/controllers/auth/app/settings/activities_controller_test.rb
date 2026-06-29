@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Auth::App::Settings::ActivitiesController is a redirect shim to base/app/identity/activities.
 class Auth::App::Settings::ActivitiesControllerTest < ActionDispatch::IntegrationTest

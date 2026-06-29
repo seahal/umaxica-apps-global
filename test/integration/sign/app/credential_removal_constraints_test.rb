@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::App::CredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_token_kinds, :client_token_statuses, :client_email_statuses,

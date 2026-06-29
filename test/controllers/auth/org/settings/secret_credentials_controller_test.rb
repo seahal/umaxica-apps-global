@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::Settings::SecretCredentialsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operator_statuses, :operator_secret_credential_statuses, :operator_secret_credential_kinds

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # DBSC registration/refresh URLs are a device-binding contract: the advertised `path`
 # and the proof `aud` must be identical across registration and refresh. PreferenceGlobal

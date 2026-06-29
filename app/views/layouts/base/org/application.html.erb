@@ -14,7 +14,7 @@
   <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= vite_client_tag nonce: true %>
   <%= vite_react_refresh_tag nonce: true %>
-  <%= vite_typescript_tag "application", nonce: true, "data-turbo-eval": "false" %>
+  <%= vite_typescript_tag "entrypoints/base/org", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>

@@ -93,9 +93,7 @@ class SecurityJwtOidcIdTokenCodec
 
     def normalize_time!(value)
       case value
-      when Time
-        value.utc
-      when ActiveSupport::TimeWithZone
+      when Time, ActiveSupport::TimeWithZone
         value.utc
       else
         Time.at(value.to_i).utc

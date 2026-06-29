@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignRiskEventTest < ActiveSupport::TestCase
   test "creates event with name" do

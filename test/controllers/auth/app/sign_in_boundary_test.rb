@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::App::SignInBoundaryTest < ActiveSupport::TestCase
   test "sign-in controllers do not directly issue login tokens or cookies" do

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class RoutingEntrypointsTest < ActiveSupport::TestCase
   test "global routing entrypoints are loaded" do

@@ -6,6 +6,9 @@ module Base
     module Identity
       module Secrets
         class RemovalsController < BaseController
+          AUTHENTICATION_MODE = :private
+          declare_authentication_mode! :private
+
           before_action :authenticate_client!
           def create = head(:not_implemented)
         end

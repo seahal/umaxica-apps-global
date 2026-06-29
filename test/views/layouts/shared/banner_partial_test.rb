@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class BannerPartialTest < ActionView::TestCase
   fixtures :client_banners, :visitor_banners, :clients, :client_statuses, :visitors, :visitor_statuses,

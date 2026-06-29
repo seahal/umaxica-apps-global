@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
   setup { clear_rate_limit_store }
@@ -183,23 +184,23 @@ class CspViolationReportsControllerTest < ActionDispatch::IntegrationTest
        :base_org_csp_violation_report_path,],
       [configured_host(:palm_service),
        :palm_app_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_SERVICE_URL"] || ENV["PRIVATE_DOCS_SERVICE_URL"] || "docs.app.localhost",
+      [ENV["PRIVATE_DOCS_SERVICE_URL"] || "docs.app.localhost",
        :docs_app_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_CORPORATE_URL"] || ENV["PRIVATE_DOCS_CORPORATE_URL"] || "docs.com.localhost",
+      [ENV["PRIVATE_DOCS_CORPORATE_URL"] || "docs.com.localhost",
        :docs_com_csp_violation_report_path,],
-      [ENV["PRIVATE_DOCS_STAFF_URL"] || ENV["PRIVATE_DOCS_STAFF_URL"] || "docs.org.localhost",
+      [ENV["PRIVATE_DOCS_STAFF_URL"] || "docs.org.localhost",
        :docs_org_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_SERVICE_URL"] || ENV["PRIVATE_HELP_SERVICE_URL"] || "help.app.localhost",
+      [ENV["PRIVATE_HELP_SERVICE_URL"] || "help.app.localhost",
        :help_app_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_CORPORATE_URL"] || ENV["PRIVATE_HELP_CORPORATE_URL"] || "help.com.localhost",
+      [ENV["PRIVATE_HELP_CORPORATE_URL"] || "help.com.localhost",
        :help_com_csp_violation_report_path,],
-      [ENV["PRIVATE_HELP_STAFF_URL"] || ENV["PRIVATE_HELP_STAFF_URL"] || "help.org.localhost",
+      [ENV["PRIVATE_HELP_STAFF_URL"] || "help.org.localhost",
        :help_org_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_SERVICE_URL"] || ENV["PRIVATE_NEWS_SERVICE_URL"] || "news.app.localhost",
+      [ENV["PRIVATE_NEWS_SERVICE_URL"] || "news.app.localhost",
        :news_app_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_CORPORATE_URL"] || ENV["PRIVATE_NEWS_CORPORATE_URL"] || "news.com.localhost",
+      [ENV["PRIVATE_NEWS_CORPORATE_URL"] || "news.com.localhost",
        :news_com_csp_violation_report_path,],
-      [ENV["PRIVATE_NEWS_STAFF_URL"] || ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost",
+      [ENV["PRIVATE_NEWS_STAFF_URL"] || "news.org.localhost",
        :news_org_csp_violation_report_path,],
     ]
   end

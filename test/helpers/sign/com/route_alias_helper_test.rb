@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignComRouteAliasHelperViewTest < ActionView::TestCase
   test "defines sign app route aliases that delegate to sign com routes" do

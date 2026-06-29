@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
   test "builds jump gateway url with rt query" do

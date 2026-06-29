@@ -89,4 +89,18 @@ module PreferenceAccessTokenTransport
 
     payload
   end
+
+  def ensure_preference_access_token_audience_for_write!
+    access_token_cookie_names.each do |cookie_name|
+      token = cookies[cookie_name].to_s.presence
+      next if token.blank?
+
+      PreferenceToken.decode(
+        token,
+        host: request.host,
+        jwt_issuer_id: preference_jwt_issuer_id,
+        raise_on_audience_mismatch: true,
+      )
+    end
+  end
 end

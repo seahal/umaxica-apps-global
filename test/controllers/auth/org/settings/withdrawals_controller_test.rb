@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::Settings::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses

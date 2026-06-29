@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :client_statuses, :client_token_kinds, :client_token_statuses,

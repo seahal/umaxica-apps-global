@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   STATIC_SURFACES = [
@@ -25,13 +26,16 @@ class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
 
   CONTENT_API_SURFACES = [
     ["help_app_api_v0_entry_url", "PRIVATE_HELP_SERVICE_URL", "help.app.localhost", HelpAppContentEntry, "help", "app"],
-    ["help_com_api_v0_entry_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help", "com"],
+    ["help_com_api_v0_entry_url", "PRIVATE_HELP_CORPORATE_URL", "help.com.localhost", HelpComContentEntry, "help",
+     "com",],
     ["help_org_api_v0_entry_url", "PRIVATE_HELP_STAFF_URL", "help.org.localhost", HelpOrgContentEntry, "help", "org"],
     ["docs_app_api_v0_entry_url", "PRIVATE_DOCS_SERVICE_URL", "docs.app.localhost", DocsAppContentEntry, "docs", "app"],
-    ["docs_com_api_v0_entry_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs", "com"],
+    ["docs_com_api_v0_entry_url", "PRIVATE_DOCS_CORPORATE_URL", "docs.com.localhost", DocsComContentEntry, "docs",
+     "com",],
     ["docs_org_api_v0_entry_url", "PRIVATE_DOCS_STAFF_URL", "docs.org.localhost", DocsOrgContentEntry, "docs", "org"],
     ["news_app_api_v0_entry_url", "PRIVATE_NEWS_SERVICE_URL", "news.app.localhost", NewsAppContentEntry, "news", "app"],
-    ["news_com_api_v0_entry_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news", "com"],
+    ["news_com_api_v0_entry_url", "PRIVATE_NEWS_CORPORATE_URL", "news.com.localhost", NewsComContentEntry, "news",
+     "com",],
     ["news_org_api_v0_entry_url", "PRIVATE_NEWS_STAFF_URL", "news.org.localhost", NewsOrgContentEntry, "news", "org"],
   ].freeze
 

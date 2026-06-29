@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AuthInSessionCancellationsControllerTest < ActiveSupport::TestCase
   test "app cancellation fails pending DB cycle and clears legacy state before token issuance" do

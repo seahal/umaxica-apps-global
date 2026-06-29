@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_secret_credential_kinds, :client_secret_credential_statuses,

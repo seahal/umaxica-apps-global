@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DbscRegistrationServiceTest < ActiveSupport::TestCase
   test "sets user token to active dbsc state" do

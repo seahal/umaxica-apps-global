@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignComVerificationBaseIncludedDoTest < ActiveSupport::TestCase
   test "included do does not include SignAppVerificationBase module" do

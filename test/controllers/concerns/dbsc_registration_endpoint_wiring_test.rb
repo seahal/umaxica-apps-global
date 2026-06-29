@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DbscRegistrationEndpointWiringTest < ActiveSupport::TestCase
   test "sign dbsc controllers use shared registration endpoint concern" do

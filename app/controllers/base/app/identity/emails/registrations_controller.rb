@@ -14,6 +14,9 @@ module Base
           include SignSettingsEmailRegistration
           include VerificationClient
 
+          AUTHENTICATION_MODE = :private
+          declare_authentication_mode! :private
+
           before_action :authenticate_client!
           before_action :preserve_email_registration_redirect_parameter, only: %i(new create edit update resend)
           before_action :authorize_email_registration!, only: %i(new create edit update)

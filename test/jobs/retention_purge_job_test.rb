@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class RetentionPurgeJobTest < ActiveJob::TestCase
   test "anonymizes account records where purged_at is in the past" do

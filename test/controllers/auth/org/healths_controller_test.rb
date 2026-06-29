@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::HealthsControllerTest < ActionDispatch::IntegrationTest
   test "GET /health returns an html snapshot" do

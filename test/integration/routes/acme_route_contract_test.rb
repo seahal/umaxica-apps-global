@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
@@ -612,7 +613,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{BASE_COM_HOST}/identity", method: :get },
     )
 
-    # NOTE: /settings is omitted — recognize_path does not enforce host constraints;
+    # NOTE: /settings is omitted -- recognize_path does not enforce host constraints;
     # side/com/settings bleeds through. Integration tests cover the actual host boundary.
   end
   # rubocop:enable Minitest/MultipleAssertions
@@ -884,7 +885,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{BASE_ORG_HOST}/billing", method: :get },
     )
 
-    # NOTE: /settings is omitted — recognize_path does not enforce host constraints;
+    # NOTE: /settings is omitted -- recognize_path does not enforce host constraints;
     # side/org/settings bleeds through. Integration tests cover the actual host boundary.
   end
 
@@ -895,7 +896,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       BASE_ORG_HOST => "org",
     }.each_key do |host|
       [
-        # NOTE: /settings (bare) is intentionally excluded — recognize_path does not enforce host
+        # NOTE: /settings (bare) is intentionally excluded -- recognize_path does not enforce host
         # constraints, so side/*/settings routes bleed through. The actual host constraint is
         # verified by integration tests that make real HTTP requests.
         { path: "/settings/secrets", method: :get },

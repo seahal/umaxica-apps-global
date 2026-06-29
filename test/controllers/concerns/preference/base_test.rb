@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class PreferenceSanitizeTestController < ::ApplicationController
   include ::PreferenceBase
@@ -859,6 +860,33 @@ module Preference
       assert_nil cookies["app_preference_access"]
       assert_nil cookies["app_preference_refresh"]
       assert_nil cookies["app_preference_dbsc"]
+    end
+
+    test "write guard raises for audience mismatched access token" do
+      cookies = @controller.send(:cookies)
+      cookies[@controller.send(:access_token_cookie_name)] = "wrong-audience-token"
+      decode_calls = []
+
+      PreferenceToken.stub(
+        :decode,
+        lambda do |token, host:, jwt_issuer_id:, raise_on_audience_mismatch:|
+          decode_calls << [token, host, jwt_issuer_id, raise_on_audience_mismatch]
+          raise PreferenceToken::AudienceMismatchError, "Invalid audience"
+        end,
+      ) do
+        assert_raises(PreferenceToken::AudienceMismatchError) do
+          @controller.send(:ensure_preference_access_token_audience_for_write!)
+        end
+      end
+
+      assert_equal [
+        [
+          "wrong-audience-token",
+          "id.app.localhost",
+          "surface:ACME_APP",
+          true,
+        ],
+      ], decode_calls
     end
 
     test "load access token payload falls back when referenced preference record is missing" do

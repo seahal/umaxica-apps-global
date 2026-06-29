@@ -10,6 +10,9 @@ module Base
         include SignTelephoneRegistrable
         include VerificationClient
 
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         before_action :authenticate_client!
         before_action :authorize_telephone_registration!, only: %i(new create)
 

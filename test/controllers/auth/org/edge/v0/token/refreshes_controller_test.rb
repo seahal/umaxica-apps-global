@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::Org::Edge::V0::Token::RefreshesControllerTest < ActionDispatch::IntegrationTest
   test "sign org refresh route is retired" do

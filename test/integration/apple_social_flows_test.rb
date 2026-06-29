@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_apple_identity_statuses, :app_preference_chronicle_levels

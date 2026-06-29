@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class SignRefreshTokenIssuerTest < ActiveSupport::TestCase
   test "invalid refresh token format returns failure reason" do

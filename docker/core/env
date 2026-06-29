@@ -7,8 +7,8 @@ RUBY_PATH=/usr/local/bin/ruby
 # BUNDLE
 BUNDLE_PATH=vendor/bundle
 # Rails Configuration
-RAILS_ENV=development
-RACK_ENV=development
+# RAILS_ENV=development
+# RACK_ENV=development
 PORT=3000
 BINDING=0.0.0.0
 OPEN_TELEMETRY=false
@@ -59,8 +59,8 @@ POSTGRESQL_REDIRECTOR_SUB=replica
 POSTGRESQL_SEARCH_PUB=primary
 POSTGRESQL_SEARCH_SUB=replica
 # Object Storage Configuration
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+# MINIO_ACCESS_KEY=minioadmin
+# MINIO_SECRET_KEY=minioadmin
 # OpenTelemetry Configuration
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
 # Error Monitoring Configuration
@@ -141,14 +141,13 @@ JWT_CORE_COM_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"oOhrqDHnhdvb-7f08er0T
 JWT_CORE_ORG_ACTIVE_KID=core-org-es384-dev-a
 JWT_CORE_ORG_PUBLIC_KEYSET=[{"kty":"EC","crv":"P-384","x":"1qI30T6AnBMLsjd-gS0lJINJm1PbHDDOWjzfDzhbS2MJNbBsVTh6PevbtayBp-fO","y":"4W7yjBUY4N7LrgFAEArYBmiQ7eyQvJan9kJLwTKG2PG0VUHqO9gBQzjp4R6qAfTi","kid":"core-org-es384-dev-a","alg":"ES384","use":"sig"}]
 # WebAuthn
-TRUSTED_ORIGINS=http://auth.app.localhost:3000,http://auth.org.localhost:3000,http://auth.com.localhost:3000
-WEBAUTHN_APP_RP_ID=auth.app.localhost
-WEBAUTHN_APP_ORIGIN=http://auth.app.localhost:3000
-WEBAUTHN_ORG_RP_ID=auth.org.localhost
-WEBAUTHN_ORG_ORIGIN=http://auth.org.localhost:3000
-WEBAUTHN_COM_RP_ID=auth.com.localhost
-WEBAUTHN_COM_ORIGIN=http://auth.com.localhost:3000
-# HMAC Secret is resolved from encrypted credentials via Rails.app.creds.
+# NOTE: USE ENV VALUES WHICH STATED Previous LINES
+# WEBAUTHN_APP_RP_ID=auth.app.localhost
+# WEBAUTHN_APP_ORIGIN=http://auth.app.localhost:3000
+# WEBAUTHN_ORG_RP_ID=auth.org.localhost
+# WEBAUTHN_ORG_ORIGIN=http://auth.org.localhost:3000
+# WEBAUTHN_COM_RP_ID=auth.com.localhost
+# WEBAUTHN_COM_ORIGIN=http://auth.com.localhost:3000
 # VITE Configuration
 VITE_RUBY_PACKAGE_MANAGER=pnpm
 VITE_RUBY_HOST=0.0.0.0

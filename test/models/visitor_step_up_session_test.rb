@@ -139,4 +139,25 @@ class VisitorStepUpSessionTest < ActiveSupport::TestCase
     assert_equal [first, second].sort,
                  VisitorStepUpSession.where(visitor_token_id: [@visitor_token.id, other_token.id]).to_a.sort
   end
+  private
+
+  def ensure_visitor_reference_records!
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::NOTHING)
+    VisitorStatus.find_or_create_by!(id: VisitorStatus::ACTIVE)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::VISITOR)
+    VisitorVisibility.find_or_create_by!(id: VisitorVisibility::BOTH)
+    VisitorMfaLevel.find_or_create_by!(id: VisitorMfaLevel::NOTHING)
+    VisitorMfaStatus.find_or_create_by!(id: VisitorMfaStatus::UNCONFIGURED)
+    VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
+    VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
+    VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
+  end
+
+  def ensure_visitor_token_reference_records!
+    VisitorTokenStatus.find_or_create_by!(id: VisitorTokenStatus::ACTIVE)
+    VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB)
+    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::LEGACY)
+    VisitorTokenBindingMethod.find_or_create_by!(id: VisitorTokenBindingMethod::NOTHING)
+    VisitorTokenDbscStatus.find_or_create_by!(id: VisitorTokenDbscStatus::NOTHING)
+  end
 end

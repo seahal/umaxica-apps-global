@@ -8,6 +8,9 @@ module Base
         include CloudflareTurnstile
         include VerificationClient
 
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         before_action :authenticate_client!
         before_action :authorize_secret_credentials!, only: %i(index show new edit create update destroy)
         step_up only: %i(new create), bootstrap: true

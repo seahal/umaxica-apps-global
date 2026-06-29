@@ -30,5 +30,5 @@
       "react-aria-components": ["./src/vendor/react-aria-components.tsx"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "spec"]
 }

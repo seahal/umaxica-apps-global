@@ -6,6 +6,9 @@ module Base
     module Identity
       module Revocations
         class OthersController < BaseController
+          AUTHENTICATION_MODE = :private
+          declare_authentication_mode! :private
+
           before_action :authenticate_client!
           def create
             current_client.client_tokens.session_inventory.find_each do |token|

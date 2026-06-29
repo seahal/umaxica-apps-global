@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # This test verifies cross-domain links between acme and other domains
 class AcmeCrossDomainLinksTest < ActionDispatch::IntegrationTest

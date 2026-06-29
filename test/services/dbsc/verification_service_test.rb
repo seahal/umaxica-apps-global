@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class DbscVerificationServiceTest < ActiveSupport::TestCase
   test "verifies proof and returns ok for active user token without changing status" do

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 require "helpers/auth_helpers"
 
 # Surface boundary: an access token minted for one surface (app/com/org) must

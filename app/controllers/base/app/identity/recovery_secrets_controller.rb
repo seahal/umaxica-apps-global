@@ -6,6 +6,10 @@ module Base
     module Identity
       class RecoverySecretsController < BaseController
         REVEAL_PURPOSE = "client.recovery_secret_credential"
+
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         before_action :authenticate_client!
         before_action :authorize_secrets!, only: :show
         def show

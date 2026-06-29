@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -13,8 +14,13 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     get new_auth_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :see_other
-    assert_equal new_auth_app_sign_out_url(host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), protocol: "https"),
-                 response.location
+    assert_equal(
+      new_auth_app_sign_out_url(
+        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+        protocol: "https",
+      ),
+      response.location,
+    )
   end
 
   test "post sign out consumes one-time token and redirects to acme complete" do

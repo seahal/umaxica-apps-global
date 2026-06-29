@@ -47,4 +47,11 @@ class IpOccurrenceStatusTest < ActiveSupport::TestCase
   #
   #     assert_expires_at_default(record)
   #   end
+  private
+
+  def assert_status_association(status_class, association_name)
+    reflection = status_class.reflect_on_association(association_name)
+
+    assert_not_nil reflection
+  end
 end

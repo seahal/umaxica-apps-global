@@ -5,6 +5,9 @@ module Base
   module App
     module Identity
       class ActivitiesController < BaseController
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         before_action :authenticate_client!
         before_action :authorize_activity_log!
         helper_method :activity_event_label, :activity_ip_address, :activity_context_text, :activity_occurred_at,

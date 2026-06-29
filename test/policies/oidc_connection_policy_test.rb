@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "helpers/global_test_support"
 
 # Object-level authorization for the per-surface OIDC connection listings.
 # Each policy's index?/show? allows only the owning actor type; everyone else is denied.
