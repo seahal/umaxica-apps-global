@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class AdministrativeAccessLockTest < ActiveSupport::TestCase
   test "locks client access, revokes sessions, and records account access event" do

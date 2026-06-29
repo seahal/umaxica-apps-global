@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::Org::Settings::SessionsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses, :operator_token_kinds

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SocialAuthConcernIncludedDoTest < ActiveSupport::TestCase
   test "handle_social_auth_error method exists (private)" do

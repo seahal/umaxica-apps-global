@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::Org::Sign::Up::BaseControllerTest < ActionDispatch::IntegrationTest
   test "after_login_path returns auth_org_settings_path if available" do

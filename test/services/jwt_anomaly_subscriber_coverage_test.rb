@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 require Rails.root.join("app/subscribers/jwt_anomaly_subscriber")
 
 class JwtAnomalySubscriberCoverageTest < ActiveSupport::TestCase

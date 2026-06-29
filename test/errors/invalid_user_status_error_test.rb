@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class InvalidUserStatusErrorTest < ActiveSupport::TestCase
   def test_invalid_status_is_exposed

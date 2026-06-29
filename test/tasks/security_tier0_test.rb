@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 load Rails.root.join("lib/tasks/security_tier0.rake")
 
 class SecurityTier0SuspiciousUserTokenReportTest < ActiveSupport::TestCase

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class StaffSecretCredentialsDestroyTest < ActiveSupport::TestCase
   fixtures :operator_statuses, :operator_email_statuses, :operator_secret_credential_statuses, :operators

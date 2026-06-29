@@ -179,7 +179,7 @@ module JitSecurityJwtRegistry
       active_kid: source.value("JWT_#{namespace}_ACTIVE_KID"),
       private_key: source.value("JWT_#{namespace}_PRIVATE_KEY"),
       private_key_source: "JWT_#{namespace}_PRIVATE_KEY",
-      public_keyset: source.fetch("JWT_#{namespace}_PUBLIC_KEYSET", nil),
+      public_keyset: source.value("JWT_#{namespace}_PUBLIC_KEYSET"),
       public_keyset_source: "JWT_#{namespace}_PUBLIC_KEYSET",
       revoked_kids: source.csv("JWT_#{namespace}_REVOKED_KIDS"),
       issuer: surface_issuer_origin(namespace),

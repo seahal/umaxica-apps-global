@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   test "base app public endpoints respond on the control-plane surface" do
@@ -85,7 +85,7 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
     {
       "Accept" => "application/json",
       "Content-Type" => "application/json",
-      "Client-Agent" => AuthHelpers::MODERN_USER_AGENT,
+      "Client-Agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
   end
 end

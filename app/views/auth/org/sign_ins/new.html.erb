@@ -20,7 +20,7 @@
     <% end %>
 
     <div>
-      <%= link_to auth_org_root_url(host: ENV.fetch("PRIVATE_ACME_STAFF_URL", ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))) do %>
+      <%= link_to auth_org_root_url(host: ENV.fetch("PRIVATE_ACME_STAFF_URL")) do %>
         <span><%= t("sign.org.authentication.new.back_to_root") %></span>
       <% end %>
     </div>

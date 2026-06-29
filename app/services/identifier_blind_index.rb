@@ -34,13 +34,13 @@ module IdentifierBlindIndex
 
   def secret_credential_for_email
     Rails.app.creds.option(:EMAIL_ADDRESS_HMAC_SALT).presence ||
-      ENV["EMAIL_ADDRESS_HMAC_SALT"].presence ||
+      ENV.fetch("EMAIL_ADDRESS_HMAC_SALT").presence ||
       raise(KeyError, "Missing key: [:EMAIL_ADDRESS_HMAC_SALT]")
   end
 
   def secret_credential_for_telephone
     Rails.app.creds.option(:TELEPHONE_NUMBER_HMAC_SALT).presence ||
-      ENV["TELEPHONE_NUMBER_HMAC_SALT"].presence ||
+      ENV.fetch("TELEPHONE_NUMBER_HMAC_SALT").presence ||
       raise(KeyError, "Missing key: [:TELEPHONE_NUMBER_HMAC_SALT]")
   end
 end

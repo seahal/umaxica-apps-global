@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 module Verification
   # Unit coverage for the step_up DSL. End-to-end redirect/status/flash behaviour

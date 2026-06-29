@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SignSecretIssueTest < ActiveSupport::TestCase
   test "issues a secret credential and records issuance details" do

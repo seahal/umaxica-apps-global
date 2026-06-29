@@ -71,7 +71,7 @@ module AuthenticationClient
   def sign_app_redirect_host
     configured_hosts =
       %w(AUTH_SERVICE_URL).filter_map do |key|
-        CommonRedirect.normalize_host(ENV[key])
+        CommonRedirect.normalize_host(ENV.fetch(key))
       end
 
     request_host = CommonRedirect.normalize_host(request.host_with_port)

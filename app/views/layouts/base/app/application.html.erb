@@ -1,6 +1,6 @@
 <%
   tld = :app
-  title_site = "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (#{tld})"
+  title_site = "#{ENV.fetch('BRAND_NAME')} (#{tld})"
 %>
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
@@ -30,7 +30,7 @@
       <div class="flex items-center gap-2">
         <span class="bg-black text-white px-1 font-bold text-xs">BASE</span>
         <h1 class="text-lg font-bold">
-          <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), base_app_root_path %>
+          <%= link_to ENV.fetch("BRAND_NAME"), base_app_root_path %>
           <span class="opacity-50 text-sm">(<%= tld %>)</span>
         </h1>
       </div>

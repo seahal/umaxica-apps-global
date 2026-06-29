@@ -116,9 +116,9 @@ module PreferenceBase
   def cookie_banner_endpoint_available_for_request?
     expected_host =
       case ::CoreSurface.current(request)
-      when :app then ENV["PRIVATE_ACME_SERVICE_URL"] || ENV["ACME_SERVICE_URL"]
-      when :com then ENV["PRIVATE_ACME_CORPORATE_URL"] || ENV["ACME_CORPORATE_URL"]
-      when :org then ENV["PRIVATE_ACME_STAFF_URL"] || ENV["ACME_STAFF_URL"]
+      when :app then ENV.fetch("PRIVATE_ACME_SERVICE_URL") || ENV.fetch("ACME_SERVICE_URL")
+      when :com then ENV.fetch("PRIVATE_ACME_CORPORATE_URL") || ENV.fetch("ACME_CORPORATE_URL")
+      when :org then ENV.fetch("PRIVATE_ACME_STAFF_URL") || ENV.fetch("ACME_STAFF_URL")
       end
     return false if expected_host.blank?
 
@@ -990,7 +990,7 @@ module PreferenceBase
   # ==========================================================================
   # 6) Cookie/header/session helpers (I/O boundary)
   # ==========================================================================
-  def preference_cookie_options(expires_at:, httponly:)
+  def preference_cookie_options(expires_at:, httponly:, domain: false)
     ::CoreCookieOptions.for(
       surface: ::CoreSurface.current(request),
       request: request,
@@ -999,7 +999,7 @@ module PreferenceBase
       secure: ::JitSessionCookieConfig.force_secure?,
       same_site: :strict,
       path: "/",
-      domain: false,
+      domain: domain,
     )
   end
 

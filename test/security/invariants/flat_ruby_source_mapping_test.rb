@@ -3,7 +3,7 @@
 
 require "open3"
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 module Security
   module Invariants

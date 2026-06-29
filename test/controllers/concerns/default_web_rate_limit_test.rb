@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Probe controller inheriting the lightest surface base so the surface-wide
 # default_web rate limit (declared on the base) is exercised end-to-end.

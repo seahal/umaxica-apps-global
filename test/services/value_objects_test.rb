@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class ValueObjectsTest < ActiveSupport::TestCase
   test "logout result success exposes expected defaults and predicate" do

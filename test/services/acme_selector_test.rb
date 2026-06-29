@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class AcmeSelectorTest < ActiveSupport::TestCase
   test "config_for returns config for app surface" do

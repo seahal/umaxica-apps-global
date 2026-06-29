@@ -2,12 +2,12 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class IdHostEnvCoverageTest < ActiveSupport::TestCase
   test "JitIdHostEnv coverage" do
     with_env(
-      "PRIVATE_AUTH_SERVICE_URL" => "id.app.example.test", "SIGN_CORPORATE_URL" => "id.com.example.test",
+      "PRIVATE_AUTH_SERVICE_URL" => "id.app.example.test", "AUTH_CORPORATE_URL" => "id.com.example.test",
       "PRIVATE_AUTH_STAFF_URL" => "id.org.example.test",
     ) do
       assert_equal "id.app.example.test", JitIdHostEnv.service_url

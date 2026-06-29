@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 require Rails.root.join("lib/config_values_origin_value").to_s
 require Rails.root.join("lib/config_values_jump_gateway_values").to_s
 

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class RetentionCrossDatabaseChildPurgeTest < ActiveSupport::TestCase
   test "purge removes cross-database children for a visitor" do

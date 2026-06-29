@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)

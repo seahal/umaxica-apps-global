@@ -5,6 +5,11 @@
 Backlog. **Final decision required from 2026-06-06 onward.** Captured 2026-06-05 while moving
 preference and gate cookies to `SameSite=Strict` (see `adr/session-token-hardening-baseline.md`).
 
+**Domain scope resolved (2026-06-29):** Mirror cookies (`ct`, `tz`, `cu`, etc.) now written with
+`domain: true` via `preference_cookie_options` → apex-scoped per surface (`.umaxica.app` etc.).
+Implemented in `preference_cookie_options` (`preference_base.rb`) and `write_preference_cookie`
+(`preference_cookie_writer.rb`). Remaining open questions (items 1–4 below) are unchanged.
+
 ## Context
 
 The preference JWT (`*_preference_access` cookie, ES384, `Security::Jwt::PreferenceTokenCodec`) is

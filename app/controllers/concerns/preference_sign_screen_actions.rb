@@ -15,7 +15,7 @@ module PreferenceSignScreenActions
     ensure_preference_access_token_audience_for_write!
     set_region_preferences_update
     redirect_to(
-      preference_edit_url(:region, preference_write_redirect_params),
+      preference_edit_url(:region, preference_write_redirect_params(except: :ri)),
       notice: preference_update_notice,
     )
   end

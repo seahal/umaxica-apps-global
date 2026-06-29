@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 require "openssl"
 require_relative "../../app/controllers/concerns/preference_jwt_configuration"
 require_relative "../../app/controllers/concerns/preference_token"
@@ -150,6 +150,40 @@ class PreferenceTokenTest < ActiveSupport::TestCase
                   assert_nil PreferenceToken.decode(app_token, host: "log.umaxica.com"),
                              "audience scoped to .app TLD must not validate on a .com host"
                 end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  test "token issued for a public www host can be decoded by the same host" do
+    # Regression: if the JWT audience list does not include the request host,
+    # validate_payload returns nil, clear_preference_auth_cookies! fires, and
+    # both cookies disappear immediately after being written.
+    %w(www.umaxica.app www.umaxica.com www.umaxica.org).each do |host|
+      audiences = [host]
+      key_for = ->(kid) { (kid == "default") ? @public_key : nil }
+
+      PreferenceJwtConfiguration.stub(:private_key_for_active, @private_key) do
+        PreferenceJwtConfiguration.stub(:public_key_for, key_for) do
+          PreferenceJwtConfiguration.stub(:active_kid, "default") do
+            PreferenceJwtConfiguration.stub(:issuer, @issuer) do
+              PreferenceJwtConfiguration.stub(:audiences, audiences) do
+                token = PreferenceToken.encode(
+                  @prefs,
+                  host: host,
+                  preference_type: @preference_type,
+                  public_id: @public_id,
+                  jti: @jti,
+                )
+
+                assert_not_nil token, "encode must succeed for #{host}"
+                decoded = PreferenceToken.decode(token, host: host)
+
+                assert_not_nil decoded,
+                               "self-verification must pass for #{host} — audience_matches? would fail if host is missing from audiences"
               end
             end
           end

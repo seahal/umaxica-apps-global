@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class IdentityPasskeyCeremonyTransactionPurgerTest < ActiveSupport::TestCase
   test "call returns a hash with app com org keys" do

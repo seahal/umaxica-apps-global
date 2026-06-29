@@ -10,6 +10,7 @@ module PreferenceCookieWriter
     cookies[key] = preference_cookie_options(
       expires_at: PreferenceBase::REFRESH_TOKEN_TTL.from_now,
       httponly: false,
+      domain: true,
     ).merge(
       value: value,
     )

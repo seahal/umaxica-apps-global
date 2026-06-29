@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SignOrgSettingsActivityLogTest < ActiveSupport::TestCase
   ActivityStub = Struct.new(:event_id, :occurred_at, :created_at, :ip_address, :context, keyword_init: true)

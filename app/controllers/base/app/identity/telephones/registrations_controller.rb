@@ -93,10 +93,7 @@ module Base
               redirect_to(
                 base_app_identity_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch(
-                    "BASE_SERVICE_URL",
-                    "www.app.localhost",
-                  ),
+                  host: ENV.fetch("BASE_SERVICE_URL"),
                 ), notice: t("sign.app.registration.telephone.update.success"), status: :see_other,
               )
             when :session_expired

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 require Rails.root.join("lib/config_values_origin_value").to_s
 require Rails.root.join("lib/config_values_host_family_values").to_s
 
@@ -66,24 +66,24 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
       "ACME_SERVICE_URL" => "acme.example.test",
       "ACME_CORPORATE_URL" => "acme-com.example.test",
       "ACME_STAFF_URL" => "acme-org.example.test",
-      "PRIVATE_AUTH_SERVICE_URL" => "sign.example.test",
-      "SIGN_CORPORATE_URL" => "sign-com.example.test",
-      "SIGN_STAFF_URL" => "sign-org.example.test",
+      "AUTH_SERVICE_URL" => "sign.example.test",
+      "AUTH_CORPORATE_URL" => "sign-com.example.test",
+      "AUTH_STAFF_URL" => "sign-org.example.test",
       "CORE_SERVICE_URL" => "jpx.example.test",
       "CORE_CORPORATE_URL" => "jpx-com.example.test",
       "CORE_STAFF_URL" => "jpx-org.example.test",
       "BASE_SERVICE_URL" => "base.example.test",
       "BASE_CORPORATE_URL" => "base-com.example.test",
       "BASE_STAFF_URL" => "base-org.example.test",
-      "PUBLIC_PALM_SERVICE_URL" => "palm.example.test",
+      "PALM_SERVICE_URL" => "palm.example.test",
       "PALM_CORPORATE_URL" => "palm-com.example.test",
       "PALM_STAFF_URL" => "palm-org.example.test",
-      "PRIVATE_HELP_SERVICE_URL" => "help.example.test",
-      "PRIVATE_HELP_CORPORATE_URL" => "help-com.example.test",
-      "PRIVATE_HELP_STAFF_URL" => "help-org.example.test",
-      "PRIVATE_INFO_SERVICE_URL" => "info.example.test",
-      "PRIVATE_INFO_CORPORATE_URL" => "info-com.example.test",
-      "PRIVATE_INFO_STAFF_URL" => "info-org.example.test",
+      "HELP_SERVICE_URL" => "help.example.test",
+      "HELP_CORPORATE_URL" => "help-com.example.test",
+      "HELP_STAFF_URL" => "help-org.example.test",
+      "INFO_SERVICE_URL" => "info.example.test",
+      "INFO_CORPORATE_URL" => "info-com.example.test",
+      "INFO_STAFF_URL" => "info-org.example.test",
     }
     values = ConfigValues::HostFamilyValues.build(env: env, production: true)
 
@@ -100,29 +100,74 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     end
   end
 
+  test "base origins fall back to PUBLIC_BASE_*_URL when SIDE_* and BASE_* are absent" do
+    env = {
+      "PUBLIC_BASE_SERVICE_URL" => "www.umaxica.app",
+      "PUBLIC_BASE_CORPORATE_URL" => "www.umaxica.com",
+      "PUBLIC_BASE_STAFF_URL" => "www.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "www.umaxica.app", values.base_service.host
+    assert_equal "www.umaxica.com", values.base_corporate.host
+    assert_equal "www.umaxica.org", values.base_staff.host
+  end
+
+  test "SIDE_*_URL takes precedence over PUBLIC_BASE_*_URL for base origins" do
+    env = {
+      "SIDE_SERVICE_URL" => "side.umaxica.app",
+      "SIDE_CORPORATE_URL" => "side.umaxica.com",
+      "SIDE_STAFF_URL" => "side.umaxica.org",
+      "PUBLIC_BASE_SERVICE_URL" => "www.umaxica.app",
+      "PUBLIC_BASE_CORPORATE_URL" => "www.umaxica.com",
+      "PUBLIC_BASE_STAFF_URL" => "www.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "side.umaxica.app", values.base_service.host
+    assert_equal "side.umaxica.com", values.base_corporate.host
+    assert_equal "side.umaxica.org", values.base_staff.host
+  end
+
+  test "BASE_*_URL takes precedence over PUBLIC_BASE_*_URL for base origins" do
+    env = {
+      "BASE_SERVICE_URL" => "base.umaxica.app",
+      "BASE_CORPORATE_URL" => "base.umaxica.com",
+      "BASE_STAFF_URL" => "base.umaxica.org",
+      "PUBLIC_BASE_SERVICE_URL" => "www.umaxica.app",
+      "PUBLIC_BASE_CORPORATE_URL" => "www.umaxica.com",
+      "PUBLIC_BASE_STAFF_URL" => "www.umaxica.org",
+    }
+    values = ConfigValues::HostFamilyValues.build(env: env, production: false)
+
+    assert_equal "base.umaxica.app", values.base_service.host
+    assert_equal "base.umaxica.com", values.base_corporate.host
+    assert_equal "base.umaxica.org", values.base_staff.host
+  end
+
   test "origin adds an https scheme when the raw value lacks one" do
     env = {
       "ACME_SERVICE_URL" => "acme.example.test",
       "ACME_CORPORATE_URL" => "acme-com.example.test",
       "ACME_STAFF_URL" => "acme-org.example.test",
-      "PRIVATE_AUTH_SERVICE_URL" => "https://sign.example.test",
-      "SIGN_CORPORATE_URL" => "sign-com.example.test",
-      "SIGN_STAFF_URL" => "sign-org.example.test",
+      "AUTH_SERVICE_URL" => "https://sign.example.test",
+      "AUTH_CORPORATE_URL" => "sign-com.example.test",
+      "AUTH_STAFF_URL" => "sign-org.example.test",
       "CORE_SERVICE_URL" => "jpx.example.test",
       "CORE_CORPORATE_URL" => "jpx-com.example.test",
       "CORE_STAFF_URL" => "jpx-org.example.test",
       "BASE_SERVICE_URL" => "base.example.test",
       "BASE_CORPORATE_URL" => "base-com.example.test",
       "BASE_STAFF_URL" => "base-org.example.test",
-      "PUBLIC_PALM_SERVICE_URL" => "palm.example.test",
+      "PALM_SERVICE_URL" => "palm.example.test",
       "PALM_CORPORATE_URL" => "palm-com.example.test",
       "PALM_STAFF_URL" => "palm-org.example.test",
-      "PRIVATE_HELP_SERVICE_URL" => "help.example.test",
-      "PRIVATE_HELP_CORPORATE_URL" => "help-com.example.test",
-      "PRIVATE_HELP_STAFF_URL" => "help-org.example.test",
-      "PRIVATE_INFO_SERVICE_URL" => "info.example.test",
-      "PRIVATE_INFO_CORPORATE_URL" => "info-com.example.test",
-      "PRIVATE_INFO_STAFF_URL" => "info-org.example.test",
+      "HELP_SERVICE_URL" => "help.example.test",
+      "HELP_CORPORATE_URL" => "help-com.example.test",
+      "HELP_STAFF_URL" => "help-org.example.test",
+      "INFO_SERVICE_URL" => "info.example.test",
+      "INFO_CORPORATE_URL" => "info-com.example.test",
+      "INFO_STAFF_URL" => "info-org.example.test",
     }
     values = ConfigValues::HostFamilyValues.build(env: env, production: true)
 

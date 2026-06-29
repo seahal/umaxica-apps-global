@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class IdentityCeremonyNumericDateTest < ActiveSupport::TestCase
   REFERENCE_EPOCH = Time.utc(2024, 1, 2, 3, 4, 5).to_i

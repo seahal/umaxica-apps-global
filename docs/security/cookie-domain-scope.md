@@ -30,6 +30,11 @@ Rails may write JS-readable cookies only for non-secret UI and request-context m
 - `tz`, `cu`, `df`, `tf`, `mo`, `dn`, `ps` - timezone and display preference mirrors.
 - `preference_consented` - compact consent-banner state for AJAX/browser UI.
 
+These cookies are apex-scoped (e.g. `.umaxica.app`) so that all subdomains within a surface can read
+them for theme bootstrapping, Hono compatibility, and edge rendering. They are written with
+`domain: true` via `CoreCookieOptions.for`, which resolves to the apex domain for the current
+surface.
+
 These cookies are compatibility mirrors. Rails request code must not treat them as authoritative
 preference input; normal runtime reads come from the preference access-token projection and
 `Actor.preferences`. The mirrors are JS-readable because they contain only values already visible in

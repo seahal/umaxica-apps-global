@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SignUpCancellationTest < ActiveSupport::TestCase
   test "cancel records durable cleanup intent and schedules dependent records" do

@@ -27,7 +27,7 @@ module PromotionalEmailUnsubscribeToken
 
   def secret_credential
     Rails.app.creds.option(SECRET_KEY).presence ||
-      ENV[SECRET_KEY.to_s].presence ||
+      ENV.fetch(SECRET_KEY.to_s).presence ||
       raise(KeyError, "Missing key: [:#{SECRET_KEY}]")
   end
 end

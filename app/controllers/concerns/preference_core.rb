@@ -490,7 +490,7 @@ module PreferenceCore
     except_keys.map!(&:to_sym)
     preference_context_redirect_params.except(*except_keys).tap do |redirect_params|
       except_keys.each { |key| redirect_params[key] = nil }
-      redirect_params[:ri] = params[:ri].presence || get_region
+      redirect_params[:ri] = params[:ri].presence || get_region unless except_keys.include?(:ri)
     end
   end
 

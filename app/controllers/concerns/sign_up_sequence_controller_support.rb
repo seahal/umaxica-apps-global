@@ -756,7 +756,7 @@ module SignUpSequenceControllerSupport
         reveal_url: ->(token) {
           sign_app_settings_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost")),
+            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
           )
         },
       }
@@ -767,7 +767,7 @@ module SignUpSequenceControllerSupport
         reveal_url: ->(token) {
           sign_com_settings_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("PRIVATE_SIGN_CORPORATE_URL", ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost")),
+            host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
           )
         },
       }

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class ApplicationErrorTest < ActiveSupport::TestCase
   test "ApplicationError stores status code, context, and translated message" do

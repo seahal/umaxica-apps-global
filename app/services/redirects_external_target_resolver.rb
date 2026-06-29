@@ -6,7 +6,7 @@ class RedirectsExternalTargetResolver
 
   REGISTRY = {
     rp_app: { env: "RP_APP_URL", default: "https://rp.app.localhost" },
-    idp: { env: "SIGN_CORPORATE_URL", default: "https://id.com.localhost" },
+    idp: { env: "AUTH_CORPORATE_URL", default: "https://id.com.localhost" },
     jump: { env: "JUMP_GATEWAY_URL", default: "https://jump.umaxica.net" },
   }.freeze
 
@@ -92,7 +92,7 @@ class RedirectsExternalTargetResolver
   end
 
   def origin_for(entry)
-    ENV.fetch(entry.fetch(:env), entry.fetch(:default)).presence
+    ENV.fetch(entry.fetch(:env)).presence
   end
 
   def local_origin_allowed?(uri)

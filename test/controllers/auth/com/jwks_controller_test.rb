@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::Com::JwksControllerTest < ActionDispatch::IntegrationTest
   test "sign com well-known jwks remains public" do

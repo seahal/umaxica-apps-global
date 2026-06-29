@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class RateLimitProfilesTest < ActiveSupport::TestCase
   test "email submission profile is shared and relaxed enough for sign up" do

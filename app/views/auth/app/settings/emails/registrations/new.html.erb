@@ -1,6 +1,6 @@
 <% content_for :page_title, t("sign.app.settings.email.new.page_title") %>
 
-<% acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")) %>
+<% acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL") %>
 <%= link_to t('sign.app.settings.show.back'), "https://#{acme_host}/preference?ri=#{params[:ri]}" %>
 
 <h1><%= t("sign.app.settings.email.new.page_title") %></h1>

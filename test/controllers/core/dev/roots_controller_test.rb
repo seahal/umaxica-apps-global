@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Core::Dev::RootsControllerTest < ActionDispatch::IntegrationTest
   test "renders the React Aria probe mount point on the developer host" do

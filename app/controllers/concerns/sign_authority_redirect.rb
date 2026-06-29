@@ -43,18 +43,9 @@ module SignAuthorityRedirect
 
   def sign_authority_host
     case self.class.name
-    when /\A(Sign::App|Acme::App)::/ then ENV.fetch(
-      "PUBLIC_AUTH_SERVICE_URL",
-      ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"),
-    )
-    when /\A(Sign::Com|Acme::Com)::/ then ENV.fetch(
-      "PRIVATE_SIGN_CORPORATE_URL",
-      ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
-    )
-    when /\A(Sign::Org|Acme::Org)::/ then ENV.fetch(
-      "PRIVATE_SIGN_STAFF_URL",
-      ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
-    )
+    when /\A(Sign::App|Acme::App)::/ then ENV.fetch("PUBLIC_AUTH_SERVICE_URL")
+    when /\A(Sign::Com|Acme::Com)::/ then ENV.fetch("PRIVATE_AUTH_CORPORATE_URL")
+    when /\A(Sign::Org|Acme::Org)::/ then ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     else
       request.host
     end
@@ -62,12 +53,9 @@ module SignAuthorityRedirect
 
   def acme_authority_host
     case self.class.name
-    when /\ASign::App::/ then ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
-    when /\ASign::Com::/ then ENV.fetch(
-      "PRIVATE_ACME_CORPORATE_URL",
-      ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost"),
-    )
-    when /\ASign::Org::/ then ENV.fetch("PRIVATE_ACME_STAFF_URL", ENV.fetch("ACME_STAFF_URL", "www.org.localhost"))
+    when /\ASign::App::/ then ENV.fetch("PRIVATE_ACME_SERVICE_URL")
+    when /\ASign::Com::/ then ENV.fetch("PRIVATE_ACME_CORPORATE_URL")
+    when /\ASign::Org::/ then ENV.fetch("PRIVATE_ACME_STAFF_URL")
     else
       request.host
     end

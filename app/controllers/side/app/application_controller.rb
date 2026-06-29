@@ -26,7 +26,7 @@ module Side
 
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
-                             ENV.fetch("PUBLIC_SIDE_SERVICE_URL", ENV.fetch("SIDE_SERVICE_URL", "side.app.localhost")),
+                             ENV.fetch("PUBLIC_SIDE_SERVICE_URL"),
                            ),
                            with: :exception
 
@@ -71,11 +71,11 @@ module Side
       end
 
       def oidc_sign_host
-        ENV.fetch("PUBLIC_AUTH_SERVICE_URL", ENV.fetch("AUTH_SERVICE_URL", "auth.app.localhost"))
+        ENV.fetch("PUBLIC_AUTH_SERVICE_URL")
       end
 
       def oidc_acme_host
-        ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+        ENV.fetch("PRIVATE_ACME_SERVICE_URL")
       end
     end
   end

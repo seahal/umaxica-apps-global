@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Tests for ApplicationPolicy JWT integration via Actor.authz.token_claims
 class ApplicationPolicyJwtTest < ActiveSupport::TestCase

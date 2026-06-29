@@ -5,7 +5,7 @@
 # rubocop:disable I18n/RailsI18n/DecorateStringFormattingUsingInterpolation
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class LocaleInitializerTest < ActiveSupport::TestCase
   self.use_transactional_tests = false

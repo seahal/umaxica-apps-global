@@ -168,7 +168,7 @@ end
 
 - Requires `TRUSTED_ORIGINS` environment variable for all Rails commands
 - Development default: `http://sign.app.localhost:3000,http://sign.org.localhost:3000`
-- Set in `docker/core/env` or export manually when running outside containers
+- Set in `compose.yaml` `environment:` or export manually when running outside containers
 
 ### Environment-Specific URLs
 

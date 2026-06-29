@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::TestCase
   test "callback routes keep google GET and apple GET or POST separate" do

@@ -3,7 +3,7 @@
 
 require "ostruct"
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class CookieDomainTest < ActiveSupport::TestCase
   def stub_creds(_key, value)

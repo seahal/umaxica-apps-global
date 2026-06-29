@@ -43,24 +43,15 @@ module SignVerificationCancellation
     case surface.to_s
     when "app"
       cancellation_base_app_verification_url(
-        host: ENV.fetch(
-          "PUBLIC_BASE_SERVICE_URL",
-          ENV.fetch("BASE_SERVICE_URL", "www.app.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
       )
     when "com"
       cancellation_base_com_verification_url(
-        host: ENV.fetch(
-          "PUBLIC_BASE_CORPORATE_URL",
-          ENV.fetch("BASE_CORPORATE_URL", "www.com.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),
       )
     when "org"
       cancellation_base_org_verification_url(
-        host: ENV.fetch(
-          "PUBLIC_BASE_STAFF_URL",
-          ENV.fetch("BASE_STAFF_URL", "www.org.localhost"),
-        ),
+        host: ENV.fetch("PUBLIC_BASE_STAFF_URL"),
       )
     else
       raise NotImplementedError, "unsupported step-up surface: #{surface}"

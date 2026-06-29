@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 require "jit_id_host_env"
 
 module Jit
@@ -11,7 +11,7 @@ module Jit
       @original_env = {
         "PRIVATE_AUTH_SERVICE_URL" => ENV["PRIVATE_AUTH_SERVICE_URL"],
         "PRIVATE_AUTH_CORPORATE_URL" => ENV["PRIVATE_AUTH_CORPORATE_URL"],
-        "SIGN_CORPORATE_URL" => ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
+        "AUTH_CORPORATE_URL" => ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
         "PRIVATE_AUTH_STAFF_URL" => ENV["PRIVATE_AUTH_STAFF_URL"],
       }
     end
@@ -30,7 +30,7 @@ module Jit
       assert_equal "http://id.app.localhost", JitIdHostEnv.service_url
     end
 
-    test "corporate_url returns SIGN_CORPORATE_URL" do
+    test "corporate_url returns AUTH_CORPORATE_URL" do
       ENV["PRIVATE_AUTH_CORPORATE_URL"] = "http://id.com.localhost"
 
       assert_equal "http://id.com.localhost", JitIdHostEnv.corporate_url

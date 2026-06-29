@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # The org withdrawal landing page is owner-self only: an operator may view their own, never another's.
 class OperatorWithdrawalPolicyTest < ActiveSupport::TestCase

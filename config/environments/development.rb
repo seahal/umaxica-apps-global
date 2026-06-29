@@ -122,72 +122,100 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection for hosts used in route constraints.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-  tunnel_hosts =
-    boot_hosts.acme_origins.map(&:host) +
-    boot_hosts.sign_origins.map(&:host) +
-    boot_hosts.core_origins.map(&:host) +
-    boot_hosts.base_origins.map(&:host) +
-    boot_hosts.palm_origins.map(&:host) +
-    boot_hosts.info_origins.map(&:host) +
-    %w(
-      auth.umaxica.app
-      auth.umaxica.com
-      auth.umaxica.org
-      base.umaxica.app
-      base.umaxica.com
-      base.umaxica.org
-      side-jp.umaxica.app
-      side-jp.umaxica.com
-      side-jp.umaxica.org
-      auth.app.localhost:3000
-      acme.com.localhost:3000
-      acme.org.localhost:3000
-      base.app.localhost:3000
-      base.org.localhost:3000
-      base.com.localhost:3000
-      info.com.localhost:3000
-      info.org.localhost:3000
-      info.app.localhost:3000
-      help.com.localhost:3000
-      help.org.localhost:3000
-      help.app.localhost:3000
-      core.com.localhost:3000
-      core.org.localhost:3000
-      core.app.localhost:3000
-      docs.com.localhost:3000
-      docs.org.localhost:3000
-      docs.app.localhost:3000
-      news.com.localhost:3000
-      news.org.localhost:3000
-      news.app.localhost:3000
-      palm.app.localhost:3000
-    )
+  boot_config_hosts = [
+    boot_hosts.acme_origins,
+    boot_hosts.sign_origins,
+    boot_hosts.core_origins,
+    boot_hosts.base_origins,
+    boot_hosts.palm_origins,
+    [boot_hosts.help_service, boot_hosts.help_corporate, boot_hosts.help_staff],
+    boot_hosts.info_origins,
+  ].flatten.map(&:host)
+
+  public_tunnel_hosts = %w(
+    auth.umaxica.app
+    auth.umaxica.com
+    auth.umaxica.org
+    base.umaxica.app
+    base.umaxica.com
+    base.umaxica.org
+    side-jp.umaxica.app
+    side-jp.umaxica.com
+    side-jp.umaxica.org
+  )
+
+  localhost_tunnel_hosts = %w(
+    auth.app.localhost:3000
+    acme.com.localhost:3000
+    acme.org.localhost:3000
+    base.app.localhost:3000
+    base.org.localhost:3000
+    base.com.localhost:3000
+    info.com.localhost:3000
+    info.org.localhost:3000
+    info.app.localhost:3000
+    help.com.localhost:3000
+    help.org.localhost:3000
+    help.app.localhost:3000
+    core.com.localhost:3000
+    core.org.localhost:3000
+    core.app.localhost:3000
+    docs.com.localhost:3000
+    docs.org.localhost:3000
+    docs.app.localhost:3000
+    news.com.localhost:3000
+    news.org.localhost:3000
+    news.app.localhost:3000
+    palm.app.localhost:3000
+    core.app.localhost
+    core.com.localhost
+    core.org.localhost
+  )
+
+  env_host_keys = %w(
+    PRIVATE_ACME_CORPORATE_URL
+    PRIVATE_ACME_SERVICE_URL
+    PRIVATE_ACME_STAFF_URL
+    PRIVATE_ACME_NETWORK_URL
+    PRIVATE_ACME_DEVELOPER_URL
+    PRIVATE_AUTH_CORPORATE_URL
+    PRIVATE_AUTH_SERVICE_URL
+    PRIVATE_AUTH_STAFF_URL
+    PUBLIC_JUMP_CORPORATE_URL
+    PUBLIC_JUMP_SERVICE_URL
+    PUBLIC_JUMP_STAFF_URL
+    PRIVATE_MAIN_SERVICE_URL
+    PRIVATE_MAIN_STAFF_URL
+    PRIVATE_MAIN_CORPORATE_URL
+    PUBLIC_CORE_SERVICE_URL
+    PUBLIC_CORE_STAFF_URL
+    PUBLIC_CORE_CORPORATE_URL
+    PUBLIC_BASE_SERVICE_URL
+    PUBLIC_BASE_STAFF_URL
+    PUBLIC_BASE_CORPORATE_URL
+    PRIVATE_PALM_SERVICE_URL
+    PUBLIC_INFO_SERVICE_URL
+    PUBLIC_INFO_STAFF_URL
+    PUBLIC_INFO_CORPORATE_URL
+    PRIVATE_DOCS_SERVICE_URL
+    PRIVATE_DOCS_STAFF_URL
+    PRIVATE_DOCS_CORPORATE_URL
+    PRIVATE_NEWS_SERVICE_URL
+    PRIVATE_NEWS_STAFF_URL
+    PRIVATE_NEWS_CORPORATE_URL
+    PRIVATE_HELP_SERVICE_URL
+    PRIVATE_HELP_STAFF_URL
+    PRIVATE_HELP_CORPORATE_URL
+  )
+  env_hosts =
+    ENV.values_at(*env_host_keys).compact_blank.flat_map do |value|
+      origin = ConfigValues.build(value, allow_localhost: true)
+      default_port = (origin.scheme == "https") ? 443 : 80
+      [origin.host, ("#{origin.host}:#{origin.port}" if origin.port != default_port)]
+    end
+
   config.hosts.concat(
-    ENV.values_at(
-      "PRIVATE_ACME_CORPORATE_URL",
-      "PRIVATE_ACME_SERVICE_URL",
-      "PRIVATE_ACME_STAFF_URL",
-      "PRIVATE_ACME_NETWORK_URL",
-      "PRIVATE_ACME_DEVELOPER_URL",
-      "PRIVATE_SIGN_CORPORATE_URL",
-      "PRIVATE_SIGN_SERVICE_URL",
-      "PRIVATE_SIGN_STAFF_URL",
-      "PUBLIC_JUMP_CORPORATE_URL",
-      "PUBLIC_JUMP_SERVICE_URL",
-      "PUBLIC_JUMP_STAFF_URL",
-      "PRIVATE_MAIN_SERVICE_URL", "PRIVATE_MAIN_STAFF_URL", "PRIVATE_MAIN_CORPORATE_URL",
-      "PUBLIC_CORE_SERVICE_URL", "PUBLIC_CORE_STAFF_URL", "PUBLIC_CORE_CORPORATE_URL",
-      "PUBLIC_BASE_SERVICE_URL", "PUBLIC_BASE_STAFF_URL", "PUBLIC_BASE_CORPORATE_URL",
-      "PRIVATE_PALM_SERVICE_URL",
-      "PUBLIC_INFO_SERVICE_URL", "PUBLIC_INFO_STAFF_URL", "PUBLIC_INFO_CORPORATE_URL",
-      "PRIVATE_DOCS_SERVICE_URL", "PRIVATE_DOCS_STAFF_URL", "PRIVATE_DOCS_CORPORATE_URL",
-      "PRIVATE_NEWS_SERVICE_URL", "PRIVATE_NEWS_STAFF_URL", "PRIVATE_NEWS_CORPORATE_URL",
-      "PRIVATE_HELP_SERVICE_URL", "PRIVATE_HELP_STAFF_URL", "PRIVATE_HELP_CORPORATE_URL",
-    ).compact_blank + tunnel_hosts + [
-      "core.app.localhost",
-      "core.com.localhost",
-      "core.org.localhost",
-    ],
+    (boot_config_hosts + public_tunnel_hosts + localhost_tunnel_hosts + env_hosts).compact_blank.uniq,
   )
 
   ## file watcher
@@ -196,7 +224,7 @@ Rails.application.configure do
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
   # Match the dev Sign surface origin (see TRUSTED_ORIGINS in initializers/webauthn.rb);
-  # production uses SIGN_SERVICE_URL. Puma serves on 3000.
+  # production uses AUTH_SERVICE_URL. Puma serves on 3000.
   config.action_mailer.default_url_options = { host: "sign.app.localhost", port: 3000 }
   config.action_mailer.smtp_settings = {
     address: "email-smtp.#{ENV.fetch("AWS_SES_REGION", "ap-northeast-1")}.amazonaws.com",

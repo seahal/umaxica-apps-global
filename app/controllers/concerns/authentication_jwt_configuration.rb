@@ -12,11 +12,11 @@ module AuthenticationJwtConfiguration
   VALID_RESOURCE_TYPES = %w(client operator visitor).freeze
 
   def self.leeway_seconds
-    Integer(ENV.fetch("AUTH_JWT_LEEWAY_SECONDS", "30"), 10)
+    Integer(ENV.fetch("AUTH_JWT_LEEWAY_SECONDS"), 10)
   end
 
   def self.issuer(resource_type = nil)
-    base = ENV.fetch("AUTH_JWT_ISSUER", "umaxica-auth")
+    base = ENV.fetch("AUTH_JWT_ISSUER")
     normalized_resource_type = normalize_resource_type(resource_type)
     return base if normalized_resource_type.nil?
 
@@ -28,9 +28,9 @@ module AuthenticationJwtConfiguration
     resource_key = normalized_resource_type&.upcase
     raw =
       if resource_key.present?
-        ENV["AUTH_JWT_#{resource_key}_AUDIENCES"].presence || ENV["AUTH_JWT_AUDIENCES"].to_s
+        ENV.fetch("AUTH_JWT_#{resource_key}_AUDIENCES").presence || ENV.fetch("AUTH_JWT_AUDIENCES").to_s
       else
-        ENV["AUTH_JWT_AUDIENCES"].to_s
+        ENV.fetch("AUTH_JWT_AUDIENCES").to_s
       end
     audiences = raw.split(",").map(&:strip)
     audiences.reject!(&:empty?)

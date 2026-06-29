@@ -19,11 +19,11 @@ module PreferenceJwtConfiguration
   end
 
   def self.leeway_seconds
-    Integer(ENV.fetch("PREFERENCE_JWT_LEEWAY_SECONDS", "30").to_s, 10)
+    Integer(ENV.fetch("PREFERENCE_JWT_LEEWAY_SECONDS").to_s, 10)
   end
 
   def self.issuer
-    ENV.fetch("PREFERENCE_JWT_ISSUER", "jit-preference")
+    ENV.fetch("PREFERENCE_JWT_ISSUER")
   end
 
   def self.audiences
@@ -136,8 +136,8 @@ module PreferenceJwtConfiguration
   end
   private_class_method :audiences_from_boot_config
 
-  def self.env_host(public_key, legacy_key, fallback)
-    ENV.fetch(public_key, ENV.fetch(legacy_key, fallback)).to_s
+  def self.env_host(public_key, _legacy_key, _fallback)
+    ENV.fetch(public_key).to_s
   end
   private_class_method :env_host
 

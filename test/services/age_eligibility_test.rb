@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class AgeEligibilityTest < ActiveSupport::TestCase
   # birthdate_for_age tests

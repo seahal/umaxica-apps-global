@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class AcmePublicResourceRoutesTest < ActiveSupport::TestCase
   def test_accounts_and_organizations_routes_are_index_show_only

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class OrgOperatorLifecycleExecuteTest < ActiveSupport::TestCase
   test "executing an unknown action returns a failure" do

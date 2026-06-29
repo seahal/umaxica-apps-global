@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class IdentityAuditTest < ActiveSupport::TestCase
   fixtures :clients, :client_chronicle_events, :client_chronicle_levels

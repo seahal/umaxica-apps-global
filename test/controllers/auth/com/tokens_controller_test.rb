@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Auth::Com::TokensControllerTest < ActionDispatch::IntegrationTest
   test "sign com oauth token route is retired" do

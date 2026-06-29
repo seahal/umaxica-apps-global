@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class EdgeHealthRoutesTest < ActionDispatch::IntegrationTest
   test "legacy edge health routes are not routed" do

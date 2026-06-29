@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 module Oidc
   # Regression coverage for the DPoP sender-constraint gate on the UserInfo

@@ -82,12 +82,12 @@ class << ConfigValues::HostFamilyValues
         production: production,
       ),
       acme_staff: origin(env, "ACME_STAFF_URL", production ? nil : "acme.org.localhost", production: production),
-      sign_service: origin(env, "SIGN_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
+      sign_service: origin(env, "AUTH_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
       sign_corporate: origin(
-        env, "SIGN_CORPORATE_URL", production ? nil : "sign.com.localhost",
+        env, "AUTH_CORPORATE_URL", production ? nil : "sign.com.localhost",
         production: production,
       ),
-      sign_staff: origin(env, "SIGN_STAFF_URL", production ? nil : "sign.org.localhost", production: production),
+      sign_staff: origin(env, "AUTH_STAFF_URL", production ? nil : "sign.org.localhost", production: production),
       core_service: origin(env, "CORE_SERVICE_URL", production ? nil : "jpx.umaxica.app", production: production),
       core_corporate: origin(
         env,
@@ -98,19 +98,19 @@ class << ConfigValues::HostFamilyValues
       core_staff: origin(env, "CORE_STAFF_URL", production ? nil : "jpx.umaxica.org", production: production),
       base_service: origin(
         env,
-        env.key?("SIDE_SERVICE_URL") ? "SIDE_SERVICE_URL" : "BASE_SERVICE_URL",
+        base_key(env, "SERVICE"),
         production ? nil : "www-jp.umaxica.app",
         production: production,
       ),
       base_corporate: origin(
         env,
-        env.key?("SIDE_CORPORATE_URL") ? "SIDE_CORPORATE_URL" : "BASE_CORPORATE_URL",
+        base_key(env, "CORPORATE"),
         production ? nil : "www-jp.umaxica.com",
         production: production,
       ),
       base_staff: origin(
         env,
-        env.key?("SIDE_STAFF_URL") ? "SIDE_STAFF_URL" : "BASE_STAFF_URL",
+        base_key(env, "STAFF"),
         production ? nil : "www-jp.umaxica.org",
         production: production,
       ),
@@ -139,6 +139,20 @@ class << ConfigValues::HostFamilyValues
       ),
       info_staff: origin(env, "INFO_STAFF_URL", production ? nil : "info.org.localhost", production: production),
     ).freeze
+  end
+
+  # Resolves the ENV key for a base surface (service/corporate/staff).
+  # Prefers SIDE_* over BASE_* over PUBLIC_BASE_* so that explicit private-routing
+  # overrides take precedence, but PUBLIC_BASE_* (browser-visible hosts from docker
+  # env) are picked up when neither private key is set.
+  def base_key(env, surface)
+    if env.key?("SIDE_#{surface}_URL")
+      "SIDE_#{surface}_URL"
+    elsif env.key?("BASE_#{surface}_URL")
+      "BASE_#{surface}_URL"
+    else
+      "PUBLIC_BASE_#{surface}_URL"
+    end
   end
 
   def origin(env, key, fallback, production:)

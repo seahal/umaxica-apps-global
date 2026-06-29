@@ -4,7 +4,7 @@
 # rubocop:disable Rails/I18nLocaleTexts
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Email::SurfaceMailersTest < ActionMailer::TestCase
   include ActiveJob::TestHelper

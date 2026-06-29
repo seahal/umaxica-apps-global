@@ -184,7 +184,7 @@ module OidcSsoInitiator
   end
 
   def local_oidc_token_endpoint_port
-    Integer(ENV.fetch("PORT", "3000"), exception: false) || 3000
+    Integer(ENV.fetch("PORT"), exception: false) || 3000
   end
 
   # Tighten the OIDC pt to a same-host internal path.

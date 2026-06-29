@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SignUp::ParticipantPolicyTest < ActiveSupport::TestCase
   test "enter_guardrail? is true for a mutable ticket at contact_verified" do

@@ -6,7 +6,7 @@
   <%= render "auth/app/emails/registrations/verification_fields", form: f, user_email: @user_email, verification_token: @verification_token %>
 <% end %>
 
-<% acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")) %>
+<% acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL") %>
 <div>
   <%= button_to t("otp.resend.button"),
                 auth_app_settings_emails_registration_redelivery_path(ri: params[:ri], pt: signed_pt_param),

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class RedirectTargetUsageTest < ActiveSupport::TestCase
   DIRECT_PARAM_REDIRECT = /redirect_to\s*\(?\s*params\[/.freeze

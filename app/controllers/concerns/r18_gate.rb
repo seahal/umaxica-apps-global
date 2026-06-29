@@ -63,7 +63,7 @@ module R18Gate
   def r18_cookie_options
     {
       httponly: true,
-      secure: Rails.env.production? || ENV["FORCE_SECURE_COOKIES"].present? || request.ssl?,
+      secure: Rails.env.production? || ENV.fetch("FORCE_SECURE_COOKIES").present? || request.ssl?,
       # SameSite=Strict: the anonymous acknowledgment is a local gate flag, not cross-site flow
       # state. The only cost of Strict is that an anonymous visitor arriving via a cross-site inbound
       # link is re-prompted to acknowledge on that first hit, which is acceptable (and conservative)

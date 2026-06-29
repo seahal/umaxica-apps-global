@@ -116,7 +116,7 @@ module SocialCallbackGuard
             AUTH_STAFF_URL
             AUTH_STAFF_URL
             AUTH_CORPORATE_URL
-          ).filter_map { |key| normalize_host_port(ENV[key]) }
+          ).filter_map { |key| normalize_host_port(ENV.fetch(key)) }
 
         if Rails.env.local?
           hosts << "auth.app.localhost"

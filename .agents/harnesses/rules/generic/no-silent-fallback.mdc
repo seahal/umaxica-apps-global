@@ -36,9 +36,15 @@ expected case — never as a way to avoid handling an error.
 Do not hide invalid configuration by supplying defaults for required settings. Required
 configuration must be explicit and must fail clearly when missing.
 
+Read required Ruby environment variables with one-argument `ENV.fetch("NAME")`. Do not use
+`ENV["NAME"]` for required configuration because a missing value returns `nil` and can continue
+silently. Do not pass a default value or block to `ENV.fetch`; missing required configuration must
+raise immediately.
+
 Forbidden required-configuration patterns include:
 
-- `ENV.fetch("NAME", "default")`, `ENV["NAME"] || "default"`, or equivalent Ruby defaults
+- `ENV["NAME"]`, `ENV.fetch("NAME", "default")`, `ENV.fetch("NAME") { ... }`,
+  `ENV["NAME"] || "default"`, or equivalent Ruby defaults
 - `Rails.application.credentials.dig(...) || "default"` or equivalent credential defaults
 - `process.env.NAME ?? "default"`, `process.env.NAME || "default"`,
   `import.meta.env.NAME ?? "default"`, or equivalent JavaScript or TypeScript defaults

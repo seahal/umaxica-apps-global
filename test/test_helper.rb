@@ -1,6 +1,16 @@
 # frozen_string_literal: true
 
 ENV["RAILS_ENV"] ||= "test"
+ENV["AUTH_SERVICE_URL"] = "auth.app.localhost"
+ENV["AUTH_CORPORATE_URL"] = "auth.com.localhost"
+ENV["AUTH_STAFF_URL"] = "auth.org.localhost"
+ENV["PUBLIC_AUTH_SERVICE_URL"] = "auth.app.localhost"
+ENV["PUBLIC_AUTH_CORPORATE_URL"] = "auth.com.localhost"
+ENV["PUBLIC_AUTH_STAFF_URL"] = "auth.org.localhost"
+ENV["PRIVATE_AUTH_SERVICE_URL"] = "auth.app.localhost"
+ENV["PRIVATE_AUTH_CORPORATE_URL"] = "auth.com.localhost"
+ENV["PRIVATE_AUTH_STAFF_URL"] = "auth.org.localhost"
+ENV["SMTP_FROM_ADDRESS_APP"] = "from@umaxica.app"
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
 if ENV["COVERAGE"] == "true"

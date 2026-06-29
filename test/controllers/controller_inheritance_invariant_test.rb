@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Enforces the controller inheritance contract:
 #   Every peripheral controller must inherit directly from a surface ApplicationController

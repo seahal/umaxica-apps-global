@@ -159,7 +159,7 @@ module Auth
               status: "ok",
               passkey_id: passkey.id,
               redirect_url: bootstrap_return_path(
-                auth_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost")),
+                auth_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("AUTH_STAFF_URL")),
               ),
             }, status: :created
           end
@@ -307,7 +307,7 @@ module Auth
         def recovery_passcode_setup_url
           auth_org_settings_secret_credentials_url(
             ri: params[:ri],
-            host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
+            host: ENV.fetch("AUTH_STAFF_URL"),
           )
         end
       end

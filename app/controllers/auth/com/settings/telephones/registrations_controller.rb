@@ -120,7 +120,7 @@ module Auth
               redirect_to(
                 auth_com_settings_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch("SIGN_CORPORATE_URL", "id.com.localhost"),
+                  host: ENV.fetch("AUTH_CORPORATE_URL"),
                 ),
                 notice: t("sign.app.registration.telephone.update.success"),
                 allow_other_host: cross_host_redirect_allowed?,

@@ -4,7 +4,7 @@
 # rubocop:disable Rails/I18nLocaleTexts
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class Email::App::ApplicationMailerTest < ActionMailer::TestCase
   test "sets promotional unsubscribe headers when requested" do

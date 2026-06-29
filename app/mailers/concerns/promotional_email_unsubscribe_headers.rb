@@ -49,7 +49,7 @@ module PromotionalEmailUnsubscribeHeaders
       options.fetch(route),
       email_record,
       token: token,
-      host: ENV.fetch(options.fetch(:host_env), options.fetch(:default_host)),
+      host: ENV.fetch(options.fetch(:host_env)),
     )
   end
 end

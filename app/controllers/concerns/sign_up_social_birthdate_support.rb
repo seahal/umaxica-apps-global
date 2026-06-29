@@ -109,7 +109,7 @@ module SignUpSocialBirthdateSupport
       locals: {
         completion_url: completion_base_app_social_authentication_url(
           id: candidate.provider,
-          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost")),
+          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL"),
         ),
         result_token: result_token,
         ri: params[:ri],

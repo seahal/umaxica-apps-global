@@ -74,10 +74,8 @@ module ApplicationHelper
   def edge_host
     surface = request.respond_to?(:host) ? CoreSurface.current(request) : CoreSurface::DEFAULT
     env_key = EDGE_HOST_ENV_KEYS.fetch(surface, EDGE_HOST_ENV_KEYS.fetch(CoreSurface::DEFAULT))
-    env_value = env_key.find { |key| ENV[key].present? }
-    return nil unless env_value
 
-    CoreHostNormalization.normalize(ENV[env_value])
+    CoreHostNormalization.normalize(ENV.fetch(env_key.first))
   end
 
   private

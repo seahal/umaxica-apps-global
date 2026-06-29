@@ -13,7 +13,7 @@ module CoreBrowserCredentialContract
   module_function
 
   def enabled?
-    ActiveModel::Type::Boolean.new.cast(ENV["CORE_BROWSER_JWT_COOKIE_ENABLED"])
+    ActiveModel::Type::Boolean.new.cast(ENV.fetch("CORE_BROWSER_JWT_COOKIE_ENABLED"))
   end
 
   def access_cookie_options(expires_at:)

@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
-require "helpers/auth_helpers"
+# require "helpers/global_test_support"
+# require "helpers/auth_helpers"
 
 class Base::EdgeV0TokenChecksTest < ActionDispatch::IntegrationTest
   fixtures :clients, :operators, :visitors

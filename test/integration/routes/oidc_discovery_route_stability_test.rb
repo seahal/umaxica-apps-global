@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Guards that every path advertised in the OIDC discovery document resolves in
 # the Rails router for the corresponding surface host.  A route rename that

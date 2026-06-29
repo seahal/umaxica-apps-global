@@ -49,6 +49,8 @@ Use these `.agents/harnesses/rules/` files as task-specific instructions:
 - Security-sensitive work or broad refactors: `.agents/harnesses/rules/generic/absolute-rules.mdc`,
   `.agents/harnesses/rules/generic/no-silent-fallback.mdc`,
   `.agents/harnesses/rules/project/regression-guards.mdc`
+- Configuration or environment-variable work:
+  `.agents/harnesses/rules/generic/no-silent-fallback.mdc`
 - Surface, routing, or authentication changes: `.agents/harnesses/rules/project/surfaces.mdc`,
   `.agents/harnesses/rules/generic/routing.mdc`,
   `.agents/harnesses/rules/generic/no-workflow-drift.mdc`,
@@ -170,6 +172,8 @@ Do not:
   feedback inline in the page instead. See `.agents/harnesses/rules/generic/no-flash-messages.mdc`.
 - Log tokens, cookies, authorization headers, or full request params.
 - Store request state in class variables, globals, or `Thread.current`.
+- Read required Ruby environment variables with one-argument `ENV.fetch("NAME")`; do not use
+  `ENV["NAME"]`, default arguments, or fetch blocks for required configuration.
 
 For database changes, do not use destructive operations such as `drop_table`, `remove_column`,
 `change_column`, `delete_all`, `destroy_all`, `update_all`, or raw `execute(...)` unless the user

@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class HelpRouteContractTest < ActionDispatch::IntegrationTest
   HELP_APP_HOST = ENV.fetch("PRIVATE_HELP_SERVICE_URL")

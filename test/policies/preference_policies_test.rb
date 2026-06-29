@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Test suite for preference policies that inherit default behavior from ApplicationPolicy
 # These policies don't override any methods, so they use ApplicationPolicy's defaults (all deny)

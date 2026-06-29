@@ -42,7 +42,7 @@ module JumpToRedirector
   def allowed_hosts
     # Use JUMP_ALLOWED_HOSTS env var (comma-separated) or fallback to empty array
     hosts =
-      ENV.fetch("JUMP_ALLOWED_HOSTS", "").split(",").filter_map do |value|
+      ENV.fetch("JUMP_ALLOWED_HOSTS").split(",").filter_map do |value|
         normalize_allowed_host(value)
       end
     hosts.compact_blank

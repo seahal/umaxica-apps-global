@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class SignUpEligibilityPolicyTest < ActiveSupport::TestCase
   test "app client direct signup minimum age is sixteen" do

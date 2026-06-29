@@ -1,6 +1,6 @@
 <%
   tld = :app
-  title_site = "#{ENV.fetch('BRAND_NAME', 'Umaxica')} (#{tld})"
+  title_site = "#{ENV.fetch('BRAND_NAME')} (#{tld})"
 %>
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
@@ -45,7 +45,7 @@
         <span class="bg-black text-white px-1 font-bold text-xs">SIGN</span>
         <h1 class="text-lg font-bold">
           <% content_for :root_link do %>
-            <%= link_to ENV.fetch("BRAND_NAME", "Umaxica"), auth_app_root_path %>
+            <%= link_to ENV.fetch("BRAND_NAME"), auth_app_root_path %>
           <% end %>
           <%= yield :root_link %>
           <span class="opacity-50 text-sm">(<%= tld %>)</span>

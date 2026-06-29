@@ -23,10 +23,7 @@ module Base
           sign_url_builder: ->(**query) {
             auth_com_verification_url(
               query.merge(
-                host: ENV.fetch(
-                  "PUBLIC_AUTH_CORPORATE_URL",
-                  ENV.fetch("AUTH_CORPORATE_URL", "auth.com.localhost"),
-                ),
+                host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL"),
               ),
             )
           },

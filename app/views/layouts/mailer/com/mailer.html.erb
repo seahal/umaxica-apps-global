@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <%= display_meta_tags site: "#{ENV['BRAND_NAME']} (com) Acme Home" %>
+  <%= display_meta_tags site: "#{ENV.fetch('BRAND_NAME')} (com) Acme Home" %>
   <title>UMAXICA <%= content_for?(:page_title) ? "| #{yield(:page_title)} " : "" %></title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <style>

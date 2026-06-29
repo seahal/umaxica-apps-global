@@ -36,6 +36,9 @@ Tests must be:
 - DAMP over DRY — keep each test's meaning readable at the point of use even if that duplicates a
   little. Keep important setup visible in the test; do not hide business meaning (authorization
   conditions, actor types, state transitions) in shared setup, fixtures, or helpers.
+- For both Rails/Minitest and Vitest, do not use test helpers at all. Keep setup, inputs,
+  actions, and assertions directly in the test body unless they are production APIs, framework
+  assertions/matchers, or the test framework's required lifecycle hooks.
 
 ## What to assert
 
@@ -54,6 +57,9 @@ Do not:
 - call external APIs directly from tests — replace the third-party boundary (payment, email, network)
   with a local fake, fixture, or adapter stub
 - add test-aware branches to application code to make tests pass (see `no-test-only-code`)
+- create or call test helper methods, helper modules, helper files, shared setup helpers, custom
+  assertion helpers, fixture-builder helpers, render helpers, request helpers, sign-in helpers, or
+  Vitest utility helpers
 - edit `test_helper.rb` while implementing or editing tests; global test-setup changes are forbidden
   unless the user explicitly requests test-infrastructure work
 

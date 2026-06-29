@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class NewsRouteContractTest < ActionDispatch::IntegrationTest
   NEWS_APP_HOST = ENV.fetch("PRIVATE_NEWS_SERVICE_URL")

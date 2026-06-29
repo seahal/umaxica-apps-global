@@ -23,7 +23,7 @@ module Palm
         end
 
         def oidc_acme_host
-          ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+          ENV.fetch("PRIVATE_ACME_SERVICE_URL")
         end
 
         def client_id_param

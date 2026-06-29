@@ -21,7 +21,7 @@ module CommonRedirect
   def allowed_hosts
     # NOTE: External redirect is disabled. This list remains only for diagnostics/auditing.
     keys = %w(CORPORATE_URL SERVICE_URL STAFF_URL NETWORK_URL DEV_URL)
-    keys.filter_map { |k| CommonRedirect.normalize_host(ENV[k]) }
+    keys.filter_map { |k| CommonRedirect.normalize_host(ENV.fetch(k)) }
   end
 
   private
@@ -153,7 +153,7 @@ module CommonRedirect
         AUTH_SERVICE_URL AUTH_CORPORATE_URL AUTH_STAFF_URL
         BASE_SERVICE_URL BASE_CORPORATE_URL BASE_STAFF_URL
       ).filter_map do |key|
-        Oidc::AcmeServiceOrigin.host_from(ENV[key]) || CommonRedirect.normalize_host(ENV[key])
+        Oidc::AcmeServiceOrigin.host_from(ENV.fetch(key)) || CommonRedirect.normalize_host(ENV.fetch(key))
       end
     allowed_hosts += %w(
       auth.app.localhost auth.com.localhost auth.org.localhost

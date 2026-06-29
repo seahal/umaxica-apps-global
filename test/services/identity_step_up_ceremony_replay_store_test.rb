@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class IdentityStepUpCeremonyReplayStoreTest < ActiveSupport::TestCase
   test "for returns a store for each known surface" do

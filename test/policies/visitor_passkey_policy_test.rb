@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 # Object-level authorization for the com (visitor) passkey listing.
 # index? allows any authenticated actor reaching the surface; nil is denied. Other defaults

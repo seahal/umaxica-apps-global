@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "helpers/global_test_support"
+# require "helpers/global_test_support"
 
 class ApplicationHelperTest < ActionView::TestCase
   include ActiveSupport::Testing::TimeHelpers
@@ -211,5 +211,19 @@ class ApplicationHelperTest < ActionView::TestCase
                      current_banner_for(tld: :app, region: :jp, domain: :news)
       end
     end
+  end
+  private
+
+  def stub_cookie(theme)
+    cookies[:root_theme] = theme
+  end
+
+  def assert_theme_cookie_for(theme, path:, expected: theme)
+    stub_cookie(theme)
+
+    get(path)
+
+    assert_response :success
+    assert_select "html[data-theme=?]", expected
   end
 end

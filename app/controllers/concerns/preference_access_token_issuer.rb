@@ -29,6 +29,14 @@ module PreferenceAccessTokenIssuer
     @preference_payload = PreferenceToken.decode(token, host: request.host, jwt_issuer_id: preference_jwt_issuer_id)
     return if @preference_payload.present?
 
+    Rails.logger.warn(
+      JitLogEvent.format(
+        "preference.access_token.self_verification_failed",
+        host: request.host,
+        jwt_issuer_id: preference_jwt_issuer_id,
+        cookie_name: access_token_cookie_name,
+      ),
+    )
     clear_preference_auth_cookies!
     @preference_refresh_failed = true
     nil

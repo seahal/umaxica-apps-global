@@ -114,7 +114,7 @@ module Auth
               redirect_to(
                 auth_org_settings_telephones_url(
                   ri: params[:ri],
-                  host: ENV.fetch("SIGN_STAFF_URL", "id.org.localhost"),
+                  host: ENV.fetch("AUTH_STAFF_URL"),
                 ),
                 notice: t("sign.org.registration.telephone.update.success"),
                 allow_other_host: cross_host_redirect_allowed?,

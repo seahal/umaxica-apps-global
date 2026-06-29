@@ -11,11 +11,11 @@ module Auth::Org::SignUpsHelper
   end
 
   def sign_org_recruit_contact_url
-    configured = safe_recruit_contact_url(ENV["ORG_SIGN_UP_DIRECT_MESSAGE_URL"])
+    configured = safe_recruit_contact_url(ENV.fetch("ORG_SIGN_UP_DIRECT_MESSAGE_URL"))
     return configured if configured.present?
 
     base_com_root_url(
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", ENV.fetch("ACME_CORPORATE_URL", "www.com.localhost")),
+      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL"),
       ri: params[:ri],
       lx: params[:lx],
     )

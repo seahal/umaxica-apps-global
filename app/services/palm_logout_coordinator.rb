@@ -114,7 +114,7 @@ class PalmLogoutCoordinator < ApplicationService
   end
 
   def acme_oidc_logout_url(**query)
-    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("ACME_SERVICE_URL", "www.app.localhost"))
+    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL")
     Rails.application.routes.url_helpers.acme_app_oidc_logout_url(
       host: host,
       ri: ri || RequestContextContract.default_region,
