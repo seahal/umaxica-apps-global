@@ -14,9 +14,9 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
   end
 
   ENDPOINTS = [
-    ["acme app", "ACME_APP", normalized_host(ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"))],
-    ["acme com", "ACME_COM", normalized_host(ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"))],
-    ["acme org", "ACME_ORG", normalized_host(ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"))],
+    ["base app", "BASE_APP", normalized_host(ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"))],
+    ["base com", "BASE_COM", normalized_host(ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.com.localhost"))],
+    ["base org", "BASE_ORG", normalized_host(ENV.fetch("PUBLIC_BASE_STAFF_URL", "www.org.localhost"))],
     ["core app", "CORE_APP", normalized_host(ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))],
     ["core com", "CORE_COM", normalized_host(ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"))],
     ["core org", "CORE_ORG", normalized_host(ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost"))],

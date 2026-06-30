@@ -47,16 +47,16 @@ module JumpRtReturnPolicy
   def env_allowed_sources
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     {
-      normalize_origin(hosts.acme_service.to_s) => env_sources(
-        destination_host: hosts.acme_service.to_s,
+      normalize_origin(hosts.base_service.to_s) => env_sources(
+        destination_host: hosts.base_service.to_s,
         issuer_host: hosts.sign_service.to_s,
       ),
-      normalize_origin(hosts.acme_corporate.to_s) => env_sources(
-        destination_host: hosts.acme_corporate.to_s,
+      normalize_origin(hosts.base_corporate.to_s) => env_sources(
+        destination_host: hosts.base_corporate.to_s,
         issuer_host: hosts.sign_corporate.to_s,
       ),
-      normalize_origin(hosts.acme_staff.to_s) => env_sources(
-        destination_host: hosts.acme_staff.to_s,
+      normalize_origin(hosts.base_staff.to_s) => env_sources(
+        destination_host: hosts.base_staff.to_s,
         issuer_host: hosts.sign_staff.to_s,
       ),
       normalize_origin(hosts.core_service.to_s) => env_sources(
@@ -73,15 +73,15 @@ module JumpRtReturnPolicy
       ),
       normalize_origin(hosts.sign_service.to_s) => env_sources(
         destination_host: hosts.sign_service.host,
-        issuer_host: hosts.acme_service.host,
+        issuer_host: hosts.base_service.host,
       ),
       normalize_origin(hosts.sign_corporate.to_s) => env_sources(
         destination_host: hosts.sign_corporate.host,
-        issuer_host: hosts.acme_corporate.host,
+        issuer_host: hosts.base_corporate.host,
       ),
       normalize_origin(hosts.sign_staff.to_s) => env_sources(
         destination_host: hosts.sign_staff.host,
-        issuer_host: hosts.acme_staff.host,
+        issuer_host: hosts.base_staff.host,
       ),
     }.compact
   end

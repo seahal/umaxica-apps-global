@@ -135,11 +135,11 @@ module OidcRpLogoutLauncher
   def oidc_base_authority_host
     case sign_surface_name
     when "app"
-      ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+      ENV.fetch("PUBLIC_BASE_SERVICE_URL")
     when "com"
-      ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
+      ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
     when "org"
-      ENV.fetch("PRIVATE_BASE_STAFF_URL")
+      ENV.fetch("PUBLIC_BASE_STAFF_URL")
     end
   end
 

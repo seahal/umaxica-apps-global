@@ -1684,6 +1684,22 @@ ja:
           new:
             page_title: リカバリーコードを利用する
             description: 保存しているリカバリーコードを入力してアカウントへアクセスします。
+        entra:
+          new:
+            page_title: Microsoft アカウントでサインイン
+            submit: Microsoft でサインイン
+            connection_unavailable: この組織の Microsoft 連携が設定されていません。管理者にお問い合わせください。
+          errors:
+            connection_not_found: 指定された Microsoft 連携が見つかりません。
+            state_mismatch: セキュリティ検証に失敗しました。最初からやり直してください。
+            entra_error: Microsoft 認証でエラーが発生しました。もう一度お試しください。
+            token_exchange_failed: 認証トークンの取得に失敗しました。もう一度お試しください。
+            token_verification_failed: 認証トークンの検証に失敗しました。もう一度お試しください。
+            identity_not_found: このアカウントはスタッフとして登録されていません。管理者にお問い合わせください。
+            operator_not_found: このアカウントでのサインインは許可されていません。
+            sign_in_failed: サインインに失敗しました。もう一度お試しください。
+            internal_error: 内部エラーが発生しました。もう一度お試しください。
+            generic: エラーが発生しました。もう一度お試しください。
       ups:
         new:
           recruit_prompt: 採用情報

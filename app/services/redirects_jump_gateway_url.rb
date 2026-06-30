@@ -31,7 +31,7 @@ class RedirectsJumpGatewayUrl
     uri.password = nil
 
     RedirectsTargetResult.ok(kind: :external, source: source, value: uri.to_s)
-  rescue URI::InvalidURIError
+  rescue ArgumentError, URI::InvalidURIError
     failure(:invalid_uri)
   end
 
@@ -40,7 +40,11 @@ class RedirectsJumpGatewayUrl
   attr_reader :token, :source
 
   def gateway_origin
-    ENV.fetch("PUBLIC_JUMP_GATEWAY_URL")
+    ENV.fetch("PUBLIC_JUMP_GATEWAY_URL") do
+      ENV.fetch("JUMP_GATEWAY_URL") do
+        ConfigValues::JumpGatewayValues.build(env: ENV, production: Rails.env.production?).origin.to_s
+      end
+    end
   end
 
   def local_origin_allowed?(uri)

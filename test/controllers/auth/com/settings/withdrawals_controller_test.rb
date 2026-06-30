@@ -7,7 +7,7 @@ require "test_helper"
 class Auth::Com::Settings::WithdrawalsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "withdrawal-#{SecureRandom.hex(4)}@example.com")
     @visitor.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
     @visitor.visitor_telephones.create!(

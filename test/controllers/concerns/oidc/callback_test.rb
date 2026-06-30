@@ -262,6 +262,64 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_not_includes snapshot.fetch("oidc_pending_flows").keys, "consumed-state"
   end
 
+  test "show deletes pending flow session key after consuming the last pending flow" do
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "consumed-state",
+          pending_code_verifier: "consumed-verifier",
+          pending_nonce: "consumed-nonce",
+          pending_pt: "/consumed",
+          pending_created_at: 1.minute.ago.to_i,
+        }
+
+    result = Result.new(
+      success?: true,
+      token_response: { access_token: "access", refresh_token: "refresh", id_token: "id-token" },
+      error: nil,
+      error_description: nil,
+    )
+    id_token_result = Struct.new(:success?, :payload, :error, keyword_init: true).new(
+      success?: true,
+      payload: { "sub" => "42", "nonce" => "consumed-nonce" },
+      error: nil,
+    )
+
+    OidcRpTokenClient.stub(:call, result) do
+      OidcIdTokenVerifier.stub(:call, id_token_result) do
+        get "/oidc/callback", params: { code: "abc", state: "consumed-state" }
+      end
+    end
+
+    assert_response :redirect
+
+    get "/oidc/callback/snapshot"
+    snapshot = response.parsed_body
+
+    assert_nil snapshot["oidc_pending_flows"]
+  end
+
+  test "show deletes pending flow session key after the last pending flow expires" do
+    get "/oidc/callback/session",
+        params: {
+          pending_state: "expired-state",
+          pending_code_verifier: "expired-verifier",
+          pending_nonce: "expired-nonce",
+          pending_pt: "/expired",
+          pending_created_at: 11.minutes.ago.to_i,
+        }
+
+    OidcRpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for expired state") }) do
+      get "/oidc/callback", params: { code: "abc", state: "expired-state" }
+    end
+
+    assert_response :unprocessable_content
+
+    get "/oidc/callback/snapshot"
+    snapshot = response.parsed_body
+
+    assert_nil snapshot["oidc_pending_flows"]
+  end
+
   test "show redirects to sign in on failed exchange" do
     get "/oidc/callback/session", params: { code_verifier: "verifier", state: "state" }
 
@@ -357,7 +415,14 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
   end
 
   test "show rejects mismatched state before token exchange" do
-    get "/oidc/callback/session", params: { state: "expected" }
+    get "/oidc/callback/session",
+        params: {
+          state: "expected",
+          pending_state: "pending-state",
+          pending_code_verifier: "pending-verifier",
+          pending_nonce: "pending-nonce",
+          pending_pt: "/pending",
+        }
     logged = []
 
     OidcRpTokenClient.stub(:call, ->(**) { flunk("token exchange should not run for state mismatch") }) do
@@ -383,6 +448,11 @@ class OidcCallbackTest < ActionDispatch::IntegrationTest
     assert_predicate event.dig(:data, :actual_state_digest12), :present?
     assert_not_equal "state", event.dig(:data, :expected_state_digest12)
     assert_not_equal "wrong", event.dig(:data, :actual_state_digest12)
+
+    get "/oidc/callback/snapshot"
+    snapshot = response.parsed_body
+
+    assert_nil snapshot["oidc_pending_flows"]
   end
 
   test "show raises unexpected provisioning errors" do

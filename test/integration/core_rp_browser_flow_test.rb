@@ -9,19 +9,19 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
     {
       host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       resource: -> { clients(:one) },
     },
     {
       host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "core.org.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
       resource: -> { operators(:one) },
     },
     {
       host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost")),
       client_id: "core-next-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
       resource: -> { create_visitor! },
     },
   ].freeze
@@ -98,7 +98,7 @@ class CoreRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "core app browser flow reaches Acme token exchange without stubbing OP" do
     with_core_oidc_client_key do
       core_host = ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
       client = OidcClientRegistry.find!("core-next-rp")
       host! core_host

@@ -45,7 +45,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
@@ -60,7 +60,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
@@ -70,7 +70,7 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
 
   test "sign started flow reaches Acme token exchange without stubbing OP" do
     with_sign_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       client = OidcClientRegistry.find!("sign-rp")
 
       get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }

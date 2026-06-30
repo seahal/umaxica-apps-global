@@ -18,9 +18,9 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
 
   test "base auth entrypoints redirect to acme authorize with base callback and signup intent" do
     [
-      { host: BASE_APP_HOST, acme_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost") },
-      { host: BASE_COM_HOST, acme_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost") },
-      { host: BASE_ORG_HOST, acme_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost") },
+      { host: BASE_APP_HOST, acme_host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost") },
+      { host: BASE_COM_HOST, acme_host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.com.localhost") },
+      { host: BASE_ORG_HOST, acme_host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "www.org.localhost") },
     ].each do |surface|
       host! surface.fetch(:host)
 
@@ -61,7 +61,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
       uri = URI.parse(response.location)
       query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-      assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+      assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"), uri.host
       assert_equal "/oauth/authorize", uri.path
       assert_not_equal "jump.umaxica.net", uri.host
       assert_equal surface.fetch(:client_id), query.fetch("client_id")
@@ -82,7 +82,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "app-ios-rp", query.fetch("client_id")

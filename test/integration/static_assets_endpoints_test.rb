@@ -7,14 +7,6 @@ require "test_helper"
 class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   ROBOTS_SURFACES = [
     {
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
-      controller: "acme/com/robots",
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
-      controller: "acme/org/robots",
-    },
-    {
       host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/robots",
     },
@@ -41,14 +33,6 @@ class StaticAssetsEndpointsTest < ActionDispatch::IntegrationTest
   ].freeze
 
   SITEMAP_SURFACES = [
-    {
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
-      controller: "acme/com/sitemaps",
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
-      controller: "acme/org/sitemaps",
-    },
     {
       host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       controller: "base/com/sitemaps",

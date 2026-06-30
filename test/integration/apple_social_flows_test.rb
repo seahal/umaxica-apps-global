@@ -156,7 +156,7 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to base_app_dashboard_url(
       ri: "jp",
-      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+      host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
     )
   end
 

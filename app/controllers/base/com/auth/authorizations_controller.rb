@@ -20,7 +20,7 @@ module Base
           return "signup" if params[:screen_hint].to_s == "signup"
           return "signin" if params[:screen_hint].to_s == "signin"
 
-          nil
+          "signup"
         end
       end
     end

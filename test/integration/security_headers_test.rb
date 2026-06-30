@@ -33,11 +33,11 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"],
                     "form-action 'self' https://accounts.google.com https://appleid.apple.com"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}"
+                    "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")}"
+                    "https://#{ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")}"
+                    "https://#{ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")}"
     assert_includes response.headers["Content-Security-Policy"],
                     "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL")}"
     assert_includes response.headers["Content-Security-Policy"],

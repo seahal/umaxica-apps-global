@@ -9,7 +9,7 @@ class Auth::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
   end
 

@@ -76,7 +76,7 @@ module SignWebauthn
     env_keys << "WEBAUTHN_#{suffix}"
 
     env_keys.each do |key|
-      value = ENV.fetch(key).to_s.strip
+      value = ENV[key].to_s.strip
       next if value.blank?
 
       return normalize_webauthn_config_value(value, suffix)

@@ -51,6 +51,7 @@
       <section aria-labelledby="base-org-root-title">
         <h1 id="base-org-root-title">Base Org</h1>
         <p>Thin landing endpoint.</p>
+        <p><%= link_to "Sign up", base_org_oidc_authorization_path(ri: params[:ri]) %></p>
       </section>
     </main>
   </body>

@@ -39,7 +39,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate handoff_input_value("logout_challenge"), :present?
     assert_equal "jp", handoff_input_value("ri")
@@ -60,7 +60,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_equal "us", handoff_input_value("ri")
     assert_includes query.fetch("post_logout_redirect_uri"), "ri=us"
@@ -127,7 +127,7 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(handoff_form["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), location.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate handoff_input_value("logout_challenge"), :present?
     assert_equal RequestContextContract.default_region, handoff_input_value("ri")
@@ -147,10 +147,10 @@ class Core::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     challenge = handoff_input_value("logout_challenge")
 
     post acme_app_oidc_logout_url(
-      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), ri: "jp",
+      host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), ri: "jp",
       logout_challenge: challenge,
     ), headers: {
-      "Host" => ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+      "Host" => ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       "Origin" => "https://#{ENV.fetch(
         "PUBLIC_CORE_SERVICE_URL",
         ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),

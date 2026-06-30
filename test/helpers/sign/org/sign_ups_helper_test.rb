@@ -29,7 +29,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
 
     with_env(
       "ORG_SIGN_UP_DIRECT_MESSAGE_URL" => "javascript:alert(1)",
-      "ACME_CORPORATE_URL" => "www.com.localhost",
+      "BASE_CORPORATE_URL" => "www.com.localhost",
     ) do
       html = sign_org_recruit_contact_link
 
@@ -51,7 +51,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
 
     with_env(
       "ORG_SIGN_UP_DIRECT_MESSAGE_URL" => nil,
-      "ACME_CORPORATE_URL" => "www.com.localhost",
+      "BASE_CORPORATE_URL" => "www.com.localhost",
     ) do
       html = sign_org_recruit_contact_link
 

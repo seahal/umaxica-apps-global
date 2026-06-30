@@ -150,7 +150,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign app request does not use user preference record as runtime fallback and resets afterwards" do
-    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: SecureRandom.hex(10),
@@ -222,7 +222,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign org request does not use staff preference record as runtime fallback and resets afterwards" do
-    host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
+    host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
     OperatorPreference.create!(
       staff: staff,
@@ -287,7 +287,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sign com request falls back to null preference when no db record or prf claim exists" do
-    host = ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")
+    host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
     ensure_visitor_reference_records!
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
@@ -334,7 +334,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "unauthenticated request exposes unauthenticated current_actor context" do
-    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     host!(host)
     get "/actor-support/acme-app", params: { ri: "jp" }
@@ -351,7 +351,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "action policy receives current_actor context for authenticated app request" do
-    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: SecureRandom.hex(10),
@@ -374,8 +374,8 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "sequential app and org requests rebuild actor context without cross surface leakage" do
-    app_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
-    org_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
+    app_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    org_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     user = Client.create!(
       status_id: ClientStatus::ACTIVE,
       public_id: SecureRandom.hex(10),
@@ -418,7 +418,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
   end
 
   test "action policy fails closed for unauthenticated app request" do
-    host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     host!(host)
     get "/actor-support/acme-app-policy", params: { ri: "jp" }

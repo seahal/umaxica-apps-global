@@ -19,7 +19,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_not_equal "jump.umaxica.net", uri.host
     assert_equal "sign-rp", query["client_id"]
@@ -107,7 +107,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     assert_select "a[href=?]",
-                  auth_org_root_url(ri: "jp", host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"))
+                  auth_org_root_url(ri: "jp", host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"))
   end
 
   test "rejects direct entry when logged in" do

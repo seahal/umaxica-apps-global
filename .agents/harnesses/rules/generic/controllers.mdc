@@ -37,3 +37,26 @@ Controllers must not:
 - Respect the pipeline order; do not skip authentication or authorization.
 - Do not hardcode URLs; use path helpers.
 - Do not blindly `permit!` parameters (see `absolute-rules`).
+
+## Rails session storage
+
+Rails session data may be backed by cookies, and browser cookies have a practical 4KB size limit.
+When a controller stores temporary workflow state in `session`, it must treat that state as a
+capacity-limited transport, not durable storage.
+
+Controllers must:
+
+- store only the minimum session data needed to complete the workflow
+- delete session keys as soon as the workflow has consumed, expired, rejected, or superseded them
+- use `session.delete(key)` when clearing completed state so the key is removed from the serialized
+  session payload
+- delete empty session containers after their last entry is consumed, such as a pending-flow hash
+- avoid duplicating the same return target, token, nonce, verifier, or workflow payload under
+  multiple session keys
+
+Controllers must not:
+
+- leave completed temporary state in session for convenience
+- clear completed session values by assigning `nil` when the intent is to recover cookie capacity
+- use session as a cache for large payloads, request parameters, token bodies, or full external
+  callback payloads

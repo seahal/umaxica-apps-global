@@ -937,6 +937,22 @@ en:
           create:
             success: Signed in successfully.
             invalid: Authentication failed. Please check your credentials.
+        entra:
+          new:
+            page_title: Sign in with Microsoft
+            submit: Sign in with Microsoft
+            connection_unavailable: Microsoft sign-in is not configured for this organization. Please contact your administrator.
+          errors:
+            connection_not_found: The specified Microsoft connection was not found.
+            state_mismatch: Security verification failed. Please start over.
+            entra_error: An error occurred during Microsoft authentication. Please try again.
+            token_exchange_failed: Failed to retrieve authentication token. Please try again.
+            token_verification_failed: Authentication token verification failed. Please try again.
+            identity_not_found: This account is not registered as a staff member. Please contact your administrator.
+            operator_not_found: Sign-in is not permitted for this account.
+            sign_in_failed: Sign-in failed. Please try again.
+            internal_error: An internal error occurred. Please try again.
+            generic: An error occurred. Please try again.
       outs:
         destroy:
           success: You have been signed out.

@@ -123,7 +123,6 @@ Rails.application.configure do
   # Enable DNS rebinding protection for hosts used in route constraints.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
   boot_config_hosts = [
-    boot_hosts.acme_origins,
     boot_hosts.sign_origins,
     boot_hosts.core_origins,
     boot_hosts.base_origins,
@@ -146,8 +145,6 @@ Rails.application.configure do
 
   localhost_tunnel_hosts = %w(
     auth.app.localhost:3000
-    acme.com.localhost:3000
-    acme.org.localhost:3000
     base.app.localhost:3000
     base.org.localhost:3000
     base.com.localhost:3000
@@ -173,11 +170,11 @@ Rails.application.configure do
   )
 
   env_host_keys = %w(
-    PRIVATE_ACME_CORPORATE_URL
-    PRIVATE_ACME_SERVICE_URL
-    PRIVATE_ACME_STAFF_URL
-    PRIVATE_ACME_NETWORK_URL
-    PRIVATE_ACME_DEVELOPER_URL
+    PRIVATE_BASE_CORPORATE_URL
+    PRIVATE_BASE_SERVICE_URL
+    PRIVATE_BASE_STAFF_URL
+    PRIVATE_BASE_NETWORK_URL
+    PRIVATE_BASE_DEVELOPER_URL
     PRIVATE_AUTH_CORPORATE_URL
     PRIVATE_AUTH_SERVICE_URL
     PRIVATE_AUTH_STAFF_URL

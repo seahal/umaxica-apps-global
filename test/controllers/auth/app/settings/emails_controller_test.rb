@@ -9,7 +9,7 @@ class Auth::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")

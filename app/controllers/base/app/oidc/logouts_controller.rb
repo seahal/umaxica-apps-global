@@ -16,7 +16,7 @@ module Base
           ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
           ENV.fetch("PUBLIC_CORE_SERVICE_URL"),
           ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
-          ENV.fetch("PRIVATE_PALM_SERVICE_URL"),
+          ENV.fetch("PUBLIC_PALM_SERVICE_URL"),
         ).freeze
 
         protect_from_forgery using: :header_only,

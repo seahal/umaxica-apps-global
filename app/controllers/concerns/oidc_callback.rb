@@ -42,7 +42,7 @@ module OidcCallback
     redirect_to(consume_oidc_pt, allow_other_host: false)
   rescue InvalidCallbackState => e
     log_invalid_callback_state!(e.message)
-    clear_oidc_session_state!
+    clear_oidc_session_state!(pending_flows: e.message == "OIDC state mismatch")
     render plain: I18n.t("errors.messages.login_required"), status: :unprocessable_content
   end
 
@@ -191,11 +191,12 @@ module OidcCallback
     )
   end
 
-  def clear_oidc_session_state!
+  def clear_oidc_session_state!(pending_flows: false)
     session.delete(:oidc_code_verifier)
     session.delete(:oidc_state)
     session.delete(:oidc_nonce)
     session.delete(:oidc_pt)
+    session.delete(OIDC_PENDING_FLOWS_SESSION_KEY) if pending_flows
   end
 
   def consume_oidc_pending_flow(state)
@@ -210,13 +211,21 @@ module OidcCallback
     created_at = Time.at(flow["created_at"].to_i).utc
     if created_at.blank? || created_at + OIDC_PENDING_FLOW_TTL < Time.current.utc
       flows.delete(state)
-      session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
+      store_oidc_pending_flows!(flows)
       return [nil, true]
     end
 
     flows.delete(state)
-    session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
+    store_oidc_pending_flows!(flows)
     [flow, false]
+  end
+
+  def store_oidc_pending_flows!(flows)
+    if flows.empty?
+      session.delete(OIDC_PENDING_FLOWS_SESSION_KEY)
+    else
+      session[OIDC_PENDING_FLOWS_SESSION_KEY] = flows
+    end
   end
 
   def oidc_flow_value(key)

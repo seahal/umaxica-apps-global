@@ -36,7 +36,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "protected settings sessions requires authentication" do
     with_env(
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
-      "ACME_SERVICE_URL" => "www.umaxica.app",
+      "BASE_SERVICE_URL" => "www.umaxica.app",
     ) do
       Rails.application.reload_routes!
 
@@ -641,7 +641,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "restricted session is blocked on non-session acme app routes" do
     token = create_restricted_session(@user)
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     headers = {
       "Host" => acme_host,
       "X-TEST-CURRENT-USER" => @user.id.to_s,

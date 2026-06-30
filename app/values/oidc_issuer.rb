@@ -46,11 +46,11 @@ module OidcIssuer
     boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
     case resource_type.to_s
     when "operator", "staff"
-      host_component(boot_hosts.acme_staff)
+      host_component(boot_hosts.base_staff)
     when "visitor", "customer"
-      host_component(boot_hosts.acme_corporate)
+      host_component(boot_hosts.base_corporate)
     else
-      host_component(boot_hosts.acme_service)
+      host_component(boot_hosts.base_service)
     end
   end
 
@@ -61,9 +61,9 @@ module OidcIssuer
   def jwt_issuer_id_for_resource_type(resource_type)
     namespace =
       case resource_type.to_s
-      when "operator", "staff" then "ACME_ORG"
-      when "visitor", "customer" then "ACME_COM"
-      else "ACME_APP"
+      when "operator", "staff" then "BASE_ORG"
+      when "visitor", "customer" then "BASE_COM"
+      else "BASE_APP"
       end
 
     "surface:#{namespace}"

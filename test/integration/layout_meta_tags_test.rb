@@ -10,9 +10,9 @@ class LayoutMetaTagsTest < ActiveSupport::TestCase
     "Base::App::Inertia" => "app/views/layouts/base/app/inertia.html.erb",
     "Base::Com" => "app/views/layouts/acme/com/application.html.erb",
     "Base::Org" => "app/views/layouts/acme/org/application.html.erb",
-    "Sign::App" => "app/views/layouts/sign/app/application.html.erb",
-    "Sign::Com" => "app/views/layouts/sign/com/application.html.erb",
-    "Sign::Org" => "app/views/layouts/sign/org/application.html.erb",
+    "Auth::App" => "app/views/layouts/auth/app/application.html.erb",
+    "Auth::Com" => "app/views/layouts/auth/com/application.html.erb",
+    "Auth::Org" => "app/views/layouts/auth/org/application.html.erb",
   }.freeze
 
   test "all layouts include turbo-refresh-scroll meta tag" do
@@ -43,6 +43,6 @@ class LayoutMetaTagsTest < ActiveSupport::TestCase
     assert_includes content, 'lang="<%= get_language %>"'
     assert_includes content, 'data-theme="<%= theme_cookie_value %>"'
     assert_includes content, 'class="<%= theme_html_class %>"'
-    assert_includes content, "page_title(page&.dig(:props, :title))"
+    assert_includes content, "page_title(inertia_page&.dig(:props, :title))"
   end
 end

@@ -145,7 +145,7 @@ module OidcAuthorizationTransactionable
 
   def acme_resume_url
     origin = Oidc::AcmeServiceOrigin.from(
-      Rails.configuration.x.boot_config.fetch(:hosts).acme_service.to_s,
+      Rails.configuration.x.boot_config.fetch(:hosts).base_service.to_s,
       default_scheme: "https",
     )
     origin.authorization_endpoint(query: { login_challenge: login_challenge })

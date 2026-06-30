@@ -69,7 +69,7 @@ module IdentityStepUpCeremonyContract
 
   def sign_issuer_id(surface) = "surface:SIGN_#{surface.to_s.upcase}"
 
-  def acme_issuer_id(surface) = "surface:ACME_#{surface.to_s.upcase}"
+  def acme_issuer_id(surface) = "surface:BASE_#{surface.to_s.upcase}"
 
   def base_issuer_id(surface) = acme_issuer_id(surface)
 

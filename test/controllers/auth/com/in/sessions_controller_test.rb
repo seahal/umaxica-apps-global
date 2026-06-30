@@ -27,7 +27,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   test "protected settings sessions requires authentication" do
     with_env(
       "AUTH_CORPORATE_URL" => "auth.com.localhost",
-      "ACME_CORPORATE_URL" => "log.umaxica.com",
+      "BASE_CORPORATE_URL" => "log.umaxica.com",
     ) do
       Rails.application.reload_routes!
 

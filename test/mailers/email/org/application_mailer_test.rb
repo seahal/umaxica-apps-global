@@ -63,7 +63,7 @@ class Email::Org::ApplicationMailerTest < ActionMailer::TestCase
     expected_url = Rails.application.routes.url_helpers.base_org_preference_email_url(
       email_record,
       token: email_record.promotional_unsubscribe_token,
-      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
     )
 
     assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value

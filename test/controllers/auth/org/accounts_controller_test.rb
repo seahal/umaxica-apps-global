@@ -15,7 +15,7 @@ class Auth::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/accounts", uri.path
   end
 

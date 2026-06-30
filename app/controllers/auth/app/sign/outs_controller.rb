@@ -18,7 +18,7 @@ module Auth
         def new
           redirect_to(
             new_auth_app_sign_out_url(
-              host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
+              host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
               protocol: "https",
             ),
             status: :see_other,
@@ -29,7 +29,7 @@ module Auth
         def edit
           redirect_to(
             new_auth_app_sign_out_url(
-              host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
+              host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
               protocol: "https",
             ),
             status: :see_other,
@@ -49,7 +49,7 @@ module Auth
 
           redirect_to(
             complete_auth_app_sign_out_url(
-              host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host,
+              host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
               protocol: "https",
             ),
             status: :see_other,

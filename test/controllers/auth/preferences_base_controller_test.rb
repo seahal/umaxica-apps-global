@@ -20,9 +20,9 @@ class AuthPreferencesBaseControllerTest < ActiveSupport::TestCase
   end
 
   test "open preference bases keep their surface layouts" do
-    assert_equal "sign/app/application", Auth::App::PreferencesBaseController._layout
-    assert_equal "sign/com/application", Auth::Com::PreferencesBaseController._layout
-    assert_equal "sign/org/application", Auth::Org::PreferencesBaseController._layout
+    assert_equal "auth/app/application", Auth::App::PreferencesBaseController._layout
+    assert_equal "auth/com/application", Auth::Com::PreferencesBaseController._layout
+    assert_equal "auth/org/application", Auth::Org::PreferencesBaseController._layout
   end
 
   test "preference bases authorize writes after actor resolution" do

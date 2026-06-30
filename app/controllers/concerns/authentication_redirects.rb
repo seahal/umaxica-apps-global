@@ -30,7 +30,7 @@ module AuthenticationRedirects
   # @return [String, nil] The pt parameter value
   def retrieve_pt(session_key = DEFAULT_PT_SESSION_KEY)
     pt_param = signed_pt_param.presence || session[session_key]
-    session[session_key] = nil
+    session.delete(session_key)
     pt_param
   end
 

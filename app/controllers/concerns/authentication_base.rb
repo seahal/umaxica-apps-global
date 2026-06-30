@@ -275,7 +275,7 @@ module AuthenticationBase
   # @param session_keys [Array<Symbol, String>] The session keys to clear
   def clear_authentication_session(*session_keys)
     session_keys.each do |key|
-      session[key] = nil
+      session.delete(key)
     end
   end
 
@@ -674,7 +674,10 @@ module AuthenticationBase
         path: request&.fullpath,
         method: request&.request_method,
       )
-      store_authentication_return_target!(request.fullpath)
+      store_authentication_return_target!(request.fullpath) unless respond_to?(
+        :redirect_to_oidc_authorization_url,
+        true,
+      )
       pt =
         if respond_to?(:encoded_pt, true)
           encoded_pt(request.fullpath)
@@ -2807,7 +2810,10 @@ module AuthenticationBase
   def handle_auth_required_html(options)
     path =
       if respond_to?(:sign_in_url_with_pt, true)
-        store_authentication_return_target!(request.fullpath)
+        store_authentication_return_target!(request.fullpath) unless respond_to?(
+          :redirect_to_oidc_authorization_url,
+          true,
+        )
         pt = encoded_pt(request.fullpath) if respond_to?(:encoded_pt, true)
         sign_in_url_with_pt(pt)
       elsif main_app.respond_to?(:sign_in_path)

@@ -72,7 +72,7 @@ module Auth::Org::Settings
       assert_response :redirect
       assert_oidc_authorize_redirect(
         response.location,
-        host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+        host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
         client_id: "sign-rp",
       )
     end

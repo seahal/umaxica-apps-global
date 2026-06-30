@@ -28,7 +28,7 @@ class OidcSsoInitiatorTestController < ApplicationController
     Rails.configuration.x.boot_config.fetch(:hosts).sign_service.host
   end
 
-  def oidc_acme_host
+  def oidc_base_authority_host
     Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
   end
 
@@ -73,20 +73,26 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
     assert_equal "base-rails-rp", authorize_params.fetch("client_id")
     assert_equal "https://#{configured_host(:acme_service)}/oidc/callback", authorize_params.fetch("redirect_uri")
-    assert_predicate session[:oidc_code_verifier], :present?
-    assert_predicate session[:oidc_state], :present?
-    assert_equal "/oidc/sso", session[:oidc_pt]
-    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+    session_cookie =
+      response.headers["Set-Cookie"].to_s.split("\n").find { |line| line.start_with?("session=") }
 
-    assert_equal session[:oidc_code_verifier], pending_flow.fetch("code_verifier")
-    assert_equal session[:oidc_nonce], pending_flow.fetch("nonce")
+    assert_predicate session_cookie, :present?
+    assert_operator session_cookie.bytesize, :<, 3500
+    assert_nil session[:oidc_code_verifier]
+    assert_nil session[:oidc_state]
+    assert_nil session[:oidc_nonce]
+    assert_nil session[:oidc_pt]
+    pending_flow = session.fetch("oidc_pending_flows").fetch(authorize_params.fetch("state"))
+
+    assert_predicate pending_flow.fetch("code_verifier"), :present?
+    assert_equal authorize_params.fetch("nonce"), pending_flow.fetch("nonce")
     assert_equal "/oidc/sso", pending_flow.fetch("pt")
     assert_includes io.string, "oidc.sso.redirect_policy.direct"
     assert_includes io.string, "reason_code"
     assert_includes io.string, "target_host"
-    assert_not_includes io.string, session[:oidc_state]
-    assert_not_includes io.string, session[:oidc_nonce]
-    assert_not_includes io.string, session[:oidc_code_verifier]
+    assert_not_includes io.string, authorize_params.fetch("state")
+    assert_not_includes io.string, authorize_params.fetch("nonce")
+    assert_not_includes io.string, pending_flow.fetch("code_verifier")
     assert_not_includes io.string, response.location
     assert_not_includes io.string, "oauth/authorize?"
   end
@@ -95,9 +101,10 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     get "/oidc/sso", params: { ri: "jp" }, headers: { "Host" => configured_host(:sign_service) }
 
     assert_response :redirect
-    assert_equal "/oidc/sso?ri=jp", session[:oidc_pt]
+    assert_nil session[:oidc_pt]
 
-    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
+    pending_flow = session.fetch("oidc_pending_flows").fetch(query.fetch("state"))
 
     assert_equal "/oidc/sso?ri=jp", pending_flow.fetch("pt")
   end
@@ -128,7 +135,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
 
   test "token endpoint local rewrite is limited to configured Acme hosts" do
     unconfigured_acme_host = "acme-unconfigured.example.test"
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { unconfigured_acme_host }
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) { unconfigured_acme_host }
     controller = OidcSsoInitiatorTestController.new
     controller.request = ActionDispatch::TestRequest.create(
       "HTTP_HOST" => configured_host(:sign_service),
@@ -139,14 +146,14 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
       assert_equal "https://#{unconfigured_acme_host}/oauth/token", controller.send(:oidc_token_url)
     end
   ensure
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) do
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) do
       Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
     end
   end
 
   test "authenticate! keeps using jump for cross-site oidc authorize urls" do
     cross_site_acme_host = configured_host(:acme_corporate)
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) { cross_site_acme_host }
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) { cross_site_acme_host }
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
       "https://#{cross_site_acme_host}/oidc/callback"
     end
@@ -155,6 +162,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     logger = Logger.new(io)
 
     Rails.stub(:logger, logger) do
+      https!
       get("/oidc/sso", headers: { "Host" => configured_host(:sign_service) })
     end
 
@@ -174,7 +182,7 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
     assert_not_includes io.string, "nonce"
     assert_not_includes io.string, "code_challenge"
   ensure
-    OidcSsoInitiatorTestController.define_method(:oidc_acme_host) do
+    OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) do
       Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
     end
     OidcSsoInitiatorTestController.define_method(:oidc_callback_url) do
@@ -587,6 +595,7 @@ class OidcSsoInitiatorTestController
     jump_rt_key = Base64.strict_encode64(OpenSSL::PKey::EC.generate("secp384r1").to_der)
     {
       "JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
+      "PUBLIC_JUMP_GATEWAY_URL" => "https://jump.umaxica.net",
       "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-test",
       "JWT_SIGN_APP_PRIVATE_KEY" => jump_rt_key,
       "JWT_SIGN_ORG_ACTIVE_KID" => "sign-org-test",
@@ -924,6 +933,7 @@ class OidcSsoInitiatorTest
       ENV["JWT_#{namespace}_PRIVATE_KEY"] = jump_rt_key
     end
     ENV["JUMP_GATEWAY_URL"] = "https://jump.umaxica.net"
+    ENV["PUBLIC_JUMP_GATEWAY_URL"] = "https://jump.umaxica.net"
     JitSecurityJwtRegistry.reload! if defined?(JitSecurityJwtRegistry)
   end
 

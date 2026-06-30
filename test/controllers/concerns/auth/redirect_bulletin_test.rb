@@ -158,6 +158,7 @@ class AuthRedirectBulletinTest < ActiveSupport::TestCase
 
     assert_match(/--/, result)
     assert_nil @harness.session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
+    assert_not_includes @harness.session.keys, AuthenticationBase::DEFAULT_PT_SESSION_KEY
   end
 
   test "retrieve_pt falls back to params" do

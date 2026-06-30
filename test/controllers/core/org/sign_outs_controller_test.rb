@@ -46,7 +46,7 @@ class Core::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), location.host
+    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
     assert_equal complete_core_org_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]

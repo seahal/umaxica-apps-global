@@ -7,7 +7,7 @@ require "test_helper"
 class Auth::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
     host! @host
   end
 

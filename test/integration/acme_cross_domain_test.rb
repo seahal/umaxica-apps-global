@@ -7,7 +7,7 @@ require "test_helper"
 # This test verifies cross-domain links between acme and other domains
 class AcmeCrossDomainLinksTest < ActionDispatch::IntegrationTest
   test "acme layouts link to other domains correctly" do
-    host! ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     get acme_app_root_url(ri: "jp")
 

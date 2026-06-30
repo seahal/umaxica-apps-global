@@ -55,7 +55,7 @@ module IdentitySocialCeremonyContract
 
   def sign_issuer_id(surface) = "surface:SIGN_#{surface.to_s.upcase}"
 
-  def acme_issuer_id(surface) = "surface:ACME_#{surface.to_s.upcase}"
+  def acme_issuer_id(surface) = "surface:BASE_#{surface.to_s.upcase}"
 
   def provider_subject_digest(provider:, subject:)
     Digest::SHA256.hexdigest("#{SocialIdentifiable.normalize_provider(provider)}:#{subject}")

@@ -201,7 +201,7 @@ module Auth::App::Up
 
       assert_response :created
 
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       get auth_app_dashboard_url(ri: "jp", host: acme_host)
 
       assert_response :redirect

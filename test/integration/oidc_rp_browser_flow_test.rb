@@ -8,21 +8,21 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   COOKIE_NAME = AuthenticationBase::ACCESS_COOKIE_KEY
 
   SURFACES = [
-    { host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+    { host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       resource: -> {
         clients(:one)
       }, },
-    { host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+    { host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
       resource: -> {
         operators(:one)
       }, },
-    { host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+    { host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+      acme_host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
       resource: -> {
         create_visitor!
       }, },
@@ -60,7 +60,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app browser flow reaches Acme token exchange without stubbing OP" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
       client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
@@ -140,7 +140,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   # bootstrap_actor), even though the underlying unit test on the gate passes.
   test "acme app authorization resume bypasses login cooldown for the sign-up handoff" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       host! acme_host
 
       get "/oidc/authorization", headers: browser_headers
@@ -191,7 +191,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app authorization resume opens session-limit resolution when three usable tokens already exist" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
 
@@ -261,7 +261,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app session-limit limitation revokes one session and resumes authorization" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       client = OidcClientRegistry.find!("base-rails-rp")
       code_verifier = SecureRandom.urlsafe_base64(48)
       user = clients(:one)
@@ -329,7 +329,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "app email sign-in session-limit handoff signs in Sign and leaves capacity for RP callback session" do
     with_acme_oidc_client_key do
       CloudflareTurnstile.test_mode = true
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
@@ -433,7 +433,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects another actor session" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     other = clients(:two)
     ClientToken.where(user_id: [user.id, other.id]).delete_all
@@ -460,7 +460,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation stays on page when capacity is still full after revoke" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -498,7 +498,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects tampered challenge without revoking" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -516,7 +516,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects mixed oidc and social payloads" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -547,7 +547,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects missing payload" do
-    host! ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     get acme_app_sign_in_limitation_path(ri: "jp"), headers: browser_headers
 
@@ -555,7 +555,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation cancel does not issue login or consume oidc transaction" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
@@ -578,7 +578,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app authorization resume succeeds with two usable tokens and consumes the transaction once" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
 
@@ -644,7 +644,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           }, headers: browser_headers,
         )
 
-        if surface[:acme_host] == ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+        if surface[:acme_host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
           assert_equal 302, session.response.status, surface[:client_id]
         else
           assert_equal 422, session.response.status, surface[:client_id]
@@ -677,7 +677,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects state mismatch" do
-    host! ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     get "/oidc/authorization", headers: browser_headers
 
     get "/oidc/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
@@ -686,7 +686,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects nonce mismatch" do
-    acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     host! acme_host
     get "/oidc/authorization", headers: browser_headers
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
@@ -736,14 +736,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       expected_location =
-        if surface[:host] == ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+        if surface[:host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
           "http://#{surface[:host]}/dashboard"
         else
           "http://#{surface[:host]}/"
         end
 
       assert_equal expected_location, response.location
-      assert_response_has_auth_cookie if surface[:host] == ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      assert_response_has_auth_cookie if surface[:host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     end
   end
 

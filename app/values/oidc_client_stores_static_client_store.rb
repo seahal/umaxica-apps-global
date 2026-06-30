@@ -17,7 +17,10 @@ module OidcClientStoresStaticClientStore
         post_logout_redirect_uris: build_post_logout_redirect_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost") +
           build_post_logout_redirect_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost") +
           build_post_logout_redirect_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
-        backchannel_logout_uris: build_logout_uris("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost", "backchannel/logout") +
+        backchannel_logout_uris: build_logout_uris(
+          "PUBLIC_AUTH_SERVICE_URL", "id.app.localhost",
+          "backchannel/logout",
+        ) +
           build_logout_uris("PRIVATE_AUTH_STAFF_URL", "id.org.localhost", "backchannel/logout") +
           build_logout_uris("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost", "backchannel/logout"),
         backchannel_logout_session_required: true,
@@ -30,15 +33,15 @@ module OidcClientStoresStaticClientStore
       },
       # Shared browser RP client for Base's local browser flow and launcher flows.
       "base-rails-rp" => {
-        redirect_uris: build_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
-          build_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
-          build_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost") +
+        redirect_uris: build_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
+          build_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
+          build_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
           build_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
           build_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
           build_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
-        post_logout_redirect_uris: build_post_logout_redirect_uris("ACME_SERVICE_URL", "www.app.localhost") +
-          build_post_logout_redirect_uris("ACME_STAFF_URL", "www.org.localhost") +
-          build_post_logout_redirect_uris("ACME_CORPORATE_URL", "www.com.localhost") +
+        post_logout_redirect_uris: build_post_logout_redirect_uris("BASE_SERVICE_URL", "www.app.localhost") +
+          build_post_logout_redirect_uris("BASE_STAFF_URL", "www.org.localhost") +
+          build_post_logout_redirect_uris("BASE_CORPORATE_URL", "www.com.localhost") +
           build_post_logout_redirect_uris("SIDE_SERVICE_URL", "side.app.localhost") +
           build_post_logout_redirect_uris("SIDE_STAFF_URL", "side.org.localhost") +
           build_post_logout_redirect_uris("SIDE_CORPORATE_URL", "side.com.localhost"),
@@ -47,7 +50,7 @@ module OidcClientStoresStaticClientStore
         name: "Base Rails RP",
         allowed_scopes: OidcClientRegistry::DEFAULT_ALLOWED_SCOPES,
         token_endpoint_auth_method: "private_key_jwt",
-        jwt_namespace: "ACME_APP",
+        jwt_namespace: "BASE_APP",
       },
       # Side browser RP.
       "side-rails-rp" => {
@@ -209,9 +212,9 @@ module OidcClientStoresStaticClientStore
       when "PUBLIC_AUTH_SERVICE_URL" then hosts.sign_service.to_s
       when "PRIVATE_AUTH_STAFF_URL" then hosts.sign_staff.to_s
       when "PRIVATE_AUTH_CORPORATE_URL" then hosts.sign_corporate.to_s
-      when "ACME_SERVICE_URL" then hosts.acme_service.to_s
-      when "ACME_STAFF_URL" then hosts.acme_staff.to_s
-      when "ACME_CORPORATE_URL" then hosts.acme_corporate.to_s
+      when "BASE_SERVICE_URL" then hosts.base_service.to_s
+      when "BASE_STAFF_URL" then hosts.base_staff.to_s
+      when "BASE_CORPORATE_URL" then hosts.base_corporate.to_s
       when "SIDE_SERVICE_URL" then hosts.side_service.to_s
       when "SIDE_STAFF_URL" then hosts.side_staff.to_s
       when "SIDE_CORPORATE_URL" then hosts.side_corporate.to_s

@@ -46,6 +46,11 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
+    session_cookie =
+      response.headers["Set-Cookie"].to_s.split("\n").find { |line| line.start_with?("session=") }
+
+    assert_predicate session_cookie, :present?
+    assert_operator session_cookie.bytesize, :<, 3500
 
     with_prosopite_paused do
       get new_auth_app_verification_totp_url(ri: "jp"), headers: @headers
@@ -82,7 +87,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     submit_step_up_completion_if_present!(
       headers: as_user_headers(
         @user,
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
         session_public_id: @token.public_id,
       ),
     )
@@ -276,7 +281,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       submit_step_up_completion_if_present!(
         headers: as_user_headers(
           @user,
-          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
           session_public_id: @token.public_id,
         ),
       )

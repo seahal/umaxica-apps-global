@@ -214,7 +214,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     assert_includes ids, "base-rails-rp"
     assert_includes ids, "app-ios-rp"
     assert_includes ids, "app-android-rp"
-    assert_equal 14, ids.size
+    assert_equal 15, ids.size
   end
 
   test "visitor account does not expose ambiguous token endpoint auth method" do
@@ -225,7 +225,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
   test "acme and core clients expose registered private_key_jwt namespaces" do
     expectations = {
-      "base-rails-rp" => "ACME_APP",
+      "base-rails-rp" => "BASE_APP",
       "core-next-rp" => "CORE_APP",
       "sign-rp" => "SIGN_APP",
     }
@@ -248,7 +248,7 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
           OidcClientRegistry.validate_private_key_jwt_configuration!
         end
 
-      assert_includes error.message, "base-rails-rp(ACME_APP)"
+      assert_includes error.message, "base-rails-rp(BASE_APP)"
       assert_includes error.message, "sign-rp(SIGN_APP)"
       assert_includes error.message, "core-next-rp(CORE_APP)"
     end
@@ -315,13 +315,13 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     end
   end
 
-  test "base rails client is registered to acme and base redirect hosts" do
+  test "base rails client is registered to base and side redirect hosts" do
     client = OidcClientRegistry.find!("base-rails-rp")
     redirect_hosts = client.redirect_uris.map { |uri| URI.parse(uri).host }
 
     [
-      ENV.fetch("PRIVATE_ACME_SERVICE_URL", ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")),
       ENV.fetch("PUBLIC_BASE_SERVICE_URL", ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
+      ENV.fetch("PUBLIC_SIDE_SERVICE_URL", ENV.fetch("SIDE_SERVICE_URL", "side.app.localhost")),
     ].each do |host|
       assert_includes redirect_hosts, host
       assert_includes client.domains, host

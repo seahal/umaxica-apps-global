@@ -108,11 +108,11 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
 
   test "acme authority owns logout and auth remains rp only" do
     sign_out = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}/sign/out/new",
+      "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/sign/out/new",
       method: :get,
     )
     oidc_logout = Rails.application.routes.recognize_path(
-      "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}/oidc/logout",
+      "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/oidc/logout",
       method: :get,
     )
     sessions = Rails.application.routes.recognize_path(

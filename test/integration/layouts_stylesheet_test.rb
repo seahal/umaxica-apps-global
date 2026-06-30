@@ -15,18 +15,18 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
     ["app/views/layouts/acme/com/application.html.erb", "entrypoints/acme/com"],
     ["app/views/layouts/acme/org/application.html.erb", "entrypoints/acme/org"],
-    ["app/views/layouts/sign/app/application.html.erb", "entrypoints/sign/app"],
-    ["app/views/layouts/sign/com/application.html.erb", "entrypoints/sign/com"],
-    ["app/views/layouts/sign/org/application.html.erb", "entrypoints/sign/org"],
+    ["app/views/layouts/auth/app/application.html.erb", "entrypoints/sign/app"],
+    ["app/views/layouts/auth/com/application.html.erb", "entrypoints/sign/com"],
+    ["app/views/layouts/auth/org/application.html.erb", "entrypoints/sign/org"],
     ["app/views/core/dev/roots/index.html.erb", "entrypoints/core/dev"],
   ].freeze
   TURNSTILE_LAYOUT_PATHS = [
     "app/views/layouts/acme/app/application.html.erb",
     "app/views/layouts/acme/com/application.html.erb",
     "app/views/layouts/acme/org/application.html.erb",
-    "app/views/layouts/sign/app/application.html.erb",
-    "app/views/layouts/sign/com/application.html.erb",
-    "app/views/layouts/sign/org/application.html.erb",
+    "app/views/layouts/auth/app/application.html.erb",
+    "app/views/layouts/auth/com/application.html.erb",
+    "app/views/layouts/auth/org/application.html.erb",
   ].freeze
 
   test "layouts do not use stylesheet_link_tag for web ui css" do

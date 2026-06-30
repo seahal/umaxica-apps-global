@@ -35,9 +35,9 @@ module JitSecurityJwtRegistry
     "CORE_APP" => "https://jpx.umaxica.app",
     "CORE_COM" => "https://jpx.umaxica.com",
     "CORE_ORG" => "https://jpx.umaxica.org",
-    "BASE_APP" => "https://base.app.localhost",
-    "BASE_COM" => "https://base.com.localhost",
-    "BASE_ORG" => "https://base.org.localhost",
+    "BASE_APP" => "https://www.umaxica.app",
+    "BASE_COM" => "https://www.umaxica.com",
+    "BASE_ORG" => "https://www.umaxica.org",
   }.freeze
 
   ConfigurationError = Class.new(StandardError)
@@ -221,7 +221,12 @@ module JitSecurityJwtRegistry
   end
 
   def preference_hosts_from_boot_config
-    boot_config = Rails.configuration.x.boot_config rescue nil
+    boot_config =
+      begin
+        Rails.configuration.x.boot_config
+      rescue NoMethodError
+        nil
+      end
     hosts = boot_config&.fetch(:hosts, nil)
     return [] unless hosts
 

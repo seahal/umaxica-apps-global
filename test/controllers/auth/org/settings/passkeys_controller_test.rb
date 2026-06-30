@@ -126,7 +126,7 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     uri = URI.parse(jump_rt_url_from_location(response.headers["Location"]))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_equal "sign-rp", query["client_id"]
   end

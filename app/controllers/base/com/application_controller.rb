@@ -97,7 +97,7 @@ module Base
       end
 
       def oidc_base_authority_host
-        ENV.fetch("PRIVATE_BASE_CORPORATE_URL")
+        ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
       end
 
       def oidc_acme_host

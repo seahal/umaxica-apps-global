@@ -1005,7 +1005,7 @@ class AppleAuthTest
       form["action"],
       params: params,
       headers: {
-        "Host" => configured_host(:acme_service),
+        "Host" => configured_host(:base_service),
         "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },

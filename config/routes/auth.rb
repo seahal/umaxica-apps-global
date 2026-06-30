@@ -383,6 +383,14 @@ auth_routes do
         namespace :challenge do
           resource :passkey, only: %i(new create)
         end
+
+        # Entra ID (Microsoft) sign-in ceremony.
+        # authorization: POST initiates PKCE flow and redirects to Entra.
+        # callback: GET receives the authorization code from Entra.
+        resource :entra, only: :new do
+          post :authorization
+          get :callback
+        end
       end
     end
 

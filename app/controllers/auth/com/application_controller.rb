@@ -25,7 +25,7 @@ module Auth
 
       AUTHENTICATION_MODE = :deny_all
 
-      layout "sign/com/application"
+      layout "auth/com/application"
 
       allow_browser versions: :modern
 
@@ -44,7 +44,7 @@ module Auth
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_visitor, :logged_in?, :active_visitor?, :logged_in_visitor?,
                     :current_region_identifier
-      helper_method :acme_authority_host
+      helper_method :acme_authority_host, :base_authority_host
 
       helper ::Auth::Com::ApplicationHelper
       # Surface-wide default web request limit (defense-in-depth baseline).
@@ -184,11 +184,15 @@ module Auth
       end
 
       def oidc_acme_host
-        ENV.fetch("PRIVATE_ACME_CORPORATE_URL")
+        ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
+      end
+
+      def oidc_base_authority_host
+        oidc_acme_host
       end
 
       def base_authority_host
-        acme_authority_host
+        ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
       end
 
       def oidc_authorization_login_challenge

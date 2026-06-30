@@ -21,7 +21,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "org",
-      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
+      host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
       scope: "base.org.preferences",
       preference_model: OrgPreference,
       audit_class: OrgPreferenceChronicle,
@@ -29,7 +29,7 @@ class AcmePreferenceTest < ActionDispatch::IntegrationTest
     },
     {
       name: "com",
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+      host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
       scope: "base.com.preferences",
       preference_model: ComPreference,
       audit_class: ComPreferenceChronicle,

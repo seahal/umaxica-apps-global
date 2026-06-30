@@ -47,6 +47,15 @@ cookies set or cleared, headers when relevant, and policy results seen through b
 request- or integration-level tests for controllers. Do not assert on private methods, internal
 temporary variables, or incidental implementation details.
 
+When behavior uses Rails session for temporary workflow state, tests must cover lifecycle cleanup:
+
+- consumed, expired, rejected, or superseded session keys are removed with observable behavior
+- empty session containers are removed after their last entry is consumed
+- large or duplicated workflow values are not left in cookie-backed session storage after the
+  workflow reaches its target
+- cookie-backed session size stays below the browser cookie limit when the change materially adds to
+  session payload size
+
 ## Forbidden
 
 Do not:

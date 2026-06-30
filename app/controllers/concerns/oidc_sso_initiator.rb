@@ -41,16 +41,19 @@ module OidcSsoInitiator
     nonce = SecureRandom.urlsafe_base64(32)
 
     oidc_pt = safe_oidc_pt(pt)
-    session[:oidc_code_verifier] = verifier
-    session[:oidc_state] = state
-    session[:oidc_nonce] = nonce
-    session[:oidc_pt] = oidc_pt
-    remember_oidc_pending_flow!(
-      state: state,
-      verifier: verifier,
-      nonce: nonce,
-      pt: oidc_pt,
-    ) if screen_hint.blank?
+    if screen_hint.present?
+      session[:oidc_code_verifier] = verifier
+      session[:oidc_state] = state
+      session[:oidc_nonce] = nonce
+      session[:oidc_pt] = oidc_pt
+    else
+      remember_oidc_pending_flow!(
+        state: state,
+        verifier: verifier,
+        nonce: nonce,
+        pt: oidc_pt,
+      )
+    end
     log_oidc_pending_flow_created(state: state, pt: oidc_pt)
 
     oidc_authorization_url(
@@ -180,6 +183,9 @@ module OidcSsoInitiator
       hosts.acme_service.host,
       hosts.acme_corporate.host,
       hosts.acme_staff.host,
+      hosts.base_service.host,
+      hosts.base_corporate.host,
+      hosts.base_staff.host,
     ].map { |configured_host| configured_host.to_s.downcase }
   end
 

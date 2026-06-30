@@ -16,7 +16,7 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
   test "get sign out renders confirmation and post starts RP logout" do
     host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-    acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     staff = operators(:one)
     token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(token)

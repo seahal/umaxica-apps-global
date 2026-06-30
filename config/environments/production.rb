@@ -105,7 +105,7 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   # url_for's :host option expects a bare hostname; OriginValue#to_s returns a full
   # "https://..." origin, so use #host.
-  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host }
+  config.action_mailer.default_url_options = { host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host }
 
   ## Email Settings
   config.action_mailer.delivery_method = :smtp
@@ -137,9 +137,9 @@ Rails.application.configure do
   # Rails host authorization matches against the bare hostname from the Host header,
   # so use OriginValue#host (e.g. "www.umaxica.app") - not #to_s which is a full origin.
   config.hosts = [
-    boot_hosts.acme_service.host,
-    boot_hosts.acme_corporate.host,
-    boot_hosts.acme_staff.host,
+    boot_hosts.base_service.host,
+    boot_hosts.base_corporate.host,
+    boot_hosts.base_staff.host,
     boot_hosts.sign_service.host,
     boot_hosts.sign_corporate.host,
     boot_hosts.sign_staff.host,

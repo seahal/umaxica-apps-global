@@ -7,67 +7,27 @@ require "test_helper"
 class HealthEndpointsTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
-      host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
-      controller: "acme/app/healths",
-      liveness_controller: "acme/app/health/livenesses",
-      readiness_controller: "acme/app/health/readinesses",
-      startup_controller: "acme/app/health/startups",
-      profile: Health::Profiles::App,
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
-      controller: "acme/com/healths",
-      liveness_controller: "acme/com/health/livenesses",
-      readiness_controller: "acme/com/health/readinesses",
-      startup_controller: "acme/com/health/startups",
-      profile: Health::Profiles::Com,
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
-      controller: "acme/org/healths",
-      liveness_controller: "acme/org/health/livenesses",
-      readiness_controller: "acme/org/health/readinesses",
-      startup_controller: "acme/org/health/startups",
-      profile: Health::Profiles::Org,
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_NETWORK_URL", "www.umaxica.net"),
-      controller: "acme/net/healths",
-      liveness_controller: "acme/net/health/livenesses",
-      readiness_controller: "acme/net/health/readinesses",
-      startup_controller: "acme/net/health/startups",
-      profile: Health::Profiles::App,
-    },
-    {
-      host: ENV.fetch("PRIVATE_ACME_DEVELOPER_URL", "developer.umaxica.net"),
-      controller: "acme/dev/healths",
-      liveness_controller: "acme/dev/health/livenesses",
-      readiness_controller: "acme/dev/health/readinesses",
-      startup_controller: "acme/dev/health/startups",
-      profile: Health::Profiles::App,
-    },
-    {
       host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
-      controller: "sign/app/healths",
-      liveness_controller: "sign/app/health/livenesses",
-      readiness_controller: "sign/app/health/readinesses",
-      startup_controller: "sign/app/health/startups",
+      controller: "auth/app/healths",
+      liveness_controller: "auth/app/health/livenesses",
+      readiness_controller: "auth/app/health/readinesses",
+      startup_controller: "auth/app/health/startups",
       profile: Health::Profiles::SignApp,
     },
     {
       host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "sign.com.localhost"),
-      controller: "sign/com/healths",
-      liveness_controller: "sign/com/health/livenesses",
-      readiness_controller: "sign/com/health/readinesses",
-      startup_controller: "sign/com/health/startups",
+      controller: "auth/com/healths",
+      liveness_controller: "auth/com/health/livenesses",
+      readiness_controller: "auth/com/health/readinesses",
+      startup_controller: "auth/com/health/startups",
       profile: Health::Profiles::SignCom,
     },
     {
       host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"),
-      controller: "sign/org/healths",
-      liveness_controller: "sign/org/health/livenesses",
-      readiness_controller: "sign/org/health/readinesses",
-      startup_controller: "sign/org/health/startups",
+      controller: "auth/org/healths",
+      liveness_controller: "auth/org/health/livenesses",
+      readiness_controller: "auth/org/health/readinesses",
+      startup_controller: "auth/org/health/startups",
       profile: Health::Profiles::SignOrg,
     },
     {
@@ -364,7 +324,7 @@ class HealthEndpointsTest < ActionDispatch::IntegrationTest
   end
 
   test "app readiness ignores org-only dependencies" do
-    host! ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
     assert_readiness_does_not_build(OrgTicketRecord)
   end

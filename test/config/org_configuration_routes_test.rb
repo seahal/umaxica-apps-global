@@ -14,9 +14,9 @@ class OrgConfigurationRoutesTest < ActiveSupport::TestCase
       helper: :auth_org_configuration_path,
     },
     acme: {
-      org_host: ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost"),
-      app_host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
-      com_host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+      org_host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
+      app_host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+      com_host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
       controller: "acme/org/configurations",
       helper: :acme_org_configuration_path,
     },

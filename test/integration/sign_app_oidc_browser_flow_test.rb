@@ -24,7 +24,7 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
   test "sign app settings auth-required sso resolves an existing acme session and returns to settings" do # rubocop:disable Minitest/MultipleAssertions
     with_acme_oidc_client_key do
       sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-      acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
       email = "sign-oidc-browser-flow-#{SecureRandom.hex(4)}@example.com"
       @user = create_verified_user_with_email(email_address: email)
       current_session =
@@ -52,10 +52,15 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_not_equal "jump.umaxica.net", authorize_uri.host
       assert_equal "sign-rp", authorize_query.fetch("client_id")
       assert_nil authorize_query["screen_hint"]
-      assert_predicate session[AuthenticationBase::DEFAULT_PT_SESSION_KEY], :present?
-      assert_predicate session[:oidc_state], :present?
-      assert_predicate session[:oidc_nonce], :present?
-      assert_predicate session[:oidc_code_verifier], :present?
+      assert_nil session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
+      assert_nil session[:oidc_state]
+      assert_nil session[:oidc_nonce]
+      assert_nil session[:oidc_code_verifier]
+      pending_flow = session.fetch("oidc_pending_flows").fetch(authorize_query.fetch("state"))
+
+      assert_equal auth_app_settings_path(ri: "jp"), pending_flow.fetch("pt")
+      assert_equal authorize_query.fetch("nonce"), pending_flow.fetch("nonce")
+      assert_predicate pending_flow.fetch("code_verifier"), :present?
 
       root_token_count = ClientToken.where(user_id: @user.id).count
       usage_count = ClientTokenUsage.count

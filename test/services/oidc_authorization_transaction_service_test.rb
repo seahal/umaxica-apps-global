@@ -31,7 +31,7 @@ class OidcAuthorizationTransactionCoordinatorTest < ActiveSupport::TestCase
 
     uri = URI.parse(issuance.resume_url)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_equal issuance.transaction.login_challenge, Rack::Utils.parse_nested_query(uri.query)["login_challenge"]
   end

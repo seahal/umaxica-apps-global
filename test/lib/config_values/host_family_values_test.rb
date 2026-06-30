@@ -10,9 +10,9 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
   test "build in non-production mode applies localhost fallbacks for every family" do
     values = ConfigValues::HostFamilyValues.build(env: {}, production: false)
 
-    assert_equal "https://acme.app.localhost", values.acme_service.to_s
-    assert_equal "https://acme.com.localhost", values.acme_corporate.to_s
-    assert_equal "https://acme.org.localhost", values.acme_staff.to_s
+    assert_equal "https://base.app.localhost", values.acme_service.to_s
+    assert_equal "https://base.com.localhost", values.acme_corporate.to_s
+    assert_equal "https://base.org.localhost", values.acme_staff.to_s
 
     assert_equal "https://sign.app.localhost", values.sign_service.to_s
     assert_equal "https://sign.com.localhost", values.sign_corporate.to_s
@@ -25,6 +25,10 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     assert_equal "https://www-jp.umaxica.app", values.base_service.to_s
     assert_equal "https://www-jp.umaxica.com", values.base_corporate.to_s
     assert_equal "https://www-jp.umaxica.org", values.base_staff.to_s
+
+    assert_equal "https://side-jp.umaxica.app", values.side_service.to_s
+    assert_equal "https://side-jp.umaxica.com", values.side_corporate.to_s
+    assert_equal "https://side-jp.umaxica.org", values.side_staff.to_s
 
     assert_equal "https://palm-jp.umaxica.app", values.palm_service.to_s
     assert_equal "https://palm-jp.umaxica.com", values.palm_corporate.to_s
@@ -54,6 +58,9 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     assert_equal 3, values.base_origins.size
     assert_equal [values.base_service, values.base_corporate, values.base_staff], values.base_origins
 
+    assert_equal 3, values.side_origins.size
+    assert_equal [values.side_service, values.side_corporate, values.side_staff], values.side_origins
+
     assert_equal 3, values.palm_origins.size
     assert_equal [values.palm_service, values.palm_corporate, values.palm_staff], values.palm_origins
 
@@ -63,9 +70,6 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
 
   test "build in production mode prefers ENV overrides over fallbacks" do
     env = {
-      "ACME_SERVICE_URL" => "acme.example.test",
-      "ACME_CORPORATE_URL" => "acme-com.example.test",
-      "ACME_STAFF_URL" => "acme-org.example.test",
       "AUTH_SERVICE_URL" => "sign.example.test",
       "AUTH_CORPORATE_URL" => "sign-com.example.test",
       "AUTH_STAFF_URL" => "sign-org.example.test",
@@ -75,6 +79,9 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
       "BASE_SERVICE_URL" => "base.example.test",
       "BASE_CORPORATE_URL" => "base-com.example.test",
       "BASE_STAFF_URL" => "base-org.example.test",
+      "SIDE_SERVICE_URL" => "side.example.test",
+      "SIDE_CORPORATE_URL" => "side-com.example.test",
+      "SIDE_STAFF_URL" => "side-org.example.test",
       "PALM_SERVICE_URL" => "palm.example.test",
       "PALM_CORPORATE_URL" => "palm-com.example.test",
       "PALM_STAFF_URL" => "palm-org.example.test",
@@ -87,8 +94,9 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     }
     values = ConfigValues::HostFamilyValues.build(env: env, production: true)
 
-    assert_equal "https://acme.example.test", values.acme_service.to_s
+    assert_equal "https://base.example.test", values.acme_service.to_s
     assert_equal "https://sign-org.example.test", values.sign_staff.to_s
+    assert_equal "https://side.example.test", values.side_service.to_s
     assert_equal "https://palm-com.example.test", values.palm_corporate.to_s
     assert_equal "https://info-org.example.test", values.info_staff.to_s
     assert_not values.acme_origins.any?(&:nil?)
@@ -113,7 +121,7 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     assert_equal "www.umaxica.org", values.base_staff.host
   end
 
-  test "SIDE_*_URL takes precedence over PUBLIC_BASE_*_URL for base origins" do
+  test "SIDE_*_URL configures side origins separately from base origins" do
     env = {
       "SIDE_SERVICE_URL" => "side.umaxica.app",
       "SIDE_CORPORATE_URL" => "side.umaxica.com",
@@ -124,9 +132,12 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     }
     values = ConfigValues::HostFamilyValues.build(env: env, production: false)
 
-    assert_equal "side.umaxica.app", values.base_service.host
-    assert_equal "side.umaxica.com", values.base_corporate.host
-    assert_equal "side.umaxica.org", values.base_staff.host
+    assert_equal "www.umaxica.app", values.base_service.host
+    assert_equal "www.umaxica.com", values.base_corporate.host
+    assert_equal "www.umaxica.org", values.base_staff.host
+    assert_equal "side.umaxica.app", values.side_service.host
+    assert_equal "side.umaxica.com", values.side_corporate.host
+    assert_equal "side.umaxica.org", values.side_staff.host
   end
 
   test "BASE_*_URL takes precedence over PUBLIC_BASE_*_URL for base origins" do
@@ -147,9 +158,6 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
 
   test "origin adds an https scheme when the raw value lacks one" do
     env = {
-      "ACME_SERVICE_URL" => "acme.example.test",
-      "ACME_CORPORATE_URL" => "acme-com.example.test",
-      "ACME_STAFF_URL" => "acme-org.example.test",
       "AUTH_SERVICE_URL" => "https://sign.example.test",
       "AUTH_CORPORATE_URL" => "sign-com.example.test",
       "AUTH_STAFF_URL" => "sign-org.example.test",
@@ -159,6 +167,9 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
       "BASE_SERVICE_URL" => "base.example.test",
       "BASE_CORPORATE_URL" => "base-com.example.test",
       "BASE_STAFF_URL" => "base-org.example.test",
+      "SIDE_SERVICE_URL" => "side.example.test",
+      "SIDE_CORPORATE_URL" => "side-com.example.test",
+      "SIDE_STAFF_URL" => "side-org.example.test",
       "PALM_SERVICE_URL" => "palm.example.test",
       "PALM_CORPORATE_URL" => "palm-com.example.test",
       "PALM_STAFF_URL" => "palm-org.example.test",
@@ -171,7 +182,7 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
     }
     values = ConfigValues::HostFamilyValues.build(env: env, production: true)
 
-    assert_equal "https://acme.example.test", values.acme_service.to_s
+    assert_equal "https://base.example.test", values.acme_service.to_s
     assert_equal "https://sign.example.test", values.sign_service.to_s
     assert_equal "https://help.example.test", values.help_service.to_s
     assert_equal "https://info.example.test", values.info_service.to_s

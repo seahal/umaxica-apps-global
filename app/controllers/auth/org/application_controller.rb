@@ -25,7 +25,7 @@ module Auth
 
       AUTHENTICATION_MODE = :deny_all
 
-      layout "sign/org/application"
+      layout "auth/org/application"
 
       allow_browser versions: :modern
 
@@ -44,7 +44,7 @@ module Auth
       helper_method :current_actor, :current_account, :current_session_public_id, :current_session_restricted?,
                     :signed_pt_param, :current_operator, :logged_in?, :active_operator?, :logged_in_operator?,
                     :current_region_identifier
-      helper_method :acme_authority_host
+      helper_method :acme_authority_host, :base_authority_host
 
       # Restricted session guard - explicitly enabled to block restricted sessions
       # from accessing routes other than /in/session
@@ -110,11 +110,15 @@ module Auth
       end
 
       def oidc_acme_host
-        ENV.fetch("PRIVATE_ACME_STAFF_URL")
+        ENV.fetch("PUBLIC_BASE_STAFF_URL")
+      end
+
+      def oidc_base_authority_host
+        oidc_acme_host
       end
 
       def base_authority_host
-        acme_authority_host
+        ENV.fetch("PUBLIC_BASE_STAFF_URL")
       end
 
       def oidc_authorization_login_challenge

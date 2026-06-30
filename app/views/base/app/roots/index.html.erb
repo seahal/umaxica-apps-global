@@ -51,7 +51,7 @@
       <section aria-labelledby="base-app-root-title">
         <h1 id="base-app-root-title">Base App</h1>
         <p>Thin landing endpoint.</p>
-        <p><a href="<%= base_app_oidc_authorization_url(ri: params[:ri]) %>">Sign in</a></p>
+        <p><%= link_to "Sign up", base_app_oidc_authorization_path(ri: params[:ri]) %></p>
       </section>
     </main>
   </body>

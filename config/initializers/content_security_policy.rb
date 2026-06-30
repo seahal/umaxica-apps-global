@@ -13,11 +13,11 @@ Rails.application.configure do
     # OriginValue#to_s already returns a scheme-prefixed origin (e.g. "https://www.umaxica.app").
     # Do not prepend "https://" again -- doing so produces a malformed allowlist entry like
     # "https://https://www.umaxica.app" which silently breaks form-action enforcement.
-    acme_form_hosts =
+    base_form_hosts =
       [
-        boot_config.fetch(:hosts).acme_service.to_s,
-        boot_config.fetch(:hosts).acme_corporate.to_s,
-        boot_config.fetch(:hosts).acme_staff.to_s,
+        boot_config.fetch(:hosts).base_service.to_s,
+        boot_config.fetch(:hosts).base_corporate.to_s,
+        boot_config.fetch(:hosts).base_staff.to_s,
       ]
     sign_form_hosts =
       [
@@ -42,7 +42,7 @@ Rails.application.configure do
       :self,
       "https://accounts.google.com",
       "https://appleid.apple.com",
-      *acme_form_hosts,
+      *base_form_hosts,
       *sign_form_hosts,
       *jump_form_hosts,
     )

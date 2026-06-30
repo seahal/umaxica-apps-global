@@ -15,6 +15,9 @@ module ConfigValues
       :base_service,
       :base_corporate,
       :base_staff,
+      :side_service,
+      :side_corporate,
+      :side_staff,
       :palm_service,
       :palm_corporate,
       :palm_staff,
@@ -47,12 +50,6 @@ module ConfigValues
         [auth_service, auth_corporate, auth_staff]
       end
 
-      def side_service = base_service
-
-      def side_corporate = base_corporate
-
-      def side_staff = base_staff
-
       def side_origins
         [side_service, side_corporate, side_staff]
       end
@@ -76,12 +73,12 @@ ConfigValuesHostFamilyValues = ConfigValues::HostFamilyValues
 class << ConfigValues::HostFamilyValues
   def build(env:, production:)
     ConfigValues::HostFamilyValues.new(
-      acme_service: origin(env, "ACME_SERVICE_URL", production ? nil : "acme.app.localhost", production: production),
+      acme_service: origin(env, "BASE_SERVICE_URL", production ? nil : "base.app.localhost", production: production),
       acme_corporate: origin(
-        env, "ACME_CORPORATE_URL", production ? nil : "acme.com.localhost",
+        env, "BASE_CORPORATE_URL", production ? nil : "base.com.localhost",
         production: production,
       ),
-      acme_staff: origin(env, "ACME_STAFF_URL", production ? nil : "acme.org.localhost", production: production),
+      acme_staff: origin(env, "BASE_STAFF_URL", production ? nil : "base.org.localhost", production: production),
       sign_service: origin(env, "AUTH_SERVICE_URL", production ? nil : "sign.app.localhost", production: production),
       sign_corporate: origin(
         env, "AUTH_CORPORATE_URL", production ? nil : "sign.com.localhost",
@@ -114,6 +111,24 @@ class << ConfigValues::HostFamilyValues
         production ? nil : "www-jp.umaxica.org",
         production: production,
       ),
+      side_service: origin(
+        env,
+        side_key(env, "SERVICE"),
+        production ? nil : "side-jp.umaxica.app",
+        production: production,
+      ),
+      side_corporate: origin(
+        env,
+        side_key(env, "CORPORATE"),
+        production ? nil : "side-jp.umaxica.com",
+        production: production,
+      ),
+      side_staff: origin(
+        env,
+        side_key(env, "STAFF"),
+        production ? nil : "side-jp.umaxica.org",
+        production: production,
+      ),
       palm_service: origin(env, "PALM_SERVICE_URL", production ? nil : "palm-jp.umaxica.app", production: production),
       palm_corporate: origin(
         env,
@@ -142,16 +157,20 @@ class << ConfigValues::HostFamilyValues
   end
 
   # Resolves the ENV key for a base surface (service/corporate/staff).
-  # Prefers SIDE_* over BASE_* over PUBLIC_BASE_* so that explicit private-routing
-  # overrides take precedence, but PUBLIC_BASE_* (browser-visible hosts from docker
-  # env) are picked up when neither private key is set.
   def base_key(env, surface)
-    if env.key?("SIDE_#{surface}_URL")
-      "SIDE_#{surface}_URL"
-    elsif env.key?("BASE_#{surface}_URL")
+    if env.key?("BASE_#{surface}_URL")
       "BASE_#{surface}_URL"
     else
       "PUBLIC_BASE_#{surface}_URL"
+    end
+  end
+
+  # Resolves the ENV key for a side surface (service/corporate/staff).
+  def side_key(env, surface)
+    if env.key?("SIDE_#{surface}_URL")
+      "SIDE_#{surface}_URL"
+    else
+      "PUBLIC_SIDE_#{surface}_URL"
     end
   end
 

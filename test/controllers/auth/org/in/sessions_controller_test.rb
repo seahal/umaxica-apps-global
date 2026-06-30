@@ -37,7 +37,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     with_env(
       "PRIVATE_AUTH_STAFF_URL" => "auth.org.localhost",
       "AUTH_STAFF_URL" => "log.umaxica.org",
-      "ACME_STAFF_URL" => "www.umaxica.org",
+      "BASE_STAFF_URL" => "www.umaxica.org",
     ) do
       Rails.application.reload_routes!
 
@@ -528,7 +528,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
   test "restricted session is blocked on non-session acme org routes" do
     token = create_restricted_session(@staff)
-    acme_host = ENV.fetch("PRIVATE_ACME_STAFF_URL", "www.org.localhost")
+    acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     headers = {
       "Host" => acme_host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,

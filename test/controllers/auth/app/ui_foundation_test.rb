@@ -11,7 +11,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
   end
 
   test "should render settings page with new UI foundation" do
@@ -31,9 +31,10 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
     get auth_app_settings_url(ri: "jp", host: @sign_host)
 
     assert_response :redirect
-    assert_equal "/settings?ri=jp", session[:oidc_pt]
+    assert_nil session[:oidc_pt]
 
-    pending_flow = session.fetch("oidc_pending_flows").fetch(session[:oidc_state])
+    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
+    pending_flow = session.fetch("oidc_pending_flows").fetch(query.fetch("state"))
 
     assert_equal "/settings?ri=jp", pending_flow.fetch("pt")
   end

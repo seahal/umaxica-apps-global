@@ -8,7 +8,7 @@ module Auth
 
       AUTHENTICATION_MODE = :open
 
-      layout "sign/com/application"
+      layout "auth/com/application"
 
       prepend_before_action :redirect_localhost_preference_authority!
       before_action :authorize_preference_write!, if: :preference_write_request?

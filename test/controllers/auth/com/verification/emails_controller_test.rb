@@ -104,10 +104,10 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
             # sign no longer writes freshness; acme commits it on completion (asserted below).
 
             submit_step_up_completion_if_present!(
-              host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+              host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
               headers: as_visitor_headers(
                 @visitor,
-                host: ENV.fetch("PRIVATE_ACME_CORPORATE_URL", "www.com.localhost"),
+                host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
                 session_public_id: @token.public_id,
               ),
             )

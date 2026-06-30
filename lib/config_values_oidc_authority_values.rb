@@ -15,9 +15,9 @@ class << ConfigValues::OidcAuthorityValues
         staff: host_family_values.sign_staff.to_s,
       }.freeze,
       acme: {
-        app: host_family_values.acme_service.to_s,
-        corporate: host_family_values.acme_corporate.to_s,
-        staff: host_family_values.acme_staff.to_s,
+        app: host_family_values.base_service.to_s,
+        corporate: host_family_values.base_corporate.to_s,
+        staff: host_family_values.base_staff.to_s,
       }.freeze,
       core: {
         app: host_family_values.core_service.to_s,

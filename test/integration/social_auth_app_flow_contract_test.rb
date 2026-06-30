@@ -32,7 +32,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -1125,6 +1125,11 @@ class SocialAuthAppFlowContractTest
 
     headers = social_callback_headers(host).merge(user_headers)
     post(continue_path, headers: headers)
+    session_cookie =
+      response.headers["Set-Cookie"].to_s.split("\n").find { |line| line.start_with?("session=") }
+
+    assert_predicate session_cookie, :present?
+    assert_operator session_cookie.bytesize, :<, 3500
 
     Struct.new(:state, :user_headers, :session_public_id, keyword_init: true).new(
       state: social_auth_state_from_response,

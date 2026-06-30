@@ -19,7 +19,7 @@ module PreferenceJwtConfiguration
   end
 
   def self.leeway_seconds
-    Integer(ENV.fetch("PREFERENCE_JWT_LEEWAY_SECONDS").to_s, 10)
+    Integer(ENV["PREFERENCE_JWT_LEEWAY_SECONDS"].presence || "30", 10)
   end
 
   def self.issuer

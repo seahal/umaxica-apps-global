@@ -16,7 +16,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       new_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
         protocol: "https",
       ),
       response.location,
@@ -42,7 +42,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), protocol: "https",
       ),
       response.location,
     )
@@ -64,7 +64,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), protocol: "https",
       ),
       response.location,
     )
@@ -76,7 +76,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
     assert_equal "/sign/out/complete", uri.path
   end
 

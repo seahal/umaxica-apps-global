@@ -9,7 +9,7 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")
+    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
   end
 

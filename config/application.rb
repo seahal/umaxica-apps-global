@@ -58,6 +58,7 @@ module Jit
     # entries are also autoload paths, so this keeps autoloading and restores
     # boot-time constant verification.
     config.eager_load_paths << Rails.root.join("app/errors")
+    config.eager_load_paths << Rails.root.join("app/lib")
 
     ### Added by user
     # Trust X-Forwarded-* headers from reverse proxy (Cloudflare Tunnel, Nginx, etc.)

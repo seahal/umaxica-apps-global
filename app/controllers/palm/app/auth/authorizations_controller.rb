@@ -23,7 +23,7 @@ module Palm
         end
 
         def oidc_base_authority_host
-          ENV.fetch("PRIVATE_BASE_SERVICE_URL")
+          ENV.fetch("PUBLIC_BASE_SERVICE_URL")
         end
 
         def oidc_acme_host

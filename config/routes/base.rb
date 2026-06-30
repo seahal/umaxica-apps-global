@@ -3,8 +3,15 @@
 
 # Base owns the OP/Authorization Server and durable identity/session authority.
 scope module: :base, as: :base do
+  base_route_host =
+    ->(env_key) do
+      raw = ENV.fetch(env_key)
+      URI.parse(raw.match?(%r{\Ahttps?://}) ? raw : "https://#{raw}").host
+    end
+  base_route_hosts = ->(env_key, local_host) { [base_route_host.call(env_key), local_host].uniq }
+
   # App OP/AS host.
-  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_SERVICE_URL")).host do
+  constraints host: base_route_hosts.call("PUBLIC_BASE_SERVICE_URL", "base.app.localhost") do
     scope module: :app, as: :app do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -226,7 +233,7 @@ scope module: :base, as: :base do
   end
 
   # Corporate OP/AS host.
-  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_CORPORATE_URL")).host do
+  constraints host: base_route_hosts.call("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost") do
     scope module: :com, as: :com do
       # Thin landing endpoint.
       root to: "roots#index"
@@ -388,7 +395,7 @@ scope module: :base, as: :base do
   end
 
   # Staff OP/AS host.
-  constraints host: URI.parse(ENV.fetch("PUBLIC_BASE_STAFF_URL")).host do
+  constraints host: base_route_hosts.call("PUBLIC_BASE_STAFF_URL", "base.org.localhost") do
     scope module: :org, as: :org do
       # Thin landing endpoint.
       root to: "roots#index"

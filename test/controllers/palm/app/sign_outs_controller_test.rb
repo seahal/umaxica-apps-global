@@ -66,20 +66,20 @@ module Palm
         logout_uri = URI.parse(payload["logout_url"])
         query = Rack::Utils.parse_nested_query(logout_uri.query.to_s)
 
-        assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), logout_uri.host
+        assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"), logout_uri.host
         assert_equal "/oidc/logout", logout_uri.path
         assert_predicate query["logout_challenge"], :present?
         assert_nil query["actor_ref"]
         assert_nil query["session_ref"]
 
         browser_token = create_client_token(native_client)
-        post acme_app_oidc_logout_url(
-          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+        post base_app_oidc_logout_url(
+          host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
         ), headers: as_user_headers(
           native_client,
-          host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"),
           session_public_id: browser_token.public_id,
           headers: {
             "Origin" => "https://#{PALM_HOST}",
@@ -94,7 +94,7 @@ module Palm
         assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"), sign_uri.host
         assert_equal "/sign/out", sign_uri.path
 
-        post base_app_sign_out_url(
+        post auth_app_sign_out_url(
           host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
           ri: "jp",
           logout_challenge: query["logout_challenge"],
@@ -103,7 +103,7 @@ module Palm
           host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost"),
           session_public_id: browser_token.public_id,
           headers: {
-            "Origin" => "https://#{ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")}",
+            "Origin" => "https://#{ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost")}",
             "Sec-Fetch-Site" => "same-site",
           },
         )
@@ -112,15 +112,15 @@ module Palm
         finalize_uri = URI.parse(jump_rt_url_from_location(response.location))
         finalize_query = Rack::Utils.parse_nested_query(finalize_uri.query.to_s)
 
-        assert_equal PALM_HOST, finalize_uri.host
-        assert_equal "/sign/out", finalize_uri.path
-        assert_equal query["logout_challenge"], finalize_query["logout_challenge"]
-        assert_equal payload["state"], finalize_query["state"]
+        assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"), finalize_uri.host
+        assert_equal "/sign/out/complete", finalize_uri.path
+        assert_nil finalize_query["logout_challenge"]
+        assert_nil finalize_query["state"]
 
         get jump_rt_url_from_location(response.location)
 
         assert_response :success
-        assert_select "h1", text: "Signed out"
+        assert_select "h1"
       end
 
       private

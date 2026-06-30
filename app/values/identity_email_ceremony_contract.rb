@@ -68,7 +68,7 @@ module IdentityEmailCeremonyContract
 
   def sign_issuer_id(surface) = "surface:SIGN_#{surface.to_s.upcase}"
 
-  def acme_issuer_id(surface) = "surface:ACME_#{surface.to_s.upcase}"
+  def acme_issuer_id(surface) = "surface:BASE_#{surface.to_s.upcase}"
 
   def fetch_surface_value(values, surface)
     values.fetch(surface.to_s)

@@ -43,16 +43,16 @@ module Jit
           end
         end
 
-        test "loads configured OIDC client assertion issuer" do
+        test "loads configured Base OIDC client assertion issuer" do
           with_registry_inputs(
-            "OIDC_CLIENT_ACME_APP_ACTIVE_KID" => "oidc-acme-app-kid",
-            "OIDC_CLIENT_ACME_APP_PRIVATE_KEY" => base64_der(@surface_key),
+            "OIDC_CLIENT_BASE_APP_ACTIVE_KID" => "oidc-base-app-kid",
+            "OIDC_CLIENT_BASE_APP_PRIVATE_KEY" => base64_der(@surface_key),
           ) do
             issuers = JitSecurityJwtRegistry.reload!
-            issuer = issuers.fetch("oidc_client:ACME_APP")
+            issuer = issuers.fetch("oidc_client:BASE_APP")
 
-            assert_equal "oidc-acme-app-kid", issuer.current_kid
-            assert_equal "oidc_client:acme_app", issuer.issuer
+            assert_equal "oidc-base-app-kid", issuer.current_kid
+            assert_equal "oidc_client:base_app", issuer.issuer
             assert_predicate issuer.jwks.fetch(:keys), :present?
           end
         end
@@ -205,8 +205,8 @@ module Jit
 
         test "allows empty optional surface records without issuer or audiences" do
           record = JitSecurityJwtIssuerRecord.new(
-            id: "surface:ACME_APP",
-            namespace: "ACME_APP",
+            id: "surface:BASE_APP",
+            namespace: "BASE_APP",
             issuer: nil,
             audiences: [],
             current_kid: nil,

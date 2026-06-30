@@ -94,7 +94,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_redirected_to base_app_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
       ),
     )
     follow_redirect!
@@ -134,7 +134,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), redirect_uri.host
     assert_equal "/sign/in/limitation", redirect_uri.path
     social_resolution = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)["social_resolution"]
 
@@ -152,7 +152,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     session_ref = css_select("input[name=session_ref]").first["value"]
     selected_session = SessionLimitResolutionTokenRef.find_client_token(session_ref)
 
-    patch acme_app_sign_in_limitation_url(host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost")),
+    patch acme_app_sign_in_limitation_url(host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")),
           params: {
             social_resolution: social_resolution,
             session_ref: session_ref,
@@ -163,7 +163,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_redirected_to acme_app_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
       ),
     )
   end
@@ -221,7 +221,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_equal(
       completion_base_app_social_authentication_url(
         id: "google",
-        host: ENV.fetch("PRIVATE_ACME_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       ),
       form["action"],
     )
@@ -265,7 +265,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_redirected_to acme_app_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
       ),
     )
     assert_equal user_count_before, Client.count
@@ -335,7 +335,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_redirected_to acme_app_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PRIVATE_ACME_SERVICE_URL", "www.app.localhost",
+        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
       ),
     )
     assert_equal user_count_before, Client.count
