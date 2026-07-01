@@ -19,7 +19,7 @@ module Auth
         MAX_TOTPS = 2
         before_action :authenticate_client!
         step_up only: %i(new create), bootstrap: true
-        step_up only: []
+        step_up only: :destroy
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create)
 
         def index

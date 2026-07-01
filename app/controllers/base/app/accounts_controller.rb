@@ -14,12 +14,12 @@ module Base
 
       def index
         authorize!(current_client, to: :show?)
-        @accounts = Persona.all
+        @accounts = switcher.available_accounts
       end
 
       def show
         @account = find_account!
-        authorize!(current_client, to: :show?)
+        authorize!(@account, to: :show?, with: AccountPolicy)
       end
 
       private
@@ -27,7 +27,13 @@ module Base
       # Scoped to the principal's available accounts: a foreign or non-existent id raises
       # RecordNotFound (404), which is the authoritative ownership gate for show/edit/update.
       def find_account!
-        Persona.find_by!(public_id: params.expect(:id))
+        switcher.find_account(params.expect(:id)) || raise(ActiveRecord::RecordNotFound)
+      end
+
+      def switcher
+        @switcher ||= BaseSwitcherAuthority.new(
+          surface: :app, principal: current_client, session: current_session,
+        )
       end
     end
   end

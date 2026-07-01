@@ -45,12 +45,55 @@ class Base::EdgeV0TokenRefreshesTest < ActionDispatch::IntegrationTest
       host! host
 
       post "/edge/v0/token/refresh",
-           params: { refresh_token: refresh_plain },
-           headers: { "Host" => host, "Accept" => "application/json" },
+           headers: {
+             "Host" => host,
+             "Accept" => "application/json",
+             "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(refresh_plain)}",
+           },
            as: :json
 
       assert_response :success
       assert response.parsed_body["refreshed"]
+    end
+  end
+
+  test "POST refresh rejects body refresh tokens on the browser cookie endpoint" do
+    SURFACES.each do |surface|
+      host = surface.fetch(:host)
+      token_record = surface.fetch(:build_token).call(self)
+      refresh_plain = token_record.rotate_refresh_token!
+
+      host! host
+
+      post "/edge/v0/token/refresh",
+           params: { refresh_token: refresh_plain },
+           headers: { "Host" => host, "Accept" => "application/json" },
+           as: :json
+
+      assert_response :bad_request
+      assert_equal "invalid_refresh_transport", response.parsed_body.fetch("error_code")
+    end
+  end
+
+  test "POST refresh rejects authorization header transport on the browser cookie endpoint" do
+    SURFACES.each do |surface|
+      host = surface.fetch(:host)
+      token_record = surface.fetch(:build_token).call(self)
+      refresh_plain = token_record.rotate_refresh_token!
+
+      host! host
+
+      post "/edge/v0/token/refresh",
+           headers: {
+             "Host" => host,
+             "Accept" => "application/json",
+             "Authorization" => "Bearer #{refresh_plain}",
+             "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(refresh_plain)}",
+           },
+           as: :json
+
+      assert_response :unauthorized
+      assert_not_equal true, response.parsed_body["refreshed"] if response.media_type == "application/json"
     end
   end
 
@@ -60,8 +103,11 @@ class Base::EdgeV0TokenRefreshesTest < ActionDispatch::IntegrationTest
       host! host
 
       post "/edge/v0/token/refresh",
-           params: { refresh_token: "bogus-refresh-token" },
-           headers: { "Host" => host, "Accept" => "application/json" },
+           headers: {
+             "Host" => host,
+             "Accept" => "application/json",
+             "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=bogus-refresh-token",
+           },
            as: :json
 
       assert_response :unauthorized

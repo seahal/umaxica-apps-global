@@ -5,6 +5,7 @@
 # Authorization Server; Auth surfaces handle credential ceremonies and do not
 # own RP authority.
 scope(module: :auth, as: :auth) do
+  # FIXME: I want to remove the following line.
   hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
   # User credential gateway host.

@@ -28,7 +28,7 @@ void createInertiaApp({
     console.error(
       "Missing root element.\n\n" +
         "If you see this error, it probably means you loaded Inertia.js on non-Inertia pages.\n" +
-        'Consider moving <%= vite_typescript_tag "inertia.tsx" %> to the Inertia-specific layout instead.',
+        'Consider moving <%= vite_typescript_tag "entrypoints/inertia" %> to the Inertia-specific layout instead.',
     );
   }
 });

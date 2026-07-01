@@ -15,6 +15,7 @@ module AuthorizationTokenClaims
 
     payload = {
       "iat" => issued_at_seconds,
+      "nbf" => issued_at_seconds,
       "exp" => expires_at_seconds,
       "jti" => oidc_jti.presence || JitSecurityJwtJtiGenerator.generate,
       "sub" => subject.presence || resource.id,

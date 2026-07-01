@@ -23,6 +23,15 @@ class Base::Com::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show rejects account outside the current visitor membership set" do
+    other_visitor = create_verified_visitor_with_email(email_address: "other-com-account@example.com")
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :com, principal: other_visitor)
+
+    get "/accounts/#{other_bootstrap.account.public_id}?ri=jp", headers: as_visitor_headers(@visitor, host: @host)
+
+    assert_response :not_found
+  end
+
   test "unknown public_id returns 404" do
     get "/accounts/unknown-account?ri=jp", headers: as_visitor_headers(@visitor, host: @host)
 

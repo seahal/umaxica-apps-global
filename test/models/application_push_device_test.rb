@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: action_push_native_devices
-# Database name: com_principal
+# Database name: com_zenith
 #
 #  id         :bigint           not null, primary key
 #  name       :string
@@ -36,6 +36,7 @@ class ApplicationPushDeviceTest < ActionDispatch::IntegrationTest
   end
 
   test "device table exists on the model connection" do
+    assert_equal "com_zenith", ApplicationPushDevice.connection_db_config.name
     assert ApplicationPushDevice.lease_connection.data_source_exists?(ApplicationPushDevice.table_name)
   end
 end

@@ -26,16 +26,15 @@ class DpopRequestVerifier
     # DPoP-bound token must present a proof
     return Result.new(valid: false, error: "missing_dpop_proof") if @proof_jwt.blank?
 
-    # Per-request API access: stateless validation. Binding is enforced by
-    # cnf.jkt + ath below; jti replay tracking is reserved for refresh/step-up
-    # to avoid a DB write on every authenticated request.
+    # Per-request API access must consume the proof jti. cnf.jkt + ath bind the
+    # proof to the token, but they do not stop replay of a stolen proof.
     proof_result = DpopProofValidator.new(
       proof_jwt: @proof_jwt,
       request_method: @request_method,
       request_uri: @request_uri,
       access_token: @access_token,
       resource_type: @resource_type,
-      record_jti: false,
+      record_jti: true,
     ).call
 
     return Result.new(valid: false, error: proof_result.error) unless proof_result.valid?

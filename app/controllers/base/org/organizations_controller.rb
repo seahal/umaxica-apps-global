@@ -11,18 +11,24 @@ module Base
 
       def index
         authorize!(current_operator, to: :show?)
-        @organizations = Bureau.all
+        @organizations = switcher.available_organizations
       end
 
       def show
         @organization = find_organization!
-        authorize!(current_operator, to: :show?)
+        authorize!(@organization, to: :show?, with: OrganizationPolicy)
       end
 
       private
 
       def find_organization!
-        Bureau.find_by!(public_id: params.expect(:id))
+        switcher.find_organization(params.expect(:id)) || raise(ActiveRecord::RecordNotFound)
+      end
+
+      def switcher
+        @switcher ||= BaseSwitcherAuthority.new(
+          surface: :org, principal: current_operator, session: current_session,
+        )
       end
     end
   end

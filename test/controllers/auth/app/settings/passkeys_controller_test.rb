@@ -554,12 +554,32 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       sign_count: 0,
       description: "Extra Passkey",
     )
+    headers = headers_for_client_token(@token, scope: "settings_passkey")
 
-    assert_difference("ClientPasskey.count", -1) do
-      delete auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
-    end
+    before_count = ClientPasskey.count
+    delete auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: headers
 
     assert_redirected_to auth_app_settings_passkeys_path(ri: "jp")
+    assert_equal before_count - 1, ClientPasskey.count
+  end
+
+  test "destroy requires fresh settings passkey step up" do
+    ClientPasskey.create!(
+      user: @user,
+      webauthn_id: "webauthn_extra_#{SecureRandom.hex(4)}",
+      public_key: "public_key_extra_#{SecureRandom.hex(4)}",
+      sign_count: 0,
+      description: "Extra Passkey",
+    )
+    @token.update!(last_step_up_at: 20.minutes.ago, last_step_up_scope: "settings_passkey")
+    headers = headers_for_client_token(@token, scope: "settings_passkey", step_up_at: 20.minutes.ago)
+
+    assert_no_difference("ClientPasskey.count") do
+      delete auth_app_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: headers
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, "Step-up authentication required"
   end
 
   test "should 404 when accessing other user's passkey" do
@@ -607,6 +627,35 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
   def regional_defaults
     { ri: "jp" }
+  end
+
+  def headers_for_client_token(token, scope:, step_up_at: Time.current)
+    Actor.clear if defined?(Actor)
+    mark_settings_step_up_satisfied!(token, scope: scope, at: step_up_at)
+    access_token = AuthenticationToken.encode(
+      token.user,
+      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+      session_public_id: token.public_id,
+      resource_type: "client",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    )
+  end
+
+  def mark_settings_step_up_satisfied!(token, scope:, at:)
+    token.update_columns(
+      last_step_up_at: at,
+      last_step_up_scope: scope,
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:app",
+      updated_at: Time.current,
+    )
   end
 
   def create_client_recovery_passcode!(
@@ -1151,11 +1200,11 @@ class Auth::App::Settings::PasskeysControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)
@@ -1553,11 +1602,17 @@ class Auth::App::Settings::PasskeysControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

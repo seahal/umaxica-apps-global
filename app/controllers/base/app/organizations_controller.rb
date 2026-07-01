@@ -14,12 +14,12 @@ module Base
 
       def index
         authorize!(current_client, to: :show?)
-        @organizations = Enterprise.all
+        @organizations = switcher.available_organizations
       end
 
       def show
         @organization = find_organization!
-        authorize!(current_client, to: :show?)
+        authorize!(@organization, to: :show?, with: OrganizationPolicy)
       end
 
       private
@@ -27,7 +27,13 @@ module Base
       # Scoped to the organizations the principal is a member of: a foreign or non-existent id
       # raises RecordNotFound (404), the authoritative membership gate for show/edit/update.
       def find_organization!
-        Enterprise.find_by!(public_id: params.expect(:id))
+        switcher.find_organization(params.expect(:id)) || raise(ActiveRecord::RecordNotFound)
+      end
+
+      def switcher
+        @switcher ||= BaseSwitcherAuthority.new(
+          surface: :app, principal: current_client, session: current_session,
+        )
       end
     end
   end

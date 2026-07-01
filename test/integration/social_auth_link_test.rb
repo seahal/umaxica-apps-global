@@ -23,7 +23,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
-    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = Rails.configuration.x.boot_config.fetch(:hosts).base_service.host
     @callback_headers = social_callback_headers(@host)
 
     # Create test users
@@ -170,7 +170,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(jump_rt_url_from_location(response.location), host: @base_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -193,7 +193,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(jump_rt_url_from_location(response.location), host: @base_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -251,7 +251,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(jump_rt_url_from_location(response.location), host: @base_host, client_id: "sign-rp")
   end
 
   test "link intent rejects resource-level step up without token-bound step up" do
@@ -1184,7 +1184,11 @@ class SocialAuthLinkTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -1202,7 +1206,11 @@ class SocialAuthLinkTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -1220,7 +1228,11 @@ class SocialAuthLinkTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -1304,11 +1316,17 @@ class SocialAuthLinkTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!
@@ -1371,11 +1389,11 @@ class SocialAuthLinkTest
     end
   end
 
-  def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com")
-    OmniAuth.config.mock_auth[:google_app] =
+  def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com", token: "google_token")
+    OmniAuth.config.mock_auth[:google] =
       OmniAuth::AuthHash.new(
-        provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
-        credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
+        provider: "google", uid: uid, info: { email: email, name: "Google Client" },
+        credentials: { token: token, refresh_token: "refresh_#{token}", expires_at: 1.hour.from_now.to_i },
       )
   end
 end

@@ -6,8 +6,10 @@ require "test_helper"
 
 class AccountPolicyTest < ActiveSupport::TestCase
   def setup
-    @user = Client.new
-    @record = Client.new
+    @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @other_user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    @record = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user).account
+    @other_record = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @other_user).account
     @policy = AccountPolicy.new(@record, user: @user)
   end
 
@@ -16,7 +18,11 @@ class AccountPolicyTest < ActiveSupport::TestCase
   end
 
   def test_show
-    assert_not @policy.show?
+    assert_predicate @policy, :show?
+  end
+
+  def test_show_rejects_account_owned_by_another_principal
+    assert_not AccountPolicy.new(@other_record, user: @user).show?
   end
 
   def test_create

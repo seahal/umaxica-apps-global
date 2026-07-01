@@ -8,21 +8,21 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   COOKIE_NAME = AuthenticationBase::ACCESS_COOKIE_KEY
 
   SURFACES = [
-    { host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+    { host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+      acme_host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
       resource: -> {
         clients(:one)
       }, },
-    { host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
+    { host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
+      acme_host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
       resource: -> {
         operators(:one)
       }, },
-    { host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+    { host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       client_id: "base-rails-rp",
-      acme_host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+      acme_host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
       resource: -> {
         create_visitor!
       }, },
@@ -30,6 +30,9 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   setup do
     load_jump_rt_env!
+    # Base RP surfaces resolve to the PUBLIC host family (https origins), so the
+    # integration session must speak https for scheme/redirect_uri to line up.
+    https!
     ClientIdentityState.ensure_defaults!
     VisitorIdentityState.ensure_defaults!
     OperatorIdentityState.ensure_defaults!
@@ -60,8 +63,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app browser flow reaches Acme token exchange without stubbing OP" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
-      sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+      sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
 
@@ -140,7 +143,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   # bootstrap_actor), even though the underlying unit test on the gate passes.
   test "acme app authorization resume bypasses login cooldown for the sign-up handoff" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
       host! acme_host
 
       get "/oidc/authorization", headers: browser_headers
@@ -191,7 +194,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app authorization resume opens session-limit resolution when three usable tokens already exist" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
 
@@ -261,7 +264,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app session-limit limitation revokes one session and resumes authorization" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
       client = OidcClientRegistry.find!("base-rails-rp")
       code_verifier = SecureRandom.urlsafe_base64(48)
       user = clients(:one)
@@ -329,8 +332,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   test "app email sign-in session-limit handoff signs in Sign and leaves capacity for RP callback session" do
     with_acme_oidc_client_key do
       CloudflareTurnstile.test_mode = true
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
-      sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+      sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
       email = user.client_emails.create!(address: "oidc_email_limit_#{SecureRandom.hex(4)}@example.com")
@@ -433,7 +436,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects another actor session" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     other = clients(:two)
     ClientToken.where(user_id: [user.id, other.id]).delete_all
@@ -460,7 +463,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation stays on page when capacity is still full after revoke" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -498,7 +501,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects tampered challenge without revoking" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -516,7 +519,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects mixed oidc and social payloads" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     token = ClientToken.create!(user: user, user_token_status_id: ClientTokenStatus::ACTIVE)
@@ -547,7 +550,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation rejects missing payload" do
-    host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
     get acme_app_sign_in_limitation_path(ri: "jp"), headers: browser_headers
 
@@ -555,7 +558,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "acme app session-limit limitation cancel does not issue login or consume oidc transaction" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     ClientToken.where(user_id: user.id).delete_all
     issuance = issue_authenticated_app_oidc_transaction(user, auth_method: "email")
@@ -578,7 +581,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "acme app authorization resume succeeds with two usable tokens and consumes the transaction once" do
     with_acme_oidc_client_key do
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
       user = clients(:one)
       ClientToken.where(user_id: user.id).delete_all
 
@@ -644,7 +647,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           }, headers: browser_headers,
         )
 
-        if surface[:acme_host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+        if surface[:acme_host] == ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
           assert_equal 302, session.response.status, surface[:client_id]
         else
           assert_equal 422, session.response.status, surface[:client_id]
@@ -677,7 +680,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects state mismatch" do
-    host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     get "/oidc/authorization", headers: browser_headers
 
     get "/oidc/callback", params: { code: "code", state: "wrong" }, headers: browser_headers
@@ -686,7 +689,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
   end
 
   test "callback rejects nonce mismatch" do
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    acme_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! acme_host
     get "/oidc/authorization", headers: browser_headers
     state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
@@ -706,7 +709,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :redirect
-    assert_not_equal "http://#{acme_host}/", response.location, "nonce mismatch must not land on root"
+    assert_not_equal "https://#{acme_host}/", response.location, "nonce mismatch must not land on root"
   end
 
   test "app com and org callback establishes RP session after successful authorization" do
@@ -736,14 +739,14 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :redirect
       expected_location =
-        if surface[:host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
-          "http://#{surface[:host]}/dashboard"
+        if surface[:host] == ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+          "https://#{surface[:host]}/dashboard"
         else
-          "http://#{surface[:host]}/"
+          "https://#{surface[:host]}/"
         end
 
       assert_equal expected_location, response.location
-      assert_response_has_auth_cookie if surface[:host] == ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      assert_response_has_auth_cookie if surface[:host] == ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     end
   end
 

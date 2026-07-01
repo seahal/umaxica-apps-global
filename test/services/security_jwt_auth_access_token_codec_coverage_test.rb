@@ -81,4 +81,17 @@ class SecurityJwtAuthAccessTokenCodecCoverageTest < ActiveSupport::TestCase
     assert_not SecurityJwtAuthAccessTokenCodec.validate_actor_claim!({ "act" => "invalid" }, "client")
     assert SecurityJwtAuthAccessTokenCodec.validate_actor_claim!({ "act" => "client" }, "client")
   end
+
+  test "decode options require and verify nbf" do
+    options = SecurityJwtAuthAccessTokenCodec.send(
+      :decode_options,
+      "client",
+      "issuer",
+      ["audience"],
+      verify_exp: true,
+    )
+
+    assert_includes options.fetch(:required_claims), "nbf"
+    assert options.fetch(:verify_nbf)
+  end
 end

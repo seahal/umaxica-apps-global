@@ -3,11 +3,13 @@
 
 # Base owns the OP/Authorization Server and durable identity/session authority.
 scope module: :base, as: :base do
+  # FIXME: I want to remove the following line.
   base_route_host =
     ->(env_key) do
       raw = ENV.fetch(env_key)
       URI.parse(raw.match?(%r{\Ahttps?://}) ? raw : "https://#{raw}").host
     end
+  # FIXME: I want to remove the following line.
   base_route_hosts = ->(env_key, local_host) { [base_route_host.call(env_key), local_host].uniq }
 
   # App OP/AS host.

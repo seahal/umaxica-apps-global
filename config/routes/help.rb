@@ -3,6 +3,7 @@
 
 # Help owns the public help content surface.
 scope module: :help, as: :help do
+  # FIXME: I want to remove the following line.
   boot_config = Rails.configuration.x.boot_config
 
   # App help host.

@@ -41,6 +41,14 @@ class OidcSsoInitiatorTestController < ApplicationController
   end
 end
 
+class OidcSsoInitiatorRegistryCallbackTestController < ApplicationController
+  include OidcSsoInitiator
+
+  def oidc_client_id
+    "base-rails-rp"
+  end
+end
+
 class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   setup do
     load_jump_rt_env!
@@ -148,6 +156,18 @@ class OidcSsoInitiatorTest < ActionDispatch::IntegrationTest
   ensure
     OidcSsoInitiatorTestController.define_method(:oidc_base_authority_host) do
       Rails.configuration.x.boot_config.fetch(:hosts).acme_service.host
+    end
+  end
+
+  test "oidc callback url fails closed when request host is not registered for the client" do
+    controller = OidcSsoInitiatorRegistryCallbackTestController.new
+    controller.request = ActionDispatch::TestRequest.create(
+      "HTTP_HOST" => "attacker.example.test",
+      "HTTPS" => "on",
+    )
+
+    assert_raises(ActionController::BadRequest) do
+      controller.send(:oidc_callback_url)
     end
   end
 

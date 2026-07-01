@@ -12,8 +12,8 @@ module Dpop
       [ec, jwk.export]
     end
 
-    def build_proof(private_key, jwk, method:, uri:)
-      payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => SecureRandom.uuid }
+    def build_proof(private_key, jwk, method:, uri:, jti: SecureRandom.uuid)
+      payload = { "htm" => method, "htu" => uri, "iat" => Time.current.to_i, "jti" => jti }
       JWT.encode(payload, private_key, "ES256", { "typ" => "dpop+jwt", "jwk" => jwk })
     end
 
@@ -56,6 +56,30 @@ module Dpop
       ).call
 
       assert_predicate result, :valid?
+    end
+
+    test "rejects replayed dpop proof jti on resource requests" do
+      private_key, jwk = generate_proof_jwk
+      proof = build_proof(private_key, jwk, method: "GET", uri: "http://example.com/api", jti: SecureRandom.uuid)
+      jkt = JitSecurityJwtThumbprintCalculator.calculate(jwk)
+      payload = { "sub" => 1, "cnf" => { "jkt" => jkt } }
+
+      first = DpopRequestVerifier.new(
+        access_token_payload: payload,
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+      replay = DpopRequestVerifier.new(
+        access_token_payload: payload,
+        proof_jwt: proof,
+        request_method: "GET",
+        request_uri: "http://example.com/api",
+      ).call
+
+      assert_predicate first, :valid?
+      assert_not replay.valid?
+      assert_equal "jti_replay", replay.error
     end
 
     test "rejects dpop proof with mismatched jkt" do

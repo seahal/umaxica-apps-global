@@ -753,11 +753,25 @@ class Auth::Com::Settings::WithdrawalsControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
+  end
+
+  def step_up_test_audience_for_token(token)
+    case token.class.name
+    when "OperatorToken" then "step_up:org"
+    when "VisitorToken" then "step_up:com"
+    else "step_up:app"
+    end
   end
 
   def load_jump_rt_env!

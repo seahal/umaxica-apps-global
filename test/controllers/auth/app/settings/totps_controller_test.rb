@@ -33,7 +33,6 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     @token = ClientToken.create!(user_id: @user.id)
     @token.rotate_refresh_token!
-    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
     access_token = AuthenticationToken.encode(
       @user,
       host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
@@ -44,6 +43,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       "Authorization" => "Bearer #{access_token}",
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
     }.freeze
+    @token.update!(last_step_up_at: 5.minutes.ago, last_step_up_scope: "settings_totp")
     cookies["csrf_token"] = "test_csrf_token"
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
     satisfy_user_verification(@token)
@@ -69,6 +69,35 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
   def with_prosopite_paused
     Prosopite.pause { yield }
+  end
+
+  def headers_for_client_token(token, scope:, step_up_at: Time.current)
+    Actor.clear if defined?(Actor)
+    mark_settings_step_up_satisfied!(token, scope: scope, at: step_up_at)
+    access_token = AuthenticationToken.encode(
+      token.user,
+      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+      session_public_id: token.public_id,
+      resource_type: "client",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    )
+  end
+
+  def mark_settings_step_up_satisfied!(token, scope:, at:)
+    token.update_columns(
+      last_step_up_at: at,
+      last_step_up_scope: scope,
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:app",
+      updated_at: Time.current,
+    )
   end
 
   test "should get index" do
@@ -239,13 +268,29 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy with public_id" do
-    assert_difference("ClientTotpCredential.count", -1) do
-      with_prosopite_paused do
-        delete auth_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: @headers
-      end
+    headers = headers_for_client_token(@token, scope: "settings_totp")
+
+    before_count = ClientTotpCredential.count
+    with_prosopite_paused do
+      delete auth_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: headers
     end
 
     assert_redirected_to auth_app_settings_totps_path(ri: "jp")
+    assert_equal before_count - 1, ClientTotpCredential.count
+  end
+
+  test "destroy requires fresh settings totp step up" do
+    @token.update!(last_step_up_at: 20.minutes.ago, last_step_up_scope: "settings_totp")
+    headers = headers_for_client_token(@token, scope: "settings_totp", step_up_at: 20.minutes.ago)
+
+    assert_no_difference("ClientTotpCredential.count") do
+      with_prosopite_paused do
+        delete auth_app_settings_totp_url(@totp.public_id, ri: "jp"), headers: headers
+      end
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, "Step-up authentication required"
   end
 
   test "should return 404 for other user's totp" do
@@ -836,11 +881,11 @@ class Auth::App::Settings::TotpsControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)
@@ -1238,11 +1283,17 @@ class Auth::App::Settings::TotpsControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

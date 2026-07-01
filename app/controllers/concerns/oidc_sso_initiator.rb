@@ -139,9 +139,10 @@ module OidcSsoInitiator
 
   def oidc_callback_url
     client = OidcClientRegistry.find!(oidc_client_id)
-    client.redirect_uris.find { |uri| URI.parse(uri).host == request.host } || client.redirect_uris.first
+    client.redirect_uris.find { |uri| URI.parse(uri).host == request.host } ||
+      raise(ActionController::BadRequest, "OIDC redirect URI is not registered for this host")
   rescue URI::InvalidURIError
-    client.redirect_uris.first
+    raise ActionController::BadRequest, "OIDC redirect URI is invalid"
   end
 
   def oidc_token_url

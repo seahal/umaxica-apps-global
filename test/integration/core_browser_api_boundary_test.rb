@@ -97,6 +97,24 @@ class CoreBrowserApiBoundaryTest < ActionDispatch::IntegrationTest
     assert_nil body.dig("error", "detail")
   end
 
+  test "refresh rejects authorization header transport even when refresh cookie is present" do
+    get "/api/v0/session", headers: json_headers
+    csrf_token = response.parsed_body.fetch("csrf_token")
+    refresh = client_tokens(:one).rotate_refresh_token!
+    cookies[CoreBrowserCredentialContract::REFRESH_COOKIE] = refresh
+
+    post "/api/v0/token/refresh",
+         headers: json_headers.merge(
+           "X-CSRF-Token" => csrf_token,
+           "Authorization" => "Bearer #{core_browser_access_token}",
+         )
+
+    assert_response :unauthorized
+    body = response.parsed_body
+
+    assert_equal "authentication_required", body.dig("error", "code")
+  end
+
   test "refresh rotates opaque cookie and never returns credentials in body" do
     get "/api/v0/session", headers: json_headers
     csrf_token = response.parsed_body.fetch("csrf_token")

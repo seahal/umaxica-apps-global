@@ -58,6 +58,18 @@ module Palm
             assert_empty response_set_cookie_lines
           end
 
+          test "rejects bearer requests that also carry browser cookies" do
+            persisted = persisted_palm_token
+            token = palm_token(sid: persisted.oidc_sid, jti: persisted.oidc_jti)
+            cookies[CoreBrowserCredentialContract::ACCESS_COOKIE] = token
+
+            get "/api/v0/profile", headers: json_headers.merge("Authorization" => "Bearer #{token}")
+
+            assert_response :unauthorized
+            assert_equal "authentication_required", response.parsed_body.dig("error", "code")
+            assert_empty response_set_cookie_lines
+          end
+
           test "rejects dpop scheme for this bearer boundary" do
             get "/api/v0/profile", headers: json_headers.merge("Authorization" => "DPoP #{palm_token}")
 

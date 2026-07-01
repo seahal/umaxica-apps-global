@@ -28,6 +28,17 @@ class Base::App::OrganizationsControllerTest < ActionDispatch::IntegrationTest
     assert_select "body", text: /organization/i
   end
 
+  test "show rejects organization outside the current client membership set" do
+    other_user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
+    other_token = ClientToken.create!(user: other_user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    other_bootstrap = bootstrap_and_select!(other_user, other_token)
+
+    get base_app_organization_url(other_bootstrap.collective.public_id, ri: "jp", host: @host),
+        headers: as_user_headers(@user, host: @host)
+
+    assert_response :not_found
+  end
+
   test "unknown public_id returns 404" do
     get base_app_organization_url("unknown-organization", ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host)

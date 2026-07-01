@@ -11,18 +11,24 @@ module Base
 
       def index
         authorize!(current_visitor, to: :show?)
-        @accounts = Individual.all
+        @accounts = switcher.available_accounts
       end
 
       def show
         @account = find_account!
-        authorize!(current_visitor, to: :show?)
+        authorize!(@account, to: :show?, with: AccountPolicy)
       end
 
       private
 
       def find_account!
-        Individual.find_by!(public_id: params.expect(:id))
+        switcher.find_account(params.expect(:id)) || raise(ActiveRecord::RecordNotFound)
+      end
+
+      def switcher
+        @switcher ||= BaseSwitcherAuthority.new(
+          surface: :com, principal: current_visitor, session: current_session,
+        )
       end
     end
   end

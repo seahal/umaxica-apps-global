@@ -25,6 +25,15 @@ class Base::Org::OrganizationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show rejects organization outside the current operator membership set" do
+    other_staff = operators(:two)
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: other_staff)
+
+    get "/organizations/#{other_bootstrap.collective.public_id}?ri=jp", headers: as_staff_headers(@staff, host: @host)
+
+    assert_response :not_found
+  end
+
   test "unknown public_id returns 404" do
     get "/organizations/unknown-organization?ri=jp", headers: as_staff_headers(@staff, host: @host)
 

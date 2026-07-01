@@ -4,7 +4,7 @@
 # == Schema Information
 #
 # Table name: action_push_native_devices
-# Database name: com_principal
+# Database name: com_zenith
 #
 #  id         :bigint           not null, primary key
 #  name       :string

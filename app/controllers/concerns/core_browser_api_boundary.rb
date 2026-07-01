@@ -94,6 +94,13 @@ module CoreBrowserApiBoundary
   def refresh_core_browser_token!
     response.set_header("Cache-Control", "no-store")
 
+    if AuthAuthorizationHeader.access_token(request).present?
+      # rubocop:disable I18n/RailsI18n/DecorateString
+      render_error(:authentication_required, "Authentication is required.", status: :unauthorized)
+      # rubocop:enable I18n/RailsI18n/DecorateString
+      return
+    end
+
     refresh_plain = cookies[CoreBrowserCredentialContract::REFRESH_COOKIE].to_s.presence
     unless refresh_plain
       # rubocop:disable I18n/RailsI18n/DecorateString

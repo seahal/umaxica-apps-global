@@ -20,6 +20,11 @@ module Palm
           attr_reader :current_resource, :current_token_payload
 
           def authenticate_palm_bearer_token!
+            if request.cookie_jar.to_hash.present? || request.headers["Cookie"].to_s.present?
+              render_palm_authentication_error("invalid_token")
+              return false
+            end
+
             result = PalmAccessTokenAuthenticator.call(
               access_token: authorization_access_token,
               host: request.host,

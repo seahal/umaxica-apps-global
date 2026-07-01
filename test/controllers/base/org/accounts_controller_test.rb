@@ -25,6 +25,15 @@ class Base::Org::AccountsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show rejects account outside the current operator membership set" do
+    other_staff = operators(:two)
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: other_staff)
+
+    get "/accounts/#{other_bootstrap.account.public_id}?ri=jp", headers: as_staff_headers(@staff, host: @host)
+
+    assert_response :not_found
+  end
+
   test "unknown public_id returns 404" do
     get "/accounts/unknown-account?ri=jp", headers: as_staff_headers(@staff, host: @host)
 

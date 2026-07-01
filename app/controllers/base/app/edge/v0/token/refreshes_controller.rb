@@ -13,7 +13,15 @@ class Base::App::Edge::V0::Token::RefreshesController < Base::App::ApplicationCo
   def create
     response.set_header("Cache-Control", "no-store")
 
-    refresh_plain = params[:refresh_token].presence || cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
+    if params[:refresh_token].present?
+      render json: {
+        error: I18n.t("sign.token_refresh.errors.invalid_refresh_token"),
+        error_code: "invalid_refresh_transport",
+      }, status: :bad_request
+      return
+    end
+
+    refresh_plain = cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
 
     if refresh_plain.blank?
       render json: {

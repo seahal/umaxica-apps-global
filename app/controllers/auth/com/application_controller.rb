@@ -165,6 +165,7 @@ module Auth
         # registration is required so a user can cancel the current ceremony
         # or abort a pending logout before they are forced into registration.
         allowed = [
+          "auth/com/settings/telephones/registrations",
           "sign/com/settings/telephones/registrations",
           "auth/com/sign/outs",
         ]

@@ -3,6 +3,7 @@
 
 # Side owns the Rails control-plane surface.
 scope module: :side, as: :side do
+  # FIXME: I want to remove the following line.
   boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
   # App control-plane host.

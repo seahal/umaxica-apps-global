@@ -491,6 +491,12 @@ ja:
       method_unavailable: 選択した認証方法は利用できません。
       register_methods_required: 利用可能なステップアップ認証がありません。パスキー・メール・TOTPを登録してください。
       verification_required: 認証が必要です。
+    org:
+      sign:
+        up:
+          invitations:
+            create:
+              turnstile_failed: 検証に失敗しました。もう一度お試しください。
   core:
     app:
       layout:

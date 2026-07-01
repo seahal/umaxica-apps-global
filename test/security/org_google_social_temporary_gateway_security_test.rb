@@ -69,7 +69,10 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
   end
 
   test "app routes and omniauth config keep app social providers" do
-    routes = surface_block(read("config/routes/auth.rb"), "# User credential gateway host", "# Corporate credential gateway host")
+    routes = surface_block(
+      read("config/routes/auth.rb"), "# User credential gateway host",
+      "# Corporate credential gateway host",
+    )
     omniauth = read("config/initializers/omniauth.rb")
 
     assert_match(%r{social/authentications#continue}, routes)

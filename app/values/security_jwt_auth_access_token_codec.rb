@@ -299,10 +299,11 @@ class SecurityJwtAuthAccessTokenCodec
     def decode_options(resource_type, issuer, audiences, verify_exp:)
       {
         algorithms: [JWT_ALGORITHM],
-        required_claims: %w(iss aud typ exp sub sid act jti acr),
+        required_claims: %w(iss aud typ exp nbf sub sid act jti acr),
         leeway: AuthenticationJwtConfiguration.leeway_seconds,
         verify_iat: true,
         verify_exp: verify_exp,
+        verify_nbf: true,
         verify_iss: true,
         iss: issuer || AuthenticationJwtConfiguration.issuer(resource_type),
         verify_aud: true,

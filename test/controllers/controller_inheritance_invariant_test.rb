@@ -91,7 +91,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/auth/org/sign/up/invitations_controller.rb
     app/controllers/base/app/jwks_controller.rb
     app/controllers/base/com/jwks_controller.rb
-    app/controllers/base/com/edge/v0/token/refreshes_controller_base.rb
     app/controllers/base/org/jwks_controller.rb
     app/controllers/auth/app/settings/emails/registrations_controller.rb
     app/controllers/auth/app/sign/in/challenge/passkeys_controller.rb

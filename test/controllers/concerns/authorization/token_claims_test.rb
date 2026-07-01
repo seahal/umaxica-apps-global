@@ -40,10 +40,10 @@ module Authorization
       assert_equal unix_timestamp(issued_at + 10.minutes), payload["exp"]
     end
 
-    test "build excludes nbf claim" do
-      payload, _issued_at = setup_token_claims_payload
+    test "build includes nbf claim at the issued time" do
+      payload, issued_at = setup_token_claims_payload
 
-      assert_nil payload["nbf"], "nbf should not be included"
+      assert_equal unix_timestamp(issued_at), payload["nbf"]
     end
 
     test "build excludes prf claim when preferences not provided" do

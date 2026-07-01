@@ -3,6 +3,7 @@
 
 # Info owns public informational content.
 scope module: :info, as: :info do
+  # FIXME: I want to remove the following line.
   boot_config = Rails.configuration.x.boot_config
 
   # App info host.
