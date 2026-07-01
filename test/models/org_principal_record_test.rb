@@ -12,7 +12,8 @@ class OrgPrincipalRecordTest < ActiveSupport::TestCase
     assert_operator OrgPrincipalRecord, :<, ApplicationRecord
   end
 
-  test "should connect to org_principal database" do
-    assert_respond_to OrgPrincipalRecord, :connection_db_config
+  test "uses the consolidated org zenith database" do
+    assert_equal "org_zenith", OrgPrincipalRecord.connection_db_config.name
+    assert_equal OrgRpRecord.connection_db_config.name, OrgPrincipalRecord.connection_db_config.name
   end
 end

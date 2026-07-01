@@ -6,8 +6,6 @@ This document separates current storage naming from target authority placement.
 
 ## Scope
 
-This is docs-only placement direction, not a rename and not an implementation change.
-
 It describes the intended authority placement for the current global surfaces and their database
 boundaries. `auth`, `base`, and `info` are global surfaces in this phase.
 
@@ -19,7 +17,9 @@ The repository currently uses these storage and connection boundaries:
 - `zenith`
 - `avatar`
 
-The `principal` name is retained in this phase and is not renamed.
+The `principal` connection keys are retained in this phase and are not renamed. After the 2026-06-30
+physical consolidation, the semantic principal abstract bases connect to the matching `*_zenith`
+databases, and the physical `*_principal` migration paths are empty reserved paths.
 
 ## Target Authority Placement
 
@@ -35,8 +35,8 @@ This is a database placement migration, not a database rename.
 
 The `principal` database name is retained for compatibility and is not renamed in this phase.
 
-`principal` is not required to become empty. New placement decisions must not infer Principal
-authority ownership from the name `principal`.
+`principal` is currently empty by design after the physical consolidation. New placement decisions
+must not infer Principal authority ownership from the name `principal`.
 
 After authority placement is clarified, `principal` may serve as a regional-ready application data
 store. That data should be structured so it can later be extracted into explicit regional databases
@@ -56,18 +56,23 @@ Avatar remains a separate actor-authority boundary in the current code and in th
 
 ## Current Implementation Facts
 
-- `Client`, `Visitor`, and `Operator` still live in `app_principal`, `com_principal`, and
-  `org_principal`.
+- `Client`, `Visitor`, and `Operator` inherit from semantic principal base classes, but those base
+  classes now connect to `app_zenith`, `com_zenith`, and `org_zenith`.
 - `Client`, `Visitor`, and `Operator` still own credentials, sessions, lifecycle columns, and
   recovery/contact state.
+- `app_zenith`, `com_zenith`, and `org_zenith` each apply both their historical principal migration
+  path and their historical zenith migration path.
+- `app_principal`, `com_principal`, and `org_principal` retain connection keys with reserved empty
+  migration paths only.
 - The zenith-side account and identity-binding graph already exists in `app_zenith`, `org_zenith`,
   and `com_zenith`.
 - `Persona`, `ClientIdentity`, `Agent`, `OperatorIdentity`, `Individual`, `VisitorIdentity`, and
   their assignment/membership-style graph belong to the zenith-side account/identity-binding story.
 - `ClientAccount`, `OperatorAccount`, and `VisitorAccount` are already zenith-side RP account
   projection records.
-- `Member` and `ClientMembership` are still in `app_principal`.
-- `Organization` is still in `org_principal`.
+- `Member` and `ClientMembership` still inherit from `AppPrincipalRecord`, which now connects to
+  `app_zenith`.
+- `Organization` still inherits from `OrgPrincipalRecord`, which now connects to `org_zenith`.
 - This is the current ambiguity zone for account/organization placement.
 - `Avatar`, `AvatarAssignment`, `AvatarMembership`, `AvatarOwnershipPeriod`, and
   `AvatarPersonaBinding` remain in the standalone avatar database.
@@ -100,9 +105,7 @@ Relevant file paths:
 
 - No database renames.
 - No table renames.
-- No schema edits.
-- No connection-key edits.
-- No model `connects_to` changes.
+- No connection-key removals.
 - No preference migration work.
 - No token/session/ceremony/logout/OAuth transaction migration work.
 - No Avatar database migration work in this phase.
@@ -133,7 +136,9 @@ Relevant file paths:
 ## Future Implementation Sequence
 
 1. Keep this placement document as the contract.
-2. Audit identity/account/organization projections in `zenith`.
-3. Audit `Member` / `ClientMembership` / `Organization` placement.
-4. Only after that, separately revisit Avatar through a new ADR if needed.
-5. Do not mix Avatar relocation into this placement migration.
+2. Keep the reserved `*_principal` migration paths empty until a later regional-ready placement
+   decision.
+3. Audit identity/account/organization projections in `zenith`.
+4. Audit `Member` / `ClientMembership` / `Organization` placement.
+5. Only after that, separately revisit Avatar through a new ADR if needed.
+6. Do not mix Avatar relocation into this placement migration.

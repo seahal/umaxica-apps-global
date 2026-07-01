@@ -51,5 +51,14 @@ module ActiveSupport
   class TestCase
     fixtures :all
     # parallelize(workers: 1)
+
+    # The rate_limit backing store (config.x.rate_limit.store) is a single
+    # MemoryStore instance created once at boot and shared by every test in the
+    # process. Its counters are keyed by request IP (127.0.0.1 for all tests),
+    # so without a reset a rate_limit test's counter leaks into later, unrelated
+    # tests and spuriously 429s them. Clear it before each test for a clean slate
+    # (mutate the same instance with #clear — replacing it would not reach
+    # controllers that captured the original store at class-load time).
+    setup { Rails.configuration.x.rate_limit.fetch(:store).clear }
   end
 end

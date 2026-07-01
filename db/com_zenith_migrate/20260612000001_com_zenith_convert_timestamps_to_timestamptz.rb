@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-class ConvertTimestampsToTimestamptz < ActiveRecord::Migration[8.1]
+class ComZenithConvertTimestampsToTimestamptz < ActiveRecord::Migration[8.1]
   def up
     safety_assured do
       execute(<<~'SQL'.squish)

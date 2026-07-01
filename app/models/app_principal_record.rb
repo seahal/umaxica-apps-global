@@ -1,10 +1,9 @@
 # typed: false
 # frozen_string_literal: true
 
-# Deployment scope: Global
-# Shared worldwide. A single database instance serves all regions (jp, us, etc.).
+# Semantic principal/actor base backed by the consolidated app zenith database.
 class AppPrincipalRecord < ApplicationRecord
   self.abstract_class = true
 
-  connects_to database: { writing: :app_principal, reading: :app_principal_replica }
+  connects_to database: { writing: :app_zenith, reading: :app_zenith_replica }
 end

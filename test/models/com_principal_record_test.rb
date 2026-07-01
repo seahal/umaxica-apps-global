@@ -8,7 +8,8 @@ class ComPrincipalRecordTest < ActiveSupport::TestCase
     assert_predicate ComPrincipalRecord, :abstract_class?
   end
 
-  test "connects to com_principal db" do
-    assert_equal :com_principal, ComPrincipalRecord.connection_db_config.name.to_sym
+  test "uses the consolidated com zenith database" do
+    assert_equal "com_zenith", ComPrincipalRecord.connection_db_config.name
+    assert_equal ComRpRecord.connection_db_config.name, ComPrincipalRecord.connection_db_config.name
   end
 end

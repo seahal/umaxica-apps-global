@@ -65,21 +65,33 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
   test "logout redirects to the acme oidc logout flow on every surface" do
     SURFACES.each do |surface|
       host = surface.fetch(:host)
-      host! host
+      host!(host)
 
       user = clients(:one)
       token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
       cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-      post "http://#{host}/sign/out", params: { ri: "jp" }, headers: {
-        "X-TEST-CURRENT-USER" => user.id.to_s,
-        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-      }
+      post(
+        "http://#{host}/sign/out", params: { ri: "jp" }, headers: {
+          "X-TEST-CURRENT-USER" => user.id.to_s,
+          "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+        },
+      )
 
       handoff_rendered = response.status.between?(200, 299)
 
       assert response.redirect? || handoff_rendered, "expected redirect or handoff success, got #{response.status}"
       assert_select "form#sign-out-handoff-form[method=?]", "post", maximum: 1 if handoff_rendered
+    ensure
+      # Each surface iteration mints a fresh session for the same fixture
+      # user; revoke it so the per-user concurrent session cap isn't hit on
+      # a later surface in this loop.
+      AuthenticationLogoutCurrentSession.call(
+        resource: user,
+        token_class: ClientToken,
+        session_public_id: token.public_id,
+        reason: "test_cleanup",
+      )
     end
   end
 

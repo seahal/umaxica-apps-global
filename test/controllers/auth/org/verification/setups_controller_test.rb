@@ -22,6 +22,9 @@ class Auth::Org::Verification::SetupsControllerTest < ActionDispatch::Integratio
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => @staff.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id, resource_type: "operator")
+      }",
     }
   end
 

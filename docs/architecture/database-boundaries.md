@@ -24,7 +24,8 @@ Surface-owned database connections use `surface_role` names.
 
 Role meanings:
 
-- `principal`: authenticated principal, credentials, and principal-side state.
+- `principal`: retained connection key reserved for future regional-ready application data. Current
+  semantic principal models use the matching `*_zenith` physical database.
 - `ticket`: login/session/OIDC ticket persistence.
 - `zenith`: Zenith/RP-facing account, identity binding, and local projection state.
 - `signal`: notification-origin state for email, web push, banners, and related channels.
@@ -79,6 +80,8 @@ These database names remain independent cross-cutting or infrastructure boundari
 
 - Do not introduce new surface-owned one-word connection names.
 - Do not use runtime actor names as database connection names.
+- Do not add new global authority data to `*_principal`; use the accepted authority-placement
+  decision and keep `*_principal` reserved until a separate regional-ready placement decision.
 - Keep table renames separate from connection-name work unless an explicit migration plan requires
   both.
 - Keep login-independent surface settings in the matching `*_setting` database.

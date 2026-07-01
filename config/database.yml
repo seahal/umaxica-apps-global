@@ -33,59 +33,79 @@ development:
     !!merge <<: *default
     database: development_com_principal_db
     host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_principal_replica:
     !!merge <<: *default
     replica: true
     database: development_com_principal_db
     host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_zenith:
     !!merge <<: *default
     database: development_com_zenith_db
     host: <%= ENV["POSTGRESQL_COM_ZENITH_PUB"] || default_host %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
+    schema_dump: com_zenith_structure.sql
   com_zenith_replica:
     !!merge <<: *default
     replica: true
     database: development_com_zenith_db
     host: <%= ENV["POSTGRESQL_COM_ZENITH_SUB"] || default_host %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
+    schema_dump: com_zenith_structure.sql
   app_zenith:
     !!merge <<: *default
     database: development_app_zenith_db
     host: <%= ENV["POSTGRESQL_APP_ZENITH_PUB"] || default_host %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
+    schema_dump: app_zenith_structure.sql
   app_zenith_replica:
     !!merge <<: *default
     replica: true
     database: development_app_zenith_db
     host: <%= ENV["POSTGRESQL_APP_ZENITH_SUB"] || default_host %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
+    schema_dump: app_zenith_structure.sql
   org_zenith:
     !!merge <<: *default
     database: development_org_zenith_db
     host: <%= ENV["POSTGRESQL_ORG_ZENITH_PUB"] || default_host %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
+    schema_dump: org_zenith_structure.sql
   org_zenith_replica:
     !!merge <<: *default
     replica: true
     database: development_org_zenith_db
     host: <%= ENV["POSTGRESQL_ORG_ZENITH_SUB"] || default_host %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
+    schema_dump: org_zenith_structure.sql
   app_principal:
     !!merge <<: *default
     database: development_app_principal_db
     host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
+    schema_dump: app_principal_structure.sql
   app_principal_replica:
     !!merge <<: *default
     replica: true
     database: development_app_principal_db
     host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
+    schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *default
     database: development_app_setting_db
@@ -265,13 +285,15 @@ development:
     !!merge <<: *default
     database: development_org_principal_db
     host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_PUB"] || default_host %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
+    schema_dump: org_principal_structure.sql
   org_principal_replica:
     !!merge <<: *default
     replica: true
     database: development_org_principal_db
     host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_SUB"] || default_host %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
+    schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *default
     database: development_avatar_db
@@ -291,62 +313,78 @@ test:
     !!merge <<: *test_default
     database: test_com_principal_db
     host: <%= test_host %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_principal_replica:
     !!merge <<: *test_default
     replica: true
     database: test_com_principal_replica_db
     host: <%= test_host %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_zenith:
     !!merge <<: *test_default
     database: test_com_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
+    schema_dump: com_zenith_structure.sql
   com_zenith_replica:
     !!merge <<: *test_default
     replica: true
     database: test_com_zenith_replica_db
     host: <%= test_host %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
     schema_dump: com_zenith_structure.sql
   app_zenith:
     !!merge <<: *test_default
     database: test_app_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
+    schema_dump: app_zenith_structure.sql
   app_zenith_replica:
     !!merge <<: *test_default
     replica: true
     database: test_app_zenith_replica_db
     host: <%= test_host %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
     schema_dump: app_zenith_structure.sql
   org_zenith:
     !!merge <<: *test_default
     database: test_org_zenith_db
     host: <%= test_host %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
+    schema_dump: org_zenith_structure.sql
   org_zenith_replica:
     !!merge <<: *test_default
     replica: true
     database: test_org_zenith_replica_db
     host: <%= test_host %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
   app_principal:
     !!merge <<: *test_default
     database: test_app_principal_db
     host: <%= test_host %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
+    schema_dump: app_principal_structure.sql
   app_principal_replica:
     !!merge <<: *test_default
     replica: true
     database: test_app_principal_replica_db
     host: <%= test_host %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
     schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *test_default
@@ -536,13 +574,14 @@ test:
     !!merge <<: *test_default
     database: test_org_principal_db
     host: <%= test_host %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
+    schema_dump: org_principal_structure.sql
   org_principal_replica:
     !!merge <<: *test_default
     replica: true
     database: test_org_principal_replica_db
     host: <%= test_host %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
     schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *test_default
@@ -564,7 +603,7 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_principal_replica:
     !!merge <<: *default
@@ -574,7 +613,7 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/com_principals_migrate
+    migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_zenith:
     !!merge <<: *default
@@ -583,7 +622,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH&.PASSWORD %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
+    schema_dump: com_zenith_structure.sql
   com_zenith_replica:
     !!merge <<: *default
     replica: true
@@ -592,7 +634,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.COM_ZENITH_REPLICA&.PASSWORD %>
-    migrations_paths: db/com_zenith_migrate
+    migrations_paths:
+      - db/com_principals_migrate
+      - db/com_zenith_migrate
+    schema_dump: com_zenith_structure.sql
   app_zenith:
     !!merge <<: *default
     database: production_app_zenith_db
@@ -600,7 +645,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH&.PASSWORD %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
+    schema_dump: app_zenith_structure.sql
   app_zenith_replica:
     !!merge <<: *default
     replica: true
@@ -609,7 +657,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_ZENITH_REPLICA&.PASSWORD %>
-    migrations_paths: db/app_zenith_migrate
+    migrations_paths:
+      - db/app_principals_migrate
+      - db/app_zenith_migrate
+    schema_dump: app_zenith_structure.sql
   org_zenith:
     !!merge <<: *default
     database: production_org_zenith_db
@@ -617,7 +668,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH&.PASSWORD %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
+    schema_dump: org_zenith_structure.sql
   org_zenith_replica:
     !!merge <<: *default
     replica: true
@@ -626,7 +680,10 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_ZENITH_REPLICA&.PASSWORD %>
-    migrations_paths: db/org_zenith_migrate
+    migrations_paths:
+      - db/org_principals_migrate
+      - db/org_zenith_migrate
+    schema_dump: org_zenith_structure.sql
   app_principal:
     !!merge <<: *default
     database: production_app_principal_db
@@ -634,7 +691,8 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
+    schema_dump: app_principal_structure.sql
   app_principal_replica:
     !!merge <<: *default
     replica: true
@@ -643,7 +701,8 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.APP_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/app_principals_migrate
+    migrations_paths: db/app_principal_reserved_migrate
+    schema_dump: app_principal_structure.sql
   app_setting:
     !!merge <<: *default
     database: production_app_setting_db
@@ -914,7 +973,8 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL&.PASSWORD %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
+    schema_dump: org_principal_structure.sql
   org_principal_replica:
     !!merge <<: *default
     replica: true
@@ -923,7 +983,8 @@ production:
     host: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.HOST %>
     username: <%= Rails.application.credentials&.DATABASE&.USER || 'neondb_owner' %>
     password: <%= Rails.application.credentials&.DATABASE&.ORG_PRINCIPAL_REPLICA&.PASSWORD %>
-    migrations_paths: db/org_principals_migrate
+    migrations_paths: db/org_principal_reserved_migrate
+    schema_dump: org_principal_structure.sql
   avatar:
     !!merge <<: *default
     database: production_avatar_db

@@ -17,6 +17,9 @@ class Auth::Org::Verification::PasskeysControllerTest < ActionDispatch::Integrat
       "Host" => @host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id, resource_type: "operator")
+      }",
     }
     @original_trusted_origins = Webauthn.method(:trusted_origins)
     Webauthn.define_singleton_method(:trusted_origins) { ["http://auth.org.localhost", "http://#{trusted_origin_host}"] }

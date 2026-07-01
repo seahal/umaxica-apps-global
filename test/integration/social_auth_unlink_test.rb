@@ -436,61 +436,67 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-USER" => user.id.to_s)
+    return base unless user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
 
-    if user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
-      token =
-        if session_public_id.present?
-          ClientToken.find_by(public_id: session_public_id)
-        else
-          ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
-        end
-      token ||= ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        ClientToken.find_by(public_id: session_public_id)
+      else
+        ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+      end
+    token ||= ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-STAFF" => staff.id.to_s)
+    return base unless staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
 
-    if staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
-      token =
-        if session_public_id.present?
-          OperatorToken.find_by(public_id: session_public_id)
-        else
-          OperatorToken.where(staff_id: staff.id).where(
-            "discarded_at > ?",
-            Time.current,
-          ).order(created_at: :desc).first
-        end
-      token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        OperatorToken.find_by(public_id: session_public_id)
+      else
+        OperatorToken.where(staff_id: staff.id).where(
+          "discarded_at > ?",
+          Time.current,
+        ).order(created_at: :desc).first
+      end
+    token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
     VisitorTokenBindingMethod.ensure_defaults! if defined?(VisitorTokenBindingMethod)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB) if defined?(VisitorTokenKind)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-RESOURCE" => visitor.id.to_s)
+    return base unless visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
 
-    if visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
-      token =
-        if session_public_id.present?
-          VisitorToken.find_by(public_id: session_public_id)
-        else
-          VisitorToken.where(visitor_id: visitor.id).where(
-            "discarded_at > ?",
-            Time.current,
-          ).order(created_at: :desc).first
-        end
-      token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        VisitorToken.find_by(public_id: session_public_id)
+      else
+        VisitorToken.where(visitor_id: visitor.id).where(
+          "discarded_at > ?",
+          Time.current,
+        ).order(created_at: :desc).first
+      end
+    token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -529,61 +535,67 @@ class SocialAuthUnlinkTest
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-USER" => user.id.to_s)
+    return base unless user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
 
-    if user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
-      token =
-        if session_public_id.present?
-          ClientToken.find_by(public_id: session_public_id)
-        else
-          ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
-        end
-      token ||= ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        ClientToken.find_by(public_id: session_public_id)
+      else
+        ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+      end
+    token ||= ClientToken.create!(user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-STAFF" => staff.id.to_s)
+    return base unless staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
 
-    if staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
-      token =
-        if session_public_id.present?
-          OperatorToken.find_by(public_id: session_public_id)
-        else
-          OperatorToken.where(staff_id: staff.id).where(
-            "discarded_at > ?",
-            Time.current,
-          ).order(created_at: :desc).first
-        end
-      token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        OperatorToken.find_by(public_id: session_public_id)
+      else
+        OperatorToken.where(staff_id: staff.id).where(
+          "discarded_at > ?",
+          Time.current,
+        ).order(created_at: :desc).first
+      end
+    token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
     VisitorTokenBindingMethod.ensure_defaults! if defined?(VisitorTokenBindingMethod)
     VisitorTokenKind.find_or_create_by!(id: VisitorTokenKind::BROWSER_WEB) if defined?(VisitorTokenKind)
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-RESOURCE" => visitor.id.to_s)
+    return base unless visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
 
-    if visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
-      token =
-        if session_public_id.present?
-          VisitorToken.find_by(public_id: session_public_id)
-        else
-          VisitorToken.where(visitor_id: visitor.id).where(
-            "discarded_at > ?",
-            Time.current,
-          ).order(created_at: :desc).first
-        end
-      token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-      base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    end
-
-    base
+    token =
+      if session_public_id.present?
+        VisitorToken.find_by(public_id: session_public_id)
+      else
+        VisitorToken.where(visitor_id: visitor.id).where(
+          "discarded_at > ?",
+          Time.current,
+        ).order(created_at: :desc).first
+      end
+    token ||= VisitorToken.create!(visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

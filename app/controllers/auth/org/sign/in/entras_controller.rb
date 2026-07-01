@@ -113,12 +113,14 @@ module Auth
             return render_entra_error(:state_mismatch) unless secure_equal?(params[:state], expected_state)
 
             # Entra returned an error (e.g., user denied consent, account not in tenant).
+            # Clear remaining session keys before returning to avoid stale state accumulation.
             if params[:error].present?
-              log_entra_failure("entra_error", error: params[:error], description: params[:error_description])
+              cleanup_entra_session!
+              log_entra_failure("entra_error", error: params[:error])
               return render_entra_error(:entra_error)
             end
 
-            connection = find_active_connection_from_session
+            connection    = find_active_connection_from_session
             nonce         = session.delete(:entra_nonce)
             code_verifier = session.delete(:entra_code_verifier)
             pt            = session.delete(:entra_pt)
@@ -155,8 +157,6 @@ module Auth
               return render_entra_error(:operator_not_found)
             end
 
-            identity.update_column(:last_authenticated_at, Time.current)
-
             result = establish_signed_in_session!(
               operator,
               pt: pt,
@@ -164,6 +164,8 @@ module Auth
               auth_method: "entra_id",
             )
             sign_in_result = sign_in_result_from_session_result(result, actor: operator)
+            # Record the successful authentication only after the session is established.
+            identity.update_column(:last_authenticated_at, Time.current) if sign_in_result.success?
             handle_sign_in_result(sign_in_result, pt: pt)
           rescue ExternalSignIn::Providers::EntraId::VerificationError => e
             log_entra_failure("token_verification_failed", reason: e.reason)
@@ -177,6 +179,13 @@ module Auth
           end
 
           private
+
+          def cleanup_entra_session!
+            session.delete(:entra_nonce)
+            session.delete(:entra_code_verifier)
+            session.delete(:entra_pt)
+            session.delete(:entra_connection_public_id)
+          end
 
           def find_active_connection_from_params
             public_id = entra_params[:connection_public_id].to_s.strip

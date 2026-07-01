@@ -12,16 +12,9 @@ class AppPrincipalRecordTest < ActiveSupport::TestCase
     assert_operator AppPrincipalRecord, :<, ApplicationRecord
   end
 
-  test "should connect to identifier database" do
-    # Test that the model is configured to use the identifier database
-    # Note: This is a basic structural test
-    assert_respond_to AppPrincipalRecord, :connection_db_config
-  end
-
-  test "should have correct database configuration" do
-    config = AppPrincipalRecord.connection_db_config
-
-    assert_not_nil config
+  test "uses the consolidated app zenith database" do
+    assert_equal "app_zenith", AppPrincipalRecord.connection_db_config.name
+    assert_equal AppRpRecord.connection_db_config.name, AppPrincipalRecord.connection_db_config.name
   end
 
   test "should connect to identifier database for writing and reading" do
@@ -48,12 +41,8 @@ class AppPrincipalRecordTest < ActiveSupport::TestCase
     assert_respond_to AppPrincipalRecord, :transaction
   end
 
-  test "should be configured for identifier database multi-database setup" do
-    # Verify this is part of the multi-database architecture
-    assert_respond_to AppPrincipalRecord, :connection_db_config
-    config = AppPrincipalRecord.connection_db_config
-
-    assert_not_nil config
+  test "keeps principal semantic base separate from rp semantic base" do
+    assert_not_equal AppRpRecord.connection_specification_name, AppPrincipalRecord.connection_specification_name
   end
 
   test "should support encryption functionality" do

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class RenameCustomerActorToVisitor < ActiveRecord::Migration[8.2]
+class RenameComZenithCustomerActorToVisitor < ActiveRecord::Migration[8.2]
   def up
     safety_assured do
       rename_column(:client_accounts, :customer_id, :visitor_id) if column_exists?(:client_accounts, :customer_id)

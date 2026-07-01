@@ -67,6 +67,9 @@ Current database naming decisions:
 
 - `adr/actor-db-naming-policy.md`
 - `adr/surface-database-connection-naming.md`
+- `adr/principal-zenith-physical-consolidation.md` — accepted decision to apply each surface's
+  principal migration history through the matching zenith database, keep semantic principal base
+  classes, and reserve empty `*_principal` databases for future regional-ready application data.
 - `adr/member-client-membership-organization-decomposition-before-placement.md`
 - `adr/read-only-content-surfaces-in-rails.md` — current decision for v1 read-only docs/news/help
   content delivery in this Rails repository, including temporary placement in the existing surface

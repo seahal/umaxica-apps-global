@@ -8,8 +8,8 @@ class ValidateRemainingOrgPrincipalForeignKeys < ActiveRecord::Migration[8.2]
 
   FOREIGN_KEYS = [
     [:departments, :departments, :parent_id],
-    [:operator_accounts, :departments, :department_id],
-    [:operator_accounts, :operators, :staff_id],
+    [:legacy_operator_department_accounts, :departments, :department_id],
+    [:legacy_operator_department_accounts, :operators, :staff_id],
     [:operators, :staff_multi_factor_statuses, :multi_factor_status_id],
     [:operators, :staff_multi_factors, :multi_factor_id],
     [:role_assignments, :operators, :staff_id],
@@ -18,7 +18,7 @@ class ValidateRemainingOrgPrincipalForeignKeys < ActiveRecord::Migration[8.2]
     [:staff_identity_audits, :operators, :staff_id],
     [:staff_identity_audits, :staff_identity_audit_events, :event_id],
     [:staff_identity_passkeys, :operators, :staff_id],
-    [:staff_operators, :operator_accounts, :operator_id],
+    [:staff_operators, :legacy_operator_department_accounts, :operator_id],
     [:staff_operators, :operators, :staff_id],
     [:staff_passkeys, :operators, :staff_id],
     [:staff_passkeys, :staff_passkey_statuses, :status_id],

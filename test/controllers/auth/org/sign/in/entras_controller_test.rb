@@ -13,7 +13,13 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   setup do
     host! ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
+  end
 
+  teardown do
+    Rails.configuration.x.rate_limit.fetch(:store).clear
+  end
+
+  setup do
     OrganizationEntraConnectionState.ensure_defaults!
     OperatorEntraIdentityState.ensure_defaults!
 
@@ -283,6 +289,64 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     assert_response :unprocessable_content
   end
 
+  # --- callback action: operator access control ---
+
+  test "callback renders error when operator login is not allowed" do
+    private_key = OpenSSL::PKey::RSA.generate(2048)
+    jwk = JWT::JWK.new(private_key, { "kid" => "test-kid-login" })
+    jwks = { "keys" => [jwk.export] }
+    jwks_loader = ->(_opts) { jwks }
+
+    post authorization_auth_org_sign_in_entra_path(ri: RI),
+         params: { entra: { connection_public_id: @active_connection.public_id } }
+    nonce = session[:entra_nonce]
+    state = session[:entra_state]
+
+    now = Time.now.to_i
+    id_token = JWT.encode(
+      {
+        "iss" => "https://login.microsoftonline.com/#{TENANT_ID}/v2.0",
+        "aud" => @active_connection.entra_client_id,
+        "tid" => TENANT_ID,
+        "oid" => OBJECT_ID,
+        "sub" => "pairwise-sub",
+        "nonce" => nonce,
+        "iat" => now,
+        "exp" => now + 3600,
+      },
+      private_key, "RS256", { "kid" => "test-kid-login" },
+    )
+
+    token_result = OidcRpTokenClient::Result.new(
+      success: true,
+      token_response: { "id_token" => id_token },
+      error: nil,
+    )
+
+    OperatorEntraIdentity.create!(
+      operator_id: 99_999,
+      connection_id: @active_connection.id,
+      entra_tenant_id: TENANT_ID,
+      entra_object_id: OBJECT_ID,
+      status_id: OperatorEntraIdentityState::ACTIVE,
+    )
+
+    # Operator.find_by returns nil → login_allowed? check fails → 422
+    OidcRpTokenClient.stub(:call, token_result) do
+      ExternalSignIn::EntraJwksCache.stub(
+        :new, ->(**) {
+                stub_loader = Object.new
+                stub_loader.define_singleton_method(:loader) { jwks_loader }
+                stub_loader
+              },
+      ) do
+        get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+      end
+    end
+
+    assert_response :unprocessable_content
+  end
+
   # --- surface isolation ---
 
   test "new is unreachable from the app surface host" do
@@ -308,6 +372,33 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "https://#{app_host}/sign/in/entra/authorization", method: :post,
+      )
+    end
+  end
+
+  test "authorization is unreachable from the com surface host" do
+    com_host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{com_host}/sign/in/entra/authorization", method: :post,
+      )
+    end
+  end
+
+  test "callback is unreachable from the app surface host" do
+    app_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{app_host}/sign/in/entra/callback", method: :get,
+      )
+    end
+  end
+
+  test "callback is unreachable from the com surface host" do
+    com_host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{com_host}/sign/in/entra/callback", method: :get,
       )
     end
   end

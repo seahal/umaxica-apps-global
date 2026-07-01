@@ -25,6 +25,9 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     get edit_auth_org_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
     }
 
     assert_response :success
@@ -33,6 +36,9 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     post auth_org_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
     }
 
     assert_response :success
@@ -70,6 +76,9 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     delete auth_org_sign_out_url(ri: "jp", host: host, logout_challenge: transaction.logout_challenge), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
     }
 
     assert_response :see_other
@@ -80,6 +89,9 @@ class Auth::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     delete auth_org_sign_out_url(ri: "jp", host: host, logout_challenge: transaction.logout_challenge), headers: {
       "X-TEST-CURRENT-STAFF" => staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
     }
 
     assert_response :see_other

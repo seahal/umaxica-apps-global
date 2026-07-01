@@ -30,6 +30,9 @@ Current content-model references:
   boundary and the current implementation gaps.
 - `docs/architecture/model-database-inventory.md` is the current-state model/database placement map
   used for future authority and placement decisions.
+- `adr/principal-zenith-physical-consolidation.md` records the accepted physical consolidation of
+  `*_principal` migration history into matching `*_zenith` databases while retaining empty
+  `*_principal` connection keys for future regional-ready storage.
 - `docs/architecture/principal-zenith-membership-organization-placement.md` audits the ambiguous
   `Member` / `ClientMembership` / `Organization` cluster and the related runtime actor and OIDC
   connection rows.

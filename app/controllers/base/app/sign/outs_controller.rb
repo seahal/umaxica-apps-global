@@ -11,9 +11,13 @@ module Base
         AUTHENTICATION_MODE = :open
         declare_authentication_mode! :open
 
-        after_action :sign_out_notice_cache_headers!, only: %i(new complete)
+        after_action :sign_out_notice_cache_headers!, only: %i(new edit complete)
 
         def new
+          render "base/shared/sign_outs/edit"
+        end
+
+        def edit
           render "base/shared/sign_outs/edit"
         end
 
