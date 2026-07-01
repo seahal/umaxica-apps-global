@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+# FIXME: DELETE THIS FILE.
+
 # Route mapper extensions for the Auth credential gateway.
 #
 # These macros let `config/routes/auth.rb` read as a surface contract table:

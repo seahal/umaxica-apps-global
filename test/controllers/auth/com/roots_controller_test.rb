@@ -32,10 +32,8 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost"),
-      path: :auth_com_root_path,
-      label: "sign com root",
-      ri: "jp",
+      "sy",
+      path: auth_com_root_path(ri: "jp"),
     )
   end
 
@@ -50,10 +48,10 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_visitor_headers(visitor, host: ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_com_dashboard_url(
+    assert_redirected_to base_com_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost",
+        "PUBLIC_BASE_CORPORATE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
       ),
     )
   end
@@ -159,7 +157,7 @@ class Auth::Com::RootsControllerTest < ActionDispatch::IntegrationTest
     get(path)
 
     assert_response :success
-    assert_select "html[data-theme=?]", expected
+    assert_equal expected, cookies[PreferenceBase::THEME_COOKIE_KEY]
   end
 end
 

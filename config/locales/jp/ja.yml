@@ -1961,6 +1961,19 @@ ja:
           edit:
             title: パスキーを編集
         secret_credentials:
+          index:
+            title: シークレット管理
+            description: 登録済みのシークレットを管理します。
+            new: 新規作成
+          show:
+            title: シークレットの詳細
+            description: シークレット情報の詳細を確認します。
+          edit:
+            title: シークレットの編集
+            description: シークレット情報を更新します。
+          new:
+            title: シークレットの作成
+            description: 新しいシークレットを作成します。
           create:
             created: シークレットキーを保存しました。
           update:
@@ -3728,7 +3741,7 @@ ja:
   base:
     app:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       sign:
         in:
           limitations:
@@ -3754,7 +3767,7 @@ ja:
         submitting: 送信中...
     com:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: 設定
         description: アカウントの設定を管理します。
@@ -3776,7 +3789,7 @@ ja:
         submitting: 送信中...
     org:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: 設定
         description: アカウントの設定を管理します。
@@ -3912,7 +3925,7 @@ ja:
             us: 米国式 (MM/DD/YYYY)
     com:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: 設定
         description: アカウントの設定を管理します。
@@ -3941,7 +3954,7 @@ ja:
           back: 設定一覧に戻る
     org:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: 設定
         description: アカウントの設定を管理します。

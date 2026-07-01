@@ -51,10 +51,10 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
-    assert_redirected_to auth_com_dashboard_url(
+    assert_redirected_to base_com_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost",
+        "PUBLIC_BASE_CORPORATE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
       ),
     )
   end

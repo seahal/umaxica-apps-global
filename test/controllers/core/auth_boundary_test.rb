@@ -68,7 +68,7 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "logout redirects to the acme oidc logout flow on every surface" do
+  test "logout redirects to the base oidc logout flow on every surface" do
     SURFACES.each do |surface|
       host = surface.fetch(:host)
       host!(host)

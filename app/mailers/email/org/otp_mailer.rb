@@ -24,7 +24,7 @@ module Email::Org
     def verification_url
       return if @verification_token.blank? || @public_id.blank?
 
-      Rails.application.routes.url_helpers.edit_sign_org_settings_emails_registration_url(
+      Rails.application.routes.url_helpers.edit_auth_org_settings_emails_registration_url(
         token: @verification_token,
         host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
       )

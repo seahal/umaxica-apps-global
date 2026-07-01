@@ -14,7 +14,7 @@ class Base::Com::HealthsControllerTest < ActionDispatch::IntegrationTest
     assert_not_predicate response, :redirect?
     assert_equal "text/html", response.media_type
     assert_includes response.body, "Health Snapshot"
-    assert_includes response.body, "com"
+    assert_includes response.body, "readiness"
   end
   private
 

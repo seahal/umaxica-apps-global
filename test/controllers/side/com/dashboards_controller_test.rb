@@ -7,7 +7,7 @@ require "test_helper"
 class Side::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_SIDE_CORPORATE_URL")
-    @acme_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(
       email_address: "base-com-dashboard-#{SecureRandom.hex(4)}@example.com",
     )

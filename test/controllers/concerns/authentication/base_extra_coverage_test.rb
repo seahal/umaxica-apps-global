@@ -166,13 +166,6 @@ class AuthenticationBaseExtraCoverageTest < ActiveSupport::TestCase
     @harness = Harness.new
   end
 
-  test "maybe_inject_test_bulletin! injects session when in test env" do
-    @harness.request.headers[AuthIoKeys::Headers::TEST_BULLETIN] = { bulletin_id: 123 }.to_json
-    @harness.maybe_inject_test_bulletin!
-
-    assert_equal 123, @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY]["bulletin_id"]
-  end
-
   test "bulletin_active? and bulletin_expired?" do
     @harness.session[AuthenticationBase::BULLETIN_SESSION_KEY] = {
       "issued_at" => Time.current.to_i,

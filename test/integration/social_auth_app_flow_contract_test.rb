@@ -32,7 +32,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -294,7 +294,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: @acme_host)
+    assert_redirected_to base_app_dashboard_url(ri: "jp", host: @base_host)
     identity.reload
 
     assert_equal user.id, identity.user_id

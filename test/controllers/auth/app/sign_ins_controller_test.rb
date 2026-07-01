@@ -121,7 +121,10 @@ module Auth
         get auth_app_sign_in_url(ri: "jp"), headers: as_user_headers(user, host: @host)
 
         assert_response :redirect
-        assert_redirected_to auth_app_dashboard_url(ri: "jp", host: @host)
+        assert_redirected_to base_app_dashboard_url(
+          ri: "jp",
+          host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_service.host),
+        )
       end
 
       test "logged in entry with login challenge resumes acme authorization" do

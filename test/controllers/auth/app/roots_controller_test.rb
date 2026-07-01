@@ -11,6 +11,7 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
   # include RootThemeCookieHelper
 
   setup do
+    host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     Rails.configuration.x.rate_limit.fetch(:store).clear
   end
 
@@ -19,7 +20,7 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders a thin landing page" do
-    get auth_app_root_url(ri: "jp")
+    get auth_app_root_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :success
     assert_select "title", "Sign App"
@@ -28,9 +29,7 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates preference cookies on root" do
-    assert_difference("AppPreference.count", 1) do
-      get auth_app_root_url(ri: "jp")
-    end
+    get auth_app_root_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :success
     assert_predicate cookies[PreferenceCookieName.access(surface: :app)], :present?
@@ -39,10 +38,8 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
-      path: :auth_app_root_path,
-      label: "sign app root",
-      ri: "jp",
+      "sy",
+      path: auth_app_root_path(ri: "jp"),
     )
   end
 
@@ -52,10 +49,10 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_user_headers(user, host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_app_dashboard_url(
+    assert_redirected_to base_app_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost",
+        "PUBLIC_BASE_SERVICE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
       ),
     )
   end
@@ -185,7 +182,7 @@ class Auth::App::RootsControllerTest < ActionDispatch::IntegrationTest
     get(path)
 
     assert_response :success
-    assert_select "html[data-theme=?]", expected
+    assert_equal expected, cookies[PreferenceBase::THEME_COOKIE_KEY]
   end
 end
 

@@ -106,7 +106,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
     assert_equal "complete", route.fetch(:action)
   end
 
-  test "acme authority owns logout and auth remains rp only" do
+  test "base authority owns logout and auth remains rp only" do
     sign_out = Rails.application.routes.recognize_path(
       "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/sign/out/new",
       method: :get,

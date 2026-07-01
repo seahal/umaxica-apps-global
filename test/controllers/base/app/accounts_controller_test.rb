@@ -7,7 +7,7 @@ require "test_helper"
 class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = configured_host(:base_service)
-    @acme_host = configured_host(:acme_service)
+    @private_base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     @bootstrap = bootstrap_and_select!(@user, @token)
@@ -17,7 +17,7 @@ class Base::App::AccountsControllerTest < ActionDispatch::IntegrationTest
     get base_app_accounts_url(ri: "jp", host: @host), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host)
+    assert_oidc_authorize_redirect(response.location, host: @private_base_host)
   end
 
   test "index lists accounts" do
@@ -352,7 +352,16 @@ class Base::App::AccountsControllerTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("auth") || normalized.include?("sign") || normalized.include?("log.umaxica")
+        "SIGN"
+      else
+        "BASE"
+      end
     surface =
       if service == "SIGN"
         case resource_type
@@ -757,12 +766,12 @@ class Base::App::AccountsControllerTest
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base.merge(
-      "Authorization" => "Bearer #{
-        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
-      }",
-    )
+    token_public_id = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token_public_id, resource_type: "client")
+    set_access_cookie(access_token)
+    base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
+    base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
+    base
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -779,12 +788,15 @@ class Base::App::AccountsControllerTest
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base.merge(
-      "Authorization" => "Bearer #{
-        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
-      }",
+    token_public_id = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token_public_id,
+             resource_type: "operator",
     )
+    set_access_cookie(access_token)
+    base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
+    base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
+    base
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -801,12 +813,15 @@ class Base::App::AccountsControllerTest
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base.merge(
-      "Authorization" => "Bearer #{
-        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
-      }",
+    token_public_id = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token_public_id,
+               resource_type: "visitor",
     )
+    set_access_cookie(access_token)
+    base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
+    base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
+    base
   end
 
   def bearer_headers(token, host: nil, headers: {})

@@ -639,16 +639,16 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   # RestrictedSessionGuard -- non-session routes blocked
   # ===================================================================
 
-  test "restricted session is blocked on non-session acme app routes" do
+  test "restricted session is blocked on non-session base app routes" do
     token = create_restricted_session(@user)
-    acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     headers = {
-      "Host" => acme_host,
+      "Host" => base_host,
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    get auth_app_dashboard_url(ri: "jp", host: acme_host), headers: headers
+    get auth_app_dashboard_url(ri: "jp", host: base_host), headers: headers
 
     assert_response :locked
     assert_equal "きんそくじこうです", response.body

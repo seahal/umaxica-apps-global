@@ -38,11 +38,6 @@ class AuthRedirectTestController < ApplicationController
     end
   end
 
-  def trigger_inject_test_bulletin
-    maybe_inject_test_bulletin!
-    render json: session[AuthenticationBase::BULLETIN_SESSION_KEY] || {}
-  end
-
   def am_i_user?
     false
   end
@@ -81,7 +76,6 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
       get "/auth_redirect/params" => "auth_redirect_test#trigger_add_rt_to_params"
       get "/auth_redirect/safe_rt" => "auth_redirect_test#trigger_safe_rt"
       get "/auth_redirect/bulletin" => "auth_redirect_test#trigger_issue_bulletin"
-      get "/auth_redirect/inject" => "auth_redirect_test#trigger_inject_test_bulletin"
       get "/auth_redirect/index" => "auth_redirect_test#trigger_redirect_with_notice" # dummy destination
     end
   end
@@ -139,13 +133,5 @@ class AuthRedirectBoosterTest < ActionDispatch::IntegrationTest
     get "/auth_redirect/bulletin"
 
     assert_equal "not_issued", response.body
-  end
-
-  test "inject_test_bulletin" do
-    # Send test header
-    get "/auth_redirect/inject", headers: { "X-TEST-BULLETIN" => { "some" => "data" }.to_json }
-
-    assert_response :success
-    assert_equal "data", response.parsed_body["some"]
   end
 end

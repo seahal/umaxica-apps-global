@@ -23,7 +23,7 @@ class Auth::Com::Settings::TelephonesControllerTest < ActionDispatch::Integratio
     as_visitor_headers(@visitor, host: @host, session_public_id: @token.public_id)
   end
 
-  test "sign settings telephones index redirects to acme authority" do
+  test "sign settings telephones index redirects to telephone registration" do
     get auth_com_settings_telephones_url(ri: "jp")
 
     assert_redirected_to new_auth_com_settings_telephones_registration_url(ri: "jp")

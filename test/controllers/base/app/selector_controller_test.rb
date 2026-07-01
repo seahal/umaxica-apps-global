@@ -322,7 +322,21 @@ class Base::App::SelectorControllerTest
       user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    token.update!(
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+    )
+    token_public_id = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(
+      user,
+      host: host,
+      session_public_id: token_public_id,
+      resource_type: "client",
+    )
+    set_access_cookie(access_token)
+    base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
+    base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
     base
   end
 
@@ -394,7 +408,14 @@ class Base::App::SelectorControllerTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("auth") || normalized.include?("sign") || normalized.include?("log.umaxica")
+        "SIGN"
+      else
+        "BASE"
+      end
     surface =
       if service == "SIGN"
         case resource_type
@@ -799,7 +820,21 @@ class Base::App::SelectorControllerTest
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    token.update!(
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+    )
+    token_public_id = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(
+      user,
+      host: host,
+      session_public_id: token_public_id,
+      resource_type: "client",
+    )
+    set_access_cookie(access_token)
+    base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
+    base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
     base
   end
 

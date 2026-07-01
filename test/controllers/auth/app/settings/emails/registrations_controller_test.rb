@@ -12,13 +12,13 @@ class Auth::App::Settings::Emails::RegistrationsControllerTest < ActionDispatch:
     satisfy_user_verification(@token)
   end
 
-  test "new redirects to acme identity email registration" do
+  test "new redirects to base identity email registration" do
     get new_auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to new_base_app_identity_emails_registration_path(ri: "jp")
   end
 
-  test "edit redirects to acme identity email registration" do
+  test "edit redirects to base identity email registration" do
     get edit_auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to edit_base_app_identity_emails_registration_path(ri: "jp")

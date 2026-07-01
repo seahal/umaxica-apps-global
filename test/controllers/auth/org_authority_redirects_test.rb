@@ -15,14 +15,14 @@ class Auth::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
     auth_org_billing_index_url: "/billing",
   }.freeze
 
-  test "sign org residual authority routes redirect to acme org" do
+  test "sign org residual authority routes redirect to base org" do
     ROUTES.each do |helper, path|
       get public_send(helper, host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "sign.org.localhost"), ri: "jp")
 
       assert_response :see_other
       location = URI.parse(response.location)
 
-      assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host, location.host
+      assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL"), location.host
       assert_equal path, location.path
     end
   end

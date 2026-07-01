@@ -58,7 +58,7 @@ class Email::Com::ApplicationMailerTest < ActionMailer::TestCase
     expected_url = Rails.application.routes.url_helpers.base_com_preference_email_url(
       email_record,
       token: email_record.promotional_unsubscribe_token,
-      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.umaxica.com"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
     )
 
     assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value

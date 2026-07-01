@@ -4,9 +4,9 @@
 # Define the Auth route-mapper macros (auth_routes/auth_surface/...) before the
 # surface tables consume them. Required here rather than from an initializer so
 # the macros exist regardless of initializer load order. See the file header.
-require_relative "auth_route_mapper"
-require_relative "../app/controllers/concerns/surface_route_alias_helper"
-ActionDispatch::Routing::Mapper.include(AuthRouteMapper)
+require_relative "auth_route_mapper" # FIXME: DELETE THIS!
+require_relative "../app/controllers/concerns/surface_route_alias_helper" # FIXME: DELETE THIS!
+ActionDispatch::Routing::Mapper.include(AuthRouteMapper) # FIXME: DELETE THIS!
 
 Rails.application.routes.draw do
   # Base owns the OP/Authorization Server and durable identity/session authority.
@@ -14,6 +14,9 @@ Rails.application.routes.draw do
 
   # Auth owns the credential gateway for sign-in/sign-up ceremonies.
   draw :auth
+
+  # Info owns public informational content.
+  draw :info
 
   # Core owns the regional BFF surface.
   draw :core
@@ -26,9 +29,6 @@ Rails.application.routes.draw do
 
   # Help owns the public help content surface.
   draw :help
-
-  # Info owns public informational content.
-  draw :info
 
   # Docs owns the public documentation content surface.
   draw :docs

@@ -32,6 +32,7 @@ module Security
       PUBLIC_SIGN_IN_UP
       PUBLIC_SIGN_OUT
       PUBLIC_SOCIAL
+      PUBLIC_AUTH_APP_REDIRECTS
       PUBLIC_AUTH_APP_SETTINGS_COMPAT
       PUBLIC_CORE_API
       PUBLIC_PALM_API
@@ -150,6 +151,7 @@ module Security
         public_sign_in_or_up?(entry) ||
         public_sign_out?(entry) ||
         public_social?(entry) ||
+        public_auth_app_redirect?(entry) ||
         public_auth_app_settings_compat?(entry) ||
         public_core_api?(entry) ||
         public_palm_api?(entry) ||
@@ -192,6 +194,10 @@ module Security
 
     def public_social?(entry)
       entry.path.start_with?("/social") || entry.controller_path.end_with?("/social/authentications")
+    end
+
+    def public_auth_app_redirect?(entry)
+      get?(entry) && entry.controller_path == "auth/app/billings" && entry.path == "/billings"
     end
 
     def public_auth_app_settings_compat?(entry)

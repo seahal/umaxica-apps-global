@@ -20,11 +20,8 @@ module CommonRedirect
 
   def allowed_hosts
     # NOTE: External redirect is disabled. This list remains only for diagnostics/auditing.
-    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-
-    (hosts.base_origins + hosts.side_origins + hosts.sign_origins + hosts.core_origins)
-      .filter_map { |origin| CommonRedirect.normalize_host(origin.host) }
-      .uniq
+    keys = %w(CORPORATE_URL SERVICE_URL STAFF_URL NETWORK_URL DEV_URL)
+    keys.filter_map { |key| CommonRedirect.normalize_host(ENV[key]) }
   end
 
   private

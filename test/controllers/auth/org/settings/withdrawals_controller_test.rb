@@ -9,7 +9,7 @@ class Auth::Org::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     @staff = operators(:one)
     @token = OperatorToken.create!(staff: @staff)
     mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")

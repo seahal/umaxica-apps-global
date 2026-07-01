@@ -325,7 +325,7 @@ module Base
 
         def social_sign_in_url_for(provider, **params)
           normalized_provider = SocialIdentifiable.normalize_provider(provider)
-          public_send(:"auth_app_social_#{normalized_provider}_sign_in_url", **params)
+          public_send(:"auth_app_social_#{normalized_provider}_auth_in_url", **params)
         end
       end
     end

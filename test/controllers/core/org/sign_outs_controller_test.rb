@@ -28,7 +28,7 @@ class Core::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out redirects to acme oidc logout with completion state" do
+  test "post sign out redirects to base oidc logout with completion state" do
     staff = Operator.create!(
       status_id: OperatorStatus::ACTIVE,
       visibility_id: OperatorVisibility::STAFF,

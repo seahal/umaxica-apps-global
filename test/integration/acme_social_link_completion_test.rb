@@ -8,16 +8,16 @@ require "test_helper"
 #
 # The Sign callback for app settings social link is the durable authority. These tests pin that:
 #   - Sign performs the final link commit
-#   - Sign does not emit an Acme completion form for link
-#   - malformed Acme completion posts do not commit
+#   - Sign does not emit a Base completion form for link
+#   - malformed Base completion posts do not commit
 #   - com/org sign surfaces expose no social link routes at all
-class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
+class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   fixtures :client_statuses, :client_google_identity_statuses, :client_apple_identity_statuses
 
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
 
@@ -26,7 +26,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
-  test "sign callback commits the social link without acme completion" do
+  test "sign callback commits the social link without base completion" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "linkcompl_#{SecureRandom.hex(4)}")
     uid = "completion_google_#{SecureRandom.hex(4)}"
     setup_google_mock_auth(uid: uid, token: "completion_token")
@@ -47,10 +47,10 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     assert_equal "completion_token", identity.token
   end
 
-  test "acme completion rejects a malformed social result without committing" do
+  test "base completion rejects a malformed social result without committing" do
     assert_no_difference("ClientGoogleIdentity.count") do
       assert_no_difference("ClientOidcAuthorizationTransaction.count") do
-        post completion_base_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
+        post completion_base_app_social_authentication_url(id: "google", ri: "jp", host: @base_host),
              params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
              headers: social_completion_browser_headers
       end
@@ -61,10 +61,10 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     assert_includes response.body, I18n.t("sign.app.social.sessions.create.failure")
   end
 
-  test "acme social login start delegates to sign with a login ceremony grant" do
+  test "base social login start delegates to sign with a login ceremony grant" do
     assert_no_difference("Client.count") do
-      post continue_base_app_social_authentication_url(id: "google", ri: "jp", host: @acme_host),
-           headers: { "Host" => @acme_host }
+      post continue_base_app_social_authentication_url(id: "google", ri: "jp", host: @base_host),
+           headers: { "Host" => @base_host }
     end
 
     assert_response :see_other
@@ -103,7 +103,7 @@ class AcmeSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   def social_completion_browser_headers
     {
-      "Host" => @acme_host,
+      "Host" => @base_host,
       "Origin" => "null",
       "Sec-Fetch-Site" => "same-site",
     }

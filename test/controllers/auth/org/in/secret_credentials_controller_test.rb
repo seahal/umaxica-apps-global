@@ -114,10 +114,10 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to auth_org_dashboard_url(
+    assert_redirected_to base_org_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+        "PUBLIC_BASE_STAFF_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
       ),
     )
 
@@ -145,10 +145,10 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_redirected_to auth_org_dashboard_url(
+    assert_redirected_to base_org_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+        "PUBLIC_BASE_STAFF_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
       ),
     )
   end
@@ -258,25 +258,19 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     assert_includes response.body, I18n.t("sign.org.authentication.secret_credential.create.invalid")
   end
 
-  test "create redirects to session management when logical staff limit is reached despite rotated rows" do
-    _secret_credential, raw_secret_credential = OperatorSecretCredential.issue!(
-      name: "Rotated session limit login",
-      staff_id: @staff.id,
-      staff_secret_kind_id: OperatorSecretCredentialKind::LOGIN,
-    )
+  test "create rejects direct secret credential login when logical staff limit is reached despite rotated rows" do
     create_rotated_active_staff_session(@staff, rotations: 4)
 
     post auth_org_sign_in_secret_credential_url(ri: "jp"),
          params: {
            secret_credential_login_form: {
              identifier: @staff.public_id,
-             secret_credential_value: raw_secret_credential,
+             secret_credential_value: @raw_secret_credential,
            },
            "cf-turnstile-response": "test_token",
          }
 
-    assert_response :redirect
-    assert_redirected_to auth_org_sign_in_session_path(ri: "jp")
+    assert_response :unprocessable_content
     assert_equal 0, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
   end
 

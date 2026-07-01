@@ -1188,7 +1188,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal ClientSignUpFlowStatus::COMPLETED, cycle.status_id
   end
 
-  test "duplicate email signup birthdate submission renders acme completion and completes there" do
+  test "duplicate email signup birthdate submission renders base completion and completes there" do
     post auth_app_sign_up_email_url(ri: "jp"),
          params: {
            client_email: {

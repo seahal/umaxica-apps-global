@@ -25,7 +25,7 @@ class Core::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out redirects to acme oidc logout with completion state" do
+  test "post sign out redirects to base oidc logout with completion state" do
     visitor = create_verified_visitor_with_email(email_address: "core-com-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)

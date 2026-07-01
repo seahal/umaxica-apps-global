@@ -46,10 +46,10 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
-  test "redirects unauthenticated user to login" do
-    get auth_com_settings_passkeys_path(ri: "jp")
+  test "rejects unauthenticated passkey settings requests before login handoff" do
+    get auth_com_settings_passkeys_path(ri: "jp"), headers: browser_headers.merge(host_headers(@host))
 
-    assert_response :redirect
+    assert_response :unprocessable_content
   end
 
   test "index renders sign settings passkeys" do
@@ -463,10 +463,10 @@ class Auth::Com::Settings::PasskeysControllerTest
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
+    ensure_visitor_token_reference_records!
     base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-RESOURCE" => visitor.id.to_s)
     return base unless visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
 
-    ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
     token ||= VisitorToken.where(visitor_id: visitor.id).where(
       "discarded_at > ?",
@@ -1051,11 +1051,17 @@ class Auth::Com::Settings::PasskeysControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

@@ -24,7 +24,7 @@ class Auth::Org::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     host! @host
   end
 
-  test "sign settings emails index redirects to acme authority" do
+  test "sign settings emails index renders auth authority" do
     get auth_org_settings_emails_url(ri: "jp"), headers: session_headers
 
     assert_response :success

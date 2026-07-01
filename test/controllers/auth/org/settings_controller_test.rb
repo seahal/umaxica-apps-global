@@ -7,7 +7,7 @@ require "test_helper"
 class Auth::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     host! @host
   end
 
@@ -15,7 +15,7 @@ class Auth::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
     get auth_org_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
   end
 
   test "sign credential settings routes still resolve on sign" do

@@ -201,11 +201,11 @@ module Auth::App::Up
 
       assert_response :created
 
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
-      get auth_app_dashboard_url(ri: "jp", host: acme_host)
+      auth_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+      get auth_app_dashboard_url(ri: "jp", host: auth_host)
 
-      assert_response :redirect
-      assert_not_equal auth_app_dashboard_url(ri: "jp", host: acme_host), response.location
+      assert_response :unprocessable_content
+      assert_nil response.location
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 

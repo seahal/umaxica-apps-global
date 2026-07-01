@@ -17,7 +17,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   test "show without login is rejected" do
     get auth_org_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
-    assert_response :redirect
+    assert_response :unprocessable_content
   end
 
   test "show without sign in sequence is rejected" do
@@ -59,7 +59,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :not_found
+    assert_response :bad_request
   end
 
   test "destroy without pt is rejected by routing" do
@@ -70,7 +70,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :not_found
+    assert_response :bad_request
   end
 
   test "show and update return timeout when expired" do
@@ -99,7 +99,7 @@ class Auth::Org::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: 2.hours.ago.to_i - 1, state: "updated"),
            )
 
-    assert_response :not_found
+    assert_response :bad_request
   end
 
   private

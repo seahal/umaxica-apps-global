@@ -11,7 +11,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "get sign out redirects to acme entry" do
+  test "get sign out redirects to base entry" do
     get new_auth_app_sign_out_url(host: @host, ri: "jp")
 
     assert_response :see_other
@@ -24,7 +24,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "post sign out consumes one-time token and redirects to acme complete" do
+  test "post sign out consumes one-time token and redirects to base complete" do
     user = create_verified_user_with_email(email_address: "sign-cleanup@example.com")
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     transaction, raw_token = LogoutTransaction.issue!(

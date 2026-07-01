@@ -9,9 +9,6 @@ require "test_helper"
 class Email::App::ApplicationMailerTest < ActionMailer::TestCase
   test "sets promotional unsubscribe headers when requested" do
     email_record = ClientEmail.new(public_id: "email_public_id")
-    original_base_service_url = ENV["BASE_SERVICE_URL"]
-    ENV["BASE_SERVICE_URL"] = "www.app.localhost"
-
     mailer =
       Class.new(Email::App::ApplicationMailer) do
         define_method(:sample) do
@@ -26,13 +23,11 @@ class Email::App::ApplicationMailerTest < ActionMailer::TestCase
     expected_url = Rails.application.routes.url_helpers.base_app_preference_email_url(
       email_record,
       token: email_record.promotional_unsubscribe_token,
-      host: ENV.fetch("BASE_SERVICE_URL"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
     )
 
     assert_equal "<#{expected_url}>", email["List-Unsubscribe"].value
     assert_equal "List-Unsubscribe=One-Click", email["List-Unsubscribe-Post"].value
-  ensure
-    ENV["BASE_SERVICE_URL"] = original_base_service_url
   end
 end
 

@@ -16,7 +16,7 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
   test "show without login is rejected" do
     get auth_app_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
-    assert_response :redirect
+    assert_response :unprocessable_content
   end
 
   test "show without sign in sequence is rejected" do
@@ -45,7 +45,7 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
              "X-TEST-BULLETIN" => bulletin_json(issued_at: Time.current.to_i, state: "updated"),
            )
 
-    assert_response :not_found
+    assert_response :bad_request
   end
 
   private

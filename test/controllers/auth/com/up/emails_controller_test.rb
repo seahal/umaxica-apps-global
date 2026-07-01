@@ -72,10 +72,10 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     get new_auth_com_sign_up_email_url(ri: "jp"),
         headers: as_visitor_headers(visitor, host: host)
 
-    assert_redirected_to auth_com_dashboard_url(
+    assert_redirected_to base_com_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost",
+        "PUBLIC_BASE_CORPORATE_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
       ),
     )
   end

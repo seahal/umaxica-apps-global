@@ -20,7 +20,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
     @user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -337,7 +337,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
            headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
   end
 
   test "unlink succeeds when user has only inactive legacy social identity and an active email" do

@@ -2665,11 +2665,11 @@ module AuthenticationBase
     raw =
       case resource_type
       when "client"
-        auth_app_edge_v0_token_dbsc_path
+        dbsc_route_helper(:auth_app_edge_v0_token_dbsc_path, :sign_app_edge_v0_token_dbsc_path)
       when "operator"
-        auth_org_edge_v0_token_dbsc_path
+        dbsc_route_helper(:auth_org_edge_v0_token_dbsc_path, :sign_org_edge_v0_token_dbsc_path)
       when "visitor"
-        auth_com_edge_v0_token_dbsc_path
+        dbsc_route_helper(:auth_com_edge_v0_token_dbsc_path, :sign_com_edge_v0_token_dbsc_path)
       end
     # Canonicalize: the advertised DBSC path must not carry per-request context params.
     dbsc_canonical_url(raw)
@@ -2679,15 +2679,22 @@ module AuthenticationBase
     raw =
       case resource_type
       when "client"
-        auth_app_edge_v0_token_dbsc_url
+        dbsc_route_helper(:auth_app_edge_v0_token_dbsc_url, :sign_app_edge_v0_token_dbsc_url)
       when "operator"
-        auth_org_edge_v0_token_dbsc_url
+        dbsc_route_helper(:auth_org_edge_v0_token_dbsc_url, :sign_org_edge_v0_token_dbsc_url)
       when "visitor"
-        auth_com_edge_v0_token_dbsc_url
+        dbsc_route_helper(:auth_com_edge_v0_token_dbsc_url, :sign_com_edge_v0_token_dbsc_url)
       end
     # Canonicalize: this URL is the DBSC proof audience and must match registration and
     # refresh byte-for-byte, so it cannot vary with request context (ri/lx/...).
     dbsc_canonical_url(raw)
+  end
+
+  def dbsc_route_helper(primary_helper, compatibility_helper)
+    return public_send(primary_helper) if respond_to?(primary_helper, true)
+    return public_send(compatibility_helper) if respond_to?(compatibility_helper, true)
+
+    raise NoMethodError, "missing DBSC route helper for #{resource_type}"
   end
 
   def dbsc_binding_method_name(record)

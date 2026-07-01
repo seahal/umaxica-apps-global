@@ -7,7 +7,7 @@ require "test_helper"
 class Auth::App::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = configured_host(:sign_service)
-    @acme_host = configured_host(:acme_service)
+    @base_host = configured_host(:base_service)
     host! @host
   end
 
@@ -15,7 +15,7 @@ class Auth::App::SettingsControllerTest < ActionDispatch::IntegrationTest
     get auth_app_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
   end
 
   test "sign credential settings routes still resolve on sign" do

@@ -6,9 +6,9 @@ require "test_helper"
 
 class ReadOnlySurfacesTest < ActionDispatch::IntegrationTest
   STATIC_SURFACES = [
-    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", "Base services are available"],
-    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "Base services are available"],
-    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "Base services are available"],
+    ["base_app_root_url", "BASE_SERVICE_URL", "base.app.localhost", "Thin landing endpoint."],
+    ["base_com_root_url", "BASE_CORPORATE_URL", "base.com.localhost", "Thin landing endpoint."],
+    ["base_org_root_url", "BASE_STAFF_URL", "base.org.localhost", "Thin landing endpoint."],
     ["palm_app_root_url", "PUBLIC_PALM_SERVICE_URL", "palm.app.localhost", "Palm API is available"],
   ].freeze
 

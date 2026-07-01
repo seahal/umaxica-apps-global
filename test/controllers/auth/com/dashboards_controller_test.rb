@@ -6,8 +6,9 @@ require "test_helper"
 
 class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    ENV["PRIVATE_BASE_CORPORATE_URL"] ||= "www.com.localhost"
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "dashboard-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
@@ -36,17 +37,12 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(%r{(?://example|umaxica\.example|evil\.example)}, response.body)
   end
 
-  test "show_redirects_when_logged_out" do
-    get auth_com_dashboard_url(ri: "jp"), headers: { "Host" => @host }
+  test "show_rejects_logged_out_direct_access" do
+    get auth_com_dashboard_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-    assert_equal @acme_host, uri.host
-    assert_equal "/oauth/authorize", uri.path
-    assert_not_equal "jump.umaxica.net", uri.host
-    assert_equal "sign-rp", query["client_id"]
-    assert_equal "code", query["response_type"]
+    assert_response :unprocessable_content
+    assert_nil response.location
+    assert_includes response.body, "無効なリクエストです。"
   end
 
   private

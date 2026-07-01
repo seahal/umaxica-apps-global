@@ -192,8 +192,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
          headers: social_callback_headers(@host)
 
     # The sign callback must not establish an MFA challenge or sign-side session
-    # for an established social login; it emits the acme completion form only.
-    # The MFA / session decision belongs to acme completion.
+    # for an established social login; it emits the base completion form only.
+    # The MFA / session decision belongs to base completion.
     assert_emits_acme_completion_only!
     assert_no_match(%r{/sign/in/challenge}, response.body)
     assert_nil session[:pending_mfa]
@@ -231,9 +231,9 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    # Established social login is acme authority: the sign callback emits a
+    # Established social login is base authority: the sign callback emits a
     # one-shot completion form (evidence only) and the session is established on
-    # acme completion, which redirects to the acme dashboard.
+    # base completion, which redirects to the base dashboard.
     assert_emits_acme_completion_only!
 
     submit_social_completion_if_present!
@@ -319,7 +319,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         headers: social_callback_headers(@host)
 
     # The sign callback must not establish an MFA challenge or sign-side session
-    # for an established social login; it emits the acme completion form only.
+    # for an established social login; it emits the base completion form only.
     assert_emits_acme_completion_only!
     assert_no_match(%r{/sign/in/challenge}, response.body)
     assert_nil session[:pending_mfa]
@@ -392,7 +392,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
         params: { state: state },
         headers: social_callback_headers(@host)
 
-    # Session-limit enforcement belongs to acme completion. The sign callback
+    # Session-limit enforcement belongs to base completion. The sign callback
     # emits the completion form only and must not create or restrict a sign-side
     # session token of its own.
     assert_emits_acme_completion_only!
@@ -407,7 +407,7 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
   private
 
   # Pin the sign-side authority boundary for established social login: the sign
-  # callback returns the one-shot acme completion form (signed result only) and
+  # callback returns the one-shot base completion form (signed result only) and
   # does not perform a sign-side session/redirect itself.
   def assert_emits_acme_completion_only!
     assert_response :ok

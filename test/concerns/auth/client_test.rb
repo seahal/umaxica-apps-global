@@ -100,7 +100,7 @@ class AuthClientTest < ActiveSupport::TestCase
   test "log_in sets access token in cookie" do
     @obj.define_singleton_method(:request_ip_address) { "127.0.0.1" }
 
-    @obj.send(:log_in, @user)
+    @obj.send(:log_in, @user, skip_login_cooldown: true)
 
     assert @obj.cookies[::AuthenticationClient::ACCESS_COOKIE_KEY]
     assert_predicate @obj, :logged_in?
@@ -193,7 +193,7 @@ class AuthClientTest < ActiveSupport::TestCase
     first_token = @obj.send(:current_session)
     first_device_session = first_token.device_session
 
-    other.send(:log_in, @user)
+    other.send(:log_in, @user, skip_login_cooldown: true)
     second_token = other.send(:current_session)
     second_device_session = second_token.device_session
 
@@ -311,7 +311,7 @@ class AuthClientTest < ActiveSupport::TestCase
     restricted.rotate_refresh_token!(discarded_at: 15.minutes.from_now)
     before_ids = ClientToken.where(user_id: @user.id).order(:id).pluck(:id, :user_token_status_id, :discarded_at)
 
-    result = @obj.send(:log_in, @user, require_totp_check: false)
+    result = @obj.send(:log_in, @user, require_totp_check: false, skip_login_cooldown: true)
 
     assert_equal :session_limit_hard_reject, result[:status]
     assert_equal :forbidden, result[:http_status]
@@ -327,7 +327,7 @@ class AuthClientTest < ActiveSupport::TestCase
     end
 
     freeze_time do
-      result = @obj.send(:log_in, @user, require_totp_check: false)
+      result = @obj.send(:log_in, @user, require_totp_check: false, skip_login_cooldown: true)
 
       assert_equal :success, result[:status]
       assert result[:restricted]

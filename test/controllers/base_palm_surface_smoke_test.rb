@@ -6,13 +6,13 @@ require "test_helper"
 
 class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
   test "base app public endpoints respond on the control-plane surface" do
-    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host = Rails.configuration.x.boot_config.fetch(:hosts).base_service.host
     host! host
 
-    get "/", headers: { "Host" => host }
+    get "/?ri=jp", headers: { "Host" => host }
 
     assert_response :success
-    assert_homepage_html title: "Base App", message: I18n.t("base.app.roots.message")
+    assert_homepage_html title: "Base App", message: "Thin landing endpoint."
 
     get "/health", headers: { "Host" => host }
 
@@ -38,13 +38,13 @@ class BasePalmSurfaceSmokeTest < ActionDispatch::IntegrationTest
       [ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"), "Base App", "base.app.roots.message"],
       [ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"), "Base Com", "base.com.roots.message"],
       [ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"), "Base Org", "base.org.roots.message"],
-    ].each do |host, title, key|
+    ].each do |host, title, _key|
       host! host
 
       get "/?ri=jp", headers: { "Host" => host }
 
       assert_response :success
-      assert_homepage_html title: title, message: I18n.t(key)
+      assert_homepage_html title: title, message: "Thin landing endpoint."
     end
   end
 

@@ -12,13 +12,13 @@ class Auth::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
     satisfy_user_verification(@token)
   end
 
-  test "new redirects to acme identity telephones registration" do
+  test "new redirects to base identity telephones registration" do
     get new_auth_app_settings_telephones_registration_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to new_base_app_identity_telephones_registration_path(ri: "jp")
   end
 
-  test "edit redirects to acme identity telephones registration" do
+  test "edit redirects to base identity telephones registration" do
     get edit_auth_app_settings_telephones_registration_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to edit_base_app_identity_telephones_registration_path(ri: "jp")

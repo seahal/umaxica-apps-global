@@ -526,16 +526,16 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
   # RestrictedSessionGuard -- non-session routes blocked for org
   # ===================================================================
 
-  test "restricted session is blocked on non-session acme org routes" do
+  test "restricted session is blocked on non-session base org routes" do
     token = create_restricted_session(@staff)
-    acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
+    base_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     headers = {
-      "Host" => acme_host,
+      "Host" => base_host,
       "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    get auth_org_dashboard_url(ri: "jp", host: acme_host), headers: headers
+    get auth_org_dashboard_url(ri: "jp", host: base_host), headers: headers
 
     assert_response :locked
     assert_equal "���������������������������", response.body

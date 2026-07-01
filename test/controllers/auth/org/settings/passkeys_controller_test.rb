@@ -129,16 +129,10 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal OperatorMfaStatus::ACTIVE, @staff.reload.mfa_status_id
   end
 
-  test "redirects unauthenticated staff to login" do
-    get auth_org_settings_passkeys_url(ri: "jp"), headers: @host_headers
+  test "rejects unauthenticated passkey settings requests before login handoff" do
+    get auth_org_settings_passkeys_url(ri: "jp"), headers: browser_headers.merge(@host_headers)
 
-    assert_response :redirect
-    uri = URI.parse(jump_rt_url_from_location(response.headers["Location"]))
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), uri.host
-    assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign-rp", query["client_id"]
+    assert_response :unprocessable_content
   end
 
   test "should get edit" do
@@ -1195,11 +1189,17 @@ class Auth::Org::Settings::PasskeysControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

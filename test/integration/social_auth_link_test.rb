@@ -23,7 +23,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
   setup do
     OmniAuth.config.test_mode = true
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @callback_headers = social_callback_headers(@host)
 
     # Create test users
@@ -170,7 +170,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -193,7 +193,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 
@@ -251,7 +251,7 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
          headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @acme_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
   end
 
   test "link intent rejects resource-level step up without token-bound step up" do

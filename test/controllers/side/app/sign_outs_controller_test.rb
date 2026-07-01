@@ -25,7 +25,7 @@ class Side::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_predicate token.reload, :currently_usable?
   end
 
-  test "post sign out redirects to acme oidc logout with completion state" do
+  test "post sign out redirects to base oidc logout with completion state" do
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!

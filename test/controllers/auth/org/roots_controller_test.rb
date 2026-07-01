@@ -34,10 +34,8 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
 
   test "sets theme cookie" do
     assert_theme_cookie_for(
-      host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"),
-      path: :auth_org_root_path,
-      label: "sign org root",
-      ri: "jp",
+      "sy",
+      path: auth_org_root_path(ri: "jp"),
     )
   end
 
@@ -48,10 +46,10 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
         headers: as_staff_headers(staff, host: ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost"))
 
     assert_response :redirect
-    assert_redirected_to auth_org_dashboard_url(
+    assert_redirected_to base_org_dashboard_url(
       ri: "jp",
       host: ENV.fetch(
-        "PUBLIC_AUTH_STAFF_URL", "auth.org.localhost",
+        "PUBLIC_BASE_STAFF_URL", Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
       ),
     )
   end
@@ -209,7 +207,7 @@ class Auth::Org::RootsControllerTest < ActionDispatch::IntegrationTest
     get(path)
 
     assert_response :success
-    assert_select "html[data-theme=?]", expected
+    assert_equal expected, cookies[PreferenceBase::THEME_COOKIE_KEY]
   end
 end
 

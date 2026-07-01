@@ -9,12 +9,12 @@ class Auth::App::Settings::SessionsControllerTest < ActionDispatch::IntegrationT
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @current_token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
   end
 
-  test "index redirects to acme identity session inventory" do
+  test "index redirects to base identity session inventory" do
     get auth_app_settings_sessions_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to base_app_identity_sessions_path(ri: "jp")

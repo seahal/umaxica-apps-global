@@ -15,8 +15,10 @@ auth_routes do
   hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
   # User credential gateway host.
-  auth_surface :app, host: [hosts.auth_service.host, "auth.app.localhost"] do
+  auth_surface :app, host: [hosts.auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"], "auth.app.localhost"].compact do
     root "roots#index"
+    resource :dashboard, only: :show
+    resources :billings, only: :index
 
     # TODO: WHAT IS THIS? CHECK IT OUT
     auth_public_gateway_routes
@@ -167,8 +169,10 @@ auth_routes do
   end
 
   # Corporate credential gateway host.
-  auth_surface :com, host: [hosts.auth_corporate.host, "auth.com.localhost"] do
+  auth_surface :com,
+               host: [hosts.auth_corporate.host, ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost"].compact do
     root "roots#index"
+    resource :dashboard, only: :show
 
     auth_public_gateway_routes
 
@@ -306,8 +310,9 @@ auth_routes do
   end
 
   # Staff credential gateway host.
-  auth_surface :org, host: [hosts.auth_staff.host, "auth.org.localhost"] do
+  auth_surface :org, host: [hosts.auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"], "auth.org.localhost"].compact do
     root "roots#index"
+    resource :dashboard, only: :show
 
     auth_public_gateway_routes
 

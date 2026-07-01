@@ -66,13 +66,13 @@ class Auth::App::Settings::WithdrawalsControllerTest < ActionDispatch::Integrati
     "surface:#{service}_#{surface}"
   end
 
-  test "new redirects to acme identity withdrawal" do
+  test "new redirects to base identity withdrawal" do
     get new_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
     assert_redirected_to new_base_app_identity_withdrawal_path(ri: "jp")
   end
 
-  test "edit redirects to acme identity withdrawal" do
+  test "edit redirects to base identity withdrawal" do
     get edit_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
     assert_redirected_to edit_base_app_identity_withdrawal_path(ri: "jp")

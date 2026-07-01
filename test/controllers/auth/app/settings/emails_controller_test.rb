@@ -9,7 +9,7 @@ class Auth::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = clients(:one)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     mark_token_step_up_satisfied_for_test(@token, scope: "settings_email")
@@ -23,13 +23,13 @@ class Auth::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     CloudflareTurnstile.test_validation_response = nil
   end
 
-  test "sign settings emails index redirects to acme identity" do
+  test "sign settings emails index redirects to base identity" do
     get auth_app_settings_emails_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to base_app_identity_emails_path(ri: "jp")
   end
 
-  test "sign settings email edit redirects to acme identity" do
+  test "sign settings email edit redirects to base identity" do
     email = ClientEmail.create!(
       address: "sign-email-edit-form@example.com",
       user: clients(:one),
@@ -73,7 +73,7 @@ class Auth::App::Settings::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_response :gone
   end
 
-  test "sign email registration route redirects to acme identity" do
+  test "sign email registration route redirects to base identity" do
     get new_auth_app_settings_emails_registration_url(ri: "jp"), headers: session_headers
 
     assert_redirected_to new_base_app_identity_emails_registration_path(ri: "jp")

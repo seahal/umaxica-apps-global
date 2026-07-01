@@ -9,7 +9,7 @@ class Side::Org::DashboardsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PUBLIC_SIDE_STAFF_URL")
-    @acme_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")
     @operator = operators(:one)
     @token = OperatorToken.create!(staff: @operator, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
     satisfy_staff_verification(@token)

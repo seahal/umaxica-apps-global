@@ -9,13 +9,13 @@ class Auth::Org::SystemControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
-  test "index redirects to acme org authority" do
+  test "index redirects to base org authority" do
     get auth_org_system_index_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host, uri.host
+    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL"), uri.host
     assert_equal "/system", uri.path
   end
 

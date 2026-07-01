@@ -3076,7 +3076,7 @@ en:
   base:
     app:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       sign:
         in:
           limitations:
@@ -3102,7 +3102,7 @@ en:
         submitting: Submitting...
     com:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.
@@ -3124,7 +3124,7 @@ en:
         submitting: Submitting...
     org:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.
@@ -3260,7 +3260,7 @@ en:
             us: US (MM/DD/YYYY)
     com:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.
@@ -3287,7 +3287,7 @@ en:
           back: Back to settings list
     org:
       roots:
-        message: "Base services are available. See /settings."
+        message: "Thin landing endpoint."
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.

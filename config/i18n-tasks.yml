@@ -24,14 +24,3 @@ search:
   # Dynamic keys are common in preference and ceremony flows, so let the
   # scanner infer key patterns instead of treating interpolated calls as opaque.
   strict: false
-
-# Keep known dynamic namespaces in the audit report until a dedicated hint is
-# added near the call site. These are interpolated by surface, type, or action
-# and would otherwise be easy to delete by mistake.
-ignore_unused:
-  - 'acme.{app,com,org}.preference.*'
-  - 'acme.{app,com,org}.preferences.*'
-  - 'base.{app,com,org}.preference.*'
-  - 'base.{app,com,org}.preferences.*'
-  - 'auth.{app,com,org}.settings.activity.events.*'
-  - 'sign.org.settings.operator_lifecycle_requests.actions.*'

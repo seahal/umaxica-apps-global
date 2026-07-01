@@ -11,7 +11,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
     @user = create_verified_user_with_email(email_address: "ui-foundation-#{SecureRandom.hex(4)}@example.com")
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     @sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
-    @acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
   end
 
   test "should render settings page with new UI foundation" do
@@ -60,7 +60,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
     Prosopite.pause do
       get auth_app_settings_totps_url(ri: "jp", host: @sign_host),
-          headers: acme_session_headers(scope: "settings_totp", host: @sign_host)
+          headers: base_session_headers(scope: "settings_totp", host: @sign_host)
 
       assert_response :success
 
@@ -112,7 +112,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
 
   private
 
-  def acme_session_headers(scope: nil, host: @acme_host)
+  def base_session_headers(scope: nil, host: @base_host)
     token = ClientToken.new(
       user: @user,
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
