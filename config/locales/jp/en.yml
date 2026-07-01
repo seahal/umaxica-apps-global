@@ -497,6 +497,19 @@ en:
             title: Edit passkey
             description: Update the name for this passkey.
         secret_credentials:
+          index:
+            title: Secret management
+            description: Manage registered secrets.
+            new: New secret
+          show:
+            title: Secret details
+            description: Review secret details.
+          edit:
+            title: Edit secret
+            description: Update secret details.
+          new:
+            title: New secret
+            description: Create a new secret.
           create:
             created: Secret has been saved.
           update:
@@ -3064,6 +3077,10 @@ en:
     app:
       roots:
         message: "Base services are available. See /settings."
+      sign:
+        in:
+          limitations:
+            invalid_or_expired: This sign-in limitation link is invalid or expired.
       preferences:
         title: Preferences
         description: Manage language, theme, and other preferences in one place.

@@ -11,19 +11,10 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
     @host = configured_host(:sign_staff)
   end
 
-  test "direct entry normalizes to acme org authorization" do
+  test "direct entry without a login challenge is rejected" do
     get auth_org_sign_up_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :redirect
-
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL"), uri.host
-    assert_equal "/oauth/authorize", uri.path
-    assert_not_equal "jump.umaxica.net", uri.host
-    assert_equal "sign-rp", query["client_id"]
-    assert_equal "signup", query["screen_hint"]
+    assert_response :unprocessable_content
     assert_nil session[:oidc_authorization_login_challenge]
   end
 

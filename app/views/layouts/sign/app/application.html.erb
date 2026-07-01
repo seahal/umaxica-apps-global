@@ -62,7 +62,7 @@
         <% content_for :footer_links do %>
           <ul class="flex gap-4">
             <% if logged_in? %>
-              <li><%= link_to t("sign.app.preferences.footer.dashboard"), auth_app_dashboard_path %></li>
+              <li><%= link_to t("sign.app.preferences.footer.dashboard"), base_app_dashboard_url(ri: current_region_identifier, host: base_authority_host) %></li>
             <% else %>
               <li><%= link_to t("sign.app.preferences.footer.home"), auth_app_root_path %></li>
             <% end %>

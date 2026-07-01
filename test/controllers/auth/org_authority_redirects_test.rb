@@ -22,7 +22,7 @@ class Auth::OrgAuthorityRedirectsTest < ActionDispatch::IntegrationTest
       assert_response :see_other
       location = URI.parse(response.location)
 
-      assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), location.host
+      assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host, location.host
       assert_equal path, location.path
     end
   end

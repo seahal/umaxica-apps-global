@@ -11,19 +11,10 @@ module Auth
         @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
-      test "direct entry normalizes to acme app authorization" do
+      test "direct entry without login challenge is rejected" do
         get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-        assert_response :redirect
-
-        uri = URI.parse(response.location)
-        query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-        assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
-        assert_equal "/oauth/authorize", uri.path
-        assert_not_equal "jump.umaxica.net", uri.host
-        assert_equal "sign-rp", query["client_id"]
-        assert_equal "signin", query["screen_hint"]
+        assert_response :unprocessable_content
         assert_nil session[:oidc_authorization_login_challenge]
         assert_nil session["oidc_pending_flows"]
       end
@@ -152,7 +143,7 @@ module Auth
         redirect_query = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)
         transaction = issuance.transaction.reload
 
-        assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+        assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_service.host, redirect_uri.host
         assert_equal "/oauth/authorize", redirect_uri.path
         assert_equal issuance.transaction.login_challenge, redirect_query["login_challenge"]
         assert_predicate transaction, :authenticated?
@@ -186,6 +177,9 @@ module Auth
       end
     end
   end
+end
+
+class Auth::App::AuthInsControllerTest
   private
 
   def host_headers(host = nil)
@@ -302,7 +296,7 @@ module Auth
 end
 
 # DAMP auth header helpers for this test class.
-class Auth::AuthInsControllerTest
+class Auth::App::AuthInsControllerTest
   private
 
   def host_headers(host = nil)

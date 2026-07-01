@@ -16,7 +16,7 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
   test "get sign out renders confirmation and post starts RP logout" do
     host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    acme_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
+    acme_host = Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host
     visitor = create_verified_visitor_with_email(email_address: "sign-com-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     satisfy_visitor_verification(token)

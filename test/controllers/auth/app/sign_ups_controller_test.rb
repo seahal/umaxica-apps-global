@@ -7,18 +7,10 @@ require "test_helper"
 class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "direct entry normalizes to acme app authorization" do
+  test "direct entry without a login challenge is rejected" do
     get auth_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
-    assert_response :redirect
-
-    uri = URI.parse(jump_rt_url_from_location(response.location))
-    query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
-    assert_equal "/oauth/authorize", uri.path
-    assert_equal "sign-rp", query["client_id"]
-    assert_equal "signup", query["screen_hint"]
+    assert_response :unprocessable_content
     assert_nil session[:oidc_authorization_login_challenge]
     assert_nil session["oidc_pending_flows"]
   end

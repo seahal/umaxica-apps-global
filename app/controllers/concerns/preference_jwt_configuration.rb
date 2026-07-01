@@ -124,8 +124,7 @@ module PreferenceJwtConfiguration
   private_class_method :parse_keyset, :decode_key
 
   def self.audiences_from_boot_config
-    hosts = Rails.configuration.x.boot_config.fetch(:hosts, nil) rescue nil
-    return [] unless hosts
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
     values =
       %i(base_service base_corporate base_staff).filter_map do |key|

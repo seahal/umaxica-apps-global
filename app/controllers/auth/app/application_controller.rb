@@ -89,11 +89,11 @@ module Auth
 
       private
 
-      # Direct Sign entrypoints keep signed-in clients on the credential host.
+      # Direct Auth entrypoints send signed-in clients to Base, which owns dashboard authority.
       def after_login_path
         return oidc_authorization_after_login_path if oidc_authorization_login_challenge.present?
 
-        auth_app_dashboard_path(ri: current_region_identifier)
+        base_app_dashboard_url(ri: current_region_identifier, host: base_authority_host)
       end
 
       def after_login_allows_other_host?

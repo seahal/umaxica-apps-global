@@ -113,6 +113,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
+      { controller: "auth/app/billings", action: "index" },
+      { path: "http://#{SIGN_APP_HOST}/billings", method: :get },
+    )
+
+    assert_recognizes(
       { controller: "auth/app/oidc/callbacks", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/oidc/callback", method: :get },
     )

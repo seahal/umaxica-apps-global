@@ -93,6 +93,9 @@ scope module: :base, as: :base do
       # Signed-in dashboard.
       resource :dashboard, only: :show
 
+      # Payments.
+      resources :billings, only: :index
+
       # Verification ceremony entrypoint.
       resource :verification, only: :show do
         post :completion

@@ -14,6 +14,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
+    host! @host
     @user = clients(:one)
     ClientEmail.create!(user: @user, address: "vf_#{SecureRandom.hex(4)}@example.com", user_email_status_id: ClientEmailStatus::VERIFIED)
     @token = ClientToken.create!(
@@ -23,8 +24,9 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
       public_id: "vf#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
     )
-    @headers = as_user_headers(@user, host: @host)
-    @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
+    # Bind the Bearer JWT to @token (the session the tests mutate below), not to
+    # a fresh token that as_user_headers would otherwise create.
+    @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id)
     @user.client_passkeys.create!(
       description: "Test passkey",
       webauthn_id: "test",
@@ -856,7 +858,13 @@ class VerificationFlowTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    # Present a real JWT so authenticate_client! succeeds. The dead X-TEST-* headers
+    # above are no longer read by app/, so without this the request is unauthenticated.
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -874,7 +882,11 @@ class VerificationFlowTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -892,7 +904,11 @@ class VerificationFlowTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

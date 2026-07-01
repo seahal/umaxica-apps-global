@@ -15,7 +15,7 @@ class Auth::Org::AuditControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), uri.host
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host, uri.host
     assert_equal "/audit", uri.path
   end
 

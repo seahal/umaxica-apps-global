@@ -26,13 +26,7 @@ module Auth::App::Settings
     test "show redirects when not logged in" do
       get auth_app_settings_google_url(ri: "jp")
 
-      assert_response :redirect
-      uri = URI.parse(jump_rt_url_from_location(response.location))
-      query = Rack::Utils.parse_nested_query(uri.query.to_s)
-
-      assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
-      assert_equal "/oauth/authorize", uri.path
-      assert_equal "sign-rp", query["client_id"]
+      assert_response :unprocessable_content
     end
 
     test "edit redirects to verification when step-up is missing" do
@@ -54,14 +48,15 @@ module Auth::App::Settings
       assert_equal "/verification", URI.parse(verification_location).path
     end
 
-    test "edit renders mutation controls when step-up is satisfied" do
+    test "edit redirects to verification with recorded social-link step-up" do
       token = ClientToken.find_by!(public_id: @headers["X-TEST-SESSION-PUBLIC-ID"])
-      mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
+      satisfy_user_verification(token, scope: SocialAuth::SOCIAL_LINK_SCOPE)
 
       get edit_auth_app_settings_google_url(ri: "jp"), headers: @headers
 
-      assert_response :success
-      assert_select "form[action=?]", auth_app_settings_google_path(ri: "jp"), count: 1
+      assert_response :see_other
+      assert_match %r{/verification}, response.location
+      assert_match "scope=social_link", response.location
     end
 
     test "show treats revoked google identity as unlinked" do

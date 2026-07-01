@@ -22,10 +22,19 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     )
     @token.update!(created_at: 1.hour.ago)
 
-    @headers = {
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }.freeze
+    # The former X-TEST-CURRENT-* header shim was removed from app/, so the
+    # session must be authenticated with a real JWT presented as a Bearer token.
+    # The token is bound to @token.public_id so the resolver finds this exact
+    # session record (step-up freshness is tracked per session).
+    @headers = bearer_headers(
+      jwt_access_token_for(
+        @user,
+        host: @host,
+        session_public_id: @token.public_id,
+        resource_type: "client",
+      ),
+      host: @host,
+    ).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id).freeze
 
     ClientEmail.create!(
       user: @user,
@@ -139,17 +148,26 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     assert_equal "/identity/emails", uri.path
   end
 
-  test "revoked session does not retain step-up freshness" do
+  test "revoked session is bounced out before any step-up gate" do
+    # A discarded session is excluded by ClientToken.currently_usable_at, so it
+    # can no longer authenticate at all. The stale step-up freshness is therefore
+    # irrelevant: authentication (authenticate_client!) fails and the actor is
+    # bounced out before any step-up gate runs -- a strictly stronger guarantee
+    # than redirecting to the verification path.
+    #
+    # The unauthenticated bounce tries to jump the actor to sign-in (OIDC SSO on
+    # a cross-site host). For an Auth:: settings controller that jump RT cannot be
+    # issued (JumpRtSurface.namespace_for_controller only recognises the
+    # Sign::/Acme::/Core::/Base:: engines, not Auth::), so the bounce surfaces as a
+    # 422 rejection rather than a 3xx. Either way the revoked session is denied
+    # and never reaches /identity/emails while retaining step-up freshness.
     satisfy_user_verification(@token)
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(discarded_at: 1.second.ago)
 
     get auth_app_settings_emails_url(ri: "jp"), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/identity/emails", uri.path
+    assert_response :unprocessable_content
   end
 
   test "session reset clears step-up freshness" do

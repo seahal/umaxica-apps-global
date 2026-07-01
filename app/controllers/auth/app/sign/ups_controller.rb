@@ -43,7 +43,7 @@ module Auth
         # in the cross-host redirect chain when the SSO handshake briefly
         # revisited this endpoint.
         def redirect_logged_in_direct_entry!
-          redirect_to(auth_app_dashboard_path(ri: params[:ri]))
+          redirect_to(base_app_dashboard_url(ri: params[:ri], host: base_authority_host), allow_other_host: true)
         end
 
         def normalize_to_acme_authorize!

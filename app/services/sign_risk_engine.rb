@@ -53,7 +53,7 @@ class SignRiskEngine
   # default-on decision. While off, ip_change_detected is recorded as a signal
   # only and does not score.
   def self.ip_anomaly_revoke_enabled?
-    ENV.fetch("IP_ANOMALY_REVOKE_ENABLED") == "true" ||
+    ENV.fetch("IP_ANOMALY_REVOKE_ENABLED", "false") == "true" ||
       !!Rails.configuration.try(:x).try(:ip_anomaly_revoke).try(:enabled)
   end
 

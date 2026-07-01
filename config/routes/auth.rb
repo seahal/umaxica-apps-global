@@ -18,6 +18,7 @@ auth_routes do
   auth_surface :app, host: [hosts.auth_service.host, "auth.app.localhost"] do
     root "roots#index"
 
+    # TODO: WHAT IS THIS? CHECK IT OUT
     auth_public_gateway_routes
 
     # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
@@ -29,11 +30,8 @@ auth_routes do
       end
     end
 
-    # TODO: WHAT IS THIS?
+    # TODO: WHAT IS THIS? CHECK IT OUT
     auth_rp_oidc_routes
-
-    # Dashboard.
-    resource :dashboard, only: :show # FIXME: DELETE THIS!
 
     # Public web API: OTP delivery, cookie consent, theme.
     namespace :web do
@@ -163,6 +161,7 @@ auth_routes do
       end
 
       resources :activities, only: :index
+
       resource :withdrawal, only: %i(new update create edit destroy)
     end
   end
@@ -183,9 +182,6 @@ auth_routes do
     end
 
     auth_rp_oidc_routes
-
-    # Dashboard.
-    resource :dashboard, only: :show
 
     # Public web API: OTP delivery, cookie consent, theme.
     namespace :web do
@@ -314,9 +310,6 @@ auth_routes do
     root "roots#index"
 
     auth_public_gateway_routes
-
-    # Dashboard.
-    resource :dashboard, only: :show
 
     # Staff management areas.
     resource :configuration, only: :show

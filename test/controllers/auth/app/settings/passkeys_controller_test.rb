@@ -78,7 +78,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     uri = URI.parse(jump_rt_url_from_location(response.location))
     query = Rack::Utils.parse_nested_query(uri.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal Rails.configuration.x.boot_config.fetch(:hosts).base_service.host, uri.host
     assert_equal "/oauth/authorize", uri.path
     assert_equal "sign-rp", query["client_id"]
   end

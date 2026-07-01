@@ -7,6 +7,7 @@ require "test_helper"
 class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @base_host = Rails.configuration.x.boot_config.fetch(:hosts).base_service.host
     host! @host
   end
 
@@ -16,7 +17,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       new_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+        host: @base_host,
         protocol: "https",
       ),
       response.location,
@@ -42,7 +43,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: @base_host, protocol: "https",
       ),
       response.location,
     )
@@ -64,7 +65,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     assert_equal(
       complete_auth_app_sign_out_url(
-        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), protocol: "https",
+        host: @base_host, protocol: "https",
       ),
       response.location,
     )
@@ -76,7 +77,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), uri.host
+    assert_equal @base_host, uri.host
     assert_equal "/sign/out/complete", uri.path
   end
 

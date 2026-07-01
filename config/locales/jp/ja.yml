@@ -1006,6 +1006,8 @@ ja:
             last_method: 最後のログイン手段のため削除できません。
         secret_credentials:
           index:
+            title: シークレット管理
+            description: 登録済みのシークレットを管理します。
             new: 新規作成
           show:
             title: シークレットの詳細
@@ -3727,6 +3729,10 @@ ja:
     app:
       roots:
         message: "Base services are available. See /settings."
+      sign:
+        in:
+          limitations:
+            invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
       preferences:
         title: 設定
         description: アカウントの設定を管理します。
