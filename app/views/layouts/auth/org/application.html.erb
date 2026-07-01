@@ -1,85 +1,62 @@
-<%
-  tld = :org
-  title_site = "#{ENV.fetch('BRAND_NAME')} (#{tld})"
-%>
+<% title_site = "#{ENV.fetch("BRAND_NAME")} (org) Auth" %>
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
 <head>
+  <meta charset="utf-8">
   <%= display_meta_tags site: title_site, title: page_title %>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="turbo-refresh-method" content="morph">
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= vite_client_tag nonce: true %>
   <%= vite_react_refresh_tag nonce: true %>
   <%= vite_typescript_tag "entrypoints/sign/org", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
-  <%= yield :head %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
 </head>
-
-<body class="font-mono bg-white text-black min-h-screen flex flex-col p-2">
-  <div class="border-2 border-black flex-grow flex flex-col">
-    <header class="border-b-2 border-black p-2">
-      <nav class="flex flex-wrap gap-2 items-center justify-between mb-2 text-sm">
-        <div class="flex gap-2">
-          <%= render "layouts/shared/flash_messages" %>
-          <%= render "layouts/shared/current_banner", tld: tld, domain: :sign, region: :global %>
-        </div>
-        <div class="flex gap-2">
-          <% content_for :nav_links do %>
-            <% if logged_in? %>
-              <%= link_to t("sign.org.layout.nav.logout"), new_auth_org_sign_out_path %>
-            <% else %>
-              <%= link_to t("sign.org.layout.nav.sign_up"), auth_org_sign_up_url %>
-              <%= link_to t("sign.org.layout.nav.log_in"), auth_org_sign_in_url %>
-            <% end %>
+<body>
+  <header>
+    <%= render "layouts/shared/flash_messages" %>
+    <%= render "layouts/shared/current_banner", tld: :org, domain: :sign, region: :global %>
+    <% unless @hide_auth_navigation %>
+      <nav aria-label="Primary">
+        <ul>
+          <% if logged_in? %>
+            <li><%= link_to t("sign.org.layout.nav.logout"), new_auth_org_sign_out_path %></li>
+          <% else %>
+            <li><%= link_to t("sign.org.layout.nav.sign_up"), auth_org_sign_up_url %></li>
+            <li><%= link_to t("sign.org.layout.nav.log_in"), auth_org_sign_in_url %></li>
           <% end %>
-          <%= yield :nav_links %>
-        </div>
+        </ul>
       </nav>
-      <div class="flex items-center gap-2">
-        <span class="bg-black text-white px-1 font-bold text-xs">SIGN</span>
-        <h1 class="text-lg font-bold">
-          <% content_for :root_link do %>
-            <%= link_to ENV.fetch("BRAND_NAME"), auth_org_root_path %>
-          <% end %>
-          <%= yield :root_link %>
-          <span class="opacity-50 text-sm">(<%= tld %>)</span>
-        </h1>
-      </div>
-    </header>
+    <% end %>
+    <p><strong><%= link_to ENV.fetch("BRAND_NAME"), auth_org_root_path %></strong> (org)</p>
+  </header>
 
-    <main class="p-2 flex-grow">
-      <%= yield %>
-    </main>
+  <main id="main">
+    <%= yield %>
+  </main>
 
-    <footer class="border-t-2 border-black p-2 text-xs">
-      <nav class="mb-2">
-        <% content_for :footer_links do %>
-          <ul class="flex gap-4">
-            <% if logged_in? %>
-              <li><%= link_to t("sign.org.preferences.footer.dashboard"), base_org_dashboard_url(ri: current_region_identifier, host: base_authority_host) %></li>
-            <% else %>
-              <li><%= link_to t("sign.org.preferences.footer.home"), auth_org_root_url %></li>
-            <% end %>
-            <li><%= link_to t("sign.org.preferences.footer.preference"), auth_org_settings_path %></li>
-            <li><%= link_to t("sign.org.preferences.footer.settings"), auth_org_settings_path %></li>
-          </ul>
+  <footer>
+    <nav aria-label="Footer">
+      <ul>
+        <% if logged_in? %>
+          <li><%= link_to t("sign.org.preferences.footer.dashboard"), base_org_dashboard_url(ri: current_region_identifier, host: base_authority_host) %></li>
+        <% else %>
+          <li><%= link_to t("sign.org.preferences.footer.home"), auth_org_root_url %></li>
         <% end %>
-        <%= yield :footer_links %>
-      </nav>
-      <div class="flex flex-wrap justify-between items-end gap-2 border-t border-black pt-2">
-        <div class="flex gap-4">
-          <%= render "layouts/shared/footer_cookie_controls", scope: tld, base_host: base_authority_host %>
-          <%= render "layouts/shared/footer_theme_controls", scope: tld %>
-        </div>
-        <div>
-          <%= render "layouts/shared/copyright" %>
-        </div>
-      </div>
-    </footer>
-  </div>
+        <li><%= link_to t("sign.org.preferences.footer.preference"), auth_org_settings_path %></li>
+        <li><%= link_to t("sign.org.preferences.footer.settings"), auth_org_settings_path %></li>
+      </ul>
+    </nav>
+    <aside aria-label="Preferences">
+      <%= render "layouts/shared/footer_cookie_controls", scope: :org, base_host: base_authority_host %>
+      <%= render "layouts/shared/footer_theme_controls", scope: :org %>
+    </aside>
+    <div>
+      <%= render "layouts/shared/copyright" %>
+    </div>
+  </footer>
 </body>
 </html>

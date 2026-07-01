@@ -34,6 +34,8 @@ module Base
 
       AUTHENTICATION_MODE = :deny_all
 
+      layout "base/org/application"
+
       authorize :user, through: :current_policy_user
       authorize :actor, through: :current_actor
       rescue_from AuthenticationBase::LoginCooldownError, with: :render_login_cooldown

@@ -7,6 +7,9 @@ browser-origin, and credential-specific flows.
 
 This document is the stable docs companion to `docs/identity/authority-boundary.md`.
 
+In the current Rails route vocabulary, apply this boundary to Auth versus Base: Auth is the
+credential gateway / ceremony host, and Base owns identity-management settings.
+
 ## Allowed Sign/ID Responsibilities
 
 `sign/id` may execute:
@@ -32,6 +35,18 @@ It may also write ceremony audit records.
 
 Existing sign-side tables, models, namespaces, or route names are compatibility placement only
 unless a current ADR explicitly assigns credential inventory or ceremony state to `sign/id`.
+
+Auth settings may keep only credential ceremony-backed settings:
+
+| Surface | Allowed Auth settings scope |
+| ------- | --------------------------- |
+| `app`   | passkeys, TOTP, Google, Apple |
+| `com`   | passkeys |
+| `org`   | passkeys, Entra |
+
+Emails, telephones, birthdate, secrets, secret credentials, sessions, revocations, activities, and
+withdrawal belong to Base identity. Retired Auth settings URLs must not redirect to Base identity;
+they must be unroutable after migration.
 
 ## Ceremony Contract
 

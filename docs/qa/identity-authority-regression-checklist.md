@@ -35,6 +35,12 @@ Remaining bounded legacy:
 - `sign/id` does not store `recent_auth`, `sudo`, `last_step_up_at`, or equivalent freshness.
 - `sign/id` does not own preference writes, settings, dashboards, withdrawal, account lifecycle, or
   session-management UI.
+- Auth settings does not own identity, profile, session-management, activity, or lifecycle routes
+  except for the approved credential ceremony-backed settings matrix:
+  app passkeys/TOTP/Google/Apple, com passkeys, and org passkeys/Entra.
+- Retired Auth settings routes for emails, telephones, birthdate, secrets, secret credentials,
+  sessions, revocations, activities, and withdrawal are unroutable. They must not redirect to Base,
+  return compatibility `410 Gone`, or remain available through alias helpers.
 - Migrated acme pages render acme templates/layouts and do not reuse `sign/...` account, preference,
   dashboard, settings, withdrawal, session-management, or sign-out templates.
 - Migrated acme forms submit to acme routes; they do not generate `id.umaxica.*` or other sign-host
@@ -107,6 +113,10 @@ Classify every remaining sign-side hit as one of:
 
 Do not leave sign-side session, token, account, preference, freshness, or lifecycle mutations
 unclassified.
+
+For the Auth settings to Base identity migration, `COMPATIBILITY_WRAPPER_ALLOWED` is not an allowed
+classification for retired settings routes. Non-exception Auth settings routes must be classified as
+`AUTHORITY_VIOLATION_FIX` until removed, or `DEAD_CODE_REMOVE` when no callsite remains.
 
 ## Guard Commands
 

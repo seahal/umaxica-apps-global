@@ -1,14 +1,13 @@
 # typed: false
 # frozen_string_literal: true
 
-# Auth owns the credential gateway surfaces. Base is the sole IdP /
-# Authorization Server; Auth surfaces handle credential ceremonies and do not
-# own RP authority.
-scope(module: :auth, as: :auth) do
-  # User credential gateway host. Hosts listed declaratively (DRY intentionally broken).
+# Base owns the credential gateway surfaces. Auth surfaces handle credential
+# ceremonies and do not own RP authority.
+scope(module: :base, as: :base) do
+  # User authority gateway host. Hosts listed declaratively (DRY intentionally broken).
   constraints(
-    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"],
-           "auth.app.localhost",].compact,
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).base_service.host, ENV["PUBLIC_BASE_SERVICE_URL"],
+           "base.app.localhost",].compact,
   ) do
     scope(module: :app, as: :app) do
       root "roots#index"
@@ -259,10 +258,10 @@ scope(module: :auth, as: :auth) do
     end
   end
 
-  # Corporate credential gateway host.
+  # Corporate authority gateway host.
   constraints(
-    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_corporate.host,
-           ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost",].compact,
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
+           ENV["PUBLIC_BASE_CORPORATE_URL"], "base.com.localhost",].compact,
   ) do
     scope(module: :com, as: :com) do
       root "roots#index"
@@ -446,10 +445,10 @@ scope(module: :auth, as: :auth) do
     end
   end
 
-  # Staff credential gateway host.
+  # Staff authority gateway host.
   constraints(
-    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"],
-           "auth.org.localhost",].compact,
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host, ENV["PUBLIC_BASE_STAFF_URL"],
+           "base.org.localhost",].compact,
   ) do
     scope(module: :org, as: :org) do
       root "roots#index"

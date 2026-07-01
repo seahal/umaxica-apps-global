@@ -2,18 +2,25 @@
 # frozen_string_literal: true
 
 require "test_helper"
-# require "helpers/global_test_support"
 
 class LayoutMetaTagsTest < ActiveSupport::TestCase
   LAYOUT_PATHS = {
-    "Base::App" => "app/views/layouts/acme/app/application.html.erb",
+    "Base::App" => "app/views/layouts/base/app/application.html.erb",
     "Base::App::Inertia" => "app/views/layouts/base/app/inertia.html.erb",
-    "Base::Com" => "app/views/layouts/acme/com/application.html.erb",
-    "Base::Org" => "app/views/layouts/acme/org/application.html.erb",
+    "Base::Com" => "app/views/layouts/base/com/application.html.erb",
+    "Base::Org" => "app/views/layouts/base/org/application.html.erb",
     "Auth::App" => "app/views/layouts/auth/app/application.html.erb",
     "Auth::Com" => "app/views/layouts/auth/com/application.html.erb",
     "Auth::Org" => "app/views/layouts/auth/org/application.html.erb",
   }.freeze
+
+  test "all layouts include a charset meta tag" do
+    LAYOUT_PATHS.each do |name, path|
+      content = Rails.root.join(path).read
+
+      assert_includes content, '<meta charset="utf-8">', "Expected charset meta tag in #{name} layout (#{path})"
+    end
+  end
 
   test "all layouts include turbo-refresh-scroll meta tag" do
     LAYOUT_PATHS.each do |name, path|

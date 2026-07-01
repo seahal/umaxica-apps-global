@@ -7,6 +7,12 @@
 > Resource Server. This document remains historical Rails migration context where it describes
 > `acme/www` and `sign/id`.
 
+> **Settings ownership update (2026-07-01):** For Auth settings to Base identity migration work,
+> `adr/identity-authority-boundary.md` and
+> `docs/architecture/sign-settings-to-acme-identity.md` supersede the older compatibility-route
+> language below. Retired non-exception Auth settings routes must be removed without redirect,
+> alias, or `410 Gone` compatibility shims.
+
 ## Current Boundary
 
 `acme/www` is the Session, Token, Account, Preference, Authorization, and downstream-token
@@ -26,6 +32,11 @@ renaming accepted `/sign/up/*` or `/social/*` paths.
 This document describes the accepted authority boundary. The implementation is still being inverted.
 Some existing `sign/id` routes and controllers may remain reachable as compatibility routes until
 the active implementation slices move or redirect them.
+
+That compatibility allowance does not apply to the Auth settings to Base identity migration.
+Non-exception Auth settings routes for emails, telephones, birthdate, secrets, secret credentials,
+sessions, revocations, activities, and withdrawal must become unroutable. Auth settings may retain
+only app passkeys/TOTP/Google/Apple, com passkeys, and org passkeys/Entra.
 
 Compatibility routes must not be treated as new authority assignments. If implementation currently
 mutates session, refresh, preference, dashboard, withdrawal, token, account, or step-up freshness

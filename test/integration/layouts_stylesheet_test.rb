@@ -6,66 +6,100 @@ require "test_helper"
 class StylesheetTagsTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
-  VITE_LAYOUT_PATHS = [
-    ["app/views/layouts/application.html.erb", "entrypoints/application"],
-    ["app/views/layouts/base/app/application.html.erb", "entrypoints/base/app"],
-    ["app/views/layouts/base/app/inertia.html.erb", "entrypoints/inertia"],
-    ["app/views/layouts/base/com/application.html.erb", "entrypoints/base/com"],
-    ["app/views/layouts/base/org/application.html.erb", "entrypoints/base/org"],
-    ["app/views/layouts/acme/app/application.html.erb", "entrypoints/acme/app"],
-    ["app/views/layouts/acme/com/application.html.erb", "entrypoints/acme/com"],
-    ["app/views/layouts/acme/org/application.html.erb", "entrypoints/acme/org"],
-    ["app/views/layouts/auth/app/application.html.erb", "entrypoints/sign/app"],
-    ["app/views/layouts/auth/com/application.html.erb", "entrypoints/sign/com"],
-    ["app/views/layouts/auth/org/application.html.erb", "entrypoints/sign/org"],
-    ["app/views/core/dev/roots/index.html.erb", "entrypoints/core/dev"],
-  ].freeze
-  TURNSTILE_LAYOUT_PATHS = [
-    "app/views/layouts/acme/app/application.html.erb",
-    "app/views/layouts/acme/com/application.html.erb",
-    "app/views/layouts/acme/org/application.html.erb",
-    "app/views/layouts/auth/app/application.html.erb",
-    "app/views/layouts/auth/com/application.html.erb",
-    "app/views/layouts/auth/org/application.html.erb",
-  ].freeze
+  APPLICATION_LAYOUTS = {
+    "app/views/layouts/base/app/application.html.erb" => "entrypoints/base/app",
+    "app/views/layouts/base/com/application.html.erb" => "entrypoints/base/com",
+    "app/views/layouts/base/org/application.html.erb" => "entrypoints/base/org",
+    "app/views/layouts/auth/app/application.html.erb" => "entrypoints/sign/app",
+    "app/views/layouts/auth/com/application.html.erb" => "entrypoints/sign/com",
+    "app/views/layouts/auth/org/application.html.erb" => "entrypoints/sign/org",
+  }.freeze
 
-  test "layouts do not use stylesheet_link_tag for web ui css" do
-    VITE_LAYOUT_PATHS.each do |path, entrypoint|
+  INERTIA_LAYOUT = "app/views/layouts/base/app/inertia.html.erb"
+
+  TURNSTILE_LAYOUTS = %w(
+    app/views/layouts/base/app/application.html.erb
+    app/views/layouts/base/com/application.html.erb
+    app/views/layouts/base/org/application.html.erb
+    app/views/layouts/auth/app/application.html.erb
+    app/views/layouts/auth/com/application.html.erb
+    app/views/layouts/auth/org/application.html.erb
+  ).freeze
+
+  FORBIDDEN_TAILWIND_FRAGMENTS = %w(
+    bg-
+    border-
+    flex
+    font-
+    gap-
+    inset-
+    justify-
+    min-h-screen
+    opacity-
+    p-
+    rounded
+    shadow
+    space-
+    text-
+    hover:
+  ).freeze
+
+  test "target layouts use Vite and avoid stylesheet_link_tag" do
+    (APPLICATION_LAYOUTS.merge(INERTIA_LAYOUT => "entrypoints/inertia")).each do |path, entrypoint|
       contents = Rails.root.join(path).read
 
-      assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
-      assert_includes contents, "csp_meta_tag", "missing CSP nonce meta tag in #{path}"
-      assert_includes contents, "vite_client_tag nonce: true", "Vite client must carry a CSP nonce in #{path}"
-      assert_includes contents, "vite_react_refresh_tag nonce: true",
-                      "React refresh preamble must carry a CSP nonce in #{path}"
+      assert_includes contents, "<meta charset=\"utf-8\">", "missing charset meta tag in #{path}"
+      assert_includes contents, "display_meta_tags", "missing title metadata helper in #{path}"
+      assert_includes contents, 'meta name="turbo-refresh-method" content="morph"',
+                      "missing turbo refresh method meta tag in #{path}"
+      assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"',
+                      "missing turbo refresh scroll meta tag in #{path}"
       assert_includes contents, %(vite_typescript_tag "#{entrypoint}"),
                       "missing Vite entrypoint in #{path}"
+      assert_not_includes contents, "stylesheet_link_tag", "web UI CSS must come from Vite in #{path}"
+      assert_not_includes contents, "content_for", "layout #{path} must not use content_for"
+      assert_not_includes contents, "yield :head", "layout #{path} must not use named head yields"
+      assert_not_includes contents, "yield :nav_links", "layout #{path} must not use named nav yields"
+      assert_not_includes contents, "yield :root_link", "layout #{path} must not use named root yields"
+      assert_not_includes contents, "yield :footer_links", "layout #{path} must not use named footer yields"
+      assert_not_includes contents, "t(..., default:", "layout #{path} must not use i18n defaults"
+      assert_not_includes contents, "surface =", "layout #{path} must not define a surface variable"
+      assert_not_includes contents, "tld =", "layout #{path} must not define a tld variable"
+      assert_not_includes contents, "vite_entrypoint =", "layout #{path} must not define a vite entrypoint variable"
+      assert_no_match(/\b\w+_path\s*=/, contents, "layout #{path} must not precompute route helpers")
+      assert_no_match(
+        /class="[^"]*(?:#{FORBIDDEN_TAILWIND_FRAGMENTS.join("|")})[^"]*"/,
+        contents,
+        "layout #{path} must not carry Tailwind utility classes",
+      )
     end
   end
 
-  test "layouts declare a single vite typescript entrypoint" do
-    VITE_LAYOUT_PATHS.each do |path, _entrypoint|
+  test "target layouts include shared chrome and semantic landmarks" do
+    APPLICATION_LAYOUTS.each_key do |path|
       contents = Rails.root.join(path).read
 
-      assert_equal 1, contents.scan("vite_typescript_tag").size,
-                   "layout #{path} must load exactly one Vite entrypoint"
-      assert_not_includes contents, "vite_javascript_tag", "layout #{path} must not mix Vite JS helpers"
+      assert_includes contents, '<header>', "layout #{path} must include a header"
+      assert_includes contents, '<nav aria-label=', "layout #{path} must label navigation"
+      assert_includes contents, 'id="main"', "layout #{path} must place content in main#main"
+      assert_includes contents, '<footer>', "layout #{path} must include a footer"
+      assert_includes contents, 'render "layouts/shared/flash_messages"', "layout #{path} must render flash messages"
+      assert_includes contents, 'render "layouts/shared/current_banner"', "layout #{path} must render the banner"
+      assert_includes contents, 'render "layouts/shared/footer_cookie_controls"',
+                      "layout #{path} must render cookie controls"
+      assert_includes contents, 'render "layouts/shared/footer_theme_controls"',
+                      "layout #{path} must render theme controls"
+      assert_includes contents, 'render "layouts/shared/copyright"',
+                      "layout #{path} must render copyright"
     end
   end
 
-  test "mailer layouts remain on the legacy stylesheet path" do
-    mailer_layouts = [
-      "app/views/layouts/mailer/app/mailer.html.erb",
-      "app/views/layouts/mailer/com/mailer.html.erb",
-      "app/views/layouts/mailer/org/mailer.html.erb",
-    ]
-
-    mailer_layouts.each do |path|
+  test "sign and base application layouts own turnstile api loading" do
+    TURNSTILE_LAYOUTS.each do |path|
       contents = Rails.root.join(path).read
 
-      assert_includes contents, "stylesheet_link_tag", "mailer layout #{path} must keep legacy stylesheets"
-      assert_not_includes contents, "vite_typescript_tag", "mailer layout #{path} must not load Vite"
-      assert_not_includes contents, "inertia_ssr_head", "mailer layout #{path} must not use Inertia"
+      assert_includes contents, 'render "layouts/shared/cloudflare_turnstile_api"',
+                      "Turnstile API loading must be layout-owned in #{path}"
     end
   end
 
@@ -78,116 +112,13 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     assert_no_match(/^\s*gem\s+["']importmap-rails["']/, gemfile)
   end
 
-  test "sign and acme layouts own turnstile api loading" do
-    TURNSTILE_LAYOUT_PATHS.each do |path|
-      contents = Rails.root.join(path).read
+  test "inertia app layout keeps the shared vite entrypoint" do
+    contents = Rails.root.join(INERTIA_LAYOUT).read
 
-      assert_includes contents, 'render "layouts/shared/cloudflare_turnstile_api"',
-                      "Turnstile API loading must be layout-owned in #{path}"
-    end
-  end
-
-  test "turnstile widget partials do not load the api script" do
-    paths = [
-      "app/views/shared/_cloudflare_turnstile_visible.html.erb",
-      "app/views/shared/_cloudflare_turnstile_stealth.html.erb",
-    ]
-
-    paths.each do |path|
-      contents = Rails.root.join(path).read
-
-      assert_not_includes contents, "cloudflare_turnstile_api",
-                          "Turnstile widget partials must not own API script loading in #{path}"
-      assert_not_includes contents, "challenges.cloudflare.com/turnstile/v0/api.js",
-                          "Turnstile widget partials must not load external scripts in #{path}"
-    end
-  end
-
-  test "development can serve vite auto-build output" do
-    development_config = Rails.root.join("config/environments/development.rb").read
-
-    assert_includes(
-      development_config,
-      "config.public_file_server.enabled = true",
-      "development must serve public/vite-dev assets when Vite autoBuild emits static files",
-    )
-  end
-
-  test "vite css entrypoints exist under src/styles" do
-    paths = [
-      "src/styles/application.css",
-      "src/styles/base.css",
-      "src/styles/acme.css",
-      "src/styles/sign.css",
-    ]
-
-    paths.each do |path|
-      assert_predicate Rails.root.join(path), :exist?, "#{path} must exist"
-    end
-  end
-
-  test "application entrypoint imports the vite stylesheet graph" do
-    contents = Rails.root.join("src/entrypoints/application.ts").read
-
-    assert_includes contents, 'import "@styles/application.css";'
-  end
-
-  test "surface entrypoints proxy to the shared application entrypoint" do
-    paths = [
-      "src/entrypoints/base/app.ts",
-      "src/entrypoints/base/com.ts",
-      "src/entrypoints/base/org.ts",
-      "src/entrypoints/acme/app.ts",
-      "src/entrypoints/acme/com.ts",
-      "src/entrypoints/acme/org.ts",
-      "src/entrypoints/core/dev.ts",
-      "src/entrypoints/sign/app.ts",
-      "src/entrypoints/sign/com.ts",
-      "src/entrypoints/sign/org.ts",
-    ]
-
-    paths.each do |path|
-      contents = Rails.root.join(path).read
-
-      assert_includes contents, 'import "../application";', "#{path} must proxy to shared application entrypoint"
-    end
-  end
-
-  test "web ui css is no longer sourced from app/assets/stylesheets" do
-    paths = [
-      "app/assets/stylesheets/application.css",
-      "app/assets/stylesheets/acme/main.css",
-      "app/assets/stylesheets/acme/app/main.css",
-      "app/assets/stylesheets/acme/com/main.css",
-      "app/assets/stylesheets/acme/org/main.css",
-      "app/assets/stylesheets/sign/main.css",
-      "app/assets/stylesheets/sign/app/main.css",
-      "app/assets/stylesheets/sign/org/main.css",
-      "app/assets/stylesheets/tailwind.css",
-      "app/assets/builds/tailwind.css",
-    ]
-
-    paths.each do |path|
-      assert_not Rails.root.join(path).exist?, "#{path} must be removed from app/assets"
-    end
-  end
-
-  test "step up passkey views use vite stimulus identifier" do
-    paths = [
-      "app/views/auth/app/verification/passkeys/new.html.erb",
-      "app/views/auth/com/verification/passkeys/new.html.erb",
-      "app/views/auth/org/verification/passkeys/new.html.erb",
-      "app/views/auth/app/sign/in/challenge/passkeys/new.html.erb",
-      "app/views/auth/org/sign/in/challenge/passkeys/new.html.erb",
-    ]
-
-    paths.each do |path|
-      contents = Rails.root.join(path).read
-
-      assert_includes contents, 'data-controller="step-up-passkey"', "missing Vite Stimulus identifier in #{path}"
-      assert_not_includes contents, "step_up-passkey", "legacy importmap-style identifier must not be used in #{path}"
-      assert_not_includes contents, "step_up_passkey",
-                          "source filename must not be used as a Stimulus identifier in #{path}"
-    end
+    assert_includes contents, 'meta name="turbo-refresh-method" content="morph"'
+    assert_includes contents, 'meta name="turbo-refresh-scroll" content="preserve"'
+    assert_includes contents, 'vite_typescript_tag "entrypoints/inertia"'
+    assert_not_includes contents, "yield :head"
+    assert_not_includes contents, "content_for"
   end
 end

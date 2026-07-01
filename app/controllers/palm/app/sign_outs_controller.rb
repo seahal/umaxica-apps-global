@@ -5,6 +5,7 @@ module Palm
   module App
     class SignOutsController < Palm::App::BareController
       AUTHENTICATION_MODE = :bare
+      layout "palm/app/application"
 
       def show
         response.set_header("Cache-Control", "no-store")

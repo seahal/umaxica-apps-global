@@ -21,6 +21,8 @@ module Side
 
       AUTHENTICATION_MODE = :deny_all
 
+      layout "side/com/application"
+
       allow_browser versions: :modern
 
       protect_from_forgery using: :header_or_legacy_token,

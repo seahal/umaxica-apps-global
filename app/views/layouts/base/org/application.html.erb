@@ -1,48 +1,44 @@
-<%
-  tld = :org
-  title_site = "#{ENV.fetch('BRAND_NAME')} (#{tld})"
-%>
+<% title_site = "#{ENV.fetch("BRAND_NAME")} (org) Base" %>
 <!DOCTYPE html>
 <html lang="<%= get_language %>" data-theme="<%= theme_cookie_value %>" class="<%= theme_html_class %>">
 <head>
+  <meta charset="utf-8">
   <%= display_meta_tags site: title_site, title: page_title %>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="turbo-refresh-method" content="morph">
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= vite_client_tag nonce: true %>
   <%= vite_react_refresh_tag nonce: true %>
   <%= vite_typescript_tag "entrypoints/base/org", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
-  <%= yield :head %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
 </head>
-<body class="font-mono bg-white text-black min-h-screen flex flex-col p-2">
-  <div class="border-2 border-black flex-grow flex flex-col">
-    <header class="border-b-2 border-black p-2">
-      <nav class="flex flex-wrap gap-2 items-center justify-between mb-2 text-sm">
-        <div class="flex gap-2">
-          <%= render "layouts/shared/flash_messages" %>
-          <%= render "layouts/shared/current_banner", tld: tld, domain: :acme, region: :global %>
-        </div>
-      </nav>
-      <div class="flex items-center gap-2">
-        <span class="bg-black text-white px-1 font-bold text-xs">BASE</span>
-        <h1 class="text-lg font-bold">
-          <%= link_to ENV.fetch("BRAND_NAME"), base_org_root_path %>
-          <span class="opacity-50 text-sm">(<%= tld %>)</span>
-        </h1>
-      </div>
-    </header>
-    <main class="p-2 flex-grow">
-      <%= yield %>
-    </main>
-    <footer class="border-t-2 border-black p-2 text-sm">
+<body>
+  <header>
+    <%= render "layouts/shared/flash_messages" %>
+    <%= render "layouts/shared/current_banner", tld: :org, domain: :acme, region: :global %>
+    <nav aria-label="Primary">
+      <ul>
+        <li><%= link_to ENV.fetch("BRAND_NAME"), base_org_root_path %></li>
+      </ul>
+    </nav>
+    <p><strong>BASE</strong> (org)</p>
+  </header>
+
+  <main id="main">
+    <%= yield %>
+  </main>
+
+  <footer>
+    <aside aria-label="Preferences">
       <%= render "layouts/shared/footer_cookie_controls", scope: :org %>
       <%= render "layouts/shared/footer_theme_controls", scope: :org %>
+    </aside>
+    <div>
       <%= render "layouts/shared/copyright" %>
-    </footer>
-  </div>
+    </div>
+  </footer>
 </body>
 </html>
