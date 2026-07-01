@@ -4,7 +4,7 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class Base::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
+class Base::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "base-com-sign-out-#{SecureRandom.hex(4)}@example.com")
@@ -63,7 +63,7 @@ class Base::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 end
 
 # DAMP local helper copy for former shared test support.
-class Base::Com::Sign::OutsControllerTest
+class Base::Com::SignOutsControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
@@ -511,7 +511,7 @@ class Base::Com::Sign::OutsControllerTest
 end
 
 # DAMP local helper copy on the test class.
-class Base::Com::Sign::OutsControllerTest
+class Base::Com::SignOutsControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
     :TEST_BROWSER_USER_AGENT, false,
   )
@@ -788,7 +788,7 @@ end
 # redirecting to /oauth/authorize. This final reopening overrides any earlier
 # helper definitions in this file so every "logged in" request carries a valid
 # access token cookie for the correct actor and surface.
-class Base::Com::Sign::OutsControllerTest
+class Base::Com::SignOutsControllerTest
   private
 
   def set_access_cookie(token)

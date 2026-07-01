@@ -62,7 +62,8 @@ module Security
 
         get new_auth_app_settings_withdrawal_url(ri: "jp"), headers: headers
 
-        assert_response :success
+        assert_response :see_other
+        assert_redirected_to new_base_app_identity_withdrawal_path(ri: "jp")
       end
 
       test "application controllers do not skip the withdrawal gate" do
@@ -73,6 +74,8 @@ module Security
           "app/controllers/core/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           "app/controllers/core/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           "app/controllers/core/org/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/base/app/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
+          "app/controllers/base/com/edge/v0/cookies_controller.rb" => "edge cookie endpoint owns its own auth boundary",
           # DBSC endpoints must process device-session challenge state before the normal withdrawal gate.
           "app/controllers/acme/app/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
@@ -83,6 +86,12 @@ module Security
           "app/controllers/core/app/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
           "app/controllers/core/com/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/base/app/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/base/com/edge/v0/dbsc_controller.rb" =>
+            "DBSC edge endpoint owns its device binding boundary",
+          "app/controllers/base/org/edge/v0/dbsc_controller.rb" =>
             "DBSC edge endpoint owns its device binding boundary",
         }
 
@@ -130,6 +139,9 @@ module Security
           {
             "X-TEST-CURRENT-USER" => user.id.to_s,
             "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+            "Authorization" => "Bearer #{
+              jwt_access_token_for(user, host: @host, session_public_id: token.public_id, resource_type: "client")
+            }",
           },
         ]
       end
@@ -291,7 +303,16 @@ class Security::Invariants::WithdrawalGateInvariantTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.start_with?("base.") || normalized.start_with?("www.umaxica.")
+        "BASE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type

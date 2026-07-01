@@ -106,14 +106,14 @@ class CoreBffSurfaceSmokeTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def complete_core_sign_out_url_for(host)
+  def core_sign_out_completion_url_for(host)
     case host
     when ENV.fetch("PUBLIC_CORE_SERVICE_URL", ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"))
-      complete_core_app_sign_out_url(ri: "jp", host: host)
+      core_app_sign_out_completion_url(ri: "jp", host: host)
     when ENV.fetch("PUBLIC_CORE_CORPORATE_URL", ENV.fetch("PUBLIC_CORE_CORPORATE_URL", "core.com.localhost"))
-      complete_core_com_sign_out_url(ri: "jp", host: host)
+      core_com_sign_out_completion_url(ri: "jp", host: host)
     else
-      complete_core_org_sign_out_url(ri: "jp", host: host)
+      core_org_sign_out_completion_url(ri: "jp", host: host)
     end
   end
 end

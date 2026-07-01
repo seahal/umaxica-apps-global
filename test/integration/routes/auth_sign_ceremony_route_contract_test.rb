@@ -81,7 +81,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/app/sign/outs", action: "complete" },
+      { controller: "auth/app/sign/outs/completions", action: "show" },
       { path: "http://#{SIGN_APP_HOST}/sign/out/complete", method: :get },
     )
 
@@ -486,7 +486,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/com/sign/outs", action: "complete" },
+      { controller: "auth/com/sign/outs/completions", action: "show" },
       { path: "http://#{SIGN_COM_HOST}/sign/out/complete", method: :get },
     )
 
@@ -733,7 +733,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "auth/org/sign/outs", action: "complete" },
+      { controller: "auth/org/sign/outs/completions", action: "show" },
       { path: "http://#{SIGN_ORG_HOST}/sign/out/complete", method: :get },
     )
 

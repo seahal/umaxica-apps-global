@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/rails/rails.git
-  revision: 99a7319a91db54912098a198d7e3b8a98088422c
+  revision: 09bf0878ec2a604f4f1430c8757db23d16925f14
   branch: main
   specs:
     actioncable (8.2.0.alpha)
@@ -146,7 +146,6 @@ GEM
     aws-sigv4 (1.12.1)
       aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
-    bcrypt (3.1.22)
     benchmark (0.5.0)
     benchmark-ips (2.15.1)
     better_html (2.2.0)
@@ -206,7 +205,7 @@ GEM
     cose (1.3.1)
       cbor (~> 0.5.9)
       openssl-signature_algorithm (~> 1.0)
-    counter_culture (3.13.3)
+    counter_culture (3.14.0)
       activerecord (>= 4.2)
       activesupport (>= 4.2)
     crass (1.0.7)
@@ -1013,15 +1012,15 @@ GEM
       fugit (~> 1.11)
       railties (>= 7.1)
       thor (>= 1.3.1)
-    sorbet (0.6.13316)
-      sorbet-static (= 0.6.13316)
-    sorbet-runtime (0.6.13316)
-    sorbet-static (0.6.13316-aarch64-linux)
-    sorbet-static (0.6.13316-universal-darwin)
-    sorbet-static (0.6.13316-x86_64-linux)
-    sorbet-static-and-runtime (0.6.13316)
-      sorbet (= 0.6.13316)
-      sorbet-runtime (= 0.6.13316)
+    sorbet (0.6.13320)
+      sorbet-static (= 0.6.13320)
+    sorbet-runtime (0.6.13320)
+    sorbet-static (0.6.13320-aarch64-linux)
+    sorbet-static (0.6.13320-universal-darwin)
+    sorbet-static (0.6.13320-x86_64-linux)
+    sorbet-static-and-runtime (0.6.13320)
+      sorbet (= 0.6.13320)
+      sorbet-runtime (= 0.6.13320)
     spoom (1.8.2)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
@@ -1126,7 +1125,6 @@ DEPENDENCIES
   annotaterb
   argon2
   aws-sdk-sns
-  bcrypt
   blazer
   bootsnap
   brakeman
@@ -1263,7 +1261,6 @@ CHECKSUMS
   aws-sdk-sns (1.117.0) sha256=90ae4cc870342a5b6f718e35810229258259a5d81fea36b64ecc670f0196cdfb
   aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
-  bcrypt (3.1.22) sha256=1f0072e88c2d705d94aff7f2c5cb02eb3f1ec4b8368671e19112527489f29032
   benchmark (0.5.0) sha256=465df122341aedcb81a2a24b4d3bd19b6c67c1530713fd533f3ff034e419236c
   benchmark-ips (2.15.1) sha256=07a1a9f3c6105ecaf68c174fc3fbcddd71a0e9ada6236ae03093a0dcfd812d59
   better_html (2.2.0) sha256=e68ab66ab09696b708333bbf35e8aa3c107500ba7892f528e2111624bdd8cf76
@@ -1288,7 +1285,7 @@ CHECKSUMS
   constant_resolver (0.3.0) sha256=b94886294298fb8d5db3715bac65e65493fae7b12b8a6f867cbf898944e64e83
   content_disposition (1.0.0) sha256=aa153da9c1543a45413a3f5f281d8dd50384bb0fba864fe1bd42ba80d88da516
   cose (1.3.1) sha256=d5d4dbcd6b035d513edc4e1ab9bc10e9ce13b4011c96e3d1b8fe5e6413fd6de5
-  counter_culture (3.13.3) sha256=0292f8a2851b5c1f2a168a0e3c97b70e0dc3de9f21764692c5893fa9fbc8defd
+  counter_culture (3.14.0) sha256=386f10ba78837123443597212284f166a498abf36af4b6e85e2f280b908760f3
   crass (1.0.7) sha256=94868719948664c89ddcaf0a37c65048413dfcb1c869470a5f7a7ceb5390b295
   csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
   database_consistency (3.0.5) sha256=ceaae25db913dee7deb7d24d796024d419d924ec645b247657f4fac9c6b7473b
@@ -1578,12 +1575,12 @@ CHECKSUMS
   snaky_hash (2.0.6) sha256=3663cae48cdef582b517025cf8a39d8789996eaf0b4ed89e2f0624836505654a
   solid_cache (1.0.10) sha256=bc05a2fb3ac78a6f43cbb5946679cf9db67dd30d22939ededc385cb93e120d41
   solid_queue (1.4.0) sha256=e6a18d196f0b27cb6e3c77c5b31258b05fb634f8ed64fb1866ed164047216c2a
-  sorbet (0.6.13316) sha256=436cd934a92f62996f8649101c1045c2edf15163244c11046a5f7cc7afe49b14
-  sorbet-runtime (0.6.13316) sha256=c31af65275b3d2b2f52a01f2e9e2937d392d1e7fe3ccb847eb2983a755c89c6d
-  sorbet-static (0.6.13316-aarch64-linux) sha256=ecca25ca9bb8e3eeaa209df88e50d1e71cf0cf3d4141eb10e2e91fbf50547991
-  sorbet-static (0.6.13316-universal-darwin) sha256=369deda8871e821c84d78f7692b72ce3f15aea35dc1b17e9ac43f8501644739a
-  sorbet-static (0.6.13316-x86_64-linux) sha256=21eeee0384a936b1a35b572fb11265370e95ad0810f12db493768b0b41d639b4
-  sorbet-static-and-runtime (0.6.13316) sha256=600d7f9c621caa0d53f764b14e23ede1ab87e9465cde288ece681318d7a33767
+  sorbet (0.6.13320) sha256=f4042a8e8a2799e6d84c84870c36a08f2880e4705f8aafd3349b79b9b0e2098f
+  sorbet-runtime (0.6.13320) sha256=3c62e36f3b5a903ac28ff8f1cc6b3ffb82eccf49f6179ad11476a7942982b233
+  sorbet-static (0.6.13320-aarch64-linux) sha256=4accc6c38c7b4556e28a9fae95a5227b13128ff67625541af9308d6803d6ce7c
+  sorbet-static (0.6.13320-universal-darwin) sha256=127cd971e51d26a82e362e93eb2641906328c5af2ed0d36562c39897030f38bf
+  sorbet-static (0.6.13320-x86_64-linux) sha256=5d2b67bfa2061615e1495efbbd733a96107b1f43edd4c0679246b3f2f18f8837
+  sorbet-static-and-runtime (0.6.13320) sha256=0abda8badcf527e320d246f58d55ff49c96544c9705cdfb8ad76beda29765b0e
   spoom (1.8.2) sha256=1253232b9d85ed140c9d5337ad2c74f03af89a70e3c602f2b2438eba34d0bd2f
   stackprof (0.2.28) sha256=4ec2ace02f386012b40ca20ef80c030ad711831f59511da12e83b34efb0f9a04
   stimulus-rails (1.3.4) sha256=765676ffa1f33af64ce026d26b48e8ffb2e0b94e0f50e9119e11d6107d67cb06

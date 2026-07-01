@@ -57,7 +57,9 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_predicate query["state"], :present?
       assert_predicate query["nonce"], :present?
       assert_predicate query["code_challenge"], :present?
-      assert_nil query["screen_hint"]
+      # Base RP authorization defaults to the signup screen hint when no explicit
+      # screen_hint param is supplied (Base::App::Oidc::AuthorizationsController#screen_hint_param).
+      assert_equal "signup", query["screen_hint"]
     end
   end
 
@@ -68,7 +70,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       client = OidcClientRegistry.find!("base-rails-rp")
       host! acme_host
 
-      get "/oidc/authorization", headers: browser_headers
+      # Drive the sign-in screen explicitly; the RP entrypoint otherwise defaults to signup.
+      get "/oidc/authorization", params: { screen_hint: "signin" }, headers: browser_headers
 
       assert_response :redirect
       authorize_uri = URI.parse(response.location)
@@ -286,18 +289,20 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       )
       selected = tokens.first
 
-      assert_difference -> { ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count }, -1 do
-        host! acme_host
-        patch acme_app_sign_in_limitation_path,
-              params: {
-                resolution_challenge: resolution.challenge,
-                session_ref: SessionLimitResolutionTokenRef.issue(selected),
-              },
-              headers: as_user_headers(user, host: acme_host, session_public_id: current_session.public_id)
-      end
+      active_session_count = ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
+      host! acme_host
+      patch acme_app_sign_in_limitation_path,
+            params: {
+              resolution_challenge: resolution.challenge,
+              session_ref: SessionLimitResolutionTokenRef.issue(selected),
+            },
+            headers: browser_headers.merge(
+              as_user_headers(user, host: acme_host, session_public_id: current_session.public_id),
+            )
 
-      assert_predicate selected.reload, :revoked?
       assert_response :redirect
+      assert_predicate selected.reload, :revoked?
+      assert_equal active_session_count - 1, ClientToken.not_revoked.where(user_id: user.id, rotated_at: nil).count
       callback_uri = URI.parse(jump_rt_url_from_location(response.location))
       callback_query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
 
@@ -344,7 +349,8 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
       second_active.rotate_refresh_token!
 
       host!(acme_host)
-      get("/oidc/authorization", headers: browser_headers)
+      # Drive the sign-in screen explicitly; the RP entrypoint otherwise defaults to signup.
+      get("/oidc/authorization", params: { screen_hint: "signin" }, headers: browser_headers)
 
       assert_response :redirect
       authorize_uri = URI.parse(jump_rt_url_from_location(response.location))
@@ -361,23 +367,29 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       assert_response :success
 
-      post(
-        sign_app_sign_in_email_path(ri: "jp"),
-        params: {
-          :client_email => { address: email.address },
-          "cf-turnstile-response" => "test_token",
-        },
-        headers: browser_headers,
-      )
+      original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+      AuthenticationBase.login_cooldown_enabled = false
+      begin
+        post(
+          sign_app_sign_in_email_path(ri: "jp"),
+          params: {
+            :client_email => { address: email.address },
+            "cf-turnstile-response" => "test_token",
+          },
+          headers: browser_headers,
+        )
 
-      assert_response :redirect
+        assert_response :redirect
 
-      pass_code = store_email_otp_and_return_code(email)
-      patch(
-        sign_app_sign_in_email_path(ri: "jp"),
-        params: { client_email: { pass_code: pass_code } },
-        headers: browser_headers,
-      )
+        pass_code = store_email_otp_and_return_code(email)
+        patch(
+          sign_app_sign_in_email_path(ri: "jp"),
+          params: { client_email: { pass_code: pass_code } },
+          headers: browser_headers,
+        )
+      ensure
+        AuthenticationBase.login_cooldown_enabled = original_login_cooldown_enabled
+      end
 
       assert_redirected_to sign_app_sign_in_session_path(ri: "jp")
 
@@ -647,12 +659,9 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
           }, headers: browser_headers,
         )
 
-        if surface[:acme_host] == ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
-          assert_equal 302, session.response.status, surface[:client_id]
-        else
-          assert_equal 422, session.response.status, surface[:client_id]
-          assert_equal "Invalid request", session.response.body
-        end
+        # base-rails-rp registers valid redirect_uris for all three base surfaces
+        # (app/org/com), so /oauth/authorize is exposed and redirects on every surface.
+        assert_equal 302, session.response.status, surface[:client_id]
 
         session.get("/oauth/authorization", headers: browser_headers)
 
@@ -719,6 +728,7 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
       state = Rack::Utils.parse_nested_query(URI.parse(jump_rt_url_from_location(response.location)).query).fetch("state")
       resource = instance_exec(&surface[:resource])
+      clear_existing_tokens_for(resource)
       resource_type = oidc_resource_type_for(resource)
       id_token = OidcIdTokenIssuer.call(
         resource: resource,
@@ -837,6 +847,17 @@ class OidcRpBrowserFlowTest < ActionDispatch::IntegrationTest
     pass_code = ROTP::HOTP.new(otp_private_key).at(otp_counter).to_s
     email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
     pass_code
+  end
+
+  def clear_existing_tokens_for(resource)
+    case resource
+    when Client
+      ClientToken.where(user_id: resource.id).delete_all
+    when Operator
+      OperatorToken.where(staff_id: resource.id).delete_all
+    when Visitor
+      VisitorToken.where(visitor_id: resource.id).delete_all
+    end
   end
 
   def assert_response_has_auth_cookie
@@ -1110,7 +1131,11 @@ class OidcRpBrowserFlowTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -1131,7 +1156,11 @@ class OidcRpBrowserFlowTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -1152,7 +1181,11 @@ class OidcRpBrowserFlowTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -1181,7 +1214,16 @@ class OidcRpBrowserFlowTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.start_with?("base.") || normalized.start_with?("www.umaxica.")
+        "BASE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type
@@ -1606,7 +1648,11 @@ class OidcRpBrowserFlowTest
   def browser_headers
     csrf_token = csrf_token_value
     cookies["csrf_token"] = csrf_token if respond_to?(:cookies, true)
-    host_headers.merge("X-CSRF-Token" => csrf_token)
+    # Do NOT pin a Host header here. host_headers defaults Host to the *previous*
+    # request's host, which would override host! and pin every request in a
+    # multi-host flow (SURFACES loops, RP->OP->Sign hops) to the first host.
+    # Let host! govern the request host instead.
+    { "Client-Agent" => self.class::TEST_BROWSER_USER_AGENT, "X-CSRF-Token" => csrf_token }
   end
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
@@ -1621,7 +1667,11 @@ class OidcRpBrowserFlowTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -1639,7 +1689,11 @@ class OidcRpBrowserFlowTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -1657,7 +1711,11 @@ class OidcRpBrowserFlowTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

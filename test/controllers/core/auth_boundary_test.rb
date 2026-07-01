@@ -116,9 +116,9 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def complete_core_sign_out_url_for(controller, host)
+  def core_sign_out_completion_url_for(controller, host)
     surface = controller.split("/")[1]
-    public_send("complete_core_#{surface}_sign_out_url", ri: "jp", host: host)
+    public_send("core_#{surface}_sign_out_completion_url", ri: "jp", host: host)
   end
 
   private

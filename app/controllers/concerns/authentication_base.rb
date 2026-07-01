@@ -1719,6 +1719,7 @@ module AuthenticationBase
 
   def resource_withdrawn?(resource)
     return false unless resource&.respond_to?(:withdrawn?)
+    return false if respond_to?(:withdrawal_restricted_resource?, true) && withdrawal_restricted_resource?(resource)
 
     resource.withdrawn?
   end

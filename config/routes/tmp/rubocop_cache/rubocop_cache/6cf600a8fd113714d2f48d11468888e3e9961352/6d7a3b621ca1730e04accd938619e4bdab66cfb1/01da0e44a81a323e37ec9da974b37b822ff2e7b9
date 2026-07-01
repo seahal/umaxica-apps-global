@@ -1,0 +1,1 @@
+[{"severity":"convention","location":{"begin_pos":880,"end_pos":884},"message":"Performance/ChainArrayAllocation: Use unchained `compact` and `uniq!` (followed by `return array` if required) instead of chaining `compact...uniq`.","cop_name":"Performance/ChainArrayAllocation","status":"unsupported"}]

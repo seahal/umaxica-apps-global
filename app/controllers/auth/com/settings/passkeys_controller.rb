@@ -23,6 +23,7 @@ module Auth
         before_action :authorize_passkeys!, only: %i(index)
         before_action :authorize_passkey_create!, only: %i(create)
         step_up only: %i(new create options verification), bootstrap: true
+        step_up only: :destroy
         before_action :require_recovery_passcodes_for_mfa_registration!, only: %i(new create options verification)
         before_action :set_passkey, only: %i(show edit update destroy)
         before_action :verify_settings_passkey_turnstile!, only: :options

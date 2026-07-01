@@ -50,7 +50,7 @@ gem "bootsnap", require: false
 # Password hashing with Argon2.
 gem "argon2"
 # Password hashing with BCrypt.
-gem "bcrypt"
+# gem "bcrypt"
 # SHA-3 digest implementation.
 gem "sha3", require: false
 # File upload toolkit.

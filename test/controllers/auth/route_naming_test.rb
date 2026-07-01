@@ -23,10 +23,10 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_respond_to helpers, :auth_app_sign_out_path
     assert_respond_to helpers, :new_auth_app_sign_out_path
     assert_respond_to helpers, :edit_auth_app_sign_out_path
-    assert_respond_to helpers, :complete_auth_app_sign_out_path
+    assert_respond_to helpers, :auth_app_sign_out_completion_path
     assert_not_respond_to helpers, :auth_app_sign_out_confirmation_path
     assert_not_respond_to helpers, :auth_app_sign_out_attempt_path
-    assert_not_respond_to helpers, :auth_app_sign_out_completion_path
+    assert_not_respond_to helpers, :complete_auth_app_sign_out_path
   end
 
   test "top-level sign entry routes resolve conventionally on every sign surface" do
@@ -37,7 +37,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       assert_unrecognized(surface, "/sign/in/entrance", :get)
       assert_recognizes_sign_route(surface, "/sign/out/new", :get, "auth/#{surface}/sign/outs", "new")
       assert_recognizes_sign_route(surface, "/sign/out/edit", :get, "auth/#{surface}/sign/outs", "edit")
-      assert_recognizes_sign_route(surface, "/sign/out/complete", :get, "auth/#{surface}/sign/outs", "complete")
+      assert_recognizes_sign_route(surface, "/sign/out/complete", :get, "auth/#{surface}/sign/outs/completions", "show")
       assert_recognizes_sign_route(surface, "/sign/out", :post, "auth/#{surface}/sign/outs", "create")
       assert_recognizes_sign_route(surface, "/sign/out", :delete, "auth/#{surface}/sign/outs", "destroy")
       assert_unrecognized(surface, "/signed-out", :get)
@@ -127,7 +127,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
     end
 
     assert_includes source, "scope(module: :auth, as: :auth)"
-    assert_includes source, "constraints(host:"
+    assert_includes source, "constraints("
     assert_includes source, "namespace(:oidc)"
     assert_includes source, "namespace(:social)"
   end

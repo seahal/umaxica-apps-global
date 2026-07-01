@@ -1,181 +1,223 @@
 # typed: false
 # frozen_string_literal: true
 
-# Base owns the OP/Authorization Server and durable identity/session authority.
-scope module: :base, as: :base do
-  # FIXME: I want to remove the following line.
-  base_route_host =
-    ->(env_key) do
-      raw = ENV.fetch(env_key)
-      URI.parse(raw.match?(%r{\Ahttps?://}) ? raw : "https://#{raw}").host
-    end
-  # FIXME: I want to remove the following line.
-  base_route_hosts = ->(env_key, local_host) { [base_route_host.call(env_key), local_host].uniq }
-
-  # App OP/AS host.
-  constraints host: base_route_hosts.call("PUBLIC_BASE_SERVICE_URL", "base.app.localhost") do
-    scope module: :app, as: :app do
-      # Thin landing endpoint.
-      root to: "roots#index"
-
-      # Well-known OP metadata and keys.
-      namespace :well_known, path: ".well-known" do
-        # JWKS endpoint; keep fixed JSON suffix.
-        resource :jwks, only: :show, path: "jwks.json", format: false
-
-        # OIDC discovery endpoint; keep protocol path.
-        resource :discovery, only: :show, path: "openid-configuration", format: false
-      end
-
-      # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
-      end
-
-      # Crawler policy endpoint.
-      resources :robots, only: :index, path: "robots.txt"
-
-      # Sitemap endpoint.
-      resource :sitemap, only: :show, path: "sitemap.xml"
-
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-
-      # End-user preference settings index.
-      resource :preference, only: [:show]
-      # End-user preference setting edit/update routes.
-      namespace :preference do
-        # Regional presentation preference, such as country or locale region.
-        resource :region, only: %i(edit update)
-        # IANA time zone preference used for localizing instants.
-        resource :timezone, only: %i(edit update)
-        # Interface language preference.
-        resource :language, only: %i(edit update)
-        # Currency display preference.
-        resource :currency, only: %i(edit update)
-        # Date presentation preference, such as calendar/date format.
-        resource :calendar, only: %i(edit update)
-        # Time-of-day presentation preference, such as 12h/24h clock format.
-        resource :clock, only: %i(edit update)
-        # Reduced-motion or animation preference.
-        resource :motion, only: %i(edit update)
-        # UI density preference for compact or spacious layouts.
-        resource :density, only: %i(edit update)
-        # Pagination preference for default item count per paginated view.
-        resource :pagination, only: %i(edit update)
-        # Visual theme preference.
-        resource :theme, only: %i(edit update)
-        # Cookie consent and cookie behavior preference.
-        resource :cookie, only: %i(edit update)
-        # Preference reset endpoint.
-        resource :reset, only: %i(edit destroy)
-        # Email preference removal/editing endpoints.
-        resources :emails, only: %i(edit destroy)
-        # Email preference registration/update endpoint using an existing email identifier.
-        post "emails/:id", to: "emails#create"
-      end
-
-      # Context selector for the authenticated client: resolves which
-      # account/organization context the principal acts in. This is identity/session
-      # context resolution (Base authority), not a credential ceremony (Auth), and it
-      # runs on the :private tier -- identity-authenticated but context not yet selected.
-      resource :selector, only: %i(show update)
-
-      # Post-login context switcher for selected actors on the app surface. Selector owns the
-      # ceremony-time first selection; switcher only runs after full access is established and
-      # only swaps the current account / organization / avatar context.
-      resource :switcher, only: %i(show update)
-
-      # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
-      resource :welcome, only: :show, as: :welcome_entry # FIXME: remove :as statement.
-
-      # Signed-in dashboard.
+# Auth owns the credential gateway surfaces. Base is the sole IdP /
+# Authorization Server; Auth surfaces handle credential ceremonies and do not
+# own RP authority.
+scope(module: :auth, as: :auth) do
+  # User credential gateway host. Hosts listed declaratively (DRY intentionally broken).
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"],
+           "auth.app.localhost",].compact,
+  ) do
+    scope(module: :app, as: :app) do
+      root "roots#index"
       resource :dashboard, only: :show
-
-      # Payments.
       resources :billings, only: :index
 
-      # Verification ceremony entrypoint.
-      resource :verification, only: :show do
-        post :completion
-        post :cancellation
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
-      # TODO: I want to merge them, and rename them to api.
-      # Public web API: cookie consent, theme.
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
+
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
+      end
+
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
+      end
+
+      # Public web API: OTP delivery, cookie consent, theme.
       namespace :web do
         namespace :v0 do
+          namespace :in do
+            namespace :email do
+              resource :otp, only: :create
+            end
+
+            namespace :telephone do
+              resource :otp, only: :create
+            end
+          end
+
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
       end
-      # Edge compatibility API.
+
+      # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
-          resource :dbsc, only: :create
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
 
-      # RP OIDC entrypoints.
-      namespace :oidc do
-        resource :authorization, only: :show, to: "/base/app/auth/authorizations#show" # FIXME: Remove :to statement.
-        resource :callback, only: :show, to: "/base/app/auth/callbacks#show" # FIXME: Remove :to statement.
-        resource :logout, only: %i(show create)
-      end
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Auth-up ceremony.
+        namespace(:up) do
+          resource(:email, only: %i(new create))
+          resource(:telephone, only: %i(new create))
 
-      # Social authentication ceremony.
-      namespace :social do
-        resources :authentications,
-                  only: [],
-                  path: "ceremonies" do
-          post :continue, on: :member
-          post :completion, on: :member
+          namespace(:guard) do
+            resource(:apple, only: :show)
+            resource(:google, only: :show)
+            resource(:email, only: :show)
+            resource(:telephone, only: :show)
+          end
+
+          namespace(:check) do
+            namespace(:apple) do
+              resource(:confirmation, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:google) do
+              resource(:confirmation, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:email) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:telephone) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:passkey, only: %i(show create update destroy))
+              resource(:passcode, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+          end
+        end
+
+        # Sign-in ceremony.
+        namespace :in do
+          resource :email, only: %i(new create edit update)
+
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
+          end
+
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
+
+          resource :challenge, only: :show
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
-      # Base sign-in limitation ceremony for session-limit resolution.
-      # FIXME: Remove :to statement.
-      scope path: "sign/in", module: "sign/in", as: :sign_in do
-        resource :limitation, only: %i(show update destroy)
-      end
+      namespace(:social) do
+        get(
+          "google/callback",
+          to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
+          as: :google_callback,
+          defaults: { provider: "google" },
+        )
 
-      # OAuth/OIDC protocol endpoints.
-      namespace :oauth do
-        # OAuth authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
+        match(
+          "apple/callback",
+          to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
+          via: %i(get post),
+          as: :apple_callback,
+          defaults: { provider: "apple" },
+        )
 
-        # OAuth token endpoint.
-        resource :token, only: :create
+        get(
+          "failure",
+          to: "/auth/app/omniauth/omniauth_callbacks#failure",
+        )
 
-        # OAuth userinfo endpoint; keep protocol path.
-        resource :userinfo, only: :show
+        scope :google do
+          get(
+            "sign/in", to: "/auth/app/social/authentications#continue", as: :google_auth_in,
+                       defaults: { provider: "google", intent: "login" },
+          )
+          get(
+            "sign/up", to: "/auth/app/social/authentications#continue", as: :google_auth_up,
+                       defaults: { provider: "google", intent: "login", entry: "auth_up" },
+          )
+        end
 
-        # OAuth revocation endpoint; keep protocol path.
-        resource :revocation, only: :create, path: "revoke"
-      end
-
-      # Canonical browser sign-out flow.
-      # FIXME: Remove :sign and :as statement.
-      scope path: :sign, module: :sign do
-        resource :out, only: %i(new edit create), as: :sign_out do
-          get :complete, on: :collection
+        scope :apple do
+          get(
+            "sign/in", to: "/auth/app/social/authentications#continue", as: :apple_auth_in,
+                       defaults: { provider: "apple", intent: "login" },
+          )
+          get(
+            "sign/up", to: "/auth/app/social/authentications#continue", as: :apple_auth_up,
+                       defaults: { provider: "apple", intent: "login", entry: "auth_up" },
+          )
         end
       end
 
-      # Current identity entrypoint.
-      resource :identity, only: :show
-      namespace :identity do
-        resources :emails, only: %i(index edit update destroy)
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
+        resource :totp, only: %i(new create)
+
+        resources :emails, only: %i(new create edit update) do
+          resource :redelivery, only: :create
+        end
+      end
+
+      # FIXME: I FOUND DEGRADED ENTRYPOINT!!!!
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        namespace :mfa do
+          resource :reset, only: %i(show create)
+          resource :challenge, only: :show
+        end
+
+        resources :totps, only: %i(index new create edit update destroy)
+
+        # TODO: cache passkeys/passkey lookups.
+        resources :passkeys do
+          resource :removal, only: :create
+        end
+
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
+        end
 
         namespace :emails do
           resource :registration, only: %i(new create edit update) do
@@ -183,27 +225,28 @@ scope module: :base, as: :base do
           end
         end
 
-        resources :telephones, only: %i(index new create edit destroy)
+        resources :emails, only: %i(index edit update destroy)
 
         namespace :telephones do
           resource :registration, only: %i(new create edit update)
         end
 
-        resource :birthdate, only: :show
+        resources :telephones, only: %i(index new create edit destroy)
 
-        # FIXME: rename to secrets, and remove path: statement.
-        resource :recovery_secret, only: :show, path: "recovery-secret"
-        resources :secrets, only: %i(index show new edit create update destroy) do
+        resource :birthdate, only: :show
+        resource :apple, only: %i(show edit create destroy)
+        resource :google, only: %i(show edit create destroy)
+        resource :secrets, only: :show
+
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
           resource :rotation, only: :create
           resource :removal, only: :create
         end
 
-        # TODO: Check controller code.
         resources :sessions, only: %i(index show) do
           resource :revocation, only: :create
         end
 
-        # TODO: Check controller code.
         namespace :revocations do
           resource :others, only: :create
           resource :all, only: :create
@@ -211,323 +254,247 @@ scope module: :base, as: :base do
 
         resources :activities, only: :index
 
-        resource :withdrawal, only: %i(new create edit update destroy)
-
-        # TODO: what is these routing?
-        namespace :mfa do
-          resource :challenge, only: %i(show update)
-          resource :reset, only: %i(show create)
-        end
+        resource :withdrawal, only: %i(new update create edit destroy)
       end
-
-      # Account / Organization entity management. Read-only public resource lookup uses the
-      # default `:id` parameter and resolves by public_id in the controller layer.
-      resources :accounts, only: %i(index show)
-
-      # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show) do
-        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
-      end
-
-      # Group resource surface for Avatar containers.
-      resources :groups, only: %i(index)
-
-      # Avatars
-      resources :avatars, only: %i(index new create show edit update)
     end
   end
 
-  # Corporate OP/AS host.
-  constraints host: base_route_hosts.call("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost") do
-    scope module: :com, as: :com do
-      # Thin landing endpoint.
-      root to: "roots#index"
-
-      # Well-known OP metadata and keys.
-      namespace :well_known, path: ".well-known" do
-        # JWKS endpoint; keep fixed JSON suffix.
-        resource :jwks, only: :show, path: "jwks.json", format: false
-
-        # OIDC discovery endpoint; keep protocol path.
-        resource :discovery, only: :show, path: "openid-configuration", format: false
-      end
-
-      # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
-      end
-
-      # Crawler policy endpoint.
-      resources :robots, only: :index, path: "robots.txt"
-
-      # Sitemap endpoint.
-      resource :sitemap, only: :show, path: "sitemap.xml"
-
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-
-      # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
-      resource :welcome, only: :show, as: :welcome_entry
-
-      # Context selector for the authenticated visitor: resolves which
-      # account/organization context the principal acts in. Identity/session context
-      # resolution (Base authority), not a credential ceremony (Auth); runs on :private.
-      resource :selector, only: %i(show update)
-
-      # Post-login context switcher for selected actors on the com surface.
-      resource :switcher, only: %i(show update)
-
-      # Signed-in dashboard.
+  # Corporate credential gateway host.
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_corporate.host,
+           ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost",].compact,
+  ) do
+    scope(module: :com, as: :com) do
+      root "roots#index"
       resource :dashboard, only: :show
 
-      # Verification ceremony entrypoint.
-      resource :verification, only: :show do
-        post :completion
-        post :cancellation
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
-      # End-user preference settings index.
-      resource :preference, only: [:show]
-      # End-user preference setting edit/update routes.
-      namespace :preference do
-        # Regional presentation preference, such as country or locale region.
-        resource :region, only: %i(edit update)
-        # IANA time zone preference used for localizing instants.
-        resource :timezone, only: %i(edit update)
-        # Interface language preference.
-        resource :language, only: %i(edit update)
-        # Currency display preference.
-        resource :currency, only: %i(edit update)
-        # Date presentation preference, such as calendar/date format.
-        resource :calendar, only: %i(edit update)
-        # Time-of-day presentation preference, such as 12h/24h clock format.
-        resource :clock, only: %i(edit update)
-        # Reduced-motion or animation preference.
-        resource :motion, only: %i(edit update)
-        # UI density preference for compact or spacious layouts.
-        resource :density, only: %i(edit update)
-        # Pagination preference for default item count per paginated view.
-        resource :pagination, only: %i(edit update)
-        # Visual theme preference.
-        resource :theme, only: %i(edit update)
-        # Cookie consent and cookie behavior preference.
-        resource :cookie, only: %i(edit update)
-        # Preference reset endpoint.
-        resource :reset, only: %i(edit destroy)
-        # Email preference removal/editing endpoints.
-        resources :emails, only: %i(edit destroy)
-        # Email preference registration/update endpoint using an existing email identifier.
-        post "emails/:id", to: "emails#create"
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
       end
 
-      # Public web API: cookie consent, theme.
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # Canonical ceremony entrypoints and authed-out confirmation.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
+      end
+
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
+      end
+
+      # Public web API: OTP delivery, cookie consent, theme.
       namespace :web do
         namespace :v0 do
+          namespace :in do
+            namespace :email do
+              resource :otp, only: :create
+            end
+
+            namespace :telephone do
+              resource :otp, only: :create
+            end
+          end
+
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
       end
 
-      # Edge compatibility API.
+      # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
-          resource :dbsc, only: :create
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
 
-      # RP OIDC entrypoints.
-      namespace :oidc do
-        resource :callback, only: :show, to: "/base/com/auth/callbacks#show"
-        resource :authorization, only: :show, to: "/base/com/auth/authorizations#show"
-      end
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Auth-up ceremony.
+        namespace(:up) do
+          resource(:email, only: %i(new create))
+          resource(:telephone, only: %i(new create))
 
-      # OIDC end-session endpoint.
-      namespace :oidc do
-        resource :logout, only: %i(show create)
-      end
+          namespace(:guard) do
+            resource(:email, only: :show)
+            resource(:telephone, only: :show)
+          end
 
-      # OAuth/OIDC protocol endpoints.
-      namespace :oauth do
-        # OAuth authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
+          namespace(:check) do
+            namespace(:email) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
 
-        # OAuth token endpoint.
-        resource :token, only: :create
+            namespace(:telephone) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:passkey, only: %i(show create update destroy))
+              resource(:passcode, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+          end
+        end
 
-        # OAuth userinfo endpoint; keep protocol path.
-        resource :userinfo, only: :show
+        # Sign-in ceremony.
+        namespace :in do
+          resource :email, only: %i(new create edit)
 
-        # OAuth revocation endpoint; keep protocol path.
-        resource :revocation, only: :create, path: "revoke"
-      end
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
+          end
 
-      # Canonical browser sign-out flow.
-      scope path: :sign, module: :sign do
-        resource :out, only: %i(new edit create), as: :sign_out do
-          get :complete, on: :collection
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
+
+          resource :challenge, only: :show
+
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
+          end
         end
       end
 
-      # Current identity entrypoint.
-      resource :identity, only: :show
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
 
-      # Current organization entrypoint.
-      resource :organization, only: :show, as: :current_organization # FIXME: Remove this :as statement.
+        resources :emails, only: %i(new create edit update) do
+          resource :redelivery, only: :create
+        end
+      end
 
-      # Current account entrypoint.
-      resource :account, only: :show
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        resources :passkeys do
+          resource :removal, only: :create
+        end
 
-      # Read-only account resource surface.
-      resources :accounts, only: %i(index show)
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
+        end
 
-      # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show) do
-        # Keep membership URLs nested under organizations while routing to the surface-local
-        # organizations/memberships controller namespace.
-        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
+        resource :secrets, only: :show
+
+        namespace :mfa do
+          resource :challenge, only: :show
+        end
+
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
+        end
+
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
+
+        resources :activities, only: :index
+        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
 
-  # Staff OP/AS host.
-  constraints host: base_route_hosts.call("PUBLIC_BASE_STAFF_URL", "base.org.localhost") do
-    scope module: :org, as: :org do
-      # Thin landing endpoint.
-      root to: "roots#index"
-
-      # Well-known OP metadata and keys.
-      namespace :well_known, path: ".well-known" do
-        # JWKS endpoint; keep fixed JSON suffix.
-        resource :jwks, only: :show, path: "jwks.json", format: false
-
-        # TODO: I cannot agree with the naming. wtf discovery?
-        # OIDC discovery endpoint; keep protocol path.
-        resource :discovery, only: :show, path: "openid-configuration", format: false
-      end
-
-      # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
-      end
-
-      # Crawler policy endpoint.
-      resources :robots, only: :index, path: "robots.txt"
-
-      # Sitemap endpoint.
-      resource :sitemap, only: :show, path: "sitemap.xml"
-
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-
-      # Post-login landing page; keep welcome_entry alias for cross-service URL construction.
-      resource :welcome, only: :show, as: :welcome_entry
-
-      # Context selector for the authenticated operator: resolves which
-      # account/organization context the principal acts in. Identity/session context
-      # resolution (Base authority), not a credential ceremony (Auth); runs on :private.
-      resource :selector, only: %i(show update)
-
-      # Post-login context switcher for selected actors on the org surface.
-      resource :switcher, only: %i(show update)
-
-      # Signed-in dashboard.
+  # Staff credential gateway host.
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"],
+           "auth.org.localhost",].compact,
+  ) do
+    scope(module: :org, as: :org) do
+      root "roots#index"
       resource :dashboard, only: :show
 
-      # Staff configuration endpoint.
-      resource :configuration, only: :show
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
+      end
+
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
+
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
       # Staff management areas.
-      # IAM
+      resource :configuration, only: :show
+      resources :accounts, only: :index
       resources :iam, only: :index
-      # System configuration
       resources :system, only: :index
-      # Audit panel
       resources :audit, only: :index
-      # TODO: Do we need support entrypoint here?
       resources :support, only: :index
-
-      namespace :support do
-        resources :clients, only: [] do
-          scope module: :clients do
-            resource :session, only: [], path: "sessions" do
-              delete :purge
-              delete :emergency_revoke
-            end
-          end
-        end
-
-        resources :visitors, only: [] do
-          scope module: :visitors do
-            resource :session, only: [], path: "sessions" do
-              delete :purge
-              delete :emergency_revoke
-            end
-          end
-        end
-
-        resources :operators, only: [] do
-          scope module: :operators do
-            resource :session, only: [], path: "sessions" do
-              delete :purge
-              delete :emergency_revoke
-            end
-          end
-        end
-      end
-
       resources :billing, only: :index
 
-      # Verification ceremony entrypoint.
-      resource :verification, only: :show do
-        post :completion
-        post :cancellation
+      # Canonical ceremony entrypoints and authed-out confirmation.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          resource :completion, only: :show, path: "complete", module: :outs
+        end
       end
 
-      # End-user preference settings index.
-      resource :preference, only: [:show]
-      # End-user preference setting edit/update routes.
-      namespace :preference do
-        # Regional presentation preference, such as country or locale region.
-        resource :region, only: %i(edit update)
-        # IANA time zone preference used for localizing instants.
-        resource :timezone, only: %i(edit update)
-        # Interface language preference.
-        resource :language, only: %i(edit update)
-        # Currency display preference.
-        resource :currency, only: %i(edit update)
-        # Date presentation preference, such as calendar/date format.
-        resource :calendar, only: %i(edit update)
-        # Time-of-day presentation preference, such as 12h/24h clock format.
-        resource :clock, only: %i(edit update)
-        # Reduced-motion or animation preference.
-        resource :motion, only: %i(edit update)
-        # UI density preference for compact or spacious layouts.
-        resource :density, only: %i(edit update)
-        # Pagination preference for default item count per paginated view.
-        resource :pagination, only: %i(edit update)
-        # Visual theme preference.
-        resource :theme, only: %i(edit update)
-        # Cookie consent and cookie behavior preference.
-        resource :cookie, only: %i(edit update)
-        # Preference reset endpoint.
-        resource :reset, only: %i(edit destroy)
-        # Email preference removal/editing endpoints.
-        resources :emails, only: %i(edit destroy)
-        # Email preference registration/update endpoint using an existing email identifier.
-        post "emails/:id", to: "emails#create"
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
       end
 
       # Public web API: cookie consent, theme.
@@ -538,116 +505,117 @@ scope module: :base, as: :base do
         end
       end
 
-      # Edge compatibility API.
+      # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
-          resource :dbsc, only: :create
-
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
-            resource :refresh, only: :create
           end
         end
       end
 
-      # RP OIDC entrypoints.
-      namespace :oidc do
-        resource :callback, only: :show, to: "/base/org/auth/callbacks#show"
-        resource :authorization, only: :show, to: "/base/org/auth/authorizations#show"
-      end
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Staff invitation auth-up.
+        namespace :up do
+          resources :invitations, only: %i(new create)
+        end
 
-      # OIDC end-session endpoint.
-      namespace :oidc do
-        resource :logout, only: %i(show create)
-      end
+        # Sign-in ceremony.
+        namespace :in do
+          resource :passkey, only: :new
 
-      # OAuth/OIDC protocol endpoints.
-      namespace :oauth do
-        # OAuth authorization endpoint; keep protocol path.
-        resource :authorization, only: :show, path: "authorize"
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
+          end
 
-        # OAuth token endpoint.
-        resource :token, only: :create
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
 
-        # OAuth userinfo endpoint; keep protocol path.
-        resource :userinfo, only: :show
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
 
-        # OAuth revocation endpoint; keep protocol path.
-        resource :revocation, only: :create, path: "revoke"
-      end
+          resource :challenge, only: :show
 
-      # Canonical browser sign-out flow.
-      scope path: :sign, module: :sign do
-        resource :out, only: %i(new edit create), as: :sign_out do
-          get :complete, on: :collection
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
+          end
+
+          # Entra ID (Microsoft) sign-in ceremony.
+          # authorization: POST initiates PKCE flow and redirects to Entra.
+          # callback: GET receives the authorization code from Entra.
+          resource :entra, only: :new do
+            post :authorization
+            get :callback
+          end
         end
       end
 
-      # Current identity entrypoint.
-      resource :identity, only: :show
-
-      # Current organization entrypoint.
-      resource :organization, only: :show, as: :current_organization
-
-      # Current avatar entrypoint.
-      resource :avatar, only: %i(show edit update destroy)
-
-      # Current account entrypoint.
-      resource :account, only: :show
-
-      # Read-only account resource surface.
-      resources :accounts, only: %i(index show)
-
-      # Organizations owned or visible to the current actor.
-      resources :organizations, only: %i(index show) do
-        resources :memberships, only: %i(index new create edit update destroy), module: :organizations
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
       end
-    end
-  end
-
-  # Network utility host.
-  constraints host: ENV["PRIVATE_BASE_NETWORK_URL"] || ENV["BASE_NETWORK_URL"] do
-    scope module: :net, as: :network do
-      # Thin landing endpoint.
-      root to: "roots#index"
-
-      # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
       end
 
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-    end
-  end
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        resources :passkeys do
+          resource :removal, only: :create
+        end
 
-  # Developer utility host.
-  constraints host: ENV["PRIVATE_BASE_DEVELOPER_URL"] || ENV["BASE_DEVELOPER_URL"] do
-    scope module: :dev, as: :developer do
-      # Thin landing endpoint.
-      root to: "roots#index"
+        namespace :passkeys do
+          resource :options, only: :create
+          # Passkey (WebAuthn) assertion verification for settings-level re-auth.
+          resource :verification, only: :create
+        end
 
-      # Health summary and probes.
-      resource :health, only: :show
-      namespace :health do
-        resource :liveness, only: :show
-        resource :readiness, only: :show
-        resource :startup, only: :show
+        namespace :mfa do
+          resource :challenge, only: :show
+        end
+
+        resources :secret_credentials
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
+        end
+
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
+
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+        resources :activities, only: :index
+        resource :withdrawal, only: :show
+
+        # Lifecycle request state transitions.
+        resources :operator_lifecycle_requests, only: %i(index show new create) do
+          scope module: :operator_lifecycle_requests do
+            resource :approval, only: :create
+            resource :execution, only: :create
+            resource :rejection, only: :create
+          end
+        end
       end
-
-      # CSP report sink; keep configured report-uri path.
-      resource :csp_violation_report, only: :create, path: "csp-violation-report"
-
-      # Job monitoring dashboard.
-      mount MissionControl::Jobs::Engine, at: "/jobs"
-
-      # Rails DB dashboard.
-      mount RailsDb::Engine, at: "/db"
     end
   end
 end

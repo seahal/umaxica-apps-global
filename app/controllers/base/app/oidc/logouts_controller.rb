@@ -38,7 +38,7 @@ module Base
         private
 
         def oidc_logout_completed_path(ri:, _sot: nil)
-          complete_base_app_sign_out_path(ri: ri)
+          base_app_sign_out_completion_path(ri: ri)
         end
       end
     end

@@ -68,7 +68,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
 
@@ -91,8 +91,8 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
 
     recognized = Rails.application.routes.recognize_path("https://#{host}/verification/completion", method: :post)
 
-    assert_equal "base/app/verifications", recognized[:controller]
-    assert_equal "completion", recognized[:action]
+    assert_equal "base/app/verification/completions", recognized[:controller]
+    assert_equal "create", recognized[:action]
   end
 
   test "app base completion rejects missing csrf token when forgery protection is enabled" do
@@ -116,7 +116,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     )
 
     with_forgery_protection do
-      post completion_base_app_verification_url(ri: "jp", host: host),
+      post base_app_verification_completion_url(ri: "jp", host: host),
            params: { step_up_ceremony_result: result },
            headers: app_session_headers(host, token, user)
     end
@@ -173,7 +173,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
 
@@ -228,12 +228,12 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
     first_step_up_at = token.reload.last_step_up_at
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
 
@@ -254,7 +254,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       return_to: auth_app_settings_emails_path(ri: "jp"),
     )
 
-    post cancellation_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_cancellation_url(ri: "jp", host: host),
          headers: app_session_headers(host, token, user),
          params: { scope: "settings_email", return_to: auth_app_settings_emails_path(ri: "jp") }
 
@@ -270,7 +270,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
 
@@ -299,7 +299,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_app_verification_url(ri: "jp", host: host),
+    post base_app_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: app_session_headers(host, token, user)
 
@@ -411,7 +411,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_com_verification_url(ri: "jp", host: host),
+    post base_com_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: com_session_headers(host, token, visitor)
 
@@ -460,7 +460,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       method: "passkey",
     )
 
-    post completion_base_org_verification_url(ri: "jp", host: host),
+    post base_org_verification_completion_url(ri: "jp", host: host),
          params: { step_up_ceremony_result: result },
          headers: org_session_headers(host, token, operator)
 

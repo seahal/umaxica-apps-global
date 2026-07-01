@@ -5,8 +5,6 @@ module Base
   module App
     class VerificationsController < Base::App::ApplicationController
       include BaseStepUpIntent
-      include BaseStepUpCompletion
-      include BaseStepUpCancellation
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -25,26 +23,6 @@ module Base
               query.merge(host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL")),
             )
           },
-        )
-      end
-
-      def completion
-        authorize!(current_client, to: :show?)
-        complete_step_up_ceremony!(
-          surface: "app",
-          actor: current_client,
-          token: current_session_token,
-          fallback: base_app_dashboard_path(ri: params[:ri]),
-        )
-      end
-
-      def cancellation
-        authorize!(current_client, to: :show?)
-        cancel_step_up_ceremony!(
-          surface: "app",
-          actor: current_client,
-          token: current_session_token,
-          fallback: base_app_dashboard_path(ri: params[:ri]),
         )
       end
 

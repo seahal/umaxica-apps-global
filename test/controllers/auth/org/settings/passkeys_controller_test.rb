@@ -129,10 +129,15 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     assert_equal OperatorMfaStatus::ACTIVE, @staff.reload.mfa_status_id
   end
 
-  test "rejects unauthenticated passkey settings requests before login handoff" do
+  test "unauthenticated passkey settings requests start login handoff" do
     get auth_org_settings_passkeys_url(ri: "jp"), headers: browser_headers.merge(@host_headers)
 
-    assert_response :unprocessable_content
+    assert_response :redirect
+    assert_oidc_authorize_redirect(
+      jump_rt_url_from_location(response.location),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host,
+      client_id: "sign-rp",
+    )
   end
 
   test "should get edit" do
@@ -204,11 +209,40 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
+    headers = headers_for_operator_token(@token, scope: "settings_passkey")
+
     assert_difference -> { OperatorPasskey.count }, -1 do
-      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers
+      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: headers
     end
 
     assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
+  end
+
+  test "destroy requires fresh settings passkey step up" do
+    passkey = OperatorPasskey.create!(
+      staff: @staff,
+      webauthn_id: "test_webauthn_id_destroy_stale",
+      external_id: "test_external_id_destroy_stale",
+      public_key: "test_public_key_destroy_stale",
+      name: "Delete Me",
+      status_id: OperatorPasskeyStatus::ACTIVE,
+    )
+    OperatorPasskey.create!(
+      staff: @staff,
+      webauthn_id: "test_webauthn_id_destroy_stale_extra",
+      external_id: "test_external_id_destroy_stale_extra",
+      public_key: "test_public_key_destroy_stale_extra",
+      name: "Keep Me",
+      status_id: OperatorPasskeyStatus::ACTIVE,
+    )
+    headers = headers_for_operator_token(@token, scope: "settings_passkey", step_up_at: 20.minutes.ago)
+
+    assert_no_difference("OperatorPasskey.count") do
+      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: headers
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, "Step-up authentication required"
   end
 
   test "other staff passkey returns not found" do
@@ -292,14 +326,46 @@ class Auth::Org::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
+    headers = headers_for_operator_token(@token, scope: "settings_passkey")
+
     assert_difference -> { OperatorPasskey.count }, -1 do
-      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: @headers, as: :json
+      delete auth_org_settings_passkey_url(passkey, ri: "jp"), headers: headers, as: :json
     end
 
     assert_redirected_to auth_org_settings_passkeys_path(ri: "jp")
   end
 
   private
+
+  def headers_for_operator_token(token, scope:, step_up_at: Time.current)
+    Actor.clear if defined?(Actor)
+    token.update_columns(rotated_at: nil, updated_at: Time.current) if token.has_attribute?(:rotated_at)
+    mark_settings_step_up_satisfied!(token, scope: scope, at: step_up_at)
+    access_token = AuthenticationToken.encode(
+      token.staff,
+      host: @host_headers.fetch("Host"),
+      session_public_id: token.public_id,
+      resource_type: "operator",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    )
+  end
+
+  def mark_settings_step_up_satisfied!(token, scope:, at:)
+    token.update_columns(
+      last_step_up_at: at,
+      last_step_up_scope: scope,
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:org",
+      updated_at: Time.current,
+    )
+  end
 
   def create_operator_passcode!(operator, name:, last_used_at: nil)
     credential = operator.staff_secret_credentials.new(
@@ -799,11 +865,11 @@ class Auth::Org::Settings::PasskeysControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)
@@ -1192,11 +1258,11 @@ class Auth::Org::Settings::PasskeysControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)

@@ -3,11 +3,8 @@
 
 # Palm owns the native RP and API surface.
 scope module: :palm, as: :palm do
-  # FIXME: I want to remove the following line.
-  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-
-  # App native RP/API host.
-  constraints host: [boot_hosts.palm_service.host, "palm.app.localhost"].compact do
+  # App native RP/API host. Hosts listed declaratively (DRY intentionally broken).
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).palm_service.host, "palm.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.

@@ -29,11 +29,17 @@ module Base
             end
 
             @resolution&.mark_session_selected!(session_ref: params[:session_ref])
-            AuthenticationSelectedSessionRevoker.call(
+            revocation = AuthenticationSelectedSessionRevoker.call(
               owner: @actor,
               token: token,
               reason: "session_limit_limitation_selected_revoke",
             )
+            unless revocation.success?
+              @form_error = t("base.app.sign.in.limitations.revoke_failed")
+              load_session_inventory
+              return render :show, status: :unprocessable_content
+            end
+            token.reload.revoke! if token.currently_usable?
 
             if hard_reject_still_applies?
               @form_notice = t("base.app.sign.in.limitations.capacity_still_full")

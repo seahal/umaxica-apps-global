@@ -46,10 +46,15 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     Webauthn.define_singleton_method(:trusted_origins, @original_trusted_origins) if @original_trusted_origins
   end
 
-  test "rejects unauthenticated passkey settings requests before login handoff" do
+  test "unauthenticated passkey settings requests start login handoff" do
     get auth_com_settings_passkeys_path(ri: "jp"), headers: browser_headers.merge(host_headers(@host))
 
-    assert_response :unprocessable_content
+    assert_response :redirect
+    assert_oidc_authorize_redirect(
+      jump_rt_url_from_location(response.location),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
+      client_id: "sign-rp",
+    )
   end
 
   test "index renders sign settings passkeys" do
@@ -178,14 +183,72 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
   end
 
   test "destroy removes visitor passkey on sign settings authority" do
+    VisitorPasskey.create!(
+      visitor: @visitor,
+      webauthn_id: "test_webauthn_id_destroy_extra",
+      external_id: "test_external_id_destroy_extra",
+      public_key: "test_public_key_destroy_extra",
+      description: "Extra Passkey",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+    headers = headers_for_visitor_token(@token, scope: "settings_passkey")
+
     assert_difference("VisitorPasskey.count", -1) do
-      delete auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: @headers
+      delete auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: headers
     end
 
     assert_redirected_to auth_com_settings_passkeys_path(ri: "jp")
   end
 
+  test "destroy requires fresh settings passkey step up" do
+    VisitorPasskey.create!(
+      visitor: @visitor,
+      webauthn_id: "test_webauthn_id_destroy_stale_extra",
+      external_id: "test_external_id_destroy_stale_extra",
+      public_key: "test_public_key_destroy_stale_extra",
+      description: "Extra Passkey",
+      status_id: VisitorPasskeyStatus::ACTIVE,
+    )
+    headers = headers_for_visitor_token(@token, scope: "settings_passkey", step_up_at: 20.minutes.ago)
+
+    assert_no_difference("VisitorPasskey.count") do
+      delete auth_com_settings_passkey_path(@passkey.public_id, ri: "jp"), headers: headers
+    end
+
+    assert_response :unauthorized
+    assert_includes response.body, "Step-up authentication required"
+  end
+
   private
+
+  def headers_for_visitor_token(token, scope:, step_up_at: Time.current)
+    Actor.clear if defined?(Actor)
+    mark_settings_step_up_satisfied!(token, scope: scope, at: step_up_at)
+    access_token = AuthenticationToken.encode(
+      token.visitor,
+      host: @host,
+      session_public_id: token.public_id,
+      resource_type: "visitor",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token
+    @headers.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    )
+  end
+
+  def mark_settings_step_up_satisfied!(token, scope:, at:)
+    token.update_columns(
+      last_step_up_at: at,
+      last_step_up_scope: scope,
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: "step_up",
+      last_step_up_audience: "step_up:com",
+      updated_at: Time.current,
+    )
+  end
 
   def create_visitor_recovery_passcode!(visitor, name:, last_used_at: nil)
     credential = visitor.visitor_secret_credentials.new(
@@ -661,11 +724,11 @@ class Auth::Com::Settings::PasskeysControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)
@@ -1054,11 +1117,11 @@ class Auth::Com::Settings::PasskeysControllerTest
     attrs = {
       last_step_up_at: at,
       last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
-      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
-      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
-      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
-      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      last_step_up_aal: ("aal2" if token.has_attribute?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.has_attribute?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.has_attribute?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.has_attribute?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.has_attribute?(:last_step_up_audience)),
       updated_at: Time.current,
     }.compact
     token.update_columns(attrs)

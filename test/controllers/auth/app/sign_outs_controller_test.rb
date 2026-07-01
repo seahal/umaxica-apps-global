@@ -42,7 +42,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     assert_equal(
-      complete_auth_app_sign_out_url(
+      auth_app_sign_out_completion_url(
         host: @base_host, protocol: "https",
       ),
       response.location,
@@ -64,7 +64,7 @@ class Auth::App::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     assert_equal(
-      complete_auth_app_sign_out_url(
+      auth_app_sign_out_completion_url(
         host: @base_host, protocol: "https",
       ),
       response.location,

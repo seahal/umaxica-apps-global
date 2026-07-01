@@ -91,7 +91,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/app/verifications", action: "cancellation" },
+      { controller: "base/app/verification/cancellations", action: "create" },
       { path: "http://#{BASE_APP_HOST}/verification/cancellation", method: :post },
     )
 
@@ -136,32 +136,32 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/app/auth/callbacks", action: "show", to: "/base/app/auth/callbacks#show" },
+      { controller: "base/app/oidc/callbacks", action: "show" },
       { path: "http://#{BASE_APP_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/auth/authorizations", action: "show", to: "/base/app/auth/authorizations#show" },
+      { controller: "base/app/oidc/authorizations", action: "show" },
       { path: "http://#{BASE_APP_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/sign/outs", action: "new" },
+      { controller: "base/app/sign_outs", action: "new" },
       { path: "http://#{BASE_APP_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/sign/outs", action: "edit" },
+      { controller: "base/app/sign_outs", action: "edit" },
       { path: "http://#{BASE_APP_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/app/sign/outs", action: "create" },
+      { controller: "base/app/sign_outs", action: "create" },
       { path: "http://#{BASE_APP_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "base/app/sign/outs", action: "complete" },
+      { controller: "base/app/sign_outs/completions", action: "show" },
       { path: "http://#{BASE_APP_HOST}/sign/out/complete", method: :get },
     )
 
@@ -463,7 +463,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/com/verifications", action: "cancellation" },
+      { controller: "base/com/verification/cancellations", action: "create" },
       { path: "http://#{BASE_COM_HOST}/verification/cancellation", method: :post },
     )
 
@@ -488,32 +488,32 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/com/auth/callbacks", action: "show", to: "/base/com/auth/callbacks#show" },
+      { controller: "base/com/oidc/callbacks", action: "show" },
       { path: "http://#{BASE_COM_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/auth/authorizations", action: "show", to: "/base/com/auth/authorizations#show" },
+      { controller: "base/com/oidc/authorizations", action: "show" },
       { path: "http://#{BASE_COM_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/sign/outs", action: "new" },
+      { controller: "base/com/sign_outs", action: "new" },
       { path: "http://#{BASE_COM_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/sign/outs", action: "edit" },
+      { controller: "base/com/sign_outs", action: "edit" },
       { path: "http://#{BASE_COM_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/com/sign/outs", action: "create" },
+      { controller: "base/com/sign_outs", action: "create" },
       { path: "http://#{BASE_COM_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "base/com/sign/outs", action: "complete" },
+      { controller: "base/com/sign_outs/completions", action: "show" },
       { path: "http://#{BASE_COM_HOST}/sign/out/complete", method: :get },
     )
 
@@ -675,7 +675,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/org/verifications", action: "cancellation" },
+      { controller: "base/org/verification/cancellations", action: "create" },
       { path: "http://#{BASE_ORG_HOST}/verification/cancellation", method: :post },
     )
 
@@ -700,32 +700,32 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "base/org/auth/callbacks", action: "show", to: "/base/org/auth/callbacks#show" },
+      { controller: "base/org/oidc/callbacks", action: "show" },
       { path: "http://#{BASE_ORG_HOST}/oidc/callback", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/auth/authorizations", action: "show", to: "/base/org/auth/authorizations#show" },
+      { controller: "base/org/oidc/authorizations", action: "show" },
       { path: "http://#{BASE_ORG_HOST}/oidc/authorization", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/sign/outs", action: "new" },
+      { controller: "base/org/sign_outs", action: "new" },
       { path: "http://#{BASE_ORG_HOST}/sign/out/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/sign/outs", action: "edit" },
+      { controller: "base/org/sign_outs", action: "edit" },
       { path: "http://#{BASE_ORG_HOST}/sign/out/edit", method: :get },
     )
 
     assert_recognizes(
-      { controller: "base/org/sign/outs", action: "create" },
+      { controller: "base/org/sign_outs", action: "create" },
       { path: "http://#{BASE_ORG_HOST}/sign/out", method: :post },
     )
 
     assert_recognizes(
-      { controller: "base/org/sign/outs", action: "complete" },
+      { controller: "base/org/sign_outs/completions", action: "show" },
       { path: "http://#{BASE_ORG_HOST}/sign/out/complete", method: :get },
     )
 

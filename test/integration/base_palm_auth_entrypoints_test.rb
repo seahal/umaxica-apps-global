@@ -101,9 +101,9 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
 
   test "base callback routes are host constrained" do
     {
-      BASE_APP_HOST => "base/app/auth/callbacks",
-      BASE_COM_HOST => "base/com/auth/callbacks",
-      BASE_ORG_HOST => "base/org/auth/callbacks",
+      BASE_APP_HOST => "base/app/oidc/callbacks",
+      BASE_COM_HOST => "base/com/oidc/callbacks",
+      BASE_ORG_HOST => "base/org/oidc/callbacks",
     }.each do |host, controller|
       assert_routing(
         { method: :get, path: "http://#{host}/oidc/callback" },

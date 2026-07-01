@@ -42,15 +42,15 @@ module SignVerificationCancellation
   def acme_step_up_cancellation_url_for(surface)
     case surface.to_s
     when "app"
-      cancellation_base_app_verification_url(
+      base_app_verification_cancellation_url(
         host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
       )
     when "com"
-      cancellation_base_com_verification_url(
+      base_com_verification_cancellation_url(
         host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),
       )
     when "org"
-      cancellation_base_org_verification_url(
+      base_org_verification_cancellation_url(
         host: ENV.fetch("PUBLIC_BASE_STAFF_URL"),
       )
     else

@@ -11,11 +11,11 @@
   <meta name="turbo-refresh-scroll" content="preserve">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= vite_client_tag nonce: true %>
   <%= vite_react_refresh_tag nonce: true %>
   <%= vite_typescript_tag "entrypoints/sign/app", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
+  <%= render "layouts/shared/cloudflare_turnstile_api" %>
   <%= yield :head %>
 </head>
 

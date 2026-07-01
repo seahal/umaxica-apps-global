@@ -75,7 +75,7 @@ scope module: :core, as: :core do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
     end
   end
@@ -152,7 +152,7 @@ scope module: :core, as: :core do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
     end
   end
@@ -232,7 +232,7 @@ scope module: :core, as: :core do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
     end
   end

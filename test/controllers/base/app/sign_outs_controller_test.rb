@@ -45,7 +45,7 @@ class Base::App::SignOutsControllerTest < ActionDispatch::IntegrationTest
     post base_app_sign_out_url(host: @host), headers: browser_headers.merge("Host" => @host)
 
     assert_response :see_other
-    assert_equal complete_base_app_sign_out_url(host: @host, protocol: "https"), response.location
+    assert_equal base_app_sign_out_completion_url(host: @host, protocol: "https"), response.location
   end
   private
 

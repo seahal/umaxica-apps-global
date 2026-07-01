@@ -43,7 +43,7 @@ class Core::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
-    assert_equal complete_core_com_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]
+    assert_equal core_com_sign_out_completion_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]
     assert_predicate query["logout_challenge"], :present?
   end
 
@@ -57,7 +57,7 @@ class Core::Com::SignOutsControllerTest < ActionDispatch::IntegrationTest
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
     }
 
-    get complete_core_com_sign_out_url(ri: "jp")
+    get core_com_sign_out_completion_url(ri: "jp")
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")

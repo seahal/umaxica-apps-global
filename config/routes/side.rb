@@ -3,11 +3,8 @@
 
 # Side owns the Rails control-plane surface.
 scope module: :side, as: :side do
-  # FIXME: I want to remove the following line.
-  boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-
-  # App control-plane host.
-  constraints host: [boot_hosts.side_service.host, "side.app.localhost"].compact do
+  # App control-plane host. Hosts listed declaratively (DRY intentionally broken).
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).side_service.host, "side.app.localhost"].compact do
     # App surface controllers.
     scope module: :app, as: :app do
       # Thin landing endpoint.
@@ -42,7 +39,7 @@ scope module: :side, as: :side do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.
@@ -57,7 +54,8 @@ scope module: :side, as: :side do
   end
 
   # Corporate control-plane host.
-  constraints host: [boot_hosts.side_corporate.host, "side.com.localhost"].compact do
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).side_corporate.host,
+                     "side.com.localhost",].compact do
     # Corporate surface controllers.
     scope module: :com, as: :com do
       # Thin landing endpoint.
@@ -92,7 +90,7 @@ scope module: :side, as: :side do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.
@@ -107,7 +105,7 @@ scope module: :side, as: :side do
   end
 
   # Staff control-plane host.
-  constraints host: [boot_hosts.side_staff.host, "side.org.localhost"].compact do
+  constraints host: [Rails.configuration.x.boot_config.fetch(:hosts).side_staff.host, "side.org.localhost"].compact do
     # Staff surface controllers.
     scope module: :org, as: :org do
       # Thin landing endpoint.
@@ -142,7 +140,7 @@ scope module: :side, as: :side do
 
       # Canonical browser sign-out flow.
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
-        get :complete, on: :collection
+        resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.

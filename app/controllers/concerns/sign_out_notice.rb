@@ -88,11 +88,11 @@ module SignOutNotice
   end
 
   def sign_out_complete_path(**options)
-    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_path", **sign_out_route_params, **options.compact)
+    public_send("#{sign_out_route_helper_prefix}_sign_out_completion_path", **sign_out_route_params, **options.compact)
   end
 
   def sign_out_complete_url(**options)
-    public_send("complete_#{sign_out_route_helper_prefix}_sign_out_url", **sign_out_route_params, **options.compact)
+    public_send("#{sign_out_route_helper_prefix}_sign_out_completion_url", **sign_out_route_params, **options.compact)
   end
 
   def sign_out_home_path(**options)

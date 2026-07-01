@@ -5,11 +5,11 @@
 # Authorization Server; Auth surfaces handle credential ceremonies and do not
 # own RP authority.
 scope(module: :auth, as: :auth) do
-  # FIXME: I want to remove the following line.
-  hosts = Rails.configuration.x.boot_config.fetch(:hosts)
-
-  # User credential gateway host.
-  constraints(host: [hosts.auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"], "auth.app.localhost"].compact) do
+  # User credential gateway host. Hosts listed declaratively (DRY intentionally broken).
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"],
+           "auth.app.localhost",].compact,
+  ) do
     scope(module: :app, as: :app) do
       root "roots#index"
       resource :dashboard, only: :show
@@ -35,7 +35,7 @@ scope(module: :auth, as: :auth) do
         resource :up, only: :show
         resource :in, only: :show
         resource :out, only: %i(new edit create destroy) do
-          get :complete, on: :collection
+          resource :completion, only: :show, path: "complete", module: :outs
         end
       end
 
@@ -198,6 +198,7 @@ scope(module: :auth, as: :auth) do
         end
       end
 
+      # FIXME: I FOUND DEGRADED ENTRYPOINT!!!!
       # Settings and credential management.
       resource :settings, only: :show
       namespace :settings do
@@ -208,7 +209,7 @@ scope(module: :auth, as: :auth) do
 
         resources :totps, only: %i(index new create edit update destroy)
 
-        # TODO: ceche passkeys and passkey.
+        # TODO: cache passkeys/passkey lookups.
         resources :passkeys do
           resource :removal, only: :create
         end
@@ -259,7 +260,10 @@ scope(module: :auth, as: :auth) do
   end
 
   # Corporate credential gateway host.
-  constraints(host: [hosts.auth_corporate.host, ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost"].compact) do
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_corporate.host,
+           ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost",].compact,
+  ) do
     scope(module: :com, as: :com) do
       root "roots#index"
       resource :dashboard, only: :show
@@ -284,7 +288,7 @@ scope(module: :auth, as: :auth) do
         resource :up, only: :show
         resource :in, only: :show
         resource :out, only: %i(new edit create destroy) do
-          get :complete, on: :collection
+          resource :completion, only: :show, path: "complete", module: :outs
         end
       end
 
@@ -443,7 +447,10 @@ scope(module: :auth, as: :auth) do
   end
 
   # Staff credential gateway host.
-  constraints(host: [hosts.auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"], "auth.org.localhost"].compact) do
+  constraints(
+    host: [Rails.configuration.x.boot_config.fetch(:hosts).auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"],
+           "auth.org.localhost",].compact,
+  ) do
     scope(module: :org, as: :org) do
       root "roots#index"
       resource :dashboard, only: :show
@@ -477,7 +484,7 @@ scope(module: :auth, as: :auth) do
         resource :up, only: :show
         resource :in, only: :show
         resource :out, only: %i(new edit create destroy) do
-          get :complete, on: :collection
+          resource :completion, only: :show, path: "complete", module: :outs
         end
       end
 
@@ -565,7 +572,8 @@ scope(module: :auth, as: :auth) do
 
         namespace :passkeys do
           resource :options, only: :create
-          resource :verification, only: :create # TODO: check this statement!
+          # Passkey (WebAuthn) assertion verification for settings-level re-auth.
+          resource :verification, only: :create
         end
 
         namespace :mfa do

@@ -172,19 +172,19 @@ module Security
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/app/auth/authorizations_controller.rb",
+          path: "app/controllers/base/app/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,
           reason: "Base app authorization starts the reviewed jump gateway handoff.",
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/com/auth/authorizations_controller.rb",
+          path: "app/controllers/base/com/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,
           reason: "Base com authorization starts the reviewed jump gateway handoff.",
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/base/org/auth/authorizations_controller.rb",
+          path: "app/controllers/base/org/oidc/authorizations_controller.rb",
           line: /redirect_to\(url, allow_other_host: true\)/,
           reason: "Base org authorization starts the reviewed jump gateway handoff.",
         },

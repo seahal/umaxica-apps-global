@@ -100,7 +100,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/auth/authorizations", recognized[:controller]
+      assert_equal "base/app/oidc/authorizations", recognized[:controller]
       assert_equal "show", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
@@ -108,7 +108,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/auth/callbacks", recognized[:controller]
+      assert_equal "base/app/oidc/callbacks", recognized[:controller]
       assert_equal "show", recognized[:action]
 
       assert_raises(ActionController::RoutingError) do
@@ -120,7 +120,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/sign/outs", recognized[:controller]
+      assert_equal "base/app/sign_outs", recognized[:controller]
       assert_equal "new", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
@@ -128,7 +128,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :post,
       )
 
-      assert_equal "base/app/sign/outs", recognized[:controller]
+      assert_equal "base/app/sign_outs", recognized[:controller]
       assert_equal "create", recognized[:action]
 
       recognized = Rails.application.routes.recognize_path(
@@ -136,8 +136,8 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
         method: :get,
       )
 
-      assert_equal "base/app/sign/outs", recognized[:controller]
-      assert_equal "complete", recognized[:action]
+      assert_equal "base/app/sign_outs/completions", recognized[:controller]
+      assert_equal "show", recognized[:action]
 
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{host}/sign/out", method: :delete)
@@ -225,7 +225,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/auth/authorizations", recognized[:controller]
+    assert_equal "base/com/oidc/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -233,7 +233,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/auth/callbacks", recognized[:controller]
+    assert_equal "base/com/oidc/callbacks", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -245,7 +245,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign/outs", recognized[:controller]
+    assert_equal "base/com/sign_outs", recognized[:controller]
     assert_equal "new", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -253,7 +253,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign/outs", recognized[:controller]
+    assert_equal "base/com/sign_outs", recognized[:controller]
     assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -261,7 +261,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :post,
     )
 
-    assert_equal "base/com/sign/outs", recognized[:controller]
+    assert_equal "base/com/sign_outs", recognized[:controller]
     assert_equal "create", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -269,8 +269,8 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/com/sign/outs", recognized[:controller]
-    assert_equal "complete", recognized[:action]
+    assert_equal "base/com/sign_outs/completions", recognized[:controller]
+    assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{BASE_COM_HOST}/sign/out", method: :delete)
@@ -357,7 +357,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/auth/authorizations", recognized[:controller]
+    assert_equal "base/org/oidc/authorizations", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -365,7 +365,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/auth/callbacks", recognized[:controller]
+    assert_equal "base/org/oidc/callbacks", recognized[:controller]
     assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
@@ -377,7 +377,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign/outs", recognized[:controller]
+    assert_equal "base/org/sign_outs", recognized[:controller]
     assert_equal "new", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -385,7 +385,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign/outs", recognized[:controller]
+    assert_equal "base/org/sign_outs", recognized[:controller]
     assert_equal "edit", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -393,7 +393,7 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :post,
     )
 
-    assert_equal "base/org/sign/outs", recognized[:controller]
+    assert_equal "base/org/sign_outs", recognized[:controller]
     assert_equal "create", recognized[:action]
 
     recognized = Rails.application.routes.recognize_path(
@@ -401,8 +401,8 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       method: :get,
     )
 
-    assert_equal "base/org/sign/outs", recognized[:controller]
-    assert_equal "complete", recognized[:action]
+    assert_equal "base/org/sign_outs/completions", recognized[:controller]
+    assert_equal "show", recognized[:action]
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{BASE_ORG_HOST}/sign/out", method: :delete)

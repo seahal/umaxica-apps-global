@@ -5,8 +5,6 @@ module Base
   module Org
     class VerificationsController < Base::Org::ApplicationController
       include BaseStepUpIntent
-      include BaseStepUpCompletion
-      include BaseStepUpCancellation
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -25,26 +23,6 @@ module Base
               query.merge(host: ENV.fetch("PRIVATE_AUTH_STAFF_URL")),
             )
           },
-        )
-      end
-
-      def completion
-        authorize!(current_operator, to: :show?)
-        complete_step_up_ceremony!(
-          surface: "org",
-          actor: current_operator,
-          token: current_session_token,
-          fallback: base_org_dashboard_path(ri: params[:ri]),
-        )
-      end
-
-      def cancellation
-        authorize!(current_operator, to: :show?)
-        cancel_step_up_ceremony!(
-          surface: "org",
-          actor: current_operator,
-          token: current_session_token,
-          fallback: base_org_dashboard_path(ri: params[:ri]),
         )
       end
 

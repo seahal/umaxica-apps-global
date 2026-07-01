@@ -20,7 +20,7 @@ module Base
       def create
         if current_resource.blank? && current_session_public_id.blank?
           return redirect_to(
-            complete_base_app_sign_out_url(
+            base_app_sign_out_completion_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
               protocol: "https",
             ),

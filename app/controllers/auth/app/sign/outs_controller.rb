@@ -48,7 +48,7 @@ module Auth
           clear_sign_cleanup_state!
 
           redirect_to(
-            complete_auth_app_sign_out_url(
+            auth_app_sign_out_completion_url(
               host: Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
               protocol: "https",
             ),

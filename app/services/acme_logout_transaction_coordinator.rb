@@ -185,18 +185,18 @@ class AcmeLogoutTransactionCoordinator < ApplicationService
   end
 
   def self.complete_auth_out_helper_name(surface_name)
-    "complete_auth_#{surface_name}_sign_out_url"
+    "auth_#{surface_name}_sign_out_completion_url"
   end
 
   def self.complete_core_out_helper_name(surface_name)
-    "complete_core_#{surface_name}_sign_out_url"
+    "core_#{surface_name}_sign_out_completion_url"
   end
 
   def self.complete_side_out_helper_name(surface_name)
-    "complete_side_#{surface_name}_sign_out_url"
+    "side_#{surface_name}_sign_out_completion_url"
   end
 
   def self.complete_base_out_helper_name(surface_name)
-    "complete_base_#{surface_name}_sign_out_url"
+    "base_#{surface_name}_sign_out_completion_url"
   end
 end

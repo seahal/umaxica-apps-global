@@ -139,7 +139,7 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/sign_outs", action: "complete" },
+      { controller: "core/app/sign_outs/completions", action: "show" },
       { path: "http://#{CORE_APP_HOST}/sign/out/complete", method: :get },
     )
 
@@ -286,7 +286,7 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/sign_outs", action: "complete" },
+      { controller: "core/com/sign_outs/completions", action: "show" },
       { path: "http://#{CORE_COM_HOST}/sign/out/complete", method: :get },
     )
 
@@ -439,7 +439,7 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/sign_outs", action: "complete" },
+      { controller: "core/org/sign_outs/completions", action: "show" },
       { path: "http://#{CORE_ORG_HOST}/sign/out/complete", method: :get },
     )
 

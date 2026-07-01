@@ -18,7 +18,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
       { method: :delete, path: "http://#{@host}/support/clients/#{clients(:one).id}/sessions/purge" },
       {
         controller: "base/org/support/clients/sessions",
-        action: "purge",
+        action: "destroy",
         client_id: clients(:one).id.to_s,
       },
     )
@@ -40,7 +40,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     token = ClientToken.create!(user: client, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
     delete(
-      purge_base_org_support_client_session_url(client, host: @host),
+      base_org_support_client_session_url(client, host: @host),
       params: { reason_code: "security_incident", ticket_id: "SEC-635" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -62,7 +62,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
 
     delete(
-      emergency_revoke_base_org_support_visitor_session_url(visitor, host: @host),
+      base_org_support_visitor_session_emergency_revocation_url(visitor, host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -77,7 +77,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
 
   test "missing reason code returns unprocessable content" do
     delete(
-      purge_base_org_support_client_session_url(clients(:one), host: @host),
+      base_org_support_client_session_url(clients(:one), host: @host),
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
     )
@@ -90,7 +90,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
     @operator_token.update!(last_step_up_at: nil, last_step_up_scope: nil)
 
     delete(
-      purge_base_org_support_client_session_url(clients(:one), host: @host),
+      base_org_support_client_session_url(clients(:one), host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,
@@ -102,7 +102,7 @@ class Base::Org::Support::AccountSessionsControllerTest < ActionDispatch::Integr
 
   test "unknown target returns not found" do
     delete(
-      purge_base_org_support_client_session_url(999_999, host: @host),
+      base_org_support_client_session_url(999_999, host: @host),
       params: { reason_code: "security_incident" },
       headers: as_staff_headers(@operator, host: @host, session_public_id: @operator_token.public_id),
       as: :json,

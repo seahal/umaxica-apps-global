@@ -5,8 +5,6 @@ module Base
   module Com
     class VerificationsController < Base::Com::ApplicationController
       include BaseStepUpIntent
-      include BaseStepUpCompletion
-      include BaseStepUpCancellation
 
       AUTHENTICATION_MODE = :private
       declare_authentication_mode! :private
@@ -27,26 +25,6 @@ module Base
               ),
             )
           },
-        )
-      end
-
-      def completion
-        authorize!(current_visitor, to: :show?)
-        complete_step_up_ceremony!(
-          surface: "com",
-          actor: current_visitor,
-          token: current_session_token,
-          fallback: base_com_dashboard_path(ri: params[:ri]),
-        )
-      end
-
-      def cancellation
-        authorize!(current_visitor, to: :show?)
-        cancel_step_up_ceremony!(
-          surface: "com",
-          actor: current_visitor,
-          token: current_session_token,
-          fallback: base_com_dashboard_path(ri: params[:ri]),
         )
       end
 

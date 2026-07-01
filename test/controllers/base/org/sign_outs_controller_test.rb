@@ -4,7 +4,7 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class Base::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
+class Base::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_token_kinds
 
   setup do
@@ -65,7 +65,7 @@ class Base::Org::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
 end
 
 # DAMP local helper copy on the test class.
-class Base::Org::Sign::OutsControllerTest
+class Base::Org::SignOutsControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
     :TEST_BROWSER_USER_AGENT, false,
   )
@@ -342,7 +342,7 @@ end
 # redirecting to /oauth/authorize. This final reopening overrides any earlier
 # helper definitions in this file so every "logged in" request carries a valid
 # access token cookie for the correct actor and surface.
-class Base::Org::Sign::OutsControllerTest
+class Base::Org::SignOutsControllerTest
   private
 
   def set_access_cookie(token)

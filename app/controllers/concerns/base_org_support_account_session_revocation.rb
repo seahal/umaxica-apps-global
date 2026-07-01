@@ -4,6 +4,10 @@
 module BaseOrgSupportAccountSessionRevocation
   extend ActiveSupport::Concern
 
+  def destroy
+    purge
+  end
+
   def purge
     render_result(AccountSessionRevocation.purge!(**revocation_attributes))
   rescue ArgumentError => e
