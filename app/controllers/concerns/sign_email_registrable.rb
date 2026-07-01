@@ -268,12 +268,12 @@ module SignEmailRegistrable
   def send_verification_email(otp_number)
     token = @user_email.generate_verification_token
 
-    Email::App::OtpMailer.with(
-      encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_number),
-      email_address: @user_email.address,
+    OtpAdapter.for(surface: :app, channel: :email).deliver(
+      record: @user_email,
+      otp_code: otp_number,
       verification_token: token,
       public_id: @user_email.public_id,
-    ).create.deliver_later
+    )
   end
 
   def dummy_existing_email_session_payload

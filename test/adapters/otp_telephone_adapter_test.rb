@@ -1,0 +1,60 @@
+# typed: false
+# frozen_string_literal: true
+
+require "test_helper"
+
+class OtpTelephoneAdapterTest < ActiveSupport::TestCase
+  test "deliver uses the default outbound sms payload" do
+    record = Object.new
+    record.define_singleton_method(:number) { "+819012345678" }
+    delivered = []
+
+    OutboundSms.stub(:deliver_later, ->(**kwargs) { delivered << kwargs }) do
+      OtpTelephoneAdapter.new.deliver(record: record, otp_code: "654321")
+    end
+
+    assert_equal(
+      [{ to: "+819012345678", title: "Verification code", body: "Your verification code: 654321" }],
+      delivered,
+    )
+  end
+
+  test "deliver ignores unexpected keyword arguments" do
+    record = Object.new
+    record.define_singleton_method(:number) { "+819012345678" }
+    delivered = []
+
+    OutboundSms.stub(:deliver_later, ->(**kwargs) { delivered << kwargs }) do
+      OtpTelephoneAdapter.new.deliver(
+        record: record,
+        otp_code: "111111",
+        encrypted_hotp_token: "ignored",
+        email_address: "ignored@example.com",
+      )
+    end
+
+    assert_equal 1, delivered.size
+    assert_equal "+819012345678", delivered.first.fetch(:to)
+  end
+
+  test "deliver uses localized verification payload when requested" do
+    record = Object.new
+    record.define_singleton_method(:number) { "+819012345678" }
+    delivered = []
+
+    OutboundSms.stub(:deliver_later, ->(**kwargs) { delivered << kwargs }) do
+      OtpTelephoneAdapter.new.deliver(
+        record: record,
+        otp_code: "111111",
+        message_style: :localized_verification,
+      )
+    end
+
+    message = I18n.t("sign.telephone_verification.sms_message", code: "111111")
+
+    assert_equal(
+      [{ to: "+819012345678", title: message, body: message }],
+      delivered,
+    )
+  end
+end

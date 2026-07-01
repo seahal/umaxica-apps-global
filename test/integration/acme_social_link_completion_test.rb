@@ -219,7 +219,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 end
 
 # DAMP auth header helpers for this test class.
-class AcmeSocialLinkCompletionTest
+class BaseSocialLinkCompletionTest
   private
 
   def host_headers(host = nil)
@@ -318,7 +318,7 @@ class AcmeSocialLinkCompletionTest
 end
 
 # DAMP local helper copy for former shared test support.
-class AcmeSocialLinkCompletionTest
+class BaseSocialLinkCompletionTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
@@ -766,7 +766,7 @@ class AcmeSocialLinkCompletionTest
 end
 
 # DAMP local social completion helpers for former shared test support.
-class AcmeSocialLinkCompletionTest
+class BaseSocialLinkCompletionTest
   private
 
   def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
@@ -830,7 +830,7 @@ class AcmeSocialLinkCompletionTest
 end
 
 # DAMP local helper copy on the test class.
-class AcmeSocialLinkCompletionTest
+class BaseSocialLinkCompletionTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
     :TEST_BROWSER_USER_AGENT, false,
   )
@@ -1093,11 +1093,11 @@ class AcmeSocialLinkCompletionTest
     end
   end
 
-  def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com")
-    OmniAuth.config.mock_auth[:google_app] =
+  def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com", token: "google_token")
+    OmniAuth.config.mock_auth[:google] =
       OmniAuth::AuthHash.new(
-        provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
-        credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
+        provider: "google", uid: uid, info: { email: email, name: "Google Client" },
+        credentials: { token: token, expires_at: 1.hour.from_now.to_i },
       )
   end
 end

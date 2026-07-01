@@ -231,11 +231,10 @@ module Auth
           end
 
           def send_telephone_verification_sms(visitor_telephone, otp_number)
-            message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-            OutboundSms.deliver_later(
-              to: visitor_telephone.number,
-              title: message,
-              body: message,
+            OtpAdapter.for(surface: :com, channel: :telephone).deliver(
+              record: visitor_telephone,
+              otp_code: otp_number,
+              message_style: :localized_verification,
             )
           end
 

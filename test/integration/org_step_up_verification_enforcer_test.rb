@@ -130,7 +130,9 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to auth_org_settings_url(ri: "jp")
-    assert_not response_set_cookie_lines.any? { |line| line.start_with?("#{OperatorVerification.cookie_name}=") }
+    set_cookie_lines = Array(response.headers["Set-Cookie"])
+
+    assert_not set_cookie_lines.any? { |line| line.start_with?("#{OperatorVerification.cookie_name}=") }
 
     assert_not OperatorVerification.active.exists?(staff_token_id: @token.id)
     assert_not OperatorChronicle.exists?(

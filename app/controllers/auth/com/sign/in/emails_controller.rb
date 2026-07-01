@@ -145,10 +145,10 @@ module Auth
 
               otp_code = generate_otp_for(existing_email)
 
-              Email::Com::OtpMailer.with(
-                encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-                email_address: existing_email.address,
-              ).create.deliver_later
+              OtpAdapter.for(surface: :com, channel: :email).deliver(
+                record: existing_email,
+                otp_code: otp_code,
+              )
             else
               perform_dummy_otp_generation
 

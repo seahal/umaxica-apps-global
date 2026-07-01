@@ -138,21 +138,21 @@ module SignComVerificationBase
 
       enqueue_step_up_email_otp!(
         hotp_token: pass_code,
-        email_address: visitor_email.address,
+        record: visitor_email,
         public_id: current_visitor.public_id,
       )
 
       true
     end
 
-    def enqueue_step_up_email_otp!(hotp_token:, email_address:, public_id:)
+    def enqueue_step_up_email_otp!(hotp_token:, record:, public_id:)
       SolidQueue::Record.connected_to(role: :writing) do
-        Email::Com::OtpMailer.with(
-          encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(hotp_token),
-          email_address: email_address,
+        OtpAdapter.for(surface: :com, channel: :email).deliver(
+          record: record,
+          otp_code: hotp_token,
           public_id: public_id,
           verification_token: nil,
-        ).create.deliver_later
+        )
       end
     end
   end

@@ -380,10 +380,10 @@ scope module: :base, as: :base do
       resource :identity, only: :show
 
       # Current organization entrypoint.
-      resource :organization, only: %i(show edit update), as: :current_organization # FIXME: Remove this :as statement.
+      resource :organization, only: :show, as: :current_organization # FIXME: Remove this :as statement.
 
       # Current account entrypoint.
-      resource :account, only: %i(show edit update)
+      resource :account, only: :show
 
       # Read-only account resource surface.
       resources :accounts, only: %i(index show)
@@ -587,13 +587,13 @@ scope module: :base, as: :base do
       resource :identity, only: :show
 
       # Current organization entrypoint.
-      resource :organization, only: %i(show edit update), as: :current_organization
+      resource :organization, only: :show, as: :current_organization
 
       # Current avatar entrypoint.
       resource :avatar, only: %i(show edit update destroy)
 
       # Current account entrypoint.
-      resource :account, only: %i(show edit update)
+      resource :account, only: :show
 
       # Read-only account resource surface.
       resources :accounts, only: %i(index show)

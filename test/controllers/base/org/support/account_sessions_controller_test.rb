@@ -939,11 +939,19 @@ class Base::Org::Support::AccountSessionsControllerTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    # The step-up enforcer (VerificationBase#step_up_requirement) validates scope, AAL, and
+    # audience together, so a satisfied-for-test token must carry all of them, not just scope.
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!
@@ -1128,7 +1136,10 @@ class Base::Org::Support::AccountSessionsControllerTest
 
     ensure_staff_token_reference_records!
     token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
-    token ||= OperatorToken.where(staff_id: staff.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= OperatorToken.where(staff_id: staff.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
@@ -1137,7 +1148,10 @@ class Base::Org::Support::AccountSessionsControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(staff, host: host, session_public_id: token_public_id, resource_type: "operator")
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token_public_id,
+             resource_type: "operator",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
@@ -1150,7 +1164,10 @@ class Base::Org::Support::AccountSessionsControllerTest
 
     ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
-    token ||= VisitorToken.where(visitor_id: visitor.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= VisitorToken.where(visitor_id: visitor.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id,
       visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
@@ -1159,7 +1176,10 @@ class Base::Org::Support::AccountSessionsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token_public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token_public_id,
+               resource_type: "visitor",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id

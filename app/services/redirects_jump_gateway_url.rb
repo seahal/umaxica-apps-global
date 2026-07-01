@@ -40,11 +40,11 @@ class RedirectsJumpGatewayUrl
   attr_reader :token, :source
 
   def gateway_origin
-    ENV.fetch("PUBLIC_JUMP_GATEWAY_URL") do
-      ENV.fetch("JUMP_GATEWAY_URL") do
-        ConfigValues::JumpGatewayValues.build(env: ENV, production: Rails.env.production?).origin.to_s
-      end
-    end
+    # Resolve through JumpGatewayValues so the origin is normalized (scheme added, validated) with
+    # the same PUBLIC_JUMP_GATEWAY_URL/JUMP_GATEWAY_URL precedence. Reading the raw ENV directly is
+    # unsafe: a scheme-less PUBLIC_JUMP_GATEWAY_URL (e.g. "jump.umaxica.net") would fail origin
+    # validation here and break every jump-gateway redirect.
+    ConfigValues::JumpGatewayValues.build(env: ENV, production: Rails.env.production?).origin.to_s
   end
 
   def local_origin_allowed?(uri)

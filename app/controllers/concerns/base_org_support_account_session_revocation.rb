@@ -25,7 +25,10 @@ module BaseOrgSupportAccountSessionRevocation
   end
 
   def set_target_account
-    @target_account = self.class::TARGET_ACCOUNT_CLASS.find(params.fetch(self.class::TARGET_PARAM))
+    # Account models expose public_id as their to_param, so the routed identifier is the public_id,
+    # not the primary key. Resolve by public_id to match the URL helpers (find_by! keeps the 404
+    # behavior for unknown targets).
+    @target_account = self.class::TARGET_ACCOUNT_CLASS.find_by!(public_id: params.fetch(self.class::TARGET_PARAM))
   end
 
   def authorize_target_account!

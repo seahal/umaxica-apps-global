@@ -291,7 +291,7 @@ class SignUpSequenceControllerSupportTest < ActiveSupport::TestCase
         actor: sign_up_pending_actor_value,
       )
     end
-    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, _json: false|
+    harness.define_singleton_method(:redirect_after_sign_up_handoff!) do |_sign_in_result, json: false|
       redirect_to("/dashboard")
     end
 

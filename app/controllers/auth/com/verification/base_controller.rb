@@ -141,12 +141,12 @@ module Auth
             ),
           )
 
-          Email::Com::OtpMailer.with(
-            encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(pass_code),
-            email_address: visitor_email.address,
+          OtpAdapter.for(surface: :com, channel: :email).deliver(
+            record: visitor_email,
+            otp_code: pass_code,
             public_id: current_visitor.public_id,
             verification_token: nil,
-          ).create.deliver_later
+          )
 
           true
         end

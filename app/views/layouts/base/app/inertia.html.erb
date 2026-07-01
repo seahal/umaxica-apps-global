@@ -13,7 +13,9 @@
   <%= csp_meta_tag %>
   <%= vite_client_tag nonce: true %>
   <%= vite_react_refresh_tag nonce: true %>
-  <%= vite_typescript_tag "entrypoints/inertia", nonce: true, "data-turbo-eval": "false" %>
+  <%# The Inertia/React entrypoint is a .tsx file; the explicit extension is required because
+      vite_typescript_tag only appends .ts, which does not match the built entrypoints/inertia.tsx manifest key. %>
+  <%= vite_typescript_tag "entrypoints/inertia.tsx", nonce: true, "data-turbo-eval": "false" %>
   <%= inertia_ssr_head %>
   <%= yield :head %>
 </head>

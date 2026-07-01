@@ -11,7 +11,7 @@ module JumpRtSurface
   def namespace_for_controller(controller_class_name)
     service =
       case controller_class_name.to_s
-      when /\ASign::/ then "SIGN"
+      when /\A(?:Auth|Sign)::/ then "SIGN"
       when /\AAcme::/ then "ACME"
       when /\ACore::/ then "CORE"
       when /\ABase::/ then "BASE"

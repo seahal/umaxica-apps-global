@@ -144,12 +144,12 @@ module Auth
             remove_existing_unverified_visitor_emails!
             @user_email.otp_last_sent_at = Time.current
             @user_email.save!
-            Email::Com::OtpMailer.with(
-              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-              email_address: @user_email.address,
+            OtpAdapter.for(surface: :com, channel: :email).deliver(
+              record: @user_email,
+              otp_code: otp_code,
               verification_token: nil,
               public_id: @user_email.public_id,
-            ).create.deliver_later
+            )
 
             true
           rescue ActiveRecord::RecordInvalid => e

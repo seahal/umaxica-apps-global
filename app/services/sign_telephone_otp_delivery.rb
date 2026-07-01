@@ -13,11 +13,7 @@ class SignTelephoneOtpDelivery
   # SNS Subject (title): that subject is delivery metadata, not the message,
   # and duplicating the code there only widens the leak surface.
   def self.deliver!(telephone, otp_code)
-    OutboundSms.deliver_later(
-      to: telephone.number,
-      title: "Verification code",
-      body: "Your verification code: #{otp_code}",
-    )
+    OtpTelephoneAdapter.new.deliver(record: telephone, otp_code: otp_code)
   end
 
   def initialize(telephone, now:)

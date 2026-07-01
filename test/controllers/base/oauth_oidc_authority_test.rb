@@ -418,11 +418,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         logout_request: logout_request,
         ri: "jp",
       },
-      headers: {
-        "Host" => host,
-        "X-TEST-CURRENT-USER" => user.id.to_s,
-        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-      },
+      headers: as_user_headers(user, host: host, session_public_id: token.public_id),
     )
 
     assert_response :ok
@@ -435,11 +431,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         logout_request: logout_request,
         ri: "jp",
       },
-      headers: {
-        "Host" => host,
-        "X-TEST-CURRENT-USER" => user.id.to_s,
-        "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-      },
+      headers: as_user_headers(user, host: host, session_public_id: token.public_id),
     )
 
     assert_response :success
@@ -513,10 +505,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         end,
         transaction_class: VisitorOidcAuthorizationTransaction,
         header_builder: ->(actor, host:, session_public_id:) do
-          host_headers(host).merge(
-            TEST_RESOURCE_HEADER => actor.id.to_s,
-            "X-TEST-SESSION-PUBLIC-ID" => session_public_id,
-          )
+          as_visitor_headers(actor, host: host, session_public_id: session_public_id)
         end,
       },
     ].each do |surface|

@@ -158,7 +158,10 @@ module Auth
 
             if @user_telephone
               otp_code = generate_otp_for(@user_telephone)
-              SignTelephoneOtpDelivery.deliver!(@user_telephone, otp_code)
+              OtpAdapter.for(surface: :app, channel: :telephone).deliver(
+                record: @user_telephone,
+                otp_code: otp_code,
+              )
             else
               perform_dummy_otp_generation
             end

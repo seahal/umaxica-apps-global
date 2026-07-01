@@ -59,12 +59,12 @@ module Auth
               return
             end
 
-            Email::Org::OtpMailer.with(
-              encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-              email_address: @staff_email.address,
+            OtpAdapter.for(surface: :org, channel: :email).deliver(
+              record: @staff_email,
+              otp_code: otp_code,
               verification_token: nil,
               public_id: @staff_email.public_id,
-            ).create.deliver_later
+            )
 
             session[registration_session_key] = @staff_email.public_id
             start_email_ceremony!(

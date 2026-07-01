@@ -1234,12 +1234,12 @@ class OidcTokenExchangeCoordinatorTest < ActiveSupport::TestCase
     assert_equal %w(openid profile), access_token.fetch("scp")
     assert_predicate access_token.fetch("auth_time"), :present?
 
-    acme_kids = JitSecurityJwtRegistry.jwks_for("surface:ACME_APP").fetch(:keys).map { |key| key.fetch("kid") }
+    base_kids = JitSecurityJwtRegistry.jwks_for("surface:BASE_APP").fetch(:keys).map { |key| key.fetch("kid") }
     access_header = JitSecurityJwtKeyring.parse_header(result.token_response.fetch(:access_token))
     id_header = JitSecurityJwtKeyring.parse_header(result.token_response.fetch(:id_token))
 
-    assert_includes acme_kids, access_header.fetch("kid")
-    assert_includes acme_kids, id_header.fetch("kid")
+    assert_includes base_kids, access_header.fetch("kid")
+    assert_includes base_kids, id_header.fetch("kid")
   end
 
   test "rejects malformed PKCE verifiers and plain method" do

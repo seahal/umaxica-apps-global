@@ -7,7 +7,6 @@ require "test_helper"
 class Base::App::GroupsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = configured_host(:base_service)
-    @private_base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
@@ -25,14 +24,16 @@ class Base::App::GroupsControllerTest < ActionDispatch::IntegrationTest
     assert_select "title", /Groups/
     assert_select "script[data-page='app'][type='application/json']"
     assert_includes response.body, '"component":"base/app/groups/index"'
-    assert_includes response.body, "entrypoints/inertia"
+    # The inertia entrypoint is referenced by name in dev mode and by a hashed asset path in
+    # manifest/built mode (e.g. /vite-test/assets/inertia-XXXX.js); match either form.
+    assert_select "script[src*=?]", "inertia"
   end
 
   test "unauthenticated cannot access groups" do
     get base_app_groups_url(ri: "jp", host: @host), headers: host_headers(@host)
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @private_base_host)
+    assert_oidc_authorize_redirect(response.location, host: @host)
   end
   private
 
@@ -1052,7 +1053,10 @@ class Base::App::GroupsControllerTest
 
     ensure_staff_token_reference_records!
     token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
-    token ||= OperatorToken.where(staff_id: staff.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= OperatorToken.where(staff_id: staff.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
@@ -1061,7 +1065,10 @@ class Base::App::GroupsControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(staff, host: host, session_public_id: token_public_id, resource_type: "operator")
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token_public_id,
+             resource_type: "operator",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
@@ -1074,7 +1081,10 @@ class Base::App::GroupsControllerTest
 
     ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
-    token ||= VisitorToken.where(visitor_id: visitor.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= VisitorToken.where(visitor_id: visitor.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id,
       visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
@@ -1083,7 +1093,10 @@ class Base::App::GroupsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token_public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token_public_id,
+               resource_type: "visitor",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id

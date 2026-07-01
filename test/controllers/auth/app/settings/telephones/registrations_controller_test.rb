@@ -47,6 +47,9 @@ class Auth::App::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       "Host" => @host,
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@user, host: @host, session_public_id: @token.public_id, resource_type: "client")
+      }",
     }
   end
 end

@@ -15,9 +15,12 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
     @app_host = hosts.base_service.host
     @org_host = hosts.base_staff.host
     @com_host = hosts.base_corporate.host
-    @app_authority_host = hosts.acme_service.host
-    @org_authority_host = hosts.acme_staff.host
-    @com_authority_host = hosts.acme_corporate.host
+    # The base RP is its own OIDC authority: OidcIssuer maps each surface to the base host
+    # (base_service/base_staff/base_corporate), so unauthenticated requests redirect to the
+    # same host they were made on. The acme_* hosts belong to the sign surface, not this RP.
+    @app_authority_host = hosts.base_service.host
+    @org_authority_host = hosts.base_staff.host
+    @com_authority_host = hosts.base_corporate.host
   end
 
   # The app surface no longer exposes singular current self-service pages (/account, /avatar,
@@ -1125,7 +1128,10 @@ class BaseSelfServiceRoutesTest
 
     ensure_staff_token_reference_records!
     token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
-    token ||= OperatorToken.where(staff_id: staff.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= OperatorToken.where(staff_id: staff.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
@@ -1134,7 +1140,10 @@ class BaseSelfServiceRoutesTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(staff, host: host, session_public_id: token_public_id, resource_type: "operator")
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token_public_id,
+             resource_type: "operator",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
@@ -1147,7 +1156,10 @@ class BaseSelfServiceRoutesTest
 
     ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
-    token ||= VisitorToken.where(visitor_id: visitor.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= VisitorToken.where(visitor_id: visitor.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id,
       visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
@@ -1156,7 +1168,10 @@ class BaseSelfServiceRoutesTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token_public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token_public_id,
+               resource_type: "visitor",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id

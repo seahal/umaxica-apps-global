@@ -155,16 +155,9 @@ class SignOtpCeremony
   end
 
   def deliver!(record, otp_code)
-    delivery_options = {
-      encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-      record: record,
-      otp_code: otp_code,
-    }
-    delivery_options[:email_address] = record.address if channel == :email
-
-    OtpDeliveryAdapter
+    OtpAdapter
       .for(surface: surface, channel: channel)
-      .deliver(**delivery_options)
+      .deliver(record: record, otp_code: otp_code)
   end
 
   def result(success, status, record: nil, code: nil, error: nil)

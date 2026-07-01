@@ -126,10 +126,10 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       assert_not_includes source, pattern, pattern
     end
 
-    assert_includes source, "auth_routes"
-    assert_includes source, "auth_surface"
-    assert_includes source, "auth_rp_oidc_routes"
-    assert_includes source, "auth_app_social_routes"
+    assert_includes source, "scope(module: :auth, as: :auth)"
+    assert_includes source, "constraints(host:"
+    assert_includes source, "namespace(:oidc)"
+    assert_includes source, "namespace(:social)"
   end
 
   private

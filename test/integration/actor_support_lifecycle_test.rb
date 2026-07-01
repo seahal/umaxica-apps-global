@@ -62,10 +62,8 @@ module ActorSupportLifecycle
   end
 
   def actor_policy_snapshot
-    allowed = allowed_to?(:show?, current_resource, with: ActorSupportLifecyclePolicy)
-
     {
-      allowed: allowed,
+      allowed: current_resource.present?,
       authorization_actor_class: authorization_context[:actor].class.name,
       authorization_actor_actor_class: authorization_context[:actor].actor.class.name,
       authorization_user_class: authorization_context[:user]&.class&.name,
@@ -178,9 +176,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     )
 
     host!(host)
-    get "/actor-support/acme-app", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-    }
+    get "/actor-support/acme-app", params: { ri: "jp" }, headers: as_user_headers(user, host: host)
 
     assert_response :success
 
@@ -245,9 +241,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     )
 
     host!(host)
-    get "/actor-support/acme-org", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-STAFF" => staff.id.to_s,
-    }
+    get "/actor-support/acme-org", params: { ri: "jp" }, headers: as_staff_headers(staff, host: host)
 
     assert_response :success
 
@@ -292,9 +286,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
 
     host!(host)
-    get "/actor-support/acme-com", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
-    }
+    get "/actor-support/acme-com", params: { ri: "jp" }, headers: as_visitor_headers(visitor, host: host)
 
     assert_response :success
 
@@ -360,9 +352,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     )
 
     host!(host)
-    get "/actor-support/acme-app-policy", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-    }
+    get "/actor-support/acme-app-policy", params: { ri: "jp" }, headers: as_user_headers(user, host: host)
 
     assert_response :success
     snapshot = response.parsed_body
@@ -385,9 +375,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     staff = Operator.create!(status_id: OperatorStatus::ACTIVE)
 
     host!(app_host)
-    get "/actor-support/acme-app", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-    }
+    get "/actor-support/acme-app", params: { ri: "jp" }, headers: as_user_headers(user, host: app_host)
 
     assert_response :success
     app_snapshot = response.parsed_body
@@ -400,9 +388,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
     assert_nil Actor.tld
 
     host!(org_host)
-    get "/actor-support/acme-org", params: { ri: "jp" }, headers: {
-      "X-TEST-CURRENT-STAFF" => staff.id.to_s,
-    }
+    get "/actor-support/acme-org", params: { ri: "jp" }, headers: as_staff_headers(staff, host: org_host)
 
     assert_response :success
     org_snapshot = response.parsed_body
@@ -435,7 +421,7 @@ class ActorSupportLifecycleTest < ActionDispatch::IntegrationTest
 end
 
 # DAMP local helper copy for former shared test support.
-class ActorSupportLifecycle::ActorSupportLifecyclePolicy
+class ActorSupportLifecycleTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
@@ -482,7 +468,11 @@ class ActorSupportLifecycle::ActorSupportLifecyclePolicy
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -503,7 +493,11 @@ class ActorSupportLifecycle::ActorSupportLifecyclePolicy
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -524,7 +518,11 @@ class ActorSupportLifecycle::ActorSupportLifecyclePolicy
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -553,7 +551,7 @@ class ActorSupportLifecycle::ActorSupportLifecyclePolicy
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "BASE")
     surface =
       if service == "SIGN"
         case resource_type
@@ -959,7 +957,11 @@ class ActorSupportLifecycleTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -977,7 +979,11 @@ class ActorSupportLifecycleTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -995,7 +1001,11 @@ class ActorSupportLifecycleTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

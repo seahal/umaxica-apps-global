@@ -19,6 +19,8 @@ class Base::Com::Oidc::LogoutsControllerTest < ActionDispatch::IntegrationTest
     )
     @session_public_id = @token.public_id
     set_access_cookie(base_access_token(@visitor, resource_type: "visitor", jwt_issuer_id: "surface:BASE_COM"))
+    # The staged logout confirmation redirects through the jump gateway, which needs signing keys.
+    load_jump_rt_env!
   end
 
   test "routes get and post to oidc logout without changing helper" do
@@ -690,7 +692,10 @@ class Base::Com::Oidc::LogoutsControllerTest
 
     ensure_staff_token_reference_records!
     token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
-    token ||= OperatorToken.where(staff_id: staff.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= OperatorToken.where(staff_id: staff.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= OperatorToken.create!(
       staff_id: staff.id,
       staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
@@ -699,7 +704,10 @@ class Base::Com::Oidc::LogoutsControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(staff, host: host, session_public_id: token_public_id, resource_type: "operator")
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token_public_id,
+             resource_type: "operator",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id
@@ -712,7 +720,10 @@ class Base::Com::Oidc::LogoutsControllerTest
 
     ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
-    token ||= VisitorToken.where(visitor_id: visitor.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+    token ||= VisitorToken.where(visitor_id: visitor.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
     token ||= VisitorToken.create!(
       visitor_id: visitor.id,
       visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
@@ -721,7 +732,10 @@ class Base::Com::Oidc::LogoutsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     token_public_id = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token_public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token_public_id,
+               resource_type: "visitor",
+    )
     set_access_cookie(access_token)
     base["Cookie"] = [base["Cookie"], "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"].compact.join("; ")
     base["X-TEST-SESSION-PUBLIC-ID"] = token_public_id

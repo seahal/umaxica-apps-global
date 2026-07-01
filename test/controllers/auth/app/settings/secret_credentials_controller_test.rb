@@ -39,6 +39,12 @@ class Auth::App::Settings::SecretCredentialsControllerTest < ActionDispatch::Int
     browser_headers.merge(
       "X-TEST-CURRENT-USER" => @user.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(
+          @user, host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+                 session_public_id: @token.public_id, resource_type: "client",
+        )
+      }",
     )
   end
 

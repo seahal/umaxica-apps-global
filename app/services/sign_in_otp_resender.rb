@@ -116,16 +116,9 @@ class SignInOtpResender
     end
 
     otp_code = generate_otp_for(target)
-    delivery_options = {
-      encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_code),
-      record: target,
-      otp_code: otp_code,
-    }
-    delivery_options[:email_address] = target.address if @kind == "email"
-
-    OtpDeliveryAdapter
+    OtpAdapter
       .for(surface: :app, channel: @kind.to_sym)
-      .deliver(**delivery_options)
+      .deliver(record: target, otp_code: otp_code)
   end
 
   def target_records(normalized_target)

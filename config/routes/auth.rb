@@ -4,453 +4,607 @@
 # Auth owns the credential gateway surfaces. Base is the sole IdP /
 # Authorization Server; Auth surfaces handle credential ceremonies and do not
 # own RP authority.
-#
-# Route mapper macros (auth_routes/auth_surface/auth_public_gateway_routes/
-# auth_rp_oidc_routes/auth_app_social_routes) live in
-# config/auth_route_mapper.rb and are loaded from config/routes.rb before this
-# file is drawn. Protocol/public fixed paths and the social `to:`/`defaults:`
-# wiring are isolated there so the surface groups below read as a contract
-# table.
-auth_routes do
+scope(module: :auth, as: :auth) do
   hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
   # User credential gateway host.
-  auth_surface :app, host: [hosts.auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"], "auth.app.localhost"].compact do
-    root "roots#index"
-    resource :dashboard, only: :show
-    resources :billings, only: :index
+  constraints(host: [hosts.auth_service.host, ENV["PUBLIC_AUTH_SERVICE_URL"], "auth.app.localhost"].compact) do
+    scope(module: :app, as: :app) do
+      root "roots#index"
+      resource :dashboard, only: :show
+      resources :billings, only: :index
 
-    # TODO: WHAT IS THIS? CHECK IT OUT
-    auth_public_gateway_routes
-
-    # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
-    namespace :sign do
-      resource :up, only: :show
-      resource :in, only: :show
-      resource :out, only: %i(new edit create destroy) do
-        get :complete, on: :collection
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
-    end
 
-    # TODO: WHAT IS THIS? CHECK IT OUT
-    auth_rp_oidc_routes
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
 
-    # Public web API: OTP delivery, cookie consent, theme.
-    namespace :web do
-      namespace :v0 do
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          get :complete, on: :collection
+        end
+      end
+
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
+      end
+
+      # Public web API: OTP delivery, cookie consent, theme.
+      namespace :web do
+        namespace :v0 do
+          namespace :in do
+            namespace :email do
+              resource :otp, only: :create
+            end
+
+            namespace :telephone do
+              resource :otp, only: :create
+            end
+          end
+
+          resource :cookie, only: %i(show update)
+          resource :theme, only: %i(show update)
+        end
+      end
+
+      # Edge compatibility API: token lifecycle management.
+      namespace :edge do
+        namespace :v0 do
+          namespace :token do
+            resource :check, only: :show
+            resource :dbsc, only: :create
+          end
+        end
+      end
+
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Auth-up ceremony.
+        namespace(:up) do
+          resource(:email, only: %i(new create))
+          resource(:telephone, only: %i(new create))
+
+          namespace(:guard) do
+            resource(:apple, only: :show)
+            resource(:google, only: :show)
+            resource(:email, only: :show)
+            resource(:telephone, only: :show)
+          end
+
+          namespace(:check) do
+            namespace(:apple) do
+              resource(:confirmation, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:google) do
+              resource(:confirmation, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:email) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:telephone) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:passkey, only: %i(show create update destroy))
+              resource(:passcode, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+          end
+        end
+
+        # Sign-in ceremony.
         namespace :in do
-          namespace :email do
-            resource :otp, only: :create
+          resource :email, only: %i(new create edit update)
+
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
           end
 
-          namespace :telephone do
-            resource :otp, only: :create
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
+
+          resource :challenge, only: :show
+          namespace :challenge do
+            resource :totp, only: %i(new create)
+            resource :passkey, only: %i(new create)
           end
         end
-
-        resource :cookie, only: %i(show update)
-        resource :theme, only: %i(show update)
       end
-    end
 
-    # Edge compatibility API: token lifecycle management.
-    namespace :edge do
-      namespace :v0 do
-        namespace :token do
-          resource :check, only: :show
-          resource :dbsc, only: :create
+      namespace(:social) do
+        get(
+          "google/callback",
+          to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
+          as: :google_callback,
+          defaults: { provider: "google" },
+        )
+
+        match(
+          "apple/callback",
+          to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
+          via: %i(get post),
+          as: :apple_callback,
+          defaults: { provider: "apple" },
+        )
+
+        get(
+          "failure",
+          to: "/auth/app/omniauth/omniauth_callbacks#failure",
+        )
+
+        scope :google do
+          get(
+            "sign/in", to: "/auth/app/social/authentications#continue", as: :google_auth_in,
+                       defaults: { provider: "google", intent: "login" },
+          )
+          get(
+            "sign/up", to: "/auth/app/social/authentications#continue", as: :google_auth_up,
+                       defaults: { provider: "google", intent: "login", entry: "auth_up" },
+          )
+        end
+
+        scope :apple do
+          get(
+            "sign/in", to: "/auth/app/social/authentications#continue", as: :apple_auth_in,
+                       defaults: { provider: "apple", intent: "login" },
+          )
+          get(
+            "sign/up", to: "/auth/app/social/authentications#continue", as: :apple_auth_up,
+                       defaults: { provider: "apple", intent: "login", entry: "auth_up" },
+          )
         end
       end
-    end
 
-    # Sign-up and sign-in ceremonies.
-    namespace :sign do
-      # Auth-up ceremony.
-      auth_signup_check_routes
-
-      # Sign-in ceremony.
-      namespace :in do
-        resource :email, only: %i(new create edit update)
-
-        resource :passkey, only: :new
-        namespace :passkey do
-          resource :options, only: :create
-          resource :verification, only: :create
-        end
-
-        resource :secret_credential, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-
-        resource :guard, only: :show
-        resource :check, only: %i(show update destroy)
-
-        resource :challenge, only: :show
-        namespace :challenge do
-          resource :totp, only: %i(new create)
-          resource :passkey, only: %i(new create)
-        end
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
       end
-    end
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
+        resource :totp, only: %i(new create)
 
-    auth_app_social_routes
-
-    # Step-up verification.
-    resource :verification, only: :show
-    namespace :verification do
-      resource :cancellation, only: :create
-    end
-    namespace :verification do
-      resource :setup, only: :new
-      resource :passkey, only: %i(new create)
-      resource :totp, only: %i(new create)
-
-      resources :emails, only: %i(new create edit update) do
-        resource :redelivery, only: :create
-      end
-    end
-
-    # Settings and credential management.
-    resource :settings, only: :show
-    namespace :settings do
-      namespace :mfa do
-        resource :reset, only: %i(show create)
-        resource :challenge, only: :show
-      end
-
-      resources :totps, only: %i(index new create edit update destroy)
-
-      # TODO: ceche passkeys and passkey.
-      resources :passkeys do
-        resource :removal, only: :create
-      end
-
-      namespace :passkeys do
-        resource :options, only: :create
-        resource :verification, only: :create
-      end
-
-      namespace :emails do
-        resource :registration, only: %i(new create edit update) do
+        resources :emails, only: %i(new create edit update) do
           resource :redelivery, only: :create
         end
       end
 
-      resources :emails, only: %i(index edit update destroy)
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        namespace :mfa do
+          resource :reset, only: %i(show create)
+          resource :challenge, only: :show
+        end
 
-      namespace :telephones do
-        resource :registration, only: %i(new create edit update)
+        resources :totps, only: %i(index new create edit update destroy)
+
+        # TODO: ceche passkeys and passkey.
+        resources :passkeys do
+          resource :removal, only: :create
+        end
+
+        namespace :passkeys do
+          resource :options, only: :create
+          resource :verification, only: :create
+        end
+
+        namespace :emails do
+          resource :registration, only: %i(new create edit update) do
+            resource :redelivery, only: :create
+          end
+        end
+
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+        resource :apple, only: %i(show edit create destroy)
+        resource :google, only: %i(show edit create destroy)
+        resource :secrets, only: :show
+
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
+        end
+
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
+
+        resources :activities, only: :index
+
+        resource :withdrawal, only: %i(new update create edit destroy)
       end
-
-      resources :telephones, only: %i(index new create edit destroy)
-
-      resource :birthdate, only: :show
-      resource :apple, only: %i(show edit create destroy)
-      resource :google, only: %i(show edit create destroy)
-      resource :secrets, only: :show
-
-      resources :secret_credentials, only: %i(index show new edit create update destroy) do
-        resource :rotation, only: :create
-        resource :removal, only: :create
-      end
-
-      resources :sessions, only: %i(index show) do
-        resource :revocation, only: :create
-      end
-
-      namespace :revocations do
-        resource :others, only: :create
-        resource :all, only: :create
-      end
-
-      resources :activities, only: :index
-
-      resource :withdrawal, only: %i(new update create edit destroy)
     end
   end
 
   # Corporate credential gateway host.
-  auth_surface :com,
-               host: [hosts.auth_corporate.host, ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost"].compact do
-    root "roots#index"
-    resource :dashboard, only: :show
+  constraints(host: [hosts.auth_corporate.host, ENV["PUBLIC_AUTH_CORPORATE_URL"], "auth.com.localhost"].compact) do
+    scope(module: :com, as: :com) do
+      root "roots#index"
+      resource :dashboard, only: :show
 
-    auth_public_gateway_routes
-
-    # Canonical ceremony entrypoints and authed-out confirmation.
-    namespace :sign do
-      resource :up, only: :show
-      resource :in, only: :show
-      resource :out, only: %i(new edit create destroy) do
-        get :complete, on: :collection
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
-    end
 
-    auth_rp_oidc_routes
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
 
-    # Public web API: OTP delivery, cookie consent, theme.
-    namespace :web do
-      namespace :v0 do
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # Canonical ceremony entrypoints and authed-out confirmation.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          get :complete, on: :collection
+        end
+      end
+
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
+      end
+
+      # Public web API: OTP delivery, cookie consent, theme.
+      namespace :web do
+        namespace :v0 do
+          namespace :in do
+            namespace :email do
+              resource :otp, only: :create
+            end
+
+            namespace :telephone do
+              resource :otp, only: :create
+            end
+          end
+
+          resource :cookie, only: %i(show update)
+          resource :theme, only: %i(show update)
+        end
+      end
+
+      # Edge compatibility API: token lifecycle management.
+      namespace :edge do
+        namespace :v0 do
+          namespace :token do
+            resource :check, only: :show
+            resource :dbsc, only: :create
+          end
+        end
+      end
+
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Auth-up ceremony.
+        namespace(:up) do
+          resource(:email, only: %i(new create))
+          resource(:telephone, only: %i(new create))
+
+          namespace(:guard) do
+            resource(:email, only: :show)
+            resource(:telephone, only: :show)
+          end
+
+          namespace(:check) do
+            namespace(:email) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+
+            namespace(:telephone) do
+              resource(:otp, only: %i(show create update destroy))
+              resource(:passkey, only: %i(show create update destroy))
+              resource(:passcode, only: %i(show update destroy))
+              resource(:birthdate, only: %i(show update destroy))
+            end
+          end
+        end
+
+        # Sign-in ceremony.
         namespace :in do
-          namespace :email do
-            resource :otp, only: :create
+          resource :email, only: %i(new create edit)
+
+          resource :passkey, only: :new
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
           end
 
-          namespace :telephone do
-            resource :otp, only: :create
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
+
+          resource :challenge, only: :show
+
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
           end
         end
-
-        resource :cookie, only: %i(show update)
-        resource :theme, only: %i(show update)
       end
-    end
 
-    # Edge compatibility API: token lifecycle management.
-    namespace :edge do
-      namespace :v0 do
-        namespace :token do
-          resource :check, only: :show
-          resource :dbsc, only: :create
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
+
+        resources :emails, only: %i(new create edit update) do
+          resource :redelivery, only: :create
         end
       end
-    end
 
-    # Sign-up and sign-in ceremonies.
-    namespace :sign do
-      # Auth-up ceremony.
-      auth_signup_check_routes(providers: %i(email telephone))
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        resources :passkeys do
+          resource :removal, only: :create
+        end
 
-      # Sign-in ceremony.
-      namespace :in do
-        resource :email, only: %i(new create edit)
-
-        resource :passkey, only: :new
-        namespace :passkey do
+        namespace :passkeys do
           resource :options, only: :create
           resource :verification, only: :create
         end
 
-        resource :secret_credential, only: %i(new create)
-        resource :session, only: %i(show update destroy)
+        resource :secrets, only: :show
 
-        resource :guard, only: :show
-        resource :check, only: %i(show update destroy)
-
-        resource :challenge, only: :show
-
-        namespace :challenge do
-          resource :passkey, only: %i(new create)
+        namespace :mfa do
+          resource :challenge, only: :show
         end
+
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+
+        resources :secret_credentials, only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
+        end
+
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
+
+        resources :activities, only: :index
+        resource :withdrawal, only: %i(new update create edit destroy)
       end
-    end
-
-    # Step-up verification.
-    resource :verification, only: :show
-    namespace :verification do
-      resource :cancellation, only: :create
-    end
-    namespace :verification do
-      resource :setup, only: :new
-      resource :passkey, only: %i(new create)
-
-      resources :emails, only: %i(new create edit update) do
-        resource :redelivery, only: :create
-      end
-    end
-
-    # Settings and credential management.
-    resource :settings, only: :show
-    namespace :settings do
-      resources :passkeys do
-        resource :removal, only: :create
-      end
-
-      namespace :passkeys do
-        resource :options, only: :create
-        resource :verification, only: :create
-      end
-
-      resource :secrets, only: :show
-
-      namespace :mfa do
-        resource :challenge, only: :show
-      end
-
-      namespace :emails do
-        resource :registration, only: %i(new create edit update)
-      end
-
-      resources :emails, only: %i(index edit update destroy)
-
-      namespace :telephones do
-        resource :registration, only: %i(new create edit update)
-      end
-
-      resources :telephones, only: %i(index new create edit destroy)
-
-      resource :birthdate, only: :show
-
-      resources :secret_credentials, only: %i(index show new edit create update destroy) do
-        resource :rotation, only: :create
-        resource :removal, only: :create
-      end
-
-      resources :sessions, only: %i(index show) do
-        resource :revocation, only: :create
-      end
-
-      namespace :revocations do
-        resource :others, only: :create
-        resource :all, only: :create
-      end
-
-      resources :activities, only: :index
-      resource :withdrawal, only: %i(new update create edit destroy)
     end
   end
 
   # Staff credential gateway host.
-  auth_surface :org, host: [hosts.auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"], "auth.org.localhost"].compact do
-    root "roots#index"
-    resource :dashboard, only: :show
+  constraints(host: [hosts.auth_staff.host, ENV["PUBLIC_AUTH_STAFF_URL"], "auth.org.localhost"].compact) do
+    scope(module: :org, as: :org) do
+      root "roots#index"
+      resource :dashboard, only: :show
 
-    auth_public_gateway_routes
-
-    # Staff management areas.
-    resource :configuration, only: :show
-    resources :accounts, only: :index
-    resources :iam, only: :index
-    resources :system, only: :index
-    resources :audit, only: :index
-    resources :support, only: :index
-    resources :billing, only: :index
-
-    # Canonical ceremony entrypoints and authed-out confirmation.
-    namespace :sign do
-      resource :up, only: :show
-      resource :in, only: :show
-      resource :out, only: %i(new edit create destroy) do
-        get :complete, on: :collection
+      namespace(:well_known, path: ".well-known") do
+        resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
-    end
 
-    auth_rp_oidc_routes
-
-    # Public web API: cookie consent, theme.
-    namespace :web do
-      namespace :v0 do
-        resource :cookie, only: %i(show update)
-        resource :theme, only: %i(show update)
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
       end
-    end
 
-    # Edge compatibility API: token lifecycle management.
-    namespace :edge do
-      namespace :v0 do
-        namespace :token do
-          resource :check, only: :show
-          resource :dbsc, only: :create
+      resources(:robots, only: :index, path: "robots.txt")
+      resource(:sitemap, only: :show, path: "sitemap.xml")
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+
+      # Staff management areas.
+      resource :configuration, only: :show
+      resources :accounts, only: :index
+      resources :iam, only: :index
+      resources :system, only: :index
+      resources :audit, only: :index
+      resources :support, only: :index
+      resources :billing, only: :index
+
+      # Canonical ceremony entrypoints and authed-out confirmation.
+      namespace :sign do
+        resource :up, only: :show
+        resource :in, only: :show
+        resource :out, only: %i(new edit create destroy) do
+          get :complete, on: :collection
         end
       end
-    end
 
-    # Sign-up and sign-in ceremonies.
-    namespace :sign do
-      # Staff invitation auth-up.
-      namespace :up do
-        resources :invitations, only: %i(new create)
+      namespace(:oidc) do
+        resource(:authorization, only: :show)
+        resource(:callback, only: :show)
+
+        namespace(:backchannel) do
+          resource(:logout, only: :create)
+        end
       end
 
-      # Sign-in ceremony.
-      namespace :in do
-        resource :passkey, only: :new
+      # Public web API: cookie consent, theme.
+      namespace :web do
+        namespace :v0 do
+          resource :cookie, only: %i(show update)
+          resource :theme, only: %i(show update)
+        end
+      end
 
-        namespace :passkey do
+      # Edge compatibility API: token lifecycle management.
+      namespace :edge do
+        namespace :v0 do
+          namespace :token do
+            resource :check, only: :show
+            resource :dbsc, only: :create
+          end
+        end
+      end
+
+      # Sign-up and sign-in ceremonies.
+      namespace :sign do
+        # Staff invitation auth-up.
+        namespace :up do
+          resources :invitations, only: %i(new create)
+        end
+
+        # Sign-in ceremony.
+        namespace :in do
+          resource :passkey, only: :new
+
+          namespace :passkey do
+            resource :options, only: :create
+            resource :verification, only: :create
+          end
+
+          resource :secret_credential, only: %i(new create)
+          resource :session, only: %i(show update destroy)
+
+          resource :guard, only: :show
+          resource :check, only: %i(show update destroy)
+
+          resource :challenge, only: :show
+
+          namespace :challenge do
+            resource :passkey, only: %i(new create)
+          end
+
+          # Entra ID (Microsoft) sign-in ceremony.
+          # authorization: POST initiates PKCE flow and redirects to Entra.
+          # callback: GET receives the authorization code from Entra.
+          resource :entra, only: :new do
+            post :authorization
+            get :callback
+          end
+        end
+      end
+
+      # Step-up verification.
+      resource :verification, only: :show
+      namespace :verification do
+        resource :cancellation, only: :create
+      end
+      namespace :verification do
+        resource :setup, only: :new
+        resource :passkey, only: %i(new create)
+      end
+
+      # Settings and credential management.
+      resource :settings, only: :show
+      namespace :settings do
+        resources :passkeys do
+          resource :removal, only: :create
+        end
+
+        namespace :passkeys do
           resource :options, only: :create
-          resource :verification, only: :create
+          resource :verification, only: :create # TODO: check this statement!
         end
 
-        resource :secret_credential, only: %i(new create)
-        resource :session, only: %i(show update destroy)
-
-        resource :guard, only: :show
-        resource :check, only: %i(show update destroy)
-
-        resource :challenge, only: :show
-
-        namespace :challenge do
-          resource :passkey, only: %i(new create)
+        namespace :mfa do
+          resource :challenge, only: :show
         end
 
-        # Entra ID (Microsoft) sign-in ceremony.
-        # authorization: POST initiates PKCE flow and redirects to Entra.
-        # callback: GET receives the authorization code from Entra.
-        resource :entra, only: :new do
-          post :authorization
-          get :callback
+        resources :secret_credentials
+
+        resources :sessions, only: %i(index show) do
+          resource :revocation, only: :create
         end
-      end
-    end
 
-    # Step-up verification.
-    resource :verification, only: :show
-    namespace :verification do
-      resource :cancellation, only: :create
-    end
-    namespace :verification do
-      resource :setup, only: :new
-      resource :passkey, only: %i(new create)
-    end
+        namespace :revocations do
+          resource :others, only: :create
+          resource :all, only: :create
+        end
 
-    # Settings and credential management.
-    resource :settings, only: :show
-    namespace :settings do
-      resources :passkeys do
-        resource :removal, only: :create
-      end
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
 
-      namespace :passkeys do
-        resource :options, only: :create
-        resource :verification, only: :create # TODO: check this statement!
-      end
+        resources :emails, only: %i(index edit update destroy)
 
-      namespace :mfa do
-        resource :challenge, only: :show
-      end
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
 
-      resources :secret_credentials
+        resources :telephones, only: %i(index new create edit destroy)
 
-      resources :sessions, only: %i(index show) do
-        resource :revocation, only: :create
-      end
+        resource :birthdate, only: :show
+        resources :activities, only: :index
+        resource :withdrawal, only: :show
 
-      namespace :revocations do
-        resource :others, only: :create
-        resource :all, only: :create
-      end
-
-      namespace :emails do
-        resource :registration, only: %i(new create edit update)
-      end
-
-      resources :emails, only: %i(index edit update destroy)
-
-      namespace :telephones do
-        resource :registration, only: %i(new create edit update)
-      end
-
-      resources :telephones, only: %i(index new create edit destroy)
-
-      resource :birthdate, only: :show
-      resources :activities, only: :index
-      resource :withdrawal, only: :show
-
-      # Lifecycle request state transitions.
-      resources :operator_lifecycle_requests, only: %i(index show new create) do
-        scope module: :operator_lifecycle_requests do
-          resource :approval, only: :create
-          resource :execution, only: :create
-          resource :rejection, only: :create
+        # Lifecycle request state transitions.
+        resources :operator_lifecycle_requests, only: %i(index show new create) do
+          scope module: :operator_lifecycle_requests do
+            resource :approval, only: :create
+            resource :execution, only: :create
+            resource :rejection, only: :create
+          end
         end
       end
     end

@@ -263,11 +263,11 @@ module Auth
               @user_email.otp_last_sent_at = Time.current
               @user_email.save!
               token = @user_email.generate_verification_token
-              Email::Com::OtpMailer.with(
-                encrypted_hotp_token: OutboundSensitivePayload.encrypt_email_otp(otp_number),
-                email_address: @user_email.address,
+              OtpAdapter.for(surface: :com, channel: :email).deliver(
+                record: @user_email,
+                otp_code: otp_number,
                 verification_token: token, public_id: @user_email.public_id,
-              ).create.deliver_later
+              )
 
               true
             end

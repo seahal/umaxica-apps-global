@@ -95,7 +95,10 @@ class SignComUpTelephoneSignupCreator
 
     otp_code = SignTelephoneOtpDelivery.assign(@telephone)
     @telephone.save!
-    SignTelephoneOtpDelivery.deliver!(@telephone, otp_code)
+    OtpAdapter.for(surface: :com, channel: :telephone).deliver(
+      record: @telephone,
+      otp_code: otp_code,
+    )
 
     @result = Result.new(
       status: :created,

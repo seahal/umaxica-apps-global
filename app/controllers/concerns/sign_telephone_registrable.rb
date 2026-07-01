@@ -88,11 +88,10 @@ module SignTelephoneRegistrable
   end
 
   def send_telephone_verification_sms(user_telephone, otp_number)
-    message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-    OutboundSms.deliver_later(
-      to: user_telephone.number,
-      title: message,
-      body: message,
+    OtpAdapter.for(surface: :app, channel: :telephone).deliver(
+      record: user_telephone,
+      otp_code: otp_number,
+      message_style: :localized_verification,
     )
   end
 

@@ -80,11 +80,10 @@ module SignOperatorTelephoneRegistrable
   private
 
   def send_staff_telephone_verification_sms(staff_telephone, otp_number)
-    message = I18n.t("sign.telephone_verification.sms_message", code: otp_number)
-    OutboundSms.deliver_later(
-      to: staff_telephone.number,
-      title: message,
-      body: message,
+    OtpAdapter.for(surface: :org, channel: :telephone).deliver(
+      record: staff_telephone,
+      otp_code: otp_number,
+      message_style: :localized_verification,
     )
   end
 
