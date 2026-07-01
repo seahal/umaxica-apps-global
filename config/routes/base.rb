@@ -13,6 +13,24 @@ scope(module: :base, as: :base) do
       root "roots#index"
       resource :dashboard, only: :show
       resources :billings, only: :index
+      resources :groups, only: :index
+      resource :preference, only: :show
+      namespace :preference do
+        resource :calendar, only: %i(edit update)
+        resource :clock, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :email, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :pagination, only: %i(edit update)
+        resource :region, only: %i(edit update)
+        resource :reset, only: %i(edit destroy)
+        resource :screen, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+      end
 
       namespace(:well_known, path: ".well-known") do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
@@ -33,8 +51,10 @@ scope(module: :base, as: :base) do
       namespace :sign do
         resource :up, only: :show
         resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
-          resource :completion, only: :show, path: "complete", module: :outs
+      end
+      scope path: :sign do
+        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+          resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
 
@@ -197,25 +217,11 @@ scope(module: :base, as: :base) do
         end
       end
 
-      # FIXME: I FOUND DEGRADED ENTRYPOINT!!!!
-      # Settings and credential management.
-      resource :settings, only: :show
-      namespace :settings do
+      resource :identity, only: :show
+      namespace :identity do
         namespace :mfa do
           resource :reset, only: %i(show create)
           resource :challenge, only: :show
-        end
-
-        resources :totps, only: %i(index new create edit update destroy)
-
-        # TODO: cache passkeys/passkey lookups.
-        resources :passkeys do
-          resource :removal, only: :create
-        end
-
-        namespace :passkeys do
-          resource :options, only: :create
-          resource :verification, only: :create
         end
 
         namespace :emails do
@@ -233,22 +239,17 @@ scope(module: :base, as: :base) do
         resources :telephones, only: %i(index new create edit destroy)
 
         resource :birthdate, only: :show
-        resource :apple, only: %i(show edit create destroy)
-        resource :google, only: %i(show edit create destroy)
-        resource :secrets, only: :show
 
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          resource :rotation, only: :create
-          resource :removal, only: :create
+        resources :secrets, controller: :secrets, only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create, module: :secrets
+          resource :removal, only: :create, module: :secrets
         end
 
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
+        resources :sessions, only: %i(index show destroy)
+        resource :session_set, path: "sessions", only: :destroy, controller: "revocations/alls"
+        resource :other_sessions, only: :destroy, controller: "revocations/others"
+        namespace :sessions do
+          resource :revocation, only: :create, controller: "/base/app/identity/revocations"
         end
 
         resources :activities, only: :index
@@ -266,6 +267,23 @@ scope(module: :base, as: :base) do
     scope(module: :com, as: :com) do
       root "roots#index"
       resource :dashboard, only: :show
+      resource :preference, only: :show
+      namespace :preference do
+        resource :calendar, only: %i(edit update)
+        resource :clock, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :email, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :pagination, only: %i(edit update)
+        resource :region, only: %i(edit update)
+        resource :reset, only: %i(edit destroy)
+        resource :screen, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+      end
 
       namespace(:well_known, path: ".well-known") do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
@@ -286,8 +304,10 @@ scope(module: :base, as: :base) do
       namespace :sign do
         resource :up, only: :show
         resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
-          resource :completion, only: :show, path: "complete", module: :outs
+      end
+      scope path: :sign do
+        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+          resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
 
@@ -393,55 +413,7 @@ scope(module: :base, as: :base) do
         end
       end
 
-      # Settings and credential management.
-      resource :settings, only: :show
-      namespace :settings do
-        resources :passkeys do
-          resource :removal, only: :create
-        end
-
-        namespace :passkeys do
-          resource :options, only: :create
-          resource :verification, only: :create
-        end
-
-        resource :secrets, only: :show
-
-        namespace :mfa do
-          resource :challenge, only: :show
-        end
-
-        namespace :emails do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-
-        namespace :telephones do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :telephones, only: %i(index new create edit destroy)
-
-        resource :birthdate, only: :show
-
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          resource :rotation, only: :create
-          resource :removal, only: :create
-        end
-
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
-        end
-
-        resources :activities, only: :index
-        resource :withdrawal, only: %i(new update create edit destroy)
-      end
+      resource :identity, only: :show
     end
   end
 
@@ -453,6 +425,23 @@ scope(module: :base, as: :base) do
     scope(module: :org, as: :org) do
       root "roots#index"
       resource :dashboard, only: :show
+      resource :preference, only: :show
+      namespace :preference do
+        resource :calendar, only: %i(edit update)
+        resource :clock, only: %i(edit update)
+        resource :cookie, only: %i(edit update)
+        resource :currency, only: %i(edit update)
+        resource :density, only: %i(edit update)
+        resource :email, only: %i(edit update)
+        resource :language, only: %i(edit update)
+        resource :motion, only: %i(edit update)
+        resource :pagination, only: %i(edit update)
+        resource :region, only: %i(edit update)
+        resource :reset, only: %i(edit destroy)
+        resource :screen, only: %i(edit update)
+        resource :theme, only: %i(edit update)
+        resource :timezone, only: %i(edit update)
+      end
 
       namespace(:well_known, path: ".well-known") do
         resource(:jwks, only: :show, path: "jwks.json", format: false)
@@ -482,8 +471,10 @@ scope(module: :base, as: :base) do
       namespace :sign do
         resource :up, only: :show
         resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
-          resource :completion, only: :show, path: "complete", module: :outs
+      end
+      scope path: :sign do
+        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+          resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
 
@@ -562,59 +553,7 @@ scope(module: :base, as: :base) do
         resource :passkey, only: %i(new create)
       end
 
-      # Settings and credential management.
-      resource :settings, only: :show
-      namespace :settings do
-        resources :passkeys do
-          resource :removal, only: :create
-        end
-
-        namespace :passkeys do
-          resource :options, only: :create
-          # Passkey (WebAuthn) assertion verification for settings-level re-auth.
-          resource :verification, only: :create
-        end
-
-        namespace :mfa do
-          resource :challenge, only: :show
-        end
-
-        resources :secret_credentials
-
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
-        end
-
-        namespace :emails do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-
-        namespace :telephones do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :telephones, only: %i(index new create edit destroy)
-
-        resource :birthdate, only: :show
-        resources :activities, only: :index
-        resource :withdrawal, only: :show
-
-        # Lifecycle request state transitions.
-        resources :operator_lifecycle_requests, only: %i(index show new create) do
-          scope module: :operator_lifecycle_requests do
-            resource :approval, only: :create
-            resource :execution, only: :create
-            resource :rejection, only: :create
-          end
-        end
-      end
+      resource :identity, only: :show
     end
   end
 end

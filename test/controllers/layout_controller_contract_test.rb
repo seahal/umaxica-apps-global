@@ -30,8 +30,8 @@ class LayoutControllerContractTest < ActiveSupport::TestCase
       assert_predicate controller, :present?
       assert_equal layout_name, controller._layout
       assert_includes contents, %(layout "#{layout_name}"), "missing literal layout declaration in #{path}"
-      assert_not_match(/\blayout\s*(?:->|do|proc|lambda|method)/, contents,
-                       "layout declaration in #{path} must stay literal")
+      refute_match(/\blayout\s*(?:->|do|proc|lambda|method)/, contents,
+                   "layout declaration in #{path} must stay literal")
     end
   end
 

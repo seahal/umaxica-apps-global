@@ -7,18 +7,7 @@
   <h2><%= t("sign.app.settings.show.security_settings") %></h2>
   <ul>
     <li><%= link_to t("controller.sign.app.setting.index.passkey"), auth_org_settings_passkeys_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.secret_credential"), auth_org_settings_secret_credentials_path %></li>
-  </ul>
-</section>
-
-<section>
-  <h2><%= t("sign.app.settings.show.account_settings") %></h2>
-  <ul>
-    <li><%= link_to t("controller.sign.app.setting.index.email"), auth_org_settings_emails_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.telephone"), auth_org_settings_telephones_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.birthdate"), auth_org_settings_birthdate_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.session"), auth_org_settings_sessions_path %></li>
-    <li><%= link_to t("controller.sign.app.setting.index.activity"), auth_org_settings_activities_path %></li>
+    <li><%= link_to t("controller.sign.org.setting.index.entra"), auth_org_settings_entra_path %></li>
   </ul>
 </section>
 
@@ -26,10 +15,5 @@
   <h2><%= t("sign.app.settings.show.others") %></h2>
   <ul>
     <li><%= link_to t("sign.app.settings.show.logout"), new_auth_org_sign_out_path(ri: params[:ri]) %></li>
-    <li><%= link_to t("sign.org.settings.show.withdrawal"), auth_org_settings_withdrawal_path %></li>
-    <li>
-      <%= link_to t("sign.org.settings.show.operator_lifecycle_requests"),
-                  auth_org_settings_operator_lifecycle_requests_path %>
-    </li>
   </ul>
 </section>

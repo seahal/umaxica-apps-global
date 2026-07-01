@@ -24,9 +24,9 @@ module Email::Com
     def verification_url
       return if @verification_token.blank? || @public_id.blank?
 
-      Rails.application.routes.url_helpers.edit_auth_com_settings_emails_registration_url(
+      Rails.application.routes.url_helpers.base_com_identity_url(
         token: @verification_token,
-        host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+        host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),
       )
     end
   end

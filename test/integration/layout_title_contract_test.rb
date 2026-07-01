@@ -7,19 +7,19 @@ class LayoutTitleContractTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   CANONICAL_LAYOUTS = {
-    "app/views/layouts/auth/app/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (app) Auth),
-    "app/views/layouts/auth/com/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (com) Auth),
-    "app/views/layouts/auth/org/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (org) Auth),
-    "app/views/layouts/base/app/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (app) Base),
-    "app/views/layouts/base/com/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (com) Base),
-    "app/views/layouts/base/org/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (org) Base),
-    "app/views/layouts/core/app/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (app) Core),
-    "app/views/layouts/core/com/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (com) Core),
-    "app/views/layouts/core/org/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (org) Core),
-    "app/views/layouts/side/app/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (app) Side),
-    "app/views/layouts/side/com/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (com) Side),
-    "app/views/layouts/side/org/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (org) Side),
-    "app/views/layouts/palm/app/application.html.erb" => %(#{ENV.fetch("BRAND_NAME")} (app) Palm),
+    "app/views/layouts/auth/app/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (app) Auth',
+    "app/views/layouts/auth/com/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (com) Auth',
+    "app/views/layouts/auth/org/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (org) Auth',
+    "app/views/layouts/base/app/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (app) Base',
+    "app/views/layouts/base/com/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (com) Base',
+    "app/views/layouts/base/org/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (org) Base',
+    "app/views/layouts/core/app/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (app) Core',
+    "app/views/layouts/core/com/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (com) Core',
+    "app/views/layouts/core/org/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (org) Core',
+    "app/views/layouts/side/app/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (app) Side',
+    "app/views/layouts/side/com/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (com) Side',
+    "app/views/layouts/side/org/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (org) Side',
+    "app/views/layouts/palm/app/application.html.erb" => '#{ENV.fetch("BRAND_NAME")} (app) Palm',
   }.freeze
 
   test "canonical layout files declare the literal title site suffix" do
@@ -35,9 +35,9 @@ class LayoutTitleContractTest < ActiveSupport::TestCase
       assert_not_includes contents, "surface =", "layout #{path} must not define a surface variable"
       assert_not_includes contents, "tld =", "layout #{path} must not define a tld variable"
       assert_not_includes contents, "vite_entrypoint =", "layout #{path} must not define a vite entrypoint variable"
-      assert_not_match(/\b\w+_path\s*=\s*/, contents, "layout #{path} must not precompute route helpers")
-      assert_not_match(/title_site\s*=\s*".*#\{[^}]*\b(surface|tld)\b[^}]*\}/, contents,
-                       "layout #{path} must not derive title_site from surface/tld variables")
+      refute_match(/\b\w+_path\s*=\s*/, contents, "layout #{path} must not precompute route helpers")
+      refute_match(/title_site\s*=\s*".*#\{[^}]*\b(surface|tld)\b[^}]*\}/, contents,
+                   "layout #{path} must not derive title_site from surface/tld variables")
     end
   end
 

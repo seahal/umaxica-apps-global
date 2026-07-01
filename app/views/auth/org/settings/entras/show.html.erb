@@ -1,0 +1,15 @@
+<% content_for :page_title, "Microsoft Entra ID" %>
+
+<%= link_to t("sign.app.settings.show.back"), auth_org_settings_path(ri: params[:ri]) %>
+
+<div>
+  <h3>Microsoft Entra ID</h3>
+  <p>
+    <% if @entra_identity.present? %>
+      Connected
+    <% else %>
+      Not connected
+    <% end %>
+  </p>
+  <%= link_to t("actions.edit"), edit_auth_org_settings_entra_path(ri: params[:ri]) %>
+</div>

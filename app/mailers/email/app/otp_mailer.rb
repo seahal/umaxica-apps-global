@@ -24,9 +24,9 @@ module Email::App
     def verification_url
       return if @verification_token.blank? || @public_id.blank?
 
-      Rails.application.routes.url_helpers.edit_auth_app_settings_emails_registration_url(
+      Rails.application.routes.url_helpers.edit_base_app_identity_emails_registration_url(
         token: @verification_token,
-        host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+        host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
       )
     end
   end

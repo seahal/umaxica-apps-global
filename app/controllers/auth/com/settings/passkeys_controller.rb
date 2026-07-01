@@ -198,10 +198,10 @@ module Auth
                 purpose: "visitor.recovery_secret_credential",
                 metadata: {},
               )
-              auth_com_settings_secrets_url(
+              base_com_identity_url(
                 ri: params[:ri],
                 token: reveal.token,
-                host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+                host: base_authority_host,
               )
             else
               bootstrap_return_path(
@@ -280,9 +280,9 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          auth_com_settings_secret_credentials_url(
+          base_com_identity_url(
             ri: params[:ri],
-            host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+            host: base_authority_host,
           )
         end
       end

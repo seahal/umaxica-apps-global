@@ -50,10 +50,10 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
           purpose: "client.recovery_secret_credential",
           metadata: {},
         )
-        auth_app_settings_secrets_url(
+        base_app_identity_secrets_url(
           ri: params[:ri],
           token: reveal.token,
-          host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+          host: base_authority_host,
         )
       else
         auth_app_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"))
@@ -78,9 +78,9 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
   def recovery_passcode_requirement_credential_class = ClientSecretCredential
 
   def recovery_passcode_setup_url
-    auth_app_settings_secrets_url(
+    base_app_identity_secrets_url(
       ri: params[:ri],
-      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+      host: base_authority_host,
     )
   end
 
@@ -89,10 +89,10 @@ class Auth::App::Settings::Passkeys::VerificationsController < ::Auth::App::Appl
   def recovery_passcode_top_up_credential_class = ClientSecretCredential
 
   def recovery_passcode_reveal_redirect_url(token)
-    auth_app_settings_secrets_url(
+    base_app_identity_secrets_url(
       ri: params[:ri],
       token: token,
-      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+      host: base_authority_host,
     )
   end
 end

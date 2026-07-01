@@ -26,7 +26,7 @@ module Auth::App::Settings
     test "show redirects when not logged in" do
       get auth_app_settings_google_url(ri: "jp")
 
-      assert_response :unprocessable_content
+      assert_response :redirect
     end
 
     test "edit redirects to verification when step-up is missing" do

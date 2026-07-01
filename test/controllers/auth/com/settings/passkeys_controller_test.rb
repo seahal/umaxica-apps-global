@@ -80,9 +80,9 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, auth_com_settings_secret_credentials_url(
+    assert_includes response.body, base_com_identity_url(
       ri: "jp",
-      host: @host,
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
     )
   end
 
@@ -117,7 +117,7 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
-    assert_includes response.parsed_body["redirect_url"], "/settings/secrets"
+    assert_includes response.parsed_body["redirect_url"], "/identity"
   end
 
   test "verification succeeds without recovery passcodes on bootstrap and tops up to ten" do
@@ -160,7 +160,7 @@ class Auth::Com::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :created
-    assert_includes response.parsed_body["redirect_url"], "/settings/secrets"
+    assert_includes response.parsed_body["redirect_url"], "/identity"
   end
 
   test "create json returns registration ceremony handoff" do

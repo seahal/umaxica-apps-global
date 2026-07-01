@@ -8,13 +8,24 @@ description: RESTful routes, correct verbs, path helpers, CSRF, and no hardcoded
 ## General rules
 
 - Routes must be RESTful and use resourceful definitions.
+- Prefer Rails `resource` / `resources` declarations, with explicit `only:` lists, before adding
+  verb-by-verb routes.
+- Model new endpoints as CRUD-style resources unless the route is a protocol callback,
+  compatibility endpoint, or genuinely non-resourceful action.
 - HTTP methods must reflect intent — never GET for a destructive action.
 - Use path helpers; do not hardcode `http://` or `https://` URLs in application code.
+- Keep route files declarative and easy to inspect with `bin/rails routes`.
+- Avoid loops, conditionals, metaprogramming, or custom route-builder helpers when explicit route
+  declarations are readable.
 
 ## Naming
 
 - Prefer resourceful routing over custom actions.
 - Add a custom action only when a resource verb genuinely does not fit.
+- When a custom `get`, `post`, or `match` route is necessary, keep the verb, path, controller,
+  helper name, and defaults explicit.
+- Add a short comment when the non-resourceful shape is not obvious from the surrounding namespace
+  or protocol.
 
 ## Forbidden patterns
 

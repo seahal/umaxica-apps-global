@@ -205,9 +205,9 @@ module Auth
         end
 
         def recovery_passcode_setup_url
-          auth_app_settings_secret_credentials_url(
+          base_app_identity_secrets_url(
             ri: params[:ri],
-            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+            host: base_authority_host,
           )
         end
 
@@ -229,10 +229,10 @@ module Auth
             purpose: "client.recovery_secret_credential",
             metadata: {},
           )
-          auth_app_settings_secrets_url(
+          base_app_identity_secrets_url(
             ri: params[:ri],
             token: reveal.token,
-            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+            host: base_authority_host,
           )
         end
       end

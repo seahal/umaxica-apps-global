@@ -288,7 +288,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :created
     assert_equal "ok", response.parsed_body["status"]
-    assert_includes response.parsed_body["redirect_url"], "/settings/secrets"
+    assert_includes response.parsed_body["redirect_url"], "/identity/secrets"
   end
 
   test "verification rejects duplicate webauthn_id" do
@@ -393,10 +393,7 @@ class Auth::App::Settings::PasskeysControllerTest < ActionDispatch::IntegrationT
 
     assert_response :forbidden
     assert_equal "text/html", response.media_type
-    assert_includes response.body, auth_app_settings_secret_credentials_url(
-      ri: "jp",
-      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
-    )
+    assert_includes response.body, "/identity/secrets?ri=jp"
     assert_empty flash.to_hash
   end
 

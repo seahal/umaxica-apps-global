@@ -23,7 +23,7 @@
       <nav aria-label="Primary">
         <ul>
           <% if logged_in? %>
-            <li><%= link_to t("sign.com.layout.nav.logout"), new_auth_com_sign_out_path %></li>
+            <li><%= link_to t("sign.com.layout.nav.logout", default: "Log Out"), new_auth_com_sign_out_path %></li>
           <% else %>
             <li><%= link_to t("sign.com.layout.nav.sign_up"), auth_com_sign_up_url %></li>
             <li><%= link_to t("sign.com.layout.nav.log_in"), auth_com_sign_in_url %></li>

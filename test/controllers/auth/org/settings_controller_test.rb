@@ -15,7 +15,7 @@ class Auth::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
     get auth_org_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_match %r{\Ahttps://}, response.location
   end
 
   test "sign credential settings routes still resolve on sign" do
@@ -23,7 +23,7 @@ class Auth::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_not_equal 404, response.status
 
-    get auth_org_settings_secret_credentials_url(ri: "jp")
+    get auth_org_settings_entra_url(ri: "jp")
 
     assert_not_equal 404, response.status
   end

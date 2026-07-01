@@ -79,29 +79,113 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
     assert_unrecognized(:app, "/preference/language/edit", :get)
   end
 
-  test "settings mfa reset resolves through conventional settings mfa namespace" do
-    assert_recognizes_sign_route(:app, "/settings/mfa/reset", :get, "auth/app/settings/mfa/resets", "show")
-    assert_recognizes_sign_route(:app, "/settings/mfa/reset", :post, "auth/app/settings/mfa/resets", "create")
+  test "auth app settings keeps only credential ceremony settings" do
+    helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
+
+    %w[
+      auth_app_settings
+      auth_app_settings_passkey
+      auth_app_settings_passkeys_options
+      auth_app_settings_passkeys_verification
+      auth_app_settings_totp
+      auth_app_settings_apple
+      auth_app_settings_google
+    ].each do |prefix|
+      assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
+    end
+
+    %w[
+      auth_app_settings_email
+      auth_app_settings_telephone
+      auth_app_settings_birthdate
+      auth_app_settings_secret
+      auth_app_settings_session
+      auth_app_settings_revocation
+      auth_app_settings_activity
+      auth_app_settings_withdrawal
+      auth_app_settings_mfa
+    ].each do |prefix|
+      assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
+    end
   end
 
-  test "session revocation uses post routes instead of collection deletes" do
-    assert_recognizes_sign_route(
-      :app, "/settings/sessions/abc/revocation", :post,
-      "auth/app/settings/revocations", "create",
-    )
-    assert_recognizes_sign_route(
-      :app, "/settings/revocations/others", :post,
-      "auth/app/settings/revocations/others", "create",
-    )
-    assert_recognizes_sign_route(
-      :app, "/settings/revocations/all", :post,
-      "auth/app/settings/revocations/alls", "create",
-    )
+  test "auth com settings keeps only passkey ceremony settings" do
+    helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    assert_unrecognized(:app, "/settings/sessions/abc/revocation_attempt", :post)
-    assert_unrecognized(:app, "/settings/session_revocations/others", :post)
-    assert_unrecognized(:app, "/settings/sessions/others", :delete)
-    assert_unrecognized(:app, "/settings/sessions/revoke_all", :delete)
+    %w[
+      auth_com_settings
+      auth_com_settings_passkey
+      auth_com_settings_passkeys_options
+      auth_com_settings_passkeys_verification
+    ].each do |prefix|
+      assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
+    end
+
+    %w[
+      auth_com_settings_totp
+      auth_com_settings_google
+      auth_com_settings_apple
+      auth_com_settings_entra
+      auth_com_settings_email
+      auth_com_settings_telephone
+      auth_com_settings_birthdate
+      auth_com_settings_secret
+      auth_com_settings_session
+      auth_com_settings_revocation
+      auth_com_settings_activity
+      auth_com_settings_withdrawal
+      auth_com_settings_mfa
+    ].each do |prefix|
+      assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
+    end
+  end
+
+  test "auth org settings keeps only passkey and entra ceremony settings" do
+    helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
+
+    %w[
+      auth_org_settings
+      auth_org_settings_passkey
+      auth_org_settings_passkeys_options
+      auth_org_settings_passkeys_verification
+      auth_org_settings_entra
+    ].each do |prefix|
+      assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
+    end
+
+    %w[
+      auth_org_settings_totp
+      auth_org_settings_google
+      auth_org_settings_apple
+      auth_org_settings_email
+      auth_org_settings_telephone
+      auth_org_settings_birthdate
+      auth_org_settings_secret
+      auth_org_settings_session
+      auth_org_settings_revocation
+      auth_org_settings_activity
+      auth_org_settings_withdrawal
+      auth_org_settings_mfa
+      auth_org_settings_operator_lifecycle_request
+    ].each do |prefix|
+      assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
+    end
+  end
+
+  test "retired auth settings paths are not routable" do
+    {
+      app: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+              /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
+              /settings/mfa/challenge /settings/mfa/reset],
+      com: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+              /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
+              /settings/mfa/challenge],
+      org: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+              /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
+              /settings/mfa/challenge /settings/operator_lifecycle_requests],
+    }.each do |surface, paths|
+      paths.each { |path| assert_unrecognized(surface, path, :get) }
+    end
   end
 
   test "route source excludes sign routing compatibility patterns" do

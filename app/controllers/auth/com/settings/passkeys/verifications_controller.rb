@@ -38,9 +38,9 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
   def recovery_passcode_requirement_credential_class = VisitorSecretCredential
 
   def recovery_passcode_setup_url
-    auth_com_settings_secret_credentials_url(
+    base_com_identity_url(
       ri: params[:ri],
-      host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+      host: base_authority_host,
     )
   end
 
@@ -49,10 +49,10 @@ class Auth::Com::Settings::Passkeys::VerificationsController < ::Auth::Com::Appl
   def recovery_passcode_top_up_credential_class = VisitorSecretCredential
 
   def recovery_passcode_reveal_redirect_url(token)
-    auth_com_settings_secrets_url(
+    base_com_identity_url(
       ri: params[:ri],
       token: token,
-      host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
+      host: base_authority_host,
     )
   end
 end

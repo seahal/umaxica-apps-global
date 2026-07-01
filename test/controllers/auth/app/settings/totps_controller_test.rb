@@ -201,9 +201,9 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_equal "text/html", response.media_type
-    assert_not_includes response.body, auth_app_settings_secret_credentials_url(
+    assert_not_includes response.body, base_app_identity_secrets_url(
       ri: "jp",
-      host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
     )
   end
 
@@ -228,7 +228,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_includes response.location, "/settings/secrets"
+    assert_includes response.location, "/identity/secrets"
   end
 
   test "used and revoked recovery passcodes are not counted" do
@@ -336,7 +336,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :see_other
-      assert_includes response.location, "/settings/secrets"
+      assert_includes response.location, "/identity/secrets"
       assert_operator @token.reload.last_step_up_at, :<, step_up_before
       assert_equal "settings_totp", @token.last_step_up_scope
     end
@@ -367,7 +367,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :see_other
-      assert_includes response.location, "/settings/secrets"
+      assert_includes response.location, "/identity/secrets"
     end
   end
 
@@ -421,7 +421,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_includes response.location, "/settings/secrets"
+    assert_includes response.location, "/identity/secrets"
   end
 
   test "should not create totp with invalid token" do
@@ -558,7 +558,7 @@ class Auth::App::Settings::TotpsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_includes response.location, "/settings/secrets"
+    assert_includes response.location, "/identity/secrets"
   end
 
   private

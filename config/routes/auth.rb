@@ -202,11 +202,6 @@ scope(module: :auth, as: :auth) do
       # Settings and credential management.
       resource :settings, only: :show
       namespace :settings do
-        namespace :mfa do
-          resource :reset, only: %i(show create)
-          resource :challenge, only: :show
-        end
-
         resources :totps, only: %i(index new create edit update destroy)
 
         # TODO: cache passkeys/passkey lookups.
@@ -219,42 +214,8 @@ scope(module: :auth, as: :auth) do
           resource :verification, only: :create
         end
 
-        namespace :emails do
-          resource :registration, only: %i(new create edit update) do
-            resource :redelivery, only: :create
-          end
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-
-        namespace :telephones do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :telephones, only: %i(index new create edit destroy)
-
-        resource :birthdate, only: :show
         resource :apple, only: %i(show edit create destroy)
         resource :google, only: %i(show edit create destroy)
-        resource :secrets, only: :show
-
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          resource :rotation, only: :create
-          resource :removal, only: :create
-        end
-
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
-        end
-
-        resources :activities, only: :index
-
-        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
@@ -405,43 +366,6 @@ scope(module: :auth, as: :auth) do
           resource :options, only: :create
           resource :verification, only: :create
         end
-
-        resource :secrets, only: :show
-
-        namespace :mfa do
-          resource :challenge, only: :show
-        end
-
-        namespace :emails do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-
-        namespace :telephones do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :telephones, only: %i(index new create edit destroy)
-
-        resource :birthdate, only: :show
-
-        resources :secret_credentials, only: %i(index show new edit create update destroy) do
-          resource :rotation, only: :create
-          resource :removal, only: :create
-        end
-
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
-        end
-
-        resources :activities, only: :index
-        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
@@ -576,45 +500,7 @@ scope(module: :auth, as: :auth) do
           resource :verification, only: :create
         end
 
-        namespace :mfa do
-          resource :challenge, only: :show
-        end
-
-        resources :secret_credentials
-
-        resources :sessions, only: %i(index show) do
-          resource :revocation, only: :create
-        end
-
-        namespace :revocations do
-          resource :others, only: :create
-          resource :all, only: :create
-        end
-
-        namespace :emails do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :emails, only: %i(index edit update destroy)
-
-        namespace :telephones do
-          resource :registration, only: %i(new create edit update)
-        end
-
-        resources :telephones, only: %i(index new create edit destroy)
-
-        resource :birthdate, only: :show
-        resources :activities, only: :index
-        resource :withdrawal, only: :show
-
-        # Lifecycle request state transitions.
-        resources :operator_lifecycle_requests, only: %i(index show new create) do
-          scope module: :operator_lifecycle_requests do
-            resource :approval, only: :create
-            resource :execution, only: :create
-            resource :rejection, only: :create
-          end
-        end
+        resource :entra, only: %i(show edit create destroy)
       end
     end
   end
