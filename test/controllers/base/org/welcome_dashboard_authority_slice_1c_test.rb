@@ -63,11 +63,7 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   end
 
   def session_headers(token)
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    as_staff_headers(@staff, host: @host, session_public_id: token.public_id)
   end
   private
 
@@ -319,8 +315,8 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest
   end
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-USER" => user.id.to_s)
-    return base unless user.respond_to?(:persisted?) && user.persisted? && user.class.name == "Client"
+    return host_headers(host).merge(headers) unless user.respond_to?(:persisted?) && user.persisted? &&
+      user.class.name == "Client"
 
     ensure_user_token_reference_records!
     token = session_public_id.present? ? ClientToken.find_by(public_id: session_public_id) : nil
@@ -329,13 +325,18 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    bearer_headers(
+      jwt_access_token_for(
+        user, host: host, session_public_id: session_public_id.presence || token.public_id,
+              resource_type: "client",
+      ),
+      host: host, headers: headers,
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-STAFF" => staff.id.to_s)
-    return base unless staff.respond_to?(:persisted?) && staff.persisted? && staff.class.name == "Operator"
+    return host_headers(host).merge(headers) unless staff.respond_to?(:persisted?) && staff.persisted? &&
+      staff.class.name == "Operator"
 
     ensure_staff_token_reference_records!
     token = session_public_id.present? ? OperatorToken.find_by(public_id: session_public_id) : nil
@@ -347,13 +348,18 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest
       staff_id: staff.id, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    bearer_headers(
+      jwt_access_token_for(
+        staff, host: host, session_public_id: session_public_id.presence || token.public_id,
+               resource_type: "operator",
+      ),
+      host: host, headers: headers,
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
-    base = host_headers(host).merge(headers).merge("X-TEST-CURRENT-RESOURCE" => visitor.id.to_s)
-    return base unless visitor.respond_to?(:persisted?) && visitor.persisted? && visitor.class.name == "Visitor"
+    return host_headers(host).merge(headers) unless visitor.respond_to?(:persisted?) && visitor.persisted? &&
+      visitor.class.name == "Visitor"
 
     ensure_visitor_token_reference_records!
     token = session_public_id.present? ? VisitorToken.find_by(public_id: session_public_id) : nil
@@ -365,12 +371,55 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest
       visitor_id: visitor.id, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    bearer_headers(
+      jwt_access_token_for(
+        visitor, host: host, session_public_id: session_public_id.presence || token.public_id,
+                 resource_type: "visitor",
+      ),
+      host: host, headers: headers,
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
     host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
+  end
+
+  def jwt_access_token_for(resource, host: nil, session_public_id: nil, resource_type: nil)
+    AuthenticationToken.encode(
+      resource, host: host, session_public_id: session_public_id, resource_type: resource_type,
+                jwt_issuer_id: jwt_issuer_id_for_test_host(host, resource_type),
+    )
+  end
+
+  # Base shares its production origin with Acme (both `https://www.umaxica.<tld>`), so the
+  # issuer namespace cannot be inferred from a host substring like "base". Match against the
+  # actual configured Base hosts first; fall back to substring heuristics for surfaces whose
+  # hosts are texually distinct (acme/core/sign).
+  def jwt_issuer_id_for_test_host(host, resource_type)
+    normalized = host.to_s
+    base_hosts = {
+      "APP" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      "ORG" => ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+      "COM" => ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+    }
+    return "surface:BASE_#{base_hosts.key(normalized)}" if base_hosts.value?(normalized)
+
+    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    surface =
+      if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif normalized.include?(".org") || normalized.include?("org.")
+        "ORG"
+      elsif normalized.include?(".com") || normalized.include?("com.")
+        "COM"
+      else
+        "APP"
+      end
+    "surface:#{service}_#{surface}"
   end
 
   def ensure_user_reference_records!

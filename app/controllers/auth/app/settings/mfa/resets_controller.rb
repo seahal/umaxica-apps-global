@@ -17,10 +17,7 @@ module Auth
           end
 
           def create
-            redirect_to(
-              auth_app_settings_mfa_reset_url(ri: params[:ri]),
-              alert: I18n.t("sign.app.settings.mfa.show.reset_unavailable"),
-            )
+            head :gone
           end
         end
       end

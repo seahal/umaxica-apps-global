@@ -25,8 +25,12 @@ class VerificationSessionsTest < ActionDispatch::IntegrationTest
     @token.update!(created_at: 1.hour.ago)
 
     @headers = {
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        AuthenticationToken.encode(
+          @user, host: @host, session_public_id: @token.public_id, resource_type: "client",
+                 jwt_issuer_id: "surface:SIGN_APP",
+        )
+      }",
     }.freeze
 
     ClientTotpCredential.create!(

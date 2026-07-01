@@ -33,7 +33,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
     ) do
       html = sign_org_recruit_contact_link
 
-      assert_includes html, "https://com.example.test/?host=acme.com.localhost&amp;lx=en&amp;ri=jp"
+      assert_includes html, "https://com.example.test/?host=www.umaxica.com&amp;lx=en&amp;ri=jp"
       assert_not_includes html, "javascript:alert"
     end
   end
@@ -56,7 +56,7 @@ class SignOrgSignUpsHelperTest < ActionView::TestCase
       html = sign_org_recruit_contact_link
 
       assert_includes html, I18n.t("sign.org.ups.new.recruit_link_text")
-      assert_includes html, "https://com.example.test/?host=acme.com.localhost&amp;lx=en&amp;ri=jp"
+      assert_includes html, "https://com.example.test/?host=www.umaxica.com&amp;lx=en&amp;ri=jp"
       assert_includes html, "font-semibold text-slate-900 underline"
       assert_not_includes html, "ignored"
       assert_not_includes html, "ct=dr"

@@ -235,26 +235,6 @@ module Auth
       assert_equal "auth_refresh", AuthenticationBase::REFRESH_COOKIE_KEY
     end
 
-    test "test_header_key resolves actor specific keys" do
-      harness = HeaderKeyHarness.new
-
-      harness.actor_type = "client"
-
-      assert_equal "X-TEST-CURRENT-USER", harness.send(:test_header_key)
-
-      harness.actor_type = "operator"
-
-      assert_equal "X-TEST-CURRENT-STAFF", harness.send(:test_header_key)
-
-      harness.actor_type = "viewer"
-
-      assert_equal "X-TEST-CURRENT-VIEWER", harness.send(:test_header_key)
-
-      harness.actor_type = "unknown"
-
-      assert_equal "X-TEST-CURRENT-RESOURCE", harness.send(:test_header_key)
-    end
-
     test "ACCESS_TOKEN_TTL is defined" do
       assert_kind_of ActiveSupport::Duration, AuthenticationBase::ACCESS_TOKEN_TTL
     end

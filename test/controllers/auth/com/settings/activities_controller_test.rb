@@ -30,6 +30,9 @@ class Auth::Com::Settings::ActivitiesControllerTest < ActionDispatch::Integratio
       "Host" => @host,
       "X-TEST-CURRENT-RESOURCE" => @visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@visitor, host: @host, session_public_id: @token.public_id, resource_type: "visitor")
+      }",
     }
   end
 end

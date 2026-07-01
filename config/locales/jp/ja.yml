@@ -21,6 +21,24 @@ ja:
   test:
     error:
       key: テストエラー
+  auth:
+    com:
+      settings:
+        activity:
+          events:
+            logged_in: ログイン
+            login_success: ログイン
+            unknown: "不明なイベント %{event_id}"
+  base:
+    app:
+      preferences:
+        update_success: 設定を更新しました
+    org:
+      preferences:
+        update_success: 設定を更新しました
+    com:
+      preferences:
+        update_success: 設定を更新しました
   oidc:
     rp_logout:
       local_only: このドメインからログアウトしました。sign にはまだログイン中です。すべてのサービスからログアウトする場合は、sign のセッション管理で実行してください。%{idp_sessions_url}
@@ -3726,6 +3744,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
     com:
       roots:
@@ -3747,6 +3766,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
     org:
       roots:
@@ -3768,6 +3788,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
       preference:
         cookie:

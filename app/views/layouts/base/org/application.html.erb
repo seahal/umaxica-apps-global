@@ -38,6 +38,11 @@
     <main class="p-2 flex-grow">
       <%= yield %>
     </main>
+    <footer class="border-t-2 border-black p-2 text-sm">
+      <%= render "layouts/shared/footer_cookie_controls", scope: :org %>
+      <%= render "layouts/shared/footer_theme_controls", scope: :org %>
+      <%= render "layouts/shared/copyright" %>
+    </footer>
   </div>
 </body>
 </html>

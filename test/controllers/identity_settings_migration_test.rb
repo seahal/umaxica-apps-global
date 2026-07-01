@@ -78,19 +78,28 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
   private
 
   def sign_headers
-    {
-      "Host" => @sign_host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    bearer_headers(
+      AuthenticationToken.encode(
+        @user, host: @sign_host, session_public_id: @token.public_id, resource_type: "client",
+               jwt_issuer_id: "surface:SIGN_APP",
+      ),
+      host: @sign_host,
+    )
   end
 
   def acme_headers
-    {
-      "Host" => @acme_host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    bearer_headers(
+      AuthenticationToken.encode(
+        @user, host: @acme_host, session_public_id: @token.public_id, resource_type: "client",
+               jwt_issuer_id: "surface:BASE_APP",
+      ),
+      host: @acme_host,
+    )
+  end
+
+  def bearer_headers(token, host: nil, headers: {})
+    base = host.present? ? { "Host" => host } : {}
+    base.merge(headers).merge("Authorization" => "Bearer #{token}")
   end
 
   def acme_headers_with_session

@@ -20,6 +20,23 @@ ja:
     sample_successfully_updated: 登録が完了しました。
   auth:
     session_expired: セッションの有効期限が切れました。もう一度サインインしてください。
+    com:
+      settings:
+        activity:
+          events:
+            logged_in: ログイン
+            login_success: ログイン
+            unknown: "不明なイベント %{event_id}"
+  base:
+    app:
+      preferences:
+        update_success: 設定を更新しました
+    org:
+      preferences:
+        update_success: 設定を更新しました
+    com:
+      preferences:
+        update_success: 設定を更新しました
   test:
     error:
       key: テストエラー
@@ -3633,6 +3650,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
     com:
       roots:
@@ -3654,6 +3672,7 @@ ja:
         reset_settings: 設定のリセット
         back_to_settings: 設定に戻る
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
     org:
       roots:
@@ -3675,6 +3694,7 @@ ja:
         reset_settings: 設定のリセット
         back_to_settings: 設定に戻る
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
       preference:
         cookie:
@@ -3808,6 +3828,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
       preference:
         resets:
@@ -3835,6 +3856,7 @@ ja:
         back_to_settings: 設定に戻る
         cookie_settings: クッキー設定
         update_settings: 設定を更新
+        update_success: 設定を更新しました
         submitting: 送信中...
       preference:
         resets:

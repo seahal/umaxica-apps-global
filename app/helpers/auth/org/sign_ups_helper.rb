@@ -11,11 +11,11 @@ module Auth::Org::SignUpsHelper
   end
 
   def sign_org_recruit_contact_url
-    configured = safe_recruit_contact_url(ENV.fetch("ORG_SIGN_UP_DIRECT_MESSAGE_URL"))
+    configured = safe_recruit_contact_url(ENV.fetch("ORG_SIGN_UP_DIRECT_MESSAGE_URL", nil))
     return configured if configured.present?
 
     base_com_root_url(
-      host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
+      host: Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host,
       ri: params[:ri],
       lx: params[:lx],
     )

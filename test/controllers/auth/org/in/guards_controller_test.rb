@@ -16,7 +16,7 @@ class Auth::Org::Sign::In::GuardsControllerTest < ActionDispatch::IntegrationTes
   test "route resolves to guard controller" do
     route = Rails.application.routes.recognize_path("https://#{@host}/sign/in/guard", method: :get)
 
-    assert_equal "sign/org/sign/in/guards", route.fetch(:controller)
+    assert_equal "auth/org/sign/in/guards", route.fetch(:controller)
     assert_equal "show", route.fetch(:action)
   end
 

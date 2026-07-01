@@ -5,7 +5,7 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
-  fixtures :clients, :client_token_kinds
+  fixtures :clients, :client_token_kinds, :operators, :operator_token_kinds
 
   BOOT_HOSTS = Rails.configuration.x.boot_config.fetch(:hosts)
   SURFACES = [
@@ -14,18 +14,24 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
       controller: "core/app/auth/callbacks",
       sign_out_controller: "core/app/sign_outs",
       acme_host: BOOT_HOSTS.acme_service.host,
+      jwt_issuer_id: "surface:CORE_APP",
+      resource_type: "client",
     },
     {
       host: BOOT_HOSTS.core_corporate.host,
       controller: "core/com/auth/callbacks",
       sign_out_controller: "core/com/sign_outs",
       acme_host: BOOT_HOSTS.acme_corporate.host,
+      jwt_issuer_id: "surface:CORE_COM",
+      resource_type: "visitor",
     },
     {
       host: BOOT_HOSTS.core_staff.host,
       controller: "core/org/auth/callbacks",
       sign_out_controller: "core/org/sign_outs",
       acme_host: BOOT_HOSTS.acme_staff.host,
+      jwt_issuer_id: "surface:CORE_ORG",
+      resource_type: "operator",
     },
   ].freeze
 
@@ -67,15 +73,18 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
       host = surface.fetch(:host)
       host!(host)
 
-      user = clients(:one)
-      token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+      resource_type = surface.fetch(:resource_type)
+      user, token, token_class = actor_and_token_for(resource_type)
       cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
       post(
-        "http://#{host}/sign/out", params: { ri: "jp" }, headers: {
-          "X-TEST-CURRENT-USER" => user.id.to_s,
-          "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-        },
+        "http://#{host}/sign/out", params: { ri: "jp" },
+                                   headers: bearer_headers(
+                                     AuthenticationToken.encode(
+                                       user, host: host, session_public_id: token.public_id, resource_type: resource_type,
+                                             jwt_issuer_id: surface.fetch(:jwt_issuer_id),
+                                     ),
+                                   ),
       )
 
       handoff_rendered = response.status.between?(200, 299)
@@ -88,7 +97,7 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
       # a later surface in this loop.
       AuthenticationLogoutCurrentSession.call(
         resource: user,
-        token_class: ClientToken,
+        token_class: token_class,
         session_public_id: token.public_id,
         reason: "test_cleanup",
       )
@@ -110,5 +119,30 @@ class CoreAuthBoundaryTest < ActionDispatch::IntegrationTest
   def complete_core_sign_out_url_for(controller, host)
     surface = controller.split("/")[1]
     public_send("complete_core_#{surface}_sign_out_url", ri: "jp", host: host)
+  end
+
+  private
+
+  def bearer_headers(token, headers: {})
+    headers.merge("Authorization" => "Bearer #{token}")
+  end
+
+  def actor_and_token_for(resource_type)
+    case resource_type
+    when "operator"
+      staff = operators(:one)
+      token = OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+      [staff, token, OperatorToken]
+    when "visitor"
+      VisitorStatus.ensure_defaults!
+      VisitorVisibility.ensure_defaults!
+      visitor = Visitor.create!(status_id: VisitorStatus::ACTIVE, visibility_id: VisitorVisibility::VISITOR)
+      token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+      [visitor, token, VisitorToken]
+    else
+      user = clients(:one)
+      token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+      [user, token, ClientToken]
+    end
   end
 end

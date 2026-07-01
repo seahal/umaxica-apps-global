@@ -17,7 +17,7 @@ module PromotionalEmailUnsubscribeHeaders
     visitor: {
       edit_route: :edit_base_com_preference_email_url,
       one_click_route: :base_com_preference_email_url,
-      host_env: "PUBLIC_BASE_CORPORATE_URL",
+      host_envs: ["PUBLIC_BASE_CORPORATE_URL"],
       default_host: "www.com.localhost",
     },
     operator: {
@@ -58,6 +58,7 @@ module PromotionalEmailUnsubscribeHeaders
       return ENV.fetch(key) if ENV.key?(key)
     end
 
-    ENV.fetch(env_keys.first)
+    options = SURFACE_OPTIONS.values.find { |surface_options| surface_options.fetch(:host_envs) == env_keys }
+    options.fetch(:default_host)
   end
 end

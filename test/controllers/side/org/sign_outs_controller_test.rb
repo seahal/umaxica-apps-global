@@ -15,10 +15,7 @@ class Side::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
 
-    get edit_side_org_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    get edit_side_org_sign_out_url(ri: "jp"), headers: session_headers(user, token)
 
     assert_response :success
     assert_select "form[action*=?][method=?]", side_org_sign_out_path, "post"
@@ -30,17 +27,14 @@ class Side::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post side_org_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    post side_org_sign_out_url(ri: "jp"), headers: session_headers(user, token)
 
     assert_response :success
     assert_select "form#sign-out-handoff-form[method=?]", "post", count: 1
     location = URI.parse(css_select("form#sign-out-handoff-form").first["action"])
     query = Rack::Utils.parse_nested_query(location.query.to_s)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"), location.host
+    assert_equal ENV.fetch("PUBLIC_BASE_STAFF_URL", "www.org.localhost"), location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
     assert_equal complete_side_org_sign_out_url(ri: "jp", protocol: "https"), query["post_logout_redirect_uri"]
@@ -52,14 +46,22 @@ class Side::Org::SignOutsControllerTest < ActionDispatch::IntegrationTest
     token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
     cookies[AuthenticationBase::REFRESH_COOKIE_KEY] = token.rotate_refresh_token!
 
-    post side_org_sign_out_url(ri: "jp"), headers: {
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    post side_org_sign_out_url(ri: "jp"), headers: session_headers(user, token)
 
     get complete_side_org_sign_out_url(ri: "jp")
 
     assert_response :success
     assert_select "h1", text: I18n.t("sign.shared.sign_out.completed_title")
+  end
+
+  private
+
+  def session_headers(user, token)
+    host = ENV.fetch("PUBLIC_SIDE_STAFF_URL")
+    token_encoded = AuthenticationToken.encode(
+      user, host: host, session_public_id: token.public_id, resource_type: "client",
+            jwt_issuer_id: "surface:SIGN_APP",
+    )
+    { "Authorization" => "Bearer #{token_encoded}" }
   end
 end

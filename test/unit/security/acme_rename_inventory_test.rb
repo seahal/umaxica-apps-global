@@ -20,6 +20,7 @@ module Security
       %r{\Adocs/architecture/preference\.md\z},
       %r{\Aplans/active/acme-rp-boundary-rename\.md\z},
       %r{\Aplans/backlog/acme-core-rp-bridge-model-naming-refactor\.md\z},
+      %r{\Aplans/zazzy-splashing-quill\.md\z},
     ].freeze
 
     OLD_BOUNDARY_PATTERNS = [
@@ -54,10 +55,10 @@ module Security
       assert_empty offenders, "Old Apex RP boundary names remain:\n#{offenders.join("\n")}"
     end
 
-    test "Acme route helpers and OIDC clients are present" do
-      assert_respond_to Rails.application.routes.url_helpers, :acme_app_root_path
-      assert_respond_to Rails.application.routes.url_helpers, :acme_com_root_path
-      assert_respond_to Rails.application.routes.url_helpers, :acme_org_root_path
+    test "Base route helpers and OIDC clients are present" do
+      assert_respond_to Rails.application.routes.url_helpers, :base_app_root_path
+      assert_respond_to Rails.application.routes.url_helpers, :base_com_root_path
+      assert_respond_to Rails.application.routes.url_helpers, :base_org_root_path
 
       client_ids = OidcClientRegistry.client_ids
 
@@ -82,7 +83,7 @@ module Security
 
     def dns_apex_line_allowed?(relative, line)
       DNS_APEX_ALLOWLIST.any? { |pattern| relative.match?(pattern) } &&
-        line.match?(/\bapex(?:-| )?(?:domain|scoped|terminology)|best_effort_apex|same apex\b/i)
+        line.match?(/\bapex(?:-| )?(?:domain|scope|scoped|terminology)|best_effort_apex|same apex\b/i)
     end
   end
 end

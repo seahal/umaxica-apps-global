@@ -29,6 +29,9 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       "Host" => @host,
       "X-TEST-CURRENT-RESOURCE" => @visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@visitor, host: @host, session_public_id: @token.public_id, resource_type: "visitor")
+      }",
     }
   end
 
@@ -37,6 +40,9 @@ class Auth::Com::Settings::Telephones::RegistrationsControllerTest < ActionDispa
       "Host" => @host,
       "X-TEST-CURRENT-RESOURCE" => visitor.id,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: @host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
     }
   end
 

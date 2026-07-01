@@ -44,10 +44,6 @@ module Auth
       assert_equal :staff_id, @controller.send(:resource_foreign_key)
     end
 
-    test "test_header_key returns X-TEST-CURRENT-STAFF" do
-      assert_equal "X-TEST-CURRENT-STAFF", @controller.send(:test_header_key)
-    end
-
     test "am_i_user? returns false" do
       assert_not @controller.am_i_user?
     end

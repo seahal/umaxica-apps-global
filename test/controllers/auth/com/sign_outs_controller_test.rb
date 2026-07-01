@@ -25,6 +25,9 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     get edit_auth_com_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
     }
 
     assert_response :success
@@ -33,6 +36,9 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     post auth_com_sign_out_url(ri: "jp", host: host), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
     }
 
     assert_response :success
@@ -70,6 +76,9 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     delete auth_com_sign_out_url(ri: "jp", host: host, logout_challenge: transaction.logout_challenge), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
     }
 
     assert_response :see_other
@@ -80,6 +89,9 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     delete auth_com_sign_out_url(ri: "jp", host: host, logout_challenge: transaction.logout_challenge), headers: {
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
     }
 
     assert_response :see_other

@@ -18,7 +18,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   end
 
   test "base app activities list only current user entries" do
-    host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host
     user = clients(:one)
     other_user = clients(:two)
@@ -29,7 +29,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     token = create_user_token!(user)
     select_token!(surface: :app, principal: user, token: token)
 
-    get sign_app_settings_activities_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
+    get base_app_identity_activities_url(ri: "jp", host: host), headers: app_session_headers(host, token, user)
 
     assert_response :success
     assert_no_match(/id\.umaxica/, response.body)
@@ -72,11 +72,56 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   end
 
   def app_session_headers(host, token, user)
-    {
-      "Host" => host,
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    bearer_headers(
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client"),
+      host: host,
+    )
+  end
+
+  def host_headers(host = nil)
+    host.present? ? { "Host" => host } : {}
+  end
+
+  def bearer_headers(token, host: nil, headers: {})
+    host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
+  end
+
+  def jwt_access_token_for(resource, host: nil, session_public_id: nil, resource_type: nil)
+    AuthenticationToken.encode(
+      resource, host: host, session_public_id: session_public_id, resource_type: resource_type,
+                jwt_issuer_id: jwt_issuer_id_for_test_host(host, resource_type),
+    )
+  end
+
+  # Base shares its production origin with Acme (both `https://www.umaxica.<tld>`), so the
+  # issuer namespace cannot be inferred from a host substring like "base". Match against the
+  # actual configured Base hosts first; fall back to substring heuristics for surfaces whose
+  # hosts are texually distinct (acme/core/sign).
+  def jwt_issuer_id_for_test_host(host, resource_type)
+    normalized = host.to_s
+    base_hosts = {
+      "APP" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      "ORG" => ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+      "COM" => ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
     }
+    return "surface:BASE_#{base_hosts.key(normalized)}" if base_hosts.value?(normalized)
+
+    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    surface =
+      if service == "SIGN"
+        case resource_type
+        when "operator" then "ORG"
+        when "visitor" then "COM"
+        else "APP"
+        end
+      elsif normalized.include?(".org") || normalized.include?("org.")
+        "ORG"
+      elsif normalized.include?(".com") || normalized.include?("com.")
+        "COM"
+      else
+        "APP"
+      end
+    "surface:#{service}_#{surface}"
   end
 
   def create_user_audit(user:, tag:)

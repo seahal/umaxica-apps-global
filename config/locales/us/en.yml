@@ -17,6 +17,24 @@ en:
     support:
       fix_fk_dependency:
         apply: Applying FK Dependency Patch...
+  auth:
+    com:
+      settings:
+        activity:
+          events:
+            logged_in: Logged in
+            login_success: Logged in
+            unknown: "Unknown event %{event_id}"
+  base:
+    app:
+      preferences:
+        update_success: Preferences updated successfully
+    org:
+      preferences:
+        update_success: Preferences updated successfully
+    com:
+      preferences:
+        update_success: Preferences updated successfully
   oidc:
     rp_logout:
       local_only: "This domain has been signed out. You are still signed in to sign. To sign out everywhere, use session management at %{idp_sessions_url}."
@@ -3719,6 +3737,7 @@ en:
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         back_to_settings: Back to Preferences
+        update_success: Preferences updated successfully
       preference:
         resets:
           title: Reset Preferences
@@ -3746,6 +3765,7 @@ en:
         theme_settings: Theme Settings
         reset_settings: Reset Settings
         back_to_settings: Back to Preferences
+        update_success: Preferences updated successfully
       preference:
         resets:
           title: Reset Preferences
@@ -3832,4 +3852,11 @@ en:
             logged_in: Logged in
             login_success: Login success
             social_unlinked: Social account unlinked
+            unknown: Unknown event (%{event_id})
+    com:
+      settings:
+        activity:
+          events:
+            logged_in: Logged in
+            login_success: Login success
             unknown: Unknown event (%{event_id})

@@ -4,26 +4,23 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-# This test verifies cross-domain links between acme and other domains
+# This test verifies current base and auth route helper boundaries.
 class AcmeCrossDomainLinksTest < ActionDispatch::IntegrationTest
-  test "acme layouts link to other domains correctly" do
+  test "base app root exposes the authorization entry point" do
     host! ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
 
-    get acme_app_root_url(ri: "jp")
+    get base_app_root_url(ri: "jp")
 
     assert_response :success
-
-    # Acme layouts should have links to other domains
-    assert_select "a[href^='http']", minimum: 1
+    assert_select "a[href='/oidc/authorization?ri=jp']", minimum: 1
   end
 
-  test "cross domain url helpers are accessible from acme" do
-    # Acme helpers should be accessible
-    assert_respond_to self, :acme_app_root_url
-    assert_respond_to self, :acme_com_root_url
-    assert_respond_to self, :acme_org_root_url
+  test "cross domain url helpers are accessible from base" do
+    assert_respond_to self, :base_app_root_url
+    assert_respond_to self, :base_com_root_url
+    assert_respond_to self, :base_org_root_url
 
-    assert_respond_to self, :sign_app_root_url
+    assert_respond_to self, :auth_app_root_url
   end
 end
 

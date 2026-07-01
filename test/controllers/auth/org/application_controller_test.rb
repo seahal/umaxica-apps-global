@@ -60,8 +60,13 @@ module Auth::Org
     end
 
     test "authenticate_operator! allows access when operator is logged in" do
-      # Mock header to simulate logged in staff
-      @controller.request.headers["X-TEST-CURRENT-STAFF"] = @staff.id
+      host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
+      token = OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+      jwt = AuthenticationToken.encode(
+        @staff, host: host, session_public_id: token.public_id, resource_type: "operator",
+                jwt_issuer_id: "surface:SIGN_ORG",
+      )
+      @controller.request.headers["Authorization"] = "Bearer #{jwt}"
       # Should not raise or redirect
       assert_nothing_raised do
         @controller.send(:authenticate_operator!)

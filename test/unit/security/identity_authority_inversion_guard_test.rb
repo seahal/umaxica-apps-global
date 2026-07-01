@@ -8,7 +8,7 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   test "sign routes do not expose oidc provider endpoints" do
-    source = file_content("config/routes/sign.rb")
+    source = file_content("config/routes/auth.rb")
 
     assert_not_includes source, "resource :openid_configuration"
     assert_not_includes source, "namespace :oauth"
@@ -54,7 +54,7 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   end
 
   test "sign social completion form transports only signed result to acme" do
-    form = file_content("app/views/sign/shared/social_completion.html.erb")
+    form = file_content("app/views/auth/shared/social_completion.html.erb")
 
     assert_includes form, "form_with url: completion_url, method: :post"
     assert_includes form, "hidden_field_tag :social_ceremony_result, result_token"
@@ -64,7 +64,7 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   end
 
   test "sign email signup checkpoint uses the shared finalize boundary" do
-    controller = file_content("app/controllers/sign/app/sign/up/check/email/birthdates_controller.rb")
+    controller = file_content("app/controllers/auth/app/sign/up/check/email/birthdates_controller.rb")
 
     assert_includes controller, "sign_up_family = \"email\""
     assert_no_match(/email_signup_completion/, controller)
@@ -72,7 +72,7 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
   end
 
   test "social confirmation step includes turnstile before durable signup completion" do
-    form = file_content("app/views/sign/app/sign/up/check/social/confirmations/show.html.erb")
+    form = file_content("app/views/auth/app/sign/up/check/social/confirmations/show.html.erb")
 
     assert_includes form, 'render "shared/cloudflare_turnstile_visible"'
     assert_includes form, "confirm_new_social_identity"

@@ -6,19 +6,19 @@ require "test_helper"
 
 class OrgConfigurationRoutesTest < ActiveSupport::TestCase
   ROUTES = {
-    sign: {
+    auth: {
       org_host: ENV.fetch("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"),
       app_host: ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "id.app.localhost"),
       com_host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"),
-      controller: "sign/org/configurations",
+      controller: "auth/org/configurations",
       helper: :auth_org_configuration_path,
     },
-    acme: {
+    base: {
       org_host: ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
       app_host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
       com_host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
-      controller: "acme/org/configurations",
-      helper: :acme_org_configuration_path,
+      controller: "base/org/configurations",
+      helper: :base_org_configuration_path,
     },
     core: {
       org_host: ENV.fetch("PUBLIC_CORE_STAFF_URL", ENV.fetch("PUBLIC_CORE_STAFF_URL", "jpx.umaxica.org")),

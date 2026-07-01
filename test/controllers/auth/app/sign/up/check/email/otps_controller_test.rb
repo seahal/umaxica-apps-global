@@ -196,7 +196,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -217,7 +225,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -238,7 +254,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -673,7 +697,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -691,7 +723,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -709,7 +749,15 @@ class Auth::App::Sign::Up::Check::Email::OtpsControllerTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    if token
+      base.merge(
+        "Authorization" => "Bearer #{
+        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+      }",
+      )
+    else
+      base
+    end
   end
 
   def bearer_headers(token, host: nil, headers: {})

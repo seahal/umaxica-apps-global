@@ -19,7 +19,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     assert_difference -> { ClientStepUpCeremonyTransaction.count }, 1 do
       get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -134,7 +137,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -181,7 +187,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "sign completion transport posts result body only to fixed base endpoint" do
-    source = Rails.root.join("app/views/sign/shared/step_up_completion.html.erb").read
+    source = Rails.root.join("app/views/auth/shared/step_up_completion.html.erb").read
 
     assert_includes source, "form_with url: completion_url, method: :post"
     assert_includes source, "authenticity_token: false"
@@ -314,7 +320,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       otp_counter: "0",
     )
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     get base_app_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
         headers: app_session_headers(host, token, user)
@@ -331,7 +340,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get base_app_verification_url(scope: "admin", pt: pt, ri: "jp", host: host),
@@ -345,7 +357,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    pt = signed_step_up_pt_for(auth_app_settings_emails_path(ri: "jp"), surface: "app", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     assert_no_difference -> { ClientStepUpCeremonyTransaction.count } do
       get base_app_verification_url(scope: "settings_telephone", pt: pt, ri: "jp", host: host),
@@ -359,7 +374,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     visitor = create_verified_visitor_with_email(email_address: "visitor-step-up-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
-    pt = signed_step_up_pt_for(sign_com_settings_emails_path(ri: "jp"), surface: "com", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      sign_com_settings_emails_path(ri: "jp"), surface: "com",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     assert_difference -> { VisitorStepUpCeremonyTransaction.count }, 1 do
       get base_com_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -405,7 +423,10 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     operator = operators(:one)
     token = operator_tokens(:one)
-    pt = signed_step_up_pt_for(sign_org_settings_emails_path(ri: "jp"), surface: "org", session_nonce: token.public_id)
+    pt = signed_step_up_pt_for(
+      sign_org_settings_emails_path(ri: "jp"), surface: "org",
+                                               session_nonce: session_nonce_for(token),
+    )
 
     assert_difference -> { OperatorStepUpCeremonyTransaction.count }, 1 do
       get base_org_verification_url(scope: "settings_email", pt: pt, ri: "jp", host: host),
@@ -458,15 +479,24 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   def app_session_headers(host, token, user)
-    { "Host" => host, "X-TEST-CURRENT-USER" => user.id.to_s, "X-TEST-SESSION-PUBLIC-ID" => token.public_id }
+    bearer_headers(
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client"),
+      host: host,
+    )
   end
 
   def com_session_headers(host, token, visitor)
-    { "Host" => host, "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s, "X-TEST-SESSION-PUBLIC-ID" => token.public_id }
+    bearer_headers(
+      jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor"),
+      host: host,
+    )
   end
 
   def org_session_headers(host, token, operator)
-    { "Host" => host, "X-TEST-CURRENT-STAFF" => operator.id.to_s, "X-TEST-SESSION-PUBLIC-ID" => token.public_id }
+    bearer_headers(
+      jwt_access_token_for(operator, host: host, session_public_id: token.public_id, resource_type: "operator"),
+      host: host,
+    )
   end
 
   def with_forgery_protection
@@ -634,8 +664,20 @@ class BaseStepUpIntentAuthorityTest
     )
   end
 
+  # The Base surface shares its production origin with Acme (both resolve to
+  # `https://www.umaxica.<tld>`), so the issuer namespace cannot be inferred
+  # from a host substring like "base". Match against the actual configured
+  # Base hosts first; only fall back to substring heuristics for surfaces
+  # whose test/production hosts are texually distinct (acme/core/sign).
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    base_hosts = {
+      "APP" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      "ORG" => ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+      "COM" => ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+    }
+    return "surface:BASE_#{base_hosts.key(normalized)}" if base_hosts.value?(normalized)
+
     service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
     surface =
       if service == "SIGN"
@@ -800,6 +842,17 @@ class BaseStepUpIntentAuthorityTest
     when "VisitorToken" then "step_up:com"
     else "step_up:app"
     end
+  end
+
+  # The `pt` bootstrap flow validates its embedded session_nonce against
+  # `current_session_public_id`, which prefers the token's device_session
+  # public_id (auto-created via RefreshTokenable's `ensure_device_session_record`
+  # on `create!`) over the token's own public_id. Fixture-loaded tokens bypass
+  # that callback and have no device_session, so fall back to the token's
+  # public_id in that case, mirroring AuthenticationCurrentResourceResolver's
+  # own fallback chain.
+  def session_nonce_for(token)
+    token.try(:device_session)&.public_id.presence || token.public_id
   end
 
   def signed_step_up_pt_for(path, surface:, session_nonce:)

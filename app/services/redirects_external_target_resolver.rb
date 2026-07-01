@@ -7,7 +7,7 @@ class RedirectsExternalTargetResolver
   REGISTRY = {
     rp_app: { env: "RP_APP_URL", default: "https://rp.app.localhost" },
     idp: { env: "PRIVATE_AUTH_CORPORATE_URL", default: "https://id.com.localhost" },
-    jump: { env: "JUMP_GATEWAY_URL", default: "https://jump.umaxica.net" },
+    jump: { env: %w(PUBLIC_JUMP_GATEWAY_URL JUMP_GATEWAY_URL), default: "https://jump.umaxica.net" },
   }.freeze
 
   def self.call(key, path: "/", query: {}, source: :explicit_external)
@@ -92,7 +92,11 @@ class RedirectsExternalTargetResolver
   end
 
   def origin_for(entry)
-    ENV.fetch(entry.fetch(:env)).presence
+    Array(entry.fetch(:env)).each do |key|
+      return ENV.fetch(key) if ENV.key?(key)
+    end
+
+    entry.fetch(:default).presence
   end
 
   def local_origin_allowed?(uri)
