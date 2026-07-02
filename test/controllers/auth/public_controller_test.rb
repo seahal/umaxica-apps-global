@@ -68,8 +68,8 @@ class AuthPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST without CSRF token returns 422" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign/app/test_csrf#show")
-      post("/test_csrf", to: "sign/app/test_csrf#create")
+      get("/test_csrf", to: "auth/app/test_csrf#show")
+      post("/test_csrf", to: "auth/app/test_csrf#create")
     end
     host!(ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost").delete_suffix("/"))
     with_forgery_protection do
@@ -83,8 +83,8 @@ class AuthPublicControllerTest < ActionDispatch::IntegrationTest
 
   test "POST with CSRF token returns successfully" do
     Rails.application.routes.draw do
-      get("/test_csrf", to: "sign/app/test_csrf#show")
-      post("/test_csrf", to: "sign/app/test_csrf#create")
+      get("/test_csrf", to: "auth/app/test_csrf#show")
+      post("/test_csrf", to: "auth/app/test_csrf#create")
     end
     host!(ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost").delete_suffix("/"))
     with_forgery_protection do

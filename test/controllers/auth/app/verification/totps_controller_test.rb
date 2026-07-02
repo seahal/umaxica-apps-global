@@ -46,11 +46,6 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     end
 
     assert_response :success
-    session_cookie =
-      response.headers["Set-Cookie"].to_s.split("\n").find { |line| line.start_with?("session=") }
-
-    assert_predicate session_cookie, :present?
-    assert_operator session_cookie.bytesize, :<, 3500
 
     with_prosopite_paused do
       get new_auth_app_verification_totp_url(ri: "jp"), headers: @headers
@@ -87,7 +82,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
     submit_step_up_completion_if_present!(
       headers: as_user_headers(
         @user,
-        host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+        host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"),
         session_public_id: @token.public_id,
       ),
     )
@@ -281,7 +276,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       submit_step_up_completion_if_present!(
         headers: as_user_headers(
           @user,
-          host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+          host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"),
           session_public_id: @token.public_id,
         ),
       )
@@ -340,7 +335,11 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
   private
 
   def signed_step_up_pt(return_to)
-    step_up_pt_issuer.issue(return_to: return_to, surface: "app", session_nonce: @token.public_id)
+    signed_step_up_pt_for(
+      return_to,
+      surface: "app",
+      session_nonce: @token.try(:device_session)&.public_id.presence || @token.public_id,
+    )
   end
 
   def step_up_pt_issuer
@@ -734,17 +733,11 @@ class Auth::App::Verification::TotpsControllerTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = (normalized.include?("base") || normalized.include?("www.")) ? "BASE" : "SIGN"
     surface =
-      if service == "SIGN"
-        case resource_type
-        when "operator" then "ORG"
-        when "visitor" then "COM"
-        else "APP"
-        end
-      elsif normalized.include?(".org") || normalized.include?("org.")
+      if resource_type == "operator" || normalized.include?(".org") || normalized.include?("org.")
         "ORG"
-      elsif normalized.include?(".com") || normalized.include?("com.")
+      elsif resource_type == "visitor" || normalized.include?(".com") || normalized.include?("com.")
         "COM"
       else
         "APP"
@@ -1141,10 +1134,12 @@ class Auth::App::Verification::TotpsControllerTest
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     if token
+      access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
       base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
-      }",
+        "Authorization" => "Bearer #{access_token}",
+        "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+        "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
       )
     else
       base

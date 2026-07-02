@@ -56,11 +56,6 @@ class ClientPreference < AppPrincipalRecord
                                   foreign_key: :preference_id,
                                   inverse_of: :preference,
                                   dependent: :destroy
-  has_one :user_preference_colortheme,
-          class_name: "ClientPreferenceTheme",
-          foreign_key: :preference_id,
-          inverse_of: :preference,
-          dependent: :destroy
   has_one :client_preference_currency,
           foreign_key: :preference_id,
           inverse_of: :preference,

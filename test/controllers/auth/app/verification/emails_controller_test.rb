@@ -289,13 +289,17 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
               host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
               headers: as_user_headers(
                 @user,
-                host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+                host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.app.localhost"),
                 session_public_id: @token.public_id,
               ),
             )
 
             assert_response :redirect
-            assert_predicate @token.reload.last_step_up_at, :present?
+            assert_predicate(
+              @token.reload.last_step_up_at,
+              :present?,
+              "completion redirected to #{response.location.inspect}",
+            )
             assert_equal "settings_email", @token.last_step_up_scope
           end
         end
@@ -746,10 +750,12 @@ class Auth::App::Verification::EmailsControllerTest
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
     if token
+      access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+      cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
       base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
-      }",
+        "Authorization" => "Bearer #{access_token}",
+        "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+        "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
       )
     else
       base
@@ -840,17 +846,11 @@ class Auth::App::Verification::EmailsControllerTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = (normalized.include?("base") || normalized.include?("www.")) ? "BASE" : "SIGN"
     surface =
-      if service == "SIGN"
-        case resource_type
-        when "operator" then "ORG"
-        when "visitor" then "COM"
-        else "APP"
-        end
-      elsif normalized.include?(".org") || normalized.include?("org.")
+      if resource_type == "operator" || normalized.include?(".org") || normalized.include?("org.")
         "ORG"
-      elsif normalized.include?(".com") || normalized.include?("com.")
+      elsif resource_type == "visitor" || normalized.include?(".com") || normalized.include?("com.")
         "COM"
       else
         "APP"

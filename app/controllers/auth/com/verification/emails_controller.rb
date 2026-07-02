@@ -7,6 +7,7 @@ module Auth
       class EmailsController < ::Auth::Com::Verification::BaseController
         AUTHENTICATION_MODE = :private
 
+        skip_before_action :enforce_step_up_prereqs!, only: %i(edit update resend)
         before_action :set_verification_navigation_context, only: %i(edit update resend)
 
         def new

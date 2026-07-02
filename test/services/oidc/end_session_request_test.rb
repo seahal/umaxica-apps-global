@@ -68,7 +68,7 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
   test "rejects expired id_token_hint" do
     install_actor_context!
 
-    result = call(id_token_hint: id_token(expires_at: 1.minute.ago))
+    result = call(id_token_hint: id_token(issued_at: 10.minutes.ago, expires_at: 1.minute.ago))
 
     assert_predicate result, :error?
     assert_equal "invalid_request", result.error_code
@@ -176,11 +176,12 @@ class OidcEndSessionRequestTest < ActiveSupport::TestCase
     OidcEndSessionRequest.call(params: params, request: @request)
   end
 
-  def id_token(expires_at: 5.minutes.from_now, sid: @sid)
+  def id_token(issued_at: Time.current, expires_at: 5.minutes.from_now, sid: @sid)
     OidcIdTokenIssuer.call(
       resource: @user,
       client: @client,
       nonce: "nonce",
+      issued_at: issued_at,
       expires_at: expires_at,
       issuer: OidcIssuer.for_resource_type("client"),
       jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("client"),

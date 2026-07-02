@@ -99,4 +99,53 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_includes response.headers["Location"], "/preference"
   end
+
+  test "a preference refresh cookie issued on app is inert on the com host" do
+    get edit_base_app_preference_theme_url(ri: "jp")
+
+    assert_response :success
+
+    app_refresh_token = cookies[COOKIE_NAME.call]
+
+    assert_not_nil app_refresh_token
+
+    com_count_before = ComPreference.count
+
+    reset!
+    https!
+    host! ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "base.com.localhost")
+    cookies[PreferenceCookieName.refresh(production: false, surface: :com)] = app_refresh_token
+
+    get edit_base_com_preference_theme_url(ri: "jp")
+
+    # A presented-but-non-matching refresh token fails closed (same invariant
+    # as a corrupt cookie, see preference_corrupt_cookie_test.rb) rather than
+    # being silently ignored, so it can never resolve to an unrelated Com row.
+    assert_response :unauthorized
+    assert_equal com_count_before, ComPreference.count,
+                 "an app-issued refresh cookie must not resolve to any Com preference; com bootstraps its own"
+  end
+
+  test "a preference refresh cookie issued on app is inert on the org host" do
+    get edit_base_app_preference_theme_url(ri: "jp")
+
+    assert_response :success
+
+    app_refresh_token = cookies[COOKIE_NAME.call]
+
+    assert_not_nil app_refresh_token
+
+    org_count_before = OrgPreference.count
+
+    reset!
+    https!
+    host! ENV.fetch("PRIVATE_BASE_STAFF_URL", "base.org.localhost")
+    cookies[PreferenceCookieName.refresh(production: false, surface: :org)] = app_refresh_token
+
+    get edit_base_org_preference_theme_url(ri: "jp")
+
+    assert_response :unauthorized
+    assert_equal org_count_before, OrgPreference.count,
+                 "an app-issued refresh cookie must not resolve to any Org preference; org bootstraps its own"
+  end
 end

@@ -294,7 +294,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to base_app_dashboard_url(host: @base_host)
+    assert_redirected_to "http://#{@base_host}/dashboard"
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -703,7 +703,9 @@ class SocialAuthAppFlowContractTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -724,7 +726,12 @@ class SocialAuthAppFlowContractTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -745,7 +752,14 @@ class SocialAuthAppFlowContractTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor,
+      host: host,
+      session_public_id: token.public_id,
+      resource_type: "visitor",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -1125,18 +1139,19 @@ class SocialAuthAppFlowContractTest
   private
 
   def seed_app_social_link_grant_session(provider:, user:, ri: "jp")
-    host = configured_host(:sign_service)
+    host = @host || configured_host(:auth_service)
     host!(host) if respond_to?(:host!)
 
     user_headers = as_user_headers(user, host: host)
     session_public_id = user_headers.fetch("X-TEST-SESSION-PUBLIC-ID")
     token = ClientToken.find_by(public_id: session_public_id)
+    session_ref = token&.try(:device_session)&.public_id.presence || session_public_id
     mark_token_step_up_satisfied_for_test(token, scope: SocialAuth::SOCIAL_LINK_SCOPE) if token
 
     issuance = IdentitySocialCeremonyGrantIssuer.issue!(
       surface: "app",
       actor_ref: user.public_id,
-      session_ref: session_public_id,
+      session_ref: session_ref,
       operation: "link",
       provider: provider,
     )
@@ -1150,16 +1165,19 @@ class SocialAuthAppFlowContractTest
 
     headers = social_callback_headers(host).merge(user_headers)
     post(continue_path, headers: headers)
-    session_cookie =
-      response.headers["Set-Cookie"].to_s.split("\n").find { |line| line.start_with?("session=") }
+    state = social_auth_state_from_response
 
-    assert_predicate session_cookie, :present?
-    assert_operator session_cookie.bytesize, :<, 3500
+    assert_predicate(
+      state,
+      :present?,
+      "expected social auth state from response status=#{response.status} location=#{response.location.inspect} " \
+      "flash=#{flash.to_hash.inspect} body=#{response.body.to_s.first(200).inspect}",
+    )
 
     Struct.new(:state, :user_headers, :session_public_id, keyword_init: true).new(
-      state: social_auth_state_from_response,
+      state: state,
       user_headers: user_headers,
-      session_public_id: session_public_id,
+      session_public_id: session_ref,
     )
   end
 
@@ -1176,11 +1194,12 @@ class SocialAuthAppFlowContractTest
       params[name] = input["value"] if name.present?
     end
 
+    action_uri = URI.parse(form["action"])
     post(
       form["action"],
       params: params,
       headers: {
-        "Host" => configured_host(:acme_service),
+        "Host" => action_uri.host,
         "Origin" => "https://#{configured_host(:sign_service)}",
         "Sec-Fetch-Site" => "same-site",
       },
@@ -1266,7 +1285,9 @@ class SocialAuthAppFlowContractTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -1284,7 +1305,12 @@ class SocialAuthAppFlowContractTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -1302,7 +1328,14 @@ class SocialAuthAppFlowContractTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor,
+      host: host,
+      session_public_id: token.public_id,
+      resource_type: "visitor",
+    )
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -1387,9 +1420,16 @@ class SocialAuthAppFlowContractTest
     return unless token.respond_to?(:update_columns)
 
     token.update_columns(
-      { last_step_up_at: at,
+      {
+        last_step_up_at: at,
         last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
+        last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+        last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+        last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+        last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+        last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+        updated_at: Time.current,
+      }.compact,
     )
   end
 

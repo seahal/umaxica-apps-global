@@ -17,6 +17,7 @@ class Auth::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_equal "jump.umaxica.net", URI.parse(response.location).host
     payload, = JWT.decode(Rack::Utils.parse_query(URI.parse(response.location).query).fetch("rt"), nil, false)
+
     assert_equal(
       new_base_com_identity_telephones_registration_url(
         ri: "jp",

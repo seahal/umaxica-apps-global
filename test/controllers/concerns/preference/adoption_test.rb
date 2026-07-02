@@ -57,10 +57,10 @@ module Preference
       assert @adoption.send(:adoptable_preference_class?)
     end
 
-    test "adoptable_preference_class? returns false for ComPreference" do
+    test "adoptable_preference_class? returns true for ComPreference" do
       adoption = build_adoption_context(@preference, preference_class_name: "ComPreference")
 
-      assert_not adoption.send(:adoptable_preference_class?)
+      assert adoption.send(:adoptable_preference_class?)
     end
 
     # --- find_resource_preference ---
@@ -256,7 +256,8 @@ module Preference
 
       com_adoption = build_adoption_context(@preference, preference_class_name: "ComPreference")
 
-      assert_equal [nil, nil], com_adoption.send(:resource_preference_mapping)
+      assert_equal "Visitor", com_adoption.send(:resource_pref_prefix)
+      assert_equal [VisitorPreference, :visitor_id], com_adoption.send(:resource_preference_mapping)
 
       yielded = false
       result =

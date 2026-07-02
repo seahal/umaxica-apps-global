@@ -48,28 +48,33 @@ class PreferenceTokenTest < ActiveSupport::TestCase
 
   test "encodes and decodes with a sign surface issuer without using legacy preference issuer" do
     audiences = ["log.umaxica.app", "log.umaxica.com"].freeze
+    key_for = ->(kid, **_options) { (kid == "default") ? @public_key : nil }
     PreferenceJwtConfiguration.stub(:audiences, audiences) do
       PreferenceJwtConfiguration.stub(:host_scope_for, "log.umaxica.app") do
-        PreferenceJwtConfiguration.stub(:public_key_for, ->(_kid, _issuer_id: "preference") { @public_key }) do
-          token = PreferenceToken.encode(
-            @prefs,
-            host: "log.umaxica.app",
-            preference_type: @preference_type,
-            public_id: @public_id,
-            jti: @jti,
-            jwt_issuer_id: "surface:SIGN_APP",
-          )
+        PreferenceJwtConfiguration.stub(:private_key_for_active, @private_key) do
+          PreferenceJwtConfiguration.stub(:public_key_for, key_for) do
+            PreferenceJwtConfiguration.stub(:active_kid, "default") do
+              token = PreferenceToken.encode(
+                @prefs,
+                host: "log.umaxica.app",
+                preference_type: @preference_type,
+                public_id: @public_id,
+                jti: @jti,
+                jwt_issuer_id: "surface:SIGN_APP",
+              )
 
-          assert_not_nil token
+              assert_not_nil token
 
-          decoded = PreferenceToken.decode(
-            token,
-            host: "log.umaxica.app",
-            jwt_issuer_id: "surface:SIGN_APP",
-          )
+              decoded = PreferenceToken.decode(
+                token,
+                host: "log.umaxica.app",
+                jwt_issuer_id: "surface:SIGN_APP",
+              )
 
-          assert_equal "dr", decoded.dig("preferences", "ct")
-          assert_equal @jti, decoded["jti"]
+              assert_equal "dr", decoded.dig("preferences", "ct")
+              assert_equal @jti, decoded["jti"]
+            end
+          end
         end
       end
     end

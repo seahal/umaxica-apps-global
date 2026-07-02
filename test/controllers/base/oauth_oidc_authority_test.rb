@@ -381,7 +381,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base edge token refresh rejects missing refresh token without rotation" do
-    BaseRefreshTokenIssuer.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
+    AcmeRefreshTokenIssuer.stub(:call, ->(**) { flunk("refresh rotation must not run without a token") }) do
       post base_app_edge_v0_token_refresh_url(host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
            as: :json
     end
@@ -393,7 +393,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "refresh authority source uses base service not sign refresh service" do
     source = Rails.root.join("app/controllers/concerns/authentication_base.rb").read
 
-    assert_includes source, "BaseRefreshTokenIssuer.call"
+    assert_includes source, "AcmeRefreshTokenIssuer.call"
     assert_not_includes source, "SignRefreshTokenIssuer.call"
 
     %w(app com org).each do |surface|

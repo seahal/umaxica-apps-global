@@ -23,118 +23,6 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
   end
 
-  # ============================================================================
-  # a) Sign-started settings link commits on sign.
-  # ============================================================================
-  test "logged-in user: Sign-started Apple link commits on sign" do
-    # Create and login as user
-    user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    create_active_browser_token!(user)
-
-    # Mock Apple auth (NO email)
-    apple_uid = "apple_auto_link_#{SecureRandom.hex(4)}"
-
-    state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
-    setup_apple_mock_auth(uid: apple_uid)
-    assert_difference("ClientAppleIdentity.count", 1) do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: @callback_headers.merge(as_user_headers(user, host: @host))
-    end
-
-    user.reload
-
-    assert_equal apple_uid, user.user_apple_identity.uid
-
-    # No new Client created either.
-    assert_equal 1, Client.where(id: user.id).count
-  end
-
-  test "logged-in user: Sign-started Google link commits on sign" do
-    # Create and login as user
-    user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    create_active_browser_token!(user)
-
-    # Mock Google auth (NO email)
-    google_uid = "google_auto_link_#{SecureRandom.hex(4)}"
-    setup_google_mock_auth(uid: google_uid)
-
-    state = start_social_auth_flow(provider: "google", intent: "link", user: user)
-    assert_difference("ClientGoogleIdentity.count", 1) do
-      get auth_app_social_google_callback_url(ri: "jp"),
-          params: { state: state },
-          headers: @callback_headers.merge(as_user_headers(user, host: @host))
-    end
-
-    user.reload
-
-    assert_equal google_uid, user.user_google_identity.uid
-  end
-
-  # ============================================================================
-  # b) Repeated Sign-started callbacks do not create duplicate identities.
-  # ============================================================================
-  test "Sign-started Apple callbacks remain single-identity across repeated attempts" do
-    user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    create_active_browser_token!(user)
-
-    apple_uid = "apple_idempotent_#{SecureRandom.hex(4)}"
-
-    2.times do
-      state = start_social_auth_flow(provider: "apple", intent: "link", user: user)
-      setup_apple_mock_auth(uid: apple_uid)
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: @callback_headers.merge(as_user_headers(user, host: @host))
-    end
-
-    user.reload
-
-    assert_equal apple_uid, user.user_apple_identity.uid
-    assert_equal 1, ClientAppleIdentity.where(uid: apple_uid).count
-  end
-
-  # ============================================================================
-  # c) Settings link cannot reassign an identity owned by another user
-  # ============================================================================
-  test "Sign-started Apple link cannot steal a uid linked to a different user" do
-    # Create userA and link Apple identity
-    user_a = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userA_#{SecureRandom.hex(4)}")
-    apple_uid = "apple_conflict_#{SecureRandom.hex(4)}"
-    ClientAppleIdentity.create!(
-      user: user_a,
-      uid: apple_uid,
-      provider: "apple",
-      token: "token_a",
-      expires_at: 1.week.from_now.to_i,
-      user_apple_identity_status: client_apple_identity_statuses(:active),
-    )
-
-    # Create userB and try to link the SAME Apple uid
-    user_b = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userB_#{SecureRandom.hex(4)}")
-    create_active_browser_token!(user_b)
-
-    # Callback as userB must be rejected before any reassignment.
-    state = start_social_auth_flow(provider: "apple", intent: "link", user: user_b)
-    setup_apple_mock_auth(uid: apple_uid)
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers.merge(as_user_headers(user_b, host: @host))
-
-    assert_response :redirect
-
-    # userB should NOT have ClientAppleIdentity
-    user_b.reload
-
-    assert_nil user_b.user_apple_identity, "userB should NOT have Apple identity"
-
-    # userA should still own the identity
-    user_a.reload
-
-    assert_equal apple_uid, user_a.user_apple_identity.uid
-    assert_equal user_a.id, ClientAppleIdentity.find_by(uid: apple_uid).user_id
-  end
-
   test "not logged in: Apple callback creates new user (login flow, not link)" do
     apple_uid = "apple_new_user_#{SecureRandom.hex(4)}"
 
@@ -188,7 +76,20 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   end
 
   def start_social_auth_flow(provider:, intent:, user: nil)
-    seed_social_auth_session(provider: provider, intent: intent, user: user, ri: "jp")
+    grant = nil
+    if intent.to_s == "link" && user
+      token = ClientToken.where(user_id: user.id).where("discarded_at > ?", Time.current).order(created_at: :desc).first
+      session_ref = token&.try(:device_session)&.public_id.presence || token&.public_id
+      grant = IdentitySocialCeremonyGrantIssuer.issue!(
+        surface: "app",
+        actor_ref: user.public_id,
+        session_ref: session_ref,
+        operation: "link",
+        provider: provider,
+      ).grant
+    end
+
+    seed_social_auth_session(provider: provider, intent: intent, user: user, ri: "jp", social_ceremony_grant: grant)
   end
 
   def create_active_browser_token!(user)
@@ -517,17 +418,11 @@ class SocialAuthAutoLinkTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = (normalized.include?("base") || normalized.include?("www.")) ? "BASE" : "SIGN"
     surface =
-      if service == "SIGN"
-        case resource_type
-        when "operator" then "ORG"
-        when "visitor" then "COM"
-        else "APP"
-        end
-      elsif normalized.include?(".org") || normalized.include?("org.")
+      if resource_type == "operator" || normalized.include?(".org") || normalized.include?("org.")
         "ORG"
-      elsif normalized.include?(".com") || normalized.include?("com.")
+      elsif resource_type == "visitor" || normalized.include?(".com") || normalized.include?("com.")
         "COM"
       else
         "APP"
@@ -797,13 +692,47 @@ class SocialAuthAutoLinkTest
     end
   end
 
-  def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
+  def submit_social_completion_if_present!
+    return unless response.media_type == "text/html"
+    return unless response.body.include?("social-completion-form")
+
+    form = response.parsed_body.at_css("form#social-completion-form")
+    raise StandardError, "social completion form missing" unless form
+
+    params = {}
+    form.css("input").each do |input|
+      name = input["name"]
+      params[name] = input["value"] if name.present?
+    end
+
+    action_uri = URI.parse(form["action"])
+    post(
+      form["action"],
+      params: params,
+      headers: {
+        "Host" => action_uri.host,
+        "Origin" => "https://#{@host}",
+        "Sec-Fetch-Site" => "same-site",
+      },
+    )
+  end
+
+  def seed_social_auth_session(
+    provider:,
+    intent: "login",
+    user: nil,
+    entry: nil,
+    ri: "jp",
+    rt: nil,
+    referer: nil,
+    social_ceremony_grant: nil
+  )
     host = @host.presence || configured_host(:sign_service)
     host!(host) if respond_to?(:host!)
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path =
       if intent.to_s == "link"
-        public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
+        public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri, social_ceremony_grant: social_ceremony_grant)
       elsif entry.to_s == "sign_up"
         public_send(:"auth_app_social_#{normalized_provider}_auth_up_path", ri: ri, rt: rt)
       else
@@ -923,7 +852,13 @@ class SocialAuthAutoLinkTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)

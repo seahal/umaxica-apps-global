@@ -130,11 +130,94 @@ app/com の `*PreferenceCookie#set_defaults`
 で本監査の変更を退避した未修正の `develop`
 ブランチでも同じ5件が同じ理由で失敗することを確認済み — 本監査の変更とは無関係な既存の失敗であり、回帰ではない。
 
-## 残リスク・未確定事項
+## 残リスク・未確定事項（2026-07-02 時点、下記 Update で一部解消）
 
-- M2（status_id デフォルト不一致、update_column/update! 非対称）はマイグレーション計画が必要な範囲であり、本パスでは意図的に未修正。フォローアップ起票を推奨。
-- L1/L2（死んだエイリアス、正規化子テーブルの schema debt）は実害なしのため記録のみ。
+- L2（正規化子テーブルの schema debt）は `plans/backlog/legacy-preference-models-retirement-plan.md`
+  に委任済み、本監査ではスコープ外。
 - `docs/architecture/preference.md` の Open Questions（"Should logout clear the local copy, or only
-  stop writing to it?" 等）は本監査でも未解決。意思決定が必要な事項として残る。
+  stop writing to
+  it?"）は、下記 Update でユーザー承認のうえ「keep-values」で確定した（downgrade 実装は backlog）。
 - 既存の5件のテスト失敗（`adoption_test.rb`/`jwt_and_color_theme_test.rb`/
-  `no_implicit_callbacks_test.rb`）は本監査スコープ外だが、別途調査・修正が望ましい。
+  `no_implicit_callbacks_test.rb`）は本監査スコープ外。develop 上の pre-existing
+  failure であることを確認済み（下記 Update でも再確認）。
+
+## Update (2026-07-02): Follow-up fixes and additional regression coverage
+
+Per-repo policy, new findings and fixes below are recorded in English.
+
+### M2 — resolved
+
+`app_preferences.status_id` column default (was `2`, i.e. `AppPreferenceStatus::LEGACY_NOTHING`) is
+now aligned with the model's Ruby-level
+`attribute :status_id, default: AppPreferenceStatus::NOTHING` (`0`), via a reversible migration:
+`db/app_settings_migrate/20260702000000_change_app_preferences_status_id_default_to_nothing.rb`
+(`change_column_default`, `from: 2, to: 0`). `Com`/`OrgPreference` already default to their own
+`NOTHING` (`2`), so no change was needed there. `AppPreference#persist_self_replacement` was unified
+to `update_column` (matching Com/Org) since it only backfills a self-reference immediately after a
+validated create.
+
+### L1 — resolved
+
+Removed the dead `has_one :user_preference_colortheme` alias from `app/models/client_preference.rb`
+(left over from the `colortheme` → `theme` rename; pointed at the same table as
+`user_preference_theme`). Confirmed zero references outside the model definition and historical
+migration files before removing.
+
+### GET-edit side effect — found and fixed
+
+`*_preferences_edit` actions for region/language/timezone/theme (`preference_core.rb`) previously
+called the persisting `load_or_create_preference_child`, which creates a missing child row as a side
+effect of a `GET`. This violated the contract's "no GET mutation" rule whenever a child row was
+missing (normally impossible after bootstrap, but reachable for legacy rows or after manual repair).
+
+Fix: added a GET-safe reader, `PreferenceBase#load_or_build_preference_child` (returns an
+unpersisted default `.new` record when the row is missing, mirroring the existing
+`load_or_build_selectable_preference_child` pattern already used for the "selectable" family) and a
+matching `PreferenceCore#load_or_refresh_preference_child_for_edit`. All four `*_preferences_edit`
+actions now use it; the corresponding `*_preferences_update` actions keep using the persisting
+loader, since a `PATCH` is a legitimate write point.
+`test/integration/preference_get_edit_current_behavior_test.rb` was rewritten to assert the new
+contract (row is not created on GET) instead of documenting the old side effect.
+
+### Corrupt/cross-surface refresh token — clarified, no code change needed
+
+Regression tests (`test/integration/preference_corrupt_cookie_test.rb`,
+`test/integration/preference_security_test.rb`) confirmed the existing behavior is already
+contract-safe: a _presented but invalid_ refresh token (garbage value, or a token belonging to a
+different surface's preference table) fails closed with `401` and clears the stale cookie — it never
+resolves to, adopts, or mutates an unrelated preference row. A refresh cookie that was simply never
+presented still bootstraps a fresh guest preference normally. No raise, no DB corruption either way.
+
+### Logout keep-values — decision confirmed, documented
+
+Per explicit user decision, logout keeps the guest-safe display preference (language/timezone/theme/
+cookie-banner suppression) as-is; only auth/session transport cookies are cleared. This was already
+the implemented behavior (`PreferenceCore#delete_preference_cookie` is an intentional keep-values
+no-op); `docs/architecture/preference-behavior-contract.md`'s State Transitions table was updated to
+state this as the accepted contract rather than describe it as an unresolved "downgrade" TODO.
+`test/integration/preference_logout_downgrade_test.rb` pins this behavior.
+
+### Additional regression tests
+
+- `test/integration/preference_corrupt_cookie_test.rb`
+- `test/integration/preference_signin_conflict_test.rb` (verified the verified access token wins
+  over a conflicting public display cookie for both theme and cookie-consent reads)
+- `test/integration/preference_logout_downgrade_test.rb`
+- `test/integration/preference_concurrent_sync_test.rb` (jti/public_id uniqueness and
+  single-canonical-row invariants across a burst of sequential writes; true thread concurrency is
+  impractical in Minitest)
+- `test/integration/preference_read_symmetry_test.rb` (anonymous vs. signed-in theme read agreement,
+  including the resource-mirror's denormalized `theme` column)
+- Extended `test/integration/preference_security_test.rb` with the two cross-surface inertness cases
+
+### Test run
+
+All new/updated tests pass. Re-ran `test/controllers/concerns/preference/`,
+`test/integration/preference_security_test.rb`, `test/integration/acme_preference_test.rb`,
+`test/integration/preference_booster_test.rb`, and model tests
+(`test/models/{app,com,org}_preference_test.rb`,
+`test/models/{app,com,org}_preference_cookie_test.rb`) after the M2/GET-edit changes: the same 5
+pre-existing failures noted above reproduce unchanged (`adoption_test.rb` ×2,
+`jwt_and_color_theme_test.rb` ×2, `no_implicit_callbacks_test.rb` ×1) — confirmed pre-existing on
+`develop`, unrelated to this pass's changes, and left untouched per the approved plan (out of scope
+for this audit).

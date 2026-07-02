@@ -404,7 +404,10 @@ to the database or JWT.
 ## Open Questions
 
 - Should shared preference keep a full history, or only the latest state?
-- Should logout clear the local copy, or only stop writing to it?
+- ~~Should logout clear the local copy, or only stop writing to it?~~ Resolved 2026-07-02:
+  keep-values (do not clear or downgrade on logout). See
+  `docs/architecture/preference-behavior-contract.md`'s State Transitions table and
+  `memos/2026-07-02-preference-audit.md`.
 - Should `App`, `Org`, and `Com` use the same shared schema forever, or should each surface keep a
   separate shape?
 - Should activity records stay near the `com_setting` database, or move to a separate audit surface

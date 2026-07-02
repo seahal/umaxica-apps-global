@@ -30,9 +30,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
         pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-        get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+        get auth_com_verification_url(
+          scope: "settings_email",
+          pt: pt,
+          ri: "jp",
+          step_up_ceremony_grant: step_up_grant(return_to),
+        ),
             headers: @headers
 
+        follow_redirect!(headers: @headers) if response.redirect?
         assert_response :success
 
         get new_auth_com_verification_email_url(ri: "jp"), headers: @headers
@@ -59,9 +65,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-      get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+      get auth_com_verification_url(
+        scope: "settings_email",
+        pt: pt,
+        ri: "jp",
+        step_up_ceremony_grant: step_up_grant(return_to),
+      ),
           headers: @headers
 
+      follow_redirect!(headers: @headers) if response.redirect?
       assert_response :success
 
       assert_enqueued_emails 1 do
@@ -104,10 +116,10 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
             # sign no longer writes freshness; acme commits it on completion (asserted below).
 
             submit_step_up_completion_if_present!(
-              host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+              host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.com.localhost"),
               headers: as_visitor_headers(
                 @visitor,
-                host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+                host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.com.localhost"),
                 session_public_id: @token.public_id,
               ),
             )
@@ -125,9 +137,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_com_verification_url(
+      scope: "settings_email",
+      pt: pt,
+      ri: "jp",
+      step_up_ceremony_grant: step_up_grant(return_to),
+    ),
         headers: @headers
 
+    follow_redirect!(headers: @headers) if response.redirect?
     assert_response :success
 
     get new_auth_com_verification_email_url(
@@ -152,9 +170,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_com_verification_url(
+      scope: "settings_email",
+      pt: pt,
+      ri: "jp",
+      step_up_ceremony_grant: step_up_grant(return_to),
+    ),
         headers: @headers
 
+    follow_redirect!(headers: @headers) if response.redirect?
     assert_response :success
 
     get new_auth_com_verification_email_url(
@@ -184,9 +208,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_com_verification_url(
+      scope: "settings_email",
+      pt: pt,
+      ri: "jp",
+      step_up_ceremony_grant: step_up_grant(return_to),
+    ),
         headers: @headers
 
+    follow_redirect!(headers: @headers) if response.redirect?
     assert_response :success
 
     get new_auth_com_verification_email_url(
@@ -213,9 +243,15 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
+    get auth_com_verification_url(
+      scope: "settings_email",
+      pt: pt,
+      ri: "jp",
+      step_up_ceremony_grant: step_up_grant(return_to),
+    ),
         headers: @headers
 
+    follow_redirect!(headers: @headers) if response.redirect?
     assert_response :success
 
     @visitor.visitor_emails.find_each do |email|
@@ -665,10 +701,12 @@ class Auth::Com::Verification::EmailsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+    cookie = "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"
     base.merge(
-      "Authorization" => "Bearer #{
-        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
-      }",
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => cookie,
+      "HTTP_COOKIE" => cookie,
     )
   end
 
@@ -698,17 +736,11 @@ class Auth::Com::Verification::EmailsControllerTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = (normalized.include?("base") || normalized.include?("www.")) ? "BASE" : "SIGN"
     surface =
-      if service == "SIGN"
-        case resource_type
-        when "operator" then "ORG"
-        when "visitor" then "COM"
-        else "APP"
-        end
-      elsif normalized.include?(".org") || normalized.include?("org.")
+      if resource_type == "operator" || normalized.include?(".org") || normalized.include?("org.")
         "ORG"
-      elsif normalized.include?(".com") || normalized.include?("com.")
+      elsif resource_type == "visitor" || normalized.include?(".com") || normalized.include?("com.")
         "COM"
       else
         "APP"
@@ -865,6 +897,7 @@ class Auth::Com::Verification::EmailsControllerTest
   end
 
   def signed_step_up_pt_for(path, surface:, session_nonce:)
+    session_nonce = @token.try(:device_session)&.public_id.presence || session_nonce if defined?(@token)
     safe_path = path.to_s
     return nil if safe_path.blank? || !safe_path.start_with?("/") || safe_path.match?(/[\x00-\x1F\x7F]/)
 
@@ -896,6 +929,16 @@ class Auth::Com::Verification::EmailsControllerTest
       return_to: return_to,
       expires_at: 15.minutes.from_now,
     ).grant
+  end
+
+  def step_up_grant(return_to)
+    signed_step_up_grant_for(
+      actor: @visitor,
+      token: @token,
+      scope: "settings_email",
+      return_to: return_to,
+      surface: "com",
+    )
   end
 
   def load_jump_rt_env!
@@ -1148,10 +1191,12 @@ class Auth::Com::Verification::EmailsControllerTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
     base.merge(
-      "Authorization" => "Bearer #{
-        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
-      }",
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
     )
   end
 

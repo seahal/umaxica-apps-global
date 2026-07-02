@@ -21,6 +21,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
     CloudflareTurnstile.test_validation_response = { "success" => true }
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+    @public_base_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", @base_host)
 
     @user = Client.create!(
       status_id: ClientStatus::NOTHING,
@@ -329,7 +330,11 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
            headers: { "Host" => @host }
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_oidc_authorize_redirect(
+      jump_rt_url_from_location(response.location),
+      host: @public_base_host,
+      client_id: "sign-rp",
+    )
   end
 
   test "unlink succeeds when user has only inactive legacy social identity and an active email" do
@@ -1137,7 +1142,9 @@ class SocialAuthUnlinkTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
+    base.merge("Authorization" => "Bearer #{access_token}")
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -1258,9 +1265,16 @@ class SocialAuthUnlinkTest
     return unless token.respond_to?(:update_columns)
 
     token.update_columns(
-      { last_step_up_at: at,
+      {
+        last_step_up_at: at,
         last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
+        last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+        last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+        last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+        last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+        last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+        updated_at: Time.current,
+      }.compact,
     )
   end
 

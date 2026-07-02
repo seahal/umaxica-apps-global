@@ -96,6 +96,25 @@ module AuthenticationHarness
     host_headers(host).merge(headers).merge("Authorization" => "Bearer #{token}")
   end
 
+  def submit_step_up_completion_if_present!(host: nil, headers: {})
+    return unless respond_to?(:response) && response.media_type == "text/html"
+    return unless response.body.include?("step-up-completion-form")
+
+    form = response.parsed_body.at_css("form#step-up-completion-form")
+    raise StandardError, "step-up completion form missing" unless form
+
+    params = {}
+    form.css("input").each do |input|
+      name = input["name"]
+      params[name] = input["value"] if name.present?
+    end
+
+    action = form["action"].to_s
+    action_uri = URI.parse(action)
+    completion_headers = headers.except("Host", :Host).merge(host_headers(action_uri.host.presence || host))
+    post(action, params: params, headers: completion_headers)
+  end
+
   private
 
   def authenticated_resource_headers(resource, host:, headers:, session_public_id:, resource_type:, session_header:)
@@ -114,6 +133,8 @@ module AuthenticationHarness
         session_header => resource.id.to_s,
         "X-TEST-SESSION-PUBLIC-ID" => token_record.public_id,
         "Authorization" => "Bearer #{access_token}",
+        "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+        "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
       )
   end
 
