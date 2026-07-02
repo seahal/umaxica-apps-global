@@ -33,7 +33,7 @@ module PreferenceWebCookieEndpoint
   end
 
   def show_banner?
-    false
+    !cookie_consent_state.fetch(:consented)
   end
 
   def set_consented_buffer_cookie!

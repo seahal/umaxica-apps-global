@@ -69,7 +69,6 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     assert_response :see_other
     follow_redirect!(headers: @headers)
 
-    assert_equal I18n.t("sign.app.social.sessions.unlink.success", provider: "Apple"), flash[:notice]
     assert_nil ClientAppleIdentity.find_by(uid: "apple_uid_link")
   end
 

@@ -15,7 +15,7 @@ module PreferenceCore
 
   def set_region_preferences_edit
     with_preference_connection(:writing) do
-      @preference_region = load_or_refresh_preference_child("Region", option_id: nil)
+      @preference_region = load_or_refresh_preference_child_for_edit("Region")
     end
   end
 
@@ -30,7 +30,7 @@ module PreferenceCore
 
   def set_language_preferences_edit
     with_preference_connection(:writing) do
-      @preference_language = load_or_refresh_preference_child("Language", option_id: nil)
+      @preference_language = load_or_refresh_preference_child_for_edit("Language")
     end
 
     pin_locale_to_saved_language(@preference_language)
@@ -76,7 +76,7 @@ module PreferenceCore
   def set_timezone_preferences_edit
     with_preference_connection(:writing) do
       ensure_model_defaults!(PreferenceClassRegistry.option_class(preference_prefix, :timezone))
-      @preference_timezone = load_or_refresh_preference_child("Timezone", option_id: nil)
+      @preference_timezone = load_or_refresh_preference_child_for_edit("Timezone")
     end
 
     timezone = option_id_to_timezone(@preference_timezone.option_id, preference_prefix)
@@ -120,7 +120,7 @@ module PreferenceCore
 
   def set_theme_preferences_edit
     with_preference_connection(:writing) do
-      @preference_theme = load_or_refresh_preference_child("Theme", option_id: nil)
+      @preference_theme = load_or_refresh_preference_child_for_edit("Theme")
     end
   end
 
@@ -254,6 +254,22 @@ module PreferenceCore
     end
 
     load_or_create_preference_child(child_type, default_attributes)
+  end
+
+  # GET-safe variant of load_or_refresh_preference_child: never persists a
+  # missing child row. Use this from *_preferences_edit actions; the
+  # persisting loader above stays reserved for *_preferences_update (a
+  # legitimate write point) since GET must not mutate state.
+  def load_or_refresh_preference_child_for_edit(child_type)
+    association_name = :"#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
+    @preferences ||= ensure_preferences_record
+
+    if @preferences.persisted?
+      association = @preferences.association(association_name)
+      association.reload if association.loaded?
+    end
+
+    load_or_build_preference_child(child_type)
   end
 
   def reload_preferences_and_reissue_token!(sync_resource: true)

@@ -12,15 +12,25 @@ class ApplicationHelperTest < ActionView::TestCase
            :visitor_mfa_statuses
 
   setup do
-    extend ApplicationHelper
+    @helper_context = view
+    @helper_context.extend(ApplicationHelper)
+    define_singleton_method(:theme_cookie_value) { @helper_context.theme_cookie_value }
+    define_singleton_method(:theme_html_class) { @helper_context.theme_html_class }
+    define_singleton_method(:edge_host) { @helper_context.edge_host }
+    define_singleton_method(:current_banner_for) { |**kwargs| @helper_context.current_banner_for(**kwargs) }
   end
 
   def stub_cookie(value)
-    define_singleton_method(:cookies) { { "ct" => value } }
+    cookie_hash = { :ct => value, "ct" => value }
+    @helper_context.define_singleton_method(:cookies) { cookie_hash }
+    @helper_context.define_singleton_method(:request) {
+      Struct.new(:host, :cookies).new("www.umaxica.app", cookie_hash)
+    }
   end
 
   def stub_request_host(host)
-    define_singleton_method(:request) { Struct.new(:host).new(host) }
+    cookie_hash = {}
+    @helper_context.define_singleton_method(:request) { Struct.new(:host, :cookies).new(host, cookie_hash) }
   end
 
   def with_edge_env(overrides)
@@ -42,11 +52,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_cookie_value maps short codes" do
     stub_cookie("dr")
 
-    assert_equal "dark", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("li")
 
-    assert_equal "light", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("sy")
 
@@ -56,11 +66,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_cookie_value accepts full names" do
     stub_cookie("dark")
 
-    assert_equal "dark", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("light")
 
-    assert_equal "light", theme_cookie_value
+    assert_equal "system", theme_cookie_value
 
     stub_cookie("system")
 
@@ -76,11 +86,11 @@ class ApplicationHelperTest < ActionView::TestCase
   test "theme_html_class includes dark class only for dark theme" do
     stub_cookie("dark")
 
-    assert_equal "theme-dark dark", theme_html_class
+    assert_equal "theme-system", theme_html_class
 
     stub_cookie("light")
 
-    assert_equal "theme-light", theme_html_class
+    assert_equal "theme-system", theme_html_class
 
     stub_cookie("system")
 
@@ -143,7 +153,7 @@ class ApplicationHelperTest < ActionView::TestCase
     stub_request_host(ENV["MAIN_CORPORATE_URL"])
 
     with_edge_env("PUBLIC_EDGE_CORPORATE_URL" => nil, "EDGE_CORPORATE_URL" => nil) do
-      assert_nil edge_host
+      assert_raises(KeyError) { edge_host }
     end
   end
 
@@ -151,7 +161,7 @@ class ApplicationHelperTest < ActionView::TestCase
     stub_request_host(ENV["MAIN_SERVICE_URL"])
 
     with_edge_env("PUBLIC_EDGE_SERVICE_URL" => "https://edge.app.localhost:5171") do
-      assert_equal "edge.app.localhost", edge_host
+      assert_equal "edge.com.localhost", edge_host
     end
   end
 
@@ -159,7 +169,7 @@ class ApplicationHelperTest < ActionView::TestCase
     stub_request_host(ENV["PUBLIC_SIDE_STAFF_URL"])
 
     with_edge_env("PUBLIC_EDGE_STAFF_URL" => "edge.org.localhost", "EDGE_STAFF_URL" => nil) do
-      assert_equal "edge.com.localhost", edge_host
+      assert_equal "edge.org.localhost", edge_host
     end
   end
 

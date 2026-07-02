@@ -162,6 +162,8 @@ class AppPreference < AppSettingRecord
   end
 
   def persist_self_replacement
-    update!(replaced_by_id: id) if replaced_by_id.blank?
+    # rubocop:disable Rails/SkipsModelValidations
+    update_column(:replaced_by_id, id) if replaced_by_id.blank?
+    # rubocop:enable Rails/SkipsModelValidations
   end
 end

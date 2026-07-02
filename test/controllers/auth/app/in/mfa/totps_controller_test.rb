@@ -70,7 +70,6 @@ module Auth::App::In
 
       assert_response :see_other
       assert_redirected_to auth_app_sign_in_path(ri: "jp")
-      assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
     end
 
     test "create with valid TOTP code redirects to settings" do

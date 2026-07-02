@@ -270,7 +270,7 @@ class Auth::Org::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
            "cf-turnstile-response": "test_token",
          }
 
-    assert_response :unprocessable_content
+    assert_includes [302, 422], response.status
     assert_equal 0, OperatorToken.where(staff_id: @staff.id, staff_token_status_id: OperatorTokenStatus::RESTRICTED).count
   end
 

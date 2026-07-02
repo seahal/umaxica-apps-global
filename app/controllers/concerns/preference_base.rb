@@ -1164,4 +1164,21 @@ module PreferenceBase
       @preferences.public_send(association_name)
     end
   end
+
+  # GET-safe counterpart to load_or_create_preference_child: renders an
+  # unpersisted default value when the child row is missing instead of
+  # writing to the DB. Bootstrap (create_new_preference_record!) already
+  # persists every CHILD_RECORD_TYPES row for a new preference, so a missing
+  # row here means a pre-bootstrap-completeness legacy record; the row is
+  # backfilled at the next legitimate write point (PATCH/update), not on GET.
+  def load_or_build_preference_child(child_type)
+    association_name = "#{preference_prefix_underscore}_#{child_type.to_s.underscore}"
+    child = @preferences.public_send(association_name)
+    return child if child.present?
+
+    PreferenceClassRegistry.record_class(preference_prefix, child_type).new(
+      preference: @preferences,
+      option_id: PreferenceClassRegistry.default_option_id(preference_prefix, child_type),
+    )
+  end
 end

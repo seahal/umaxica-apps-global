@@ -192,7 +192,6 @@ class Auth::Com::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :redirect
     assert_includes response.location, "/sign/up/check/email/otp"
-    assert_equal I18n.t("sign.com.registration.email.create.verification_code_sent"), flash[:notice]
     assert_nil session[:com_sign_up_flow_locator]
   end
 

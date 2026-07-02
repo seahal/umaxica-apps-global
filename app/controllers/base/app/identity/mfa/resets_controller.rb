@@ -10,7 +10,7 @@ module Base
           declare_authentication_mode! :private
 
           before_action :authenticate_client!
-          def show = (authorize!(current_client, to: :show?); render "auth/app/settings/mfa/resets/show")
+          def show = (authorize!(current_client, to: :show?); render "base/app/identity/mfa/resets/show")
 
           def create
             (authorize!(current_client, to: :update?)

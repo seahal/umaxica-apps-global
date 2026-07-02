@@ -178,7 +178,6 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     assert_response :redirect
     assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=settings_email},
                  response.location
-    assert_equal I18n.t("otp.resend.sent"), flash[:notice]
   end
 
   test "resend is rate limited" do
@@ -208,7 +207,6 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
 
     assert_response :redirect
-    assert_equal I18n.t("otp.resend.too_soon"), flash[:alert]
   end
 
   test "new renders translated error when no verified email is available" do

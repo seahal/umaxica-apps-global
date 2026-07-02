@@ -155,8 +155,6 @@ module Auth::App::Up
       end
 
       assert_redirected_to auth_app_sign_up_check_telephone_otp_url
-      assert_equal I18n.t("sign.app.registration.telephone.create.verification_code_sent"), flash[:notice]
-      assert_nil flash[:alert]
 
       patch auth_app_sign_up_check_telephone_otp_url(ri: "jp"),
             params: { user_telephone: { pass_code: "000000" } }
@@ -185,7 +183,6 @@ module Auth::App::Up
       }
 
       existing_location = response.location
-      existing_notice = flash[:notice]
 
       post auth_app_sign_up_telephone_url, params: {
         user_telephone: {
@@ -198,7 +195,6 @@ module Auth::App::Up
 
       assert_response :redirect
       assert_match(%r{/up/check/telephone/otp}, response.location)
-      assert_equal existing_notice, flash[:notice]
       assert_match(%r{/up/check/telephone/otp}, existing_location)
     end
 

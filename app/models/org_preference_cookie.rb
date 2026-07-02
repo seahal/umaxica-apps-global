@@ -45,6 +45,7 @@ class OrgPreferenceCookie < OrgSettingRecord
 
     self.targetable = false if targetable.nil?
     self.performant = false if performant.nil?
+    self.functional = false if functional.nil?
     self.consented = false if consented.nil?
   end
 end

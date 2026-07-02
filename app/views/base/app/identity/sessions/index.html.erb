@@ -1,5 +1,5 @@
 <% content_for :page_title, 'Sessions' %>
-<%= link_to t('sign.app.settings.show.back'), auth_app_settings_path %>
+<%= link_to t('sign.app.settings.show.back'), base_app_identity_path(ri: params[:ri]) %>
 <% has_other_sessions = @sessions.any? { |session| session.public_id != current_session_public_id } %>
 <% if has_other_sessions %>
   <div>

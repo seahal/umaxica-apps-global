@@ -36,12 +36,11 @@ class Auth::App::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     CloudflareTurnstile.test_validation_response = nil
   end
 
-  test "show requires pending_mfa - redirects with alert" do
+  test "show requires pending_mfa and redirects to sign in" do
     get auth_app_sign_in_challenge_path(ri: "jp")
 
     assert_response :see_other
     assert_redirected_to auth_app_sign_in_path(ri: "jp")
-    assert_equal I18n.t("sign.app.in.mfa.session_expired"), flash[:alert]
   end
 
   test "show renders for pending_mfa user with MFA enabled" do

@@ -1,7 +1,7 @@
 <% content_for :page_title, t('.title') %>
 <div>
   <div>
-    <%= render "shared/ui/button", variant: :ghost, href: auth_app_settings_path, label: "← #{t('actions.back')}" %>
+    <%= render "shared/ui/button", variant: :ghost, href: base_app_identity_path(ri: params[:ri]), label: "← #{t('actions.back')}" %>
   </div>
 
   <div>

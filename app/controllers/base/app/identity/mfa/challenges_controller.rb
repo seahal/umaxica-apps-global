@@ -22,7 +22,7 @@ module Base
             @secret_credentials = current_client.client_secret_credentials
               .where(user_identity_secret_status_id: ClientSecretCredentialStatus::ACTIVE)
               .order(created_at: :desc)
-            render "auth/app/settings/mfa/challenges/show"
+            render "base/app/identity/mfa/challenges/show"
           end
 
           def update
@@ -33,7 +33,7 @@ module Base
           rescue ActiveRecord::RecordInvalid, ArgumentError
             show
             current_client.errors.add(:base, t("sign.app.settings.mfa.update.failure"))
-            render "auth/app/settings/mfa/challenges/show", status: :unprocessable_content
+            render "base/app/identity/mfa/challenges/show", status: :unprocessable_content
           end
 
           private

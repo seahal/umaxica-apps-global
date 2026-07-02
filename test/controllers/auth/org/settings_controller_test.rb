@@ -11,11 +11,16 @@ class Auth::Org::SettingsControllerTest < ActionDispatch::IntegrationTest
     host! @host
   end
 
-  test "sign settings shell stays on sign" do
-    get auth_org_settings_url(ri: "jp")
+  test "sign settings shell redirects to base identity authority" do
+    get auth_org_settings_url(ri: "jp"), headers: as_staff_headers(operators(:one), host: @host)
 
-    assert_response :redirect
-    assert_match %r{\Ahttps://}, response.location
+    assert_response :see_other
+    assert_equal "jump.umaxica.net", URI.parse(response.location).host
+    payload, = JWT.decode(Rack::Utils.parse_query(URI.parse(response.location).query).fetch("rt"), nil, false)
+    assert_equal(
+      base_org_identity_url(ri: "jp", host: ENV.fetch("PUBLIC_BASE_STAFF_URL"), protocol: "https"),
+      payload.fetch("url"),
+    )
   end
 
   test "sign credential settings routes still resolve on sign" do

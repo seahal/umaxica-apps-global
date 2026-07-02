@@ -113,6 +113,7 @@ class Auth::IdentityAuthoritySlice1ATest < ActionDispatch::IntegrationTest
       "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/oidc/logout",
       method: :get,
     )
+
     assert_equal "base/app/sign_outs", sign_out.fetch(:controller)
     assert_equal "new", sign_out.fetch(:action)
     assert_equal "base/app/oidc/logouts", oidc_logout.fetch(:controller)

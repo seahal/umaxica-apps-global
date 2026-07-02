@@ -15,6 +15,7 @@ module Base
           skip_before_action :set_region, raise: false
 
           skip_before_action :set_color_theme, raise: false
+          skip_before_action :transparent_refresh_access_token
           skip_before_action :enforce_verification_if_required
 
           def show

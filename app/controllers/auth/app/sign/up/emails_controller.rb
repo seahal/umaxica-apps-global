@@ -129,7 +129,7 @@ module Auth
 
             bind_sign_up_flow_to_email!(@user_email) unless dummy_existing_email_flow?
             progress_email_flow!(:create)
-            redirect_params = build_notice_params(t("sign.app.registration.email.create.verification_code_sent"))
+            redirect_params = {}
             sanitize_redirect_params!(redirect_params)
             redirect_to(auth_app_sign_up_check_email_otp_path(redirect_params))
           end

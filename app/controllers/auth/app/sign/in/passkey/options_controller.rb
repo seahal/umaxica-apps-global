@@ -131,7 +131,7 @@ module Auth
             end
 
             def passkey_default_redirect_url
-              auth_app_settings_path(ri: current_region_identifier)
+              base_app_identity_url(ri: current_region_identifier, host: base_authority_host)
             end
           end
         end

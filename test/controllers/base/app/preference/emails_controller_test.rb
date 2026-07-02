@@ -54,7 +54,6 @@ module Base
           delete(base_app_preference_email_path(@email), params: { token: @token, "cf-turnstile-response": "test" })
 
           assert_redirected_to edit_base_app_preference_email_path(@email, token: @token)
-          assert_equal I18n.t("turnstile_error"), flash[:alert]
           assert @email.reload.promotional
         ensure
           CloudflareTurnstile.test_validation_response = { "success" => true }

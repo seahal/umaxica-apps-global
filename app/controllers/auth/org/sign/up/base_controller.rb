@@ -43,7 +43,7 @@ module Auth
           private
 
           def after_login_path
-            auth_org_settings_path
+            base_org_identity_url(ri: current_region_identifier, host: base_authority_host)
           end
         end
       end

@@ -43,9 +43,6 @@ module AuthenticationWithdrawalGate
 
   def withdrawal_controller_allowlisted?
     %w(
-      auth/app/settings/withdrawals
-      auth/com/settings/withdrawals
-      auth/org/settings/withdrawals
       base/app/identity/withdrawals
     ).include?(controller_path) && %w(show new edit update create destroy).include?(action_name)
   end

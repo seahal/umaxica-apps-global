@@ -346,6 +346,7 @@ module Preference
     test "audiences are derived from boot config hosts" do
       expected = Rails.configuration.x.boot_config.fetch(:hosts).base_origins.map(&:host) +
         %w(app.localhost org.localhost com.localhost localhost)
+
       assert_equal expected,
                    PreferenceJwtConfiguration.audiences
     end

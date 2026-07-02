@@ -154,8 +154,11 @@ module Auth
         return if current_visitor.verified_telephone?
         return if telephone_registration_allowed_path?
 
-        redirect_to(
-          new_base_com_identity_telephones_registration_path(ri: params[:ri]),
+        redirect_to_jump_url(
+          new_base_com_identity_telephones_registration_url(
+            ri: params[:ri], host: base_authority_host,
+            protocol: "https",
+          ),
         )
       end
 
@@ -164,8 +167,7 @@ module Auth
         # registration is required so a user can cancel the current ceremony
         # or abort a pending logout before they are forced into registration.
         allowed = [
-          "auth/com/settings/telephones/registrations",
-          "sign/com/settings/telephones/registrations",
+          "base/com/identity/telephones/registrations",
           "auth/com/sign/outs",
         ]
         allowed.include?(controller_path)

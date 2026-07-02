@@ -10,7 +10,10 @@ module Auth
 
       def show
         authorize!(current_visitor, to: :show?)
-        render "auth/com/settings/show"
+        redirect_to_jump_url(
+          base_com_identity_url(ri: params[:ri], host: base_authority_host, protocol: "https"),
+          status: :see_other,
+        )
       end
     end
   end

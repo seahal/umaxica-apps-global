@@ -220,8 +220,6 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     follow_redirect!
 
-    assert_predicate flash[:alert], :present?
-
     identity = ClientAppleIdentity.find_by(uid: "apple_flow_conflict")
 
     assert_equal owner.id, identity.user_id

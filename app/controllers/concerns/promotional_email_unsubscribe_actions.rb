@@ -34,7 +34,6 @@ module PromotionalEmailUnsubscribeActions
 
     redirect_to(
       redirect_after_unsubscribe_path(token: params[:token]),
-      alert: t("turnstile_error"),
       status: :see_other,
     )
     false

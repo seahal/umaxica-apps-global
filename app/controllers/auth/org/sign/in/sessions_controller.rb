@@ -152,10 +152,15 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
     consume_session_limit_gate!
 
     if return_path.present?
-      destination = path_from_signed_pt(signed_pt_token(return_path)) || auth_org_settings_path
+      destination = path_from_signed_pt(signed_pt_token(return_path)) || base_org_identity_url(
+        ri: current_region_identifier,
+        host: base_authority_host,
+      )
       redirect_to_pt_destination!(destination)
     else
-      redirect_to(auth_org_settings_path)
+      redirect_to_jump_url(
+        base_org_identity_url(ri: current_region_identifier, host: base_authority_host, protocol: "https"),
+      )
     end
   end
 

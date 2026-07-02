@@ -44,7 +44,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/auth/app/sign/in/secret_credentials_controller.rb
     app/controllers/auth/app/sign/in/sessions_controller.rb
     app/controllers/auth/app/settings/passkeys_controller.rb
-    app/controllers/auth/app/settings/sessions_controller.rb
     app/controllers/auth/app/social/authentications_controller.rb
     app/controllers/auth/app/sign/up/check/apple/birthdates_controller.rb
     app/controllers/auth/app/sign/up/check/apple/confirmations_controller.rb
@@ -69,7 +68,6 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/auth/com/sign/in/secret_credentials_controller.rb
     app/controllers/auth/com/sign/in/sessions_controller.rb
     app/controllers/auth/com/settings/passkeys_controller.rb
-    app/controllers/auth/com/settings/sessions_controller.rb
     app/controllers/auth/com/sign/up/check/email/birthdates_controller.rb
     app/controllers/auth/com/sign/up/check/email/otps_controller.rb
     app/controllers/auth/com/sign/up/check/telephone/birthdates_controller.rb
@@ -87,12 +85,10 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     app/controllers/auth/org/sign/in/secret_credentials_controller.rb
     app/controllers/auth/org/sign/in/sessions_controller.rb
     app/controllers/auth/org/settings/passkeys_controller.rb
-    app/controllers/auth/org/settings/sessions_controller.rb
     app/controllers/auth/org/sign/up/invitations_controller.rb
     app/controllers/base/app/jwks_controller.rb
     app/controllers/base/com/jwks_controller.rb
     app/controllers/base/org/jwks_controller.rb
-    app/controllers/auth/app/settings/emails/registrations_controller.rb
     app/controllers/auth/app/sign/in/challenge/passkeys_controller.rb
     app/controllers/auth/app/sign/in/challenge/totps_controller.rb
     app/controllers/auth/com/sign/in/challenge/passkeys_controller.rb

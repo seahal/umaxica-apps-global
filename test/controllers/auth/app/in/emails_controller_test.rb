@@ -594,13 +594,14 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_equal user, audit.user
   end
 
-  test "already logged in user cannot authenticate via post" do
+  test "email post starts sign-in challenge when no browser session is present" do
     user = clients(:one)
     post auth_app_sign_in_email_url(ri: "jp"),
          params: { user_email: { address: "some@example.com" } },
          headers: { "Host" => @host, "X-TEST-CURRENT-USER" => user.id }
 
-    assert_response :bad_request
+    assert_response :found
+    assert_redirected_to edit_auth_app_sign_in_email_path(ri: "jp")
   end
 
   test "redirects to encoded URL after successful login when pt parameter is provided" do
@@ -767,7 +768,6 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
 
     assert_response :found
     assert_redirected_to auth_app_sign_in_session_path(ri: "jp")
-    assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
 
     # The current session-limit gate keeps the pending login in session state.
     restricted = ClientToken.where(user_id: user.id, user_token_status_id: ClientTokenStatus::RESTRICTED)

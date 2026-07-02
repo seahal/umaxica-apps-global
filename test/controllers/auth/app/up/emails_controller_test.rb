@@ -129,7 +129,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
 
   test "update accepts a valid otp submitted through client_email" do
     user_email = start_sign_up_flow!("client@example.com")
-    # Consume the "OTP sent" flash notice set by the create action
+    # Follow the OTP redirect produced by the create action.
     follow_redirect!
     pass_code = otp_code_for(user_email)
 
@@ -141,7 +141,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_nil flash[:notice]
   end
 
-  test "i18n flash messages for email registration flow exist" do
+  test "i18n messages for email registration flow exist" do
     # Check that all required i18n keys for email registration exist
     session_expired_key = "sign.app.registration.email.edit.session_expired"
     create_key = "sign.app.registration.email.create.verification_code_sent"
@@ -603,7 +603,7 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
     assert_nil cycle.completed_requirements["otp"]
   end
 
-  test "telephone i18n flash messages exist" do
+  test "telephone i18n messages exist" do
     # Check that all required i18n keys for telephone registration exist
     session_expired_key = "sign.app.registration.telephone.edit.session_expired"
     create_key = "sign.app.registration.telephone.create.verification_code_sent"

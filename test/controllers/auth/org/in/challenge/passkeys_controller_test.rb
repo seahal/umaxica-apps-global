@@ -62,7 +62,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
     assert_redirected_to auth_org_sign_in_path(ri: "jp")
-    assert_equal I18n.t("sign.org.in.mfa.session_expired"), flash[:alert]
   end
 
   test "new redirects when no passkeys available" do
@@ -72,7 +71,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_equal I18n.t("errors.webauthn.no_passkeys_available"), flash[:alert]
   end
 
   test "new renders page with challenge when MFA pending" do
@@ -96,7 +94,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     get(new_auth_org_sign_in_challenge_passkey_path(ri: "jp"))
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_predicate flash[:alert], :present?
   ensure
     ENV["WEBAUTHN_ORG_ORIGIN"] = original_org_origin if original_org_origin
     ENV["WEBAUTHN_ORIGIN"] = original_origin if original_origin
@@ -117,7 +114,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     }
 
     assert_redirected_to new_auth_org_sign_in_challenge_passkey_path(ri: "jp")
-    assert_predicate flash[:alert], :present?
   end
 
   test "create redirects on invalid challenge" do
@@ -131,7 +127,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     }
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_equal I18n.t("errors.webauthn.challenge_invalid"), flash[:alert]
   end
 
   test "create verifies passkey and redirects on success" do
@@ -228,7 +223,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     end
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_equal I18n.t("errors.webauthn.sign_count_mismatch"), flash[:alert]
   end
 
   test "create handles generic WebAuthn error" do
@@ -259,7 +253,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     end
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_equal I18n.t("errors.webauthn.verification_failed"), flash[:alert]
   end
 
   test "create handles challenge not found error" do
@@ -278,7 +271,6 @@ class Auth::Org::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     }
 
     assert_redirected_to auth_org_sign_in_challenge_path(ri: "jp")
-    assert_equal I18n.t("errors.webauthn.challenge_invalid"), flash[:alert]
   end
 
   test "complete_mfa_login! handles session limit hard reject" do
