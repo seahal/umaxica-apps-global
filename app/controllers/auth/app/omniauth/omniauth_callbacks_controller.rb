@@ -117,12 +117,11 @@ module Auth
 
           # Try to find a specific translation, fall back to generic
           failure_key = ["sign.app.social.sessions.failure", message].join(".")
-          alert_message =
-            if I18n.exists?(failure_key)
-              I18n.t(failure_key)
-            else
-              I18n.t("sign.app.social.sessions.create.failure")
-            end
+          if I18n.exists?(failure_key)
+            I18n.t(failure_key)
+          else
+            I18n.t("sign.app.social.sessions.create.failure")
+          end
 
           clear_social_auth_intent!
           redirect_to(failure_redirect_path)
@@ -415,7 +414,7 @@ module Auth
           end
         end
 
-        def handle_link_intent(provider_name)
+        def handle_link_intent(_provider_name)
           Rails.logger.debug(
             JitLogEvent.format(
               "sign.social.omniauth.link_intent",

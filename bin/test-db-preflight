@@ -46,6 +46,12 @@ def database_fingerprint(config, database)
     from pg_tables
     where schemaname not in ('pg_catalog', 'information_schema')
   SQL
+  row_counts = tables.filter_map do |table|
+    next if table == "public.ar_internal_metadata"
+
+    quoted_table = table.split(".", 2).map { |part| connection.quote_ident(part) }.join(".")
+    "#{table}=#{connection.exec("select count(*) as count from #{quoted_table}").first.fetch("count")}"
+  end
   migrations =
     if tables.include?("public.schema_migrations")
       connection.exec("select version from schema_migrations order by version").map { |row| row.fetch("version") }
@@ -64,7 +70,7 @@ def database_fingerprint(config, database)
       []
     end
 
-  Digest::SHA256.hexdigest(([tables, migrations, metadata].map { |items| items.join("\n") }).join("\n--\n"))
+  Digest::SHA256.hexdigest(([tables, row_counts, migrations, metadata].map { |items| items.join("\n") }).join("\n--\n"))
 ensure
   connection&.close
 end

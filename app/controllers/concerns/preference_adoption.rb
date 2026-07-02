@@ -46,10 +46,10 @@ module PreferenceAdoption
 
   def adoptable_preference_class?
     name = preference_class.name
-    name == "AppPreference" || name == "OrgPreference"
+    name == "AppPreference" || name == "OrgPreference" || name == "ComPreference"
   end
 
-  # Find or create the 1:1 ClientPreference/OperatorPreference for this resource.
+  # Find or create the 1:1 ClientPreference/OperatorPreference/VisitorPreference for this resource.
   def find_or_create_resource_preference!(resource)
     pref = find_resource_preference(resource)
     return pref if pref.present?
@@ -64,6 +64,8 @@ module PreferenceAdoption
         resource.user_preference
       when "OrgPreference"
         resource.staff_preference
+      when "ComPreference"
+        resource.visitor_preference
       end
     end
   end
@@ -320,6 +322,8 @@ module PreferenceAdoption
       [ClientPreference, :user_id]
     when "OrgPreference"
       [OperatorPreference, :staff_id]
+    when "ComPreference"
+      [VisitorPreference, :visitor_id]
     else
       [nil, nil]
     end
@@ -329,6 +333,7 @@ module PreferenceAdoption
     case preference_class.name
     when "AppPreference" then "Client"
     when "OrgPreference" then "Operator"
+    when "ComPreference" then "Visitor"
     end
   end
 
@@ -338,6 +343,8 @@ module PreferenceAdoption
       "user_preference"
     when OperatorPreference
       "staff_preference"
+    when VisitorPreference
+      "visitor_preference"
     else
       preference.class.name.underscore
     end

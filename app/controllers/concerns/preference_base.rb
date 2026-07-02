@@ -561,6 +561,7 @@ module PreferenceBase
     when "OrgPreference" then OrgPreferenceBindingMethod
     when "ClientToken" then ClientTokenBindingMethod
     when "OperatorToken" then OperatorTokenBindingMethod
+    when "VisitorToken" then VisitorTokenBindingMethod
     else
       raise ArgumentError, "Unknown preference class: #{preference_class.name}"
     end
@@ -573,6 +574,7 @@ module PreferenceBase
     when "OrgPreference" then OrgPreferenceDbscStatus
     when "ClientToken" then ClientTokenDbscStatus
     when "OperatorToken" then OperatorTokenDbscStatus
+    when "VisitorToken" then VisitorTokenDbscStatus
     else
       raise ArgumentError, "Unknown preference class: #{preference_class.name}"
     end

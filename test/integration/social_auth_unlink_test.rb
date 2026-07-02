@@ -126,11 +126,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
   def stale_step_up_headers
     token = ClientToken.where(user_id: @user.id).order(created_at: :asc).last
 
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    as_user_headers(@user, host: @host, session_public_id: token.public_id)
   end
 
   def prepare_step_up_method!
@@ -146,11 +142,7 @@ class SocialAuthUnlinkTest < ActionDispatch::IntegrationTest
   def social_unlink_headers
     satisfy_user_verification(@token)
     mark_token_step_up_satisfied_for_test(@token, scope: "social_unlink")
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    as_user_headers(@user, host: @host, session_public_id: @token.public_id)
   end
 
   test "unlink last Apple identity returns 422 LastIdentityError" do
@@ -722,6 +714,23 @@ class SocialAuthUnlinkTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    base_hosts = {
+      "APP" => [
+        ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+        ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+      ],
+      "ORG" => [
+        ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+        ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
+      ],
+      "COM" => [
+        ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+        ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+      ],
+    }
+    base_surface = base_hosts.find { |_surface, hosts| hosts.include?(normalized) }&.first
+    return "surface:BASE_#{base_surface}" if base_surface
+
     service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
     surface =
       if service == "SIGN"

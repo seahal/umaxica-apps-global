@@ -17,6 +17,27 @@ The preference system has two different roles.
 
 The system must keep these roles separate.
 
+The database is the source of truth for both shared and local preference state. The Preference JWT
+is a signed projection of that database state for runtime reads. Auth access tokens do not carry the
+`prf` preference snapshot.
+
+## JWT Projection Boundary
+
+Current token projection is intentionally narrow.
+
+| Data         | JWT projection                 | Current contract                                                                              |
+| ------------ | ------------------------------ | --------------------------------------------------------------------------------------------- |
+| Preference   | Preference JWT only            | DB source of truth projected into `preference_access`; auth access tokens do not carry `prf`. |
+| Identity     | Auth/OIDC identity claims only | Credential, contact, verification, and lifecycle state remain DB-only.                        |
+| Avatar       | None                           | Avatar selection and authority remain DB-only/session-row state.                              |
+| Organization | None                           | Organization membership and role checks remain DB-only policy state.                          |
+| Group        | None                           | Group membership and authorization remain DB-only policy state.                               |
+
+OIDC ID token claims and auth access token claims are separate contracts. An ID token may describe
+the authenticated subject for an RP. An auth access token may carry authentication/session facts for
+the Rails authorization boundary. Neither token turns identity, avatar, organization, or group rows
+into JWT-owned source-of-truth state.
+
 Preference setting writes are exposed through the `sign` surfaces. `acme` and `jump` consume
 preference state as read-only runtime context through `Actor.preferences`.
 
@@ -93,6 +114,11 @@ Recovery target by surface:
 - `App` -> `UserPreference`
 - `Org` -> `OperatorPreference`
 - `Com` -> `VisitorPreference`
+
+Current implementation note: Com/Visitor adoption is implemented symmetrically with App/Client and
+Org/Operator. `PreferenceAdoption#adoptable_preference_class?` treats `ComPreference` as adoptable,
+and login-time and rotation-time sync create/update the `VisitorPreference` mirror the same way the
+`UserPreference`/`StaffPreference` mirrors are created and updated.
 
 Required log fields:
 
@@ -298,6 +324,12 @@ Database reads and writes are allowed only in bounded flows:
 - login-time adoption or sync
 - repair, admin, or maintenance tasks
 
+GET and HEAD writes are allowed only for the lifecycle exceptions recorded in
+[`docs/security/db-write-allowlist.md`](../security/db-write-allowlist.md). Preference bootstrap,
+refresh rotation, authenticated transparent refresh, throttled session activity touch, OIDC callback
+handling, and logged-in preference edit entry refresh are separate categories and should not be
+collapsed into a generic read-side repair path.
+
 Normal authenticated request setup must not recover a missing, broken, or malformed preference
 access-token by reading the preference database. Treat that as an authentication / token failure and
 raise or fail the request through the normal error path. Database recovery belongs to a dedicated
@@ -354,10 +386,10 @@ to the database or JWT.
   path for dark mode and cookie consent. They update the matching preference record when a valid
   preference access token identifies it, then issue a fresh preference access token.
 - Shared preference credential cookie names are scoped by surface (`app_preference_*`,
-  `com_preference_*`, `org_preference_*`) even though their domain remains apex-scoped. This keeps
-  `AppPreference`, `ComPreference`, and `OrgPreference` token lifecycles independent on the same
-  acme. The legacy unscoped access cookie is accepted only when its JWT `preference_type` matches
-  the current surface.
+  `com_preference_*`, `org_preference_*`) only as legacy compatibility names. The current credential
+  cookie names are role-based by credential type: `preference_access`, `preference_refresh`, and
+  `preference_dbsc`, with the `__Host-` prefix in production. Legacy `__Secure-*` and scoped names
+  may be read only for compatibility.
 
 ## Remaining Follow-ups
 

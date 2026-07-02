@@ -73,6 +73,7 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     avatar = Avatar.order(:created_at).last
+
     assert_equal "Second Avatar", avatar.moniker
     assert_equal @user.id, avatar.owner.id
     assert_redirected_to base_app_avatar_url(avatar.public_id, ri: "jp", host: @host)

@@ -71,6 +71,7 @@ Current content-model references:
 - `docs/security/public-entrypoints.md`
 - `docs/security/chain_seal.md`
 - `docs/security/observability-boundary.md`
+- `docs/security/db-write-allowlist.md`
 - `docs/security/security-headers.md`
 - `docs/operations/health-check.md`
 - `docs/architecture/controller-boundaries.md`

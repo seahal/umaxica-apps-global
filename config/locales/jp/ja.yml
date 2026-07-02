@@ -216,10 +216,13 @@ ja:
   activerecord:
     attributes:
       client:
+        identity_state: ID状態
         mfa_level: MFAレベル
         mfa_status: MFAステータス
         user_status: ステータス
         visibility: 公開範囲
+      client_identity:
+        identity_state: ID状態
       user_email:
         address: メールアドレス
         confirm_policy: 利用規約
@@ -248,6 +251,8 @@ ja:
         name: 名前
         created_at: 作成日時
         last_used_at: 最終使用日
+      visitor_secret_credential:
+        visitor_secret_credential_status: ステータス
       user_totp_credential:
         title: 名前
         created_at: 作成日時
@@ -288,6 +293,7 @@ ja:
         address: メールアドレス
       client_identity:
         source_record_id: ソースレコードID
+        identity_state: ID状態
       operator_identity:
         source_record_id: ソースレコードID
       visitor_identity:
@@ -322,6 +328,8 @@ ja:
         created_at: 作成日時
         last_used_at: 最終使用日
         status: ステータス
+        visitor_secret_credential_status: ステータス
+        visitor_secret_credential_kind: 種別
       visitor_totp_credential:
         title: 名前
         created_at: 作成日時

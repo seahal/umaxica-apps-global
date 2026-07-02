@@ -119,8 +119,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 **Security features**:
 
-- `Sign::*::ApplicationController` mixes in authentication, rate limiting, default URL options,
-  and Action Policy.
+- `Sign::*::ApplicationController` mixes in authentication, rate limiting, default URL options, and
+  Action Policy.
 - `authenticate_user!` ensures `logged_in?` before hitting settings endpoints.
 - JWT cookies: `Auth::Base` writes `jit_auth_access` (JWT) + `jit_auth_refresh` +
   `jit_auth_device_id` (or `__Secure-` prefixed names in production).
@@ -204,8 +204,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 2. `PreferenceRegions#set_edit_variables` normalizes query params, populates `@current_*`.
 3. User submits new locale/timezone.
 4. `#update` calls `apply_updates` → `assign_if_present` / `update_language` / `update_timezone`.
-5. On success, `persist_preference_cookie!` writes signed JSON cookie
-   (`__Secure-root_app_preferences`).
+5. On success, the preference write path persists the DB row and reissues the Preference JWT
+   projection in `preference_access` / `__Host-preference_access`.
 6. Controller redirects to edit URL with normalized query params.
 
 ### 4.2 Email Registration Flow
@@ -256,7 +256,9 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 ### 5.2 Cookies & Sessions
 
-- Preference cookie: `__Secure-root_app_preferences` (JSON: `lx`, `ri`, `tz`, `ct`).
+- Preference credential cookie: `preference_access` / `__Host-preference_access`, with refresh and
+  DBSC siblings using the same basename pattern. The payload projects DB-backed preference fields
+  such as `lx`, `ri`, `tz`, and `ct`.
 - Theme cookie: `root_<scope>_theme`.
 - Consent cookies: `:accept_functional_cookies`, `:accept_performance_cookies`,
   `:accept_targeting_cookies`.

@@ -18,7 +18,18 @@ For OIDC-facing identity claims, the repository will use:
 - `acr` as the current verification level
 - `amr` as the methods actually used to establish the current authentication state
 
-`act` is intentionally not used.
+`act` is intentionally not used in the OIDC-facing `id_token` in the RFC 8693 sense (delegation /
+impersonation actor). The repository does not implement token-exchange delegation.
+
+Separately, `AuthorizationTokenClaims.build`
+(`app/controllers/concerns/authorization_token_claims.rb`) emits an `act` claim on the internal auth
+access token whose value is the resource type (`client`/`operator`/`visitor`), not an RFC 8693
+delegation actor. This reuses a claim name reserved by the RAR/token-exchange vocabulary below for a
+private, non-standard purpose and is a known naming collision, not evidence of delegation support.
+Any consumer of the auth access token must not interpret `act` as an RFC 8693 actor claim. This
+claim is scheduled to be renamed to a non-colliding private name (see Open Questions in
+`docs/architecture/preference.md` and the DB SSOT / JWT projection audit); until then, treat `act`
+on the auth access token strictly as `resource_type`.
 
 ## RAR / Authorization Details Reservation
 

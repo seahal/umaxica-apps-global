@@ -26,7 +26,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   # The app surface no longer exposes singular current self-service pages (/account, /avatar,
   # /organization). Entity CRUD lives at the plural resources and is covered by the dedicated
   # base/app controller tests; current-context display/switching lives at /switcher. Only the
-  # identity self-service page remains here. Org/com singular self-service pages are unchanged.
+  # identity self-service page remains here. Org/com entity pages are plural resources too.
   test "app self service identity page requires authentication" do
     assert_requires_authentication(base_app_identity_url(ri: "jp", host: @app_host), host: @app_host)
   end
@@ -34,8 +34,8 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
   test "org self service pages require authentication" do
     assert_requires_authentication(base_org_avatar_url(ri: "jp", host: @org_host), host: @org_host)
     assert_requires_authentication(base_org_identity_url(ri: "jp", host: @org_host), host: @org_host)
-    assert_requires_authentication(base_org_current_organization_url(ri: "jp", host: @org_host), host: @org_host)
-    assert_requires_authentication(base_org_account_url(ri: "jp", host: @org_host), host: @org_host)
+    assert_requires_authentication(base_org_organizations_url(ri: "jp", host: @org_host), host: @org_host)
+    assert_requires_authentication(base_org_accounts_url(ri: "jp", host: @org_host), host: @org_host)
   end
 
   test "org self service pages render for signed in operator" do
@@ -56,7 +56,7 @@ class BaseSelfServiceRoutesTest < ActionDispatch::IntegrationTest
 
   test "com self service pages require authentication" do
     assert_requires_authentication(base_com_identity_url(ri: "jp", host: @com_host), host: @com_host)
-    assert_requires_authentication(base_com_account_url(ri: "jp", host: @com_host), host: @com_host)
+    assert_requires_authentication(base_com_accounts_url(ri: "jp", host: @com_host), host: @com_host)
   end
 
   test "com self service pages render for signed in visitor" do

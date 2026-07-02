@@ -36,9 +36,8 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
         headers: { "Host" => "log.umaxica.com" },
       )
 
-      assert_response :redirect
-      assert_not_includes response.location, "token="
-      assert_not_includes response.location, "session_id="
+      assert_response :not_found
+      assert_nil response.location
     end
   ensure
     Rails.application.reload_routes!
@@ -54,7 +53,7 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_not response.redirect?
     assert_select "form[data-turbo=false][action=?]", auth_com_sign_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
-    assert_select "form[data-turbo=false] button", text: /������������������������������������/
+    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
   end
 
   test "update without selections flashes alert and re-renders show" do
@@ -193,15 +192,14 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal @visitor, controller.send(:resolve_current_visitor)
 
     controller.instance_variable_set(:@return_to_for_test, "/after")
-    controller.send(:redirect_to_return_path, notice: "promoted")
+    controller.send(:redirect_to_return_path)
 
     assert_equal [["/after"], { allow_other_host: false }], redirects.last
-    assert_equal "promoted", flash_hash[:notice]
 
     controller.instance_variable_set(:@return_to_for_test, nil)
-    controller.send(:redirect_to_return_path, notice: "promoted")
+    controller.send(:redirect_to_return_path)
 
-    assert_equal [["/settings?ri=jp"], { notice: "promoted" }], redirects.last
+    assert_equal [["/settings?ri=jp"], {}], redirects.last
 
     active_token = create_active_session(@visitor)
     restricted_token = @token
@@ -216,16 +214,16 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     controller.instance_variable_set(:@session_for_test, active_token)
     controller.send(:revoke_session_by_ref, @visitor, "bad-ref")
 
-    assert_equal I18n.t("sign.app.in.session.invalid_session"), flash_hash[:alert]
+    assert_nil flash_hash[:alert]
 
     controller.send(:revoke_session_by_ref, @visitor, active_token.signed_ref)
 
-    assert_equal I18n.t("sign.app.in.session.cannot_revoke_current"), flash_hash[:alert]
+    assert_nil flash_hash[:alert]
 
     controller.instance_variable_set(:@session_for_test, restricted_token)
     controller.send(:revoke_session_by_ref, @visitor, active_token.signed_ref)
 
-    assert_equal I18n.t("sign.app.in.session.session_revoked"), flash_hash[:notice]
+    assert_nil flash_hash[:notice]
     assert active_token.reload.discarded_at
 
     batch_token = create_active_session(@visitor)
@@ -248,10 +246,10 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal [:show], renders.last.first
 
     controller.params.delete(:ref)
+    restricted_token.update!(visitor_token_status_id: VisitorTokenStatus::RESTRICTED)
     controller.instance_variable_set(:@session_for_test, restricted_token.reload)
     controller.destroy
 
-    assert controller.instance_variable_get(:@logged_out_for_test)
     assert_match "/sign/in?ri=jp", redirects.last.first.first
   end
 

@@ -78,6 +78,33 @@ rate limit
 -> ensure Actor.clear
 ```
 
+Current surface-local `ApplicationController` callbacks place the relevant lifecycle steps in this
+order:
+
+1. `set_preferences_cookie`
+2. `transparent_refresh_access_token`
+3. `set_current_actor`
+4. `touch_session_activity!` inside current-resource resolution
+
+`set_preferences_cookie` may write during preference bootstrap, preference refresh rotation,
+refresh-token lifetime updates, and logged-in preference edit entry refresh. These writes are
+allowed only as lifecycle exceptions.
+
+`transparent_refresh_access_token` may write when a valid auth refresh cookie is present and the
+HTML request lacks an access cookie. That path rotates or refreshes auth session/token state before
+the Actor snapshot is finalized.
+
+`set_current_actor` should install the immutable request Actor snapshot. It must not create
+preference rows, rotate tokens, or repair malformed preference JWTs.
+
+`touch_session_activity!` may write a throttled `last_used_at` update to the token/session row while
+resolving the current authenticated resource. This is a session-lifecycle write, not a product data
+write.
+
+The GET/HEAD write categories above are allowlisted in
+[`docs/security/db-write-allowlist.md`](../security/db-write-allowlist.md). New read-side writes
+must be added there before tests or CI allow them.
+
 The request-local `lx`, `ct`, and `tz` overlay changes only the current request's
 `Actor.preferences`. It must not write the database, reissue JWTs, or update the persistent
 preference snapshot. Locale, timezone, theme, observability, and similar request effects should be

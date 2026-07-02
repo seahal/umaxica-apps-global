@@ -29,6 +29,6 @@ class AvatarPolicy < ApplicationPolicy
   def owns_avatar?
     user.is_a?(Client) &&
       record.is_a?(Avatar) &&
-      record.avatar_assignments.where(user_id: user.id).exists?
+      record.avatar_assignments.exists?(user_id: user.id)
   end
 end

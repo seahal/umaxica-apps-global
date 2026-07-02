@@ -208,6 +208,7 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     user.user_preference.reload
+
     assert_equal "ja", user.user_preference.language
     assert_equal "Asia/Tokyo", user.user_preference.timezone
     assert_equal "li", user.user_preference.theme

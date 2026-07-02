@@ -23,8 +23,8 @@ contracts, and health contracts as separate source-of-truth documents.
 - Keep security-sensitive ceremony tokens, OIDC/OAuth claims, and identity handoff contracts in
   dedicated ADR/docs plus focused contract tests.
 - Keep browser HTML routes out of OpenAPI unless they expose a stable JSON API.
-- Require each new public JSON endpoint to choose one contract home before implementation:
-  OpenAPI schema, dedicated ADR/doc contract, or route/controller integration contract tests.
+- Require each new public JSON endpoint to choose one contract home before implementation: OpenAPI
+  schema, dedicated ADR/doc contract, or route/controller integration contract tests.
 - Document the chosen contract home in the plan or ADR for the feature.
 
 ## Follow-Up Work

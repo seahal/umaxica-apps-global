@@ -4,7 +4,7 @@
 require "uri"
 
 module JitHostOriginEnv
-  LOCAL_HOSTS = %w[localhost 127.0.0.1 0.0.0.0 ::1].freeze
+  LOCAL_HOSTS = %w(localhost 127.0.0.1 0.0.0.0 ::1).freeze
 
   module_function
 

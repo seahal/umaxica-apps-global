@@ -21,13 +21,13 @@ configuration, route, and audience vocabulary should use Palm.
 Current Rails implementation namespaces do not always match the target component names. Use this
 mapping when reading routes, controllers, tests, and docs:
 
-| Target component | Rails route/controller namespace | Route responsibility in this repository                         |
-| ---------------- | -------------------------------- | --------------------------------------------------------------- |
+| Target component | Rails route/controller namespace | Route responsibility in this repository                          |
+| ---------------- | -------------------------------- | ---------------------------------------------------------------- |
 | Acme             | `base`                           | OP / Authorization Server protocol routes and identity authority |
-| Sign             | `auth`                           | Credential ceremony and sign-related relying-party UI           |
-| Core             | `core`                           | Rails browser API/BFF boundary for the Core web experience      |
-| Base             | `base`                           | Rails control-plane, identity, preference, and settings views   |
-| Palm             | `palm`                           | Native bearer-token API Resource Server                         |
+| Sign             | `auth`                           | Credential ceremony and sign-related relying-party UI            |
+| Core             | `core`                           | Rails browser API/BFF boundary for the Core web experience       |
+| Base             | `base`                           | Rails control-plane, identity, preference, and settings views    |
+| Palm             | `palm`                           | Native bearer-token API Resource Server                          |
 
 The `base` namespace is therefore overloaded during the transition: it contains both Acme authority
 routes and Base Rails control-plane routes. Do not infer credential-gateway ownership from the

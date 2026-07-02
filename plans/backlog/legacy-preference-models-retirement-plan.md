@@ -157,7 +157,8 @@ tracked as a follow-up.
 - Actor-side schema asymmetry decision (B2 — separate plan)
 - `Preference::Adoption` role re-evaluation (B3 — separate plan)
 - Per-subdomain `Current` (jump / acme / sign) design (A5 — separate ADR)
-- JWT `prf` claim format changes
+- Stale historical item: auth access-token `prf` claim format changes. Current behavior no longer
+  emits or reads auth access-token `prf`; preference snapshots belong to the Preference JWT.
 - Cookie consent / token rotation behavior changes
 
 ## Blockers
@@ -177,8 +178,8 @@ tracked as a follow-up.
       dependency).
 - [ ] `Preference::ClassRegistry` no longer hard-codes 6 × 8 entries (handled by C3; tracked here as
       a dependency).
-- [ ] Cookie consent, JWT `prf` claim integrity, and preference edit flows have regression coverage
-      that survives the cleanup.
+- [ ] Cookie consent, Preference JWT projection integrity, and preference edit flows have regression
+      coverage. that survives the cleanup.
 - [ ] No production read path bypasses `Actor::Preference` for preference values.
 
 ## References
@@ -218,4 +219,4 @@ Improvements to leave:
 - `AppPreference` / `ComPreference` / `OrgPreference` themselves are currently treated as retention
   targets.
 - Deletion decisions are based on regression testing of `Actor::Preference`, cookie consent, JWT
-  `prf` Test the claim first and then fix it.
+  Preference JWT projection. Test the projection first and then fix it.

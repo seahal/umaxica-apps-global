@@ -181,7 +181,6 @@ module Auth
               current_session_public_id: current_session_public_id,
               reason: "session_limit_selected_revoke",
             )
-
           end
 
           def revoke_sessions_by_refs(visitor, refs)

@@ -60,7 +60,7 @@ module ActiveSupport
 
     fixtures :all
     ParallelTestDatabaseCloner.install!(workers: parallel_workers)
-    parallelize(workers: parallel_workers)
+    parallelize(workers: parallel_workers, parallelize_databases: false)
 
     # The rate_limit backing store (config.x.rate_limit.store) is a single
     # MemoryStore instance created once at boot and shared by every test in the

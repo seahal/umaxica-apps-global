@@ -34,7 +34,7 @@ module Base
 
       def create
         authorize!(Avatar, to: :create?)
-        unless avatar_params[:moniker].present?
+        if avatar_params[:moniker].blank?
           @avatar = Avatar.new(avatar_params.except(:handle))
           @avatar.validate
           render :new, status: :unprocessable_content
@@ -98,7 +98,7 @@ module Base
 
       def avatar_handle
         base = avatar_params[:handle].presence || avatar_params.fetch(:moniker)
-        "#{base.to_s.parameterize.presence || 'avatar'}-#{SecureRandom.alphanumeric(8).downcase}"
+        "#{base.to_s.parameterize.presence || "avatar"}-#{SecureRandom.alphanumeric(8).downcase}"
       end
 
       def avatar_params

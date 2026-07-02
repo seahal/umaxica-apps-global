@@ -294,7 +294,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to base_app_dashboard_url(ri: "jp", host: @base_host)
+    assert_redirected_to base_app_dashboard_url(host: @base_host)
     identity.reload
 
     assert_equal user.id, identity.user_id
@@ -438,11 +438,7 @@ class SocialAuthAppFlowContractTest < ActionDispatch::IntegrationTest
   end
 
   def sign_user_headers(user, token)
-    {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    as_user_headers(user, host: @host, session_public_id: token.public_id)
   end
 
   def token_bound_step_up_for_social_link(user)
@@ -778,6 +774,23 @@ class SocialAuthAppFlowContractTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    base_hosts = {
+      "APP" => [
+        ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+        ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
+      ],
+      "ORG" => [
+        ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+        ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost"),
+      ],
+      "COM" => [
+        ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+        ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost"),
+      ],
+    }
+    base_surface = base_hosts.find { |_surface, hosts| hosts.include?(normalized) }&.first
+    return "surface:BASE_#{base_surface}" if base_surface
+
     service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
     surface =
       if service == "SIGN"

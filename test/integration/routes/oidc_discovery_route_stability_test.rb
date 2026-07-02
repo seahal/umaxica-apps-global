@@ -11,7 +11,7 @@ require "test_helper"
 #
 # This test is the bridge between:
 #   - test/services/oidc/discovery_document_test.rb  (content structure)
-#   - test/integration/routes/acme_route_contract_test.rb  (literal compatibility paths)
+#   - test/integration/routes/base_authority_route_contract_test.rb  (literal authority paths)
 class OidcDiscoveryRouteStabilityTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
@@ -22,7 +22,7 @@ class OidcDiscoveryRouteStabilityTest < ActionDispatch::IntegrationTest
   ].freeze
 
   # HTTP method for each discovery document endpoint key.
-  # Matches the HTTP methods registered in config/routes/acme.rb.
+  # Matches the HTTP methods registered in config/routes/base.rb.
   ENDPOINT_ROUTE_METHODS = {
     authorization_endpoint: :get,
     token_endpoint: :post,

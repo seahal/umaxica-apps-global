@@ -101,9 +101,9 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
 
 ### 4.2 Preference management & localization
 
-- **FR-05**: Region/language/timezone updates in `Top::*::Preference::RegionController` must
-  validate against the mappings defined in `PreferenceRegions` and persist to signed cookies
-  (`__Secure-root_app_preferences`) plus Rails session.
+- **FR-05**: Region/language/timezone updates in preference controllers must validate against the
+  current preference option registry, persist to DB-backed preference rows, and reissue the
+  Preference JWT projection in `preference_access` / `__Host-preference_access`.
 - **FR-06**: Theme selection (`Theme` concern) must support `system/dark/light` with shorthand codes
   (sy/dr/li) and rewrite to the correct edit URL per scope (Top::App/Com/Org).
 - **FR-07**: Cookie consent toggles (`Preference::CookieController` using `Cookie` concern) must
@@ -166,9 +166,10 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   honoring read replicas for reporting workloads.
 - **FR-22**: Sensitive columns (emails, telephone numbers, OTP secrets) must use Active Record
   encryption with deterministic mode for lookups where required.
-- **FR-23**: Preference cookies (`__Secure-root_app_preferences`) must be signed/HTTP-only/Lax by
-  default, with same-site exceptions documented if a downstream domain (e.g., `help` forms)
-  legitimately reads them.
+- **FR-23**: Preference credential cookies (`preference_access`, `preference_refresh`, and
+  `preference_dbsc`, with `__Host-` prefixes in production) must keep their documented security
+  attributes. Any downstream readable mirror must be documented separately from the credential
+  cookie contract.
 - **FR-24**: All database operations (create, update, delete) involving `User` and `Staff` entities
   must be recorded in the Audit log (`UserIdentityAudit`, `StaffIdentityAudit`) to ensure
   traceability and accountability.
@@ -212,8 +213,8 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   `POSTGRESQL_BEHAVIOR_PUB`).
 - Asset pipeline relies on Vite for browser CSS and pnpm-managed JS tooling for the app UI; Rails
   continues to serve static non-browser assets where appropriate.
-- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Action Policy, Shrine, SolidCache,
-  Fastly gem, AWS SDK.
+- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Action Policy, Shrine,
+  SolidCache, Fastly gem, AWS SDK.
 
 ### 6.2 Environmental & configuration constraints
 

@@ -36,6 +36,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
         patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
               params: { ack_schedule_purge: "1" },
               headers: headers_for(@token)
+
         assert_response :see_other
         mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
         patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
@@ -58,6 +59,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
         patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
               params: { ack_schedule_purge: "1" },
               headers: headers_for(@token)
+
         assert_response :see_other
         mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
         patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
@@ -82,7 +84,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_step_up_satisfied(&block)
+  def with_step_up_satisfied(&)
     satisfied = Actor::StepUp.new(
       scope: "withdrawal",
       required_aal: :aal2,
@@ -99,7 +101,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
       purpose_bound: true,
       audience_bound: true,
     )
-    StepUpResolver.stub(:call, satisfied, &block)
+    StepUpResolver.stub(:call, satisfied, &)
   end
 
   def headers_for(token)

@@ -33,8 +33,8 @@ class Base::Org::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href=?]", base_org_root_path(ri: "jp")
     assert_select "a[href=?]", base_org_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", base_org_account_path(ri: "jp"), text: "Account"
-    assert_select "a[href=?]", base_org_current_organization_path(ri: "jp"), text: "Organization"
+    assert_select "a[href=?]", base_org_accounts_path(ri: "jp"), text: "Account"
+    assert_select "a[href=?]", base_org_organizations_path(ri: "jp"), text: "Organization"
     assert_select "a[href=?]", base_org_avatar_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", base_org_selector_path(ri: "jp")
     assert_select "a[href=?]", new_base_org_sign_out_path(ri: "jp")

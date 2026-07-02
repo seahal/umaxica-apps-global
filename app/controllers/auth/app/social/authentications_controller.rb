@@ -100,7 +100,7 @@ module Auth
             social_unlink_success_path(provider),
             status: :see_other,
           )
-        rescue SocialAuth::LastIdentityError => e
+        rescue SocialAuth::LastIdentityError
           redirect_to(
             social_unlink_failure_path(provider),
             status: :see_other,

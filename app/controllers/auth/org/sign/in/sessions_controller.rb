@@ -213,7 +213,6 @@ class Auth::Org::Sign::In::SessionsController < ::Auth::Org::ApplicationControll
       current_session_public_id: current_session_public_id,
       reason: "session_limit_selected_revoke",
     )
-
   end
 
   def revoke_sessions_by_refs(staff, refs)

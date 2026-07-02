@@ -30,7 +30,6 @@ module Auth
           end
 
           def redirect_after_result(result, success_key:)
-            notice_key = "sign.org.settings.operator_lifecycle_requests.#{success_key}.success"
             if result.success?
               redirect_to(
                 auth_org_settings_operator_lifecycle_request_path(result.request),

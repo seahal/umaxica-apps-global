@@ -4,14 +4,14 @@
 require "test_helper"
 # require "helpers/global_test_support"
 
-class AcmeRouteContractTest < ActionDispatch::IntegrationTest
+class BaseAuthorityRouteContractTest < ActionDispatch::IntegrationTest
   self.fixture_table_names = []
 
   BASE_APP_HOST = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
   BASE_COM_HOST = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
   BASE_ORG_HOST = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
 
-  test "acme routes accept internal origin and cloudflared public hosts" do
+  test "base authority routes accept internal origin and cloudflared public hosts" do
     {
       "base.app.localhost" => "base/app/roots",
       "base.com.localhost" => "base/com/roots",
@@ -27,7 +27,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app static and health routes" do
+  test "base authority app static and health routes" do
     assert_recognizes(
       { controller: "base/app/roots", action: "index" },
       { path: "http://#{BASE_APP_HOST}/", method: :get },
@@ -74,7 +74,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "acme app auth routes" do
+  test "base authority app auth routes" do
     assert_recognizes(
       { controller: "base/app/csp_violation_reports", action: "create" },
       { path: "http://#{BASE_APP_HOST}/csp-violation-report", method: :post },
@@ -192,7 +192,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app oauth and account routes" do
+  test "base authority app oauth and account routes" do
     assert_recognizes(
       { controller: "base/app/oauth/authorizations", action: "show" },
       { path: "http://#{BASE_APP_HOST}/oauth/authorize", method: :get },
@@ -244,7 +244,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme app singular current routes do not resolve" do
+  test "base authority app singular current routes do not resolve" do
     # Singular current routes are intentionally absent; selection and switching stay on
     # /selector and /switcher, while CRUD remains pluralized.
     [
@@ -401,7 +401,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   end
 
   # rubocop:disable Minitest/MultipleAssertions
-  test "acme com route contract" do
+  test "base authority com route contract" do
     assert_recognizes(
       { controller: "base/com/roots", action: "index" },
       { path: "http://#{BASE_COM_HOST}/", method: :get },
@@ -567,15 +567,26 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{BASE_COM_HOST}/oauth/revoke", method: :post },
     )
 
-    assert_recognizes(
-      { controller: "base/com/accounts", action: "show" },
-      { path: "http://#{BASE_COM_HOST}/account", method: :get },
-    )
+    {
+      index: { path: "/accounts", method: :get },
+      show: { path: "/accounts/example", method: :get, id: "example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "base/com/accounts", action: action.to_s, id: opts[:id] }.compact,
+        { path: "http://#{BASE_COM_HOST}#{opts[:path]}", method: opts[:method], id: opts[:id] }.compact,
+      )
+    end
 
     [
+      { path: "/account", method: :get },
+      { path: "/account/edit", method: :get },
+      { path: "/account", method: :patch },
       { path: "/current/organization", method: :get },
       { path: "/current/organization/edit", method: :get },
       { path: "/current/organization", method: :patch },
+      { path: "/organization", method: :get },
+      { path: "/organization/edit", method: :get },
+      { path: "/organization", method: :patch },
       { path: "/current/avatar", method: :get },
       { path: "/current/avatar/edit", method: :get },
       { path: "/current/avatar", method: :patch },
@@ -618,7 +629,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
   end
   # rubocop:enable Minitest/MultipleAssertions
 
-  test "acme org route contract" do
+  test "base authority org route contract" do
     assert_recognizes(
       { controller: "base/org/roots", action: "index" },
       { path: "http://#{BASE_ORG_HOST}/", method: :get },
@@ -734,7 +745,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme org route contract (continued)" do
+  test "base authority org route contract (continued)" do
     [
       { path: "/sso/authorize", method: :get },
       { path: "/sso/logout", method: :post },
@@ -793,6 +804,22 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       Rails.application.routes.recognize_path("http://#{BASE_ORG_HOST}/current/organization", method: :patch)
     end
 
+    [
+      { path: "/account", method: :get },
+      { path: "/account/edit", method: :get },
+      { path: "/account", method: :patch },
+      { path: "/organization", method: :get },
+      { path: "/organization/edit", method: :get },
+      { path: "/organization", method: :patch },
+    ].each do |bad_route|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path(
+          "http://#{BASE_ORG_HOST}#{bad_route[:path]}",
+          method: bad_route[:method],
+        )
+      end
+    end
+
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path("http://#{BASE_ORG_HOST}/current/avatar", method: :get)
     end
@@ -829,15 +856,15 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{BASE_ORG_HOST}/avatar", method: :delete },
     )
 
-    assert_recognizes(
-      { controller: "base/org/organizations", action: "show" },
-      { path: "http://#{BASE_ORG_HOST}/organization", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "base/org/organizations", action: "index" },
-      { path: "http://#{BASE_ORG_HOST}/organizations", method: :get },
-    )
+    {
+      index: { path: "/organizations" },
+      show: { path: "/organizations/example", id: "example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "base/org/organizations", action: action.to_s, id: opts[:id] }.compact,
+        { path: "http://#{BASE_ORG_HOST}#{opts[:path]}", method: :get, id: opts[:id] }.compact,
+      )
+    end
 
     assert_recognizes(
       { controller: "base/org/organizations/memberships",
@@ -850,10 +877,15 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
         id: "member-example", },
     )
 
-    assert_recognizes(
-      { controller: "base/org/accounts", action: "show" },
-      { path: "http://#{BASE_ORG_HOST}/account", method: :get },
-    )
+    {
+      index: { path: "/accounts", method: :get },
+      show: { path: "/accounts/example", method: :get, id: "example" },
+    }.each do |action, opts|
+      assert_recognizes(
+        { controller: "base/org/accounts", action: action.to_s, id: opts[:id] }.compact,
+        { path: "http://#{BASE_ORG_HOST}#{opts[:path]}", method: opts[:method], id: opts[:id] }.compact,
+      )
+    end
 
     assert_recognizes(
       { controller: "base/org/configurations", action: "show" },
@@ -889,7 +921,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     # side/org/settings bleeds through. Integration tests cover the actual host boundary.
   end
 
-  test "acme settings routes are retired" do
+  test "base authority settings routes are retired" do
     {
       BASE_APP_HOST => "app",
       BASE_COM_HOST => "com",
@@ -912,7 +944,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "acme retired routes do not resolve" do
+  test "base authority retired routes do not resolve" do
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
         "http://#{BASE_APP_HOST}/oauth/user_info",
@@ -920,8 +952,7 @@ class AcmeRouteContractTest < ActionDispatch::IntegrationTest
       )
     end
 
-    # NOTE: /accounts resolves on all three surfaces in the base surface as entity CRUD.
-    # (Unlike the old acme surface, base/com and base/org also expose account entity routes.)
+    # NOTE: /accounts resolves on all three Base authority surfaces as entity CRUD.
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(

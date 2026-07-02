@@ -40,7 +40,7 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_step_up_satisfied(&block)
+  def with_step_up_satisfied(&)
     satisfied = Actor::StepUp.new(
       scope: "operator_lifecycle",
       required_aal: :aal2,
@@ -57,7 +57,7 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
       purpose_bound: true,
       audience_bound: true,
     )
-    StepUpResolver.stub(:call, satisfied, &block)
+    StepUpResolver.stub(:call, satisfied, &)
   end
 
   def headers

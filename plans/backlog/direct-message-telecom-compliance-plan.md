@@ -123,9 +123,9 @@ Do not consider direct messaging launch-ready until all of the following are tru
 - user-facing documents are drafted and approved
 - operations for retention and disclosure are defined
 
-Until that gate is satisfied, do not reintroduce `DirectMessageThread`, message persistence,
-message routes, controller skeletons, background jobs, or UI placeholders in this repository. Resume
-product and technical design only after legal and filing confirmation is complete.
+Until that gate is satisfied, do not reintroduce `DirectMessageThread`, message persistence, message
+routes, controller skeletons, background jobs, or UI placeholders in this repository. Resume product
+and technical design only after legal and filing confirmation is complete.
 
 ## Issue Mapping
 

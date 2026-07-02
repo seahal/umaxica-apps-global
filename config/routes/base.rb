@@ -11,10 +11,16 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :app, as: :app) do
       root "roots#index"
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
+      resource :switcher, only: %i(show update)
       resources :billings, only: :index
       resources :groups, only: :index
+      resources :accounts, only: %i(index show)
+      resources :organizations, only: %i(index show) do
+        resources :memberships, module: :organizations
+      end
       resource :preference, only: :show
       namespace :preference do
         resource :calendar, only: %i(edit update)
@@ -22,7 +28,9 @@ scope(module: :base, as: :base) do
         resource :cookie, only: %i(edit update)
         resource :currency, only: %i(edit update)
         resource :density, only: %i(edit update)
-        resource :email, only: %i(edit update)
+        resources :emails, only: :edit
+        delete "emails/:id", to: "emails#destroy", as: :email
+        post "emails/:id", to: "emails#create"
         resource :language, only: %i(edit update)
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
@@ -83,6 +91,7 @@ scope(module: :base, as: :base) do
       # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
+          resource :cookie, only: %i(show update)
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -204,7 +213,14 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :com, as: :com) do
       root "roots#index"
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :dashboard, only: :show
+      resource :selector, only: %i(show update)
+      resource :switcher, only: %i(show update)
+      resources :accounts, only: %i(index show)
+      resources :organizations, only: %i(index show) do
+        resources :memberships, module: :organizations
+      end
       resource :preference, only: :show
 
       namespace :preference do
@@ -213,7 +229,9 @@ scope(module: :base, as: :base) do
         resource :cookie, only: %i(edit update)
         resource :currency, only: %i(edit update)
         resource :density, only: %i(edit update)
-        resource :email, only: %i(edit update)
+        resources :emails, only: :edit
+        delete "emails/:id", to: "emails#destroy", as: :email
+        post "emails/:id", to: "emails#create"
         resource :language, only: %i(edit update)
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
@@ -274,6 +292,7 @@ scope(module: :base, as: :base) do
       # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
+          resource :cookie, only: %i(show update)
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
@@ -325,9 +344,15 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :org, as: :org) do
       root "roots#index"
+      get :welcome, to: "welcomes#show", as: :welcome_entry
       resource :dashboard, only: :show
+      resource :selector, only: %i(show update)
+      resource :switcher, only: %i(show update)
       resource :preference, only: :show
       resource :avatar, only: %i(show edit update destroy)
+      resources :organizations, only: %i(index show) do
+        resources :memberships, module: :organizations
+      end
 
       namespace :preference do
         resource :calendar, only: %i(edit update)
@@ -335,7 +360,9 @@ scope(module: :base, as: :base) do
         resource :cookie, only: %i(edit update)
         resource :currency, only: %i(edit update)
         resource :density, only: %i(edit update)
-        resource :email, only: %i(edit update)
+        resources :emails, only: :edit
+        delete "emails/:id", to: "emails#destroy", as: :email
+        post "emails/:id", to: "emails#create"
         resource :language, only: %i(edit update)
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
@@ -367,11 +394,24 @@ scope(module: :base, as: :base) do
 
       # Staff management areas.
       resource :configuration, only: :show
-      resources :accounts, only: :index
+      resources :accounts, only: %i(index show)
       resources :iam, only: :index
       resources :system, only: :index
       resources :audit, only: :index
       resources :support, only: :index
+      namespace :support do
+        resources :clients, only: [] do
+          resource :session, only: :destroy, controller: "clients/sessions", path: "sessions/purge"
+        end
+        resources :visitors, only: [] do
+          resource(
+            :session_emergency_revocation,
+            only: :destroy,
+            controller: "visitors/sessions/emergency_revocations",
+            path: "sessions/emergency_revocation",
+          )
+        end
+      end
       resources :billing, only: :index
 
       # Base owns the post-authentication sign-out confirmation flow.
@@ -405,6 +445,7 @@ scope(module: :base, as: :base) do
       # Edge compatibility API: token lifecycle management.
       namespace :edge do
         namespace :v0 do
+          resource :cookie, only: %i(show update)
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create

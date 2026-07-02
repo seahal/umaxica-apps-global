@@ -12,7 +12,7 @@ class RoutingEntrypointsTest < ActiveSupport::TestCase
       "http://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/",
     )
 
-    assert_equal "acme/app/roots", root_route[:controller]
+    assert_equal "base/app/roots", root_route[:controller]
     assert_equal "index", root_route[:action]
   end
 

@@ -35,8 +35,8 @@ class Base::Com::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_no_match(/id\.umaxica/, response.body)
     assert_select "a[href=?]", base_com_root_path(ri: "jp")
     assert_select "a[href=?]", base_com_dashboard_path(ri: "jp")
-    assert_select "a[href=?]", base_com_account_path(ri: "jp"), text: "Account"
-    assert_select "a[href=?]", base_com_current_organization_path(ri: "jp"), text: "Organization"
+    assert_select "a[href=?]", base_com_accounts_path(ri: "jp"), text: "Account"
+    assert_select "a[href=?]", base_com_organizations_path(ri: "jp"), text: "Organization"
     assert_select "a[href=?]", base_com_selector_path(ri: "jp")
     assert_select "a[href=?]", new_base_com_sign_out_path(ri: "jp")
     assert_select "a[href=?]", base_com_oidc_authorization_path(ri: "jp", screen_hint: "signin")

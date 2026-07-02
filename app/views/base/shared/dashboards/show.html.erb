@@ -5,18 +5,8 @@
 <% sign_settings_path = auth_app_settings_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL")) if surface == "app" %>
 <% switcher_path = public_send("base_#{surface}_switcher_path", ri: params[:ri]) if surface == "app" %>
 <% sign_out_confirmation_path = public_send("new_base_#{surface}_sign_out_path", ri: params[:ri]) %>
-<% account_path =
-     if surface == "app"
-       public_send("base_#{surface}_accounts_path", ri: params[:ri])
-     else
-       public_send("base_#{surface}_account_path", ri: params[:ri])
-     end %>
-<% organization_path =
-     if surface == "app"
-       public_send("base_#{surface}_organizations_path", ri: params[:ri])
-     else
-       public_send("base_#{surface}_current_organization_path", ri: params[:ri])
-     end %>
+<% account_path = public_send("base_#{surface}_accounts_path", ri: params[:ri]) %>
+<% organization_path = public_send("base_#{surface}_organizations_path", ri: params[:ri]) %>
 <% avatar_path =
      if surface == "app"
        public_send("base_#{surface}_avatars_path", ri: params[:ri])
@@ -25,7 +15,7 @@
      end %>
 <% authorization_sign_in_path = public_send("base_#{surface}_oidc_authorization_path", ri: params[:ri], screen_hint: "signin") %>
 <% authorization_sign_up_path = public_send("base_#{surface}_oidc_authorization_path", ri: params[:ri], screen_hint: "signup") %>
-<% oauth_discovery_path = public_send("base_#{surface}_well_known_discovery_path") %>
+<% oauth_discovery_path = public_send("base_#{surface}_well_known_openid_configuration_path") %>
 <% oauth_jwks_path = public_send("base_#{surface}_well_known_jwks_path") %>
 <% oauth_userinfo_path = public_send("base_#{surface}_oauth_userinfo_path") %>
 
