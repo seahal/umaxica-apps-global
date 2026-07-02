@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# frozen_string_literal: true
+
+set -euo pipefail
+
+export COVERAGE="${COVERAGE:-false}"
+export PARALLEL_WORKERS=1
+export RAILS_TEST_DB_POOL="${RAILS_TEST_DB_POOL:-2}"
+
+limit="${SLOW_TEST_FILE_LIMIT:-30}"
+timeout_seconds="${SLOW_TEST_FILE_TIMEOUT:-120}"
+
+if [ "$#" -gt 0 ]; then
+  files=("$@")
+else
+  mapfile -t files < <(find test -name "*_test.rb" -print | sort)
+fi
+
+tmp_output="$(mktemp)"
+trap 'rm -f "$tmp_output"' EXIT
+
+printf "seconds\tstatus\trails_runtime\tfile\tsummary\n"
+
+{
+  for file in "${files[@]}"; do
+    start="$(date +%s.%N)"
+
+    set +e
+    timeout "$timeout_seconds" env bin/rails test "$file" >"$tmp_output" 2>&1
+    status="$?"
+    set -e
+
+    end="$(date +%s.%N)"
+    seconds="$(awk -v start="$start" -v end="$end" 'BEGIN { printf "%.3f", end - start }')"
+    rails_runtime="$(ruby -ne 'puts $1 if /Finished in ([0-9.]+s)/' "$tmp_output" | tail -1)"
+    summary="$(ruby -ne 'puts $_.strip if /[0-9]+ runs, [0-9]+ assertions/' "$tmp_output" | tail -1)"
+
+    printf "%s\t%s\t%s\t%s\t%s\n" \
+      "$seconds" \
+      "$status" \
+      "${rails_runtime:-NA}" \
+      "$file" \
+      "${summary:-NA}"
+  done
+} | sort -t "$(printf '\t')" -k1,1nr | head -n "$limit"

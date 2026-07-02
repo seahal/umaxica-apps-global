@@ -67,6 +67,9 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
     end
+
+    assert_includes helper_names, "new_base_com_identity_withdrawal_path"
+    assert_includes helper_names, "edit_base_com_identity_withdrawal_path"
   end
 
   test "base org identity owns non-ceremony identity settings" do
@@ -82,6 +85,48 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
       base_org_identity_withdrawal
     ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
+    end
+  end
+
+  test "base com withdrawal has the same self service route shape as app" do
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+
+    assert_equal(
+      { controller: "base/com/identity/withdrawals", action: "new" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal/new", method: :get),
+    )
+    assert_equal(
+      { controller: "base/com/identity/withdrawals", action: "edit" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal/edit", method: :get),
+    )
+    assert_equal(
+      { controller: "base/com/identity/withdrawals", action: "create" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :post),
+    )
+    assert_equal(
+      { controller: "base/com/identity/withdrawals", action: "update" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :patch),
+    )
+    assert_equal(
+      { controller: "base/com/identity/withdrawals", action: "destroy" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :delete),
+    )
+  end
+
+  test "base org withdrawal is informational get only" do
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+
+    assert_equal(
+      { controller: "base/org/identity/withdrawals", action: "show" },
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :get),
+    )
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :patch)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("http://#{host}/identity/withdrawal", method: :delete)
     end
   end
 

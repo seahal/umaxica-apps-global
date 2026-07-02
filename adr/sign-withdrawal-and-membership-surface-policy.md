@@ -66,6 +66,9 @@ App and com account withdrawal should follow one shared business model.
 - `discarded_at` marks the point where normal access stops. `purged_at` marks the end of the
   recovery window and is the deadline used by retention jobs for anonymization. App/com account rows
   are not physically deleted by self-service withdrawal retention.
+- Direct messages, audit records, activity history, and legal-hold-sensitive records are not purged
+  by the app/com account withdrawal transaction. Those records follow their own retention,
+  disclosure, and legal hold policies.
 - Recovery is available only after one hour and before the 31-day deadline. Early irreversible
   termination is available to the actor after seven days.
 - Current app/com controller duplication is transitional. Future work should extract the common

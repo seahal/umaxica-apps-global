@@ -4,13 +4,15 @@
 require "test_helper"
 
 class WithdrawableTest < ActiveSupport::TestCase
-  test "recovery and permanent deletion boundary at exactly 31 days" do
+  test "recovery and permanent deletion boundary at purge deadline" do
     user = Client.find_by!(public_id: "one_id")
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 31.days.ago,
+      discarded_at: 31.days.ago,
+      purged_at: Time.current,
+    )
 
-    # set withdrawn_at exactly 31 days ago
-    user.update!(withdrawn_at: 31.days.ago)
-
-    # At exactly the deadline: can_recover? should be false, permanently_deletable? should be true
     assert_not user.can_recover?, "Client should not be able to recover at exact boundary"
     assert_predicate user, :permanently_deletable?
   end
@@ -136,84 +138,117 @@ class WithdrawableTest < ActiveSupport::TestCase
   end
 
   # recovery_deadline tests
-  test "recovery_deadline returns nil when not withdrawn" do
+  test "recovery_deadline returns nil when not suspended" do
     user = Client.find_by!(public_id: "one_id")
     user.update!(withdrawn_at: nil)
 
     assert_nil user.recovery_deadline
   end
 
-  test "recovery_deadline returns 31 days after withdrawn_at" do
+  test "recovery_deadline returns purged_at while suspended" do
     user = Client.find_by!(public_id: "one_id")
-    withdrawal_time = 1.day.ago
-    user.update!(withdrawn_at: withdrawal_time)
+    deadline = 30.days.from_now
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 1.hour.ago,
+      discarded_at: 1.hour.ago,
+      purged_at: deadline,
+    )
 
-    expected_deadline = withdrawal_time + 31.days
-
-    assert_in_delta expected_deadline.to_i, user.recovery_deadline.to_i, 1
+    assert_in_delta deadline.to_i, user.recovery_deadline.to_i, 1
   end
 
   # can_recover? tests
-  test "can_recover? returns true when withdrawn within 31 days" do
+  test "can_recover? returns true during suspended recovery window" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 15.days.ago)
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 2.hours.ago,
+      discarded_at: 2.hours.ago,
+      purged_at: 30.days.from_now,
+    )
 
     assert_predicate user, :can_recover?
   end
 
-  test "can_recover? returns false when not withdrawn" do
+  test "can_recover? returns false when not suspended" do
     user = Client.find_by!(public_id: "one_id")
     user.update!(withdrawn_at: nil)
 
     assert_not user.can_recover?
   end
 
-  test "can_recover? returns false when exactly 31 days have passed" do
+  test "can_recover? returns false at purge deadline" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 31.days.ago)
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 31.days.ago,
+      discarded_at: 31.days.ago,
+      purged_at: Time.current,
+    )
 
     assert_not user.can_recover?
   end
 
-  test "can_recover? returns false when more than 31 days have passed" do
+  test "can_recover? returns false after purge deadline" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 32.days.ago)
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 32.days.ago,
+      discarded_at: 32.days.ago,
+      purged_at: 1.day.ago,
+    )
 
     assert_not user.can_recover?
   end
 
-  test "can_recover? returns true when 1 second before deadline" do
+  test "can_recover? returns true when 1 second before purge deadline" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 31.days.ago.advance(seconds: 1))
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 31.days.ago,
+      discarded_at: 31.days.ago,
+      purged_at: 1.second.from_now,
+    )
 
     assert_predicate user, :can_recover?
   end
 
   # permanently_deletable? tests
-  test "permanently_deletable? returns false when not withdrawn" do
+  test "permanently_deletable? returns false when active" do
     user = Client.find_by!(public_id: "one_id")
     user.update!(withdrawn_at: nil)
 
     assert_not user.permanently_deletable?
   end
 
-  test "permanently_deletable? returns false when withdrawn less than 31 days ago" do
+  test "permanently_deletable? returns false for withdrawn marker without purge eligibility" do
     user = Client.find_by!(public_id: "one_id")
     user.update!(withdrawn_at: 15.days.ago)
 
     assert_not user.permanently_deletable?
   end
 
-  test "permanently_deletable? returns true when exactly 31 days have passed" do
+  test "permanently_deletable? returns true at purge deadline" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 31.days.ago)
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 31.days.ago,
+      discarded_at: 31.days.ago,
+      purged_at: Time.current,
+    )
 
     assert_predicate user, :permanently_deletable?
   end
 
-  test "permanently_deletable? returns true when more than 31 days have passed" do
+  test "permanently_deletable? returns true after purge deadline" do
     user = Client.find_by!(public_id: "one_id")
-    user.update!(withdrawn_at: 32.days.ago)
+    user.update_columns(
+      withdrawn_at: nil,
+      deactivated_at: 32.days.ago,
+      discarded_at: 32.days.ago,
+      purged_at: 1.day.ago,
+    )
 
     assert_predicate user, :permanently_deletable?
   end

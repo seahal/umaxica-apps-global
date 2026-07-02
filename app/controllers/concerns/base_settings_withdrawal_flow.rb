@@ -61,7 +61,7 @@ module BaseSettingsWithdrawalFlow
 
     ::WithdrawalLifecycle.suspend!(
       actor: actor,
-      current_session_public_id: current_session_public_id,
+      current_session_public_id: withdrawal_current_session_public_id,
       request: request,
     )
 
@@ -69,7 +69,6 @@ module BaseSettingsWithdrawalFlow
       withdrawal_edit_path,
       fallback: withdrawal_settings_path,
       status: :see_other,
-      notice: t("sign.app.settings.withdrawal.deactivate.success"),
     )
   rescue ActiveRecord::RecordInvalid
     handle_deactivation_failure(actor)
@@ -102,7 +101,7 @@ module BaseSettingsWithdrawalFlow
 
     ::WithdrawalLifecycle.start!(
       actor: actor,
-      current_session_public_id: current_session_public_id,
+      current_session_public_id: withdrawal_current_session_public_id,
       request: request,
     )
 
@@ -128,6 +127,12 @@ module BaseSettingsWithdrawalFlow
     when Visitor
       actor.visitor_withdrawal_flows.active.recent_first.first
     end
+  end
+
+  def withdrawal_current_session_public_id
+    current_session_public_id.presence ||
+      instance_variable_get(:@current_token_public_id).presence ||
+      (current_session.public_id if respond_to?(:current_session, true))
   end
 
   def assign_status_view_state(actor)

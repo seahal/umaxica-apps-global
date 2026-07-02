@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# frozen_string_literal: true
+
+set -e
+
+export COVERAGE=true
+export PARALLEL_WORKERS=1
+
+exec bin/rails test test/ "$@"

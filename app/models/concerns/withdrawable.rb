@@ -53,9 +53,8 @@ module Withdrawable
 
   def recovery_deadline
     return purged_at if deactivated? && purged_at.present? && !infinite_time?(purged_at)
-    return nil if withdrawn_at.blank? || withdrawn_at == Float::INFINITY
 
-    withdrawn_at + WITHDRAWAL_RECOVERY_PERIOD
+    nil
   end
 
   def can_recover?
@@ -85,7 +84,7 @@ module Withdrawable
   end
 
   def permanently_deletable?
-    terminated? || (withdrawn? && Time.current >= recovery_deadline)
+    terminated?
   end
 
   private

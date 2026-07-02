@@ -350,7 +350,7 @@ to the database or JWT.
   preference prefix: `App`/`User`, `Org`/`Staff`, and `Com`/`Visitor`. The `User` and `Staff`
   prefixes are storage compatibility names for the current app and org local preference tables;
   runtime actors are `Client` and `Operator`.
-- The `/web/v0/theme` and `/web/v0/cookie` JSON endpoints provide the no-full-page-reload update
+- The `/web/v0/theme` and `/web/v1/cookie` JSON endpoints provide the no-full-page-reload update
   path for dark mode and cookie consent. They update the matching preference record when a valid
   preference access token identifies it, then issue a fresh preference access token.
 - Shared preference credential cookie names are scoped by surface (`app_preference_*`,

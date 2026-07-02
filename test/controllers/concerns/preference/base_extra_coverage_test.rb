@@ -89,7 +89,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       @current_resource = res
     end
 
-    def acme_app_web_v0_cookie_url
+    def acme_app_web_v1_cookie_url
       "http://app.localhost/cookie"
     end
   end

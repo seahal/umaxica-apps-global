@@ -7,15 +7,17 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
   fixtures :operators, :operator_statuses
 
   setup do
-    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
+    @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
     host! @host
     @staff = operators(:one)
-    @token = OperatorToken.create!(staff: @staff)
-    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+    @token = OperatorToken.create!(staff: @staff, public_id: "ol#{SecureRandom.hex(8)}")
+    mark_token_step_up_satisfied_for_test(@token, scope: "operator_lifecycle")
   end
 
   test "org withdrawal route is informational and exposes lifecycle request entry instead of destructive self service" do # rubocop:disable Layout/LineLength
-    get base_org_identity_withdrawal_url(ri: "jp"), headers: headers
+    with_step_up_satisfied do
+      get base_org_identity_withdrawal_url(ri: "jp"), headers: headers
+    end
 
     assert_response :success
     assert_nil @staff.reload.deactivated_at
@@ -42,11 +44,37 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
 
   private
 
+  def with_step_up_satisfied(&block)
+    satisfied = Actor::StepUp.new(
+      scope: "operator_lifecycle",
+      required_aal: :aal2,
+      allowed_methods: [:passkey],
+      satisfied: true,
+      satisfied_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      usable_token: true,
+      method: "passkey",
+      session_bound: true,
+      token_bound: true,
+      purpose: "step_up",
+      audience: "step_up:org",
+      purpose_bound: true,
+      audience_bound: true,
+    )
+    StepUpResolver.stub(:call, satisfied, &block)
+  end
+
   def headers
-    browser_headers.merge(
-      "Host" => @host,
-      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    base = as_staff_headers(
+      @staff,
+      host: @host,
+      headers: browser_headers,
+      session_public_id: @token.public_id,
+    )
+    base.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@staff, host: @host, session_public_id: @token.public_id, resource_type: "operator")
+      }",
     )
   end
   private
@@ -364,7 +392,16 @@ class StaffLifecycleBoundaryTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("auth") || normalized.include?("sign") || normalized.include?("log.umaxica")
+        "SIGN"
+      else
+        "BASE"
+      end
     surface =
       if service == "SIGN"
         case resource_type

@@ -1162,10 +1162,10 @@ module Preference
       old = ENV["PRIVATE_BASE_SERVICE_URL"]
       ENV["PRIVATE_BASE_SERVICE_URL"] = "base.app.localhost"
       @controller.request = ActionDispatch::TestRequest.create("HTTP_HOST" => "base.app.localhost")
-      @controller.define_singleton_method(:acme_app_web_v0_cookie_url) { "https://base.app.localhost/web/v0/cookie" }
+      @controller.define_singleton_method(:acme_app_web_v1_cookie_url) { "https://base.app.localhost/web/v1/cookie" }
 
       assert @controller.send(:cookie_banner_endpoint_available_for_request?)
-      assert_equal "https://base.app.localhost/web/v0/cookie", @controller.send(:cookie_banner_endpoint_url)
+      assert_equal "https://base.app.localhost/web/v1/cookie", @controller.send(:cookie_banner_endpoint_url)
     ensure
       ENV["PRIVATE_BASE_SERVICE_URL"] = old
     end

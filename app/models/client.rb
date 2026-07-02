@@ -357,18 +357,6 @@ class Client < AppPrincipalRecord
     verified_telephone?
   end
 
-  def withdrawal_started?
-    withdrawal_started_at.present?
-  end
-
-  def deactivated?
-    deactivated_at.present?
-  end
-
-  def withdrawal_in_progress?
-    withdrawal_started? || deactivated?
-  end
-
   private
 
   def configured_mfa_level_methods

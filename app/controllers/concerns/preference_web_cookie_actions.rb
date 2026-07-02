@@ -5,7 +5,7 @@ module PreferenceWebCookieActions
   extend ActiveSupport::Concern
 
   def show
-    render json: cookie_consent_state, status: :ok
+    render json: { show_banner: show_banner? }, status: :ok
   end
 
   def update
@@ -14,6 +14,6 @@ module PreferenceWebCookieActions
       return
     end
 
-    render json: cookie_consent_state, status: :ok
+    head :no_content
   end
 end

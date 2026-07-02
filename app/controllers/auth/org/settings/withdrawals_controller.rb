@@ -25,7 +25,7 @@ module Auth
 
         def verification_required_action? = true
 
-        def verification_scope = "withdrawal"
+        def verification_scope = "operator_lifecycle"
       end
     end
   end

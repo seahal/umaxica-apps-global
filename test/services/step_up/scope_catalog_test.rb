@@ -16,6 +16,8 @@ class StepUpScopeCatalogTest < ActiveSupport::TestCase
   test "later step up scopes remain registered" do
     assert StepUpScopeCatalog::APP.key?("social_link")
     assert StepUpScopeCatalog::ORG.key?("operator_lifecycle")
+    assert_match StepUpScopeCatalog::ORG.fetch("operator_lifecycle"), "/identity/withdrawal?ri=jp"
+    assert_match StepUpScopeCatalog::ORG.fetch("operator_lifecycle"), "/settings/operator_lifecycle_requests"
   end
 
   test "social link scope is offered on app and org and matches social settings pages" do

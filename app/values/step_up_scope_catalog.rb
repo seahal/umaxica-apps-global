@@ -35,6 +35,6 @@ module StepUpScopeCatalog
     "settings_mfa" => %r{\A/settings/mfa/challenge},
     "settings_secret_credential" => %r{\A/settings/(?:secrets|secret_credentials)},
     "settings_birthdate" => %r{\A/settings/birthdate(?:\z|[?#])},
-    "operator_lifecycle" => %r{\A/settings/operator_lifecycle_requests},
+    "operator_lifecycle" => %r{\A(?:/settings/operator_lifecycle_requests|/identity/withdrawal(?:\z|[?#]))},
   }.freeze
 end

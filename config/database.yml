@@ -18,6 +18,7 @@ default: &default
   advisory_locks: false
 test_default: &test_default
   !!merge <<: *default
+  pool: 2
   timeout: 20000
   prepared_statements: false
   advisory_locks: true
@@ -28,22 +29,25 @@ test_default: &test_default
     max_parallel_workers_per_gather: 0
     max_parallel_maintenance_workers: 0
     jit: off
+development_default: &development_default
+  !!merge <<: *default
+  pool: 2
 development:
   com_principal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_com_principal_db
     host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_PUB"] || default_host %>
     migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_principal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_com_principal_db
     host: <%= ENV["POSTGRESQL_COM_PRINCIPAL_SUB"] || default_host %>
     migrations_paths: db/com_principal_reserved_migrate
     schema_dump: com_principal_structure.sql
   com_zenith:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_com_zenith_db
     host: <%= ENV["POSTGRESQL_COM_ZENITH_PUB"] || default_host %>
     migrations_paths:
@@ -51,7 +55,7 @@ development:
       - db/com_zenith_migrate
     schema_dump: com_zenith_structure.sql
   com_zenith_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_com_zenith_db
     host: <%= ENV["POSTGRESQL_COM_ZENITH_SUB"] || default_host %>
@@ -60,7 +64,7 @@ development:
       - db/com_zenith_migrate
     schema_dump: com_zenith_structure.sql
   app_zenith:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_app_zenith_db
     host: <%= ENV["POSTGRESQL_APP_ZENITH_PUB"] || default_host %>
     migrations_paths:
@@ -68,7 +72,7 @@ development:
       - db/app_zenith_migrate
     schema_dump: app_zenith_structure.sql
   app_zenith_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_app_zenith_db
     host: <%= ENV["POSTGRESQL_APP_ZENITH_SUB"] || default_host %>
@@ -77,7 +81,7 @@ development:
       - db/app_zenith_migrate
     schema_dump: app_zenith_structure.sql
   org_zenith:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_org_zenith_db
     host: <%= ENV["POSTGRESQL_ORG_ZENITH_PUB"] || default_host %>
     migrations_paths:
@@ -85,7 +89,7 @@ development:
       - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
   org_zenith_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_org_zenith_db
     host: <%= ENV["POSTGRESQL_ORG_ZENITH_SUB"] || default_host %>
@@ -94,27 +98,27 @@ development:
       - db/org_zenith_migrate
     schema_dump: org_zenith_structure.sql
   app_principal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_app_principal_db
     host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_PUB"] || default_host %>
     migrations_paths: db/app_principal_reserved_migrate
     schema_dump: app_principal_structure.sql
   app_principal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_app_principal_db
     host: <%= ENV["POSTGRESQL_APP_PRINCIPAL_SUB"] || default_host %>
     migrations_paths: db/app_principal_reserved_migrate
     schema_dump: app_principal_structure.sql
   app_setting:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_app_setting_db
     host: <%= ENV["POSTGRESQL_APP_SETTING_PUB"] || default_host %>
     migrations_paths: db/app_settings_migrate
     schema_dump: app_setting_structure.sql
     connect_timeout: 2
   app_setting_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_app_setting_db
     host: <%= ENV["POSTGRESQL_APP_SETTING_SUB"] || default_host %>
@@ -122,185 +126,185 @@ development:
     schema_dump: app_setting_structure.sql
     connect_timeout: 2
   org_setting:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_org_setting_db
     host: <%= ENV["POSTGRESQL_ORG_SETTING_PUB"] || default_host %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   org_setting_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_org_setting_db
     host: <%= ENV["POSTGRESQL_ORG_SETTING_SUB"] || default_host %>
     migrations_paths: db/org_settings_migrate
     schema_dump: org_setting_structure.sql
   com_setting:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_PUB"] || default_host %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   com_setting_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_com_setting_db
     host: <%= ENV["POSTGRESQL_COM_SETTING_SUB"] || default_host %>
     migrations_paths: db/com_settings_migrate
     schema_dump: com_setting_structure.sql
   search:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_search_db
     host: <%= ENV["POSTGRESQL_SEARCH_PUB"] || default_host %>
     migrations_paths: db/searches_migrate
   search_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_search_db
     host: <%= ENV["POSTGRESQL_SEARCH_SUB"] || default_host %>
     migrations_paths: db/searches_migrate
   org_ticket:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_org_ticket_db
     host: <%= ENV["POSTGRESQL_ORG_TICKET_PUB"] || default_host %>
     migrations_paths: db/org_tickets_migrate
   org_ticket_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_org_ticket_db
     host: <%= ENV["POSTGRESQL_ORG_TICKET_SUB"] || default_host %>
     migrations_paths: db/org_tickets_migrate
   com_ticket:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_com_ticket_db
     host: <%= ENV["POSTGRESQL_COM_TICKET_PUB"] || default_host %>
     migrations_paths: db/com_tickets_migrate
   com_ticket_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_com_ticket_db
     host: <%= ENV["POSTGRESQL_COM_TICKET_SUB"] || default_host %>
     migrations_paths: db/com_tickets_migrate
   app_ticket:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_app_ticket_db
     host: <%= ENV["POSTGRESQL_APP_TICKET_PUB"] || default_host %>
     migrations_paths: db/app_tickets_migrate
   app_ticket_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_app_ticket_db
     host: <%= ENV["POSTGRESQL_APP_TICKET_SUB"] || default_host %>
     migrations_paths: db/app_tickets_migrate
   app_signal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_app_signal_db
     host: <%= ENV["POSTGRESQL_APP_SIGNAL_PUB"] || default_host %>
     migrations_paths: db/app_signals_migrate
   app_signal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_app_signal_db
     host: <%= ENV["POSTGRESQL_APP_SIGNAL_SUB"] || default_host %>
     migrations_paths: db/app_signals_migrate
   org_signal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_org_signal_db
     host: <%= ENV["POSTGRESQL_ORG_SIGNAL_PUB"] || default_host %>
     migrations_paths: db/org_signals_migrate
   org_signal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_org_signal_db
     host: <%= ENV["POSTGRESQL_ORG_SIGNAL_SUB"] || default_host %>
     migrations_paths: db/org_signals_migrate
   com_signal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_com_signal_db
     host: <%= ENV["POSTGRESQL_COM_SIGNAL_PUB"] || default_host %>
     migrations_paths: db/com_signals_migrate
   com_signal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_com_signal_db
     host: <%= ENV["POSTGRESQL_COM_SIGNAL_SUB"] || default_host %>
     migrations_paths: db/com_signals_migrate
   cache:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_cache_db
     host: <%= ENV["POSTGRESQL_CACHE_PUB"] || default_host %>
     migrations_paths: db/caches_migrate
   cache_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_cache_db
     host: <%= ENV["POSTGRESQL_CACHE_SUB"] || default_host %>
     migrations_paths: db/caches_migrate
   queue:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_PUB"] || default_host %>
     migrations_paths: db/queues_migrate
   queue_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_queue_db
     host: <%= ENV["POSTGRESQL_QUEUE_SUB"] || default_host %>
     migrations_paths: db/queues_migrate
   storage:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_storage_db
     host: <%= ENV["POSTGRESQL_STORAGE_PUB"] || default_host %>
     migrations_paths: db/storages_migrate
   storage_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_storage_db
     host: <%= ENV["POSTGRESQL_STORAGE_SUB"] || default_host %>
     migrations_paths: db/storages_migrate
   occurrence:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_occurrence_db
     host: <%= ENV["POSTGRESQL_OCCURRENCE_PUB"] || default_host %>
     migrations_paths: db/occurrences_migrate
   occurrence_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_occurrence_db
     host: <%= ENV["POSTGRESQL_OCCURRENCE_SUB"] || default_host %>
     migrations_paths: db/occurrences_migrate
   chronicle:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_chronicle_db
     host: <%= ENV["POSTGRESQL_CHRONICLE_PUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   chronicle_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_chronicle_db
     host: <%= ENV["POSTGRESQL_CHRONICLE_SUB"] || default_host %>
     migrations_paths: db/chronicle_migrate
     schema_dump: chronicle_structure.sql
   org_principal:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_org_principal_db
     host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_PUB"] || default_host %>
     migrations_paths: db/org_principal_reserved_migrate
     schema_dump: org_principal_structure.sql
   org_principal_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_org_principal_db
     host: <%= ENV["POSTGRESQL_ORG_PRINCIPAL_SUB"] || default_host %>
     migrations_paths: db/org_principal_reserved_migrate
     schema_dump: org_principal_structure.sql
   avatar:
-    !!merge <<: *default
+    !!merge <<: *development_default
     database: development_avatar_db
     host: <%= ENV["POSTGRESQL_AVATAR_PUB"] || default_host %>
     migrations_paths: db/avatars_migrate
   avatar_replica:
-    !!merge <<: *default
+    !!merge <<: *development_default
     replica: true
     database: development_avatar_db
     host: <%= ENV["POSTGRESQL_AVATAR_SUB"] || default_host %>

@@ -1,0 +1,103 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ENV["RAILS_ENV"] = "test"
+
+require_relative "../config/environment"
+require "pg"
+require "set"
+
+workers =
+  if ENV["COVERAGE"] == "true"
+    1
+  else
+    Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
+  end
+raise "PARALLEL_WORKERS must be positive" unless workers.positive?
+
+configs = ActiveRecord::Base.configurations.configs_for(env_name: "test", include_hidden: true)
+databases = configs.map(&:database).uniq.sort
+writer_databases = configs.reject(&:replica?).map(&:database).uniq.sort
+writer_database_by_name = configs.reject(&:replica?).to_h { |config| [config.name, config.database] }
+replica_templates = configs.select(&:replica?).filter_map do |config|
+  writer_database = writer_database_by_name[config.name.delete_suffix("_replica")]
+  [config.database, writer_database] if writer_database
+end.to_h
+
+first_config = configs.first.configuration_hash
+connection = PG.connect(
+  host: first_config.fetch(:host),
+  port: first_config.fetch(:port, 5432),
+  user: first_config.fetch(:username),
+  password: first_config[:password],
+  dbname: ENV.fetch("POSTGRESQL_DATABASE", "db"),
+)
+
+existing = connection.exec("select datname from pg_database").map { |row| row.fetch("datname") }.to_set
+missing_base = databases.reject { |database| existing.include?(database) }
+
+if ARGV.include?("--create-missing") && !missing_base.empty?
+  missing_base.each do |database|
+    template = replica_templates.fetch(database, nil)
+    raise "No template database found for #{database}" unless template
+    raise "Template database #{template} does not exist for #{database}" unless existing.include?(template)
+
+    quoted_database = connection.quote_ident(database)
+    quoted_template = connection.quote_ident(template)
+    connection.exec("create database #{quoted_database} template #{quoted_template}")
+    existing.add(database)
+  end
+
+  missing_base = databases.reject { |database| existing.include?(database) }
+end
+
+missing_clones = []
+if workers > 1
+  writer_databases.each do |database|
+    workers.times do |worker|
+      clone = "#{database}_#{worker}"
+      missing_clones << clone unless existing.include?(clone)
+    end
+  end
+end
+
+stale_clones = []
+if workers > 1
+  workers.times do |worker|
+    clone = "test_app_setting_db_#{worker}"
+    next unless existing.include?(clone)
+
+    clone_connection = PG.connect(
+      host: first_config.fetch(:host),
+      port: first_config.fetch(:port, 5432),
+      user: first_config.fetch(:username),
+      password: first_config[:password],
+      dbname: clone,
+    )
+    table_exists = clone_connection.exec_params(
+      "select to_regclass($1) is not null as present",
+      ["public.app_preference_binding_methods"],
+    ).first.fetch("present")
+    clone_connection.close
+    next if table_exists == "t"
+
+    stale_clones << clone
+  end
+end
+
+if missing_base.empty? && missing_clones.empty? && stale_clones.empty?
+  puts "test DB preflight ok: base=#{databases.size} worker_clones=#{missing_clones.size} workers=#{workers}"
+  exit 0
+end
+
+warn "test DB preflight failed"
+warn "missing base DBs: #{missing_base.join(', ')}" unless missing_base.empty?
+warn "missing worker DBs: #{missing_clones.join(', ')}" unless missing_clones.empty?
+warn "stale worker DBs: #{stale_clones.join(', ')}" unless stale_clones.empty?
+warn
+warn "Run non-destructive setup first: RAILS_ENV=test bin/rails db:prepare"
+warn "Create missing replica DBs without deleting data: bin/test-db-preflight --create-missing" unless missing_base.empty?
+warn "If stale worker DBs remain, explicit test DB clone deletion/rebuild is required."
+warn "Do not run destructive DB cleanup automatically; review the listed test DBs first."
+
+exit 1

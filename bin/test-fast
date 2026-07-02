@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+# frozen_string_literal: true
+
+set -e
+
+export COVERAGE="${COVERAGE:-false}"
+export PARALLEL_WORKERS="${PARALLEL_WORKERS:-16}"
+
+if [ "${SKIP_TEST_DB_PREFLIGHT:-false}" != "true" ]; then
+  bin/test-db-preflight
+fi
+
+exec bin/rails test "$@"

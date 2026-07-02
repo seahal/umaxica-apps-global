@@ -74,8 +74,10 @@ scope(module: :base, as: :base) do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+        end
+        namespace :v1 do
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -262,8 +264,10 @@ scope(module: :base, as: :base) do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+        end
+        namespace :v1 do
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -309,7 +313,7 @@ scope(module: :base, as: :base) do
         resource :other_sessions, only: :destroy, controller: "revocations/others"
 
         resources :activities, only: :index
-        resource :withdrawal, only: %i(show update destroy)
+        resource :withdrawal, only: %i(new update create edit destroy)
       end
     end
   end
@@ -391,8 +395,10 @@ scope(module: :base, as: :base) do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+        end
+        namespace :v1 do
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -438,7 +444,7 @@ scope(module: :base, as: :base) do
         resource :other_sessions, only: :destroy, controller: "revocations/others"
 
         resources :activities, only: :index
-        resource :withdrawal, only: %i(show update destroy)
+        resource :withdrawal, only: :show
       end
     end
   end

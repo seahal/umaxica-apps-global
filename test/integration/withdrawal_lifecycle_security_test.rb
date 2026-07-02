@@ -5,23 +5,43 @@ require "test_helper"
 
 class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! @host
     @user = create_verified_user_with_email(email_address: "withdrawal-p0-#{SecureRandom.hex(4)}@example.com")
     @user.update_columns(created_at: 120.days.ago, updated_at: 120.days.ago)
-    @token = ClientToken.create!(user: @user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
-    @other_token = ClientToken.create!(user: @user, discarded_at: 1.day.from_now, purged_at: 2.days.from_now)
-    mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+    @token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      public_id: "wd#{SecureRandom.hex(8)}",
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+    )
+    @other_token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      public_id: "wo#{SecureRandom.hex(8)}",
+      discarded_at: 1.day.from_now,
+      purged_at: 2.days.from_now,
+    )
+    satisfy_user_verification(@token, scope: "withdrawal")
+    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
   end
 
   test "confirmed withdrawal revokes other sessions but preserves the continuation session" do
-    freeze_time do
-      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
-            params: { ack_schedule_purge: "1" },
-            headers: headers_for(@token)
-      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
-            params: { ack_deactivate_today: "1" },
-            headers: headers_for(@token)
+    with_step_up_satisfied do
+      freeze_time do
+        patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
+              params: { ack_schedule_purge: "1" },
+              headers: headers_for(@token)
+        assert_response :see_other
+        mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+        patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
+              params: { ack_deactivate_today: "1" },
+              headers: headers_for(@token)
+      end
     end
 
     assert_response :see_other
@@ -33,36 +53,67 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
   end
 
   test "withdrawal recovery is rejected before one hour and after purge deadline" do
-    freeze_time do
-      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
-            params: { ack_schedule_purge: "1" },
-            headers: headers_for(@token)
-      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
-            params: { ack_deactivate_today: "1" },
-            headers: headers_for(@token)
+    with_step_up_satisfied do
+      freeze_time do
+        patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
+              params: { ack_schedule_purge: "1" },
+              headers: headers_for(@token)
+        assert_response :see_other
+        mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+        patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
+              params: { ack_deactivate_today: "1" },
+              headers: headers_for(@token)
 
-      travel 10.minutes
-      post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+        travel 10.minutes
+        post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
-      assert_response :see_other
-      assert_not_nil @user.reload.deactivated_at
+        assert_response :see_other
+        assert_not_nil @user.reload.deactivated_at
 
-      @user.update_columns(deactivated_at: 31.days.ago, discarded_at: 31.days.ago, purged_at: 1.minute.ago)
-      mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
-      post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+        @user.update_columns(deactivated_at: 31.days.ago, discarded_at: 31.days.ago, purged_at: 1.minute.ago)
+        mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
+        post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
-      assert_response :see_other
-      assert_not_nil @user.reload.deactivated_at
+        assert_response :see_other
+        assert_not_nil @user.reload.deactivated_at
+      end
     end
   end
 
   private
 
+  def with_step_up_satisfied(&block)
+    satisfied = Actor::StepUp.new(
+      scope: "withdrawal",
+      required_aal: :aal2,
+      allowed_methods: %i(totp passkey),
+      satisfied: true,
+      satisfied_at: Time.current,
+      expires_at: 15.minutes.from_now,
+      usable_token: true,
+      method: "passkey",
+      session_bound: true,
+      token_bound: true,
+      purpose: "step_up",
+      audience: "step_up:app",
+      purpose_bound: true,
+      audience_bound: true,
+    )
+    StepUpResolver.stub(:call, satisfied, &block)
+  end
+
   def headers_for(token)
-    browser_headers.merge(
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+    mark_token_step_up_satisfied_for_test(token, scope: "withdrawal")
+    headers = as_user_headers(
+      @user,
+      host: @host,
+      headers: browser_headers,
+      session_public_id: token.public_id,
+    )
+    headers.merge(
+      "Authorization" => "Bearer #{
+        jwt_access_token_for(@user, host: @host, session_public_id: token.public_id, resource_type: "client")
+      }",
     )
   end
   private
@@ -372,6 +423,7 @@ class WithdrawalLifecycleSecurityTest
       host: host_value,
       session_id: session_id,
       session_public_id: session_public_id,
+      oidc_sid: session_public_id,
       resource_type: resource_type,
       dpop_jkt: dpop_jkt,
       jwt_issuer_id: jwt_issuer_id_for_test_host(host_value, resource_type),
@@ -380,6 +432,13 @@ class WithdrawalLifecycleSecurityTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
+    base_hosts = {
+      "APP" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+      "ORG" => ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
+      "COM" => ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
+    }
+    return "surface:BASE_#{base_hosts.key(normalized)}" if base_hosts.value?(normalized)
+
     service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
     surface =
       if service == "SIGN"

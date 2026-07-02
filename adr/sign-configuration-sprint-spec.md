@@ -104,9 +104,14 @@ This document fixes the remaining ambiguous points and is the source of truth fo
 
 ### Behavior
 
-- Withdraw sets `withdrawn_at` and `status_id = PRE_WITHDRAWAL_CONDITION`.
-- Recovery clears `withdrawn_at` if within `Withdrawable::WITHDRAWAL_RECOVERY_PERIOD` (30 days).
-- Withdrawal gate confines users in PRE_WITHDRAWAL status to the withdrawal page until recovered.
+- Withdrawal scheduling starts the account lifecycle with `withdrawal_started_at`.
+- Suspension/logical deletion sets `deactivated_at` and `discarded_at`, and sets `purged_at` to the
+  31-day recovery deadline.
+- Recovery is available only after the one-hour recovery delay and before `purged_at`; it clears the
+  withdrawal lifecycle timestamps and restores the retention sentinels.
+- `withdrawn_at` is terminal history only. It must not drive recovery or withdrawal-gate decisions.
+- Withdrawal gates are based on the current lifecycle and retention columns, not
+  `PRE_WITHDRAWAL_CONDITION`.
 
 ### Status
 

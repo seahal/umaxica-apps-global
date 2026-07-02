@@ -8,21 +8,21 @@ class CoreWebEdgeSurfaceSmokeTest < ActionDispatch::IntegrationTest
   SURFACES = [
     {
       host: ENV.fetch("PUBLIC_CORE_SERVICE_URL"),
-      cookie_path: "/web/v0/cookie",
+      cookie_path: "/web/v1/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",
       edge_dbsc_path: "/edge/v0/dbsc",
     },
     {
       host: ENV.fetch("PUBLIC_CORE_CORPORATE_URL"),
-      cookie_path: "/web/v0/cookie",
+      cookie_path: "/web/v1/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",
       edge_dbsc_path: "/edge/v0/dbsc",
     },
     {
       host: ENV.fetch("PUBLIC_CORE_STAFF_URL"),
-      cookie_path: "/web/v0/cookie",
+      cookie_path: "/web/v1/cookie",
       theme_path: "/web/v0/theme",
       edge_cookie_path: "/edge/v0/cookie",
       edge_dbsc_path: "/edge/v0/dbsc",

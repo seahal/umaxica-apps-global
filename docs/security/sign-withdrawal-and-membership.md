@@ -78,6 +78,10 @@ The user-visible sequence is distinct from the state-machine status names.
    - The actor is marked terminated and personally identifying data is anonymized.
    - Audit information is retained.
 
+Account withdrawal does not directly purge direct-message content, audit records, activity history,
+or legal-hold-sensitive records. Those records follow their own retention, disclosure response, and
+legal hold policies; message retention rules must be finalized before any direct-message launch.
+
 Early irreversible termination may be added as an explicit exception branch, but it is not the
 primary app/com self-service sequence. When available, it remains behind the same `withdrawal`
 step-up scope as scheduling and recovery.

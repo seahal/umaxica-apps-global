@@ -10,7 +10,8 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
            :operator_token_statuses, :operator_token_kinds
 
   setup do
-    @host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
+    @base_host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    @auth_host = ENV.fetch("PRIVATE_AUTH_STAFF_URL")
     @staff = Operator.create!(
       status_id: OperatorStatus::ACTIVE,
       visibility_id: OperatorVisibility::STAFF,
@@ -22,12 +23,12 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       discarded_at: 1.day.from_now,
       public_id: "stepup_org_#{SecureRandom.hex(4)}",
     )
-    @headers = as_staff_headers(@staff, host: @host)
-    @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
+    @base_headers = as_staff_headers(@staff, host: @base_host, session_public_id: @token.public_id)
+    @auth_headers = as_staff_headers(@staff, host: @auth_host, session_public_id: @token.public_id)
 
-    host_value = @host
     @original_trusted_origins = Webauthn.method(:trusted_origins)
-    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{host_value}"] }
+    auth_host = @auth_host
+    Webauthn.define_singleton_method(:trusted_origins) { ["http://id.org.localhost", "http://#{auth_host}"] }
   end
 
   teardown do
@@ -37,7 +38,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to setup when configured methods are zero" do
     StepUpConfiguredMethods.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
-        get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
+        get base_org_identity_withdrawal_url(ri: "jp", host: @base_host), headers: @base_headers
       end
     end
 
@@ -52,7 +53,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUpConfiguredMethods.stub(:call, [:passkey]) do
       StepUpAvailableMethods.stub(:call, []) do
-        get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
+        get base_org_identity_withdrawal_url(ri: "jp", host: @base_host), headers: @base_headers
       end
     end
 
@@ -75,7 +76,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
+    get base_org_identity_withdrawal_url(ri: "jp", host: @base_host), headers: @base_headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -94,7 +95,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    post auth_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
+    post auth_org_settings_passkeys_options_url(ri: "jp", host: @auth_host), headers: @auth_headers
 
     assert_response :unauthorized
     assert_equal VerificationBase::STEP_UP_REQUIRED_MESSAGE, response.body
@@ -115,15 +116,15 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
         WebAuthn::Credential.stub(:from_get, passkey_credential_stub("test")) do
-          get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp"),
-              headers: @headers
+          get auth_org_verification_url(scope: "settings_passkey", return_to: return_to, ri: "jp", host: @auth_host),
+              headers: @auth_headers
 
           assert_response :success
-          get new_auth_org_verification_passkey_url(ri: "jp"), headers: @headers
+          get new_auth_org_verification_passkey_url(ri: "jp", host: @auth_host), headers: @auth_headers
 
-          post auth_org_verification_passkey_url(ri: "jp"),
+          post auth_org_verification_passkey_url(ri: "jp", host: @auth_host),
                params: { verification: { challenge_id: "test", credential_json: '{"id":"test"}' } },
-               headers: @headers
+               headers: @auth_headers
         end
       end
     end
@@ -143,7 +144,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       subject_id: @staff.id,
     )
 
-    post auth_org_settings_passkeys_options_url(ri: "jp"), headers: @headers
+    post auth_org_settings_passkeys_options_url(ri: "jp", host: @auth_host), headers: @auth_headers
 
     assert_response :unauthorized
   end
@@ -157,6 +158,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       end
     end.new(id, 1)
   end
+
   private
 
   def host_headers(host = nil)
@@ -275,7 +277,16 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("auth") || normalized.include?("sign") || normalized.include?("log.umaxica")
+        "SIGN"
+      else
+        "BASE"
+      end
     surface =
       if service == "SIGN"
         case resource_type

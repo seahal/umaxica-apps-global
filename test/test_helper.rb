@@ -49,8 +49,16 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
+    parallel_workers =
+      if ENV["COVERAGE"] == "true"
+        1
+      else
+        Integer(ENV.fetch("PARALLEL_WORKERS", "16"), 10)
+      end
+    raise "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
+
     fixtures :all
-    # parallelize(workers: 1)
+    parallelize(workers: parallel_workers)
 
     # The rate_limit backing store (config.x.rate_limit.store) is a single
     # MemoryStore instance created once at boot and shared by every test in the

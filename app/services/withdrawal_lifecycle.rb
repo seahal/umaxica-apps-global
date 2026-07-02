@@ -206,7 +206,12 @@ class WithdrawalLifecycle
 
   def revoke_sessions(except_public_id: nil)
     scope = AuthenticationSessionRevoker.tokens_for(actor)
-    scope = exclude_session_identifier(scope, except_public_id) if except_public_id.present?
+    scope =
+      if except_public_id.present?
+        exclude_fresh_withdrawal_step_up_sessions(exclude_session_identifier(scope, except_public_id))
+      else
+        exclude_fresh_withdrawal_step_up_sessions(scope)
+      end
     scope.find_each(&:revoke!)
   end
 
@@ -215,6 +220,17 @@ class WithdrawalLifecycle
     return excluded unless scope.klass.column_names.include?("oidc_sid") && uuid_identifier?(identifier)
 
     excluded.where.not(oidc_sid: identifier)
+  end
+
+  def exclude_fresh_withdrawal_step_up_sessions(scope)
+    return scope unless scope.klass.column_names.include?("last_step_up_at")
+
+    scope.where.not(
+      id: scope.where(
+        last_step_up_scope: "withdrawal",
+        last_step_up_purpose: "step_up",
+      ).where(scope.klass.arel_table[:last_step_up_at].gt(VerificationBase::STEP_UP_TTL.ago)).select(:id),
+    )
   end
 
   def uuid_identifier?(value)
