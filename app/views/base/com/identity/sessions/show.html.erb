@@ -1,0 +1,17 @@
+<% content_for :page_title, 'Session' %>
+<%= link_to 'Back', base_com_identity_sessions_path(ri: params[:ri]) %>
+
+<dl>
+  <div>
+    <dt>Session</dt>
+    <dd><%= @session.public_id %></dd>
+  </div>
+  <div>
+    <dt>Kind</dt>
+    <dd><%= @session.visitor_token_kind_id %></dd>
+  </div>
+  <div>
+    <dt>Binding</dt>
+    <dd><%= @session.dbsc_enabled? ? "DBSC" : "NORMAL" %></dd>
+  </div>
+</dl>

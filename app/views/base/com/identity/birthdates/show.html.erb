@@ -1,0 +1,21 @@
+<% content_for :page_title, t("sign.com.settings.birthdate.show.page_title") %>
+
+<%= link_to t("sign.app.settings.show.back"), base_com_identity_path(ri: params[:ri]) %>
+
+<section>
+  <h1><%= t("sign.com.settings.birthdate.show.page_title") %></h1>
+  <p><%= t("sign.com.settings.birthdate.show.description") %></p>
+
+  <dl>
+    <dt><%= t("sign.com.settings.birthdate.show.birthdate_label") %></dt>
+    <dd>
+      <% if current_visitor.birthdate.present? %>
+        <span data-birthdate><%= current_visitor.birthdate %></span>
+      <% else %>
+        <%= t("sign.com.settings.birthdate.show.not_set") %>
+      <% end %>
+    </dd>
+  </dl>
+
+  <p><%= t("sign.com.settings.birthdate.show.change_unavailable") %></p>
+</section>

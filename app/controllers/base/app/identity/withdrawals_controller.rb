@@ -16,11 +16,11 @@ module Base
         before_action :authenticate_client!
         before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
         def new
-          render_withdrawal_entry(current_client); render "auth/app/settings/withdrawals/new" unless performed?
+          render_withdrawal_entry(current_client); render "base/app/identity/withdrawals/new" unless performed?
         end
 
         def edit
-          render_withdrawal_status(current_client); render "auth/app/settings/withdrawals/edit" unless performed?
+          render_withdrawal_status(current_client); render "base/app/identity/withdrawals/edit" unless performed?
         end
 
         def create = recover_withdrawal!(current_client)
@@ -42,11 +42,11 @@ module Base
         def withdrawal_settings_path = base_app_identity_withdrawal_path(ri: params[:ri])
 
         def handle_deactivation_failure(_actor)
-          @schedule_confirmed = true; render "auth/app/settings/withdrawals/new", status: :unprocessable_content
+          @schedule_confirmed = true; render "base/app/identity/withdrawals/new", status: :unprocessable_content
         end
 
         def render_update_validation_error
-          @schedule_confirmed = true; render "auth/app/settings/withdrawals/new", status: :unprocessable_content
+          @schedule_confirmed = true; render "base/app/identity/withdrawals/new", status: :unprocessable_content
         end
 
         def verification_required_action? = true

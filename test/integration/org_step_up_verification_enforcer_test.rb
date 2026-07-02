@@ -37,7 +37,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to setup when configured methods are zero" do
     StepUpConfiguredMethods.stub(:call, []) do
       StepUpAvailableMethods.stub(:call, []) do
-        get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+        get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
 
@@ -52,7 +52,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
   test "GET protected endpoint redirects to verification when configured is non-zero but usable is zero" do
     StepUpConfiguredMethods.stub(:call, [:passkey]) do
       StepUpAvailableMethods.stub(:call, []) do
-        get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+        get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
       end
     end
 
@@ -75,7 +75,7 @@ class OrgStepUpVerificationEnforcerTest < ActionDispatch::IntegrationTest
       status_id: OperatorPasskeyStatus::ACTIVE,
     )
 
-    get auth_org_settings_withdrawal_url(ri: "jp"), headers: @headers
+    get base_org_identity_withdrawal_url(ri: "jp"), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)

@@ -4,7 +4,7 @@
 module Base
   module App
     module Identity
-      class BaseController < Base::App::FullAccessController
+      class BaseController < Base::App::ApplicationController
         AUTHENTICATION_MODE = :private
         declare_authentication_mode! :private
       end

@@ -278,8 +278,6 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     [
       { controller: "auth/app/settings", action: "show", path: "/settings" },
       { controller: "auth/app/settings/passkeys", action: "index", path: "/settings/passkeys" },
-      { controller: "auth/app/settings/sessions", action: "index", path: "/settings/sessions" },
-      { controller: "auth/app/settings/activities", action: "index", path: "/settings/activities" },
     ].each do |route|
       assert_recognizes(
         { controller: route[:controller], action: route[:action] },
@@ -417,10 +415,12 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_recognizes(
-      { controller: "auth/app/settings/secret_credentials", action: "index" },
-      { path: "http://#{SIGN_APP_HOST}/settings/secret_credentials", method: :get },
-    )
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "http://#{SIGN_APP_HOST}/settings/secret_credentials",
+        method: :get,
+      )
+    end
   end
 
   # rubocop:disable Minitest/MultipleAssertions
@@ -659,8 +659,6 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     [
       { controller: "auth/com/settings", action: "show", path: "/settings" },
       { controller: "auth/com/settings/passkeys", action: "index", path: "/settings/passkeys" },
-      { controller: "auth/com/settings/sessions", action: "index", path: "/settings/sessions" },
-      { controller: "auth/com/settings/activities", action: "index", path: "/settings/activities" },
     ].each do |route|
       assert_recognizes(
         { controller: route[:controller], action: route[:action] },
@@ -876,15 +874,11 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/settings/passkeys", method: :get },
     )
 
-    assert_recognizes(
-      { controller: "auth/org/settings/sessions", action: "index" },
-      { path: "http://#{SIGN_ORG_HOST}/settings/sessions", method: :get },
-    )
-
-    assert_recognizes(
-      { controller: "auth/org/settings/activities", action: "index" },
-      { path: "http://#{SIGN_ORG_HOST}/settings/activities", method: :get },
-    )
+    %w[/settings/sessions /settings/activities].each do |path|
+      assert_raises(ActionController::RoutingError) do
+        Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}#{path}", method: :get)
+      end
+    end
 
     assert_recognizes(
       { controller: "auth/org/configurations", action: "show" },

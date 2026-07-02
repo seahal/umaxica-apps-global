@@ -25,11 +25,11 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorEmail.count") do
-      delete auth_org_settings_email_url(email.public_id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_email", host: @host)
+      delete base_org_identity_email_url(email.public_id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_email", host: @base_host)
     end
 
-    assert_redirected_to auth_org_settings_emails_url(ri: "jp", host: @host)
+    assert_redirected_to base_org_identity_emails_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.org.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -40,11 +40,11 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_active_secret_credential(operator)
 
     assert_no_difference("OperatorTelephone.count") do
-      delete auth_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_telephone", host: @host)
+      delete base_org_identity_telephone_url(telephone.id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_telephone", host: @base_host)
     end
 
-    assert_redirected_to auth_org_settings_telephones_url(ri: "jp", host: @host)
+    assert_redirected_to base_org_identity_telephones_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.org.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -69,11 +69,11 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     secret_credential = create_active_secret_credential(operator)
 
     assert_no_difference("OperatorSecretCredential.count") do
-      delete auth_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_secret_credential", host: @host)
+      delete base_org_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_secret_credential", host: @base_host)
     end
 
-    assert_redirected_to auth_org_settings_secret_credentials_url(ri: "jp", host: @host)
+    assert_redirected_to base_org_identity_secrets_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.org.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -88,13 +88,13 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_active_secret_credential(operator)
 
     assert_difference("OperatorEmail.count", -1) do
-      delete auth_org_settings_email_url(email.public_id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_email", host: @host)
+      delete base_org_identity_email_url(email.public_id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_email", host: @base_host)
     end
 
     assert_difference("OperatorTelephone.count", -1) do
-      delete auth_org_settings_telephone_url(telephone.id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_telephone", host: @host)
+      delete base_org_identity_telephone_url(telephone.id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_telephone", host: @base_host)
     end
 
     assert_difference("OperatorPasskey.count", -1) do
@@ -103,8 +103,8 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
 
     assert_no_difference("OperatorSecretCredential.count") do
-      delete auth_org_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
-             headers: operator_headers(operator, scope: "settings_secret_credential", host: @host)
+      delete base_org_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host),
+             headers: operator_headers(operator, scope: "settings_secret_credential", host: @base_host)
     end
 
     secret_credential.reload
@@ -124,11 +124,18 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
       OperatorToken.create!(staff: operator, staff_token_status_id: OperatorTokenStatus::ACTIVE)
     satisfy_staff_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: scope)
-    {
+    headers = browser_headers
+    csrf_token = cookies["csrf_token"]
+    headers["Cookie"] = [headers["Cookie"], ("csrf_token=#{csrf_token}" if csrf_token.present?)].compact_blank.join("; ")
+    headers.merge(
       "Host" => host,
+      "Authorization" => "Bearer #{jwt_access_token_for(
+        operator, host: host, session_public_id: token.public_id,
+                  resource_type: "operator",
+      )}",
       "X-TEST-CURRENT-STAFF" => operator.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    )
   end
 
   def create_verified_email(operator, address)
@@ -193,6 +200,7 @@ class SignOrgCredentialRemovalConstraintsTest
       "Client-Agent" => TEST_BROWSER_USER_AGENT,
       "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "X-CSRF-Token" => csrf_token,
+      "Sec-Fetch-Site" => "same-origin",
     }
     if respond_to?(:cookies, true)
       cookies["csrf_token"] = csrf_token
@@ -288,7 +296,15 @@ class SignOrgCredentialRemovalConstraintsTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = if normalized.include?("acme")
+                "ACME"
+              elsif normalized.include?("core")
+                "CORE"
+              elsif normalized.include?("base")
+                "BASE"
+              else
+                "SIGN"
+              end
     surface =
       if service == "SIGN"
         case resource_type
@@ -679,7 +695,7 @@ class SignOrgCredentialRemovalConstraintsTest
   def browser_headers
     csrf_token = csrf_token_value
     cookies["csrf_token"] = csrf_token if respond_to?(:cookies, true)
-    host_headers.merge("X-CSRF-Token" => csrf_token)
+    host_headers.merge("X-CSRF-Token" => csrf_token, "Sec-Fetch-Site" => "same-origin")
   end
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
@@ -814,11 +830,17 @@ class SignOrgCredentialRemovalConstraintsTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

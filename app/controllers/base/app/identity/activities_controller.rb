@@ -14,10 +14,10 @@ module Base
                       :activity_user_agent_summary, :activity_login_method
         def index
           @activities = activity_log.activities.limit(100)
-          render "auth/app/settings/activities/index"
+          render "base/app/identity/activities/index"
         rescue ActiveRecord::ActiveRecordError
           @activities = ClientChronicle.none
-          render "auth/app/settings/activities/index"
+          render "base/app/identity/activities/index"
         end
 
         private

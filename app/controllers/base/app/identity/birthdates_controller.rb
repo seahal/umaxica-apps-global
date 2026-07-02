@@ -13,7 +13,7 @@ module Base
         before_action :authenticate_client!
         before_action :authorize_birthdate!, only: :show
         step_up only: :show
-        def show; render "auth/app/settings/birthdates/show"; end
+        def show; render "base/app/identity/birthdates/show"; end
 
         private
 

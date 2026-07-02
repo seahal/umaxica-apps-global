@@ -14,6 +14,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
+    @base_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
     host! @host
     @user = clients(:one)
     ClientEmail.create!(user: @user, address: "vf_#{SecureRandom.hex(4)}@example.com", user_email_status_id: ClientEmailStatus::VERIFIED)
@@ -26,7 +27,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     )
     # Bind the Bearer JWT to @token (the session the tests mutate below), not to
     # a fresh token that as_user_headers would otherwise create.
-    @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id)
+    @headers = as_user_headers(@user, host: @base_host, session_public_id: @token.public_id)
     @user.client_passkeys.create!(
       description: "Test passkey",
       webauthn_id: "test",
@@ -41,7 +42,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     @token.update!(created_at: 1.hour.ago)
 
     # Try to access email settings (requires step-up)
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     assert_match %r{/identity/emails}, response.location
@@ -53,7 +54,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
     @token.update!(created_at: 1.hour.ago)
 
     # Try to access email settings (requires step-up)
-    head auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    head base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     assert_match %r{/identity/emails}, response.location
@@ -63,7 +64,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
   test "successful passkey verification redirects to return_to" do
     @token.update!(created_at: 1.hour.ago)
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     verification_uri = URI.parse(response.location)
     pt = Rack::Utils.parse_query(verification_uri.query)["pt"]
@@ -80,7 +81,7 @@ class VerificationFlowTest < ActionDispatch::IntegrationTest
           # no longer self-issues grants; it can only emit a result against an acme-issued ceremony.
           signed_step_up_grant_for(
             actor: @user, token: @token, scope: "settings_email",
-            return_to: auth_app_settings_emails_path(ri: "jp"), surface: "app",
+            return_to: base_app_identity_emails_path(ri: "jp"), surface: "app",
           )
 
           post sign_app_verification_passkey_url(ri: "jp"),
@@ -418,7 +419,16 @@ class VerificationFlowTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("base") || normalized.start_with?("www.umaxica.")
+        "BASE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type

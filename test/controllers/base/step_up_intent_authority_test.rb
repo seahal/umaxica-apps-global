@@ -20,7 +20,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     )
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(
-      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+      base_app_identity_emails_path(ri: "jp"), surface: "app",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -51,7 +51,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
     token = create_client_token!(user)
-    return_to = auth_app_settings_emails_path(ri: "jp")
+    return_to = base_app_identity_emails_path(ri: "jp")
     issuance = issue_step_up_grant!(
       surface: "app",
       actor_ref: user.public_id,
@@ -105,7 +105,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: auth_app_settings_emails_path(ri: "jp"),
+      return_to: base_app_identity_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -138,7 +138,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     )
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(
-      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+      base_app_identity_emails_path(ri: "jp"), surface: "app",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -218,7 +218,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: auth_app_settings_emails_path(ri: "jp"),
+      return_to: base_app_identity_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -251,12 +251,12 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: auth_app_settings_emails_path(ri: "jp"),
+      return_to: base_app_identity_emails_path(ri: "jp"),
     )
 
     post base_app_verification_cancellation_url(ri: "jp", host: host),
          headers: app_session_headers(host, token, user),
-         params: { scope: "settings_email", return_to: auth_app_settings_emails_path(ri: "jp") }
+         params: { scope: "settings_email", return_to: base_app_identity_emails_path(ri: "jp") }
 
     assert_response :see_other
     assert_predicate issuance.transaction.reload, :canceled?
@@ -289,7 +289,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: other_token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: auth_app_settings_emails_path(ri: "jp"),
+      return_to: base_app_identity_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "app",
@@ -321,7 +321,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     )
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(
-      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+      base_app_identity_emails_path(ri: "jp"), surface: "app",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -341,7 +341,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(
-      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+      base_app_identity_emails_path(ri: "jp"), surface: "app",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -358,7 +358,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     user = clients(:one)
     token = create_client_token!(user)
     pt = signed_step_up_pt_for(
-      auth_app_settings_emails_path(ri: "jp"), surface: "app",
+      base_app_identity_emails_path(ri: "jp"), surface: "app",
                                                session_nonce: session_nonce_for(token),
     )
 

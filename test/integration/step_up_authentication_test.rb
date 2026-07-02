@@ -10,6 +10,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
   setup do
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
+    @base_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL")
     host! @host
 
     @user = clients(:one)
@@ -29,11 +30,11 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     @headers = bearer_headers(
       jwt_access_token_for(
         @user,
-        host: @host,
+        host: @base_host,
         session_public_id: @token.public_id,
         resource_type: "client",
       ),
-      host: @host,
+      host: @base_host,
     ).merge("X-TEST-SESSION-PUBLIC-ID" => @token.public_id).freeze
 
     ClientEmail.create!(
@@ -44,7 +45,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "GET sensitive page redirects to verification when step-up is not satisfied" do
-    get new_auth_app_settings_emails_registration_url(ri: "jp"), headers: @headers
+    get new_base_app_identity_emails_registration_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -59,7 +60,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "fresh sign-in token does not satisfy step-up without recorded step-up" do
     @token.update!(created_at: 1.minute.ago, last_step_up_at: nil, last_step_up_scope: nil)
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -71,7 +72,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "POST sensitive action returns 401 when step-up is not satisfied" do
-    post auth_app_settings_emails_registration_url(ri: "jp"),
+    post base_app_identity_emails_registration_url(ri: "jp", host: @base_host),
          params: { user_email: { address: "new@example.com" } },
          headers: @headers
 
@@ -81,7 +82,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "scope mismatch redirects to verification" do
     mark_step_up_satisfied!(@token, at: 3.minutes.ago, scope: "withdrawal")
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -95,7 +96,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "step-up older than 15 minutes redirects to verification" do
     mark_step_up_satisfied!(@token, at: 15.minutes.ago, scope: "settings_email")
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -108,7 +109,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     satisfy_user_verification(@token)
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
   end
@@ -127,7 +128,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     other_token.update!(created_at: 1.hour.ago)
     other_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => other_token.public_id)
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: other_headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: other_headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -140,7 +141,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(last_step_up_session_public_id: "other-session")
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -165,7 +166,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(discarded_at: 1.second.ago)
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :unprocessable_content
   end
@@ -175,7 +176,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     mark_step_up_satisfied!(@token, at: 10.minutes.ago, scope: "settings_email")
     @token.update!(last_step_up_at: nil, last_step_up_scope: nil, last_step_up_session_public_id: nil)
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -186,7 +187,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   test "missing session binding does not satisfy browser step-up" do
     @token.update!(last_step_up_at: 10.minutes.ago, last_step_up_scope: "settings_email")
 
-    get auth_app_settings_emails_url(ri: "jp"), headers: @headers
+    get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -197,7 +198,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
   end
 
   test "HEAD sensitive page redirects to verification when step-up is not satisfied" do
-    head new_auth_app_settings_emails_registration_url(ri: "jp"), headers: @headers
+    head new_base_app_identity_emails_registration_url(ri: "jp", host: @base_host), headers: @headers
 
     assert_response :redirect
     uri = URI.parse(response.location)
@@ -341,7 +342,16 @@ class StepUpAuthenticationTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("base") || normalized.start_with?("www.umaxica.")
+        "BASE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type

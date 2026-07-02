@@ -37,11 +37,11 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_verified_telephone(visitor, "+819022220000")
 
     assert_no_difference("VisitorEmail.count") do
-      delete auth_com_settings_email_url(email.public_id, ri: "jp", host: @host),
-             headers: visitor_headers(visitor, scope: "settings_email", host: @host)
+      delete base_com_identity_email_url(email.public_id, ri: "jp", host: @base_host),
+             headers: visitor_headers(visitor, scope: "settings_email", host: @base_host)
     end
 
-    assert_redirected_to auth_com_settings_emails_url(ri: "jp", host: @host)
+    assert_redirected_to base_com_identity_emails_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.app.settings.email.destroy.last_method"), flash[:alert]
   end
 
@@ -51,11 +51,11 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_active_passkey(visitor)
 
     assert_no_difference("VisitorTelephone.count") do
-      delete auth_com_settings_telephone_url(telephone.public_id, ri: "jp", host: @host),
-             headers: visitor_headers(visitor, scope: "settings_telephone", host: @host)
+      delete base_com_identity_telephone_url(telephone.public_id, ri: "jp", host: @base_host),
+             headers: visitor_headers(visitor, scope: "settings_telephone", host: @base_host)
     end
 
-    assert_redirected_to auth_com_settings_telephones_url(ri: "jp", host: @host)
+    assert_redirected_to base_com_identity_telephones_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.app.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
@@ -82,11 +82,11 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     assert_no_difference(
       "VisitorSecretCredential.where(visitor_secret_credential_status_id: VisitorSecretCredentialStatus::ACTIVE).count",
     ) do
-      delete auth_com_settings_secret_credential_url(secret_credential.public_id, ri: "jp", host: @host),
-             headers: visitor_headers(visitor, scope: "settings_secret_credential", host: @host)
+      delete base_com_identity_secret_url(secret_credential.public_id, ri: "jp", host: @base_host),
+             headers: visitor_headers(visitor, scope: "settings_secret_credential", host: @base_host)
     end
 
-    assert_redirected_to auth_com_settings_secret_credentials_url(ri: "jp", host: @host)
+    assert_redirected_to base_com_identity_secrets_url(ri: "jp", host: @base_host)
     assert_equal I18n.t("sign.app.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
@@ -98,8 +98,8 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     create_active_passkey(visitor)
 
     assert_difference("VisitorEmail.count", -1) do
-      delete auth_com_settings_email_url(email.public_id, ri: "jp", host: @host),
-             headers: visitor_headers(visitor, scope: "settings_email", host: @host)
+      delete base_com_identity_email_url(email.public_id, ri: "jp", host: @base_host),
+             headers: visitor_headers(visitor, scope: "settings_email", host: @base_host)
     end
 
     assert_difference("VisitorPasskey.count", -1) do
@@ -122,7 +122,10 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     satisfy_visitor_verification(token)
     mark_token_step_up_satisfied_for_test(token, scope: scope)
 
-    {
+    headers = browser_headers
+    csrf_token = cookies["csrf_token"]
+    headers["Cookie"] = [headers["Cookie"], ("csrf_token=#{csrf_token}" if csrf_token.present?)].compact_blank.join("; ")
+    headers.merge(
       "Host" => host,
       "Authorization" => "Bearer #{jwt_access_token_for(
         visitor, host: host, session_public_id: token.public_id,
@@ -130,7 +133,7 @@ class SignComCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
       )}",
       "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
       "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
-    }
+    )
   end
 
   def create_verified_email(visitor, address)
@@ -196,6 +199,7 @@ class SignComCredentialRemovalConstraintsTest
       "Client-Agent" => TEST_BROWSER_USER_AGENT,
       "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "X-CSRF-Token" => csrf_token,
+      "Sec-Fetch-Site" => "same-origin",
     }
     if respond_to?(:cookies, true)
       cookies["csrf_token"] = csrf_token
@@ -291,7 +295,15 @@ class SignComCredentialRemovalConstraintsTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = if normalized.include?("acme")
+                "ACME"
+              elsif normalized.include?("core")
+                "CORE"
+              elsif normalized.include?("base")
+                "BASE"
+              else
+                "SIGN"
+              end
     surface =
       if service == "SIGN"
         case resource_type
@@ -682,7 +694,7 @@ class SignComCredentialRemovalConstraintsTest
   def browser_headers
     csrf_token = csrf_token_value
     cookies["csrf_token"] = csrf_token if respond_to?(:cookies, true)
-    host_headers.merge("X-CSRF-Token" => csrf_token)
+    host_headers.merge("X-CSRF-Token" => csrf_token, "Sec-Fetch-Site" => "same-origin")
   end
 
   def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)

@@ -16,10 +16,10 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "confirmed withdrawal revokes other sessions but preserves the continuation session" do
     freeze_time do
-      patch auth_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
             params: { ack_schedule_purge: "1" },
             headers: headers_for(@token)
-      patch auth_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
     end
@@ -34,22 +34,22 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
 
   test "withdrawal recovery is rejected before one hour and after purge deadline" do
     freeze_time do
-      patch auth_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
             params: { ack_schedule_purge: "1" },
             headers: headers_for(@token)
-      patch auth_app_settings_withdrawal_url(ri: "jp", host: @host),
+      patch base_app_identity_withdrawal_url(ri: "jp", host: @host),
             params: { ack_deactivate_today: "1" },
             headers: headers_for(@token)
 
       travel 10.minutes
-      post auth_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+      post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at
 
       @user.update_columns(deactivated_at: 31.days.ago, discarded_at: 31.days.ago, purged_at: 1.minute.ago)
       mark_token_step_up_satisfied_for_test(@token, scope: "withdrawal")
-      post auth_app_settings_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
+      post base_app_identity_withdrawal_url(ri: "jp", host: @host), headers: headers_for(@token)
 
       assert_response :see_other
       assert_not_nil @user.reload.deactivated_at

@@ -1,0 +1,61 @@
+<% content_for :page_title, t("sign.app.settings.withdrawal.new.page_title") %>
+
+<h1><%= t("sign.app.settings.withdrawal.new.page_title") %></h1>
+
+<% if current_visitor.deactivated? %>
+  <p><%= t("sign.app.settings.withdrawal.new.already_deactivated") %></p>
+  <p>
+    <%= link_to t("sign.app.settings.withdrawal.recovery.link"),
+                edit_base_com_identity_withdrawal_path(ri: params[:ri]) %>
+  </p>
+<% else %>
+  <section>
+    <h2><%= t("sign.app.settings.withdrawal.schedule.title") %></h2>
+
+    <% if @schedule_form.errors.any? %>
+      <div>
+        <% @schedule_form.errors.full_messages.each do |message| %>
+          <p><%= message %></p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= form_with url: new_base_com_identity_withdrawal_path(ri: params[:ri]),
+                  method: :get,
+                  local: true do |f| %>
+      <div>
+        <%= f.check_box :ack_schedule_purge,
+                        { checked: @schedule_form.ack_schedule_purge.to_s == "1" },
+                        "1",
+                        "0" %>
+        <%= f.label :ack_schedule_purge, t("sign.app.settings.withdrawal.schedule.ack_label") %>
+      </div>
+      <%= f.submit t("sign.app.settings.withdrawal.schedule.submit") %>
+    <% end %>
+  </section>
+
+  <% if @schedule_confirmed %>
+    <section>
+      <h2><%= t("sign.app.settings.withdrawal.deactivate.title") %></h2>
+
+      <% if @deactivate_form.errors.any? %>
+        <div>
+          <% @deactivate_form.errors.full_messages.each do |message| %>
+            <p><%= message %></p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= form_with url: base_com_identity_withdrawal_path(ri: params[:ri]),
+                    method: :patch,
+                    local: true do |f| %>
+        <div>
+          <%= f.check_box :ack_deactivate_today, {}, "1", "0" %>
+          <%= f.label :ack_deactivate_today, t("sign.app.settings.withdrawal.deactivate.ack_label") %>
+        </div>
+        <%= f.submit t("sign.app.settings.withdrawal.deactivate.submit"),
+                     data: { turbo_confirm: t("sign.app.settings.withdrawal.deactivate.confirm") } %>
+      <% end %>
+    </section>
+  <% end %>
+<% end %>

@@ -1,0 +1,37 @@
+<% content_for :page_title, t("sign.app.settings.withdrawal.recovery.page_title") %>
+
+<h1><%= t("sign.app.settings.withdrawal.recovery.page_title") %></h1>
+
+<% if @terminated %>
+  <p><%= t("sign.app.settings.withdrawal.recovery.unavailable") %></p>
+<% else %>
+  <p>
+    <%= t("sign.app.settings.withdrawal.recovery.deadline", date: l(@recovery_deadline, format: :long)) %>
+  </p>
+
+  <% if @recoverable %>
+    <p><%= t("sign.app.settings.withdrawal.recovery.available") %></p>
+
+    <%= button_to t("sign.app.settings.withdrawal.recovery.submit"),
+                  base_com_identity_withdrawal_path(ri: params[:ri]),
+                  method: :post,
+                  data: { turbo_confirm: t("sign.app.settings.withdrawal.recovery.confirm") } %>
+  <% elsif @recovery_available_at.present? && Time.current < @recovery_available_at %>
+    <p><%= t("sign.app.settings.withdrawal.recovery.deadline", date: l(@recovery_available_at, format: :long)) %></p>
+  <% else %>
+    <p><%= t("sign.app.settings.withdrawal.recovery.unavailable") %></p>
+  <% end %>
+
+  <% if @early_terminatable %>
+    <%= button_to t("sign.app.settings.withdrawal.terminate.submit"),
+                  base_com_identity_withdrawal_path(ri: params[:ri]),
+                  method: :delete,
+                  data: { turbo_confirm: t("sign.app.settings.withdrawal.terminate.confirm") } %>
+  <% elsif @early_termination_available_at.present? %>
+    <p><%= t("sign.app.settings.withdrawal.terminate.available_at", date: l(@early_termination_available_at, format: :long)) %></p>
+  <% end %>
+<% end %>
+
+<p>
+  <%= link_to t("actions.back"), base_com_identity_path(ri: params[:ri]) %>
+</p>

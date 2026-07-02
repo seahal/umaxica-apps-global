@@ -16,13 +16,13 @@ module Base
         step_up only: %i(new create), bootstrap: true
         def index
           @secret_credentials = current_client.client_secret_credentials.order(created_at: :asc)
-          render "auth/app/settings/secret_credentials/index"
+          render "base/app/identity/secret_credentials/index"
         end
 
         def show
           set_secret_credential
           authorize!(@secret_credential)
-          render "auth/app/settings/secret_credentials/show"
+          render "base/app/identity/secret_credentials/show"
         end
 
         def new
@@ -35,13 +35,13 @@ module Base
           @raw_secret_credential = ClientSecretCredential.generate_raw_secret_credential
           session[:user_secret_credential_raw] = @raw_secret_credential
           @secret_credential.name = @raw_secret_credential.first(4)
-          render "auth/app/settings/secret_credentials/new"
+          render "base/app/identity/secret_credentials/new"
         end
 
         def edit
           set_secret_credential
           authorize!(@secret_credential)
-          render "auth/app/settings/secret_credentials/edit"
+          render "base/app/identity/secret_credentials/edit"
         end
 
         def create
@@ -70,7 +70,7 @@ module Base
               result.secret_credential.public_id,
               ri: params[:ri],
             ), status: :see_other,
-          ) : render("auth/app/settings/secret_credentials/edit", status: :unprocessable_content)
+          ) : render("base/app/identity/secret_credentials/edit", status: :unprocessable_content)
         end
 
         def destroy

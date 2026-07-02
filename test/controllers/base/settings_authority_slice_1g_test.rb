@@ -53,6 +53,56 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "base com identity owns non-ceremony identity settings" do
+    helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
+
+    %w[
+      base_com_identity_email
+      base_com_identity_telephone
+      base_com_identity_birthdate
+      base_com_identity_secret
+      base_com_identity_session
+      base_com_identity_activit
+      base_com_identity_withdrawal
+    ].each do |prefix|
+      assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
+    end
+  end
+
+  test "base org identity owns non-ceremony identity settings" do
+    helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
+
+    %w[
+      base_org_identity_email
+      base_org_identity_telephone
+      base_org_identity_birthdate
+      base_org_identity_secret
+      base_org_identity_session
+      base_org_identity_activit
+      base_org_identity_withdrawal
+    ].each do |prefix|
+      assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
+    end
+  end
+
+  test "base com identity routes load controllers" do
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
+    host! host
+
+    get base_com_identity_emails_url(ri: "jp", host: host)
+
+    assert_not_equal 404, response.status
+  end
+
+  test "base org identity routes load controllers" do
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
+    host! host
+
+    get base_org_identity_emails_url(ri: "jp", host: host)
+
+    assert_not_equal 404, response.status
+  end
+
   private
 
   def create_user_token!(user)

@@ -217,7 +217,6 @@ scope(module: :base, as: :base) do
         end
       end
 
-      resource :identity, only: :show
       namespace :identity do
         namespace :mfa do
           resource :reset, only: %i(show create)
@@ -414,6 +413,32 @@ scope(module: :base, as: :base) do
       end
 
       resource :identity, only: :show
+      namespace :identity do
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+
+        resources :secrets,
+                  controller: :secret_credentials,
+                  only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+        resources :sessions, only: %i(index show destroy)
+        resource :session_set, path: "sessions", only: :destroy, controller: "revocations/alls"
+        resource :other_sessions, only: :destroy, controller: "revocations/others"
+
+        resources :activities, only: :index
+        resource :withdrawal, only: %i(show update destroy)
+      end
     end
   end
 
@@ -554,6 +579,32 @@ scope(module: :base, as: :base) do
       end
 
       resource :identity, only: :show
+      namespace :identity do
+        namespace :emails do
+          resource :registration, only: %i(new create edit update)
+        end
+        resources :emails, only: %i(index edit update destroy)
+
+        namespace :telephones do
+          resource :registration, only: %i(new create edit update)
+        end
+        resources :telephones, only: %i(index new create edit destroy)
+
+        resource :birthdate, only: :show
+
+        resources :secrets,
+                  controller: :secret_credentials,
+                  only: %i(index show new edit create update destroy) do
+          resource :rotation, only: :create
+          resource :removal, only: :create
+        end
+        resources :sessions, only: %i(index show destroy)
+        resource :session_set, path: "sessions", only: :destroy, controller: "revocations/alls"
+        resource :other_sessions, only: :destroy, controller: "revocations/others"
+
+        resources :activities, only: :index
+        resource :withdrawal, only: %i(show update destroy)
+      end
     end
   end
 end

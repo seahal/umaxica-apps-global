@@ -40,7 +40,7 @@ class Auth::Org::Settings::Passkeys::OptionsController < ::Auth::Org::Applicatio
   def passkey_registration_passkeys = current_operator.staff_passkeys
 
   def passkey_registration_redirect_url
-    auth_org_settings_passkeys_url(ri: params[:ri], host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"))
+    auth_org_settings_passkeys_url(ri: params[:ri], host: base_authority_host)
   end
 
   def recovery_passcode_requirement_active_strong_credential_count
@@ -52,9 +52,9 @@ class Auth::Org::Settings::Passkeys::OptionsController < ::Auth::Org::Applicatio
   def recovery_passcode_requirement_credential_class = OperatorSecretCredential
 
   def recovery_passcode_setup_url
-    auth_org_settings_secret_credentials_url(
+    base_org_identity_secrets_url(
       ri: params[:ri],
-      host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
+      host: base_authority_host,
     )
   end
 end

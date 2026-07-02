@@ -15,7 +15,7 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
   end
 
   test "org withdrawal route is informational and exposes lifecycle request entry instead of destructive self service" do # rubocop:disable Layout/LineLength
-    get auth_org_settings_withdrawal_url(ri: "jp"), headers: headers
+    get base_org_identity_withdrawal_url(ri: "jp"), headers: headers
 
     assert_response :success
     assert_nil @staff.reload.deactivated_at
@@ -27,13 +27,13 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
   end
 
   test "org withdrawal endpoint does not accept app com destructive withdrawal verbs" do
-    patch auth_org_settings_withdrawal_url(ri: "jp"),
+    patch base_org_identity_withdrawal_url(ri: "jp"),
           params: { ack_deactivate_today: "1" },
           headers: headers
 
     assert_response :not_found
 
-    delete auth_org_settings_withdrawal_url(ri: "jp"), headers: headers
+    delete base_org_identity_withdrawal_url(ri: "jp"), headers: headers
 
     assert_response :not_found
     assert_nil @staff.reload.deactivated_at

@@ -16,13 +16,13 @@ module Base
 
         def index
           @client_emails = current_client.client_emails
-          render "auth/app/settings/emails/index"
+          render "base/app/identity/emails/index"
         end
 
         def edit
           @user_email = current_client.client_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
-          render "auth/app/settings/emails/edit"
+          render "base/app/identity/emails/edit"
         end
 
         def update
@@ -30,13 +30,13 @@ module Base
           authorize!(@user_email)
           unless cloudflare_turnstile_stealth_validation["success"]
             @user_email.errors.add(:base, t("turnstile_error"))
-            return render("auth/app/settings/emails/edit", status: :unprocessable_content)
+            return render("base/app/identity/emails/edit", status: :unprocessable_content)
           end
           if @user_email.update(email_preference_params)
             redirect_to(edit_base_app_identity_email_path(@user_email.public_id, ri: params[:ri]), status: :see_other)
           else
             @user_email.errors.add(:base, t("sign.app.settings.email.update.failure"))
-            render("auth/app/settings/emails/edit", status: :unprocessable_content)
+            render("base/app/identity/emails/edit", status: :unprocessable_content)
           end
         end
 

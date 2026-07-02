@@ -14,11 +14,11 @@ module Base
 
         def index
           @sessions = visible_sessions.order(created_at: :desc)
-          render "auth/app/settings/sessions/index"
+          render "base/app/identity/sessions/index"
         end
 
         def show
-          render "auth/app/settings/sessions/show"
+          render "base/app/identity/sessions/show"
         end
 
         def destroy

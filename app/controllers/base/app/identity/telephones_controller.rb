@@ -18,18 +18,18 @@ module Base
 
         def index
           @client_telephones = current_client.client_telephones.order(created_at: :asc)
-          render "auth/app/settings/telephones/index"
+          render "base/app/identity/telephones/index"
         end
 
         def new
           @user_telephone = ClientTelephone.new
-          render "auth/app/settings/telephones/new"
+          render "base/app/identity/telephones/new"
         end
 
         def edit
           @user_telephone = current_client.client_telephones.find_by!(public_id: params.expect(:id))
           authorize!(@user_telephone)
-          render "auth/app/settings/telephones/edit"
+          render "base/app/identity/telephones/edit"
         end
 
         def create

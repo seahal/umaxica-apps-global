@@ -12,7 +12,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     user = clients(:one)
     headers = as_user_headers(user, host: host)
     token = ClientToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    return_to = auth_app_settings_emails_path(ri: "jp")
+    return_to = base_app_identity_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
       actor: user, token: token, scope: "settings_email", return_to: return_to, surface: "app",
     )
@@ -41,7 +41,7 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
     )
     headers = as_visitor_headers(visitor, host: host)
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = base_com_identity_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
       actor: visitor, token: token, scope: "settings_email", return_to: return_to, surface: "com",
     )

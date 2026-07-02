@@ -18,9 +18,18 @@ ja:
     email_successfully_created: メールアドレスの確認コードを送信しました。
     telephone_successfully_created: 電話番号の確認コードを送信しました。
     sample_successfully_updated: 登録が完了しました。
+    cannot_delete_last_passkey: 最後のパスキーは削除できません。少なくとも1つのパスキーが必要です。
+    not_implemented: この機能はまだ実装されていません。
   test:
     error:
       key: テストエラー
+    email:
+      com:
+        application_mailer:
+          subject: コーポレートサンプル
+      org:
+        application_mailer:
+          subject: 組織サンプル
   auth:
     com:
       settings:
@@ -58,6 +67,11 @@ ja:
     cancel: キャンセル
     connect: 連携する
     delete: 削除
+    actions: 操作
+    continue: 続行
+    destroy: 削除
+    disconnect: 連携解除
+    edit: 編集
     save: 保存
     submit: 送信
     update: 更新
@@ -375,7 +389,10 @@ ja:
               accepted: チェックが必要です
   errors:
     otp_locked: 試行回数の上限を超えました。最初からやり直してください。
+    forbidden: アクセスが禁止されています。
     messages:
+      invalid_request: 無効なリクエストです。
+      not_found: 見つかりませんでした。
       validation_failed: 入力内容を確認してください。
       validation_errors:
         one: 1件のエラーがあります
@@ -486,6 +503,8 @@ ja:
     template:
       body: 次の項目を確認してください
       header: "%{model}に%{count}個のエラーが発生しました"
+  preferences:
+    title: 設定
   auth:
     unauthorized: 権限がありません
     session_expired: セッションの有効期限が切れました。もう一度サインインしてください。
@@ -496,12 +515,65 @@ ja:
       method_unavailable: 選択した認証方法は利用できません。
       register_methods_required: 利用可能なステップアップ認証がありません。パスキー・メール・TOTPを登録してください。
       verification_required: 認証が必要です。
+      canceled: 認証をキャンセル
+      completed: 続行
+    app:
+      settings:
+        activity:
+          events:
+            unknown: 不明なイベント（%{event_id}）
+        secret_credentials:
+          create:
+            created: シークレット認証情報を作成しました。
+          destroy:
+            last_method: 最後の認証手段のため削除できません。
+          edit:
+            description: シークレット認証情報の名前を変更します。
+            title: シークレット認証情報を編集
+          index:
+            new: 新規作成
+          new:
+            description: 名前を入力してシークレット認証情報を作成します。
+            title: シークレット認証情報を作成
+          show:
+            description: 登録済みのシークレット認証情報を確認します。
+            title: シークレット認証情報の詳細
+    com:
+      settings:
+        activity:
+          events:
+            unknown: 不明なイベント（%{event_id}）
     org:
       sign:
         up:
           invitations:
             create:
               turnstile_failed: 検証に失敗しました。もう一度お試しください。
+      settings:
+        activity:
+          events:
+            unknown: 不明なイベント（%{event_id}）
+        operator_lifecycle_requests:
+          create:
+            success: 申請を作成しました。
+        secret_credentials:
+          create:
+            created: シークレット認証情報を作成しました。
+          destroy:
+            last_method: 最後の認証手段のため削除できません。
+          edit:
+            description: シークレット認証情報の名前を変更します。
+            title: シークレット認証情報を編集
+          index:
+            description: 登録済みのシークレット認証情報を管理します。
+            new: 新規作成
+            title: シークレット認証情報
+          new:
+            description: 名前を入力してシークレット認証情報を作成します。
+            title: シークレット認証情報を作成
+          show:
+            description: 登録済みのシークレット認証情報を確認します。
+            title: シークレット認証情報の詳細
   core:
     app:
       layout:
@@ -597,6 +669,13 @@ ja:
         title: リカバリーパスコードが必要です
         description: "このMFA方法を登録するには、未使用のリカバリーパスコードが%{minimum}個以上必要です。現在は%{count}個です。"
         setup_link: リカバリーパスコードを管理する
+      show:
+        title: リカバリーパスコード
+        description: 今すぐリカバリーパスコードを保存してください。表示されるのは1回だけです。
+        inventory_notice: 保存済みのリカバリーパスコードは引き続き有効です。
+        missing: これらのリカバリーパスコードはもう利用できません。
+        one_time_notice: 新しく生成されたパスコードのみ表示されています。
+        back_to_settings: 設定に戻る
     token_refresh:
       errors:
         restricted_session: きんそくじこうです
@@ -779,12 +858,14 @@ ja:
       registration:
         cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
         session_missing: 登録セッションの有効期限が切れました。最初からやり直してください。
+        age_restricted_retry: あとでもう一度サインアップしてください。
         email:
           flow:
             invalid: セッションの有効期限が切れました。
           edit:
             not_found: メールアドレスが見つかりません。
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
+            return_page: 戻る
           new:
             page_title: メールアドレスで登録
             error_summary: 入力内容を確認してください。
@@ -796,6 +877,7 @@ ja:
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
             otp_resend_too_soon: しばらく時間をおいてから再度お試しください。
             turnstile_failed: ボット検証に失敗しました。もう一度お試しください。
+            address_required: メールアドレスを入力してください。
           update:
             code_required: 確認コードを入力してください。
             invalid_code: パスコードが正しくありません
@@ -803,6 +885,7 @@ ja:
             success: 登録が完了しました。
             sign_in_required: 登録を続行できませんでした。ログインをお試しください。
             failed: 登録処理に失敗しました。もう一度やり直してください。
+            invalid_token: メールアドレス更新リンクは無効です。
         telephone:
           already_logged_in: すでにログインしています。
           new:
@@ -812,6 +895,9 @@ ja:
           create:
             verification_code_sent: 確認コードをSMSで送信しました。
             turnstile_validation_failed: セキュリティ検証に失敗しました。もう一度お試しください。
+          resend:
+            rate_limited: しばらく待ってから再送してください。
+            sent: 認証コードをSMSで再送しました。
           edit:
             session_expired: セッションの有効期限が切れました。最初からやり直してください。
           update:
@@ -854,6 +940,7 @@ ja:
             disclaimer: 許可なく投稿や共有を行うことはありません。
         checkpoint:
           age_restricted: この登録方法ではアカウントを作成できません。16歳の誕生日以降にもう一度お試しください。
+          age_restricted_retry: あとでもう一度サインアップしてください。
           show:
             page_title: 登録を完了
             complete: 登録に必要な項目は完了しています。
@@ -863,6 +950,7 @@ ja:
               no_merge: 既存アカウントとは後から統合できません。
               cancel_if_wrong: 間違いならキャンセルしてください。
               confirm_label: 新しいUmaxica Identityを作成することを理解しました。
+              confirm_title: 登録の確認
             birthdate:
               title: 生年月日の確認
               description: 登録を続けるため、生年月日を入力してください。
@@ -893,6 +981,7 @@ ja:
           back_link: もどる
           back_to_root: うえへ
         email:
+          locked: このメールアドレスでのサインインはロックされています。
           create:
             invalid_format: 無効なメールアドレス形式です。
             you_have_already_logged_in: あなたはログインしています
@@ -938,10 +1027,13 @@ ja:
             page_title: 電話番号でサインイン
             description: このきのうはまだじっそうされていません
             you_have_already_logged_in: あなたはログインしています
-        recovery:
-          new:
-            page_title: リカバリーコードを利用する
-            description: 保存しているリカバリーコードを入力してアカウントへアクセスします。
+      recovery:
+        new:
+          page_title: リカバリーコードを利用する
+          description: 保存しているリカバリーコードを入力してアカウントへアクセスします。
+      up:
+        birthdate:
+          title: 生年月日の確認
       outs:
         destroy:
           success: ログアウトしました
@@ -956,6 +1048,7 @@ ja:
             already_registered: おかえりなさい！%{provider}でログインしました
             failure: ログインに失敗しました。もう一度お試しください。
           link:
+            default: "%{provider} を連携しました"
             success: "%{provider}アカウントを連携しました"
           unlink:
             success: "%{provider}アカウントの連携を解除しました"
@@ -1032,6 +1125,22 @@ ja:
           destroy:
             destroyed: 正常に削除されました。
             last_method: 最後のログイン手段のため削除できません。
+        mfa:
+          show:
+            disabled: 無効
+            enabled: 有効
+            reset_unavailable: MFA のリセットは現在利用できません。
+            title: MFA 設定
+            toggle_title: 多要素認証を有効にする
+          update:
+            failure: MFA 設定を更新できませんでした。
+            success: MFA 設定を更新しました。
+        sessions:
+          revoke:
+            all_button: すべてのセッションを無効化
+            all_confirm: すべての端末の全セッションを無効化しますか？
+            others_button: 他のセッションをすべて無効化
+            others_confirm: 他のすべてのセッションを無効化しますか？
         edit:
           page_title: アカウントの状態
           deactivated_notice: 退会手続き中です。設定の変更はできません。
@@ -1092,13 +1201,17 @@ ja:
             back: 設定に戻る
           show:
             title: パスキーの詳細
+            description: 登録済みのパスキーの詳細を確認します。
             back: 一覧に戻る
           edit:
             title: パスキーを編集
+            description: このパスキーの名前を変更します。
         show:
           page_title: 設定
           description: アカウントの高度なセキュリティ設定を管理します。
           security_settings: セキュリティ設定
+          mfa: MFA 設定
+          mfa_reset: MFA リセット
           totp_desc: 2段階認証を設定します
           passkey_desc: パスキーを管理します
           secret_credential_desc: シークレットキーの管理
@@ -1533,14 +1646,23 @@ ja:
         passkeys:
           new:
             page_title: パスキーを登録
+            description: パスワードなしでサインインできるように、新しいパスキーを登録します。
+            description_label: パスキー名
+            description_placeholder: '例: MacBook Pro'
+            submit: パスキーを登録
           index:
             title: パスキー管理
+            description: 登録済みのパスキーを管理します。
+            add: 新しいパスキーを登録
+            empty: 登録済みのパスキーはありません
+            back: 設定に戻る
           edit:
             title: パスキーを編集
             description: パスキーの名称を変更できます。
           show:
             title: パスキーの詳細
             description: 登録済みパスキーの情報を確認します。
+            back: 一覧に戻る
         mfa:
           show:
             title: MFA設定
@@ -1948,6 +2070,16 @@ ja:
         destroy:
           success: ログアウトしました
       settings:
+        mfa:
+          show:
+            disabled: 無効
+            enabled: 有効
+            reset_unavailable: MFA のリセットは現在利用できません。
+            title: MFA 設定
+            toggle_title: 多要素認証を有効にする
+          update:
+            failure: MFA 設定を更新できませんでした。
+            success: MFA 設定を更新しました。
         passkeys:
           new:
             page_title: パスキーを登録
@@ -1963,9 +2095,17 @@ ja:
             back: 設定に戻る
           show:
             title: パスキーの詳細
+            description: 登録済みのパスキーの詳細を確認します。
             back: 一覧に戻る
           edit:
             title: パスキーを編集
+            description: このパスキーの名前を変更します。
+        sessions:
+          revoke:
+            all_button: すべてのセッションを無効化
+            all_confirm: すべての端末の全セッションを無効化しますか？
+            others_button: 他のセッションをすべて無効化
+            others_confirm: 他のすべてのセッションを無効化しますか？
         secret_credentials:
           index:
             title: シークレット管理
@@ -2000,6 +2140,10 @@ ja:
         completed_title: サインアウトしました
         completed_description: "%{expires_at}以降には確実にアクセスが不可能となります。"
         home_link: ホームへ戻る
+        already_signed_out: すでにサインアウトしています。
+      verification:
+        cancelled_title: 認証をキャンセル
+        completed_title: 認証が完了しました
   org_timeline_tags:
     "%{id}": org_timeline_tag_%{id}
     technology: 技術
@@ -3090,6 +3234,7 @@ ja:
       no_sessions: アクティブなセッションがありません。
       submit: 選択したセッションを無効化してログイン
       back: 戻る
+      cancel: キャンセル
       cancel_logout: キャンセルしてログアウト
       cancel_logout_confirm: キャンセルしますか？ログアウトされます。
   languages:
@@ -3657,6 +3802,7 @@ ja:
         settings:
           outs:
             edit:
+              confirm_description: 一度ログアウトすると、再度ログインが必要になります。
               confirm_label: ろぐあうとしますか？
           emails:
             index:
@@ -3751,7 +3897,9 @@ ja:
       sign:
         in:
           limitations:
+            capacity_still_full: セッション容量がまだいっぱいです。続行するには別のセッションを無効にしてください。
             invalid_or_expired: このサインイン制限リンクは無効または期限切れです。
+            revoke_failed: セッションを無効化できませんでした。
       preferences:
         title: 設定
         description: アカウントの設定を管理します。

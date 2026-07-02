@@ -22,7 +22,7 @@ module Base
           def new
             @user_telephone = ClientTelephone.new
             reset_registration_session!
-            render "auth/app/settings/telephones/registrations/new"
+            render "base/app/identity/telephones/registrations/new"
           end
 
           def edit
@@ -34,7 +34,7 @@ module Base
                 notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
             end
-            render "auth/app/settings/telephones/registrations/edit"
+            render "base/app/identity/telephones/registrations/edit"
           end
 
           def create
