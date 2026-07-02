@@ -14,38 +14,22 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
   end
 
-  test "sign settings root redirects to acme identity" do
+  test "sign settings root remains limited to retained credential settings" do
     get sign_app_settings_url(ri: "jp"), headers: sign_headers
 
-    assert_redirected_to acme_app_identity_url(ri: "jp")
+    assert_response :redirect
   end
 
-  test "moved sign get routes redirect to acme identity" do
-    get auth_app_settings_emails_url(ri: "jp"), headers: sign_headers
-
-    assert_redirected_to acme_app_identity_emails_path(ri: "jp")
-
-    get sign_app_settings_birthdate_url(ri: "jp"), headers: sign_headers
-
-    assert_redirected_to acme_app_identity_birthdate_path(ri: "jp")
-
-    get sign_app_settings_activities_url(ri: "jp"), headers: sign_headers
-
-    assert_redirected_to acme_app_identity_activities_path(ri: "jp")
+  test "moved sign get routes are unroutable" do
+    assert_unroutable_auth_settings_path("/settings/emails", :get)
+    assert_unroutable_auth_settings_path("/settings/birthdate", :get)
+    assert_unroutable_auth_settings_path("/settings/activities", :get)
   end
 
-  test "moved sign mutation routes return gone" do
-    patch auth_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
-
-    assert_response :gone
-
-    delete auth_app_settings_email_url("missing", ri: "jp"), headers: sign_headers
-
-    assert_response :gone
-
-    post sign_app_settings_mfa_reset_url(ri: "jp"), headers: sign_headers
-
-    assert_response :gone
+  test "moved sign mutation routes are unroutable" do
+    assert_unroutable_auth_settings_path("/settings/emails/missing", :patch)
+    assert_unroutable_auth_settings_path("/settings/emails/missing", :delete)
+    assert_unroutable_auth_settings_path("/settings/mfa/reset", :post)
   end
 
   test "sign passkey route still exists" do
@@ -106,6 +90,15 @@ class IdentitySettingsMigrationTest < ActionDispatch::IntegrationTest
     BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
     BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
     acme_headers
+  end
+
+  def assert_unroutable_auth_settings_path(path, method)
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path(
+        "https://#{@sign_host}#{path}",
+        method: method,
+      )
+    end
   end
 end
 

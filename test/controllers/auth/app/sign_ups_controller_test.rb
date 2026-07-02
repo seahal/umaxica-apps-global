@@ -7,12 +7,11 @@ require "test_helper"
 class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses
 
-  test "direct entry without a login challenge is rejected" do
+  test "direct entry without a login challenge starts OIDC handoff" do
     get auth_app_sign_up_url(format: :html, ri: "jp"), headers: { "Host" => host }
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_nil session[:oidc_authorization_login_challenge]
-    assert_nil session["oidc_pending_flows"]
   end
 
   test "valid login challenge renders local ceremony" do

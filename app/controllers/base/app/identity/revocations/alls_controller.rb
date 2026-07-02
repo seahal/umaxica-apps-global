@@ -14,6 +14,7 @@ module Base
             AuthenticationSessionRevoker.revoke_all_for(current_client)
             redirect_to(base_app_sign_out_path(ri: params[:ri]), status: :see_other)
           end
+          alias_method :destroy, :create
         end
       end
     end

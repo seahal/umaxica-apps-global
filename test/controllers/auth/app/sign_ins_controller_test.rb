@@ -11,12 +11,12 @@ module Auth
         @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       end
 
-      test "direct entry without login challenge is rejected" do
+      test "direct entry without login challenge starts OIDC handoff" do
         get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-        assert_response :unprocessable_content
+        assert_response :redirect
         assert_nil session[:oidc_authorization_login_challenge]
-        assert_nil session["oidc_pending_flows"]
+        assert_predicate session["oidc_pending_flows"], :present?
       end
 
       test "local ceremony renders authentication links" do

@@ -6,8 +6,8 @@ require "test_helper"
 
 class Auth::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    @base_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
+    @host = configured_host(:sign_corporate)
+    @base_host = configured_host(:base_corporate)
     host! @host
   end
 
@@ -15,17 +15,27 @@ class Auth::Com::SettingsControllerTest < ActionDispatch::IntegrationTest
     get auth_com_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_match %r{\Ahttps://}, response.location
   end
 
-  test "sign credential settings routes still resolve on sign" do
+  test "retained sign credential settings routes still resolve on sign" do
     get auth_com_settings_passkeys_url(ri: "jp")
 
     assert_not_equal 404, response.status
 
-    get auth_com_settings_secret_credentials_url(ri: "jp")
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@host}/settings/totps", method: :get)
+    end
+  end
 
-    assert_not_equal 404, response.status
+  test "migrated identity settings routes do not resolve on sign" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@host}/settings/secret_credentials", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@host}/settings/sessions", method: :get)
+    end
   end
 end
 

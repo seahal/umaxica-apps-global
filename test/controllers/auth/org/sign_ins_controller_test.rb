@@ -11,10 +11,10 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
   end
 
-  test "direct entry without a login challenge is rejected" do
+  test "direct entry without a login challenge starts OIDC handoff" do
     get auth_org_sign_in_url(ri: "jp"), headers: { "Host" => @host }
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_nil session[:oidc_authorization_login_challenge]
   end
 

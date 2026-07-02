@@ -375,7 +375,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     visitor = create_verified_visitor_with_email(email_address: "visitor-step-up-#{SecureRandom.hex(4)}@example.com")
     token = VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
     pt = signed_step_up_pt_for(
-      sign_com_settings_emails_path(ri: "jp"), surface: "com",
+      base_com_identity_emails_path(ri: "jp"), surface: "com",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -401,7 +401,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_com_settings_emails_path(ri: "jp"),
+      return_to: base_com_identity_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "com",
@@ -424,7 +424,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
     operator = operators(:one)
     token = operator_tokens(:one)
     pt = signed_step_up_pt_for(
-      sign_org_settings_emails_path(ri: "jp"), surface: "org",
+      base_org_identity_emails_path(ri: "jp"), surface: "org",
                                                session_nonce: session_nonce_for(token),
     )
 
@@ -450,7 +450,7 @@ class BaseStepUpIntentAuthorityTest < ActionDispatch::IntegrationTest
       session_ref: token.public_id,
       scope: "settings_email",
       methods: ["passkey"],
-      return_to: sign_org_settings_emails_path(ri: "jp"),
+      return_to: base_org_identity_emails_path(ri: "jp"),
     )
     result = issue_step_up_result!(
       surface: "org",

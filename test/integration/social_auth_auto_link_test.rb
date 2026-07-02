@@ -29,7 +29,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   test "logged-in user: Sign-started Apple link commits on sign" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    create_active_browser_token!(user)
 
     # Mock Apple auth (NO email)
     apple_uid = "apple_auto_link_#{SecureRandom.hex(4)}"
@@ -53,7 +53,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   test "logged-in user: Sign-started Google link commits on sign" do
     # Create and login as user
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    create_active_browser_token!(user)
 
     # Mock Google auth (NO email)
     google_uid = "google_auto_link_#{SecureRandom.hex(4)}"
@@ -76,7 +76,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
   # ============================================================================
   test "Sign-started Apple callbacks remain single-identity across repeated attempts" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "user_#{SecureRandom.hex(4)}")
-    ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    create_active_browser_token!(user)
 
     apple_uid = "apple_idempotent_#{SecureRandom.hex(4)}"
 
@@ -112,7 +112,7 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
     # Create userB and try to link the SAME Apple uid
     user_b = Client.create!(status_id: ClientStatus::ACTIVE, public_id: "userB_#{SecureRandom.hex(4)}")
-    ClientToken.create!(user: user_b, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    create_active_browser_token!(user_b)
 
     # Callback as userB must be rejected before any reassignment.
     state = start_social_auth_flow(provider: "apple", intent: "link", user: user_b)
@@ -189,6 +189,18 @@ class SocialAuthAutoLinkTest < ActionDispatch::IntegrationTest
 
   def start_social_auth_flow(provider:, intent:, user: nil)
     seed_social_auth_session(provider: provider, intent: intent, user: user, ri: "jp")
+  end
+
+  def create_active_browser_token!(user)
+    ensure_user_token_reference_records!
+    ClientToken.create!(
+      user: user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+      discarded_at: 1.day.from_now,
+    )
   end
   private
 
@@ -786,7 +798,7 @@ class SocialAuthAutoLinkTest
   end
 
   def seed_social_auth_session(provider:, intent: "login", user: nil, entry: nil, ri: "jp", rt: nil, referer: nil)
-    host = configured_host(:sign_service)
+    host = @host.presence || configured_host(:sign_service)
     host!(host) if respond_to?(:host!)
     normalized_provider = SocialIdentifiable.normalize_provider(provider)
     continue_path =
@@ -1031,11 +1043,17 @@ class SocialAuthAutoLinkTest
   def mark_token_step_up_satisfied_for_test(token, scope: nil, at: Time.current)
     return unless token.respond_to?(:update_columns)
 
-    token.update_columns(
-      { last_step_up_at: at,
-        last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
-        updated_at: Time.current, }.compact,
-    )
+    attrs = {
+      last_step_up_at: at,
+      last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+      last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+      last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+      last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
+      updated_at: Time.current,
+    }.compact
+    token.update_columns(attrs)
   end
 
   def load_jump_rt_env!

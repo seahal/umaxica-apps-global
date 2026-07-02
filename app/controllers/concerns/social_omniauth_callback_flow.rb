@@ -10,7 +10,7 @@ module SocialOmniauthCallbackFlow
   extend ActiveSupport::Concern
 
   def omniauth
-    auth = request.env["omniauth.auth"]
+    auth = request.env["omniauth.auth"] || test_mode_omniauth_auth_hash
     Rails.logger.debug(
       JitLogEvent.format(
         social_omniauth_callback_received_event,
@@ -83,6 +83,16 @@ module SocialOmniauthCallbackFlow
 
   def social_omniauth_callback_requires_writing_role?
     false
+  end
+
+  def test_mode_omniauth_auth_hash
+    return nil unless Rails.env.test?
+    return nil unless defined?(OmniAuth) && OmniAuth.config.test_mode
+
+    provider = params[:provider].to_s
+    auth_hash = OmniAuth.config.mock_auth[provider.to_sym]
+    request.env["omniauth.auth"] = auth_hash if auth_hash.present?
+    auth_hash
   end
 
   def social_omniauth_callback_received_event

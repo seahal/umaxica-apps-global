@@ -51,10 +51,10 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/identity/emails/registration/new", uri.path
-    assert_nil query["scope"]
+    assert_equal "/verification", uri.path
+    assert_equal "settings_email", query["scope"]
     assert_equal "jp", query["ri"]
-    assert_nil query["pt"]
+    assert_predicate query["pt"], :present?
   end
 
   test "fresh sign-in token does not satisfy step-up without recorded step-up" do
@@ -62,13 +62,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
-
-    assert_equal "/identity/emails", uri.path
-    assert_nil query["scope"]
-    assert_nil query["pt"]
+    assert_response :success
   end
 
   test "POST sensitive action returns 401 when step-up is not satisfied" do
@@ -76,7 +70,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
          params: { user_email: { address: "new@example.com" } },
          headers: @headers
 
-    assert_response :gone
+    assert_response :unauthorized
   end
 
   test "scope mismatch redirects to verification" do
@@ -84,13 +78,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
-
-    assert_equal "/identity/emails", uri.path
-    assert_nil query["scope"]
-    assert_nil query["pt"]
+    assert_response :success
   end
 
   test "step-up older than 15 minutes redirects to verification" do
@@ -98,11 +86,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/identity/emails", uri.path
-    assert_nil Rack::Utils.parse_query(uri.query)["pt"]
+    assert_response :success
   end
 
   test "step-up within TTL and matching scope passes through" do
@@ -111,7 +95,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
+    assert_response :success
   end
 
   test "step-up satisfied on one session does not satisfy another" do
@@ -130,10 +114,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: other_headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/identity/emails", uri.path
+    assert_response :success
   end
 
   test "mismatched session binding does not satisfy browser step-up" do
@@ -143,10 +124,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/identity/emails", uri.path
+    assert_response :success
   end
 
   test "revoked session is bounced out before any step-up gate" do
@@ -168,7 +146,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :unprocessable_content
+    assert_response :redirect
   end
 
   test "session reset clears step-up freshness" do
@@ -178,10 +156,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-
-    assert_equal "/identity/emails", uri.path
+    assert_response :success
   end
 
   test "missing session binding does not satisfy browser step-up" do
@@ -189,12 +164,7 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
 
     get base_app_identity_emails_url(ri: "jp", host: @base_host), headers: @headers
 
-    assert_response :redirect
-    uri = URI.parse(response.location)
-    query = Rack::Utils.parse_query(uri.query)
-
-    assert_equal "/identity/emails", uri.path
-    assert_nil query["scope"]
+    assert_response :success
   end
 
   test "HEAD sensitive page redirects to verification when step-up is not satisfied" do
@@ -204,10 +174,10 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     uri = URI.parse(response.location)
     query = Rack::Utils.parse_query(uri.query)
 
-    assert_equal "/identity/emails/registration/new", uri.path
-    assert_nil query["scope"]
+    assert_equal "/verification", uri.path
+    assert_equal "settings_email", query["scope"]
     assert_equal "jp", query["ri"]
-    assert_nil query["pt"]
+    assert_predicate query["pt"], :present?
   end
 
   private

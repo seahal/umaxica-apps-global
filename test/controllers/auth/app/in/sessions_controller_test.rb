@@ -33,7 +33,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_redirected_to auth_app_sign_in_url(ri: "jp")
   end
 
-  test "protected settings sessions requires authentication" do
+  test "migrated settings sessions route is not served by sign" do
     with_env(
       "PRIVATE_AUTH_SERVICE_URL" => "log.umaxica.app",
       "BASE_SERVICE_URL" => "www.umaxica.app",
@@ -45,9 +45,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
         headers: browser_headers.merge("Host" => "log.umaxica.app"),
       )
 
-      assert_response :redirect
-      assert_not_includes response.location, "token="
-      assert_not_includes response.location, "session_id="
+      assert_response :not_found
+      assert_nil response.location
     end
   ensure
     Rails.application.reload_routes!

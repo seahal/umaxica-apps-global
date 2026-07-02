@@ -20,4 +20,5 @@ class Base::Com::Identity::Revocations::OthersController < ::Base::Com::Applicat
     end
     redirect_to(base_com_identity_sessions_path(ri: params[:ri]), status: :see_other)
   end
+  alias_method :destroy, :create
 end

@@ -79,6 +79,8 @@ end
 
 class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
   setup do
+    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+    AuthenticationBase.login_cooldown_enabled = false
     @controller = AuthenticationBaseTestController.new
     @user = clients(:one)
 
@@ -89,6 +91,10 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @session_hash = {}
     @controller.define_singleton_method(:session) { @session_hash }
     @controller.instance_variable_set(:@session_hash, @session_hash)
+  end
+
+  teardown do
+    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
   end
 
   test "redirect_with_pt_handling hits branches" do
@@ -604,7 +610,7 @@ class AuthenticationBaseCoverageTest < ActionDispatch::IntegrationTest
     @controller.define_singleton_method(:risk_actor_payload) { |_| {} }
     @controller.request.request_id = "request-1"
 
-    assert_equal "/settings/withdrawal", @controller.withdrawal_gate_redirect_path
+    assert_equal "/identity/withdrawal/edit", @controller.withdrawal_gate_redirect_path
     assert_nil @controller.handle_missing_refresh_token("missing-public-id")
     assert_equal :unauthorized, @controller.refresh_failure_status
 

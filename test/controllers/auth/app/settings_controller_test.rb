@@ -15,17 +15,27 @@ class Auth::App::SettingsControllerTest < ActionDispatch::IntegrationTest
     get auth_app_settings_url(ri: "jp")
 
     assert_response :redirect
-    assert_oidc_authorize_redirect(response.location, host: @base_host, client_id: "sign-rp")
+    assert_match %r{\Ahttps://}, response.location
   end
 
-  test "sign credential settings routes still resolve on sign" do
+  test "retained sign credential settings routes still resolve on sign" do
     get auth_app_settings_passkeys_url(ri: "jp")
 
     assert_not_equal 404, response.status
 
-    get auth_app_settings_secret_credentials_url(ri: "jp")
+    get auth_app_settings_totps_url(ri: "jp")
 
     assert_not_equal 404, response.status
+  end
+
+  test "migrated identity settings routes do not resolve on sign" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@host}/settings/secret_credentials", method: :get)
+    end
+
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@host}/settings/sessions", method: :get)
+    end
   end
 end
 

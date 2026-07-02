@@ -17,7 +17,7 @@ module Security
       setup do
         ensure_client_token_reference_records!
         ClientToken.skip_callback(:validation, :before, :ensure_device_session_record)
-        @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+        @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
         host! @host
       end
 
@@ -28,7 +28,7 @@ module Security
       test "closing resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:closing)
 
-        get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+        get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers
 
         assert_predicate user.reload, :closing?
@@ -39,7 +39,7 @@ module Security
       test "suspended resource gets withdrawal required on json protected routes" do
         _user, headers = withdrawal_user_and_headers(:suspended)
 
-        get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+        get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers.merge("Accept" => "application/json")
 
         assert_response :forbidden
@@ -49,7 +49,7 @@ module Security
       test "terminated resource is redirected away from protected html routes" do
         user, headers = withdrawal_user_and_headers(:terminated)
 
-        get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")),
+        get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers
 
         assert_predicate user.reload, :terminated?

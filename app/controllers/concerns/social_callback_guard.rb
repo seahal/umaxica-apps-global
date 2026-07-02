@@ -112,16 +112,31 @@ module SocialCallbackGuard
         hosts =
           %w(
             PUBLIC_AUTH_SERVICE_URL
-            PUBLIC_AUTH_SERVICE_URL
-            PRIVATE_AUTH_STAFF_URL
-            PRIVATE_AUTH_STAFF_URL
+            PRIVATE_AUTH_SERVICE_URL
+            PUBLIC_AUTH_CORPORATE_URL
+            AUTH_CORPORATE_URL
             PRIVATE_AUTH_CORPORATE_URL
+            PUBLIC_AUTH_STAFF_URL
+            AUTH_STAFF_URL
+            PRIVATE_AUTH_STAFF_URL
           ).filter_map { |key| normalize_host_port(ENV.fetch(key)) }
+
+        if Rails.configuration.x.respond_to?(:boot_config)
+          boot_hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+          hosts.concat(
+            %i(sign_service sign_corporate sign_staff).filter_map do |host_name|
+              normalize_host_port(boot_hosts.public_send(host_name).to_s)
+            end,
+          )
+        end
 
         if Rails.env.local?
           hosts << "auth.app.localhost"
           hosts << "auth.com.localhost"
           hosts << "auth.org.localhost"
+          hosts << "sign.app.localhost"
+          hosts << "sign.com.localhost"
+          hosts << "sign.org.localhost"
         end
 
         hosts.uniq
@@ -227,6 +242,14 @@ module SocialCallbackGuard
       used_at: session[SOCIAL_STATE_USED_AT_SESSION_KEY],
       stored_provider: session[SOCIAL_STATE_PROVIDER_SESSION_KEY].to_s.presence,
     }
+  end
+
+  def test_mode_mock_auth_present?
+    return false unless defined?(OmniAuth) && OmniAuth.config.test_mode
+
+    callback_params = respond_to?(:params, true) ? params : request.parameters
+    provider = callback_params["provider"].to_s
+    OmniAuth.config.mock_auth[provider.to_sym].present?
   end
 
   def detect_callback_state_error(state, provider)

@@ -42,6 +42,12 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        get(
+          "openid-configuration",
+          to: "discoveries#show",
+          as: :discovery,
+          format: false,
+        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -74,9 +80,11 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:oauth) do
+        get("authorize", to: "authorizations#show", as: :authorization)
         resource(:authorize, only: :show, controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
+        post("revoke", to: "revocations#create", as: :revocation)
         resource(:revoke, only: :create, controller: :revocations)
       end
 
@@ -95,6 +103,7 @@ scope(module: :base, as: :base) do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
+            resource :refresh, only: :create
           end
         end
       end
@@ -243,6 +252,12 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        get(
+          "openid-configuration",
+          to: "discoveries#show",
+          as: :discovery,
+          format: false,
+        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -275,9 +290,11 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:oauth) do
+        get("authorize", to: "authorizations#show", as: :authorization)
         resource(:authorize, only: :show, controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
+        post("revoke", to: "revocations#create", as: :revocation)
         resource(:revoke, only: :create, controller: :revocations)
       end
 
@@ -296,6 +313,7 @@ scope(module: :base, as: :base) do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
+            resource :refresh, only: :create
           end
         end
       end
@@ -374,6 +392,12 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        get(
+          "openid-configuration",
+          to: "discoveries#show",
+          as: :discovery,
+          format: false,
+        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -428,9 +452,11 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:oauth) do
+        get("authorize", to: "authorizations#show", as: :authorization)
         resource(:authorize, only: :show, controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
+        post("revoke", to: "revocations#create", as: :revocation)
         resource(:revoke, only: :create, controller: :revocations)
       end
 
@@ -449,6 +475,7 @@ scope(module: :base, as: :base) do
           namespace :token do
             resource :check, only: :show
             resource :dbsc, only: :create
+            resource :refresh, only: :create
           end
         end
       end
@@ -487,6 +514,34 @@ scope(module: :base, as: :base) do
         resources :activities, only: :index
         resource :withdrawal, only: :show
       end
+    end
+  end
+
+  constraints(host: [ENV["PRIVATE_BASE_NETWORK_URL"], "base.net.localhost"].compact) do
+    scope(module: :app, as: :network) do
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
+    end
+    scope(module: :net, as: :network) do
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
+    end
+  end
+
+  constraints(host: [ENV["PRIVATE_BASE_DEVELOPER_URL"], "base.dev.localhost"].compact) do
+    scope(module: :app, as: :developer) do
+      resource(:health, only: :show)
+      namespace(:health) do
+        resource(:liveness, only: :show)
+        resource(:readiness, only: :show)
+        resource(:startup, only: :show)
+      end
+    end
+    scope(module: :dev, as: :developer) do
+      resource(:csp_violation_report, only: :create, path: "csp-violation-report")
     end
   end
 end

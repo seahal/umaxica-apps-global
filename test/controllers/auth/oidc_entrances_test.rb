@@ -38,24 +38,24 @@ class AuthOidcEntrancesTest < ActionDispatch::IntegrationTest
     assert_equal issuance.transaction.login_challenge, session[:oidc_authorization_login_challenge]
   end
 
-  test "sign entry without login challenge is rejected" do
+  test "sign entry without login challenge starts OIDC handoff" do
     get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "sign up entry without login challenge is rejected" do
+  test "sign up entry without login challenge starts OIDC handoff" do
     get auth_app_sign_up_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_nil session[:oidc_authorization_login_challenge]
   end
 
-  test "sign started flow requires an issued login challenge" do
+  test "sign started flow without issued login challenge starts OIDC handoff" do
     get auth_app_sign_in_url(ri: "jp"), headers: { "Host" => @sign_host }
 
-    assert_response :unprocessable_content
+    assert_response :redirect
     assert_nil session[:oidc_authorization_login_challenge]
   end
 

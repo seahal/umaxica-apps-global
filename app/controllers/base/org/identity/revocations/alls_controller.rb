@@ -10,4 +10,5 @@ class Base::Org::Identity::Revocations::AllsController < ::Base::Org::Applicatio
     logout_all_sessions_for!(resource: current_operator, reason: "settings.session.revoke_all")
     redirect_to(auth_org_sign_out_path(ri: params[:ri]), status: :see_other)
   end
+  alias_method :destroy, :create
 end

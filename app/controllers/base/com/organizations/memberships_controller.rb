@@ -14,6 +14,10 @@ module Base
           render json: []
         end
 
+        def show
+          render json: {}
+        end
+
         def new
           render plain: "New Membership"
         end

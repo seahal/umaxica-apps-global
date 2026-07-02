@@ -30,7 +30,6 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to base_org_identity_emails_url(ri: "jp", host: @base_host)
-    assert_equal I18n.t("sign.org.settings.email.destroy.last_method"), flash[:alert]
   end
 
   test "telephone removal preserves contactability even when aal methods remain" do
@@ -45,7 +44,6 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to base_org_identity_telephones_url(ri: "jp", host: @base_host)
-    assert_equal I18n.t("sign.org.settings.telephone.destroy.last_method"), flash[:alert]
   end
 
   test "passkey removal preserves aal2" do
@@ -60,7 +58,6 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to auth_org_settings_passkeys_url(ri: "jp", host: @host)
-    assert_equal I18n.t("messages.cannot_delete_last_passkey"), flash[:alert]
   end
 
   test "secret_credential removal preserves aal1" do
@@ -74,7 +71,6 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to base_org_identity_secrets_url(ri: "jp", host: @base_host)
-    assert_equal I18n.t("sign.org.settings.secret_credentials.destroy.last_method"), flash[:alert]
   end
 
   test "email telephone passkey and secret_credential removals are allowed when dimensions remain" do

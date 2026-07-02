@@ -32,11 +32,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     BaseSelectorBootstrapAuthority.call(surface: :app, principal: @deactivated_user)
     BaseSelectorAuthority.prepare(surface: :app, principal: @deactivated_user, session: @token)
 
-    @headers = {
-      "Host" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
-      "X-TEST-CURRENT-USER" => @deactivated_user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }.freeze
+    @headers = as_user_headers(@deactivated_user, host: @host, session_public_id: @token.public_id)
   end
 
   test "deactivated user accessing normal page redirects to withdrawal status" do
@@ -93,11 +89,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     BaseSelectorBootstrapAuthority.call(surface: :app, principal: normal_user)
     BaseSelectorAuthority.prepare(surface: :app, principal: normal_user, session: normal_token)
 
-    headers = {
-      "Host" => ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
-      "X-TEST-CURRENT-USER" => normal_user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => normal_token.public_id,
-    }
+    headers = as_user_headers(normal_user, host: @host, session_public_id: normal_token.public_id)
 
     get base_app_identity_url(ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
         headers: headers

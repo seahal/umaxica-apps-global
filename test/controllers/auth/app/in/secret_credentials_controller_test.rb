@@ -15,11 +15,15 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     @raw_email = "secret_credential_login_#{SecureRandom.hex(4)}@example.com".freeze
     @email = @user.client_emails.create!(address: @raw_email, user_email_status_id: ClientEmailStatus::VERIFIED)
     @telephone = @user.client_telephones.create!(number: "+819012345678")
+    ClientToken.where(user_id: @user.id).delete_all
+    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+    AuthenticationBase.login_cooldown_enabled = false
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
 
   teardown do
+    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
   end
@@ -95,7 +99,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
 
     assert_response :found
     assert_redirected_to auth_app_sign_in_session_path(ri: "jp")
-    assert_equal I18n.t("sign.app.in.session.restricted_notice"), flash[:notice]
+    assert_nil flash[:notice]
     assert_equal 0, ClientToken.where(user_id: @user.id, user_token_status_id: ClientTokenStatus::RESTRICTED).count
   end
 
@@ -720,20 +724,19 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :restricted } }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_equal [nil, { notice: I18n.t("sign.app.in.session.restricted_notice") }], redirects.last
+    assert_equal [nil, {}], redirects.last
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :success, redirect_path: "/after" } }
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard}, redirects.last.first
+    assert_equal "/dashboard", redirects.last.first
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.handle_successful_mfa(@user, secret_credential)
 
-    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard\?}, redirects.last.first
-    assert_includes redirects.last.first, "ri=jp"
-    assert_equal({ notice: "sign.app.authentication.secret_credential.create.success" }, redirects.last.second)
+    assert_equal "/dashboard", redirects.last.first
+    assert_equal({ allow_other_host: false }, redirects.last.second)
 
     controller.define_singleton_method(:finalize_mfa_login!) { |_| { status: :unexpected } }
     controller.handle_successful_mfa(@user, secret_credential)
@@ -745,7 +748,7 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     }
     controller.process_standard_login(@user)
 
-    assert_equal ["/challenge", { notice: "sign.app.in.mfa.required" }], redirects.last
+    assert_equal ["/challenge", {}], redirects.last
 
     controller.define_singleton_method(:establish_signed_in_session!) { |*|
       { status: :session_limit_hard_reject, message: "limit", http_status: :conflict }
@@ -757,21 +760,17 @@ class Auth::App::Sign::In::SecretCredentialsControllerTest < ActionDispatch::Int
     controller.define_singleton_method(:establish_signed_in_session!) { |*| { restricted: true } }
     controller.process_standard_login(@user)
 
-    assert_equal ["/sign/in/session", { notice: I18n.t("sign.app.in.session.restricted_notice") }], redirects.last
+    assert_equal ["/sign/in/session", {}], redirects.last
 
     controller.define_singleton_method(:establish_signed_in_session!) { |*| { status: :success } }
     controller.define_singleton_method(:issue_bulletin!) { true }
     controller.process_standard_login(@user)
 
-    assert_match %r{\Ahttps?://www\.umaxica\.app/dashboard\?}, redirects.last.first
+    assert_equal ["/dashboard", { allow_other_host: false }], redirects.last
 
     controller.define_singleton_method(:issue_bulletin!) { false }
     controller.process_standard_login(@user)
 
-    assert_equal(
-      ["http://www.umaxica.app/dashboard?ri=jp",
-       { notice: "sign.app.authentication.secret_credential.create.success" },],
-      redirects.last,
-    )
+    assert_equal ["/dashboard", { allow_other_host: false }], redirects.last
   end
 end

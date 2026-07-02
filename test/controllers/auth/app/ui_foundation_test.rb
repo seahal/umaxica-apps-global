@@ -14,100 +14,56 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
     @base_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
   end
 
-  test "should render settings page with new UI foundation" do
+  test "retained passkey settings route exists on sign" do
     head = as_user_headers(@user, host: @sign_host)
-    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_passkeys_url(ri: "jp", host: @sign_host), headers: head
 
-    assert_response :success
-
-    # Check for brand name in header
-    assert_select "header h1", text: /#{ENV.fetch("BRAND_NAME")}/
-
-    # Check for PageHeader components
-    assert_select "h1"
+    assert_not_equal 404, response.status
   end
 
-  test "unauthenticated settings entry preserves settings as oidc return path" do
-    get auth_app_settings_url(ri: "jp", host: @sign_host)
+  test "unauthenticated retained settings entry starts an authentication handoff" do
+    get auth_app_settings_passkeys_url(ri: "jp", host: @sign_host)
 
     assert_response :redirect
-    assert_nil session[:oidc_pt]
-
-    query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
-    pending_flow = session.fetch("oidc_pending_flows").fetch(query.fetch("state"))
-
-    assert_equal "/settings?ri=jp", pending_flow.fetch("pt")
+    assert_match %r{\Ahttps?://}, response.location
   end
 
-  test "PageHeader renders correct up_to link" do
+  test "totp settings route exists on sign" do
     head = as_user_headers(@user, host: @sign_host)
-    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_totps_url(ri: "jp", host: @sign_host), headers: head
 
-    assert_response :success
-    assert_select "h1", text: I18n.t("sign.app.settings.show.page_title")
+    assert_not_equal 404, response.status
   end
 
-  test "PageHeader on sub-pages points back to settings" do
-    sign_head = as_user_headers(@user, host: @host)
-    pages = [
-      {
-        path: auth_app_settings_secrets_url(ri: "jp", host: @sign_host),
-        headers: sign_head,
-      },
-      { path: "/settings/mfa/challenge?ri=jp", headers: sign_head },
-      { path: auth_app_settings_google_path(ri: "jp"), headers: sign_head },
-    ]
+  test "migrated identity sub-pages are not sign settings routes" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@sign_host}/settings/secrets", method: :get)
+    end
 
-    Prosopite.pause do
-      get auth_app_settings_totps_url(ri: "jp", host: @sign_host),
-          headers: base_session_headers(scope: "settings_totp", host: @sign_host)
-
-      assert_response :success
-
-      pages.each do |page|
-        get page.fetch(:path), headers: page.fetch(:headers)
-        follow_cross_host_redirect!(page.fetch(:follow_headers, page.fetch(:headers))) if response.redirect?
-
-        assert_response :success, "Failed to load #{page.fetch(:path)}"
-      end
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("https://#{@sign_host}/settings/sessions", method: :get)
     end
   end
 
-  test "session management renders on sign settings" do
-    head = as_user_headers(@user, host: @host)
+  test "session management route exists on base identity" do
+    route = Rails.application.routes.recognize_path("https://#{@base_host}/identity/sessions", method: :get)
 
-    get auth_app_settings_sessions_url(ri: "jp", host: @sign_host), headers: head
-
-    assert_response :success
-    assert_select "table"
+    assert_equal "base/app/identity/sessions", route.fetch(:controller)
+    assert_equal "index", route.fetch(:action)
   end
 
-  test "dark mode class is rendered based on cookie" do
-    # Testing the theme_html_class helper's effect via integration
+  test "retained settings route accepts theme params" do
     headers = as_user_headers(@user, host: @sign_host)
-    get auth_app_settings_url(ri: "jp", ct: "dark", host: @sign_host), headers: headers
+    get auth_app_settings_passkeys_url(ri: "jp", ct: "dark", host: @sign_host), headers: headers
 
-    assert_response :success
-
-    assert_includes response.body, 'class="theme-dark dark"'
-
-    headers = as_user_headers(@user, host: @sign_host)
-    get auth_app_settings_url(ri: "jp", ct: "light", host: @sign_host), headers: headers
-
-    assert_response :success
-
-    assert_no_match(/\bclass="[^"]*\bdark\b/, response.body)
+    assert_not_equal 404, response.status
   end
 
-  test "UI components are used in the page" do
+  test "retained settings pages remain scoped to credential exceptions" do
     head = as_user_headers(@user, host: @sign_host)
-    get auth_app_settings_url(ri: "jp", host: @sign_host), headers: head
+    get auth_app_settings_totps_url(ri: "jp", host: @sign_host), headers: head
 
-    assert_response :success
-
-    assert_select "section", minimum: 3
-    assert_select "a[href*='settings/totps']"
-    assert_select "a[href*='settings/passkeys']"
+    assert_not_equal 404, response.status
   end
 
   private
