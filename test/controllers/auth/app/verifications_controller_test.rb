@@ -42,7 +42,7 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show renders method links when scope and return_to are provided" do
-    return_to = Base64.urlsafe_encode64(auth_app_settings_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64("/settings/emails?ri=jp")
 
     get auth_app_verification_url(scope: "settings_email", return_to: return_to, ri: "jp"),
         headers: @headers
@@ -60,7 +60,7 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show handles scope and return target mismatch without redirecting back to verification" do
-    return_to = Base64.urlsafe_encode64(auth_app_settings_mfa_challenge_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64("/settings/mfa/challenge?ri=jp")
 
     get auth_app_verification_url(scope: "settings_email", pt: return_to, ri: "jp"),
         headers: @headers
@@ -74,7 +74,7 @@ class Auth::App::VerificationsControllerTest < ActionDispatch::IntegrationTest
     ClientStepUpSession.create!(
       user_token: token,
       scope: "settings_email",
-      return_to: auth_app_settings_emails_path(ri: "jp"),
+      return_to: "/settings/emails?ri=jp",
       status: "PENDING",
       discarded_at: 1.minute.ago,
       purged_at: 1.minute.from_now,

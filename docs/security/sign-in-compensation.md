@@ -30,6 +30,10 @@ sign-up completion or step-up freshness.
   it.
 - A failed completion attempt must not double-count a login unit.
 - A replayed or expired state / callback / challenge must fail closed and require a fresh flow.
+- Expired ceremony transactions are cleaned by the dedicated recurring ceremony purge jobs listed in
+  `config/recurring.yml`, not by `RetentionPurgeJob`. Cleanup removes only expired rows beyond the
+  ceremony retention window, so active attempts are preserved and stale attempts retry through a new
+  ceremony.
 
 ## Observability
 

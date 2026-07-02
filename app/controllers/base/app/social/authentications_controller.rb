@@ -116,8 +116,9 @@ module Base
           # sign-up finalization. The final durable state is still written
           # through the app-side selector bootstrap after provider proof.
           IdentityGraphProvisioner.call!(surface: :app, principal: commit.user)
-          result = establish_signed_in_session!(
-            commit.user,
+          result = AuthenticationSessionCommitter.call(
+            controller: self,
+            resource: commit.user,
             pt: commit.pt,
             ri: params[:ri],
             auth_method: "social",

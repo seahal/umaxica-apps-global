@@ -25,7 +25,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new sends otp and redirects to edit" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
@@ -55,7 +55,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "new sends otp for email verified during signup" do
     @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
@@ -74,7 +74,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "update verifies otp and redirects to return_to" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
       Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
@@ -122,7 +122,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "invalid otp keeps back link from step_up session when request params are missing" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -149,7 +149,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "resend sends a new otp and returns to edit page" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -182,7 +182,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "resend is rate limited" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -212,7 +212,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
   end
 
   test "new renders translated error when no verified email is available" do
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
 
     pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     get auth_com_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
@@ -252,7 +252,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     }
     controller.define_singleton_method(:generate_hotp_code) { ["secret_credential", 1, "123456"] }
 
-    return_to = auth_com_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
     pt_param = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
     controller.send(
       :start_step_up_session!,

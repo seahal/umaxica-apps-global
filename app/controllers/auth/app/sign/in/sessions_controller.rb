@@ -49,7 +49,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
       # Revoke selected sessions by signed references
       refs = Array(params[:revoke_refs]).compact_blank
       if refs.empty?
-        flash[:alert] = I18n.t("sign.app.in.session.no_sessions_selected")
+        @session_alert = I18n.t("sign.app.in.session.no_sessions_selected")
         load_session_data
         return render :show, status: :unprocessable_content
       end
@@ -72,18 +72,17 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
         consume_session_limit_gate!
         return redirect_to_sign_in_sequence!(
           pt: retrieve_pt.presence || session_limit_pt,
-          notice: I18n.t("sign.app.in.session.promoted"),
         )
       end
 
       promote_current_session!
       consume_session_limit_gate!
       session.delete(:pending_login_user_id)
-      return redirect_to_return_path(notice: I18n.t("sign.app.in.session.promoted"))
+      return redirect_to_return_path
     end
 
     # Still restricted, stay on session management
-    flash[:notice] = I18n.t("sign.app.in.session.sessions_revoked")
+    @session_notice = I18n.t("sign.app.in.session.sessions_revoked")
     load_session_data
     render :show
   end
@@ -117,7 +116,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
 
       return head :no_content if request.format.json?
 
-      redirect_to(auth_app_sign_in_path, notice: I18n.t("sign.app.in.session.cancelled"), status: :see_other)
+      redirect_to(auth_app_sign_in_path, status: :see_other)
     end
   end
 
@@ -170,21 +169,19 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
   def redirect_to_login
     redirect_to(
       auth_app_sign_in_path,
-      alert: I18n.t("sign.app.in.session.login_required"),
       status: :see_other,
     )
   end
 
-  def redirect_to_return_path(notice:)
+  def redirect_to_return_path
     return_path = retrieve_pt || session_limit_pt
     consume_session_limit_gate!
 
     if return_path.present?
-      flash[:notice] = notice
       destination = path_from_signed_pt(signed_pt_token(return_path)) || auth_app_settings_path
       redirect_to_pt_destination!(destination)
     else
-      redirect_to(auth_app_settings_path, notice: notice)
+      redirect_to(auth_app_settings_path)
     end
   end
 
@@ -227,13 +224,13 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
   def revoke_session_by_ref(user, ref)
     token = ClientToken.find_from_signed_ref(ref)
     unless token && allowed_to?(:destroy?, token, context: { user: user })
-      flash[:alert] = I18n.t("sign.app.in.session.invalid_session")
+      @session_alert = I18n.t("sign.app.in.session.invalid_session")
       return
     end
 
     # Don't allow revoking the current session via ref (use destroy without ref for that)
     if token.id == current_session&.id || token.public_id == current_session_public_id
-      flash[:alert] = I18n.t("sign.app.in.session.cannot_revoke_current")
+      @session_alert = I18n.t("sign.app.in.session.cannot_revoke_current")
       return
     end
 
@@ -245,7 +242,7 @@ class Auth::App::Sign::In::SessionsController < ::Auth::App::ApplicationControll
       reason: "session_limit_selected_revoke",
     )
 
-    flash[:notice] = I18n.t("sign.app.in.session.session_revoked")
+    @session_notice = I18n.t("sign.app.in.session.session_revoked")
   end
 
   def revoke_sessions_by_refs(user, refs)

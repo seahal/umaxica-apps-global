@@ -8,10 +8,9 @@
 > `acme/www` and `sign/id`.
 
 > **Settings ownership update (2026-07-01):** For Auth settings to Base identity migration work,
-> `adr/identity-authority-boundary.md` and
-> `docs/architecture/sign-settings-to-acme-identity.md` supersede the older compatibility-route
-> language below. Retired non-exception Auth settings routes must be removed without redirect,
-> alias, or `410 Gone` compatibility shims.
+> `adr/identity-authority-boundary.md` and `docs/architecture/sign-settings-to-acme-identity.md`
+> supersede the older compatibility-route language below. Retired non-exception Auth settings routes
+> must be removed without redirect, alias, or `410 Gone` compatibility shims.
 
 ## Current Boundary
 

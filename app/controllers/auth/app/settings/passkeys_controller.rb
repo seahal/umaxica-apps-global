@@ -70,7 +70,6 @@ module Auth
               redirect_to(
                 new_auth_app_settings_passkey_path(ri: params[:ri]),
                 status: :see_other,
-                alert: passkey_verification_required_message,
               )
             end
             format.json do
@@ -226,7 +225,6 @@ module Auth
         def redirect_turnstile_failure
           redirect_to(
             auth_app_settings_passkeys_path(ri: params[:ri]),
-            alert: t("turnstile_error"),
             status: :see_other,
           )
         end
@@ -234,7 +232,6 @@ module Auth
         def redirect_last_method
           redirect_to(
             auth_app_settings_passkeys_path(ri: params[:ri]),
-            alert: t("messages.cannot_delete_last_passkey"),
             status: :see_other,
           )
         end
@@ -245,8 +242,8 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_back_or_to(
-                auth_app_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
-                                                                  status: :see_other,
+                auth_app_settings_passkeys_path(ri: params[:ri]),
+                status: :see_other,
               )
             end
             format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }

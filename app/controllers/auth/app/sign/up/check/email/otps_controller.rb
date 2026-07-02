@@ -131,7 +131,6 @@ module Auth
                 reset_email_flow!
                 redirect_to(
                   new_auth_app_sign_up_email_path(ri: params[:ri]),
-                  notice: t("sign.app.registration.email.edit.session_expired"),
                 )
               end
 

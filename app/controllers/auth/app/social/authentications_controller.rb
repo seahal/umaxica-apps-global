@@ -53,7 +53,6 @@ module Auth
           unless SUPPORTED_PROVIDERS.include?(provider)
             return redirect_to(
               auth_app_sign_in_path,
-              alert: I18n.t("sign.app.social.sessions.invalid_provider"),
             )
           end
 
@@ -99,16 +98,11 @@ module Auth
           SocialAuthCoordinator.unlink(provider: provider, client: current_client)
           redirect_to(
             social_unlink_success_path(provider),
-            notice: I18n.t(
-              "sign.app.social.sessions.unlink.success",
-              provider: SocialIdentifiable.normalize_provider(provider).humanize,
-            ),
             status: :see_other,
           )
         rescue SocialAuth::LastIdentityError => e
           redirect_to(
             social_unlink_failure_path(provider),
-            alert: I18n.t(e.message),
             status: :see_other,
           )
         rescue SocialAuth::BaseError => e
@@ -187,7 +181,6 @@ module Auth
         def redirect_social_unlink_turnstile_failure
           redirect_to(
             social_unlink_failure_path(params[:provider]),
-            alert: t("turnstile_error"),
             status: :see_other,
           )
         end
@@ -215,7 +208,6 @@ module Auth
           return true unless logged_in? && current_resource.present?
           return true if step_up_satisfied?(scope: SOCIAL_LINK_SCOPE)
 
-          flash[:alert] = I18n.t("auth.step_up.required")
           redirect_to(
             actor_verification_path(
               scope: SOCIAL_LINK_SCOPE,

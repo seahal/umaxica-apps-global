@@ -874,7 +874,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
       { path: "http://#{SIGN_ORG_HOST}/settings/passkeys", method: :get },
     )
 
-    %w[/settings/sessions /settings/activities].each do |path|
+    %w(/settings/sessions /settings/activities).each do |path|
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{SIGN_ORG_HOST}#{path}", method: :get)
       end

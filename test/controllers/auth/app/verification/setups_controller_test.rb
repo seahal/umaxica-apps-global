@@ -10,7 +10,7 @@ class Auth::App::Verification::SetupsControllerTest < ActionDispatch::Integratio
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     user = Client.create!
     headers = as_user_headers(user, host: host)
-    pt = Base64.urlsafe_encode64(auth_app_settings_telephones_path(ri: "jp"))
+    pt = Base64.urlsafe_encode64("/settings/telephones?ri=jp")
 
     get new_auth_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
 

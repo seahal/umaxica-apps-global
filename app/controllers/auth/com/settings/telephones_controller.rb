@@ -53,7 +53,6 @@ module Auth
           unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)
             redirect_to(
               auth_com_settings_telephones_path(ri: params[:ri]),
-              alert: t("sign.app.settings.telephone.destroy.last_method"),
             )
             return
           end
@@ -63,7 +62,6 @@ module Auth
 
           redirect_to(
             auth_com_settings_telephones_path(ri: params[:ri]),
-            notice: t("sign.app.settings.telephone.destroy.success"),
             status: :see_other,
           )
         end

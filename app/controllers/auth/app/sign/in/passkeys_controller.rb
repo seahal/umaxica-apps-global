@@ -159,8 +159,8 @@ module Auth
 
           def perform_passkey_sign_in(passkey)
             pt = retrieve_pt_for_checkpoint
-            establish_signed_in_session!(
-              passkey.user, pt: pt, ri: current_region_identifier, auth_method: "passkey",
+            AuthenticationSessionCommitter.call(
+              controller: self, resource: passkey.user, pt: pt, ri: current_region_identifier, auth_method: "passkey",
             )
           end
 

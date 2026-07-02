@@ -228,6 +228,12 @@ en:
         day: DD
     default_passkey_description: My Passkey
     com:
+      layout:
+        nav:
+          sign_up: Sign Up
+          log_in: Log In
+          settings: Settings
+          logout: Log Out
       registration:
         cancelled_retry_later: Registration cancelled. Please wait a while before registering again.
         session_missing: Your registration session has expired. Please start again.

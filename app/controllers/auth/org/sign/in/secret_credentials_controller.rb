@@ -174,12 +174,10 @@ module Auth
             elsif sign_in_result.session_limit_pending?
               redirect_to(
                 sign_in_result.redirect_to,
-                notice: I18n.t("session_limit.restricted_notice"),
               )
             elsif sign_in_result.success?
               redirect_to_sign_in_sequence!(
                 pt: pt,
-                notice: t("sign.org.authentication.secret_credential.create.success"),
               )
             else
               render_failed_login(sign_in_result.status)

@@ -111,6 +111,46 @@ class BaseRouteContractTest < ActionDispatch::IntegrationTest
       assert_equal "base/app/oidc/callbacks", recognized[:controller]
       assert_equal "show", recognized[:action]
 
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oauth/authorize",
+        method: :get,
+      )
+
+      assert_equal "base/app/oauth/authorizations", recognized[:controller]
+      assert_equal "show", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oauth/token",
+        method: :post,
+      )
+
+      assert_equal "base/app/oauth/tokens", recognized[:controller]
+      assert_equal "create", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oauth/userinfo",
+        method: :get,
+      )
+
+      assert_equal "base/app/oauth/userinfos", recognized[:controller]
+      assert_equal "show", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oauth/revoke",
+        method: :post,
+      )
+
+      assert_equal "base/app/oauth/revocations", recognized[:controller]
+      assert_equal "create", recognized[:action]
+
+      recognized = Rails.application.routes.recognize_path(
+        "http://#{host}/oidc/logout",
+        method: :get,
+      )
+
+      assert_equal "base/app/oidc/logouts", recognized[:controller]
+      assert_equal "show", recognized[:action]
+
       assert_raises(ActionController::RoutingError) do
         Rails.application.routes.recognize_path("http://#{host}/oidc", method: :get)
       end

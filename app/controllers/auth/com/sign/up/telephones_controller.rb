@@ -28,7 +28,6 @@ module Auth
 
             redirect_to(
               new_auth_com_sign_up_telephone_path,
-              notice: t("sign.com.registration.telephone.edit.session_expired"),
             )
           end
 

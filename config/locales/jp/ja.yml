@@ -685,6 +685,12 @@ ja:
     withdrawal:
       test: テスト
     com:
+      layout:
+        nav:
+          sign_up: 新規登録
+          log_in: ログイン
+          settings: 設定
+          logout: ログアウト
       registration:
         cancelled_retry_later: 登録をキャンセルしました。しばらくしてから再度お試しください。
         session_missing: 登録セッションの有効期限が切れました。最初からやり直してください。

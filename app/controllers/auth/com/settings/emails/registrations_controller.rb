@@ -62,7 +62,6 @@ module Auth
               t("sign.app.registration.email.create.verification_code_sent"),
               email_registration_pt_session_key,
             )
-            flash[:notice] = redirect_params.delete(:notice)
             sanitize_redirect_params!(redirect_params)
             redirect_to(edit_auth_com_settings_emails_registration_path(redirect_params))
           end
@@ -89,7 +88,6 @@ module Auth
               if @user_email.locked?
                 @user_email.destroy!
                 reset_email_registration_flow!
-                flash[:alert] = t("sign.app.registration.email.update.attempts_exceeded")
                 redirect_to(new_auth_com_settings_emails_registration_path(ri: params[:ri]))
                 return
               end
@@ -115,7 +113,6 @@ module Auth
                   host: ENV.fetch("PRIVATE_AUTH_CORPORATE_URL"),
                 ),
               ),
-              notice: t("sign.app.registration.email.update.success"),
               allow_other_host: cross_host_redirect_allowed?,
             )
           end
@@ -194,7 +191,6 @@ module Auth
               t("sign.app.registration.email.edit.session_expired"),
               email_registration_pt_session_key,
             )
-            flash[:notice] = redirect_params.delete(:notice)
             sanitize_redirect_params!(redirect_params)
             new_auth_com_settings_emails_registration_path(redirect_params)
           end

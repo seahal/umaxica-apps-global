@@ -125,7 +125,7 @@ module Auth
             end
 
           clear_social_auth_intent!
-          redirect_to(failure_redirect_path, alert: alert_message)
+          redirect_to(failure_redirect_path)
         end
 
         private
@@ -422,19 +422,7 @@ module Auth
               message: "Redirecting to settings",
             ),
           )
-          default_notice = I18n.t(
-            "sign.app.social.sessions.link.default",
-            provider: provider_name,
-            default: "%{provider} linked",
-          )
-          redirect_to(
-            auth_app_settings_path,
-            notice: I18n.t(
-              "sign.app.social.sessions.link.success",
-              provider: provider_name,
-              default: default_notice,
-            ),
-          )
+          redirect_to(auth_app_settings_path)
         end
 
         def handle_login_intent(user, provider_name, existing_account, pt: nil)
@@ -446,7 +434,6 @@ module Auth
           unless user&.login_allowed?
             return redirect_to(
               auth_app_sign_in_path,
-              alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
 
@@ -466,7 +453,6 @@ module Auth
           if login_result.is_a?(Hash) && login_result[:restricted]
             return redirect_to(
               auth_app_sign_in_session_path,
-              notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           end
 
@@ -488,7 +474,6 @@ module Auth
           )
           redirect_to(
             auth_app_sign_in_path(ri: params[:ri].presence || current_social_auth_ri),
-            alert: I18n.t("sign.app.social.sessions.create.failure"),
           )
         end
 
@@ -507,9 +492,9 @@ module Auth
         end
 
         def sign_in(user, pt: nil)
-          result = establish_signed_in_session!(
-            user, pt: pt, ri: params[:ri], auth_method: "social",
-                  audit_context: social_login_audit_context,
+          result = AuthenticationSessionCommitter.call(
+            controller: self, resource: user, pt: pt, ri: params[:ri], auth_method: "social",
+            audit_context: social_login_audit_context,
           )
           Rails.logger.debug(
             JitLogEvent.format(
@@ -606,20 +591,17 @@ module Auth
             Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.session_limit_exceeded"))
             redirect_to(
               sign_in_result.redirect_to,
-              notice: I18n.t("sign.app.in.session.restricted_notice"),
             )
           when :mfa_required
             Rails.logger.debug(JitLogEvent.format("sign.social.omniauth.mfa_required"))
             safe_redirect_to(
               sign_in_result.redirect_to,
               fallback: auth_app_sign_in_path,
-              notice: I18n.t("sign.app.in.mfa.required"),
             )
           else
             Rails.logger.warn(JitLogEvent.format("sign.social.omniauth.unknown_login_failure", status: status))
             redirect_to(
               auth_app_sign_in_path,
-              alert: I18n.t("sign.app.social.sessions.create.failure"),
             )
           end
         end

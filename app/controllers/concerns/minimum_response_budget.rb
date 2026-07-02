@@ -26,7 +26,7 @@ module MinimumResponseBudget
   end
 
   def minimum_response_budget_enabled?
-    false
+    true
   end
 
   def minimum_response_budget_enforced?

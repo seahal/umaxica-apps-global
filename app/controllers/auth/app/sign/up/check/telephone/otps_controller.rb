@@ -226,7 +226,6 @@ module Auth
                 reset_telephone_flow!
                 redirect_to(
                   new_auth_app_sign_up_telephone_path(ri: params[:ri]),
-                  notice: t("sign.app.registration.telephone.edit.session_expired"),
                 )
               end
             end

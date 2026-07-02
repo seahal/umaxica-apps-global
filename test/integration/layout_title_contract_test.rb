@@ -35,9 +35,11 @@ class LayoutTitleContractTest < ActiveSupport::TestCase
       assert_not_includes contents, "surface =", "layout #{path} must not define a surface variable"
       assert_not_includes contents, "tld =", "layout #{path} must not define a tld variable"
       assert_not_includes contents, "vite_entrypoint =", "layout #{path} must not define a vite entrypoint variable"
-      refute_match(/\b\w+_path\s*=\s*/, contents, "layout #{path} must not precompute route helpers")
-      refute_match(/title_site\s*=\s*".*#\{[^}]*\b(surface|tld)\b[^}]*\}/, contents,
-                   "layout #{path} must not derive title_site from surface/tld variables")
+      assert_no_match(/\b\w+_path\s*=\s*/, contents, "layout #{path} must not precompute route helpers")
+      assert_no_match(
+        /title_site\s*=\s*".*#\{[^}]*\b(surface|tld)\b[^}]*\}/, contents,
+        "layout #{path} must not derive title_site from surface/tld variables",
+      )
     end
   end
 
@@ -47,7 +49,7 @@ class LayoutTitleContractTest < ActiveSupport::TestCase
     assert_not_predicate Rails.root.join("app/views/layouts/palm/org"), :exist?
 
     %w(acme sign apex).each do |legacy_root|
-      assert_empty Dir.glob(Rails.root.join("app/views/layouts/#{legacy_root}/**/*"))
+      assert_empty Rails.root.glob("app/views/layouts/#{legacy_root}/**/*")
     end
   end
 end

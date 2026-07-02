@@ -1,8 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
-# Base owns the credential gateway surfaces. Auth surfaces handle credential
-# ceremonies and do not own RP authority.
+# Base owns identity, OP/Authorization Server, and Rails control-plane surfaces.
+# Auth surfaces handle credential ceremonies and do not own RP authority.
 scope(module: :base, as: :base) do
   # User authority gateway host. Hosts listed declaratively (DRY intentionally broken).
   constraints(
@@ -33,6 +33,10 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        resource(
+          :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
+                                 format: false,
+        )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
@@ -47,11 +51,7 @@ scope(module: :base, as: :base) do
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
-      # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
-      namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-      end
+      # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
         resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
@@ -61,25 +61,19 @@ scope(module: :base, as: :base) do
       namespace(:oidc) do
         resource(:authorization, only: :show)
         resource(:callback, only: :show)
-
-        namespace(:backchannel) do
-          resource(:logout, only: :create)
-        end
+        resource(:logout, only: %i(show create))
       end
 
-      # Public web API: OTP delivery, cookie consent, theme.
+      namespace(:oauth) do
+        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:token, only: :create, controller: :tokens)
+        resource(:userinfo, only: :show, controller: :userinfos)
+        resource(:revoke, only: :create, controller: :revocations)
+      end
+
+      # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          namespace :in do
-            namespace :email do
-              resource :otp, only: :create
-            end
-
-            namespace :telephone do
-              resource :otp, only: :create
-            end
-          end
-
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
@@ -95,70 +89,19 @@ scope(module: :base, as: :base) do
         end
       end
 
-      # Sign-up and sign-in ceremonies.
+      # Base resolves session-limit remediation before resuming OIDC/social flows.
       namespace :sign do
-        # Auth-up ceremony.
-        namespace(:up) do
-          resource(:email, only: %i(new create))
-          resource(:telephone, only: %i(new create))
-
-          namespace(:guard) do
-            resource(:apple, only: :show)
-            resource(:google, only: :show)
-            resource(:email, only: :show)
-            resource(:telephone, only: :show)
-          end
-
-          namespace(:check) do
-            namespace(:apple) do
-              resource(:confirmation, only: %i(show update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-
-            namespace(:google) do
-              resource(:confirmation, only: %i(show update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-
-            namespace(:email) do
-              resource(:otp, only: %i(show create update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-
-            namespace(:telephone) do
-              resource(:otp, only: %i(show create update destroy))
-              resource(:passkey, only: %i(show create update destroy))
-              resource(:passcode, only: %i(show update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-          end
-        end
-
-        # Sign-in ceremony.
         namespace :in do
-          resource :email, only: %i(new create edit update)
-
-          resource :passkey, only: :new
-          namespace :passkey do
-            resource :options, only: :create
-            resource :verification, only: :create
-          end
-
-          resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-
-          resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
-
-          resource :challenge, only: :show
-          namespace :challenge do
-            resource :totp, only: %i(new create)
-            resource :passkey, only: %i(new create)
-          end
+          resource :limitation, only: %i(show update destroy), controller: :limitations
         end
       end
 
       namespace(:social) do
+        resource :authentication, only: [] do
+          post :continue
+          post :completion
+        end
+
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -206,17 +149,10 @@ scope(module: :base, as: :base) do
       resource :verification, only: :show
       namespace :verification do
         resource :cancellation, only: :create
-      end
-      namespace :verification do
-        resource :setup, only: :new
-        resource :passkey, only: %i(new create)
-        resource :totp, only: %i(new create)
-
-        resources :emails, only: %i(new create edit update) do
-          resource :redelivery, only: :create
-        end
+        resource :completion, only: :create
       end
 
+      resource :identity, only: :show
       namespace :identity do
         namespace :mfa do
           resource :reset, only: %i(show create)
@@ -285,6 +221,10 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        resource(
+          :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
+                                 format: false,
+        )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
@@ -299,11 +239,7 @@ scope(module: :base, as: :base) do
       resource(:sitemap, only: :show, path: "sitemap.xml")
       resource(:csp_violation_report, only: :create, path: "csp-violation-report")
 
-      # Canonical ceremony entrypoints and authed-out confirmation.
-      namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-      end
+      # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
         resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
@@ -313,25 +249,19 @@ scope(module: :base, as: :base) do
       namespace(:oidc) do
         resource(:authorization, only: :show)
         resource(:callback, only: :show)
-
-        namespace(:backchannel) do
-          resource(:logout, only: :create)
-        end
+        resource(:logout, only: %i(show create))
       end
 
-      # Public web API: OTP delivery, cookie consent, theme.
+      namespace(:oauth) do
+        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:token, only: :create, controller: :tokens)
+        resource(:userinfo, only: :show, controller: :userinfos)
+        resource(:revoke, only: :create, controller: :revocations)
+      end
+
+      # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          namespace :in do
-            namespace :email do
-              resource :otp, only: :create
-            end
-
-            namespace :telephone do
-              resource :otp, only: :create
-            end
-          end
-
           resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
         end
@@ -347,69 +277,11 @@ scope(module: :base, as: :base) do
         end
       end
 
-      # Sign-up and sign-in ceremonies.
-      namespace :sign do
-        # Auth-up ceremony.
-        namespace(:up) do
-          resource(:email, only: %i(new create))
-          resource(:telephone, only: %i(new create))
-
-          namespace(:guard) do
-            resource(:email, only: :show)
-            resource(:telephone, only: :show)
-          end
-
-          namespace(:check) do
-            namespace(:email) do
-              resource(:otp, only: %i(show create update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-
-            namespace(:telephone) do
-              resource(:otp, only: %i(show create update destroy))
-              resource(:passkey, only: %i(show create update destroy))
-              resource(:passcode, only: %i(show update destroy))
-              resource(:birthdate, only: %i(show update destroy))
-            end
-          end
-        end
-
-        # Sign-in ceremony.
-        namespace :in do
-          resource :email, only: %i(new create edit)
-
-          resource :passkey, only: :new
-          namespace :passkey do
-            resource :options, only: :create
-            resource :verification, only: :create
-          end
-
-          resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-
-          resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
-
-          resource :challenge, only: :show
-
-          namespace :challenge do
-            resource :passkey, only: %i(new create)
-          end
-        end
-      end
-
       # Step-up verification.
       resource :verification, only: :show
       namespace :verification do
         resource :cancellation, only: :create
-      end
-      namespace :verification do
-        resource :setup, only: :new
-        resource :passkey, only: %i(new create)
-
-        resources :emails, only: %i(new create edit update) do
-          resource :redelivery, only: :create
-        end
+        resource :completion, only: :create
       end
 
       resource :identity, only: :show
@@ -469,6 +341,10 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:well_known, path: ".well-known") do
+        resource(
+          :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
+                                 format: false,
+        )
         resource(:jwks, only: :show, path: "jwks.json", format: false)
       end
 
@@ -492,11 +368,7 @@ scope(module: :base, as: :base) do
       resources :support, only: :index
       resources :billing, only: :index
 
-      # Canonical ceremony entrypoints and authed-out confirmation.
-      namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-      end
+      # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
         resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
@@ -506,10 +378,14 @@ scope(module: :base, as: :base) do
       namespace(:oidc) do
         resource(:authorization, only: :show)
         resource(:callback, only: :show)
+        resource(:logout, only: %i(show create))
+      end
 
-        namespace(:backchannel) do
-          resource(:logout, only: :create)
-        end
+      namespace(:oauth) do
+        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:token, only: :create, controller: :tokens)
+        resource(:userinfo, only: :show, controller: :userinfos)
+        resource(:revoke, only: :create, controller: :revocations)
       end
 
       # Public web API: cookie consent, theme.
@@ -530,52 +406,11 @@ scope(module: :base, as: :base) do
         end
       end
 
-      # Sign-up and sign-in ceremonies.
-      namespace :sign do
-        # Staff invitation auth-up.
-        namespace :up do
-          resources :invitations, only: %i(new create)
-        end
-
-        # Sign-in ceremony.
-        namespace :in do
-          resource :passkey, only: :new
-
-          namespace :passkey do
-            resource :options, only: :create
-            resource :verification, only: :create
-          end
-
-          resource :secret_credential, only: %i(new create)
-          resource :session, only: %i(show update destroy)
-
-          resource :guard, only: :show
-          resource :check, only: %i(show update destroy)
-
-          resource :challenge, only: :show
-
-          namespace :challenge do
-            resource :passkey, only: %i(new create)
-          end
-
-          # Entra ID (Microsoft) sign-in ceremony.
-          # authorization: POST initiates PKCE flow and redirects to Entra.
-          # callback: GET receives the authorization code from Entra.
-          resource :entra, only: :new do
-            post :authorization
-            get :callback
-          end
-        end
-      end
-
       # Step-up verification.
       resource :verification, only: :show
       namespace :verification do
         resource :cancellation, only: :create
-      end
-      namespace :verification do
-        resource :setup, only: :new
-        resource :passkey, only: %i(new create)
+        resource :completion, only: :create
       end
 
       resource :identity, only: :show

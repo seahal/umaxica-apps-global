@@ -15,10 +15,10 @@
       </p>
     </div>
 
-    <% if flash[:alert].present? %>
+    <% if @session_alert.present? %>
       <div>
         <div>
-          <p><%= flash[:alert] %></p>
+          <p><%= @session_alert %></p>
         </div>
       </div>
 

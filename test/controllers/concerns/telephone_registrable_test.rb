@@ -38,27 +38,46 @@ class TelephoneRegistrableTest < ActiveSupport::TestCase
 
   test "check_telephone_verification_rate_limit! allows requests within limit" do
     assert_nothing_raised do
-      5.times { @controller.send(:check_telephone_verification_rate_limit!) }
+      5.times { @controller.send(:check_telephone_verification_rate_limit!, "+819012345678") }
     end
   end
 
   test "check_telephone_verification_rate_limit! raises error when limit exceeded" do
-    5.times { @controller.send(:check_telephone_verification_rate_limit!) }
+    5.times { @controller.send(:check_telephone_verification_rate_limit!, "+819012345678") }
 
     assert_raises(ActionController::TooManyRequests) do
-      @controller.send(:check_telephone_verification_rate_limit!)
+      @controller.send(:check_telephone_verification_rate_limit!, "+819012345678")
     end
   end
 
-  test "rate limit is per IP address" do
-    5.times { @controller.send(:check_telephone_verification_rate_limit!) }
+  test "rate limit is per IP and telephone digest pair" do
+    5.times { @controller.send(:check_telephone_verification_rate_limit!, "+819012345678") }
 
     assert_raises(ActionController::TooManyRequests) do
-      @controller.send(:check_telephone_verification_rate_limit!)
+      @controller.send(:check_telephone_verification_rate_limit!, "+819012345678")
     end
 
     other_controller = TestController.new("10.0.0.1")
-    assert_nothing_raised { other_controller.send(:check_telephone_verification_rate_limit!) }
+    assert_nothing_raised { other_controller.send(:check_telephone_verification_rate_limit!, "+819012345678") }
+    assert_nothing_raised { @controller.send(:check_telephone_verification_rate_limit!, "+819087654321") }
+  end
+
+  test "rate limit key does not include the raw telephone number" do
+    captured_keys = []
+    store = Object.new
+    store.define_singleton_method(:increment) do |key, *_args, **_kwargs|
+      captured_keys << key
+      1
+    end
+
+    Rails.configuration.x.rate_limit.stub(:fetch, store) do
+      @controller.send(:check_telephone_verification_rate_limit!, "+819012345678")
+    end
+
+    assert_equal 1, captured_keys.size
+    assert_includes captured_keys.first, "phone:"
+    assert_not_includes captured_keys.first, "+819012345678"
+    assert_not_includes captured_keys.first, "9012345678"
   end
 
   # ---------------------------------------------------------------------------

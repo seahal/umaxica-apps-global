@@ -54,6 +54,7 @@ Current content-model references:
 - `docs/architecture/i18n.md`
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
+- `docs/security/authentication-remediation.md`
 - `docs/security/credential-gateway.md`
 - `docs/security/ceremony-grant-result.md`
 - `docs/security/session-token-authority.md`

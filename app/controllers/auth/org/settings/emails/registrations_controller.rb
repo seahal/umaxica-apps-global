@@ -34,7 +34,6 @@ module Auth
             reset_registration_session!
             redirect_to(
               new_auth_org_settings_emails_registration_path,
-              notice: t("sign.org.registration.email.edit.session_expired"),
             )
           end
 
@@ -75,7 +74,6 @@ module Auth
             )
             redirect_to(
               edit_auth_org_settings_emails_registration_path,
-              notice: t("sign.org.registration.email.create.verification_code_sent"),
             )
           end
 
@@ -122,7 +120,6 @@ module Auth
             reset_registration_session!
             redirect_to(
               new_auth_org_settings_emails_registration_path,
-              notice: t("sign.org.registration.email.edit.session_expired"),
             )
           end
 
@@ -143,7 +140,6 @@ module Auth
               reset_registration_session!
               redirect_to(
                 new_auth_org_settings_emails_registration_path,
-                alert: t("sign.org.registration.email.update.attempts_exceeded"),
               )
             else
               @staff_email.errors.add(:pass_code, t("sign.org.registration.email.update.invalid_code"))
@@ -168,7 +164,6 @@ module Auth
                   host: ENV.fetch("PRIVATE_AUTH_STAFF_URL"),
                 ),
               ),
-              notice: t("sign.org.registration.email.update.success"),
               allow_other_host: cross_host_redirect_allowed?,
             )
           end

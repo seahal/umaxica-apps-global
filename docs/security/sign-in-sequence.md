@@ -127,6 +127,40 @@ adapter. The current result shape includes `success`, `mfa_required`, `session_l
 `session_limit_hard_reject`, `credential_rejected`, `identity_unavailable`, `transaction_expired`,
 `failure`, and `invalid_request`.
 
+## Timing And Enumeration Mitigation
+
+Credential endpoints must not make account or credential existence easy to infer from response
+timing. Controllers that include `MinimumResponseBudget` now get timing protection enabled by
+default; endpoints that need a narrower action set override `minimum_response_budget_enabled?` for
+those actions. The contract test in
+`test/controllers/auth/credential_timing_protection_contract_test.rb` lists credential controllers
+that must either use that response budget or document another timing-equalized path.
+
+Current coverage is:
+
+| Credential path | Mitigation |
+| --------------- | ---------- |
+| App email OTP sign-in | Dummy OTP generation and minimum elapsed verification on update |
+| App/com/org passkey sign-in | `MinimumResponseBudget` on challenge/options endpoints |
+| App/com/org secret credential sign-in | `MinimumResponseBudget` on credential submission |
+| Org Entra sign-in | `MinimumResponseBudget` on authorization start |
+
+New credential endpoints must be added to the contract test. If an endpoint intentionally opts out
+of the response budget, it must have an alternate dummy-work or fixed-time verification path that is
+visible in tests and documentation.
+
+## Ceremony Cleanup
+
+Sign-in credential ceremonies store short-lived transaction rows keyed by `expires_at`. These rows
+are not part of the account-retention `purged_at` model handled by `RetentionPurgeJob`, so
+production recurring cleanup registers the dedicated ceremony transaction purge jobs in
+`config/recurring.yml`.
+
+The cleanup contract is intentionally narrow: expired ceremony transaction rows beyond their
+retention period may be physically deleted; active and non-expired transactions must remain
+available until they either complete, expire, or are superseded by a fresh ceremony. Running the
+purge repeatedly is safe because each job scopes deletion to currently purgeable expired rows.
+
 ## Signed-In Re-Entry
 
 If a browser already has an acme session, sign/id may introspect or consume that fact only to decide

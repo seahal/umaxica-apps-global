@@ -28,7 +28,7 @@ class Auth::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "creates verification on success" do
-    return_to = Base64.urlsafe_encode64(auth_com_settings_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64("/settings/emails?ri=jp")
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do
@@ -58,7 +58,7 @@ class Auth::Com::Verification::PasskeysControllerTest < ActionDispatch::Integrat
   end
 
   test "new keeps scope and return_to in form hidden fields" do
-    return_to = Base64.urlsafe_encode64(auth_com_settings_emails_path(ri: "jp"))
+    return_to = Base64.urlsafe_encode64("/settings/emails?ri=jp")
 
     StepUpAvailableMethods.stub(:call, [:passkey]) do
       WebAuthn::Credential.stub(:options_for_get, OpenStruct.new(id: "test")) do

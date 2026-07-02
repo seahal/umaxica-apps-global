@@ -36,8 +36,8 @@ Remaining bounded legacy:
 - `sign/id` does not own preference writes, settings, dashboards, withdrawal, account lifecycle, or
   session-management UI.
 - Auth settings does not own identity, profile, session-management, activity, or lifecycle routes
-  except for the approved credential ceremony-backed settings matrix:
-  app passkeys/TOTP/Google/Apple, com passkeys, and org passkeys/Entra.
+  except for the approved credential ceremony-backed settings matrix: app
+  passkeys/TOTP/Google/Apple, com passkeys, and org passkeys/Entra.
 - Retired Auth settings routes for emails, telephones, birthdate, secrets, secret credentials,
   sessions, revocations, activities, and withdrawal are unroutable. They must not redirect to Base,
   return compatibility `410 Gone`, or remain available through alias helpers.

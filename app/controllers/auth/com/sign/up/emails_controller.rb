@@ -71,7 +71,6 @@ module Auth
               reset_email_flow!
               redirect_to(
                 new_auth_com_sign_up_email_path(ri: params[:ri]),
-                notice: t("sign.app.registration.email.edit.not_found"),
               )
               return
             end
@@ -79,7 +78,6 @@ module Auth
             return if valid_email_session?
 
             reset_email_flow!
-            flash[:notice] = t("sign.app.registration.email.edit.session_expired")
             redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 
@@ -128,7 +126,6 @@ module Auth
 
             bind_sign_up_flow_to_email!(@user_email) unless existing_signup_email_flow? || dummy_existing_email_flow?
             progress_email_flow!(:create)
-            flash[:notice] = t("sign.com.registration.email.create.verification_code_sent")
             redirect_to(auth_com_sign_up_check_email_otp_path(ri: params[:ri], pt: sanitized_rt_param))
           end
 
@@ -146,7 +143,6 @@ module Auth
             end
             return if current == required
 
-            flash[:alert] = t("sign.app.registration.email.flow.invalid")
             redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 
@@ -171,7 +167,6 @@ module Auth
 
           def redirect_invalid_session
             reset_email_flow!
-            flash[:notice] = t("sign.app.registration.email.edit.session_expired")
             redirect_to(new_auth_com_sign_up_email_path(ri: params[:ri]))
           end
 

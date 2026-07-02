@@ -38,7 +38,6 @@ module Auth
 
             redirect_to(
               new_auth_app_sign_up_telephone_path,
-              notice: t("sign.app.registration.telephone.edit.session_expired"),
             )
           end
 
@@ -134,7 +133,6 @@ module Auth
               bind_sign_up_flow_to_telephone!(@user_telephone)
               redirect_to(
                 auth_app_sign_up_check_telephone_otp_path,
-                notice: t("sign.app.registration.telephone.create.verification_code_sent"),
               )
             rescue ActiveRecord::RecordInvalid => e
               @user_telephone = e.record
@@ -152,7 +150,6 @@ module Auth
             @user_telephone = load_registration_telephone(registration_session)
 
             if otp_resend_rate_limited?
-              flash[:alert] = t("sign.app.registration.telephone.resend.rate_limited")
               return redirect_to(resend_redirect_path)
             end
 
@@ -169,7 +166,6 @@ module Auth
             session[:user_telephone_otp_last_sent_at] = Time.current.to_i
             redirect_to(
               resend_redirect_path,
-              notice: t("sign.app.registration.telephone.resend.sent"),
             )
           end
 
@@ -194,7 +190,6 @@ module Auth
           def redirect_telephone_session_expired
             redirect_to(
               new_auth_app_sign_up_telephone_path,
-              notice: t("sign.app.registration.telephone.edit.session_expired"),
             )
           end
 
@@ -295,7 +290,6 @@ module Auth
 
             redirect_to(
               auth_app_sign_up_check_telephone_otp_path(ri: params[:ri]),
-              notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           end
 

@@ -24,7 +24,6 @@ module Auth
             clear_pending_mfa!
             redirect_to(
               auth_app_sign_in_path,
-              alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )
           end

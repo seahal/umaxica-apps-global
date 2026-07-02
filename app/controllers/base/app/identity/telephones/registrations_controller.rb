@@ -31,7 +31,6 @@ module Base
               reset_registration_session!
               return redirect_to(
                 new_base_app_identity_telephones_registration_path,
-                notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
             end
             render "base/app/identity/telephones/registrations/edit"
@@ -57,7 +56,6 @@ module Base
             )
             redirect_to(
               edit_base_app_identity_telephones_registration_path,
-              notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           end
 
@@ -67,7 +65,6 @@ module Base
               reset_registration_session!
               return redirect_to(
                 new_base_app_identity_telephones_registration_path,
-                notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
             end
             unless cloudflare_turnstile_stealth_validation["success"]
@@ -94,13 +91,13 @@ module Base
                 base_app_identity_telephones_url(
                   ri: params[:ri],
                   host: preferred_base_service_host,
-                ), notice: t("sign.app.registration.telephone.update.success"), status: :see_other,
+                ),
+                status: :see_other,
               )
             when :session_expired
               reset_registration_session!
               redirect_to(
                 new_base_app_identity_telephones_registration_path,
-                notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
             else
               render :edit, status: :unprocessable_content

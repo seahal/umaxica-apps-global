@@ -203,7 +203,6 @@ module Auth
           unless AuthMethodGuard.can_remove_passkey?(current_operator, @passkey)
             redirect_to(
               auth_org_settings_passkeys_path(ri: params[:ri]),
-              alert: t("messages.cannot_delete_last_passkey"),
               status: :see_other,
             )
             return
@@ -228,8 +227,8 @@ module Auth
           respond_to do |format|
             format.html do
               redirect_back_or_to(
-                auth_org_settings_passkeys_path(ri: params[:ri]), alert: t("turnstile_error"),
-                                                                  status: :see_other,
+                auth_org_settings_passkeys_path(ri: params[:ri]),
+                status: :see_other,
               )
             end
             format.json { render json: { error: t("turnstile_error") }, status: :unprocessable_content }

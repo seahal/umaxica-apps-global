@@ -16,7 +16,6 @@ module Base
             (authorize!(current_client, to: :update?)
              redirect_to(
                base_app_identity_mfa_reset_path(ri: params[:ri]),
-               alert: t("sign.app.settings.mfa.show.reset_unavailable"),
              ))
           end
         end

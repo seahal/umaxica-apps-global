@@ -59,7 +59,6 @@ module Auth
           )
           reset_secret_credential_ceremony_session!
 
-          flash[:notice] = t("sign.app.settings.secret_credentials.create.created")
           redirect_to(
             auth_com_settings_secret_credentials_url(
               ri: params[:ri],
@@ -97,7 +96,6 @@ module Auth
           unless AuthMethodGuard.can_remove_secret_credential?(current_visitor, @secret_credential)
             redirect_to(
               auth_com_settings_secret_credentials_path(ri: params[:ri]),
-              alert: t("sign.app.settings.secret_credentials.destroy.last_method"),
               status: :see_other,
             )
             return
@@ -112,7 +110,6 @@ module Auth
           authorize!(@secret_credential)
           redirect_to(
             auth_com_settings_secret_credential_path(@secret_credential.public_id, ri: params[:ri]),
-            alert: t("messages.not_implemented"),
             status: :see_other,
           )
         end

@@ -49,7 +49,6 @@ module Auth
           if @totp.private_key.blank?
             redirect_to(
               new_auth_app_settings_totp_path,
-              notice: t("sign.app.registration.email.flow.invalid"),
             )
             return
           end
@@ -132,7 +131,6 @@ module Auth
           unless AuthMethodGuard.can_remove_totp?(current_client, totp)
             redirect_to(
               auth_app_settings_totps_path(ri: params[:ri]),
-              alert: t("messages.cannot_delete_last_passkey"),
               status: :see_other,
             )
             return

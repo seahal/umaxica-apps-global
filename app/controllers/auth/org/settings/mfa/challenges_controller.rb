@@ -33,7 +33,6 @@ module Auth
 
             redirect_to(
               auth_org_settings_mfa_challenge_path(ri: params[:ri]),
-              notice: t("sign.app.settings.mfa.update.success"),
             )
           rescue ActiveRecord::RecordInvalid, ArgumentError
             show

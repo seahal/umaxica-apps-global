@@ -12,7 +12,7 @@ module ObservabilityRedactor
       (?:.*)
       (?:
         email|uid|token|rt|jwt|authorization|cookie|set-cookie|session(?:_id)?|
-        code|state|nonce|dpop|otp|totp|hotp|password|private_key|client_secret|
+        code|state|nonce|verifier|challenge|dpop|otp|totp|hotp|password|secret|private_key|client_secret|
         refresh_token|access_token|id_token|query_string|request_uri|original_url|
         url|redirect_uri|return_to|return_url
       )
@@ -23,7 +23,7 @@ module ObservabilityRedactor
     authorization cookie set-cookie x-csrf-token x-request-id x-forwarded-for
     dpop dpop-proof
   ).freeze
-  NON_SENSITIVE_KEYS = %w(event_uuid).freeze
+  NON_SENSITIVE_KEYS = %w(event_uuid reason_code).freeze
   SAFE_OBSERVABILITY_KEY_PATTERN = /
     \A
     (?:.*_)?

@@ -25,6 +25,30 @@ production:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
 
+  # Delete expired credential ceremony transaction rows. These tables key
+  # cleanup on `expires_at`, so they are not covered by RetentionPurgeJob.
+  email_ceremony_transaction_purge:
+    class: EmailCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  passkey_ceremony_transaction_purge:
+    class: PasskeyCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  secret_credential_ceremony_transaction_purge:
+    class: SecretCredentialCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  social_ceremony_transaction_purge:
+    class: SocialCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  step_up_ceremony_transaction_purge:
+    class: StepUpCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  telephone_ceremony_transaction_purge:
+    class: TelephoneCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+  totp_ceremony_transaction_purge:
+    class: TotpCeremonyTransactionPurgeJob
+    schedule: every 15 minutes
+
   # Clean up expired records with purgeable timestamps.
   retention_purge:
     class: RetentionPurgeJob

@@ -35,7 +35,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    return_to = auth_app_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
     pt = signed_step_up_pt(return_to)
     grant = signed_step_up_grant_for(
       actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
@@ -105,7 +105,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       user_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE,
       last_otp_at: Time.zone.at(0),
     )
-    return_to = auth_app_settings_emails_path(ri: "jp")
+    return_to = "/settings/emails?ri=jp"
     pt = signed_step_up_pt(return_to)
     grant = signed_step_up_grant_for(
       actor: @user, token: @token, scope: "settings_email", return_to: return_to, surface: "app",
@@ -155,7 +155,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt("/settings/emails?ri=jp")
     with_prosopite_paused do
       get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -181,7 +181,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt("/settings/emails?ri=jp")
     with_prosopite_paused do
       get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -207,7 +207,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt("/settings/emails?ri=jp")
     with_prosopite_paused do
       get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers
@@ -301,7 +301,7 @@ class Auth::App::Verification::TotpsControllerTest < ActionDispatch::Integration
       last_otp_at: Time.zone.at(0),
     )
 
-    pt = signed_step_up_pt(auth_app_settings_emails_path(ri: "jp"))
+    pt = signed_step_up_pt("/settings/emails?ri=jp")
     with_prosopite_paused do
       get auth_app_verification_url(scope: "settings_email", pt: pt, ri: "jp"),
           headers: @headers

@@ -198,7 +198,6 @@ scope(module: :auth, as: :auth) do
         end
       end
 
-      # FIXME: I FOUND DEGRADED ENTRYPOINT!!!!
       # Settings and credential management.
       resource :settings, only: :show
       namespace :settings do

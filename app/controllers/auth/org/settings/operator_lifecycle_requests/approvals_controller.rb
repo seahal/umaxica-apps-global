@@ -34,12 +34,10 @@ module Auth
             if result.success?
               redirect_to(
                 auth_org_settings_operator_lifecycle_request_path(result.request),
-                notice: t(notice_key),
               )
             else
               redirect_to(
                 auth_org_settings_operator_lifecycle_request_path(result.request),
-                alert: result.error,
               )
             end
           end

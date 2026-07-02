@@ -6,15 +6,9 @@
     <h1><%= t("sign.org.verification.index.title") %></h1>
   </div>
 
-  <div>
-    <h2><%= t("sign.org.verification.new.title") %></h2>
-    <p><%= t("sign.org.verification.new.description") %></p>
-
-    <% if flash[:alert] %>
-      <div>
-        <%= flash[:alert] %>
-      </div>
-    <% end %>
+    <div>
+      <h2><%= t("sign.org.verification.new.title") %></h2>
+      <p><%= t("sign.org.verification.new.description") %></p>
 
     <% if @available_methods.blank? %>
       <p><%= t("views.sign.org.verifications.show.no_methods") %></p>

@@ -56,7 +56,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   test "base com identity owns non-ceremony identity settings" do
     helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    %w[
+    %w(
       base_com_identity_email
       base_com_identity_telephone
       base_com_identity_birthdate
@@ -64,7 +64,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
       base_com_identity_session
       base_com_identity_activit
       base_com_identity_withdrawal
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
     end
   end
@@ -72,7 +72,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
   test "base org identity owns non-ceremony identity settings" do
     helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    %w[
+    %w(
       base_org_identity_email
       base_org_identity_telephone
       base_org_identity_birthdate
@@ -80,7 +80,7 @@ class BaseSettingsAuthoritySlice1GTest < ActionDispatch::IntegrationTest
       base_org_identity_session
       base_org_identity_activit
       base_org_identity_withdrawal
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must exist"
     end
   end

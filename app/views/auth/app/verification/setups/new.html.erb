@@ -21,7 +21,7 @@
     <% if @missing_methods.include?(:email_otp) %>
     <li>
       <%= link_to t("sign.app.verification.setup.methods.email"),
-                  new_auth_app_settings_emails_registration_path(ri: params[:ri], pt: @pt) %>
+                  new_base_app_identity_emails_registration_url(ri: params[:ri], pt: @pt, host: base_authority_host) %>
     </li>
     <% end %>
     <% if @missing_methods.include?(:totp) %>

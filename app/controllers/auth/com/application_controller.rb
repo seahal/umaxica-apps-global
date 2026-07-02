@@ -155,8 +155,7 @@ module Auth
         return if telephone_registration_allowed_path?
 
         redirect_to(
-          new_auth_com_settings_telephones_registration_path(ri: params[:ri]),
-          notice: t("sign.app.registration.telephone.create.verification_code_sent"),
+          new_base_com_identity_telephones_registration_path(ri: params[:ri]),
         )
       end
 

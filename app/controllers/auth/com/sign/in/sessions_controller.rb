@@ -29,7 +29,6 @@ module Auth
             else
               refs = Array(params[:revoke_refs]).compact_blank
               if refs.empty?
-                flash[:alert] = I18n.t("sign.app.in.session.no_sessions_selected")
                 load_session_data
                 return render :show, status: :unprocessable_content
               end
@@ -42,17 +41,15 @@ module Auth
                 consume_session_limit_gate!
                 return redirect_to_sign_in_sequence!(
                   pt: retrieve_pt.presence || session_limit_pt,
-                  notice: I18n.t("sign.app.in.session.promoted"),
                 )
               end
 
               promote_current_session!
               consume_session_limit_gate!
               session.delete(:pending_login_visitor_id)
-              return redirect_to_return_path(notice: I18n.t("sign.app.in.session.promoted"))
+              return redirect_to_return_path
             end
 
-            flash.now[:notice] = I18n.t("sign.app.in.session.sessions_revoked")
             load_session_data
             render :show
           end
@@ -85,7 +82,6 @@ module Auth
 
               redirect_to(
                 auth_com_sign_in_path(ri: current_region_identifier),
-                notice: I18n.t("sign.app.in.session.cancelled"),
                 status: :see_other,
               )
             end
@@ -113,7 +109,6 @@ module Auth
           def redirect_to_login
             redirect_to(
               auth_com_sign_in_path(ri: current_region_identifier),
-              alert: I18n.t("sign.app.in.session.login_required"),
               status: :see_other,
             )
           end
@@ -124,16 +119,15 @@ module Auth
             super
           end
 
-          def redirect_to_return_path(notice:)
+          def redirect_to_return_path
             return_path = retrieve_pt || session_limit_pt
             consume_session_limit_gate!
 
             if return_path.present?
-              flash[:notice] = notice
               destination = path_from_signed_pt(signed_pt_token(return_path)) || auth_com_settings_path
               redirect_to_pt_destination!(destination)
             else
-              redirect_to(auth_com_settings_path(ri: current_region_identifier), notice: notice)
+              redirect_to(auth_com_settings_path(ri: current_region_identifier))
             end
           end
 
@@ -173,12 +167,10 @@ module Auth
           def revoke_session_by_ref(visitor, ref)
             token = VisitorToken.find_from_signed_ref(ref)
             unless token && allowed_to?(:destroy?, token, context: { user: visitor })
-              flash[:alert] = I18n.t("sign.app.in.session.invalid_session")
               return
             end
 
             if token.public_id == current_session_public_id
-              flash[:alert] = I18n.t("sign.app.in.session.cannot_revoke_current")
               return
             end
 
@@ -190,7 +182,6 @@ module Auth
               reason: "session_limit_selected_revoke",
             )
 
-            flash.now[:notice] = I18n.t("sign.app.in.session.session_revoked")
           end
 
           def revoke_sessions_by_refs(visitor, refs)

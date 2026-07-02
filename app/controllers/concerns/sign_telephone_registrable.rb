@@ -13,7 +13,7 @@ module SignTelephoneRegistrable
   def initiate_telephone_verification(user, number, auto_accept_confirmations: false)
     return false if user.blank?
 
-    check_telephone_verification_rate_limit!
+    check_telephone_verification_rate_limit!(number)
 
     # Compute digest once and reuse for both lookup and stale-record cleanup.
     digest = IdentifierBlindIndex.bidx_for_telephone(number)
@@ -97,8 +97,9 @@ module SignTelephoneRegistrable
 
   private
 
-  def check_telephone_verification_rate_limit!
-    cache_key = "rate-limit:telephone_verification:#{request.remote_ip}"
+  def check_telephone_verification_rate_limit!(number = nil)
+    phone_digest = IdentifierBlindIndex.bidx_for_telephone(number).presence || "unknown"
+    cache_key = "rate-limit:telephone_verification:ip:#{request.remote_ip}:phone:#{phone_digest}"
     count = Rails.configuration.x.rate_limit.fetch(:store).increment(
       cache_key,
       1,
@@ -106,12 +107,13 @@ module SignTelephoneRegistrable
     )
     return unless count && count > TELEPHONE_VERIFICATION_RATE_LIMIT
 
-    Rails.logger.info(
-      JitLogEvent.format(
-        "telephone.verification.rate_limited",
-        ip: request.remote_ip,
-        retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,
-      ),
+    AuthenticationSecurityEventEmitter.emit(
+      "rate_limit.exceeded",
+      severity: "warning",
+      reason_code: "telephone_verification_rate_limit",
+      ip: request.remote_ip,
+      phone_digest: phone_digest,
+      retry_after: TELEPHONE_VERIFICATION_RATE_WINDOW,
     )
     raise ActionController::TooManyRequests
   end

@@ -35,7 +35,6 @@ module Base
             reset_registration_session!
             redirect_to(
               new_base_com_identity_telephones_registration_path(ri: params[:ri]),
-              notice: t("sign.app.registration.telephone.edit.session_expired"),
             )
           end
 
@@ -67,7 +66,6 @@ module Base
             )
             redirect_to(
               edit_base_com_identity_telephones_registration_path(ri: params[:ri]),
-              notice: t("sign.app.registration.telephone.create.verification_code_sent"),
             )
           end
 
@@ -78,7 +76,6 @@ module Base
               reset_registration_session!
               redirect_to(
                 new_base_com_identity_telephones_registration_path(ri: params[:ri]),
-                notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
               return
             end
@@ -122,20 +119,17 @@ module Base
                   ri: params[:ri],
                   host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),
                 ),
-                notice: t("sign.app.registration.telephone.update.success"),
                 allow_other_host: cross_host_redirect_allowed?,
               )
             when :session_expired
               reset_registration_session!
               redirect_to(
                 new_base_com_identity_telephones_registration_path(ri: params[:ri]),
-                notice: t("sign.app.registration.telephone.edit.session_expired"),
               )
             when :locked
               reset_registration_session!
               redirect_to(
                 new_base_com_identity_telephones_registration_path(ri: params[:ri]),
-                alert: t("sign.app.registration.telephone.update.attempts_exceeded"),
               )
             else
               render :edit, status: :unprocessable_content

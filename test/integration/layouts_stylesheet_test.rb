@@ -79,10 +79,10 @@ class StylesheetTagsTest < ActiveSupport::TestCase
     APPLICATION_LAYOUTS.each_key do |path|
       contents = Rails.root.join(path).read
 
-      assert_includes contents, '<header>', "layout #{path} must include a header"
-      assert_includes contents, '<nav aria-label=', "layout #{path} must label navigation"
+      assert_includes contents, "<header>", "layout #{path} must include a header"
+      assert_includes contents, "<nav aria-label=", "layout #{path} must label navigation"
       assert_includes contents, 'id="main"', "layout #{path} must place content in main#main"
-      assert_includes contents, '<footer>', "layout #{path} must include a footer"
+      assert_includes contents, "<footer>", "layout #{path} must include a footer"
       assert_includes contents, 'render "layouts/shared/flash_messages"', "layout #{path} must render flash messages"
       assert_includes contents, 'render "layouts/shared/current_banner"', "layout #{path} must render the banner"
       assert_includes contents, 'render "layouts/shared/footer_cookie_controls"',

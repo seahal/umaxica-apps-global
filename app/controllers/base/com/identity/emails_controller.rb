@@ -36,7 +36,6 @@ module Base
           if @user_email.update(email_preference_params)
             redirect_to(
               edit_base_com_identity_email_path(@user_email.public_id, ri: params[:ri]),
-              notice: t("sign.com.settings.email.update.success"),
               status: :see_other,
             )
           else
@@ -52,7 +51,6 @@ module Base
           if @user_email.undeletable?
             redirect_to(
               base_com_identity_emails_path(ri: params[:ri]),
-              alert: t("sign.app.settings.email.destroy.protected"),
             )
             return
           end
@@ -60,7 +58,6 @@ module Base
           unless AuthMethodGuard.can_remove_email?(current_visitor, @user_email)
             redirect_to(
               base_com_identity_emails_path(ri: params[:ri]),
-              alert: t("sign.com.settings.email.destroy.last_method"),
             )
             return
           end
@@ -70,7 +67,6 @@ module Base
 
           redirect_to(
             base_com_identity_emails_path(ri: params[:ri]),
-            notice: t("sign.com.settings.email.destroy.success"),
             status: :see_other,
           )
         end

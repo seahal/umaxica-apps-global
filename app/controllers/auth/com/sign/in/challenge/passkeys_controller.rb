@@ -49,7 +49,6 @@ module Auth
               if passkeys.empty?
                 redirect_to(
                   auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                  alert: I18n.t("errors.webauthn.no_passkeys_available"),
                   status: :see_other,
                 )
                 return
@@ -64,7 +63,6 @@ module Auth
               Rails.logger.error(JitLogEvent.format("webauthn.origin_validation_failed", message: e.message))
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                alert: I18n.t("errors.webauthn.origin_invalid"),
                 status: :see_other,
               )
             end
@@ -73,7 +71,6 @@ module Auth
               unless cloudflare_turnstile_stealth_validation["success"]
                 redirect_to(
                   new_auth_com_sign_in_challenge_passkey_path(ri: current_region_identifier),
-                  alert: I18n.t("session_limit.turnstile_failed"),
                   status: :see_other,
                 )
                 return
@@ -86,19 +83,16 @@ module Auth
                    SignWebauthn::ChallengePurposeMismatchError
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                alert: I18n.t("errors.webauthn.challenge_invalid"),
                 status: :see_other,
               )
             rescue WebAuthn::SignCountVerificationError
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                alert: I18n.t("errors.webauthn.sign_count_mismatch"),
                 status: :see_other,
               )
             rescue WebAuthn::Error
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                alert: I18n.t("errors.webauthn.verification_failed"),
                 status: :see_other,
               )
             end
@@ -111,7 +105,6 @@ module Auth
               clear_pending_mfa!
               redirect_to(
                 auth_com_sign_in_path(ri: current_region_identifier),
-                alert: I18n.t("sign.app.in.mfa.session_expired"),
                 status: :see_other,
               )
             end
@@ -142,7 +135,6 @@ module Auth
                 )
                 redirect_to(
                   auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                  alert: I18n.t("errors.webauthn.credential_not_found"),
                   status: :see_other,
                 )
                 return
@@ -155,7 +147,6 @@ module Auth
             rescue JSON::ParserError
               redirect_to(
                 auth_com_sign_in_challenge_path(ri: current_region_identifier),
-                alert: I18n.t("errors.webauthn.verification_failed"),
                 status: :see_other,
               )
             end
@@ -166,16 +157,14 @@ module Auth
               when :session_limit_hard_reject
                 render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
               when :restricted
-                redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
+                redirect_to(result[:redirect_path])
               when :success
                 redirect_to_sign_in_sequence!(
                   pt: result[:redirect_path],
-                  notice: I18n.t("sign.app.in.mfa.passkey.success"),
                 )
               else
                 redirect_to(
                   auth_com_sign_in_path(ri: current_region_identifier),
-                  alert: I18n.t("sign.app.in.mfa.verification_failed"),
                   status: :see_other,
                 )
               end

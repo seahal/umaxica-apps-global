@@ -51,7 +51,6 @@ module Base
           if @staff_email.undeletable?
             redirect_to(
               base_org_identity_emails_path(ri: params[:ri]),
-              alert: t("sign.org.settings.email.destroy.protected"),
             )
             return
           end
@@ -59,7 +58,6 @@ module Base
           unless AuthMethodGuard.can_remove_email?(current_operator, @staff_email)
             redirect_to(
               base_org_identity_emails_path(ri: params[:ri]),
-              alert: t("sign.org.settings.email.destroy.last_method"),
             )
             return
           end
@@ -67,7 +65,6 @@ module Base
           @staff_email.destroy!
           redirect_to(
             base_org_identity_emails_path(ri: params[:ri]),
-            notice: t("sign.org.settings.email.destroy.success"),
             status: :see_other,
           )
         end

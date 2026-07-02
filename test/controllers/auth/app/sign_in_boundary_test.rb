@@ -15,6 +15,7 @@ class Auth::App::SignInBoundaryTest < ActiveSupport::TestCase
       /auth_access/,
       /auth_refresh/,
       /bootstrap_actor:\s*true/,
+      /establish_signed_in_session!/,
     ]
 
     paths = [

@@ -2,6 +2,18 @@
 <div>
   <h1><%= t("sign.app.in.session.title") %></h1>
 
+  <% if @session_alert.present? %>
+    <div role="alert">
+      <p><%= @session_alert %></p>
+    </div>
+  <% end %>
+
+  <% if @session_notice.present? %>
+    <div role="status">
+      <p><%= @session_notice %></p>
+    </div>
+  <% end %>
+
   <% if current_session_restricted? %>
     <div>
       <div>

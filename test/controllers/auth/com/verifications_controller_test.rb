@@ -45,7 +45,7 @@ class Auth::Com::VerificationsControllerTest < ActionDispatch::IntegrationTest
 
   test "show renders only email and passkey method links" do
     return_to = signed_return_target(
-      return_to: auth_com_settings_emails_path(ri: "jp"),
+      return_to: "/settings/emails?ri=jp",
       flow: "step_up.bootstrap",
       surface: "com",
       session_nonce: @headers["X-TEST-SESSION-PUBLIC-ID"],

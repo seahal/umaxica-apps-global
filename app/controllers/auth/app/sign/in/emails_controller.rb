@@ -107,7 +107,6 @@ module Auth
             # Preserve pt parameter if provided
             preserve_pt
 
-            flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
             redirect_to(edit_auth_app_sign_in_email_path(pt: peek_pt))
           end
 
@@ -185,7 +184,6 @@ module Auth
           end
 
           def redirect_to_email_session_expired
-            flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
             redirect_to(new_auth_app_sign_in_email_path(pt: peek_pt))
           end
 
@@ -244,8 +242,8 @@ module Auth
               clear_otp(user_email)
               SignAppInEmailAuthenticationState.clear!(session)
               pt = peek_pt
-              result = establish_signed_in_session!(
-                user, pt: pt, ri: current_region_identifier, auth_method: "email",
+              result = AuthenticationSessionCommitter.call(
+                controller: self, resource: user, pt: pt, ri: current_region_identifier, auth_method: "email",
               )
               sign_in_result = sign_in_result_from_session_result(result, actor: user)
               if sign_in_result.mfa_required?
@@ -299,13 +297,12 @@ module Auth
 
           def redirect_after_successful_email_login(result)
             if result[:restricted]
-              redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
+              redirect_to(result[:redirect_path])
             elsif result[:redirect_path]
-              redirect_to(result[:redirect_path], notice: t("sign.app.in.mfa.required"))
+              redirect_to(result[:redirect_path])
             else
               redirect_to_sign_in_sequence!(
                 pt: retrieve_pt,
-                notice: t("sign.app.authentication.email.update.success"),
               )
             end
           end

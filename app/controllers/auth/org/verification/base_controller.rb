@@ -48,7 +48,6 @@ module Auth
           safe_redirect_to(
             auth_org_settings_path(ri: params[:ri]),
             fallback: "/settings",
-            alert: I18n.t("auth.step_up.session_expired"),
           )
           false
         end

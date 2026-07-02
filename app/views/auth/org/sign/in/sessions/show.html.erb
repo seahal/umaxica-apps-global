@@ -14,15 +14,6 @@
         <%= t("session_limit.edit.description") %>
       </p>
     </div>
-
-    <% if flash[:alert].present? %>
-      <div>
-        <div>
-          <p><%= flash[:alert] %></p>
-        </div>
-      </div>
-    <% end %>
-
     <%= form_with url: auth_org_sign_in_session_path, method: :patch, data: { turbo: false } do |f| %>
       <div>
         <h2>

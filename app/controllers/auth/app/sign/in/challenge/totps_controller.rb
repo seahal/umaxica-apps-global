@@ -87,7 +87,6 @@ module Auth
               clear_pending_mfa!
               redirect_to(
                 auth_app_sign_in_path,
-                alert: I18n.t("sign.app.in.mfa.session_expired"),
                 status: :see_other,
               )
             end
@@ -136,16 +135,14 @@ module Auth
               when :session_limit_hard_reject
                 render_session_limit_hard_reject(message: result[:message], http_status: result[:http_status])
               when :restricted
-                redirect_to(result[:redirect_path], notice: I18n.t("sign.app.in.session.restricted_notice"))
+                redirect_to(result[:redirect_path])
               when :success
                 redirect_to_sign_in_sequence!(
                   pt: result[:redirect_path],
-                  notice: I18n.t("sign.app.in.mfa.totp.success"),
                 )
               else
                 redirect_to(
                   auth_app_sign_in_path,
-                  alert: I18n.t("sign.app.in.mfa.verification_failed"),
                   status: :see_other,
                 )
               end

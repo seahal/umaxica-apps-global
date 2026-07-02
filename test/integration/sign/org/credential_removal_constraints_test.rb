@@ -126,7 +126,8 @@ class SignOrgCredentialRemovalConstraintsTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(token, scope: scope)
     headers = browser_headers
     csrf_token = cookies["csrf_token"]
-    headers["Cookie"] = [headers["Cookie"], ("csrf_token=#{csrf_token}" if csrf_token.present?)].compact_blank.join("; ")
+    headers["Cookie"] =
+      [headers["Cookie"], ("csrf_token=#{csrf_token}" if csrf_token.present?)].compact_blank.join("; ")
     headers.merge(
       "Host" => host,
       "Authorization" => "Bearer #{jwt_access_token_for(
@@ -296,15 +297,16 @@ class SignOrgCredentialRemovalConstraintsTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = if normalized.include?("acme")
-                "ACME"
-              elsif normalized.include?("core")
-                "CORE"
-              elsif normalized.include?("base")
-                "BASE"
-              else
-                "SIGN"
-              end
+    service =
+      if normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      elsif normalized.include?("base")
+        "BASE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type

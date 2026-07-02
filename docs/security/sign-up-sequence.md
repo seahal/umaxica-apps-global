@@ -79,6 +79,24 @@ All sign-up routes converge on the shared sign-up finalization boundary:
 See `docs/security/sign-up-compensation.md` for retry, rollback, and cleanup behavior when sign-up
 stops before durable completion.
 
+## Ceremony Cleanup
+
+Credential ceremony transaction tables use short-lived `expires_at` windows, not the account
+retention `purged_at` lifecycle. Production recurring cleanup therefore registers the dedicated
+`EmailCeremonyTransactionPurgeJob`, `PasskeyCeremonyTransactionPurgeJob`,
+`SecretCredentialCeremonyTransactionPurgeJob`, `SocialCeremonyTransactionPurgeJob`,
+`StepUpCeremonyTransactionPurgeJob`, `TelephoneCeremonyTransactionPurgeJob`, and
+`TotpCeremonyTransactionPurgeJob` jobs from `config/recurring.yml`.
+
+The cleanup jobs delete only rows that are expired beyond each ceremony type's retention period.
+Active, non-expired ceremony transactions are not purgeable. Re-running the jobs is idempotent:
+already-deleted expired rows are absent, and active rows remain outside the purge scope.
+
+Sign-up cancellation or abandonment must mark the flow state through the sign-up lifecycle; physical
+deletion is a cleanup concern. After cleanup removes expired ceremony transactions, retry starts a
+fresh ceremony instead of reusing stale OTP, WebAuthn, social, TOTP, telephone, or secret-credential
+state.
+
 ## App Social Sign-Up And Sign-In Boundary
 
 Google and Apple on the `app` surface use the same provider callback, but the callback must choose

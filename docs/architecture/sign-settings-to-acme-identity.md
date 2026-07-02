@@ -5,10 +5,9 @@
 Auth `/settings` must be limited to credential ceremony-backed settings. Base `/identity` owns
 identity, profile, session-management, activity, and account-lifecycle management.
 
-This document replaces the older Sign/Acme migration wording for the current
-Auth / Base / Core / Palm vocabulary. Where older code or tests still mention Sign/Acme, read the
-authority rule as Auth credential gateway versus Base identity owner unless a current ADR says
-otherwise.
+This document replaces the older Sign/Acme migration wording for the current Auth / Base / Core /
+Palm vocabulary. Where older code or tests still mention Sign/Acme, read the authority rule as Auth
+credential gateway versus Base identity owner unless a current ADR says otherwise.
 
 ## Decision
 
@@ -99,8 +98,8 @@ Tests should prove both sides of the ownership boundary:
 - `org` keeps only Auth passkey and Entra settings.
 - `mfa/reset` and `mfa/challenge` are not general Auth settings exceptions. If a retained
   passkey/TOTP settings ceremony cannot work without an equivalent interaction, fold it into the
-  retained credential resource's `new`/`create` flow or document the narrow exception before
-  keeping it.
+  retained credential resource's `new`/`create` flow or document the narrow exception before keeping
+  it.
 - `operator_lifecycle_requests` must not be moved casually under Base identity. It is also not an
   approved Auth settings exception. If the correct owner is unclear during implementation, remove it
   from the Auth settings migration scope only with an explicit TODO explaining the unresolved owner
@@ -112,8 +111,8 @@ Tests should prove both sides of the ownership boundary:
 - Create Base identity tests first and observe red failures before adding routes or controllers.
 - Preserve Auth credential ceremony routes for sign-in, sign-up, and step-up flows that are outside
   this migration.
-- Replace all non-exception Auth settings helpers and hard-coded `/settings/...` callsites with
-  Base identity helpers.
+- Replace all non-exception Auth settings helpers and hard-coded `/settings/...` callsites with Base
+  identity helpers.
 - Do not place business logic in controllers while moving the surface. Extract shared domain code
   only when needed by the Base controller.
 - Auth settings route contract tests must become regression guards for the matrix above.

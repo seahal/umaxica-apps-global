@@ -7,19 +7,32 @@ class LayoutControllerContractTest < ActiveSupport::TestCase
   self.fixture_table_names = []
 
   CONTROLLERS = {
-    "app/controllers/auth/app/application_controller.rb" => ["Auth::App::ApplicationController", "auth/app/application"],
-    "app/controllers/auth/com/application_controller.rb" => ["Auth::Com::ApplicationController", "auth/com/application"],
-    "app/controllers/auth/org/application_controller.rb" => ["Auth::Org::ApplicationController", "auth/org/application"],
-    "app/controllers/base/app/application_controller.rb" => ["Base::App::ApplicationController", "base/app/application"],
-    "app/controllers/base/com/application_controller.rb" => ["Base::Com::ApplicationController", "base/com/application"],
-    "app/controllers/base/org/application_controller.rb" => ["Base::Org::ApplicationController", "base/org/application"],
-    "app/controllers/core/app/application_controller.rb" => ["Core::App::ApplicationController", "core/app/application"],
-    "app/controllers/core/com/application_controller.rb" => ["Core::Com::ApplicationController", "core/com/application"],
-    "app/controllers/core/org/application_controller.rb" => ["Core::Org::ApplicationController", "core/org/application"],
-    "app/controllers/side/app/application_controller.rb" => ["Side::App::ApplicationController", "side/app/application"],
-    "app/controllers/side/com/application_controller.rb" => ["Side::Com::ApplicationController", "side/com/application"],
-    "app/controllers/side/org/application_controller.rb" => ["Side::Org::ApplicationController", "side/org/application"],
-    "app/controllers/palm/app/application_controller.rb" => ["Palm::App::ApplicationController", "palm/app/application"],
+    "app/controllers/auth/app/application_controller.rb" => ["Auth::App::ApplicationController",
+                                                             "auth/app/application",],
+    "app/controllers/auth/com/application_controller.rb" => ["Auth::Com::ApplicationController",
+                                                             "auth/com/application",],
+    "app/controllers/auth/org/application_controller.rb" => ["Auth::Org::ApplicationController",
+                                                             "auth/org/application",],
+    "app/controllers/base/app/application_controller.rb" => ["Base::App::ApplicationController",
+                                                             "base/app/application",],
+    "app/controllers/base/com/application_controller.rb" => ["Base::Com::ApplicationController",
+                                                             "base/com/application",],
+    "app/controllers/base/org/application_controller.rb" => ["Base::Org::ApplicationController",
+                                                             "base/org/application",],
+    "app/controllers/core/app/application_controller.rb" => ["Core::App::ApplicationController",
+                                                             "core/app/application",],
+    "app/controllers/core/com/application_controller.rb" => ["Core::Com::ApplicationController",
+                                                             "core/com/application",],
+    "app/controllers/core/org/application_controller.rb" => ["Core::Org::ApplicationController",
+                                                             "core/org/application",],
+    "app/controllers/side/app/application_controller.rb" => ["Side::App::ApplicationController",
+                                                             "side/app/application",],
+    "app/controllers/side/com/application_controller.rb" => ["Side::Com::ApplicationController",
+                                                             "side/com/application",],
+    "app/controllers/side/org/application_controller.rb" => ["Side::Org::ApplicationController",
+                                                             "side/org/application",],
+    "app/controllers/palm/app/application_controller.rb" => ["Palm::App::ApplicationController",
+                                                             "palm/app/application",],
   }.freeze
 
   test "application controllers declare literal layouts" do
@@ -30,8 +43,10 @@ class LayoutControllerContractTest < ActiveSupport::TestCase
       assert_predicate controller, :present?
       assert_equal layout_name, controller._layout
       assert_includes contents, %(layout "#{layout_name}"), "missing literal layout declaration in #{path}"
-      refute_match(/\blayout\s*(?:->|do|proc|lambda|method)/, contents,
-                   "layout declaration in #{path} must stay literal")
+      assert_no_match(
+        /\blayout\s*(?:->|do|proc|lambda|method)/, contents,
+        "layout declaration in #{path} must stay literal",
+      )
     end
   end
 

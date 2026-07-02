@@ -198,18 +198,17 @@ module Auth
             sign_in_result = sign_in_result_from_session_result(result, actor: visitor)
 
             if sign_in_result.mfa_required?
-              redirect_to(sign_in_result.redirect_to, notice: t("sign.app.in.mfa.required"))
+              redirect_to(sign_in_result.redirect_to)
             elsif sign_in_result.status == :session_limit_hard_reject
               render_session_limit_hard_reject(
                 message: sign_in_result.message,
                 http_status: sign_in_result.response_status,
               )
             elsif sign_in_result.session_limit_pending?
-              redirect_to(sign_in_result.redirect_to, notice: I18n.t("sign.app.in.session.restricted_notice"))
+              redirect_to(sign_in_result.redirect_to)
             else
               redirect_to_sign_in_sequence!(
                 pt: signed_pt_param,
-                notice: t("sign.app.authentication.secret_credential.create.success"),
               )
             end
           end

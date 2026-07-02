@@ -29,7 +29,6 @@ module Base
             current_client.update!(mfa_level_id: requested_mfa_level_id, mfa_level_enabled: requested_mfa_level_id != ClientMfaLevel::NOTHING)
             redirect_to(
               base_app_identity_mfa_challenge_path(ri: params[:ri]),
-              notice: t("sign.app.settings.mfa.update.success"),
             )
           rescue ActiveRecord::RecordInvalid, ArgumentError
             show

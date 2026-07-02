@@ -82,7 +82,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   test "auth app settings keeps only credential ceremony settings" do
     helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    %w[
+    %w(
       auth_app_settings
       auth_app_settings_passkey
       auth_app_settings_passkeys_options
@@ -90,11 +90,11 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       auth_app_settings_totp
       auth_app_settings_apple
       auth_app_settings_google
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
     end
 
-    %w[
+    %w(
       auth_app_settings_email
       auth_app_settings_telephone
       auth_app_settings_birthdate
@@ -104,7 +104,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       auth_app_settings_activity
       auth_app_settings_withdrawal
       auth_app_settings_mfa
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
     end
   end
@@ -112,16 +112,16 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   test "auth com settings keeps only passkey ceremony settings" do
     helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    %w[
+    %w(
       auth_com_settings
       auth_com_settings_passkey
       auth_com_settings_passkeys_options
       auth_com_settings_passkeys_verification
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
     end
 
-    %w[
+    %w(
       auth_com_settings_totp
       auth_com_settings_google
       auth_com_settings_apple
@@ -135,7 +135,7 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       auth_com_settings_activity
       auth_com_settings_withdrawal
       auth_com_settings_mfa
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
     end
   end
@@ -143,17 +143,17 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
   test "auth org settings keeps only passkey and entra ceremony settings" do
     helper_names = Rails.application.routes.named_routes.helper_names.map(&:to_s)
 
-    %w[
+    %w(
       auth_org_settings
       auth_org_settings_passkey
       auth_org_settings_passkeys_options
       auth_org_settings_passkeys_verification
       auth_org_settings_entra
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.any? { |name| name.start_with?(prefix) }, "#{prefix} must remain"
     end
 
-    %w[
+    %w(
       auth_org_settings_totp
       auth_org_settings_google
       auth_org_settings_apple
@@ -167,22 +167,22 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
       auth_org_settings_withdrawal
       auth_org_settings_mfa
       auth_org_settings_operator_lifecycle_request
-    ].each do |prefix|
+    ).each do |prefix|
       assert helper_names.none? { |name| name.start_with?(prefix) }, "#{prefix} must not exist"
     end
   end
 
   test "retired auth settings paths are not routable" do
     {
-      app: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+      app: %w(/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
               /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
-              /settings/mfa/challenge /settings/mfa/reset],
-      com: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+              /settings/mfa/challenge /settings/mfa/reset),
+      com: %w(/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
               /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
-              /settings/mfa/challenge],
-      org: %w[/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
+              /settings/mfa/challenge),
+      org: %w(/settings/emails /settings/telephones /settings/birthdate /settings/secret_credentials
               /settings/sessions /settings/revocations/all /settings/activities /settings/withdrawal
-              /settings/mfa/challenge /settings/operator_lifecycle_requests],
+              /settings/mfa/challenge /settings/operator_lifecycle_requests),
     }.each do |surface, paths|
       paths.each { |path| assert_unrecognized(surface, path, :get) }
     end

@@ -50,7 +50,6 @@ module Base
           unless AuthMethodGuard.can_remove_telephone?(current_operator, telephone)
             redirect_to(
               base_org_identity_telephones_path(ri: params[:ri]),
-              alert: t("sign.org.settings.telephone.destroy.last_method"),
             )
             return
           end
@@ -58,7 +57,6 @@ module Base
           telephone.destroy!
           redirect_to(
             base_org_identity_telephones_path(ri: params[:ri]),
-            notice: t("sign.org.settings.telephone.destroy.success"),
             status: :see_other,
           )
         end

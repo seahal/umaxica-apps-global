@@ -59,7 +59,6 @@ module Auth
           safe_redirect_to(
             auth_com_verification_path(verification_recovery_redirect_params),
             fallback: auth_com_verification_path(ri: params[:ri]),
-            alert: I18n.t("auth.step_up.session_expired"),
           )
           false
         end

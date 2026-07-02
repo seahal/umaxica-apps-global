@@ -90,7 +90,6 @@ module Auth
             record_sign_in_email_cooldown!(normalized_address)
             preserve_pt
 
-            flash[:notice] = t("sign.app.authentication.email.create.verification_code_sent")
             redirect_to(edit_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
           end
 
@@ -106,7 +105,6 @@ module Auth
               )
 
               unless @user_email
-                flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
                 redirect_to(new_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
                 return
               end
@@ -118,7 +116,6 @@ module Auth
                 target: session[:user_email_authentication_address],
               )
             else
-              flash[:notice] = t("sign.app.authentication.email.edit.session_expired")
               redirect_to(new_auth_com_sign_in_email_path(pt: peek_pt, ri: current_region_identifier))
             end
           end

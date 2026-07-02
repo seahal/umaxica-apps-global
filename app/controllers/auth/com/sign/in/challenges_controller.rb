@@ -24,7 +24,6 @@ module Auth
             ri = params[:ri].presence || current_region_identifier
             redirect_to(
               auth_com_sign_in_path(ri: ri),
-              alert: I18n.t("sign.app.in.mfa.session_expired"),
               status: :see_other,
             )
           end

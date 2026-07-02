@@ -105,7 +105,6 @@ module Auth
           if email_otp_resend_rate_limited?
             redirect_to(
               verification_email_edit_path,
-              alert: t("otp.resend.too_soon"),
             )
             return
           end
@@ -114,12 +113,10 @@ module Auth
             stamp_email_otp_resend!
             redirect_to(
               verification_email_edit_path,
-              notice: t("otp.resend.sent"),
             )
           else
             redirect_to(
               verification_email_edit_path,
-              alert: t("otp.resend.failed"),
             )
           end
         end
@@ -136,7 +133,6 @@ module Auth
           safe_redirect_to(
             auth_com_verification_path(verification_recovery_redirect_params),
             fallback: auth_com_verification_path(ri: params[:ri]),
-            alert: I18n.t("auth.step_up.invalid_request"),
           )
           false
         end

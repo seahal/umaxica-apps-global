@@ -12,12 +12,12 @@ module Base
           secret = current_operator.staff_secret_credentials.find_by!(public_id: params.expect(:secret_id))
           authorize!(secret)
           unless AuthMethodGuard.can_remove_secret_credential?(current_operator, secret)
-            redirect_to base_org_identity_secrets_path(ri: params[:ri]), status: :see_other
+            redirect_to(base_org_identity_secrets_path(ri: params[:ri]), status: :see_other)
             return
           end
 
           OperatorSecretCredentialsDestroy.call(actor: current_operator, secret_credential: secret)
-          redirect_to base_org_identity_secrets_path(ri: params[:ri]), status: :see_other
+          redirect_to(base_org_identity_secrets_path(ri: params[:ri]), status: :see_other)
         end
       end
     end

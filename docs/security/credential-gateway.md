@@ -38,11 +38,11 @@ unless a current ADR explicitly assigns credential inventory or ceremony state t
 
 Auth settings may keep only credential ceremony-backed settings:
 
-| Surface | Allowed Auth settings scope |
-| ------- | --------------------------- |
+| Surface | Allowed Auth settings scope   |
+| ------- | ----------------------------- |
 | `app`   | passkeys, TOTP, Google, Apple |
-| `com`   | passkeys |
-| `org`   | passkeys, Entra |
+| `com`   | passkeys                      |
+| `org`   | passkeys, Entra               |
 
 Emails, telephones, birthdate, secrets, secret credentials, sessions, revocations, activities, and
 withdrawal belong to Base identity. Retired Auth settings URLs must not redirect to Base identity;

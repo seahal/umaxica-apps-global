@@ -58,7 +58,6 @@ module Base
           )
           reset_secret_credential_ceremony_session!
 
-          flash[:notice] = t(".created")
           redirect_to(
             base_org_identity_secrets_url(
               ri: params[:ri],
@@ -104,7 +103,6 @@ module Base
           unless AuthMethodGuard.can_remove_secret_credential?(current_operator, @secret_credential)
             redirect_to(
               base_org_identity_secrets_path(ri: params[:ri]),
-              alert: t("sign.org.settings.secret_credentials.destroy.last_method"),
               status: :see_other,
             )
             return

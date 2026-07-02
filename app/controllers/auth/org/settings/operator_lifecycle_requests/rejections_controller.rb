@@ -34,12 +34,10 @@ module Auth
             if result.success?
               redirect_to(
                 auth_org_settings_operator_lifecycle_request_path(result.request),
-                notice: t("sign.org.settings.operator_lifecycle_requests.reject.success"),
               )
             else
               redirect_to(
                 auth_org_settings_operator_lifecycle_request_path(result.request),
-                alert: result.error,
               )
             end
           end

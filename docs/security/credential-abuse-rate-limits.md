@@ -136,6 +136,11 @@ request params must not be used in logs or durable counter keys.
 SMS delivery is an externally expensive event. SMS send rules should be layered at least by
 `phone_digest`, `actor` or `session` when available, and `ip`.
 
+Current short-window Rails telephone verification uses a privacy-safe composite Valkey key made from
+the request IP address and the telephone blind-index digest. The key is identifier-aware without
+placing a raw telephone number in cache keys or logs, and it avoids blocking every user behind the
+same NAT solely because one telephone target exceeded its pacing limit.
+
 The expected policy shape is:
 
 ```text

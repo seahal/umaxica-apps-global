@@ -13,6 +13,7 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
     def initialize
       @request = Struct.new(:env).new({})
       @slept = []
+      @enabled = false
     end
 
     def minimum_response_budget_enabled?
@@ -84,11 +85,18 @@ class MinimumResponseBudgetTest < ActiveSupport::TestCase
     assert_in_delta(250.0, harness.send(:minimum_response_budget_max_sleep_ms))
   end
 
-  test "default budget is disabled and timing protection sleep is enabled" do
+  test "default budget is enabled and timing protection sleep is enabled" do
     plain = Class.new { include MinimumResponseBudget }.new
 
-    assert_not plain.send(:minimum_response_budget_enabled?)
+    assert plain.send(:minimum_response_budget_enabled?)
     assert plain.send(:timing_protection_sleep_enabled?)
+  end
+
+  test "org entra authorization uses the secure default budget" do
+    controller = Auth::Org::Sign::In::EntrasController.new
+    controller.define_singleton_method(:action_name) { "authorization" }
+
+    assert controller.send(:minimum_response_budget_enabled?)
   end
 
   test "sign-in secret credential controllers enable the budget only for create" do

@@ -99,7 +99,7 @@ class Auth::App::Sign::In::SessionsControllerExtraTest < ActionDispatch::Integra
 
     controller.update
 
-    assert_equal [{ pt: "/dashboard", notice: I18n.t("sign.app.in.session.promoted") }], redirects
+    assert_equal [{ pt: "/dashboard" }], redirects
     assert_nil session_hash[SessionLimitGate::GATE_SESSION_KEY]
     assert_equal @user.id, session_hash[:pending_login_user_id]
   end

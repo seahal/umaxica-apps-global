@@ -54,7 +54,7 @@ class Auth::App::UiFoundationTest < ActionDispatch::IntegrationTest
         path: auth_app_settings_secrets_url(ri: "jp", host: @sign_host),
         headers: sign_head,
       },
-      { path: auth_app_settings_mfa_challenge_path(ri: "jp"), headers: sign_head },
+      { path: "/settings/mfa/challenge?ri=jp", headers: sign_head },
       { path: auth_app_settings_google_path(ri: "jp"), headers: sign_head },
     ]
 

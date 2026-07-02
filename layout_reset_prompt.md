@@ -2,14 +2,16 @@
 
 ## Purpose
 
-Rails の `app/views/layouts/<surface>/<tld>/application.html.erb` を整理する。目的は、layout ごとの無駄な差異を減らし、controller の surface/tld と layout を 1:1 で対応させること。
+Rails の `app/views/layouts/<surface>/<tld>/application.html.erb`
+を整理する。目的は、layout ごとの無駄な差異を減らし、controller の surface/tld と layout を 1:1 で対応させること。
 
 この作業では、GitHub 上の状態は参照しない。未 push のローカル状態を正とする。
 
 ## Hard rules
 
 - 新しい partial / 部分テンプレートを増やさない。
-- `render "layouts/shared/surface_header"` や `render "layouts/shared/surface_footer"` のような新規 shared partial は作らない。
+- `render "layouts/shared/surface_header"` や `render "layouts/shared/surface_footer"`
+  のような新規 shared partial は作らない。
 - 既存の shared partial は消さない。
   - `layouts/shared/flash_messages`
   - `layouts/shared/current_banner`
@@ -64,7 +66,9 @@ palm/app
 
 `palm/com` と `palm/org` は存在しないので作らない。
 
-旧 layout 参照が残っている場合は、意味を確認して新 layout へ移行する。特に、古い `base/acme` を参照している箇所が残っていれば、新しい `auth/base` 参照へ移行する。ただし、存在しない target layout を推測で増やさない。ローカルの controller namespace と route/helper の実態を優先する。
+旧 layout 参照が残っている場合は、意味を確認して新 layout へ移行する。特に、古い `base/acme`
+を参照している箇所が残っていれば、新しい `auth/base` 参照へ移行する。ただし、存在しない target
+layout を推測で増やさない。ローカルの controller namespace と route/helper の実態を優先する。
 
 ## Asset policy
 
@@ -134,7 +138,8 @@ module Auth
 end
 ```
 
-`Auth::Com` なら `layout "auth/com/application"`、`Base::App` なら `layout "base/app/application"` のように、明示的に書く。
+`Auth::Com` なら `layout "auth/com/application"`、`Base::App` なら `layout "base/app/application"`
+のように、明示的に書く。
 
 `Palm` は `Palm::App` だけ。`Palm::Com` / `Palm::Org` を作らない。
 
@@ -284,7 +289,9 @@ layout "core/org/application"
 
 ## Reference ERB: `app/views/layouts/auth/app/application.html.erb`
 
-この ERB をお手本にして、他の layout を作ってください。各 layout では、`title_site`、i18n key、route helper、`current_banner` の `tld` / `domain`、footer controls の `scope`、Vite entrypoint を必ず literal で書き換えてください。
+この ERB をお手本にして、他の layout を作ってください。各 layout では、`title_site`、i18n key、route
+helper、`current_banner` の `tld` / `domain`、footer controls の `scope`、Vite
+entrypoint を必ず literal で書き換えてください。
 
 ```erb
 <%

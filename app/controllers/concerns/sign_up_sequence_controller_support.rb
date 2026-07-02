@@ -754,9 +754,9 @@ module SignUpSequenceControllerSupport
         credential_class: ClientSecretCredential,
         reveal_purpose: "client.recovery_secret_credential",
         reveal_url: ->(token) {
-          sign_app_settings_secrets_url(
+          base_app_identity_secrets_url(
             ri: params[:ri], token: token,
-            host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL"),
+            host: base_authority_host,
           )
         },
       }
