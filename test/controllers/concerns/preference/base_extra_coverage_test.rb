@@ -89,7 +89,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
       @current_resource = res
     end
 
-    def acme_app_web_v1_cookie_url
+    def base_app_web_v0_cookie_url
       "http://app.localhost/cookie"
     end
   end
@@ -123,7 +123,7 @@ class PreferenceBaseExtraCoverageTest < ActiveSupport::TestCase
   end
 
   test "cookie_banner_endpoint_url and available_for_request?" do
-    with_env("BASE_SERVICE_URL" => "id.app.localhost") do
+    with_env("PRIVATE_BASE_SERVICE_URL" => "id.app.localhost") do
       assert @harness.send(:cookie_banner_endpoint_available_for_request?)
       assert_equal "http://app.localhost/cookie", @harness.send(:cookie_banner_endpoint_url)
     end

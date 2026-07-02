@@ -13,33 +13,51 @@ module Base
       before_action :authenticate_client!
 
       def index
-        authorize!(current_client, to: :show?)
+        authorize!(Avatar, to: :index?)
         @avatars = switcher.available_avatars
       end
 
       def show
         @avatar = find_avatar!
-        authorize!(current_client, to: :show?)
+        authorize!(@avatar)
       end
 
       def new
-        authorize!(current_client, to: :update?)
+        authorize!(Avatar, to: :create?)
+        @avatar = Avatar.new
       end
 
       def edit
         @avatar = find_avatar!
-        authorize!(current_client, to: :update?)
+        authorize!(@avatar)
       end
 
       def create
-        authorize!(current_client, to: :update?)
-        redirect_to(base_app_avatars_path(ri: params[:ri]), status: :see_other)
+        authorize!(Avatar, to: :create?)
+        unless avatar_params[:moniker].present?
+          @avatar = Avatar.new(avatar_params.except(:handle))
+          @avatar.validate
+          render :new, status: :unprocessable_content
+          return
+        end
+
+        @avatar = build_avatar
+        if @avatar.save
+          @avatar.avatar_assignments.create!(user_id: current_client.id, role: "owner")
+          redirect_to(base_app_avatar_path(@avatar.public_id, ri: params[:ri]), status: :see_other)
+        else
+          render :new, status: :unprocessable_content
+        end
       end
 
       def update
         @avatar = find_avatar!
-        authorize!(current_client, to: :update?)
-        redirect_to(base_app_avatar_path(@avatar.public_id, ri: params[:ri]), status: :see_other)
+        authorize!(@avatar)
+        if @avatar.update(avatar_params.except(:handle))
+          redirect_to(base_app_avatar_path(@avatar.public_id, ri: params[:ri]), status: :see_other)
+        else
+          render :edit, status: :unprocessable_content
+        end
       end
 
       private
@@ -54,6 +72,37 @@ module Base
         @switcher ||= BaseSwitcherAuthority.new(
           surface: :app, principal: current_client, session: current_session,
         )
+      end
+
+      def build_avatar
+        Avatar.new(
+          moniker: avatar_params[:moniker],
+          active_handle: create_avatar_handle!,
+          capability_id: AvatarCapability::NORMAL,
+          client_id: current_client.id,
+          owner_organization_id: current_session&.selected_collective_public_id,
+          representing_organization_id: current_session&.selected_collective_public_id,
+          image_data: {},
+        )
+      end
+
+      def create_avatar_handle!
+        HandleStatus.ensure_defaults! if HandleStatus.respond_to?(:ensure_defaults!)
+        Handle.create!(
+          handle: avatar_handle,
+          handle_status_id: HandleStatus::ACTIVE,
+          cooldown_until: Time.current,
+          is_system: false,
+        )
+      end
+
+      def avatar_handle
+        base = avatar_params[:handle].presence || avatar_params.fetch(:moniker)
+        "#{base.to_s.parameterize.presence || 'avatar'}-#{SecureRandom.alphanumeric(8).downcase}"
+      end
+
+      def avatar_params
+        params.fetch(:avatar, {}).permit(:moniker, :handle)
       end
     end
   end

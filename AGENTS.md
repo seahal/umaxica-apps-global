@@ -190,7 +190,7 @@ skips hide partial migrations and corrupt schema_dump files over time.
 - Prefer Value Objects for domain values passed around as data. Use Service Objects for
   orchestration across multiple models, aggregates, transaction boundaries, external systems, or
   multi-step workflows; do not create Service Objects as generic containers for values.
-- Use Pundit authorization through the established pipeline.
+- Use Action Policy authorization through the established pipeline.
 - Use RESTful routes and path helpers.
 - Do not hardcode absolute URLs in application code.
 - Prefer existing project patterns over new abstractions.

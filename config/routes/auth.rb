@@ -61,8 +61,8 @@ scope(module: :auth, as: :auth) do
             end
           end
 
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -274,8 +274,8 @@ scope(module: :auth, as: :auth) do
             end
           end
 
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -423,8 +423,8 @@ scope(module: :auth, as: :auth) do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 

@@ -12,6 +12,7 @@ scope(module: :base, as: :base) do
     scope(module: :app, as: :app) do
       root "roots#index"
       resource :dashboard, only: :show
+      resource :selector, only: %i(show update)
       resources :billings, only: :index
       resources :groups, only: :index
       resource :preference, only: :show
@@ -75,8 +76,6 @@ scope(module: :base, as: :base) do
       namespace :web do
         namespace :v0 do
           resource :theme, only: %i(show update)
-        end
-        namespace :v1 do
           resource :cookie, only: %i(show update)
         end
       end
@@ -155,6 +154,8 @@ scope(module: :base, as: :base) do
       end
 
       resource :identity, only: :show
+      resources :avatars, only: %i(index show new edit create update)
+
       namespace :identity do
         namespace :mfa do
           resource :reset, only: %i(show create)
@@ -205,6 +206,7 @@ scope(module: :base, as: :base) do
       root "roots#index"
       resource :dashboard, only: :show
       resource :preference, only: :show
+
       namespace :preference do
         resource :calendar, only: %i(edit update)
         resource :clock, only: %i(edit update)
@@ -265,8 +267,6 @@ scope(module: :base, as: :base) do
       namespace :web do
         namespace :v0 do
           resource :theme, only: %i(show update)
-        end
-        namespace :v1 do
           resource :cookie, only: %i(show update)
         end
       end
@@ -327,6 +327,8 @@ scope(module: :base, as: :base) do
       root "roots#index"
       resource :dashboard, only: :show
       resource :preference, only: :show
+      resource :avatar, only: %i(show edit update destroy)
+
       namespace :preference do
         resource :calendar, only: %i(edit update)
         resource :clock, only: %i(edit update)
@@ -396,8 +398,6 @@ scope(module: :base, as: :base) do
       namespace :web do
         namespace :v0 do
           resource :theme, only: %i(show update)
-        end
-        namespace :v1 do
           resource :cookie, only: %i(show update)
         end
       end

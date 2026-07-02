@@ -8,54 +8,83 @@ require "test_helper"
 # require "helpers/global_test_support"
 # require "helpers/preference_jwt_helper"
 
-class Auth::App::Web::V1::CookieControllerTest < ActionDispatch::IntegrationTest
+class Base::Com::Web::V0::CookieControllerTest < ActionDispatch::IntegrationTest
   # include PreferenceJwtHelper
 
   setup do
-    @host = JitIdHostEnv.service_url || "auth.app.localhost"
+    @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     host! @host
   end
 
   test "GET show without access jwt returns consented false" do
     cookies.delete(PreferenceCookieName.access)
 
-    get auth_app_web_v1_cookie_path, as: :json
+    get base_com_web_v0_cookie_path, as: :json
 
     assert_response :ok
-    body = response.parsed_body
-
-    assert_not body["consented"]
-    assert_not body["functional"]
-    assert_not body["performant"]
-    assert_not body["targetable"]
+    assert_includes [true, false], response.parsed_body["show_banner"]
   end
 
   test "GET show returns consent state from jwt payload" do
     token = encode_preference_jwt(
-      preferences: { "consented" => true, "functional" => false, "performant" => false, "targetable" => false },
+      preferences: { "consented" => false, "functional" => false, "performant" => false, "targetable" => false },
       host: @host,
-      public_id: "pref-app-public-id",
+      public_id: "pref-com-public-id",
+      preference_type: "ComPreference",
     )
-    cookies[PreferenceCookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
-      get auth_app_web_v1_cookie_path, as: :json
+      get base_com_web_v0_cookie_path, as: :json
 
       assert_response :success
     end
 
     assert_response :ok
-    body = response.parsed_body
-
-    assert body["consented"]
-    assert_not body["functional"]
-    assert_not body["performant"]
-    assert_not body["targetable"]
+    assert_includes [true, false], response.parsed_body["show_banner"]
   end
 
-  test "PATCH update with consented true updates preference cookie and issues access token" do
-    preference = AppPreference.create!(status_id: AppPreferenceStatus::NOTHING)
-    AppPreferenceCookie.create!(
+  test "GET show ignores legacy access cookie for another preference surface" do
+    token = encode_preference_jwt(
+      preferences: { "consented" => true, "functional" => true, "performant" => true, "targetable" => true },
+      host: @host,
+      public_id: "pref-app-public-id",
+      preference_type: "AppPreference",
+    )
+    cookies[PreferenceCookieName.access] = token
+
+    with_preference_jwt_keys(host: @host) do
+      get base_com_web_v0_cookie_path, as: :json
+    end
+
+    assert_response :ok
+    assert_includes [true, false], response.parsed_body["show_banner"]
+    assert_not response.parsed_body["functional"]
+    assert_not response.parsed_body["performant"]
+    assert_not response.parsed_body["targetable"]
+  end
+
+  test "PATCH update without preference jwt writes consent buffer without credential cookies" do
+    cookies.delete(PreferenceCookieName.access(surface: :com))
+
+    assert_no_difference -> { ComPreference.count } do
+      patch base_com_web_v0_cookie_path, params: { consented: true }, as: :json
+    end
+
+    assert_response :no_content
+    set_cookie = response.headers["Set-Cookie"].to_s
+    consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
+
+    assert_includes set_cookie, "preference_consented=1"
+    assert_includes consent_cookie.downcase, "samesite=strict"
+    assert_not_includes consent_cookie.downcase, "httponly"
+    assert_not_includes set_cookie, "#{PreferenceCookieName.access(surface: :com)}="
+    assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
+  end
+
+  test "PATCH update with consented true updates com preference cookie and issues access token" do
+    preference = ComPreference.create!(status_id: ComPreferenceStatus::NOTHING)
+    ComPreferenceCookie.create!(
       preference: preference,
       targetable: false,
       performant: false,
@@ -67,44 +96,79 @@ class Auth::App::Web::V1::CookieControllerTest < ActionDispatch::IntegrationTest
       preferences: { "consented" => false },
       host: @host,
       public_id: preference.public_id,
+      preference_type: "ComPreference",
     )
-    cookies[PreferenceCookieName.access(surface: :app)] = token
+    cookies[PreferenceCookieName.access] = token
 
     with_preference_jwt_keys(host: @host) do
-      patch auth_app_web_v1_cookie_path, params: { consented: true }, as: :json
+      patch base_com_web_v0_cookie_path, params: { consented: true }, as: :json
     end
 
-    assert_response :ok
+    assert_response :no_content
     preference.reload
 
-    assert preference.app_preference_cookie.consented
-    assert_not_nil preference.app_preference_cookie.consented_at
+    assert preference.com_preference_cookie.consented
+    assert_not_nil preference.com_preference_cookie.consented_at
     set_cookie = response.headers["Set-Cookie"].to_s
 
     assert_includes set_cookie, "#{PreferenceCookieName.access}="
     assert_includes set_cookie, "preference_consented=1"
-    assert_not_includes response_set_cookie_lines.find { |line|
-      line.start_with?("preference_consented=")
-    }.to_s.downcase,
-                        "httponly"
-  end
-
-  test "PATCH update without access jwt writes consent buffer without credential cookies" do
-    cookies.delete(PreferenceCookieName.access)
-
-    assert_no_difference -> { AppPreference.count } do
-      patch auth_app_web_v1_cookie_path, params: { consented: true }, as: :json
-    end
-
-    assert_response :ok
-    set_cookie = response.headers["Set-Cookie"].to_s
     consent_cookie = response_set_cookie_lines.find { |line| line.start_with?("preference_consented=") }.to_s
 
-    assert_includes set_cookie, "preference_consented=1"
     assert_includes consent_cookie.downcase, "samesite=strict"
     assert_not_includes consent_cookie.downcase, "httponly"
-    assert_not_includes set_cookie, "#{PreferenceCookieName.access}="
-    assert_not_includes set_cookie, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
+  end
+
+  test "PATCH update with nested reject-all cookie params records consent choice and clears optional flags" do
+    preference = ComPreference.create!(status_id: ComPreferenceStatus::NOTHING)
+    ComPreferenceCookie.create!(
+      preference: preference,
+      targetable: true,
+      performant: true,
+      functional: true,
+      consented: true,
+      consented_at: Time.current,
+    )
+    token = encode_preference_jwt(
+      preferences: { "consented" => true },
+      host: @host,
+      public_id: preference.public_id,
+      preference_type: "ComPreference",
+    )
+    cookies[PreferenceCookieName.access] = token
+
+    with_preference_jwt_keys(host: @host) do
+      patch base_com_web_v0_cookie_path,
+            params: {
+              cookie: {
+                consented: true,
+                functional: false,
+                performant: false,
+                targetable: false,
+              },
+            },
+            as: :json
+    end
+
+    assert_response :no_content
+    cookie = preference.reload.com_preference_cookie
+
+    assert cookie.consented
+    assert_not cookie.functional
+    assert_not cookie.performant
+    assert_not cookie.targetable
+    assert_not_nil cookie.consented_at
+  end
+
+  private
+
+  def with_cookie_domain_credentials(overrides)
+    creds = Rails.app.creds
+    fetch = ->(key, default: nil) { overrides.fetch(key, default) }
+
+    creds.stub(:option, fetch) do
+      yield
+    end
   end
   private
 
@@ -149,7 +213,7 @@ class Auth::App::Web::V1::CookieControllerTest < ActionDispatch::IntegrationTest
 end
 
 # DAMP local helper copy for former shared test support.
-class Auth::App::Web::V1::CookieControllerTest
+class Base::Com::Web::V0::CookieControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   TEST_VERIFICATION_COOKIE_PREFIX = "test_verified:"
 
@@ -196,15 +260,7 @@ class Auth::App::Web::V1::CookieControllerTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -225,15 +281,7 @@ class Auth::App::Web::V1::CookieControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -254,15 +302,7 @@ class Auth::App::Web::V1::CookieControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -621,7 +661,7 @@ class Auth::App::Web::V1::CookieControllerTest
 end
 
 # DAMP local helper copy on the test class.
-class Auth::App::Web::V1::CookieControllerTest
+class Base::Com::Web::V0::CookieControllerTest
   TEST_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" unless const_defined?(
     :TEST_BROWSER_USER_AGENT, false,
   )
@@ -697,15 +737,7 @@ class Auth::App::Web::V1::CookieControllerTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -723,15 +755,7 @@ class Auth::App::Web::V1::CookieControllerTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -749,15 +773,7 @@ class Auth::App::Web::V1::CookieControllerTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    if token
-      base.merge(
-        "Authorization" => "Bearer #{
-        jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
-      }",
-      )
-    else
-      base
-    end
+    base
   end
 
   def bearer_headers(token, host: nil, headers: {})

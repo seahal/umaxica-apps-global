@@ -196,6 +196,38 @@ class BasePreferenceAuthoritySlice1fTest < ActionDispatch::IntegrationTest
     assert_equal "dr", user.user_preference.reload.theme
   end
 
+  test "base preference GET overlay does not overwrite signed in app preference" do
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host! host
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    user.user_preference.update!(language: "ja", timezone: "Asia/Tokyo", theme: "li")
+
+    get base_app_preference_url(host: host, ri: "jp", lx: "en", tz: "utc", ct: "dr"),
+        headers: session_headers(host, token, user)
+
+    assert_response :success
+    user.user_preference.reload
+    assert_equal "ja", user.user_preference.language
+    assert_equal "Asia/Tokyo", user.user_preference.timezone
+    assert_equal "li", user.user_preference.theme
+  end
+
+  test "base preference ignores JS readable theme cookie as canonical input" do
+    host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+    host! host
+    user = clients(:one)
+    token = ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    user.user_preference.update!(theme: "li")
+    cookies[PreferenceBase::THEME_COOKIE_KEY] = "dr"
+
+    get base_app_preference_url(host: host, ri: "jp"),
+        headers: session_headers(host, token, user)
+
+    assert_response :success
+    assert_equal "li", user.user_preference.reload.theme
+  end
+
   test "base preference reset remains destructive and removes app user preference" do
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! host

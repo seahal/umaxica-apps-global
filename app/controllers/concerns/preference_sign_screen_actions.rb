@@ -15,8 +15,7 @@ module PreferenceSignScreenActions
     ensure_preference_access_token_audience_for_write!
     set_region_preferences_update
     redirect_to(
-      preference_edit_url(:region, preference_write_redirect_params(except: :ri)),
-      notice: preference_update_notice,
+      preference_edit_url(:region, preference_write_redirect_params(except: :ri))
     )
   end
 
@@ -29,8 +28,7 @@ module PreferenceSignScreenActions
     set_language_preferences_update
     apply_language_preference_to_session
     redirect_to(
-      preference_edit_url(:language, language_preference_redirect_params),
-      notice: preference_update_notice,
+      preference_edit_url(:language, language_preference_redirect_params)
     )
   end
 
@@ -42,13 +40,11 @@ module PreferenceSignScreenActions
     ensure_preference_access_token_audience_for_write!
     set_timezone_preferences_update
     redirect_to(
-      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz)),
-      notice: preference_update_notice,
+      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz))
     )
   rescue PreferenceOperationError
     redirect_to(
-      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz)),
-      alert: preference_operation_failed_alert,
+      preference_edit_url(:timezone, preference_write_redirect_params(except: :tz))
     )
   end
 
@@ -62,8 +58,7 @@ module PreferenceSignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      safe_pt_path || preference_edit_url(:theme, preference_write_redirect_params(except: :ct)),
-      notice: preference_update_notice,
+      safe_pt_path || preference_edit_url(:theme, preference_write_redirect_params(except: :ct))
     )
   end
 
@@ -77,8 +72,7 @@ module PreferenceSignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      preference_edit_url(:cookie, preference_context_redirect_params),
-      notice: preference_update_notice,
+      preference_edit_url(:cookie, preference_context_redirect_params)
     )
   end
 
@@ -100,7 +94,7 @@ module PreferenceSignScreenActions
     end
 
     reset_preference_by_rebootstrap!
-    redirect_to(preference_index_path_without_context, notice: preference_reset_destroyed_notice, status: :see_other)
+    redirect_to(preference_index_path_without_context, status: :see_other)
   end
 
   def edit_selectable_preference_screen(screen)
@@ -115,13 +109,11 @@ module PreferenceSignScreenActions
     return render_preference_update_response if request.format.json?
 
     redirect_to(
-      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen))),
-      notice: preference_update_notice,
+      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen)))
     )
   rescue PreferenceOperationError
     redirect_to(
-      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen))),
-      alert: preference_operation_failed_alert,
+      preference_edit_url(screen, preference_write_redirect_params(except: preference_context_key_for_screen(screen)))
     )
   end
 

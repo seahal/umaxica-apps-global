@@ -212,7 +212,7 @@ staff tooling across `umaxica.[app|com|org]` and auxiliary subdomains.
   `POSTGRESQL_BEHAVIOR_PUB`).
 - Asset pipeline relies on Vite for browser CSS and pnpm-managed JS tooling for the app UI; Rails
   continues to serve static non-browser assets where appropriate.
-- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Pundit, Shrine, SolidCache,
+- Dependencies include ROTP, WebAuthn, OmniAuth (Google/Apple), Rswag, Action Policy, Shrine, SolidCache,
   Fastly gem, AWS SDK.
 
 ### 6.2 Environmental & configuration constraints

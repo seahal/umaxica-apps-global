@@ -249,7 +249,7 @@ Sensitive columns leverage Active Record encryption.
 ## 7. Security & Compliance View
 
 - **Authentication/Authorization**: `Authn` concern issues ES256 JWTs (15 min) + encrypted refresh
-  tokens (1 year). Pundit is included for future fine-grained policies.
+  tokens (1 year). Action Policy is the authorization framework for fine-grained policies.
 - **Bot & abuse protection**: Cloudflare Turnstile enforced on registration/contact flows;
   `RateLimit` prevents abuse; `allow_browser versions: :modern` blocks outdated clients.
 - **Data protection**: Active Record encryption (deterministic where needed) shields
@@ -304,7 +304,7 @@ Sensitive columns leverage Active Record encryption.
 **Planned enhancements**
 
 1. Flesh out staff/admin CRUD for docs/news/help content and owner/customer management.
-2. Implement real policy checks via Pundit and finish auth helper methods (`am_i_user?`, etc.).
+2. Continue adding explicit Action Policy checks where object-level authorization is still missing.
 3. Publish OpenAPI docs with Rswag for API namespaces and mount `/api-docs` when ready.
 4. Automate Fastly cache purges via `fastly` gem upon content updates.
 5. Expand geolocation- or cookie-based personalization once privacy review passes.

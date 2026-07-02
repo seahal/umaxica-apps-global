@@ -1,2 +1,17 @@
 <% content_for :page_title, "New Avatar" %>
-<%= render "base/shared/self_service/shell", page_title: "New Avatar", body_text: "avatar" %>
+
+<h1>New Avatar</h1>
+
+<%= form_with model: @avatar, url: base_app_avatars_path(ri: params[:ri]), method: :post do |form| %>
+  <div>
+    <%= form.label :moniker, "Name" %>
+    <%= form.text_field :moniker, required: true, maxlength: 120 %>
+  </div>
+
+  <div>
+    <%= form.label :handle, "Handle" %>
+    <%= form.text_field :handle, maxlength: 80 %>
+  </div>
+
+  <%= form.submit "Create Avatar" %>
+<% end %>

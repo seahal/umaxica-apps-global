@@ -47,9 +47,11 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     patch base_app_avatar_url(result.avatar.public_id, ri: "jp", host: @host),
+          params: { avatar: { moniker: "Updated Avatar" } },
           headers: as_user_headers(@user, host: @host)
 
     assert_response :see_other
+    assert_equal "Updated Avatar", result.avatar.reload.moniker
   end
 
   test "new avatar form renders" do
@@ -60,13 +62,32 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "create avatar redirects" do
+  test "create avatar persists owned avatar" do
     bootstrap_and_select!(@user, @token)
 
-    post base_app_avatars_url(ri: "jp", host: @host), headers: as_user_headers(@user, host: @host)
+    assert_difference ["Avatar.count", "AvatarAssignment.count"], 1 do
+      post base_app_avatars_url(ri: "jp", host: @host),
+           params: { avatar: { moniker: "Second Avatar", handle: "second" } },
+           headers: as_user_headers(@user, host: @host)
+    end
 
     assert_response :see_other
-    assert_redirected_to base_app_avatars_url(ri: "jp", host: @host)
+    avatar = Avatar.order(:created_at).last
+    assert_equal "Second Avatar", avatar.moniker
+    assert_equal @user.id, avatar.owner.id
+    assert_redirected_to base_app_avatar_url(avatar.public_id, ri: "jp", host: @host)
+  end
+
+  test "create avatar rejects blank moniker" do
+    bootstrap_and_select!(@user, @token)
+
+    assert_no_difference ["Avatar.count", "AvatarAssignment.count"] do
+      post base_app_avatars_url(ri: "jp", host: @host),
+           params: { avatar: { moniker: "" } },
+           headers: as_user_headers(@user, host: @host)
+    end
+
+    assert_response :unprocessable_content
   end
 
   test "cannot show another client's avatar" do
@@ -84,9 +105,11 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
     other_avatar = bootstrap_other_client.avatar
 
     patch base_app_avatar_url(other_avatar.public_id, ri: "jp", host: @host),
+          params: { avatar: { moniker: "Stolen" } },
           headers: as_user_headers(@user, host: @host)
 
     assert_response :not_found
+    assert_not_equal "Stolen", other_avatar.reload.moniker
   end
 
   private

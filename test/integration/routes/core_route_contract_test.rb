@@ -69,13 +69,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/app/web/v1/cookies", action: "show" },
-      { path: "http://#{CORE_APP_HOST}/web/v1/cookie", method: :get },
+      { controller: "core/app/web/v0/cookies", action: "show" },
+      { path: "http://#{CORE_APP_HOST}/web/v0/cookie", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/app/web/v1/cookies", action: "update" },
-      { path: "http://#{CORE_APP_HOST}/web/v1/cookie", method: :patch },
+      { controller: "core/app/web/v0/cookies", action: "update" },
+      { path: "http://#{CORE_APP_HOST}/web/v0/cookie", method: :patch },
     )
 
     assert_recognizes(
@@ -216,13 +216,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/com/web/v1/cookies", action: "show" },
-      { path: "http://#{CORE_COM_HOST}/web/v1/cookie", method: :get },
+      { controller: "core/com/web/v0/cookies", action: "show" },
+      { path: "http://#{CORE_COM_HOST}/web/v0/cookie", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/com/web/v1/cookies", action: "update" },
-      { path: "http://#{CORE_COM_HOST}/web/v1/cookie", method: :patch },
+      { controller: "core/com/web/v0/cookies", action: "update" },
+      { path: "http://#{CORE_COM_HOST}/web/v0/cookie", method: :patch },
     )
 
     assert_recognizes(
@@ -369,13 +369,13 @@ class CoreRouteContractTest < ActionDispatch::IntegrationTest
     )
 
     assert_recognizes(
-      { controller: "core/org/web/v1/cookies", action: "show" },
-      { path: "http://#{CORE_ORG_HOST}/web/v1/cookie", method: :get },
+      { controller: "core/org/web/v0/cookies", action: "show" },
+      { path: "http://#{CORE_ORG_HOST}/web/v0/cookie", method: :get },
     )
 
     assert_recognizes(
-      { controller: "core/org/web/v1/cookies", action: "update" },
-      { path: "http://#{CORE_ORG_HOST}/web/v1/cookie", method: :patch },
+      { controller: "core/org/web/v0/cookies", action: "update" },
+      { path: "http://#{CORE_ORG_HOST}/web/v0/cookie", method: :patch },
     )
 
     assert_recognizes(

@@ -67,7 +67,7 @@ Do not use `skip_authorization`.
 
 Reason:
 
-- It bypasses the Pundit authorization pipeline.
+- It bypasses the Action Policy authorization pipeline.
 - It can leave controller actions without an explicit policy decision.
 
 Use the established authorization flow for the surface and policy involved.

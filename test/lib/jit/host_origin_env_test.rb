@@ -42,7 +42,17 @@ module Jit
       env = ActiveSupport::EnvironmentInquirer.new("production")
 
       Rails.stub(:env, env) do
-        assert_equal ["https://id.app.localhost"], JitHostOriginEnv.origins_for("id.app.localhost")
+        assert_empty JitHostOriginEnv.origins_for("id.app.localhost")
+      end
+    end
+
+    test "origins_for rejects explicit local origins outside local environments" do
+      env = ActiveSupport::EnvironmentInquirer.new("production")
+
+      Rails.stub(:env, env) do
+        assert_empty JitHostOriginEnv.origins_for("https://localhost")
+        assert_empty JitHostOriginEnv.origins_for("http://127.0.0.1:3000")
+        assert_empty JitHostOriginEnv.origins_for("https://[::1]:3000")
       end
     end
   end

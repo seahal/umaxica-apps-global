@@ -81,7 +81,7 @@ Rails should not own:
 - `/robots.txt`;
 - `/sitemap.xml`;
 - `/auth/callback`;
-- `/web/v1/cookie`;
+- `/web/v0/cookie`;
 - `/web/v0/theme`;
 - mutation routes;
 - taxonomy routes;

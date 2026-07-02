@@ -14,18 +14,14 @@ class StaffLifecycleBoundaryTest < ActionDispatch::IntegrationTest
     mark_token_step_up_satisfied_for_test(@token, scope: "operator_lifecycle")
   end
 
-  test "org withdrawal route is informational and exposes lifecycle request entry instead of destructive self service" do # rubocop:disable Layout/LineLength
+  test "org withdrawal route is informational instead of destructive self service" do
     with_step_up_satisfied do
       get base_org_identity_withdrawal_url(ri: "jp"), headers: headers
     end
 
     assert_response :success
     assert_nil @staff.reload.deactivated_at
-    assert_select "a[href=?]",
-                  new_auth_org_settings_operator_lifecycle_request_path(
-                    action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
-                    ri: "jp",
-                  )
+    assert_select "a[href=?]", base_org_identity_path(ri: "jp")
   end
 
   test "org withdrawal endpoint does not accept app com destructive withdrawal verbs" do

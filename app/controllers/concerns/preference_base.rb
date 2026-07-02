@@ -98,9 +98,9 @@ module PreferenceBase
       begin
         endpoint_url = nil
         %i(
-          acme_app_web_v0_cookie_url
-          acme_com_web_v0_cookie_url
-          acme_org_web_v0_cookie_url
+          base_app_web_v0_cookie_url
+          base_com_web_v0_cookie_url
+          base_org_web_v0_cookie_url
         ).each do |helper_name|
           next unless respond_to?(helper_name, true)
 

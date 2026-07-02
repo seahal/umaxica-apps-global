@@ -52,10 +52,10 @@ class PreferenceSecurityTest < ActionDispatch::IntegrationTest
     patch base_app_preference_timezone_url(ri: "jp"),
           params: { preference_timezone: { option_id: "../etc/passwd" } }
 
-    # The fix routes invalid input through PreferenceOperationError and
-    # redirects back with a localized alert, never writing to session/cookie.
+    # Invalid input is routed through PreferenceOperationError and redirects
+    # back without writing to session/cookie or using Rails flash.
     assert_redirected_to edit_base_app_preference_timezone_url(ri: "jp")
-    assert_equal I18n.t("errors.messages.preference_operation_failed"), flash[:alert]
+    assert_empty flash.to_hash
 
     follow_redirect!
 

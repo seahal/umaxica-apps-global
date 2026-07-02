@@ -317,7 +317,7 @@ end
 ### Current technology stack
 
 - **Authentication**: WebAuthn, TOTP, Apple/Google OAuth, passcodes
-- **Authorization**: Pundit + Rolify
+- **Authorization**: Action Policy
 - **Background job**: TBA
 - **Password hash**: argon2
 - **Security**: Rack::Attack (rate limiting)

@@ -1,2 +1,12 @@
 <% content_for :page_title, "Avatar" %>
-<%= render "base/shared/self_service/shell", page_title: "Avatar", body_text: "avatar" %>
+
+<h1>Avatar</h1>
+
+<%= form_with model: @avatar, url: base_app_avatar_path(@avatar.public_id, ri: params[:ri]), method: :patch do |form| %>
+  <div>
+    <%= form.label :moniker, "Name" %>
+    <%= form.text_field :moniker, required: true, maxlength: 120 %>
+  </div>
+
+  <%= form.submit "Update Avatar" %>
+<% end %>

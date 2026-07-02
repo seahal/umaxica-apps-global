@@ -46,6 +46,7 @@ end
 
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "support/parallel_test_database_cloner"
 
 module ActiveSupport
   class TestCase
@@ -58,6 +59,7 @@ module ActiveSupport
     raise "PARALLEL_WORKERS must be positive" unless parallel_workers.positive?
 
     fixtures :all
+    ParallelTestDatabaseCloner.install!(workers: parallel_workers)
     parallelize(workers: parallel_workers)
 
     # The rate_limit backing store (config.x.rate_limit.store) is a single

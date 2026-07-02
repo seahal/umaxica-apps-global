@@ -35,8 +35,8 @@ scope module: :core, as: :core do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -112,8 +112,8 @@ scope module: :core, as: :core do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 
@@ -192,8 +192,8 @@ scope module: :core, as: :core do
       # Public web API: cookie consent, theme.
       namespace :web do
         namespace :v0 do
-          resource :cookie, only: %i(show update)
           resource :theme, only: %i(show update)
+          resource :cookie, only: %i(show update)
         end
       end
 

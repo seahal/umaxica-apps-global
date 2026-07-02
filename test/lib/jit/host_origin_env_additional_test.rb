@@ -25,7 +25,8 @@ class JitHostOriginEnvTest < ActiveSupport::TestCase
 
   test "origins_for returns only https in non-local environments" do
     Rails.env.stub(:local?, false) do
-      assert_equal ["https://app.localhost"], JitHostOriginEnv.origins_for("app.localhost")
+      assert_empty JitHostOriginEnv.origins_for("app.localhost")
+      assert_equal ["https://app.example.com"], JitHostOriginEnv.origins_for("app.example.com")
     end
   end
 

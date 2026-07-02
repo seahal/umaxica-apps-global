@@ -119,7 +119,8 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 
 **Security features**:
 
-- `Sign::*::ApplicationController` mixes in `Authn`, `RateLimit`, `DefaultUrlOptions`, `Pundit`.
+- `Sign::*::ApplicationController` mixes in authentication, rate limiting, default URL options,
+  and Action Policy.
 - `authenticate_user!` ensures `logged_in?` before hitting settings endpoints.
 - JWT cookies: `Auth::Base` writes `jit_auth_access` (JWT) + `jit_auth_refresh` +
   `jit_auth_device_id` (or `__Secure-` prefixed names in production).
@@ -311,7 +312,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ## 8. Security Mechanisms
 
 - **Authentication**: JWT-based session cookies with ES256 keys stored in credentials.
-- **Authorization**: Pundit included; settings controllers call `authorize`.
+- **Authorization**: Action Policy is included; settings controllers call `authorize!`.
 - **Bot mitigation**: Cloudflare Turnstile required for registration/contact forms; server logs
   failures.
 - **Rate limiting**: Configured via `RateLimit` concern (Valkey backend).
@@ -360,7 +361,7 @@ Browser ⇄ Fastly/Cloudflare ⇄ Rails (Top/Sign/Help/Docs/News/API/BFF)
 ## 11. Future Enhancements
 
 1. Flesh out staff/admin flows (owner/customer/news/docs CRUD).
-2. Implement policy checks (`am_i_user?`, `am_i_staff?`, etc.) and integrate with Pundit.
+2. Continue replacing legacy helper-style checks with explicit Action Policy authorization.
 3. Publish OpenAPI via Rswag and mount `/api-docs`.
 4. Add geolocation- and cookie-based personalization to `Top::*` once privacy reviewed.
 5. Automate Fastly cache purges after docs/news updates.

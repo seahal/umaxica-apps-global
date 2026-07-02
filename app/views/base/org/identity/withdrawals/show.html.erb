@@ -5,13 +5,6 @@
   <p><%= t("sign.org.settings.withdrawal.show.direct_message_unavailable") %></p>
 
   <div>
-    <%= link_to t("sign.org.settings.withdrawal.show.request_link"),
-                new_base_org_identity_operator_lifecycle_request_path(
-                  action_kind: OperatorLifecycleRequest::ACTION_WITHDRAW,
-                ) %>
-  </div>
-
-  <div>
     <%= link_to t("sign.org.settings.show.back"),
                 base_org_identity_path %>
   </div>
