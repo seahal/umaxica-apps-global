@@ -27,6 +27,9 @@ class RetentionPurgeJob < ApplicationJob
     ClientSignInFlow VisitorSignInFlow OperatorSignInFlow
     ClientSignOutFlow VisitorSignOutFlow OperatorSignOutFlow
     ClientWithdrawalFlow VisitorWithdrawalFlow
+    ClientProcessorErasureNotification VisitorProcessorErasureNotification
+    ClientPrivacyRequest VisitorPrivacyRequest
+    ClientRetentionHold VisitorRetentionHold
     ClientSignUpFlow VisitorSignUpFlow OperatorSignUpFlow
     ClientSecretCredential VisitorSecretCredential OperatorSecretCredential
     Avatar Member OperatorWorkspaceAccount
@@ -81,13 +84,63 @@ class RetentionPurgeJob < ApplicationJob
   def anonymize_accounts(klass, now:, batch_size:)
     klass.where(purged_at: ..now).where(terminated_at: nil).in_batches(of: batch_size) do |batch|
       batch.find_each do |actor|
+        if active_retention_hold_for(actor, now: now)
+          handle_actor_purge_skipped_by_hold(actor, now: now)
+          next
+        end
+
         WithdrawalPersonalDataAnonymizer.call(actor: actor)
         if actor.respond_to?(:terminated_at=)
           actor.withdrawn_at = now if actor.respond_to?(:withdrawn_at=)
           actor.terminated_at = now
           actor.save!(validate: false)
         end
+        WithdrawalOccurrenceRecording.record!(subject: actor, event_type: "withdrawal.purged")
+        WithdrawalOccurrenceRecording.record!(subject: actor, event_type: "withdrawal.shredded")
       end
+    end
+  end
+
+  def active_retention_hold_for(actor, now:)
+    case actor
+    when Client then actor.client_retention_holds.active_at(now).first
+    when Visitor then actor.visitor_retention_holds.active_at(now).first
+    end
+  end
+
+  def handle_actor_purge_skipped_by_hold(actor, now:)
+    hold = active_retention_hold_for(actor, now: now)
+    privacy_requests_for(actor).open_for_hold_block.find_each do |privacy_request|
+      privacy_request.block_by_legal_hold!(
+        retention_exception_code: hold&.reason_code.presence || "legal_hold",
+        now: now,
+      )
+      WithdrawalOccurrenceRecording.record!(
+        subject: actor,
+        event_type: "privacy_erasure.blocked_by_legal_hold",
+        context: {
+          privacy_request_public_id: privacy_request.public_id,
+          retention_hold_public_id: hold&.public_id,
+          retention_exception_code: privacy_request.retention_exception_code,
+        },
+      )
+    end
+    WithdrawalOccurrenceRecording.record!(
+      subject: actor,
+      event_type: "withdrawal.purge_skipped_by_hold",
+      context: {
+        retention_hold_public_id: hold&.public_id,
+        reason_code: hold&.reason_code,
+      },
+    )
+  end
+
+  def privacy_requests_for(actor)
+    case actor
+    when Client then actor.client_privacy_requests
+    when Visitor then actor.visitor_privacy_requests
+    else
+      raise ArgumentError, "unsupported retention actor: #{actor.class.name}"
     end
   end
 end

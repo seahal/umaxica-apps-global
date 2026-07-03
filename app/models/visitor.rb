@@ -109,6 +109,12 @@ class Visitor < ComPrincipalRecord
   has_many :visitor_withdrawal_ceremonies,
            dependent: :delete_all,
            inverse_of: :visitor
+  has_many :visitor_privacy_requests,
+           dependent: :restrict_with_error,
+           inverse_of: :visitor
+  has_many :visitor_retention_holds,
+           dependent: :restrict_with_error,
+           inverse_of: :visitor
   has_many :visitor_telephones,
            dependent: :destroy,
            inverse_of: :visitor

@@ -32,16 +32,12 @@ class SecurityHeadersTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Security-Policy"], "object-src 'none'"
     assert_includes response.headers["Content-Security-Policy"],
                     "form-action 'self' https://accounts.google.com https://appleid.apple.com"
-    assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}"
-    assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")}"
-    assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_BASE_STAFF_URL", "www.org.localhost")}"
-    assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL")}"
-    assert_includes response.headers["Content-Security-Policy"],
-                    "https://#{ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")}"
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+
+    assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.base_service.host}"
+    assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.base_corporate.host}"
+    assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.base_staff.host}"
+    assert_includes response.headers["Content-Security-Policy"], "https://#{hosts.auth_service.host}"
     # The jump gateway must be a valid form-action target: sign-flow form submissions
     # (e.g. the sign-up birthdate checkpoint) finalize by redirecting through it.
     assert_includes response.headers["Content-Security-Policy"],

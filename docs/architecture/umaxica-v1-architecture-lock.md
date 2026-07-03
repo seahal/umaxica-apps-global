@@ -156,6 +156,10 @@ These are current implementation risks to fix in later slices, not approved patt
   for `revoked_at >= assigned_at`.
 - `persona_memberships` has active primary uniqueness but still needs a dedicated app_zenith review
   for temporal and revoke-reason constraints.
+- Existing `avatars.client_id` rows now have a dry-run audit and explicit backfill path. The audit
+  and backfill reports are generated under `tmp/avatar_backfill/` and are not repository artifacts.
+  Only unambiguous app-surface `Client -> ClientIdentity -> Persona` candidates are eligible for
+  automatic `AvatarPersonaBinding` creation. Conflicts remain manual-review items.
 
 ## Slice 2 DB Constraint Inventory
 
@@ -220,10 +224,11 @@ Added in Slice 3:
 - `idx_avatar_individual_bindings_active_avatar`
 - `idx_avatar_individual_bindings_active_individual`
 
-Slice 4 introduced `AvatarProvisioning::Create` as the only Avatar creation entry point for the
-app surface. `Base::App::AvatarsController#create` is a service caller and must not directly create,
-update, or destroy Avatar authority or lifecycle rows. The service creates Avatar, Handle,
-`AvatarPersonaBinding`, and initial owner `AvatarAssignment` in one transaction.
+Slice 4 introduced `AvatarProvisioning::Create` as the canonical Avatar creation entry point for
+new Avatar graphs. Slice 4.5 extended that rule beyond the controller path:
+`Base::App::AvatarsController#create` and `BaseSelectorBootstrapAuthority` are service callers and
+must not directly create, update, or destroy Avatar authority or lifecycle rows. The service creates
+Avatar, Handle, the surface binding, and initial owner `AvatarAssignment` in one transaction.
 
 For the app surface, `AvatarPersonaBinding` is the canonical Avatar-to-Persona binding.
 `avatars.client_id` is written only inside `AvatarProvisioning::Create` as migration compatibility
@@ -231,9 +236,17 @@ for legacy constraints and read paths; it is not a basis for ownership or author
 `avatars.lifecycle_state_id` is the canonical current lifecycle state pointer. Historical avatar DB
 posts remain a legacy UGC violation and were not changed in Slice 4.
 
-## Out of Scope for This Slice
+`Avatar.create_with_owner` remains only as a deprecated compatibility wrapper around
+`AvatarProvisioning::Create`. It is a removal candidate and must not independently write Avatar,
+Handle, binding, assignment, or ownership rows.
 
-- Existing Avatar binding backfill
+The next slice must start with a dry-run conflict audit for existing Avatar binding backfill. Do not
+begin by mutating historical rows.
+
+## Remaining Out of Scope After Slice 5
+
+- Destructive removal of `avatars.client_id`
+- Automatic resolution of conflicted legacy Avatar binding candidates
 - Group v1 implementation
 - Identity-to-Account direct column removal
 - `avatars.client_id` removal

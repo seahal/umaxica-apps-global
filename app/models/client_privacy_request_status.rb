@@ -1,0 +1,20 @@
+# typed: false
+# frozen_string_literal: true
+
+class ClientPrivacyRequestStatus < AppPrincipalRecord
+  include ReferenceRecord
+
+  RECEIVED = 10
+  VERIFICATION_REQUIRED = 20
+  VERIFIED = 30
+  PROCESSING = 40
+  COMPLETED = 50
+  PARTIALLY_DENIED = 60
+  BLOCKED_BY_LEGAL_HOLD = 70
+  CANCELLED = 80
+  FAILED = 90
+  DEFAULTS = [
+    RECEIVED, VERIFICATION_REQUIRED, VERIFIED, PROCESSING, COMPLETED, PARTIALLY_DENIED,
+    BLOCKED_BY_LEGAL_HOLD, CANCELLED, FAILED,
+  ].freeze
+end

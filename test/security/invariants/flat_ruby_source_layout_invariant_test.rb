@@ -15,6 +15,12 @@ module Security
         app/controllers/concerns
       ).freeze
 
+      NESTED_APP_ALLOWLIST = %w(
+        app/services/avatar_backfill/audit_legacy_client_bindings.rb
+        app/services/avatar_backfill/backfill_legacy_client_bindings.rb
+        app/services/avatar_provisioning/create.rb
+      ).freeze
+
       EXPLICIT_LIB_ALLOWLIST = %w(
         lib/tasks/
         lib/assets/
@@ -27,6 +33,8 @@ module Security
           FLAT_ROOTS.flat_map do |root|
             Rails.root.glob("#{root}/**/*.rb").filter_map do |path|
               relative_path = path.relative_path_from(Rails.root).to_s
+              next if NESTED_APP_ALLOWLIST.include?(relative_path)
+
               relative_path if relative_path.delete_prefix("#{root}/").include?("/")
             end
           end

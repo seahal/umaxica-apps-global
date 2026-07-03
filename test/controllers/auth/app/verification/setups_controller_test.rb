@@ -6,7 +6,7 @@ require "test_helper"
 require "base64"
 
 class Auth::App::Verification::SetupsControllerTest < ActionDispatch::IntegrationTest
-  test "new shows a settings back link above registration methods when pt is present" do
+  test "new shows current registration methods when pt is present" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     user = Client.create!
     headers = as_user_headers(user, host: host)
@@ -15,7 +15,9 @@ class Auth::App::Verification::SetupsControllerTest < ActionDispatch::Integratio
     get new_auth_app_verification_setup_url(ri: "jp", pt: pt), headers: headers
 
     assert_response :success
-    assert_select "a[href=?]", auth_app_settings_path(ri: "jp"), count: 1
+    assert_select "a[href=?]", new_auth_app_settings_passkey_path(ri: "jp", pt: pt), count: 1
+    assert_select "a[href*=?]", "/identity/emails/registration/new", count: 1
+    assert_select "a[href=?]", new_auth_app_settings_totp_path(ri: "jp", pt: pt), count: 1
     assert_select "ul"
   end
   private

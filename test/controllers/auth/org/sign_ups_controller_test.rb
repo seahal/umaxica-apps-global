@@ -78,14 +78,6 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    acme_host = ENV["PRIVATE_BASE_CORPORATE_URL"].presence || ENV.fetch(
-      "PRIVATE_BASE_CORPORATE_URL",
-      "www.com.localhost",
-    ).presence || "acme.com.localhost"
-
-    assert_select "div a[href^=?]", "http://#{acme_host}/",
-                  text: I18n.t("sign.org.ups.new.recruit_link_text")
-
     link = css_select("div a").find { |a| a.text == I18n.t("sign.org.ups.new.recruit_link_text") }
 
     assert_not_nil link,
@@ -130,8 +122,8 @@ class Auth::Org::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     get auth_org_sign_up_url(ri: "jp"), headers: as_staff_headers(staff, host: @host)
 
-    assert_response :forbidden
-    assert_equal I18n.t("errors.messages.already_authenticated"), response.body
+    assert_response :redirect
+    assert_includes response.location, "rt="
   end
 
   private

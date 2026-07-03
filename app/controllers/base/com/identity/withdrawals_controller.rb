@@ -66,6 +66,10 @@ module Base
           new_base_com_identity_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
         end
 
+        def withdrawal_session_new_path
+          new_base_com_identity_withdrawal_session_path(ri: params[:ri])
+        end
+
         def withdrawal_edit_path
           edit_base_com_identity_withdrawal_path(ri: params[:ri])
         end

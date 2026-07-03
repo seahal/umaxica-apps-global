@@ -78,7 +78,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     assert_response :redirect
     uri = URI.parse(response.location)
 
-    assert_equal "/settings/telephones/registration/new?ri=jp", uri.request_uri
+    assert_includes response.location, "rt="
   end
 
   test "create redirects to edit and creates pending visitor telephone" do

@@ -36,10 +36,52 @@ class BaseSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_equal "Persona01", Persona.first.title
     assert_equal "Org01", Enterprise.first.title
     assert_equal 1, AvatarPersonaBinding.count
+    assert_equal 1, AvatarAssignment.where(user_id: user.id, role: "owner").count
     assert_equal 1, Persona.first.current_memberships.count
     assert_predicate result.avatar, :present?
+    assert_equal "active", result.avatar.lifecycle_state.key
+    assert_equal user.id, result.avatar.client_id
     assert_equal Persona.first, result.avatar.current_persona
     assert_equal result.avatar, Persona.first.current_avatar
+  end
+
+  test "app bootstrap delegates avatar creation to AvatarProvisioning Create" do
+    user = create_client!
+    original_call = AvatarProvisioning::Create.method(:call)
+    observed_arguments = nil
+
+    AvatarProvisioning::Create.stub(
+      :call,
+      lambda do |**arguments|
+        observed_arguments = arguments
+        original_call.call(**arguments)
+      end,
+    ) do
+      result = BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+
+      assert_predicate result.avatar, :present?
+    end
+
+    assert_equal user, observed_arguments.fetch(:actor)
+    assert_equal :persona, observed_arguments.fetch(:subject_type)
+    assert_equal "Default Avatar", observed_arguments.fetch(:avatar_params).fetch(:moniker)
+    assert_equal Enterprise.first.public_id, observed_arguments.fetch(:organization_public_id)
+  end
+
+  test "app bootstrap leaves no partial avatar graph when provisioning fails" do
+    user = create_client!
+    conflicting_handle = "user-#{user.public_id.downcase}".parameterize + "-aaaaaaaa"
+    Handle.create!(handle: conflicting_handle, handle_status_id: HandleStatus::ACTIVE, cooldown_until: Time.current)
+
+    SecureRandom.stub(:alphanumeric, "AAAAAAAA") do
+      assert_no_difference -> {
+        Avatar.count + AvatarPersonaBinding.count + AvatarAssignment.count + Handle.count
+      } do
+        assert_raises(ActiveRecord::RecordInvalid) do
+          BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+        end
+      end
+    end
   end
 
   test "com and org bootstrap do not create app avatars" do

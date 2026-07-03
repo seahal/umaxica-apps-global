@@ -6,6 +6,16 @@ require "test_helper"
 
 class AuthenticationCurrentResourceResolverCoverageTest < ActiveSupport::TestCase
   FakeResource = Struct.new(:id)
+  FakeSuspendedResource =
+    Struct.new(:id) do
+      def suspended? = true
+
+      def terminated? = false
+
+      def withdrawn? = false
+
+      def deactivated? = true
+    end
 
   class FakeTokenClass
     class << self
@@ -42,6 +52,12 @@ class AuthenticationCurrentResourceResolverCoverageTest < ActiveSupport::TestCas
   class FakeResourceClass
     def self.find_by(id:)
       (id == 123) ? FakeResource.new(id) : nil
+    end
+  end
+
+  class FakeSuspendedResourceClass
+    def self.find_by(id:)
+      (id == 123) ? FakeSuspendedResource.new(id) : nil
     end
   end
 
@@ -138,6 +154,36 @@ class AuthenticationCurrentResourceResolverCoverageTest < ActiveSupport::TestCas
 
             assert_equal 123, result.resource.id
             assert_not_nil token.updated_columns
+          end
+        end
+      end
+    end
+  end
+
+  test "suspended client access token fails before normal current resource is built" do
+    token =
+      Struct.new(:public_id, :oidc_jti, :last_used_at, :created_at) do
+        def has_attribute?(name)
+          %i(public_id oidc_jti last_used_at created_at).include?(name.to_sym)
+        end
+      end.new("sess-1", nil, 10.minutes.ago, 10.minutes.ago)
+
+    FakeTokenClass.token = token
+
+    AuthenticationToken.stub(:decode, { "sub" => 123, "sid" => "sess-1", "act" => "client" }) do
+      AuthenticationToken.stub(:validate_actor_claim!, true) do
+        AuthenticationToken.stub(:extract_session_id, "sess-1") do
+          AuthenticationToken.stub(:extract_subject, 123) do
+            result = AuthenticationCurrentResourceResolver.new(
+              access_token: "token",
+              request_host: "app.example.test",
+              resource_type: "client",
+              resource_class: FakeSuspendedResourceClass,
+              token_class: FakeTokenClass,
+            ).call
+
+            assert_nil result.resource
+            assert_equal :withdrawal_required, result.failure_reason
           end
         end
       end

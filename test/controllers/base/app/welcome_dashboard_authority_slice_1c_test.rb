@@ -38,7 +38,7 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
     assert_select "a[href=?]", base_app_organizations_path(ri: "jp"), text: "Organization"
     assert_select "a[href=?]", base_app_avatars_path(ri: "jp"), text: "Avatar"
     assert_select "a[href=?]", base_app_switcher_path(ri: "jp"), text: "Switcher"
-    assert_select "a[href=?]", sign_app_settings_url(ri: "jp", host: @sign_host), text: "Sign settings"
+    assert_select "a[href=?]", base_app_identity_path(ri: "jp"), text: "Identity"
     assert_select "a[href=?]", base_app_selector_path(ri: "jp")
     assert_select "a[href=?]", new_base_app_sign_out_path(ri: "jp")
     assert_select "form[action^=?]", base_app_oidc_logout_path, count: 0

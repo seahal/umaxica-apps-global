@@ -56,7 +56,7 @@ module Security
 
         assert_predicate user.reload, :terminated?
         assert_response :redirect
-        assert_redirected_to edit_base_app_identity_withdrawal_path(ri: "jp")
+        assert_redirected_to new_base_app_identity_withdrawal_session_path(ri: "jp")
       end
 
       test "withdrawal allowlist route remains reachable" do
@@ -69,7 +69,7 @@ module Security
         assert_response :success
       end
 
-      test "suspended visitor is redirected to com withdrawal status from protected html routes" do
+      test "suspended visitor is redirected to com withdrawal session entry from protected html routes" do
         visitor, headers = withdrawal_visitor_and_headers(:suspended)
 
         get base_com_identity_sessions_url(ri: "jp", host: @com_host),
@@ -77,8 +77,8 @@ module Security
 
         assert_predicate visitor.reload, :suspended?
         assert_response :redirect
-        assert_redirected_to edit_base_com_identity_withdrawal_path(ri: "jp")
-        assert_not_equal edit_base_app_identity_withdrawal_path(ri: "jp"), URI.parse(response.location).path
+        assert_redirected_to new_base_com_identity_withdrawal_session_path(ri: "jp")
+        assert_not_equal new_base_app_identity_withdrawal_session_path(ri: "jp"), URI.parse(response.location).path
       end
 
       test "suspended visitor gets withdrawal required on json protected routes" do
@@ -91,11 +91,25 @@ module Security
         assert_equal "WITHDRAWAL_REQUIRED", response.parsed_body["error"]
       end
 
-      test "com withdrawal allowlist route remains reachable" do
+      test "com withdrawal status route requires ceremony" do
         visitor, headers = withdrawal_visitor_and_headers(:suspended)
+        host! @com_host
+
+        with_step_up_satisfied(surface: "com") do
+          get edit_base_com_identity_withdrawal_url(ri: "jp", host: @com_host), headers: headers
+        end
+
+        assert_response :unauthorized
+
         ceremony = VisitorWithdrawalCeremony.issue!(subject: visitor, request: ActionDispatch::TestRequest.create)
-        cookies[AuthenticationCookieName.with_host_prefix("withdrawal_ceremony", production: JitSessionCookieConfig.force_secure?)] =
-          "#{ceremony.public_id}:#{ceremony.plaintext_token}"
+        cookie_name = AuthenticationCookieName.with_host_prefix(
+          "withdrawal_ceremony",
+          production: JitSessionCookieConfig.force_secure?,
+        )
+        headers = {
+          "Client-Agent" => TEST_BROWSER_USER_AGENT,
+          "Cookie" => "#{cookie_name}=#{ceremony.public_id}:#{ceremony.plaintext_token}",
+        }
 
         with_step_up_satisfied(surface: "com") do
           get edit_base_com_identity_withdrawal_url(ri: "jp", host: @com_host), headers: headers

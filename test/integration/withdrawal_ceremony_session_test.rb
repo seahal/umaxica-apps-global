@@ -19,7 +19,7 @@ class WithdrawalCeremonySessionTest < ActionDispatch::IntegrationTest
     get edit_base_app_identity_withdrawal_url(ri: "jp", host: host)
 
     assert_response :see_other
-    assert_redirected_to new_base_app_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to new_base_app_identity_withdrawal_session_path(ri: "jp")
 
     ceremony = ClientWithdrawalCeremony.issue!(subject: client, request: ActionDispatch::TestRequest.create)
     cookies[withdrawal_ceremony_cookie_name] = "#{ceremony.public_id}:#{ceremony.plaintext_token}"
@@ -43,7 +43,7 @@ class WithdrawalCeremonySessionTest < ActionDispatch::IntegrationTest
     get edit_base_com_identity_withdrawal_url(ri: "jp", host: host)
 
     assert_response :see_other
-    assert_redirected_to new_base_com_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to new_base_com_identity_withdrawal_session_path(ri: "jp")
 
     ceremony = VisitorWithdrawalCeremony.issue!(subject: visitor, request: ActionDispatch::TestRequest.create)
     cookies[withdrawal_ceremony_cookie_name] = "#{ceremony.public_id}:#{ceremony.plaintext_token}"
@@ -92,7 +92,7 @@ class WithdrawalCeremonySessionTest < ActionDispatch::IntegrationTest
     get edit_base_com_identity_withdrawal_url(ri: "jp", host: com_host)
 
     assert_response :see_other
-    assert_redirected_to new_base_com_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to new_base_com_identity_withdrawal_session_path(ri: "jp")
     assert_equal app_host, ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
   end
 

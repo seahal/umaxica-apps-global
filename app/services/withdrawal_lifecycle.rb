@@ -35,6 +35,7 @@ class WithdrawalLifecycle
     end
 
     notify("requested")
+    record_occurrence!("withdrawal.requested")
     actor
   end
 
@@ -62,14 +63,17 @@ class WithdrawalLifecycle
       "suspended", deactivated_at: actor.deactivated_at, discarded_at: actor.discarded_at,
                    purged_at: actor.purged_at,
     )
+    record_occurrence!("withdrawal.deactivated")
     actor
   end
 
   def recover!
     raise Sign::WithdrawalRecoveryNotAvailableError unless actor.can_recover?
+    raise Sign::WithdrawalRecoveryNotAvailableError if privacy_request_blocks_recovery?
 
     actor.class.transaction do
       actor.lock!
+      cancel_received_privacy_requests!
       ensure_withdrawal_flow_recovered!(now: Time.current)
       actor.update!(
         withdrawal_started_at: nil,
@@ -81,6 +85,7 @@ class WithdrawalLifecycle
     end
 
     notify("recovered")
+    record_occurrence!("withdrawal.recovered")
     actor
   end
 
@@ -99,6 +104,7 @@ class WithdrawalLifecycle
     end
 
     notify("terminated", terminated_at: actor.try(:terminated_at))
+    record_occurrence!("withdrawal.terminated")
     actor
   end
 
@@ -239,6 +245,35 @@ class WithdrawalLifecycle
     return false if value.respond_to?(:infinite?) && value.infinite?
 
     value.future?
+  end
+
+  def privacy_requests
+    case actor
+    when Client then actor.client_privacy_requests
+    when Visitor then actor.visitor_privacy_requests
+    else
+      raise Sign::InvalidWithdrawalStateError, actor.class.name
+    end
+  end
+
+  def privacy_request_blocks_recovery?
+    privacy_requests.open_for_recovery_block.exists?
+  end
+
+  def cancel_received_privacy_requests!
+    privacy_requests.received.find_each do |privacy_request|
+      privacy_request.cancel_from_recovery!
+      record_occurrence!("privacy_erasure.cancelled", privacy_request_public_id: privacy_request.public_id)
+    end
+  end
+
+  def record_occurrence!(event_type, context = {})
+    WithdrawalOccurrenceRecording.record!(
+      subject: actor,
+      event_type: event_type,
+      request: request,
+      context: context.merge(session_public_id: current_session_public_id.to_s),
+    )
   end
 
   def notify(state, payload = {})

@@ -157,31 +157,22 @@ class BaseSelectorBootstrapAuthority
     # App persists an avatar; com/org traverse the same hook and return nil.
     return nil unless config.requires_avatar
 
-    return if AvatarAssignment.exists?(user_id: principal.id, role: "owner")
+    existing_avatar = AvatarAssignment.where(user_id: principal.id, role: "owner").first&.avatar
+    return existing_avatar if existing_avatar.present?
 
-    handle = create_unique(
-      Handle,
-      {
-        handle: default_handle,
-        handle_status_id: HandleStatus::ACTIVE,
-        cooldown_until: Time.current,
-        is_system: false,
-      },
-      lookup: { handle: default_handle, is_system: false },
+    result = AvatarProvisioning::Create.call(
+      actor: principal,
+      subject_type: subject_type_for(account),
+      subject: account,
+      avatar_params: { moniker: "Default Avatar" },
+      handle_params: { handle: default_handle },
+      organization_public_id: collective.public_id,
     )
-    Avatar.create_with_owner(
-      {
-        moniker: "Default Avatar",
-        active_handle: handle,
-        capability_id: AvatarCapability::NORMAL,
-        client_id: principal.id,
-        owner_organization_id: collective.public_id,
-        representing_organization_id: collective.public_id,
-        image_data: {},
-      },
-      principal,
-    )
-  rescue ActiveRecord::RecordNotUnique
+
+    raise result.errors.first if result.errors.any?
+
+    result.avatar
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
     AvatarAssignment.where(user_id: principal.id, role: "owner").first&.avatar || raise
   end
 
@@ -193,6 +184,19 @@ class BaseSelectorBootstrapAuthority
       AvatarAgentBinding.find_or_create_by!(avatar: avatar, agent: account)
     when Individual
       AvatarIndividualBinding.find_or_create_by!(avatar: avatar, individual: account)
+    else
+      raise ArgumentError, "unsupported account class: #{account.class.name}"
+    end
+  end
+
+  def subject_type_for(account)
+    case account
+    when Persona
+      :persona
+    when Agent
+      :agent
+    when Individual
+      :individual
     else
       raise ArgumentError, "unsupported account class: #{account.class.name}"
     end

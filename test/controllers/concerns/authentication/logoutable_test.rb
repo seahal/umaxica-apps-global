@@ -76,7 +76,7 @@ module Authentication
       # Simulate an audit-write failure (e.g. chronicle DB unreachable)
       # after the token has been revoked. The ensure block must still
       # clear cookies and the Rails session.
-      def record_audit(_event, _resource: nil)
+      def record_audit(_event, resource: nil)
         raise BoomError, "audit write failed"
       end
     end

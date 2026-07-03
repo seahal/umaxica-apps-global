@@ -1820,6 +1820,47 @@ ALTER SEQUENCE public.visitor_visibilities_id_seq OWNED BY public.visitor_visibi
 
 
 --
+-- Name: visitor_withdrawal_ceremonies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_withdrawal_ceremonies (
+    id bigint NOT NULL,
+    public_id character varying(21) NOT NULL,
+    visitor_id bigint NOT NULL,
+    purpose character varying NOT NULL,
+    status_id integer DEFAULT 1 NOT NULL,
+    token_digest bytea NOT NULL,
+    expires_at timestamp(6) with time zone NOT NULL,
+    consumed_at timestamp(6) with time zone,
+    revoked_at timestamp(6) with time zone,
+    ip_digest bytea,
+    user_agent_digest bytea,
+    lock_version integer DEFAULT 0 NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: visitor_withdrawal_ceremonies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_withdrawal_ceremonies_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_withdrawal_ceremonies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_withdrawal_ceremonies_id_seq OWNED BY public.visitor_withdrawal_ceremonies.id;
+
+
+--
 -- Name: visitor_withdrawal_flow_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2358,6 +2399,13 @@ ALTER TABLE ONLY public.visitor_visibilities ALTER COLUMN id SET DEFAULT nextval
 
 
 --
+-- Name: visitor_withdrawal_ceremonies id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_withdrawal_ceremonies ALTER COLUMN id SET DEFAULT nextval('public.visitor_withdrawal_ceremonies_id_seq'::regclass);
+
+
+--
 -- Name: visitor_withdrawal_flow_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2882,6 +2930,14 @@ ALTER TABLE ONLY public.visitor_visibilities
 
 
 --
+-- Name: visitor_withdrawal_ceremonies visitor_withdrawal_ceremonies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_withdrawal_ceremonies
+    ADD CONSTRAINT visitor_withdrawal_ceremonies_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: visitor_withdrawal_flow_events visitor_withdrawal_flow_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2953,6 +3009,13 @@ CREATE UNIQUE INDEX idx_individual_memberships_one_active_primary ON public.indi
 --
 
 CREATE UNIQUE INDEX idx_individuals_one_per_visitor_identity ON public.individuals USING btree (visitor_identity_id);
+
+
+--
+-- Name: idx_on_visitor_id_status_id_expires_at_f1c3d6493a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_visitor_id_status_id_expires_at_f1c3d6493a ON public.visitor_withdrawal_ceremonies USING btree (visitor_id, status_id, expires_at);
 
 
 --
@@ -3565,6 +3628,34 @@ CREATE INDEX index_visitor_telephones_on_visitor_telephone_status_id ON public.v
 
 
 --
+-- Name: index_visitor_withdrawal_ceremonies_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_ceremonies_on_expires_at ON public.visitor_withdrawal_ceremonies USING btree (expires_at);
+
+
+--
+-- Name: index_visitor_withdrawal_ceremonies_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_withdrawal_ceremonies_on_public_id ON public.visitor_withdrawal_ceremonies USING btree (public_id);
+
+
+--
+-- Name: index_visitor_withdrawal_ceremonies_on_token_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_withdrawal_ceremonies_on_token_digest ON public.visitor_withdrawal_ceremonies USING btree (token_digest);
+
+
+--
+-- Name: index_visitor_withdrawal_ceremonies_on_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_withdrawal_ceremonies_on_visitor_id ON public.visitor_withdrawal_ceremonies USING btree (visitor_id);
+
+
+--
 -- Name: index_visitor_withdrawal_flow_events_on_from_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3980,6 +4071,14 @@ ALTER TABLE ONLY public.individual_memberships
 
 
 --
+-- Name: visitor_withdrawal_ceremonies fk_rails_5cdc4d0fad; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_withdrawal_ceremonies
+    ADD CONSTRAINT fk_rails_5cdc4d0fad FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
+
+
+--
 -- Name: visitor_withdrawal_flow_events fk_rails_606617dd12; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4242,6 +4341,7 @@ ALTER TABLE ONLY public.company_unit_closures
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260703010000'),
 ('20260627000001'),
 ('20260626000004'),
 ('20260626000003'),

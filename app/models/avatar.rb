@@ -77,6 +77,8 @@ class Avatar < AvatarRecord
   has_many :member_avatar_suspensions, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_deletions, dependent: :destroy, inverse_of: :avatar
   has_many :avatar_lifecycle_events, dependent: :restrict_with_error, inverse_of: :avatar
+  has_many :group_avatar_memberships, dependent: :restrict_with_error, inverse_of: :avatar
+  has_many :avatar_groups, through: :group_avatar_memberships
 
   # Single-user roles (has_one through)
   has_one :owner_assignment,
@@ -210,13 +212,34 @@ class Avatar < AvatarRecord
 
   before_validation :default_lifecycle_state, on: :create
 
-  # Create avatar with owner assigned in a transaction
+  # Deprecated compatibility wrapper. New avatar creation must call AvatarProvisioning::Create
+  # so the handle, binding, assignment, lifecycle state, and legacy client_id write stay together.
   def self.create_with_owner(attributes, user)
-    transaction do
-      avatar = create!(attributes)
-      avatar.avatar_assignments.create!(user_id: user.id, role: "owner")
-      avatar
-    end
+    attributes = attributes.to_h.symbolize_keys
+    subject = attributes.delete(:subject)
+    subject_type = attributes.delete(:subject_type)
+    handle_params = attributes.delete(:handle_params) || {}
+    handle_params = handle_params.to_h.symbolize_keys
+    handle_params[:handle] ||= attributes.delete(:handle) if attributes.key?(:handle)
+    handle_params[:handle] ||= attributes[:active_handle]&.handle if attributes[:active_handle].present?
+    assignment_role = attributes.delete(:assignment_role) || AvatarProvisioning::Create::DEFAULT_ASSIGNMENT_ROLE
+    organization_public_id =
+      attributes.delete(:organization_public_id) ||
+      attributes[:owner_organization_id] ||
+      attributes[:representing_organization_id]
+
+    result = AvatarProvisioning::Create.call(
+      actor: user,
+      subject_type: subject_type,
+      subject: subject,
+      avatar_params: attributes.slice(:moniker),
+      handle_params: handle_params,
+      assignment_role: assignment_role,
+      organization_public_id: organization_public_id,
+    )
+    raise result.errors.first if result.errors.any?
+
+    result.avatar
   end
 
   def current_avatar_persona_binding

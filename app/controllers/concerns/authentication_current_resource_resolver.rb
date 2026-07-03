@@ -235,6 +235,13 @@ class AuthenticationCurrentResourceResolver
                            session_public_id: current_session_public_id(token_record, sid),
                            token_public_id: token_record_public_id(token_record),
     ) if resource.blank?
+    if withdrawal_required?(resource)
+      return failure(
+        :withdrawal_required, payload: payload,
+                              session_public_id: current_session_public_id(token_record, sid),
+                              token_public_id: token_record_public_id(token_record),
+      )
+    end
     if administratively_locked?(resource)
       return failure(
         :administrative_access_locked, payload: payload,
@@ -278,5 +285,14 @@ class AuthenticationCurrentResourceResolver
   def token_stale_for_administrative_lock?(resource, payload)
     resource.respond_to?(:access_token_stale_for_administrative_lock?) &&
       resource.access_token_stale_for_administrative_lock?(payload)
+  end
+
+  def withdrawal_required?(resource)
+    return false unless %w(client visitor).include?(@resource_type.to_s)
+    return true if resource.respond_to?(:suspended?) && resource.suspended?
+    return true if resource.respond_to?(:terminated?) && resource.terminated?
+    return true if resource.respond_to?(:withdrawn?) && resource.withdrawn?
+
+    resource.respond_to?(:deactivated?) && resource.deactivated?
   end
 end

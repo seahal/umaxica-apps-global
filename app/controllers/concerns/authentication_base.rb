@@ -2811,11 +2811,19 @@ module AuthenticationBase
   end
 
   def handle_auth_required_json(options)
+    if @current_authentication_failure_reason == :withdrawal_required
+      return render json: { error: "WITHDRAWAL_REQUIRED", error_code: "withdrawal_required" }, status: :forbidden
+    end
+
     status = options[:status] || :unauthorized
     render json: { error: (options[:message] || "unauthorized") }, status: status
   end
 
   def handle_auth_required_html(options)
+    if @current_authentication_failure_reason == :withdrawal_required
+      return redirect_to(withdrawal_required_session_entry_path, allow_other_host: false)
+    end
+
     path =
       if respond_to?(:sign_in_url_with_pt, true)
         store_authentication_return_target!(request.fullpath) unless respond_to?(
@@ -2837,6 +2845,16 @@ module AuthenticationBase
     else
       redirect_to(path, allow_other_host: false, alert: message)
     end
+  end
+
+  def withdrawal_required_session_entry_path
+    ri = params[AuthIoKeys::Params::RI]
+    return new_base_app_identity_withdrawal_session_path(ri: ri) if controller_path.start_with?("base/app/")
+    return new_base_com_identity_withdrawal_session_path(ri: ri) if controller_path.start_with?("base/com/")
+    return new_base_app_identity_withdrawal_session_path(ri: ri) if controller_path.start_with?("auth/app/")
+    return new_base_com_identity_withdrawal_session_path(ri: ri) if controller_path.start_with?("auth/com/")
+
+    new_base_app_identity_withdrawal_session_path(ri: ri)
   end
 
   def handle_guest_only_json(options)

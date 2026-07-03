@@ -30,6 +30,11 @@
   <% elsif @early_termination_available_at.present? %>
     <p><%= t("sign.app.settings.withdrawal.terminate.available_at", date: l(@early_termination_available_at, format: :long)) %></p>
   <% end %>
+
+  <p>
+    <%= link_to "Request early personal data erasure",
+                new_base_com_identity_privacy_erasure_path(ri: params[:ri]) %>
+  </p>
 <% end %>
 
 <p>

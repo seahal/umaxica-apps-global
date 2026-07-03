@@ -115,8 +115,7 @@ class Auth::App::Omniauth::OmniauthCallbacksControllerTest < ActiveSupport::Test
 
     controller.send(:handle_login_failure, { status: :mfa_required, redirect_path: "/mfa" }, "Apple", user)
 
-    assert_equal [["/mfa"], { fallback: "/sign/in", notice: I18n.t("sign.app.in.mfa.required") }],
-                 safe_redirects.last
+    assert_equal [["/mfa"], { fallback: "/sign/in" }], safe_redirects.last
 
     controller.send(:handle_login_failure, { status: :unknown }, "Apple", user)
 

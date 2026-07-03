@@ -89,10 +89,16 @@ Known unresolved gaps after the Avatar provisioning service slice:
 - `persona_memberships` already has reference-table role/state shape and active primary uniqueness,
   but its temporal and revoke-reason constraints need a dedicated app_zenith review before changes.
 
-`AvatarProvisioning::Create` is the app-surface Avatar creation entry point. It creates Avatar,
-Handle, app-surface `AvatarPersonaBinding`, and initial owner `AvatarAssignment` in one
-transaction. `Base::App::AvatarsController#create` must remain a service caller and must not write
-authority or lifecycle tables directly.
+`AvatarProvisioning::Create` is the canonical Avatar creation entry point for new Avatar graphs.
+It creates Avatar, Handle, the surface binding, and initial owner `AvatarAssignment` in one
+transaction. `Base::App::AvatarsController#create` and `BaseSelectorBootstrapAuthority` must remain
+service callers and must not write Avatar authority or lifecycle tables directly.
+
+`Avatar.create_with_owner` is deprecated compatibility API only. It must delegate to
+`AvatarProvisioning::Create`, is a removal candidate, and must not independently write ownership,
+binding, Handle, or assignment rows. `avatars.client_id` is migration compatibility only; authority
+comes from binding plus assignment. The next backfill-oriented slice must begin with a dry-run
+conflict audit before any historical row mutation.
 
 ## Related
 

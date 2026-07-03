@@ -36,15 +36,15 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     @headers = as_user_headers(@deactivated_user, host: @host, session_public_id: @token.public_id)
   end
 
-  test "deactivated user accessing normal page redirects to withdrawal status" do
+  test "deactivated user accessing normal page redirects to withdrawal session entry" do
     get base_app_identity_sessions_url(ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")),
         headers: @headers
 
     assert_response :redirect
-    assert_redirected_to edit_base_app_identity_withdrawal_path(ri: "jp")
+    assert_redirected_to new_base_app_identity_withdrawal_session_path(ri: "jp")
   end
 
-  test "deactivated user can access allowlisted pages" do
+  test "deactivated user cannot access withdrawal pages through normal auth" do
     get(
       new_base_app_identity_withdrawal_url(
         ri: "jp", host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
@@ -52,7 +52,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       headers: @headers,
     )
 
-    assert_response :success
+    assert_response :unauthorized
 
     get(
       edit_base_app_identity_withdrawal_url(
@@ -61,7 +61,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
       headers: @headers,
     )
 
-    assert_response :success
+    assert_response :unauthorized
   end
 
   test "deactivated user accessing API returns 403" do

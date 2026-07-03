@@ -238,12 +238,8 @@ class OmniauthCallbacksTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
-      ),
-    )
+    assert_equal "http://#{ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")}/dashboard",
+                 response.location
   end
 
   test "existing Google identity without birthdate stays on login side" do

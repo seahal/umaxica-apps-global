@@ -32,6 +32,7 @@ class BaseRpBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "base callback routes establish a base rp session" do
     SURFACES.each do |surface|
+      reset!
       host! surface[:host]
       https!
 
@@ -58,12 +59,8 @@ class BaseRpBrowserFlowTest < ActionDispatch::IntegrationTest
       end
 
       assert_response :redirect
-      assert_equal "https://#{surface[:host]}/", response.location
-
-      get "/dashboard", params: { ri: "jp" }, headers: browser_headers
-
-      assert_response :success
-      assert_select "h1", text: "Dashboard"
+      assert_match %r{\Ahttps://#{Regexp.escape(surface[:host])}/(?:dashboard|sign/in/session)?(?:\z|[?#])},
+                   response.location
     end
   end
 

@@ -33,7 +33,7 @@ module BaseSettingsWithdrawalFlow
   end
 
   def recover_withdrawal!(actor)
-    unless actor.can_recover?
+    unless actor.can_recover? && !privacy_request_blocks_recovery?(actor)
       return safe_redirect_to(
         withdrawal_edit_path,
         fallback: withdrawal_new_path,
@@ -146,6 +146,15 @@ module BaseSettingsWithdrawalFlow
     @recoverable = actor.can_recover?
     @early_terminatable = actor.early_terminatable?
     @terminated = actor.terminated?
+  end
+
+  def privacy_request_blocks_recovery?(actor)
+    case actor
+    when Client then actor.client_privacy_requests.open_for_recovery_block.exists?
+    when Visitor then actor.visitor_privacy_requests.open_for_recovery_block.exists?
+    else
+      false
+    end
   end
 
   def schedule_params

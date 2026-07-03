@@ -157,19 +157,25 @@ class AvatarTest < ActiveSupport::TestCase
   test "create_with_owner creates avatar and assigns owner" do
     create_user_and_status
     user = Client.find_by!(public_id: "one_id")
+    bootstrap = BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
+    bootstrap.avatar.current_avatar_persona_binding.revoke!(force: true)
+
     avatar = nil
-    assert_difference ["Avatar.count", "AvatarAssignment.count"], 1 do
+    assert_difference ["Avatar.count", "AvatarAssignment.count", "AvatarPersonaBinding.active.count"], 1 do
       avatar = Avatar.create_with_owner(
         {
-          capability: @capability,
-          active_handle: @handle,
+          subject_type: :persona,
+          subject: bootstrap.account,
+          handle_params: { handle: "owned-avatar-wrapper" },
           moniker: "Owned Avatar",
+          organization_public_id: bootstrap.collective.public_id,
         }, user,
       )
     end
 
     assert_equal user, avatar.owner
     assert_includes avatar.avatar_assignments.pluck(:role), "owner"
+    assert_equal bootstrap.account, avatar.current_persona
   end
 
   test "role associations" do

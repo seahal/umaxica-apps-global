@@ -67,7 +67,7 @@ class RedirectsJumpGatewayUrlTest < ActiveSupport::TestCase
       result = RedirectsJumpGatewayUrl.call("#{"a" * 22}.#{"b" * 22}.#{"c" * 22}")
 
       assert_not result.ok?
-      assert_equal "https_required", result.failure_reason
+      assert_equal "invalid_uri", result.failure_reason
     end
   end
 

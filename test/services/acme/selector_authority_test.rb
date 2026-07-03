@@ -33,22 +33,16 @@ class BaseSelectorAuthorityTest < ActiveSupport::TestCase
       primary: false,
       metadata: {},
     )
-    handle = Handle.create!(
-      handle: "second-#{SecureRandom.hex(5)}", handle_status_id: HandleStatus::ACTIVE,
-      cooldown_until: Time.current,
+    persona.current_avatar_persona_binding.revoke!(force: true)
+    result = AvatarProvisioning::Create.call(
+      actor: @user,
+      subject_type: :persona,
+      subject: persona,
+      avatar_params: { moniker: "Second Avatar" },
+      handle_params: { handle: "second-#{SecureRandom.hex(5)}" },
+      organization_public_id: enterprise.public_id,
     )
-    Avatar.create_with_owner(
-      {
-        moniker: "Second Avatar",
-        active_handle: handle,
-        capability_id: AvatarCapability::NORMAL,
-        client_id: @user.id,
-        owner_organization_id: enterprise.public_id,
-        representing_organization_id: enterprise.public_id,
-        image_data: {},
-      },
-      @user,
-    )
+    assert_predicate result, :success?
 
     result = BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
 

@@ -1,0 +1,11 @@
+<% content_for :page_title, "Privacy erasure status" %>
+
+<h1>Privacy erasure status</h1>
+
+<% if @privacy_request.present? %>
+  <p>Status: <%= ClientPrivacyRequest.status_name_for(@privacy_request.status_id).downcase %></p>
+  <p>Received: <%= @privacy_request.received_at %></p>
+  <p>Response due: <%= @privacy_request.response_due_at %></p>
+<% else %>
+  <p>No privacy erasure request is active.</p>
+<% end %>

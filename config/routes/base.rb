@@ -16,7 +16,9 @@ scope(module: :base, as: :base) do
       resource :selector, only: %i(show update)
       resource :switcher, only: %i(show update)
       resources :billings, only: :index
-      resources :groups, only: :index
+      resources :groups, only: %i(index show create update destroy) do
+        resources :avatar_memberships, controller: :group_avatar_memberships, only: %i(create update destroy)
+      end
       resources :accounts, only: %i(index show)
       resources :organizations, only: %i(index show) do
         resources :memberships, module: :organizations
@@ -213,6 +215,15 @@ scope(module: :base, as: :base) do
         resource :withdrawal, only: %i(new update create edit destroy) do
           delete :session, action: :end_session
         end
+        resource :withdrawal_session,
+                 path: "withdrawal/session",
+                 only: %i(new create),
+                 controller: :withdrawal_sessions
+        namespace :privacy do
+          resource :erasure, only: %i(new create) do
+            get :status
+          end
+        end
       end
     end
   end
@@ -354,6 +365,15 @@ scope(module: :base, as: :base) do
         resources :activities, only: :index
         resource :withdrawal, only: %i(new update create edit destroy) do
           delete :session, action: :end_session
+        end
+        resource :withdrawal_session,
+                 path: "withdrawal/session",
+                 only: %i(new create),
+                 controller: :withdrawal_sessions
+        namespace :privacy do
+          resource :erasure, only: %i(new create) do
+            get :status
+          end
         end
       end
     end

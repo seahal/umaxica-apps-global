@@ -2016,6 +2016,47 @@ ALTER SEQUENCE public.client_visibilities_id_seq OWNED BY public.client_visibili
 
 
 --
+-- Name: client_withdrawal_ceremonies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_withdrawal_ceremonies (
+    id bigint NOT NULL,
+    public_id character varying(21) NOT NULL,
+    client_id bigint NOT NULL,
+    purpose character varying NOT NULL,
+    status_id integer DEFAULT 1 NOT NULL,
+    token_digest bytea NOT NULL,
+    expires_at timestamp(6) with time zone NOT NULL,
+    consumed_at timestamp(6) with time zone,
+    revoked_at timestamp(6) with time zone,
+    ip_digest bytea,
+    user_agent_digest bytea,
+    lock_version integer DEFAULT 0 NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL
+);
+
+
+--
+-- Name: client_withdrawal_ceremonies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_withdrawal_ceremonies_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_withdrawal_ceremonies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_withdrawal_ceremonies_id_seq OWNED BY public.client_withdrawal_ceremonies.id;
+
+
+--
 -- Name: client_withdrawal_flow_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3475,6 +3516,13 @@ ALTER TABLE ONLY public.client_visibilities ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: client_withdrawal_ceremonies id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_withdrawal_ceremonies ALTER COLUMN id SET DEFAULT nextval('public.client_withdrawal_ceremonies_id_seq'::regclass);
+
+
+--
 -- Name: client_withdrawal_flow_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4229,6 +4277,14 @@ ALTER TABLE ONLY public.client_visibilities
 
 
 --
+-- Name: client_withdrawal_ceremonies client_withdrawal_ceremonies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_withdrawal_ceremonies
+    ADD CONSTRAINT client_withdrawal_ceremonies_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: client_withdrawal_flow_events client_withdrawal_flow_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4495,6 +4551,13 @@ CREATE UNIQUE INDEX idx_enterprise_unit_closures_unique_path ON public.enterpris
 --
 
 CREATE UNIQUE INDEX idx_enterprise_units_id_enterprise ON public.enterprise_units USING btree (id, enterprise_id);
+
+
+--
+-- Name: idx_on_client_id_status_id_expires_at_6c66cf1447; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_client_id_status_id_expires_at_6c66cf1447 ON public.client_withdrawal_ceremonies USING btree (client_id, status_id, expires_at);
 
 
 --
@@ -5174,6 +5237,34 @@ CREATE UNIQUE INDEX index_client_totp_credentials_on_public_id ON public.client_
 --
 
 CREATE INDEX index_client_totp_credentials_on_user_id ON public.client_totp_credentials USING btree (user_id);
+
+
+--
+-- Name: index_client_withdrawal_ceremonies_on_client_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_ceremonies_on_client_id ON public.client_withdrawal_ceremonies USING btree (client_id);
+
+
+--
+-- Name: index_client_withdrawal_ceremonies_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_withdrawal_ceremonies_on_expires_at ON public.client_withdrawal_ceremonies USING btree (expires_at);
+
+
+--
+-- Name: index_client_withdrawal_ceremonies_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_withdrawal_ceremonies_on_public_id ON public.client_withdrawal_ceremonies USING btree (public_id);
+
+
+--
+-- Name: index_client_withdrawal_ceremonies_on_token_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_withdrawal_ceremonies_on_token_digest ON public.client_withdrawal_ceremonies USING btree (token_digest);
 
 
 --
@@ -6241,6 +6332,14 @@ ALTER TABLE ONLY public.client_preference_densities
 
 
 --
+-- Name: client_withdrawal_ceremonies fk_rails_9386315187; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_withdrawal_ceremonies
+    ADD CONSTRAINT fk_rails_9386315187 FOREIGN KEY (client_id) REFERENCES public.clients(id);
+
+
+--
 -- Name: client_member_discoveries fk_rails_93b97b3c26; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6599,6 +6698,7 @@ ALTER TABLE ONLY public.client_preference_timezones
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260703010000'),
 ('20260627000001'),
 ('20260626000004'),
 ('20260626000003'),

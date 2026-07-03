@@ -73,6 +73,7 @@
 #   anonymous PII placeholders.
 class Client < AppPrincipalRecord
   include Retainable
+  include Withdrawable
   include HasBirthdate
   include ::PublicId
   include ::Identity
@@ -143,6 +144,12 @@ class Client < AppPrincipalRecord
            inverse_of: :client
   has_many :client_withdrawal_ceremonies,
            dependent: :delete_all,
+           inverse_of: :client
+  has_many :client_privacy_requests,
+           dependent: :restrict_with_error,
+           inverse_of: :client
+  has_many :client_retention_holds,
+           dependent: :restrict_with_error,
            inverse_of: :client
   has_many :active_totps,
            -> { where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE) },

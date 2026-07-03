@@ -13,10 +13,11 @@ class Auth::App::Sign::In::CheckpointsControllerTest < ActionDispatch::Integrati
     @user = clients(:one)
   end
 
-  test "show without login is rejected" do
+  test "show without login starts OIDC handoff" do
     get auth_app_sign_in_check_url(ri: "jp"), headers: host_headers(@host)
 
-    assert_response :unprocessable_content
+    assert_response :redirect
+    assert_includes response.location, "rt="
   end
 
   test "show without sign in sequence is rejected" do

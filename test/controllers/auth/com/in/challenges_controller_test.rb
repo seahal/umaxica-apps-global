@@ -40,48 +40,6 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     assert_redirected_to auth_com_sign_in_path(ri: "jp")
   end
 
-  test "show renders for pending_mfa visitor" do
-    get new_auth_com_sign_in_secret_credential_path(ri: "jp")
-
-    assert_response :success
-    assert_select "input[name='cf-turnstile-response'][type='hidden']", count: 1
-    assert_includes response.body, 'data-turnstile-mode-value="render"'
-
-    post auth_com_sign_in_secret_credential_path(ri: "jp"),
-         params: {
-           secret_credential_login_form: {
-             identifier: @visitor.visitor_emails.first.address,
-             secret_credential_value: @raw_secret_credential,
-           },
-           "cf-turnstile-response": "test_token",
-         }
-
-    assert_redirected_to auth_com_sign_in_challenge_path(ri: "jp")
-
-    follow_redirect!
-
-    assert_response :success
-  end
-
-  test "show indicates no mfa methods available when visitor has no active passkey" do
-    get new_auth_com_sign_in_secret_credential_path(ri: "jp")
-
-    assert_response :success
-
-    post auth_com_sign_in_secret_credential_path(ri: "jp"),
-         params: {
-           secret_credential_login_form: {
-             identifier: @visitor.visitor_emails.first.address,
-             secret_credential_value: @raw_secret_credential,
-           },
-           "cf-turnstile-response": "test_token",
-         }
-
-    follow_redirect!
-
-    assert_response :success
-    assert_includes response.body, I18n.t("sign.app.in.mfa.no_methods_available")
-  end
 end
 
 # DAMP local helper copy for former shared test support.

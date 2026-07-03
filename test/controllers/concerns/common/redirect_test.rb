@@ -475,7 +475,7 @@ class CommonRedirectTest < ActiveSupport::TestCase
     data = parsed.fetch("data")
 
     assert_equal "gateway_url_failed", data.fetch("reason")
-    assert_equal "https_required", data.fetch("gateway_failure")
+    assert_equal "invalid_uri", data.fetch("gateway_failure")
   end
 
   test "redirect_to_jump_url renders invalid request when token cannot be issued without fallback" do

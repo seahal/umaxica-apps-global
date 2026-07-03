@@ -27,10 +27,10 @@ module Security
 
       KNOWN_CONTROLLER_AUTHORITY_WRITES = [].freeze
 
-      KNOWN_AVATAR_CLIENT_ID_WRITES = [
-        "app/services/avatar_provisioning/create.rb:81",
-        "app/models/avatar.rb:217",
-        "test/services/acme/selector_authority_test.rb:45",
+      AVATAR_PROVISIONING_CREATE_PATH = "app/services/avatar_provisioning/create.rb"
+      AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH = "app/services/avatar_backfill/backfill_legacy_client_bindings.rb"
+      NON_PERSISTENT_AVATAR_FORM_BUILDS = [
+        "app/controllers/base/app/avatars_controller.rb",
       ].freeze
 
       FORBIDDEN_AVATAR_UGC_TABLES = %w(
@@ -92,28 +92,63 @@ module Security
       end
 
       test "new code does not add canonical avatars client_id writes beyond known violations" do
-        paths = [
-          Rails.root.join("app/controllers/base/app/avatars_controller.rb"),
-          Rails.root.join("app/services/avatar_provisioning/create.rb"),
-          Rails.root.join("app/models/avatar.rb"),
-          Rails.root.join("test/services/acme/selector_authority_test.rb"),
-        ]
         offenders =
-          paths.flat_map do |path|
+          production_ruby_paths.flat_map do |path|
             relative_path = path.relative_path_from(Rails.root).to_s
             File.readlines(path, chomp: true).each_with_index.filter_map do |line, index|
               next unless line.match?(
-                /\bclient_id:\s*(?:(?:current_client|user|client|@user|@client)\.id|legacy_compatibility_client_id)\b/,
+                /\bclient_id:\s*(?:(?:current_client|principal|actor|user|client|@user|@client)\.id|legacy_compatibility_client_id)\b/,
               )
+              next if [AVATAR_PROVISIONING_CREATE_PATH, AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH].include?(relative_path)
 
               location = "#{relative_path}:#{index + 1}"
-              next if KNOWN_AVATAR_CLIENT_ID_WRITES.include?(location)
 
               "#{location}: #{line.strip}"
             end
           end
 
         assert_empty offenders, "Do not add new canonical writes to legacy avatars.client_id:\n#{offenders.join("\n")}"
+      end
+
+      test "production avatar creation entry points stay inside AvatarProvisioning Create" do
+        patterns = {
+          "Avatar.create_with_owner" => /Avatar\.create_with_owner\(/,
+          "Avatar.create!" => /Avatar\.create!\(/,
+          "avatar_assignments.create!" => /avatar_assignments\.create!\(/,
+          "Handle.create!" => /Handle\.create!\(/,
+          "Avatar binding create!" => /Avatar(?:Persona|Agent|Individual)Binding\.create!\(/,
+        }
+        offenders =
+          production_ruby_paths.flat_map do |path|
+            relative_path = path.relative_path_from(Rails.root).to_s
+            File.readlines(path, chomp: true).each_with_index.filter_map do |line, index|
+              matched_name = patterns.find { |_name, pattern| line.match?(pattern) }&.first
+              next unless matched_name
+              next if [AVATAR_PROVISIONING_CREATE_PATH, AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH].include?(relative_path)
+
+              "#{relative_path}:#{index + 1}: #{matched_name}: #{line.strip}"
+            end
+          end
+
+        assert_empty offenders,
+                     "Avatar graph creation must go through AvatarProvisioning::Create:\n#{offenders.join("\n")}"
+      end
+
+      test "production Avatar new calls do not become creation entry points" do
+        offenders =
+          production_ruby_paths.flat_map do |path|
+            relative_path = path.relative_path_from(Rails.root).to_s
+            next [] if NON_PERSISTENT_AVATAR_FORM_BUILDS.include?(relative_path)
+
+            File.readlines(path, chomp: true).each_with_index.filter_map do |line, index|
+              next unless line.match?(/Avatar\.new\(/)
+
+              "#{relative_path}:#{index + 1}: #{line.strip}"
+            end
+          end
+
+        assert_empty offenders,
+                     "Production Avatar.new calls must not bypass AvatarProvisioning::Create:\n#{offenders.join("\n")}"
       end
 
       test "avatar database migrations do not add UGC tables beyond known violations" do
@@ -167,6 +202,12 @@ module Security
         assert_empty offenders,
                      "Use public_id/gid/surface/resource_type for cross-DB references, not integer IDs:\n" \
                      "#{offenders.join("\n")}"
+      end
+
+      private
+
+      def production_ruby_paths
+        Dir.glob(Rails.root.join("{app,lib}/**/*.rb")).map { |path| Pathname.new(path) }
       end
     end
   end

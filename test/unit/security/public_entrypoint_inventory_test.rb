@@ -31,6 +31,7 @@ module Security
       PUBLIC_OAUTH_OIDC_SSO
       PUBLIC_SIGN_IN_UP
       PUBLIC_SIGN_OUT
+      PUBLIC_WITHDRAWAL
       PUBLIC_SOCIAL
       PUBLIC_AUTH_APP_REDIRECTS
       PUBLIC_AUTH_APP_SETTINGS_COMPAT
@@ -150,6 +151,7 @@ module Security
         public_oauth_oidc_or_sso?(entry) ||
         public_sign_in_or_up?(entry) ||
         public_sign_out?(entry) ||
+        public_withdrawal?(entry) ||
         public_social?(entry) ||
         public_auth_app_redirect?(entry) ||
         public_auth_app_settings_compat?(entry) ||
@@ -190,6 +192,13 @@ module Security
 
     def public_sign_out?(entry)
       entry.path.start_with?("/sign/out") || entry.controller_path.end_with?("/sign_outs")
+    end
+
+    def public_withdrawal?(entry)
+      entry.path.start_with?("/identity/withdrawal") &&
+        entry.controller_path.match?(%r{\Abase/(app|com)/identity/withdrawal(?:s|_sessions)\z}) ||
+        entry.path.start_with?("/identity/privacy/erasure") &&
+          entry.controller_path.match?(%r{\Abase/(app|com)/identity/privacy/erasures\z})
     end
 
     def public_social?(entry)

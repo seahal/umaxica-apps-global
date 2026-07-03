@@ -31,6 +31,23 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/base/app/identity/removals_controller.rb",
     "app/controllers/base/app/identity/rotations_controller.rb",
 
+    # Sign-out completion and emergency revocation controllers currently share
+    # the reviewed protocol implementations until those flows are flattened.
+    "app/controllers/auth/app/sign/outs/completions_controller.rb",
+    "app/controllers/auth/com/sign/outs/completions_controller.rb",
+    "app/controllers/auth/org/sign/outs/completions_controller.rb",
+    "app/controllers/base/app/sign_outs/completions_controller.rb",
+    "app/controllers/base/com/sign_outs/completions_controller.rb",
+    "app/controllers/base/org/sign_outs/completions_controller.rb",
+    "app/controllers/base/org/support/clients/sessions/emergency_revocations_controller.rb",
+    "app/controllers/base/org/support/operators/sessions/emergency_revocations_controller.rb",
+    "app/controllers/base/org/support/visitors/sessions/emergency_revocations_controller.rb",
+    "app/controllers/core/app/sign_outs/completions_controller.rb",
+    "app/controllers/core/com/sign_outs/completions_controller.rb",
+    "app/controllers/core/org/sign_outs/completions_controller.rb",
+    "app/controllers/side/app/sign_outs/completions_controller.rb",
+    "app/controllers/side/com/sign_outs/completions_controller.rb",
+    "app/controllers/side/org/sign_outs/completions_controller.rb",
   ].to_set.freeze
 
   # Controllers that are themselves allowed to be base classes

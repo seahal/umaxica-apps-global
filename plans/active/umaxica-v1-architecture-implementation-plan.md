@@ -45,7 +45,7 @@ Slice 1 deliberately did not rewrite `AvatarsController#create`, did not introdu
 `AvatarProvisioning::Create`, did not remove `avatars.client_id`, did not implement Group v1, and
 did not create the content DB.
 
-Known retirement targets after Slice 4:
+Known retirement targets after Slice 4.5:
 
 - `avatars.avatar_status_id` is legacy compatibility state; `avatars.lifecycle_state_id` is
   canonical.
@@ -62,9 +62,11 @@ Known retirement targets after Slice 4:
 - `group_avatar_memberships` does not exist yet and remains deferred to Group v1.
 - `avatar_agent_bindings.agent_id` and `avatar_individual_bindings.individual_id` remain existing
   cross-DB integer references.
-- `avatars.client_id` remains a legacy compatibility column. Slice 4 confines new app-surface
-  compatibility writes to `AvatarProvisioning::Create`; it is not canonical ownership,
+- `avatars.client_id` remains a legacy compatibility column. Slice 4.5 confines new compatibility
+  writes to `AvatarProvisioning::Create`; it is not canonical ownership,
   authorization, or binding authority.
+- `Avatar.create_with_owner` is a deprecated wrapper around `AvatarProvisioning::Create` and is a
+  removal candidate after callers are retired.
 - `avatars.avatar_status_id` remains legacy compatibility state.
 - Historical avatar DB `posts` remain a legacy UGC violation.
 
@@ -161,9 +163,38 @@ not directly write Avatar authority or lifecycle tables. App-surface canonical A
 binding is `AvatarPersonaBinding`. `avatars.lifecycle_state_id` remains canonical lifecycle state;
 `avatars.avatar_status_id` remains legacy compatibility state.
 
-## Next Slice Entry Point After Slice 4
+## Slice 4.5 Remaining Avatar Creation Paths
 
-The next slice is existing Avatar binding backfill.
+Slice 4.5 extended `AvatarProvisioning::Create` to the remaining bootstrap creation path.
+
+Slice 4.5 inspected:
+
+- `app/services/base_selector_bootstrap_authority.rb`
+- `app/services/avatar_provisioning/create.rb`
+- `app/models/avatar.rb`
+- production controller, service, job, task, seed, and test references to Avatar creation,
+  Handle creation, binding creation, `AvatarAssignment` creation, and `avatars.client_id`
+- `test/services/acme/selector_bootstrap_authority_test.rb`
+- `test/security/invariants/umaxica_architecture_guard_test.rb`
+
+Slice 4.5 changed:
+
+- `BaseSelectorBootstrapAuthority` now calls `AvatarProvisioning::Create` for app-surface bootstrap
+  Avatar creation.
+- `Base::App::AvatarsController#create` remains a service caller.
+- `Avatar.create_with_owner` delegates to `AvatarProvisioning::Create` and is deprecated.
+- Architecture guards reject production `Avatar.create_with_owner`, direct `Avatar.create!`,
+  direct `avatar_assignments.create!`, direct `Handle.create!`, direct surface binding `create!`,
+  and direct canonical `avatars.client_id` writes outside `AvatarProvisioning::Create`.
+
+Do not remove `avatars.client_id`, remove `avatar_status_id`, migrate historical avatar DB posts,
+implement actor snapshots, implement Group v1, or move Identity-to-Account assignment authority in
+this slice.
+
+## Next Slice Entry Point After Slice 4.5
+
+The next slice is a dry-run conflict audit for existing Avatar binding backfill. It must inventory
+conflicts and produce a reviewed mutation plan before any historical rows are changed.
 
 Before starting it, inspect:
 
@@ -175,14 +206,17 @@ Before starting it, inspect:
 - `test/services/avatar_provisioning/create_test.rb`
 - `test/models/avatar_persona_binding_test.rb`
 - `test/security/invariants/avatar_authority_lifecycle_constraint_test.rb`
+- `test/security/invariants/umaxica_architecture_guard_test.rb`
 
-Open issues before backfill:
+Open issues before backfill mutation:
 
 - Decide whether historical app-surface Personas may have more than one active Avatar. Current
   active Persona uniqueness means additional Avatar creation requires revoking or backfilling
   bindings deliberately.
 - Define the backfill conflict policy for Avatars whose legacy `client_id` points to a principal
   but whose Persona binding already exists or is inconsistent.
+- Decide the dry-run output schema, owner, retention expectation, and review path before writing a
+  backfill command that mutates rows.
 - Keep `avatars.client_id`, `avatars.avatar_status_id`, historical avatar DB posts,
   `avatar_agent_bindings.agent_id`, `avatar_individual_bindings.individual_id`, Identity-to-Account
   direct identity columns, membership controller stubs, missing Group v1, and missing content DB as
@@ -197,3 +231,42 @@ Keep the forbidden-pattern guard current before implementation work:
 - Avatar DB must not add UGC tables.
 - Avatar DB must not add actor snapshot tables.
 - New cross-DB integer or bigint associations are forbidden.
+
+## Slice 5A Legacy Avatar Client Binding Audit
+
+Slice 5A adds a dry-run-only audit path for existing `avatars.client_id` compatibility rows:
+
+- `AvatarBackfill::AuditLegacyClientBindings`
+- `avatar_backfill:audit_legacy_client_bindings`
+- default JSON report path: `tmp/avatar_backfill/legacy_client_binding_audit.json`
+
+The audit does not create, update, revoke, archive, delete, or canonicalize any database rows. It
+classifies each Avatar with a legacy `client_id` into structured review buckets, including safe
+backfill candidates, already-consistent bindings, inconsistent bindings, subject conflicts,
+multiple legacy Avatars for one subject, missing clients, unresolved subjects, deleted Avatar skips,
+legacy UGC review, cross-DB reference errors, and unknown failures.
+
+Only `safe_to_backfill` rows are eligible for Slice 5B. Conflicts are manual-review inputs and must
+not be resolved by automatic subject selection, binding revocation, Avatar archival, or deletion.
+
+## Slice 5B Legacy Avatar Client Binding Backfill
+
+Slice 5B adds an idempotent backfill path for candidates that Slice 5A classifies as
+`safe_to_backfill`:
+
+- `AvatarBackfill::BackfillLegacyClientBindings`
+- `avatar_backfill:legacy_client_bindings`
+- default JSON report path: `tmp/avatar_backfill/legacy_client_binding_backfill.json`
+
+The task defaults to dry-run. It mutates rows only when invoked with `APPLY=1`. The implementation
+currently backfills the app-surface legacy path where `avatars.client_id` resolves to
+`Client -> ClientIdentity.source_record_id -> Persona`; unresolved or ambiguous data remains in the
+manual-review track. The backfill creates `AvatarPersonaBinding` with `assigned_at` from the Avatar
+creation timestamp when available. It does not revoke existing active bindings, archive/delete
+Avatars, remove `avatars.client_id`, or treat `avatars.client_id` as canonical authority.
+
+Known Slice 5B compatibility remaining:
+
+- `avatars.client_id` remains a physical compatibility column and removal candidate.
+- Non-app historical rows without an unambiguous current subject resolution are manual review.
+- Generated reports under `tmp/avatar_backfill/` are operational artifacts and are not committed.
