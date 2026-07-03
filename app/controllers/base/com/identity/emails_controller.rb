@@ -19,12 +19,12 @@ module Base
         end
 
         def edit
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
         end
 
         def update
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
 
           unless cloudflare_turnstile_stealth_validation["success"]
@@ -45,7 +45,7 @@ module Base
         end
 
         def destroy
-          @user_email = current_visitor.visitor_emails.find_by!(public_id: params(:id))
+          @user_email = current_visitor.visitor_emails.find_by!(public_id: params.expect(:id))
           authorize!(@user_email)
 
           if @user_email.undeletable?

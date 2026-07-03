@@ -4,7 +4,12 @@
 module Base
   module App
     module Avatars
-      class BlocksController < SocialGraphController
+      class BlocksController < Base::App::FullAccessController
+        include BaseAppAvatarSocialGraphActions
+
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         def create
           record = AvatarBlock.new(blocker_avatar: actor_avatar, blocked_avatar: target_avatar)
           authorize_edge!(record, :create)

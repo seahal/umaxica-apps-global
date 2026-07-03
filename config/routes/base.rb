@@ -183,7 +183,7 @@ scope(module: :base, as: :base) do
       namespace :identity do
         namespace :mfa do
           resource :reset, only: %i(show create)
-          resource :challenge, only: :show
+          resource :challenge, only: %i(show update)
         end
 
         namespace :emails do

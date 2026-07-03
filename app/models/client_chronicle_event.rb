@@ -44,6 +44,7 @@ class ClientChronicleEvent < ChronicleRecord
   SOCIAL_LINKED = 30
   EMAIL_REGISTERED = 31
   TELEPHONE_REGISTERED = 32
+  CREDENTIAL_SECURITY_TRANSITION = 33
 
   # Association with client_chronicles
   has_many :client_chronicles,
@@ -84,6 +85,7 @@ class ClientChronicleEvent < ChronicleRecord
     SOCIAL_LINKED,
     EMAIL_REGISTERED,
     TELEPHONE_REGISTERED,
+    CREDENTIAL_SECURITY_TRANSITION,
   ].freeze
 
   public_constant :ACCOUNT_RECOVERED
@@ -118,6 +120,7 @@ class ClientChronicleEvent < ChronicleRecord
   public_constant :SOCIAL_LINKED
   public_constant :EMAIL_REGISTERED
   public_constant :TELEPHONE_REGISTERED
+  public_constant :CREDENTIAL_SECURITY_TRANSITION
   public_constant :DEFAULTS
 
   def self.ensure_defaults!

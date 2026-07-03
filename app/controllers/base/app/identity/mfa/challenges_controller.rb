@@ -26,7 +26,16 @@ module Base
           end
 
           def update
-            current_client.update!(mfa_level_id: requested_mfa_level_id, mfa_level_enabled: requested_mfa_level_id != ClientMfaLevel::NOTHING)
+            previous_mfa_level_id = current_client.mfa_level_id
+            mfa_level_id = requested_mfa_level_id
+            current_client.update!(mfa_level_id: mfa_level_id, mfa_level_enabled: mfa_level_id != ClientMfaLevel::NOTHING)
+            CredentialSecurityTransition.call(
+              actor: current_client,
+              current_session: current_session,
+              reason: (mfa_level_id == ClientMfaLevel::NOTHING) ? :mfa_disabled : :mfa_level_changed,
+              affected_surface: "app",
+              request: request,
+            ) if previous_mfa_level_id != mfa_level_id
             redirect_to(
               base_app_identity_mfa_challenge_path(ri: params[:ri]),
             )
@@ -46,7 +55,13 @@ module Base
 
           def requested_mfa_level_id
             mfa_level_id = Integer(params.dig(:user, :mfa_level_id).to_s, 10)
-            return mfa_level_id if [ClientMfaLevel::NOTHING, ClientMfaLevel::FULL].include?(mfa_level_id)
+            allowed = [
+              ClientMfaLevel::NOTHING,
+              ClientMfaLevel::WEAK,
+              ClientMfaLevel::MEDIUM,
+              ClientMfaLevel::FULL,
+            ]
+            return mfa_level_id if allowed.include?(mfa_level_id)
 
             raise ArgumentError, "unsupported multi factor level"
           end

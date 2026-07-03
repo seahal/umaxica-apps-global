@@ -156,6 +156,24 @@ class ChronicleRecorderTest < ActiveSupport::TestCase
     assert_includes result, "custom"
   end
 
+  test "sanitize removes credential transition forbidden secret material" do
+    input = {
+      raw_cookie: "__Host-session=raw",
+      password: "correct-horse-battery-staple",
+      otp: "123456",
+      webauthn_raw_response: "client-data-json",
+      csrf_token: "csrf-token-value",
+      recovery_code: "recovery-code-value",
+      secret_value: "secret-value",
+      raw_bearer_token: "Bearer abc.def.ghi",
+      reason: "mfa_disabled",
+    }
+
+    result = ChronicleRecorder.sanitize(input)
+
+    assert_equal({ "reason" => "mfa_disabled" }, result)
+  end
+
   test "forbidden_key? detects sensitive keys" do
     assert ChronicleRecorder.send(:forbidden_key?, "password")
     assert ChronicleRecorder.send(:forbidden_key?, "PASSWORD")

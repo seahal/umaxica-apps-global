@@ -5,11 +5,15 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::App::Organizations::MembershipsControllerTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   setup do
     @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    @organization_public_id = "test-org-public-id"
+    @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    @organization_public_id = @bootstrap.collective.public_id
+    @membership = @bootstrap.account.current_memberships.first
   end
 
   test "unauthenticated cannot access memberships" do
@@ -36,7 +40,7 @@ class Base::App::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "edit renders plain text" do
-    get edit_base_app_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    get edit_base_app_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host)
 
     assert_response :success
@@ -51,14 +55,14 @@ class Base::App::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "update returns unprocessable content" do
-    patch base_app_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    patch base_app_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
           headers: as_user_headers(@user, host: @host)
 
     assert_response :unprocessable_content
   end
 
   test "destroy returns no content" do
-    delete base_app_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    delete base_app_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
            headers: as_user_headers(@user, host: @host)
 
     assert_response :no_content

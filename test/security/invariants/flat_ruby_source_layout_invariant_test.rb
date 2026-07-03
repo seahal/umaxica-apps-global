@@ -19,6 +19,19 @@ module Security
         app/services/avatar_backfill/audit_legacy_client_bindings.rb
         app/services/avatar_backfill/backfill_legacy_client_bindings.rb
         app/services/avatar_provisioning/create.rb
+        app/services/collective_membership/accept.rb
+        app/services/collective_membership/errors.rb
+        app/services/collective_membership/grant.rb
+        app/services/collective_membership/make_primary.rb
+        app/services/collective_membership/revoke.rb
+        app/services/collective_membership/suspend.rb
+        app/services/collective_membership/transfer_unit.rb
+        app/services/group_avatar_memberships/attach.rb
+        app/services/group_avatar_memberships/detach.rb
+        app/services/group_avatar_memberships/reorder.rb
+        app/services/group_management/archive.rb
+        app/services/group_management/create.rb
+        app/services/group_management/update.rb
       ).freeze
 
       EXPLICIT_LIB_ALLOWLIST = %w(

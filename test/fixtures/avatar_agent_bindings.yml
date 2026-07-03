@@ -1,0 +1,14 @@
+# == Schema Information
+#
+# Table name: avatar_agent_bindings
+# Database name: avatar
+#
+#  id          :bigint           not null, primary key
+#  assigned_at :datetime         not null
+#  revoked_at  :datetime
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  agent_id    :bigint           not null
+#  avatar_id   :bigint           not null
+#  public_id   :string           not null
+#

@@ -27,7 +27,7 @@ module Base
         end
 
         def edit
-          @staff_telephone = current_operator.staff_telephones.find(params(:id))
+          @staff_telephone = current_operator.staff_telephones.find(params.expect(:id))
           authorize!(@staff_telephone)
         end
 
@@ -44,7 +44,7 @@ module Base
         end
 
         def destroy
-          telephone = current_operator.staff_telephones.find(params(:id))
+          telephone = current_operator.staff_telephones.find(params.expect(:id))
           authorize!(telephone)
 
           unless AuthMethodGuard.can_remove_telephone?(current_operator, telephone)

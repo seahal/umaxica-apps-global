@@ -19,8 +19,10 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       status_id: OrganizationEntraConnectionState::ACTIVE,
     )
 
+    @operator = Operator.create!(status_id: OperatorStatus::ACTIVE)
+
     @active_identity = OperatorEntraIdentity.create!(
-      operator_id: 9001,
+      operator_id: @operator.id,
       connection_id: @active_connection.id,
       entra_tenant_id: TENANT_ID,
       entra_object_id: OBJECT_ID,
@@ -33,14 +35,49 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
   test "returns the OperatorEntraIdentity when identity and connection are both ACTIVE" do
     result = resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID)
 
-    assert_equal @active_identity.id, result.id
-    assert_equal 9001, result.operator_id
+    assert_equal @active_identity.id, result.identity.id
+    assert_equal @operator.id, result.identity.operator_id
   end
 
   test "returns an identity with its connection preloaded" do
     result = resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID)
 
-    assert_predicate result.association(:connection), :loaded?
+    assert_predicate result.identity.association(:connection), :loaded?
+  end
+
+  test "returns the Operator for the resolved identity" do
+    result = resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID)
+
+    assert_equal @operator, result.operator
+  end
+
+  test "returns nil operator when the logical operator reference is stale" do
+    stale_oid = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+    OperatorEntraIdentity.create!(
+      operator_id: 9002,
+      connection_id: @active_connection.id,
+      entra_tenant_id: TENANT_ID,
+      entra_object_id: stale_oid,
+      status_id: OperatorEntraIdentityState::ACTIVE,
+    )
+
+    result = resolve(tenant_id: TENANT_ID, object_id: stale_oid)
+
+    assert_nil result.operator
+  end
+
+  test "raises IdentityNotFoundError when identity belongs to a different connection" do
+    other_connection = OrganizationEntraConnection.create!(
+      organization_id: 2,
+      entra_tenant_id: TENANT_ID,
+      entra_client_id: "resolver-test-other-client-id",
+      entra_client_secret: "resolver-test-other-secret",
+      status_id: OrganizationEntraConnectionState::ACTIVE,
+    )
+
+    assert_raises(ExternalSignIn::IdentityNotFoundError) do
+      resolve(tenant_id: TENANT_ID, object_id: OBJECT_ID, connection: other_connection)
+    end
   end
 
   # --- identity not found ---
@@ -56,7 +93,7 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
       operator_id: 9002,
       connection_id: @active_connection.id,
       entra_tenant_id: TENANT_ID,
-      entra_object_id: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+      entra_object_id: "bbbbbbbb-cccc-dddd-eeee-000000000000",
       status_id: OperatorEntraIdentityState::NOTHING,
     )
 
@@ -164,9 +201,10 @@ class ExternalSignIn::OrgEntraResolverTest < ActiveSupport::TestCase
     )
   end
 
-  def resolve(tenant_id:, object_id:)
+  def resolve(tenant_id:, object_id:, connection: @active_connection)
     ExternalSignIn::OrgEntraResolver.new(
       auth_result: auth_result(tenant_id: tenant_id, object_id: object_id),
+      connection: connection,
     ).call
   end
 end

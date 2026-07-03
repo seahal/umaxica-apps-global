@@ -17,18 +17,21 @@ module SignSettingsEmailRegistration
 
   def commit_settings_email_registration!(surface:, actor:, candidate:)
     config = settings_email_registration_config(surface)
-    config.fetch(:record_class).transaction do
-      locked = config.fetch(:record_class).lock.find(candidate.id)
-      raise IdentityEmailCeremonyContract::Error,
-            "email candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
-      raise IdentityEmailCeremonyContract::Error,
-            "email candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
-              config.fetch(:unverified_status)
+    email =
+      config.fetch(:record_class).transaction do
+        locked = config.fetch(:record_class).lock.find(candidate.id)
+        raise IdentityEmailCeremonyContract::Error,
+              "email candidate owner changed" unless locked.public_send(config.fetch(:owner_key)) == actor.id
+        raise IdentityEmailCeremonyContract::Error,
+              "email candidate is already verified" unless locked.public_send(config.fetch(:status_key)) ==
+                config.fetch(:unverified_status)
 
-      locked.update!(config.fetch(:status_key) => config.fetch(:verified_status))
-      record_settings_email_registration_audit!(config, actor, locked)
-      locked
-    end
+        locked.update!(config.fetch(:status_key) => config.fetch(:verified_status))
+        record_settings_email_registration_audit!(config, actor, locked)
+        locked
+      end
+    on_email_registration_verified!(user_email: email, target_user: actor)
+    email
   end
 
   def settings_email_registration_config(surface)

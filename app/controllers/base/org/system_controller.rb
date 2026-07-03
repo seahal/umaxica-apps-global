@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def index
+        authorize!(:org_staff, to: :index?, with: OrgStaffPolicy)
         render json: { status: "ok" }
       end
     end

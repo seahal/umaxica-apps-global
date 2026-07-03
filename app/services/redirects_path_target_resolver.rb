@@ -5,6 +5,7 @@ class RedirectsPathTargetResolver
   CONTROL_CHAR_PATTERN = /[\x00-\x1F\x7F]/
   ENCODED_CONTROL_PATTERN = /%(?:0[0-9a-f]|1[0-9a-f]|7f)/i
   ENCODED_HOST_ESCAPE_PATTERN = /%(?:2f|5c)/i
+  DANGEROUS_QUERY_KEYS = %w(redirect_uri return_to redirect_to next continue url).freeze
 
   def self.call(value, source: :raw_pt)
     new(value, source: source).call
@@ -32,6 +33,7 @@ class RedirectsPathTargetResolver
     return failure(:blank_path) if path.blank?
     return failure(:relative_path) unless path.start_with?("/")
     return failure(:protocol_relative) if path.start_with?("//")
+    return failure(:dangerous_query_key) if dangerous_query_key?(uri.query)
 
     RedirectsTargetResult.ok(kind: :pt, source: source, value: uri.query.present? ? "#{path}?#{uri.query}" : path)
   rescue URI::InvalidURIError
@@ -41,6 +43,14 @@ class RedirectsPathTargetResolver
   private
 
   attr_reader :value, :source
+
+  def dangerous_query_key?(query)
+    return false if query.blank?
+
+    Rack::Utils.parse_nested_query(query).keys.any? { |key| DANGEROUS_QUERY_KEYS.include?(key.to_s) }
+  rescue Rack::QueryParser::ParameterTypeError, Rack::QueryParser::InvalidParameterError
+    true
+  end
 
   def failure(reason)
     RedirectsTargetResult.failure(kind: :pt, source: source, reason: reason, unsafe_value: value)

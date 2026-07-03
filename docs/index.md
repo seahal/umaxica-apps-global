@@ -58,6 +58,7 @@ Current content-model references:
 - `docs/architecture/preference.md`
 - `docs/security/session-limit.md`
 - `docs/security/authentication-remediation.md`
+- `docs/security/action-policy-conventions.md`
 - `docs/security/credential-gateway.md`
 - `docs/security/ceremony-grant-result.md`
 - `docs/security/session-token-authority.md`

@@ -5,10 +5,14 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::Com::Organizations::MembershipsControllerTest < ActionDispatch::IntegrationTest
+  self.fixture_table_names = []
+
   setup do
     @host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
     @visitor = create_verified_visitor_with_email(email_address: "com-memberships@example.com")
-    @organization_public_id = "test-org-public-id"
+    @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :com, principal: @visitor)
+    @organization_public_id = @bootstrap.collective.public_id
+    @membership = @bootstrap.account.current_memberships.first
   end
 
   test "unauthenticated cannot access memberships" do
@@ -35,7 +39,7 @@ class Base::Com::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "edit renders plain text" do
-    get edit_base_com_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    get edit_base_com_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
         headers: as_visitor_headers(@visitor, host: @host)
 
     assert_response :success
@@ -50,14 +54,14 @@ class Base::Com::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "update returns unprocessable content" do
-    patch base_com_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    patch base_com_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
           headers: as_visitor_headers(@visitor, host: @host)
 
     assert_response :unprocessable_content
   end
 
   test "destroy returns no content" do
-    delete base_com_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    delete base_com_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
            headers: as_visitor_headers(@visitor, host: @host)
 
     assert_response :no_content

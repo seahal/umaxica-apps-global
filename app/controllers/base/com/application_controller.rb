@@ -15,6 +15,7 @@ module Base
 
       include ::AuthenticationVisitor
       include ::SignErrorResponses
+      include ::TrustedOriginForgeryProtection
       include ::SessionLimitGate
       include ::AuthorizationAudit
 
@@ -81,8 +82,7 @@ module Base
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
-      # NOTE: rewrite in production.
-      # FIXME: Resolve the URL issues before deploying.
+      # Base com accepts browser POSTs only from its own corporate host.
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),

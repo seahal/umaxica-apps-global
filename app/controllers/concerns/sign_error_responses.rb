@@ -68,6 +68,6 @@ module SignErrorResponses
     raise ActionController::InvalidCrossOriginRequest unless request.format.json?
 
     render json: { error: I18n.t("errors.invalid_authenticity_token") },
-           status: :unprocessable_content
+           status: :forbidden
   end
 end

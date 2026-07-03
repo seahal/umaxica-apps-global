@@ -180,7 +180,192 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
     assert_predicate query["pt"], :present?
   end
 
+  test "MFA disable through controller retains current session and revokes other sessions and step-up grants" do
+    @user.update!(mfa_level_id: ClientMfaLevel::FULL, mfa_level_enabled: true)
+    satisfy_user_verification(@token, scope: "settings_mfa")
+    mark_step_up_satisfied!(@token, at: 1.minute.ago, scope: "settings_mfa")
+    other_token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+    )
+    mark_step_up_satisfied!(other_token, at: 1.minute.ago, scope: "settings_email")
+    ClientStepUpSession.create!(
+      user_token: other_token,
+      scope: "settings_email",
+      return_to: base_app_identity_emails_path(ri: "jp"),
+      status: "VERIFIED",
+      method: "passkey",
+      verified_at: 1.minute.ago,
+      discarded_at: 1.day.from_now,
+    )
+
+    before_audit_count = ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
+    patch base_app_identity_mfa_challenge_url(ri: "jp", host: @base_host),
+          params: { user: { mfa_level_id: ClientMfaLevel::NOTHING } },
+          headers: @headers
+
+    assert_response :redirect
+    assert_equal before_audit_count + 1,
+                 ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
+    assert_predicate @token.reload, :currently_usable?
+    assert_predicate other_token.reload, :revoked?
+    assert_nil @token.last_step_up_at
+    assert_nil other_token.last_step_up_at
+    assert_operator other_token.step_up_session.reload.discarded_at, :<=, Time.current
+
+    post base_app_identity_emails_registration_url(ri: "jp", host: @base_host),
+         params: { user_email: { address: "after-disable@example.com" } },
+         headers: other_session_headers(other_token)
+
+    assert_includes [302, 303, 401, 403, 422], response.status
+  end
+
+  test "MFA reset through controller retains current session and revokes other sessions and step-up grants" do
+    @user.update!(mfa_level_id: ClientMfaLevel::FULL, mfa_level_enabled: true)
+    satisfy_user_verification(@token, scope: "settings_mfa")
+    mark_step_up_satisfied!(@token, at: 1.minute.ago, scope: "settings_mfa")
+    other_token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+    )
+    mark_step_up_satisfied!(other_token, at: 1.minute.ago, scope: "settings_email")
+    ClientStepUpSession.create!(
+      user_token: other_token,
+      scope: "settings_email",
+      return_to: base_app_identity_emails_path(ri: "jp"),
+      status: "VERIFIED",
+      method: "passkey",
+      verified_at: 1.minute.ago,
+      discarded_at: 1.day.from_now,
+    )
+
+    post base_app_identity_mfa_reset_url(ri: "jp", host: @base_host), headers: @headers
+
+    assert_response :see_other
+    assert_predicate @token.reload, :currently_usable?
+    assert_predicate other_token.reload, :revoked?
+    assert_nil @token.last_step_up_at
+    assert_nil other_token.last_step_up_at
+    assert_operator other_token.step_up_session.reload.discarded_at, :<=, Time.current
+    assert_equal ClientMfaLevel::NOTHING, @user.reload.mfa_level_id
+    assert_not @user.mfa_level_enabled?
+  end
+
+  test "secret credential removal route revokes other sessions and step-up grants" do
+    mark_step_up_satisfied!(@token, at: 1.minute.ago, scope: "settings_secret")
+    other_token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      discarded_at: 1.day.from_now,
+    )
+    mark_step_up_satisfied!(other_token, at: 1.minute.ago, scope: "settings_email")
+
+    post base_app_identity_secret_removal_url(secret_id: "credential-under-test", ri: "jp", host: @base_host),
+         headers: @headers
+
+    assert_response :see_other
+    assert_predicate @token.reload, :currently_usable?
+    assert_predicate other_token.reload, :revoked?
+    assert_nil @token.last_step_up_at
+    assert_nil other_token.last_step_up_at
+  end
+
+  test "email verification completion retains current session and revokes other sessions and step-up grants" do
+    satisfy_user_verification(@token, scope: "settings_email")
+    mark_step_up_satisfied!(@token, at: 1.minute.ago, scope: "settings_email")
+    other_token = ClientToken.create!(
+      user: @user,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      public_id: "stepup_#{SecureRandom.hex(4)}",
+      discarded_at: 1.day.from_now,
+    )
+    mark_step_up_satisfied!(other_token, at: 1.minute.ago, scope: "settings_secret")
+    ClientStepUpSession.create!(
+      user_token: other_token,
+      scope: "settings_secret",
+      return_to: base_app_identity_secrets_path(ri: "jp"),
+      status: "VERIFIED",
+      method: "passkey",
+      verified_at: 1.minute.ago,
+      discarded_at: 1.day.from_now,
+    )
+
+    pending_email = @user.client_emails.create!(
+      address: "verified-transition-#{SecureRandom.hex(4)}@example.com",
+      user_email_status_id: ClientEmailStatus::UNVERIFIED,
+    )
+    otp_private_key = ROTP::Base32.random_base32
+    otp_counter = 12_345
+    pending_email.store_otp(otp_private_key, otp_counter, 12.minutes.from_now.to_i)
+    pending_email.save!
+    otp_data = pending_email.get_otp
+    pass_code = ROTP::HOTP.new(otp_data[:otp_private_key]).at(otp_data[:otp_counter]).to_s
+    before_audit_count = ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
+
+    CloudflareTurnstile.validation_override_enabled = true
+    begin
+      patch(
+        base_app_identity_emails_registration_url(ri: "jp", host: @base_host),
+        params: {
+          user_email: { pass_code: pass_code },
+          "cf-turnstile-response": "test",
+        },
+        headers: @headers,
+      )
+    ensure
+      CloudflareTurnstile.validation_override_enabled = false
+    end
+
+    assert_response :redirect
+    assert_equal ClientEmailStatus::VERIFIED, pending_email.reload.user_email_status_id
+    assert_equal before_audit_count + 1,
+                 ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
+    assert_predicate @token.reload, :currently_usable?
+    assert_predicate other_token.reload, :revoked?
+    assert_nil @token.last_step_up_at
+    assert_nil other_token.last_step_up_at
+    assert_operator other_token.step_up_session.reload.discarded_at, :<=, Time.current
+
+    get base_app_identity_secrets_url(ri: "jp", host: @base_host), headers: other_session_headers(other_token)
+
+    assert_includes [302, 303, 401, 403, 422], response.status
+    assert_not_equal :success, response.status
+  end
+
+  test "password rotation route is explicitly disabled for this release" do
+    mark_step_up_satisfied!(@token, at: 1.minute.ago, scope: "settings_secret")
+
+    assert_no_difference -> {
+      ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).count
+    } do
+      post base_app_identity_secret_rotation_url(secret_id: "credential-under-test", ri: "jp", host: @base_host),
+           params: { password: "must-not-be-logged-or-applied" },
+           headers: @headers
+    end
+
+    assert_response :forbidden
+    assert_predicate @token.reload, :currently_usable?
+  end
+
   private
+
+  def other_session_headers(token)
+    bearer_headers(
+      jwt_access_token_for(
+        @user,
+        host: @base_host,
+        session_public_id: token.public_id,
+        resource_type: "client",
+      ),
+      host: @base_host,
+    ).merge("X-TEST-SESSION-PUBLIC-ID" => token.public_id)
+  end
 
   def mark_step_up_satisfied!(token, at:, scope:, method: "passkey", aal: "aal2")
     token.update!(
@@ -189,6 +374,8 @@ class StepUpAuthenticationTest < ActionDispatch::IntegrationTest
       last_step_up_aal: aal,
       last_step_up_method: method,
       last_step_up_session_public_id: token.public_id,
+      last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+      last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
     )
   end
 end

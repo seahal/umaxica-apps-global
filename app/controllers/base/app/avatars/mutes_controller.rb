@@ -4,7 +4,12 @@
 module Base
   module App
     module Avatars
-      class MutesController < SocialGraphController
+      class MutesController < Base::App::FullAccessController
+        include BaseAppAvatarSocialGraphActions
+
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         def create
           record = AvatarMute.new(muter_avatar: actor_avatar, muted_avatar: target_avatar)
           authorize_edge!(record, :create)

@@ -29,7 +29,7 @@ module Base
         end
 
         def edit
-          @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
+          @user_telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
           authorize!(@user_telephone)
         end
 
@@ -47,7 +47,7 @@ module Base
         end
 
         def destroy
-          telephone = current_visitor.visitor_telephones.find_by!(public_id: params(:id))
+          telephone = current_visitor.visitor_telephones.find_by!(public_id: params.expect(:id))
           authorize!(telephone)
 
           unless AuthMethodGuard.can_remove_telephone?(current_visitor, telephone)

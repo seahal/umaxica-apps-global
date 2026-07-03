@@ -70,10 +70,20 @@ class WellKnownJwksControllerTest < ActionDispatch::IntegrationTest
 
   def docker_core_jwt_env
     key = Base64.strict_encode64(OpenSSL::PKey::EC.generate("secp384r1").to_der)
-    ENDPOINTS.each_with_object({}) do |(_name, namespace, _host), env|
-      env["JWT_#{namespace}_ACTIVE_KID"] = "#{namespace.downcase.tr("_", "-")}-test"
-      env["JWT_#{namespace}_PRIVATE_KEY"] = key
-      env["JWT_#{namespace}_PUBLIC_KEYSET"] = nil
+    env = {
+      "AUTH_JWT_ACTIVE_KID" => "auth-test",
+      "AUTH_JWT_ISSUER" => "auth-test-issuer",
+      "AUTH_JWT_PRIVATE_KEYSET" => JSON.generate("auth-test" => key),
+      "AUTH_JWT_PUBLIC_KEYSET" => JSON.generate(keys: []),
+      "PREFERENCE_JWT_ACTIVE_KID" => "preference-test",
+      "PREFERENCE_JWT_ISSUER" => "preference-test-issuer",
+      "PREFERENCE_JWT_PRIVATE_KEYSET" => JSON.generate("preference-test" => key),
+      "PREFERENCE_JWT_PUBLIC_KEYSET" => JSON.generate(keys: []),
+    }
+    ENDPOINTS.each_with_object(env) do |(_name, namespace, _host), jwt_env|
+      jwt_env["JWT_#{namespace}_ACTIVE_KID"] = "#{namespace.downcase.tr("_", "-")}-test"
+      jwt_env["JWT_#{namespace}_PRIVATE_KEY"] = key
+      jwt_env["JWT_#{namespace}_PUBLIC_KEYSET"] = JSON.generate(keys: [])
     end
   end
   private

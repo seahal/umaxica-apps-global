@@ -5,12 +5,14 @@ require "test_helper"
 # require "helpers/global_test_support"
 
 class Base::Org::Organizations::MembershipsControllerTest < ActionDispatch::IntegrationTest
-  fixtures :operators, :operator_statuses
+  self.fixture_table_names = []
 
   setup do
     @host = ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost")
-    @staff = operators(:one)
-    @organization_public_id = "test-org-public-id"
+    @staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: @staff)
+    @organization_public_id = @bootstrap.collective.public_id
+    @membership = @bootstrap.account.current_memberships.first
   end
 
   test "unauthenticated cannot access memberships" do
@@ -37,7 +39,7 @@ class Base::Org::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "edit renders plain text" do
-    get edit_base_org_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    get edit_base_org_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
         headers: as_staff_headers(@staff, host: @host)
 
     assert_response :success
@@ -52,18 +54,71 @@ class Base::Org::Organizations::MembershipsControllerTest < ActionDispatch::Inte
   end
 
   test "update returns unprocessable content" do
-    patch base_org_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    patch base_org_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
           headers: as_staff_headers(@staff, host: @host)
 
     assert_response :unprocessable_content
   end
 
   test "destroy returns no content" do
-    delete base_org_organization_membership_url(@organization_public_id, "member-id", ri: "jp", host: @host),
+    delete base_org_organization_membership_url(@organization_public_id, @membership.id, ri: "jp", host: @host),
            headers: as_staff_headers(@staff, host: @host)
 
     assert_response :no_content
   end
+
+  test "member of one org cannot access another org membership collection" do
+    other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: other_staff)
+
+    get base_org_organization_memberships_url(other_bootstrap.collective.public_id, ri: "jp", host: @host),
+        headers: as_staff_headers(@staff, host: @host),
+        as: :json
+
+    assert_response :forbidden
+  end
+
+  test "org idor cannot swap membership id from another org" do
+    other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: other_staff)
+    other_membership = other_bootstrap.account.current_memberships.first
+
+    get base_org_organization_membership_url(@organization_public_id, other_membership.id, ri: "jp", host: @host),
+        headers: as_staff_headers(@staff, host: @host),
+        as: :json
+
+    assert_response :not_found
+  end
+
+  test "old step-up freshness from org A does not authorize org B sensitive membership action" do
+    token = OperatorToken.where(staff_id: @staff.id).where(
+      "discarded_at > ?",
+      Time.current,
+    ).order(created_at: :desc).first
+    token ||= OperatorToken.create!(staff: @staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
+    token.update!(
+      last_step_up_at: 1.minute.ago,
+      last_step_up_scope: "org_membership",
+      last_step_up_aal: "aal2",
+      last_step_up_method: "passkey",
+      last_step_up_session_public_id: token.public_id,
+      last_step_up_audience: "step_up:org",
+    )
+    other_staff = Operator.create!(status_id: OperatorStatus::ACTIVE, visibility_id: OperatorVisibility::STAFF)
+    other_bootstrap = BaseSelectorBootstrapAuthority.call(surface: :org, principal: other_staff)
+    other_membership = other_bootstrap.account.current_memberships.first
+
+    patch base_org_organization_membership_url(
+      other_bootstrap.collective.public_id,
+      other_membership.id,
+      ri: "jp",
+      host: @host,
+    ),
+          headers: as_staff_headers(@staff, host: @host, session_public_id: token.public_id)
+
+    assert_not_includes [200, 204, 422], response.status
+  end
+
   private
 
   def host_headers(host = nil)

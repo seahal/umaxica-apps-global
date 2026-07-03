@@ -50,7 +50,7 @@ class OidcTokenRevokerCoverageTest < ActiveSupport::TestCase
     OidcClientRegistry.stub(:authenticate, true) do
       ClientToken.stub(:parse_refresh_token, ["public", "verifier"]) do
         service.stub(:client_resource_type, "client") do
-          service.stub(:find_token_by_public_id, token) do
+          service.stub(:find_usage_by_public_id, token) do
             token.define_singleton_method(:refresh_token_digest_matches?) { |verifier| verifier == "verifier" }
 
             result = service.call
@@ -110,7 +110,7 @@ class OidcTokenRevokerCoverageTest < ActiveSupport::TestCase
     OidcClientRegistry.stub(:authenticate, true) do
       ClientToken.stub(:parse_refresh_token, ["public", "verifier"]) do
         service.stub(:client_resource_type, "client") do
-          service.stub(:find_token_by_public_id, token) do
+          service.stub(:find_usage_by_public_id, token) do
             result = service.call
 
             assert_predicate result, :success?

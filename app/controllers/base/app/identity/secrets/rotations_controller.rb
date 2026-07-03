@@ -10,7 +10,10 @@ module Base
           declare_authentication_mode! :private
 
           before_action :authenticate_client!
-          def create = head(:not_implemented)
+          def create
+            authorize!(current_client, to: :update?)
+            head :forbidden
+          end
         end
       end
     end

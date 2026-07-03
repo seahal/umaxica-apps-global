@@ -36,14 +36,17 @@ class ClientSecretCredentialsDestroyTest < ActiveSupport::TestCase
   end
 
   test "creates ClientChronicle audit when actor is Client" do
-    assert_difference("ClientChronicle.count", 1) do
+    assert_difference("ClientChronicle.count", 2) do
       ClientSecretCredentialsDestroy.call(actor: @user, secret_credential: @secret_credential)
     end
 
-    activity = ClientChronicle.last
+    activity = ClientChronicle.where(event_id: ClientChronicleEvent::USER_SECRET_REMOVED).last
+    transition = ClientChronicle.where(event_id: ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION).last
 
     assert_equal ClientChronicleEvent::USER_SECRET_REMOVED, activity.event_id
     assert_equal @user, activity.actor
     assert_equal @secret_credential.id.to_s, activity.subject_id
+    assert_equal "credential_security_transition.secret_credential_changed", transition.context.fetch("action")
+    assert_equal "secret_credential_changed", transition.context.fetch("reason")
   end
 end

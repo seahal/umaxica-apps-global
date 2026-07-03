@@ -15,6 +15,7 @@ module Base
 
       include ::AuthenticationClient
       include ::SignErrorResponses
+      include ::TrustedOriginForgeryProtection
       include ::SessionLimitGate
       include ::AuthorizationAudit
 
@@ -86,7 +87,7 @@ module Base
       before_action :set_current_observability
       prepend_around_action :with_actor_lifecycle
 
-      # FIXME: Resolve the URL issues before deploying.
+      # Base app accepts browser POSTs only from its own Base host and the Auth authority.
       protect_from_forgery using: :header_or_legacy_token,
                            trusted_origins: JitHostOriginEnv.trusted_origins(
                              ENV.fetch("PUBLIC_BASE_SERVICE_URL"),

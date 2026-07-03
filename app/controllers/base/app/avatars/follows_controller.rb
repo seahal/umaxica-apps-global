@@ -4,7 +4,12 @@
 module Base
   module App
     module Avatars
-      class FollowsController < SocialGraphController
+      class FollowsController < Base::App::FullAccessController
+        include BaseAppAvatarSocialGraphActions
+
+        AUTHENTICATION_MODE = :private
+        declare_authentication_mode! :private
+
         def create
           record = AvatarFollow.new(follower_avatar: actor_avatar, followed_avatar: target_avatar)
           authorize_edge!(record, :create)

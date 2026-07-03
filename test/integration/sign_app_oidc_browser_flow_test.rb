@@ -23,8 +23,8 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
 
   test "sign app settings auth-required sso resolves an existing acme session and returns to settings" do # rubocop:disable Minitest/MultipleAssertions
     with_acme_oidc_client_key do
-      sign_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
-      acme_host = ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost")
+      sign_host = configured_host(:sign_service)
+      acme_host = configured_host(:base_service)
       email = "sign-oidc-browser-flow-#{SecureRandom.hex(4)}@example.com"
       @user = create_verified_user_with_email(email_address: email)
       current_session =
@@ -44,12 +44,12 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
       get auth_app_settings_url(ri: "jp"), headers: browser_headers
 
       assert_response :redirect
-      authorize_uri = URI.parse(response.location)
+      authorize_location = jump_rt_url_from_location(response.location)
+      authorize_uri = URI.parse(authorize_location)
       authorize_query = Rack::Utils.parse_nested_query(authorize_uri.query.to_s)
 
       assert_equal acme_host, authorize_uri.host
       assert_equal "/oauth/authorize", authorize_uri.path
-      assert_not_equal "jump.umaxica.net", authorize_uri.host
       assert_equal "sign-rp", authorize_query.fetch("client_id")
       assert_nil authorize_query["screen_hint"]
       assert_nil session[AuthenticationBase::DEFAULT_PT_SESSION_KEY]
@@ -82,8 +82,23 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
         assert_predicate code_record.client_token, :present?
         assert_predicate code_record.resource, :present?
 
+        id_token = OidcIdTokenIssuer.call(
+          resource: @user,
+          client: OidcClientRegistry.find!("sign-rp"),
+          nonce: authorize_query.fetch("nonce"),
+          jwt_issuer_id: OidcIssuer.jwt_issuer_id_for_resource_type("client"),
+          issuer: OidcIssuer.for_resource_type("client"),
+        )
+        token_result = OidcRpTokenClient::Result.new(
+          success: true,
+          token_response: { id_token: id_token },
+          error: nil,
+        )
+
         host! sign_host
-        get sign_app_oidc_callback_url, params: callback_query, headers: browser_headers
+        OidcRpTokenClient.stub(:call, token_result) do
+          get auth_app_oidc_callback_path, params: callback_query, headers: browser_headers.merge("Host" => sign_host)
+        end
       end
 
       assert_response :redirect
@@ -93,7 +108,7 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
       assert_equal root_token_count, ClientToken.where(user_id: @user.id).count
       assert_equal usage_count + 1, ClientTokenUsage.count
 
-      get auth_app_settings_url(ri: "jp"), headers: browser_headers
+      get auth_app_settings_url(ri: "jp"), headers: browser_headers.merge("Host" => sign_host)
 
       assert_response :success
       assert_select "h1", "Settings"
@@ -467,7 +482,7 @@ class SignAppOidcBrowserFlowTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    service = (normalized.include?("base") || normalized.include?("www.")) ? "BASE" : "SIGN"
     surface =
       if service == "SIGN"
         case resource_type
@@ -906,8 +921,13 @@ class SignAppOidcBrowserFlowTest
       user_id: user.id, user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
-    base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    base.merge(
+      "X-TEST-SESSION-PUBLIC-ID" => session_public_id.presence || token.public_id,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)

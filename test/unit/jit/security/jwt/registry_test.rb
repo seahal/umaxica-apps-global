@@ -268,7 +268,9 @@ module Jit
           )
           env = {
             "AUTH_JWT_ACTIVE_KID" => "auth-kid",
+            "AUTH_JWT_ISSUER" => "auth-test-issuer",
             "PREFERENCE_JWT_ACTIVE_KID" => "pref-kid",
+            "PREFERENCE_JWT_ISSUER" => "preference-test-issuer",
             "JWT_SIGN_APP_ACTIVE_KID" => "sign-app-kid",
             "JWT_SIGN_APP_PUBLIC_KEYSET" => JSON.generate([legacy_jwk]),
           }.merge(extra_env)

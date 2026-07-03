@@ -149,9 +149,10 @@ module Auth
               client_id: connection.entra_client_id,
             ).call
 
-            identity = ExternalSignIn::OrgEntraResolver.new(auth_result: auth_result).call
+            resolution = ExternalSignIn::OrgEntraResolver.new(auth_result: auth_result, connection: connection).call
+            identity = resolution.identity
+            operator = resolution.operator
 
-            operator = Operator.find_by(id: identity.operator_id)
             unless operator&.login_allowed?
               log_entra_failure("operator_not_allowed", operator_id: identity.operator_id)
               return render_entra_error(:operator_not_found)

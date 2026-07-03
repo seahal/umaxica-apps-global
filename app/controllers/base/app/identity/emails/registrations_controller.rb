@@ -60,7 +60,15 @@ module Base
 
           def verified_email_status_id = ClientEmailStatus::VERIFIED
 
-          def on_email_registration_verified!(*); nil end
+          def on_email_registration_verified!(*)
+            CredentialSecurityTransition.call(
+              actor: current_client,
+              current_session: current_session,
+              reason: :email_address_verified,
+              affected_surface: "app",
+              request: request,
+            )
+          end
 
           def create_audit_event!(event_id)
             ClientChronicle.create!(

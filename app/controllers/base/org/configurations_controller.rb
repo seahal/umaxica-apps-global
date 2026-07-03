@@ -8,6 +8,7 @@ module Base
       declare_authentication_mode! :private
 
       def show
+        authorize!(:org_staff, to: :show?, with: OrgStaffPolicy)
         render json: { status: "ok" }
       end
     end

@@ -4,7 +4,7 @@
 class ChronicleRecorder < ChronicleApplicationService
   FORBIDDEN_KEY_PATTERN =
     /
-      password|passw|secret|secret_credential|raw_secret_credential|token|authorization|dpop|otp|totp|recovery_code|
+      password|passw|secret|secret_credential|raw_secret_credential|token|authorization|dpop|otp|totp|webauthn|recovery_code|
       cookie|raw_session|session_id\z|session\z|raw_email|raw_ip
     /ix
   ALLOWED_DIGEST_KEYS = %w(session_id_digest).freeze
