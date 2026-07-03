@@ -40,8 +40,8 @@ module AvatarProvisioning
       end
 
       Result.new(avatar: avatar, handle: handle, binding: binding, assignment: assignment, errors: [])
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error
-      Result.new(avatar: avatar, handle: handle, binding: binding, assignment: assignment, errors: [error])
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
+      Result.new(avatar: avatar, handle: handle, binding: binding, assignment: assignment, errors: [e])
     end
 
     private

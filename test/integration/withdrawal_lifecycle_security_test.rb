@@ -70,6 +70,7 @@ class WithdrawalLifecycleSecurityTest < ActionDispatch::IntegrationTest
         ceremony_cookie = {
           "Cookie" => "#{withdrawal_ceremony_cookie_name}=#{cookies[withdrawal_ceremony_cookie_name]}",
         }
+
         assert_equal ceremony.public_id, cookies[withdrawal_ceremony_cookie_name].to_s.split(":", 2).first
 
         travel 10.minutes

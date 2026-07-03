@@ -24,12 +24,13 @@ class PrivacyErasureRequestTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     request_record = ClientPrivacyRequest.order(:created_at).last
+
     assert_equal "erasure", request_record.request_kind
     assert_equal "self_service", request_record.request_source
     assert_equal "unknown", request_record.jurisdiction
     assert_predicate request_record.response_due_at, :present?
     assert_equal client.id, request_record.client_id
-    assert ClientOccurrence.where(event_type: "privacy_erasure.requested").exists?
+    assert_predicate ClientOccurrence.where(event_type: "privacy_erasure.requested"), :exists?
   end
 
   test "deactivated visitor creates erasure request through withdrawal ceremony" do
@@ -51,10 +52,11 @@ class PrivacyErasureRequestTest < ActionDispatch::IntegrationTest
 
     assert_response :see_other
     request_record = VisitorPrivacyRequest.order(:created_at).last
+
     assert_equal "erasure", request_record.request_kind
     assert_equal "self_service", request_record.request_source
     assert_equal visitor.id, request_record.visitor_id
-    assert VisitorOccurrence.where(event_type: "privacy_erasure.requested").exists?
+    assert_predicate VisitorOccurrence.where(event_type: "privacy_erasure.requested"), :exists?
   end
 
   test "received client erasure request is cancelled on recovery" do

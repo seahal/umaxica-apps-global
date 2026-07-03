@@ -61,6 +61,7 @@ Current content-model references:
 - `docs/security/credential-gateway.md`
 - `docs/security/ceremony-grant-result.md`
 - `docs/security/session-token-authority.md`
+- `docs/security/withdrawal-privacy-erasure.md`
 - `docs/security/step-up-ceremony-delegation.md`
 - `docs/security/webauthn-rp-id-origin-boundary.md`
 - `docs/security/social-callback-boundary.md`

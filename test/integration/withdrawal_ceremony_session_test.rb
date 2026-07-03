@@ -111,18 +111,21 @@ class WithdrawalCeremonySessionTest < ActionDispatch::IntegrationTest
     expired.update!(expires_at: 1.minute.ago)
     cookies[withdrawal_ceremony_cookie_name] = "#{expired.public_id}:#{expired.plaintext_token}"
     get edit_base_app_identity_withdrawal_url(ri: "jp", host: host)
+
     assert_response :see_other
 
     revoked = ClientWithdrawalCeremony.issue!(subject: client, request: ActionDispatch::TestRequest.create)
     revoked.revoke!
     cookies[withdrawal_ceremony_cookie_name] = "#{revoked.public_id}:#{revoked.plaintext_token}"
     get edit_base_app_identity_withdrawal_url(ri: "jp", host: host)
+
     assert_response :see_other
 
     consumed = ClientWithdrawalCeremony.issue!(subject: client, request: ActionDispatch::TestRequest.create)
     consumed.consume!
     cookies[withdrawal_ceremony_cookie_name] = "#{consumed.public_id}:#{consumed.plaintext_token}"
     get edit_base_app_identity_withdrawal_url(ri: "jp", host: host)
+
     assert_response :see_other
   end
 

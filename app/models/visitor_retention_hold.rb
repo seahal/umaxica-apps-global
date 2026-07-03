@@ -14,5 +14,5 @@ class VisitorRetentionHold < ComPrincipalRecord
   STATUS_IDS = STATUSES.values.freeze
 
   belongs_to :visitor, inverse_of: :visitor_retention_holds
-  belongs_to :status, class_name: "VisitorRetentionHoldStatus", foreign_key: :status_id
+  belongs_to :status, class_name: "VisitorRetentionHoldStatus"
 end

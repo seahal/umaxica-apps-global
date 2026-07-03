@@ -42,6 +42,7 @@ class BaseSelectorAuthorityTest < ActiveSupport::TestCase
       handle_params: { handle: "second-#{SecureRandom.hex(5)}" },
       organization_public_id: enterprise.public_id,
     )
+
     assert_predicate result, :success?
 
     result = BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)

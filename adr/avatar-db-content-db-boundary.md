@@ -29,9 +29,9 @@ The avatar database owns:
 - Follow, block, mute, and related social graph relations
 - Avatar lifecycle state authority
 
-App-surface Avatar creation goes through `AvatarProvisioning::Create`, which creates Avatar,
-Handle, `AvatarPersonaBinding`, and initial owner `AvatarAssignment` in one avatar DB transaction.
-For app-surface creation, `AvatarPersonaBinding` is the canonical Avatar-to-Persona relation.
+App-surface Avatar creation goes through `AvatarProvisioning::Create`, which creates Avatar, Handle,
+`AvatarPersonaBinding`, and initial owner `AvatarAssignment` in one avatar DB transaction. For
+app-surface creation, `AvatarPersonaBinding` is the canonical Avatar-to-Persona relation.
 `avatars.client_id` is migration compatibility only and must not be used as ownership,
 authorization, or canonical binding authority.
 

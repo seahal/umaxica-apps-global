@@ -20,6 +20,6 @@ class ClientPrivacyRequest < AppPrincipalRecord
   STATUS_IDS = STATUSES.values.freeze
 
   belongs_to :client, inverse_of: :client_privacy_requests
-  belongs_to :status, class_name: "ClientPrivacyRequestStatus", foreign_key: :status_id
+  belongs_to :status, class_name: "ClientPrivacyRequestStatus"
   has_many :client_processor_erasure_notifications, dependent: :delete_all, inverse_of: :client_privacy_request
 end

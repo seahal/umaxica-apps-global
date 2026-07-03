@@ -52,7 +52,10 @@ module ProcessorErasureNotificationState
   end
 
   def mark_notified!(now: Time.current)
-    update!(status_id: self.class.status_id_for("NOTIFIED"), notified_at: now, last_error_code: "", last_error_message: "")
+    update!(
+      status_id: self.class.status_id_for("NOTIFIED"), notified_at: now, last_error_code: "",
+      last_error_message: "",
+    )
   end
 
   def mark_failed!(code:, message:, now: Time.current)

@@ -1645,6 +1645,159 @@ ALTER SEQUENCE public.client_preferences_id_seq OWNED BY public.client_preferenc
 
 
 --
+-- Name: client_privacy_request_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_privacy_request_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: client_privacy_request_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_privacy_request_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_privacy_request_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_privacy_request_statuses_id_seq OWNED BY public.client_privacy_request_statuses.id;
+
+
+--
+-- Name: client_privacy_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_privacy_requests (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    client_id bigint NOT NULL,
+    request_kind character varying DEFAULT 'erasure'::character varying NOT NULL,
+    jurisdiction character varying DEFAULT 'unknown'::character varying NOT NULL,
+    request_source character varying DEFAULT 'self_service'::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    received_at timestamp(6) with time zone NOT NULL,
+    verified_at timestamp(6) with time zone,
+    processing_started_at timestamp(6) with time zone,
+    response_due_at timestamp(6) with time zone NOT NULL,
+    extended_until timestamp(6) with time zone,
+    completed_at timestamp(6) with time zone,
+    cancelled_at timestamp(6) with time zone,
+    denial_reason character varying DEFAULT ''::character varying NOT NULL,
+    retention_exception_code character varying DEFAULT ''::character varying NOT NULL,
+    legal_hold_blocked_at timestamp(6) with time zone,
+    final_response_sent_at timestamp(6) with time zone,
+    lock_version integer DEFAULT 0 NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_client_privacy_requests_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: client_privacy_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_privacy_requests_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_privacy_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_privacy_requests_id_seq OWNED BY public.client_privacy_requests.id;
+
+
+--
+-- Name: client_processor_erasure_notification_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_processor_erasure_notification_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: client_processor_erasure_notification_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_processor_erasure_notification_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_processor_erasure_notification_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_processor_erasure_notification_statuses_id_seq OWNED BY public.client_processor_erasure_notification_statuses.id;
+
+
+--
+-- Name: client_processor_erasure_notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_processor_erasure_notifications (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    client_privacy_request_id bigint NOT NULL,
+    processor_key character varying DEFAULT ''::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    requested_at timestamp(6) with time zone NOT NULL,
+    notified_at timestamp(6) with time zone,
+    failed_at timestamp(6) with time zone,
+    last_error_code character varying DEFAULT ''::character varying NOT NULL,
+    last_error_message character varying DEFAULT ''::character varying NOT NULL,
+    retry_count integer DEFAULT 0 NOT NULL,
+    next_retry_at timestamp(6) with time zone,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_client_proc_erase_notifications_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: client_processor_erasure_notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_processor_erasure_notifications_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_processor_erasure_notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_processor_erasure_notifications_id_seq OWNED BY public.client_processor_erasure_notifications.id;
+
+
+--
 -- Name: client_profile_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1707,6 +1860,79 @@ CREATE SEQUENCE public.client_profiles_id_seq
 --
 
 ALTER SEQUENCE public.client_profiles_id_seq OWNED BY public.client_profiles.id;
+
+
+--
+-- Name: client_retention_hold_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_retention_hold_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: client_retention_hold_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_retention_hold_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_retention_hold_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_retention_hold_statuses_id_seq OWNED BY public.client_retention_hold_statuses.id;
+
+
+--
+-- Name: client_retention_holds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.client_retention_holds (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    client_id bigint NOT NULL,
+    hold_kind character varying DEFAULT 'legal_hold'::character varying NOT NULL,
+    reason_code character varying DEFAULT 'legal_hold'::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    applied_at timestamp(6) with time zone NOT NULL,
+    released_at timestamp(6) with time zone,
+    expires_at timestamp(6) with time zone,
+    applied_by_type character varying DEFAULT ''::character varying NOT NULL,
+    applied_by_public_id character varying DEFAULT ''::character varying NOT NULL,
+    memo character varying DEFAULT ''::character varying NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_client_retention_holds_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: client_retention_holds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.client_retention_holds_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: client_retention_holds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.client_retention_holds_id_seq OWNED BY public.client_retention_holds.id;
 
 
 --
@@ -3439,6 +3665,34 @@ ALTER TABLE ONLY public.client_preferences ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
+-- Name: client_privacy_request_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_request_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_privacy_request_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_privacy_requests id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_requests ALTER COLUMN id SET DEFAULT nextval('public.client_privacy_requests_id_seq'::regclass);
+
+
+--
+-- Name: client_processor_erasure_notification_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notification_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_processor_erasure_notification_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_processor_erasure_notifications id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notifications ALTER COLUMN id SET DEFAULT nextval('public.client_processor_erasure_notifications_id_seq'::regclass);
+
+
+--
 -- Name: client_profile_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3450,6 +3704,20 @@ ALTER TABLE ONLY public.client_profile_statuses ALTER COLUMN id SET DEFAULT next
 --
 
 ALTER TABLE ONLY public.client_profiles ALTER COLUMN id SET DEFAULT nextval('public.client_profiles_id_seq'::regclass);
+
+
+--
+-- Name: client_retention_hold_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_hold_statuses ALTER COLUMN id SET DEFAULT nextval('public.client_retention_hold_statuses_id_seq'::regclass);
+
+
+--
+-- Name: client_retention_holds id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_holds ALTER COLUMN id SET DEFAULT nextval('public.client_retention_holds_id_seq'::regclass);
 
 
 --
@@ -4189,6 +4457,38 @@ ALTER TABLE ONLY public.client_preferences
 
 
 --
+-- Name: client_privacy_request_statuses client_privacy_request_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_request_statuses
+    ADD CONSTRAINT client_privacy_request_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_privacy_requests client_privacy_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_requests
+    ADD CONSTRAINT client_privacy_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_processor_erasure_notification_statuses client_processor_erasure_notification_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notification_statuses
+    ADD CONSTRAINT client_processor_erasure_notification_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_processor_erasure_notifications client_processor_erasure_notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notifications
+    ADD CONSTRAINT client_processor_erasure_notifications_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: client_profile_statuses client_profile_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4202,6 +4502,22 @@ ALTER TABLE ONLY public.client_profile_statuses
 
 ALTER TABLE ONLY public.client_profiles
     ADD CONSTRAINT client_profiles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_retention_hold_statuses client_retention_hold_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_hold_statuses
+    ADD CONSTRAINT client_retention_hold_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: client_retention_holds client_retention_holds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_holds
+    ADD CONSTRAINT client_retention_holds_pkey PRIMARY KEY (id);
 
 
 --
@@ -4533,6 +4849,34 @@ ALTER TABLE ONLY public.user_clients
 
 
 --
+-- Name: idx_client_privacy_requests_on_subject_kind_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_client_privacy_requests_on_subject_kind_status ON public.client_privacy_requests USING btree (client_id, request_kind, status_id);
+
+
+--
+-- Name: idx_client_proc_erase_notifications_retry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_client_proc_erase_notifications_retry ON public.client_processor_erasure_notifications USING btree (status_id, next_retry_at);
+
+
+--
+-- Name: idx_client_proc_erase_notifications_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_client_proc_erase_notifications_unique ON public.client_processor_erasure_notifications USING btree (client_privacy_request_id, processor_key);
+
+
+--
+-- Name: idx_client_retention_holds_on_subject_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_client_retention_holds_on_subject_status ON public.client_retention_holds USING btree (client_id, status_id);
+
+
+--
 -- Name: idx_core_app_client_bridges_unique_client_rp; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4558,6 +4902,13 @@ CREATE UNIQUE INDEX idx_enterprise_units_id_enterprise ON public.enterprise_unit
 --
 
 CREATE INDEX idx_on_client_id_status_id_expires_at_6c66cf1447 ON public.client_withdrawal_ceremonies USING btree (client_id, status_id, expires_at);
+
+
+--
+-- Name: idx_on_client_privacy_request_id_019e8d95c9; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_client_privacy_request_id_019e8d95c9 ON public.client_processor_erasure_notifications USING btree (client_privacy_request_id);
 
 
 --
@@ -5121,6 +5472,62 @@ CREATE UNIQUE INDEX index_client_preferences_on_user_id ON public.client_prefere
 
 
 --
+-- Name: index_client_privacy_requests_on_client_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_privacy_requests_on_client_id ON public.client_privacy_requests USING btree (client_id);
+
+
+--
+-- Name: index_client_privacy_requests_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_privacy_requests_on_discarded_at ON public.client_privacy_requests USING btree (discarded_at);
+
+
+--
+-- Name: index_client_privacy_requests_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_privacy_requests_on_public_id ON public.client_privacy_requests USING btree (public_id);
+
+
+--
+-- Name: index_client_privacy_requests_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_privacy_requests_on_purged_at ON public.client_privacy_requests USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
+
+
+--
+-- Name: index_client_privacy_requests_on_response_due_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_privacy_requests_on_response_due_at ON public.client_privacy_requests USING btree (response_due_at);
+
+
+--
+-- Name: index_client_processor_erasure_notifications_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_processor_erasure_notifications_on_discarded_at ON public.client_processor_erasure_notifications USING btree (discarded_at);
+
+
+--
+-- Name: index_client_processor_erasure_notifications_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_processor_erasure_notifications_on_public_id ON public.client_processor_erasure_notifications USING btree (public_id);
+
+
+--
+-- Name: index_client_processor_erasure_notifications_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_processor_erasure_notifications_on_purged_at ON public.client_processor_erasure_notifications USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
+
+
+--
 -- Name: index_client_profiles_on_client_status_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5153,6 +5560,41 @@ CREATE INDEX index_client_profiles_on_status_id ON public.client_profiles USING 
 --
 
 CREATE INDEX index_client_profiles_on_user_id ON public.client_profiles USING btree (user_id);
+
+
+--
+-- Name: index_client_retention_holds_on_client_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_retention_holds_on_client_id ON public.client_retention_holds USING btree (client_id);
+
+
+--
+-- Name: index_client_retention_holds_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_retention_holds_on_discarded_at ON public.client_retention_holds USING btree (discarded_at);
+
+
+--
+-- Name: index_client_retention_holds_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_retention_holds_on_expires_at ON public.client_retention_holds USING btree (expires_at);
+
+
+--
+-- Name: index_client_retention_holds_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_client_retention_holds_on_public_id ON public.client_retention_holds USING btree (public_id);
+
+
+--
+-- Name: index_client_retention_holds_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_client_retention_holds_on_purged_at ON public.client_retention_holds USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
 
 
 --
@@ -6068,6 +6510,14 @@ ALTER TABLE ONLY public.client_emails
 
 
 --
+-- Name: client_processor_erasure_notifications fk_rails_41d98680b9; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notifications
+    ADD CONSTRAINT fk_rails_41d98680b9 FOREIGN KEY (client_privacy_request_id) REFERENCES public.client_privacy_requests(id);
+
+
+--
 -- Name: client_members fk_rails_4549b9cedb; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6148,6 +6598,14 @@ ALTER TABLE ONLY public.client_member_deletions
 
 
 --
+-- Name: client_privacy_requests fk_rails_5bd919c664; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_requests
+    ADD CONSTRAINT fk_rails_5bd919c664 FOREIGN KEY (status_id) REFERENCES public.client_privacy_request_statuses(id);
+
+
+--
 -- Name: user_client_deletions fk_rails_5c75a5e7b0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6161,6 +6619,14 @@ ALTER TABLE ONLY public.user_client_deletions
 
 ALTER TABLE ONLY public.user_client_observations
     ADD CONSTRAINT fk_rails_61e7ab5f14 FOREIGN KEY (user_id) REFERENCES public.clients(id);
+
+
+--
+-- Name: client_retention_holds fk_rails_64254cb3f7; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_holds
+    ADD CONSTRAINT fk_rails_64254cb3f7 FOREIGN KEY (client_id) REFERENCES public.clients(id);
 
 
 --
@@ -6185,6 +6651,14 @@ ALTER TABLE ONLY public.clients
 
 ALTER TABLE ONLY public.client_member_impersonations
     ADD CONSTRAINT fk_rails_7148fa7540 FOREIGN KEY (member_id) REFERENCES public.members(id);
+
+
+--
+-- Name: client_processor_erasure_notifications fk_rails_71bb2fb3df; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_processor_erasure_notifications
+    ADD CONSTRAINT fk_rails_71bb2fb3df FOREIGN KEY (status_id) REFERENCES public.client_processor_erasure_notification_statuses(id);
 
 
 --
@@ -6420,6 +6894,14 @@ ALTER TABLE ONLY public.user_client_impersonations
 
 
 --
+-- Name: client_privacy_requests fk_rails_b3a209b2e0; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_privacy_requests
+    ADD CONSTRAINT fk_rails_b3a209b2e0 FOREIGN KEY (client_id) REFERENCES public.clients(id);
+
+
+--
 -- Name: client_withdrawal_flow_events fk_rails_b55e5a56c4; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6553,6 +7035,14 @@ ALTER TABLE ONLY public.client_withdrawal_flows
 
 ALTER TABLE ONLY public.client_memberships
     ADD CONSTRAINT fk_rails_e670a4dd3b FOREIGN KEY (user_id) REFERENCES public.clients(id);
+
+
+--
+-- Name: client_retention_holds fk_rails_e971c7082b; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.client_retention_holds
+    ADD CONSTRAINT fk_rails_e971c7082b FOREIGN KEY (status_id) REFERENCES public.client_retention_hold_statuses(id);
 
 
 --
@@ -6698,6 +7188,10 @@ ALTER TABLE ONLY public.client_preference_timezones
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260703020003'),
+('20260703020002'),
+('20260703020001'),
+('20260703020000'),
 ('20260703010000'),
 ('20260627000001'),
 ('20260626000004'),

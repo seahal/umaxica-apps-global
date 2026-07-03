@@ -29,7 +29,7 @@ module GroupAvatarMemberships
     attr_reader :group, :avatar, :role, :position
 
     def active_avatar?
-      avatar.lifecycle_state&.key == "active" && avatar.discarded_at.future? && avatar.purged_at.future?
+      avatar.lifecycle_state&.key == "active" && avatar.accessible?
     end
 
     def next_position

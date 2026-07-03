@@ -82,14 +82,13 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "header contains authentication links" do
+  test "page contains navigation and registration heading" do
     get auth_app_sign_up_url(format: :html, ri: "jp", login_challenge: login_challenge),
         headers: { "Host" => host }
 
     assert_response :success
-    assert_select "header", minimum: 1 do
-      assert_select "h1", minimum: 1
-    end
+    assert_select "header nav", minimum: 1
+    assert_select "main h1", text: I18n.t("sign.app.registration.new.page_title")
   end
 
   test "footer contains navigation links" do

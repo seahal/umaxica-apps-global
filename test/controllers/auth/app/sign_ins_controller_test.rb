@@ -16,7 +16,11 @@ module Auth
 
         assert_response :redirect
         assert_nil session[:oidc_authorization_login_challenge]
-        assert_predicate session["oidc_pending_flows"], :present?
+        assert_predicate session[:oidc_code_verifier], :present?
+        assert_predicate session[:oidc_state], :present?
+        assert_predicate session[:oidc_nonce], :present?
+        assert_equal auth_app_root_path(ri: "jp"), session[:oidc_pt]
+        assert_nil session["oidc_pending_flows"]
       end
 
       test "local ceremony renders authentication links" do

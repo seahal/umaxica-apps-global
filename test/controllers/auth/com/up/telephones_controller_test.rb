@@ -76,7 +76,7 @@ class Auth::Com::Sign::Up::TelephonesControllerTest < ActionDispatch::Integratio
     end
 
     assert_response :redirect
-    uri = URI.parse(response.location)
+    URI.parse(response.location)
 
     assert_includes response.location, "rt="
   end

@@ -5,10 +5,12 @@ require "json"
 
 module AvatarBackfill
   class BackfillLegacyClientBindings < ApplicationService
-    Result = Data.define(:summary, :details) do
-      def to_h = { summary: summary, details: details }
-      def to_json(*) = JSON.pretty_generate(to_h)
-    end
+    Result =
+      Data.define(:summary, :details) do
+        def to_h = { summary: summary, details: details }
+
+        def to_json(*) = JSON.pretty_generate(to_h)
+      end
 
     RESULT_BUCKETS = %w(
       created
@@ -59,7 +61,10 @@ module AvatarBackfill
     end
 
     def create_binding(candidate)
-      return detail(candidate, "created", "dry-run candidate; no row created", "run with APPLY=1 to create binding") unless apply
+      return detail(
+        candidate, "created", "dry-run candidate; no row created",
+        "run with APPLY=1 to create binding",
+      ) unless apply
 
       Avatar.transaction do
         avatar = Avatar.lock.find(candidate.fetch(:avatar_id))
@@ -74,11 +79,13 @@ module AvatarBackfill
           assigned_at: avatar.created_at || Time.current,
         )
 
-        detail(candidate.merge(existing_binding_type: binding.class.name, existing_binding_public_id: binding.public_id),
-               "created", "created AvatarPersonaBinding", "no change needed")
+        detail(
+          candidate.merge(existing_binding_type: binding.class.name, existing_binding_public_id: binding.public_id),
+          "created", "created AvatarPersonaBinding", "no change needed",
+        )
       end
-    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
-      detail(candidate, "failed", "#{error.class}: #{error.message}", "manual review required")
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => e
+      detail(candidate, "failed", "#{e.class}: #{e.message}", "manual review required")
     end
 
     def detail(candidate, bucket, reason, action)
@@ -87,7 +94,12 @@ module AvatarBackfill
 
     def build_summary(details)
       summary = { apply: apply, total_candidates_scanned: details.size }
-      RESULT_BUCKETS.each { |bucket| summary[:"#{bucket}_count"] = details.count { |detail| detail[:backfill_bucket] == bucket } }
+      RESULT_BUCKETS.each { |bucket|
+        summary[:"#{bucket}_count"] =
+          details.count { |detail|
+            detail[:backfill_bucket] == bucket
+          }
+      }
       summary
     end
 

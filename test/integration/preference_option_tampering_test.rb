@@ -7,6 +7,7 @@ class PreferenceOptionTamperingTest < ActionDispatch::IntegrationTest
   test "theme update ignores invalid option id without changing canonical preference" do
     host! ENV.fetch("PUBLIC_BASE_SERVICE_URL")
     get base_app_preference_path(ri: "jp")
+
     assert_response :success
 
     preference = AppPreference.order(:created_at).last
@@ -22,6 +23,7 @@ class PreferenceOptionTamperingTest < ActionDispatch::IntegrationTest
   test "timezone update ignores invalid timezone without changing canonical preference" do
     host! ENV.fetch("PUBLIC_BASE_SERVICE_URL")
     get base_app_preference_path(ri: "jp")
+
     assert_response :success
 
     preference = AppPreference.order(:created_at).last

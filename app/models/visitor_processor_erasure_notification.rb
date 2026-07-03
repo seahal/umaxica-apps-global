@@ -15,5 +15,5 @@ class VisitorProcessorErasureNotification < ComPrincipalRecord
   STATUS_IDS = STATUSES.values.freeze
 
   belongs_to :visitor_privacy_request, inverse_of: :visitor_processor_erasure_notifications
-  belongs_to :status, class_name: "VisitorProcessorErasureNotificationStatus", foreign_key: :status_id
+  belongs_to :status, class_name: "VisitorProcessorErasureNotificationStatus"
 end

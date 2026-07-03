@@ -52,19 +52,19 @@ Known retirement targets after Slice 4.5:
 - Historical avatar DB `posts` remain a legacy UGC violation; new UGC, feed, media, reaction,
   comment, and actor snapshot tables remain forbidden in avatar DB.
 - `avatar_agent_bindings` and `avatar_individual_bindings` no longer have bare binding shape. They
-  now match `avatar_persona_bindings` with `public_id`, `assigned_at`, `revoked_at`, revoke
-  ordering checks, and active partial unique indexes.
-- `avatar_assignments.role` remains constrained to the current v1 plus known legacy set:
-  `owner`, `affiliation`, `administrator`, `editor`, `reviewer`, and `viewer`. Reducing that to the
-  four-role target set requires a separate compatibility decision.
+  now match `avatar_persona_bindings` with `public_id`, `assigned_at`, `revoked_at`, revoke ordering
+  checks, and active partial unique indexes.
+- `avatar_assignments.role` remains constrained to the current v1 plus known legacy set: `owner`,
+  `affiliation`, `administrator`, `editor`, `reviewer`, and `viewer`. Reducing that to the four-role
+  target set requires a separate compatibility decision.
 - `persona_assignments` and `persona_memberships` have existing active uniqueness patterns, but
   app_zenith temporal and revoke-reason constraints still need a dedicated follow-up.
 - `group_avatar_memberships` does not exist yet and remains deferred to Group v1.
 - `avatar_agent_bindings.agent_id` and `avatar_individual_bindings.individual_id` remain existing
   cross-DB integer references.
 - `avatars.client_id` remains a legacy compatibility column. Slice 4.5 confines new compatibility
-  writes to `AvatarProvisioning::Create`; it is not canonical ownership,
-  authorization, or binding authority.
+  writes to `AvatarProvisioning::Create`; it is not canonical ownership, authorization, or binding
+  authority.
 - `Avatar.create_with_owner` is a deprecated wrapper around `AvatarProvisioning::Create` and is a
   removal candidate after callers are retired.
 - `avatars.avatar_status_id` remains legacy compatibility state.
@@ -172,8 +172,8 @@ Slice 4.5 inspected:
 - `app/services/base_selector_bootstrap_authority.rb`
 - `app/services/avatar_provisioning/create.rb`
 - `app/models/avatar.rb`
-- production controller, service, job, task, seed, and test references to Avatar creation,
-  Handle creation, binding creation, `AvatarAssignment` creation, and `avatars.client_id`
+- production controller, service, job, task, seed, and test references to Avatar creation, Handle
+  creation, binding creation, `AvatarAssignment` creation, and `avatars.client_id`
 - `test/services/acme/selector_bootstrap_authority_test.rb`
 - `test/security/invariants/umaxica_architecture_guard_test.rb`
 
@@ -183,9 +183,9 @@ Slice 4.5 changed:
   Avatar creation.
 - `Base::App::AvatarsController#create` remains a service caller.
 - `Avatar.create_with_owner` delegates to `AvatarProvisioning::Create` and is deprecated.
-- Architecture guards reject production `Avatar.create_with_owner`, direct `Avatar.create!`,
-  direct `avatar_assignments.create!`, direct `Handle.create!`, direct surface binding `create!`,
-  and direct canonical `avatars.client_id` writes outside `AvatarProvisioning::Create`.
+- Architecture guards reject production `Avatar.create_with_owner`, direct `Avatar.create!`, direct
+  `avatar_assignments.create!`, direct `Handle.create!`, direct surface binding `create!`, and
+  direct canonical `avatars.client_id` writes outside `AvatarProvisioning::Create`.
 
 Do not remove `avatars.client_id`, remove `avatar_status_id`, migrate historical avatar DB posts,
 implement actor snapshots, implement Group v1, or move Identity-to-Account assignment authority in
@@ -213,8 +213,8 @@ Open issues before backfill mutation:
 - Decide whether historical app-surface Personas may have more than one active Avatar. Current
   active Persona uniqueness means additional Avatar creation requires revoking or backfilling
   bindings deliberately.
-- Define the backfill conflict policy for Avatars whose legacy `client_id` points to a principal
-  but whose Persona binding already exists or is inconsistent.
+- Define the backfill conflict policy for Avatars whose legacy `client_id` points to a principal but
+  whose Persona binding already exists or is inconsistent.
 - Decide the dry-run output schema, owner, retention expectation, and review path before writing a
   backfill command that mutates rows.
 - Keep `avatars.client_id`, `avatars.avatar_status_id`, historical avatar DB posts,
@@ -242,9 +242,9 @@ Slice 5A adds a dry-run-only audit path for existing `avatars.client_id` compati
 
 The audit does not create, update, revoke, archive, delete, or canonicalize any database rows. It
 classifies each Avatar with a legacy `client_id` into structured review buckets, including safe
-backfill candidates, already-consistent bindings, inconsistent bindings, subject conflicts,
-multiple legacy Avatars for one subject, missing clients, unresolved subjects, deleted Avatar skips,
-legacy UGC review, cross-DB reference errors, and unknown failures.
+backfill candidates, already-consistent bindings, inconsistent bindings, subject conflicts, multiple
+legacy Avatars for one subject, missing clients, unresolved subjects, deleted Avatar skips, legacy
+UGC review, cross-DB reference errors, and unknown failures.
 
 Only `safe_to_backfill` rows are eligible for Slice 5B. Conflicts are manual-review inputs and must
 not be resolved by automatic subject selection, binding revocation, Avatar archival, or deletion.
@@ -270,3 +270,50 @@ Known Slice 5B compatibility remaining:
 - `avatars.client_id` remains a physical compatibility column and removal candidate.
 - Non-app historical rows without an unambiguous current subject resolution are manual review.
 - Generated reports under `tmp/avatar_backfill/` are operational artifacts and are not committed.
+
+## Slice 5C Operational Result
+
+Completed against the current development database on 2026-07-03:
+
+- Dry-run audit command:
+  `bin/rails avatar_backfill:audit_legacy_client_bindings REPORT=tmp/avatar_backfill/legacy_client_binding_audit_20260703.json`
+- Audit summary: 0 total Avatars, 0 Avatars with legacy `client_id`, 0 `safe_to_backfill`, and 0
+  conflict or unresolved buckets.
+- APPLY was not run because there were no safe candidates to mutate.
+- Idempotency dry-run command:
+  `bin/rails avatar_backfill:legacy_client_bindings REPORT=tmp/avatar_backfill/legacy_client_binding_backfill_dry_run_20260703.json`
+- Dry-run backfill summary: 0 scanned candidates, 0 created, 0 skipped, 0 failed.
+
+## Foundation v1 Current Status
+
+Resolved in this pass:
+
+- Group v1 table/model/service/controller foundation exists in the Avatar DB.
+- `group_avatar_memberships` exists with active pair uniqueness, lifecycle state, and revoke-order
+  constraints.
+- Avatar follow/block/mute HTTP routes delegate to `AvatarSocialGraph` services and policy checks.
+- `CollectiveMembership::*` service commands exist for grant, revoke, make primary, transfer unit,
+  accept, and suspend.
+
+Compatibility-only:
+
+- `avatars.client_id`
+- `avatars.avatar_status_id`
+- `personas.client_identity_id`
+- `agents.operator_identity_id`
+- `individuals.visitor_identity_id`
+
+Manual review required:
+
+- Existing legacy cross-DB integer references in Avatar binding compatibility tables.
+- Final request-level wiring for app/org/com membership controllers.
+- Any future conflict bucket emitted by `AvatarBackfill::AuditLegacyClientBindings`.
+
+Future content track:
+
+- content DB, posts, comments, media, feed, timeline, ranking, recommendation, reactions, search,
+  actor snapshot read model, public SNS UI.
+
+Future moderation/eventing track:
+
+- moderation workflow, durable moderation events, cache/event fanout design.

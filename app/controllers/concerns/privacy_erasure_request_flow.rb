@@ -16,9 +16,9 @@ module PrivacyErasureRequestFlow
 
     privacy_request = privacy_request_class.create!(
       privacy_subject_key => subject,
-      request_kind: "erasure",
-      jurisdiction: privacy_erasure_jurisdiction,
-      request_source: "self_service",
+      :request_kind => "erasure",
+      :jurisdiction => privacy_erasure_jurisdiction,
+      :request_source => "self_service",
     )
     create_processor_notifications!(privacy_request)
     WithdrawalOccurrenceRecording.record!(
@@ -53,9 +53,12 @@ module PrivacyErasureRequestFlow
     ProcessorErasureNotificationState::PROCESSOR_KEYS.each do |processor_key|
       notification = notification_class.find_or_create_by!(
         processor_privacy_request_key => privacy_request,
-        processor_key: processor_key,
+        :processor_key => processor_key,
       )
-      ProcessorErasureNotificationJob.perform_later(surface: privacy_erasure_surface.to_s, public_id: notification.public_id)
+      ProcessorErasureNotificationJob.perform_later(
+        surface: privacy_erasure_surface.to_s,
+        public_id: notification.public_id,
+      )
     end
   end
 

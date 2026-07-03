@@ -1578,6 +1578,232 @@ ALTER SEQUENCE public.visitor_preferences_id_seq OWNED BY public.visitor_prefere
 
 
 --
+-- Name: visitor_privacy_request_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_privacy_request_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: visitor_privacy_request_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_privacy_request_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_privacy_request_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_privacy_request_statuses_id_seq OWNED BY public.visitor_privacy_request_statuses.id;
+
+
+--
+-- Name: visitor_privacy_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_privacy_requests (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    visitor_id bigint NOT NULL,
+    request_kind character varying DEFAULT 'erasure'::character varying NOT NULL,
+    jurisdiction character varying DEFAULT 'unknown'::character varying NOT NULL,
+    request_source character varying DEFAULT 'self_service'::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    received_at timestamp(6) with time zone NOT NULL,
+    verified_at timestamp(6) with time zone,
+    processing_started_at timestamp(6) with time zone,
+    response_due_at timestamp(6) with time zone NOT NULL,
+    extended_until timestamp(6) with time zone,
+    completed_at timestamp(6) with time zone,
+    cancelled_at timestamp(6) with time zone,
+    denial_reason character varying DEFAULT ''::character varying NOT NULL,
+    retention_exception_code character varying DEFAULT ''::character varying NOT NULL,
+    legal_hold_blocked_at timestamp(6) with time zone,
+    final_response_sent_at timestamp(6) with time zone,
+    lock_version integer DEFAULT 0 NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_visitor_privacy_requests_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: visitor_privacy_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_privacy_requests_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_privacy_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_privacy_requests_id_seq OWNED BY public.visitor_privacy_requests.id;
+
+
+--
+-- Name: visitor_processor_erasure_notification_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_processor_erasure_notification_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: visitor_processor_erasure_notification_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_processor_erasure_notification_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_processor_erasure_notification_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_processor_erasure_notification_statuses_id_seq OWNED BY public.visitor_processor_erasure_notification_statuses.id;
+
+
+--
+-- Name: visitor_processor_erasure_notifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_processor_erasure_notifications (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    visitor_privacy_request_id bigint NOT NULL,
+    processor_key character varying DEFAULT ''::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    requested_at timestamp(6) with time zone NOT NULL,
+    notified_at timestamp(6) with time zone,
+    failed_at timestamp(6) with time zone,
+    last_error_code character varying DEFAULT ''::character varying NOT NULL,
+    last_error_message character varying DEFAULT ''::character varying NOT NULL,
+    retry_count integer DEFAULT 0 NOT NULL,
+    next_retry_at timestamp(6) with time zone,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_visitor_proc_erase_notifications_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: visitor_processor_erasure_notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_processor_erasure_notifications_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_processor_erasure_notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_processor_erasure_notifications_id_seq OWNED BY public.visitor_processor_erasure_notifications.id;
+
+
+--
+-- Name: visitor_retention_hold_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_retention_hold_statuses (
+    id bigint NOT NULL,
+    name character varying DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: visitor_retention_hold_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_retention_hold_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_retention_hold_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_retention_hold_statuses_id_seq OWNED BY public.visitor_retention_hold_statuses.id;
+
+
+--
+-- Name: visitor_retention_holds; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.visitor_retention_holds (
+    id bigint NOT NULL,
+    public_id character varying(21) DEFAULT ''::character varying NOT NULL,
+    visitor_id bigint NOT NULL,
+    hold_kind character varying DEFAULT 'legal_hold'::character varying NOT NULL,
+    reason_code character varying DEFAULT 'legal_hold'::character varying NOT NULL,
+    status_id bigint DEFAULT 10 NOT NULL,
+    applied_at timestamp(6) with time zone NOT NULL,
+    released_at timestamp(6) with time zone,
+    expires_at timestamp(6) with time zone,
+    applied_by_type character varying DEFAULT ''::character varying NOT NULL,
+    applied_by_public_id character varying DEFAULT ''::character varying NOT NULL,
+    memo character varying DEFAULT ''::character varying NOT NULL,
+    discarded_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    purged_at timestamp(6) with time zone DEFAULT 'infinity'::timestamp with time zone NOT NULL,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_visitor_retention_holds_retention_order CHECK ((discarded_at <= purged_at))
+);
+
+
+--
+-- Name: visitor_retention_holds_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.visitor_retention_holds_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visitor_retention_holds_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.visitor_retention_holds_id_seq OWNED BY public.visitor_retention_holds.id;
+
+
+--
 -- Name: visitor_secret_credential_kinds; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2350,6 +2576,48 @@ ALTER TABLE ONLY public.visitor_preferences ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: visitor_privacy_request_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_request_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_privacy_request_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_privacy_requests id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_requests ALTER COLUMN id SET DEFAULT nextval('public.visitor_privacy_requests_id_seq'::regclass);
+
+
+--
+-- Name: visitor_processor_erasure_notification_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notification_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_processor_erasure_notification_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_processor_erasure_notifications id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notifications ALTER COLUMN id SET DEFAULT nextval('public.visitor_processor_erasure_notifications_id_seq'::regclass);
+
+
+--
+-- Name: visitor_retention_hold_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_hold_statuses ALTER COLUMN id SET DEFAULT nextval('public.visitor_retention_hold_statuses_id_seq'::regclass);
+
+
+--
+-- Name: visitor_retention_holds id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_holds ALTER COLUMN id SET DEFAULT nextval('public.visitor_retention_holds_id_seq'::regclass);
+
+
+--
 -- Name: visitor_secret_credential_kinds id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2874,6 +3142,54 @@ ALTER TABLE ONLY public.visitor_preferences
 
 
 --
+-- Name: visitor_privacy_request_statuses visitor_privacy_request_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_request_statuses
+    ADD CONSTRAINT visitor_privacy_request_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_privacy_requests visitor_privacy_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_requests
+    ADD CONSTRAINT visitor_privacy_requests_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_processor_erasure_notification_statuses visitor_processor_erasure_notification_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notification_statuses
+    ADD CONSTRAINT visitor_processor_erasure_notification_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_processor_erasure_notifications visitor_processor_erasure_notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notifications
+    ADD CONSTRAINT visitor_processor_erasure_notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_retention_hold_statuses visitor_retention_hold_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_hold_statuses
+    ADD CONSTRAINT visitor_retention_hold_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visitor_retention_holds visitor_retention_holds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_holds
+    ADD CONSTRAINT visitor_retention_holds_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: visitor_secret_credential_kinds visitor_secret_credential_kinds_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3019,6 +3335,13 @@ CREATE INDEX idx_on_visitor_id_status_id_expires_at_f1c3d6493a ON public.visitor
 
 
 --
+-- Name: idx_on_visitor_privacy_request_id_4225260194; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_on_visitor_privacy_request_id_4225260194 ON public.visitor_processor_erasure_notifications USING btree (visitor_privacy_request_id);
+
+
+--
 -- Name: idx_on_visitor_secret_credential_kind_id_80c2fa07fe; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3037,6 +3360,34 @@ CREATE INDEX idx_on_visitor_secret_credential_status_id_a8132e5a1a ON public.vis
 --
 
 CREATE INDEX idx_on_visitor_withdrawal_flow_id_dada4f9f5b ON public.visitor_withdrawal_flow_events USING btree (visitor_withdrawal_flow_id);
+
+
+--
+-- Name: idx_visitor_privacy_requests_subject_kind_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitor_privacy_requests_subject_kind_status ON public.visitor_privacy_requests USING btree (visitor_id, request_kind, status_id);
+
+
+--
+-- Name: idx_visitor_proc_erase_notifications_retry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitor_proc_erase_notifications_retry ON public.visitor_processor_erasure_notifications USING btree (status_id, next_retry_at);
+
+
+--
+-- Name: idx_visitor_proc_erase_notifications_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_visitor_proc_erase_notifications_unique ON public.visitor_processor_erasure_notifications USING btree (visitor_privacy_request_id, processor_key);
+
+
+--
+-- Name: idx_visitor_retention_holds_on_subject_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_visitor_retention_holds_on_subject_status ON public.visitor_retention_holds USING btree (visitor_id, status_id);
 
 
 --
@@ -3565,6 +3916,97 @@ CREATE UNIQUE INDEX index_visitor_preferences_on_visitor_id ON public.visitor_pr
 
 
 --
+-- Name: index_visitor_privacy_requests_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_privacy_requests_on_discarded_at ON public.visitor_privacy_requests USING btree (discarded_at);
+
+
+--
+-- Name: index_visitor_privacy_requests_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_privacy_requests_on_public_id ON public.visitor_privacy_requests USING btree (public_id);
+
+
+--
+-- Name: index_visitor_privacy_requests_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_privacy_requests_on_purged_at ON public.visitor_privacy_requests USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
+
+
+--
+-- Name: index_visitor_privacy_requests_on_response_due_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_privacy_requests_on_response_due_at ON public.visitor_privacy_requests USING btree (response_due_at);
+
+
+--
+-- Name: index_visitor_privacy_requests_on_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_privacy_requests_on_visitor_id ON public.visitor_privacy_requests USING btree (visitor_id);
+
+
+--
+-- Name: index_visitor_processor_erasure_notifications_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_processor_erasure_notifications_on_discarded_at ON public.visitor_processor_erasure_notifications USING btree (discarded_at);
+
+
+--
+-- Name: index_visitor_processor_erasure_notifications_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_processor_erasure_notifications_on_public_id ON public.visitor_processor_erasure_notifications USING btree (public_id);
+
+
+--
+-- Name: index_visitor_processor_erasure_notifications_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_processor_erasure_notifications_on_purged_at ON public.visitor_processor_erasure_notifications USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
+
+
+--
+-- Name: index_visitor_retention_holds_on_discarded_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_retention_holds_on_discarded_at ON public.visitor_retention_holds USING btree (discarded_at);
+
+
+--
+-- Name: index_visitor_retention_holds_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_retention_holds_on_expires_at ON public.visitor_retention_holds USING btree (expires_at);
+
+
+--
+-- Name: index_visitor_retention_holds_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_visitor_retention_holds_on_public_id ON public.visitor_retention_holds USING btree (public_id);
+
+
+--
+-- Name: index_visitor_retention_holds_on_purged_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_retention_holds_on_purged_at ON public.visitor_retention_holds USING btree (purged_at) WHERE (purged_at < 'infinity'::timestamp with time zone);
+
+
+--
+-- Name: index_visitor_retention_holds_on_visitor_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_visitor_retention_holds_on_visitor_id ON public.visitor_retention_holds USING btree (visitor_id);
+
+
+--
 -- Name: index_visitor_secret_credentials_on_lookup_digest; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3871,6 +4313,14 @@ ALTER TABLE ONLY public.visitor_emails
 
 
 --
+-- Name: visitor_retention_holds fk_rails_0b00e2e900; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_holds
+    ADD CONSTRAINT fk_rails_0b00e2e900 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
+
+
+--
 -- Name: visitors fk_rails_15c7fee824; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4031,6 +4481,14 @@ ALTER TABLE ONLY public.visitor_preference_date_formats
 
 
 --
+-- Name: visitor_processor_erasure_notifications fk_rails_4944a6f18c; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notifications
+    ADD CONSTRAINT fk_rails_4944a6f18c FOREIGN KEY (visitor_privacy_request_id) REFERENCES public.visitor_privacy_requests(id);
+
+
+--
 -- Name: visitor_withdrawal_flow_events fk_rails_4d4952ecfc; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4143,6 +4601,14 @@ ALTER TABLE ONLY public.individual_memberships
 
 
 --
+-- Name: visitor_retention_holds fk_rails_7c4b79d5a2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_retention_holds
+    ADD CONSTRAINT fk_rails_7c4b79d5a2 FOREIGN KEY (status_id) REFERENCES public.visitor_retention_hold_statuses(id);
+
+
+--
 -- Name: visitor_withdrawal_flows fk_rails_8021cd7888; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4239,11 +4705,27 @@ ALTER TABLE ONLY public.visitors
 
 
 --
+-- Name: visitor_privacy_requests fk_rails_baf0223015; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_requests
+    ADD CONSTRAINT fk_rails_baf0223015 FOREIGN KEY (visitor_id) REFERENCES public.visitors(id);
+
+
+--
 -- Name: visitor_identities fk_rails_bc90881f37; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.visitor_identities
     ADD CONSTRAINT fk_rails_bc90881f37 FOREIGN KEY (status_id) REFERENCES public.visitor_identity_states(id) NOT VALID;
+
+
+--
+-- Name: visitor_processor_erasure_notifications fk_rails_c1757266a2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_processor_erasure_notifications
+    ADD CONSTRAINT fk_rails_c1757266a2 FOREIGN KEY (status_id) REFERENCES public.visitor_processor_erasure_notification_statuses(id);
 
 
 --
@@ -4327,6 +4809,14 @@ ALTER TABLE ONLY public.visitor_preference_themes
 
 
 --
+-- Name: visitor_privacy_requests fk_rails_efd7dbc62c; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.visitor_privacy_requests
+    ADD CONSTRAINT fk_rails_efd7dbc62c FOREIGN KEY (status_id) REFERENCES public.visitor_privacy_request_statuses(id);
+
+
+--
 -- Name: company_unit_closures fk_rails_ff8f5a8c85; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4341,6 +4831,10 @@ ALTER TABLE ONLY public.company_unit_closures
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260703020003'),
+('20260703020002'),
+('20260703020001'),
+('20260703020000'),
 ('20260703010000'),
 ('20260627000001'),
 ('20260626000004'),

@@ -62,7 +62,10 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       status_id: VisitorIdentityState::ACTIVE,
     )
     first_individual = Individual.create!(visitor_identity: first_identity, moniker: "Individual One", title: "Indiv01")
-    second_individual = Individual.create!(visitor_identity: second_identity, moniker: "Individual Two", title: "Indiv02")
+    second_individual = Individual.create!(
+      visitor_identity: second_identity, moniker: "Individual Two",
+      title: "Indiv02",
+    )
     first_handle = Handle.create!(
       handle: "individual-public-one-#{SecureRandom.hex(3)}",
       handle_status_id: HandleStatus::ACTIVE,
@@ -155,8 +158,14 @@ class AvatarIndividualBindingTest < ActiveSupport::TestCase
       source_record_id: SecureRandom.random_number(1_000_000) + 35_000,
       status_id: VisitorIdentityState::ACTIVE,
     )
-    first_individual = Individual.create!(visitor_identity: first_identity, moniker: "DB Individual One", title: "Indiv04")
-    second_individual = Individual.create!(visitor_identity: second_identity, moniker: "DB Individual Two", title: "Indiv05")
+    first_individual = Individual.create!(
+      visitor_identity: first_identity, moniker: "DB Individual One",
+      title: "Indiv04",
+    )
+    second_individual = Individual.create!(
+      visitor_identity: second_identity, moniker: "DB Individual Two",
+      title: "Indiv05",
+    )
     first_handle = Handle.create!(
       handle: "individual-db-one-#{SecureRandom.hex(3)}",
       handle_status_id: HandleStatus::ACTIVE,

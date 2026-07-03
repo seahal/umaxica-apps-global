@@ -20,6 +20,6 @@ class VisitorPrivacyRequest < ComPrincipalRecord
   STATUS_IDS = STATUSES.values.freeze
 
   belongs_to :visitor, inverse_of: :visitor_privacy_requests
-  belongs_to :status, class_name: "VisitorPrivacyRequestStatus", foreign_key: :status_id
+  belongs_to :status, class_name: "VisitorPrivacyRequestStatus"
   has_many :visitor_processor_erasure_notifications, dependent: :delete_all, inverse_of: :visitor_privacy_request
 end

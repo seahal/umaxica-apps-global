@@ -16,7 +16,7 @@ module Base
       def index
         authorize!(AvatarGroup, to: :index?)
         groups = AvatarGroup.where(account_surface: "app", account_public_id: Actor.selection.account_public_id)
-                            .order(:created_at, :id)
+          .order(:created_at, :id)
         render json: { groups: groups.map { |group| serialize_group(group) } }
       end
 
@@ -51,11 +51,11 @@ module Base
       private
 
       def set_group
-        @group = AvatarGroup.find_by!(public_id: params[:id])
+        @group = AvatarGroup.find_by!(public_id: params.expect(:id))
       end
 
       def group_params
-        params.require(:group).permit(:name, :description)
+        params.expect(group: [:name, :description])
       end
 
       def serialize_group(group)

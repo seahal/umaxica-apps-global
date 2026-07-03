@@ -32,6 +32,7 @@ class IdentityCoverageTest < ActiveSupport::TestCase
     assert_not @user.can_recover?
 
     @user.update!(deactivated_at: 2.hours.ago)
+
     assert_predicate @user, :can_recover?
   end
 end

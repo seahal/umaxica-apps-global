@@ -4,7 +4,7 @@
 class GroupAvatarMembership < AvatarRecord
   include PublicId
 
-  STATES = %w[active removed].freeze
+  STATES = %w(active removed).freeze
 
   belongs_to :avatar_group, inverse_of: :group_avatar_memberships
   belongs_to :avatar, inverse_of: :group_avatar_memberships

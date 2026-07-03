@@ -99,7 +99,8 @@ module Security
               next unless line.match?(
                 /\bclient_id:\s*(?:(?:current_client|principal|actor|user|client|@user|@client)\.id|legacy_compatibility_client_id)\b/,
               )
-              next if [AVATAR_PROVISIONING_CREATE_PATH, AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH].include?(relative_path)
+              next if [AVATAR_PROVISIONING_CREATE_PATH,
+                       AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH,].include?(relative_path)
 
               location = "#{relative_path}:#{index + 1}"
 
@@ -124,7 +125,8 @@ module Security
             File.readlines(path, chomp: true).each_with_index.filter_map do |line, index|
               matched_name = patterns.find { |_name, pattern| line.match?(pattern) }&.first
               next unless matched_name
-              next if [AVATAR_PROVISIONING_CREATE_PATH, AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH].include?(relative_path)
+              next if [AVATAR_PROVISIONING_CREATE_PATH,
+                       AVATAR_BACKFILL_LEGACY_CLIENT_BINDINGS_PATH,].include?(relative_path)
 
               "#{relative_path}:#{index + 1}: #{matched_name}: #{line.strip}"
             end
@@ -207,7 +209,7 @@ module Security
       private
 
       def production_ruby_paths
-        Dir.glob(Rails.root.join("{app,lib}/**/*.rb")).map { |path| Pathname.new(path) }
+        Rails.root.glob("{app,lib}/**/*.rb").map { |path| Pathname.new(path) }
       end
     end
   end

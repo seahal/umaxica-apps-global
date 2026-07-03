@@ -19,6 +19,8 @@ module AvatarSocialGraph
 
     def call
       raise SelfEdgeError, "avatar cannot follow itself" if actor_avatar == target_avatar
+      raise BlockedError, "actor avatar is not active" unless active_avatar?(actor_avatar)
+      raise BlockedError, "target avatar is not active" unless active_avatar?(target_avatar)
       raise BlockedError, "follow blocked by target avatar" if blocked_by_target?
       raise BlockedError, "follow blocked by actor avatar" if blocked_by_actor?
 
@@ -42,6 +44,10 @@ module AvatarSocialGraph
     def create_follow
       actor_avatar.outgoing_follows.create!(followed_avatar: target_avatar)
     end
+
+    def active_avatar?(avatar)
+      avatar.lifecycle_state&.key == "active" && avatar.accessible?
+    end
   end
 
   class Block < ApplicationService
@@ -55,6 +61,8 @@ module AvatarSocialGraph
 
     def call
       raise SelfEdgeError, "avatar cannot block itself" if actor_avatar == target_avatar
+      raise BlockedError, "actor avatar is not active" unless active_avatar?(actor_avatar)
+      raise BlockedError, "target avatar is not active" unless active_avatar?(target_avatar)
 
       block = existing_block || create_block
       terminate_follow(actor_avatar, target_avatar)
@@ -75,6 +83,10 @@ module AvatarSocialGraph
     def terminate_follow(follower, followed)
       follower.outgoing_follows.where(followed_avatar_id: followed.id).destroy_all
     end
+
+    def active_avatar?(avatar)
+      avatar.lifecycle_state&.key == "active" && avatar.accessible?
+    end
   end
 
   class Mute < ApplicationService
@@ -88,6 +100,8 @@ module AvatarSocialGraph
 
     def call
       raise SelfEdgeError, "avatar cannot mute itself" if actor_avatar == target_avatar
+      raise BlockedError, "actor avatar is not active" unless active_avatar?(actor_avatar)
+      raise BlockedError, "target avatar is not active" unless active_avatar?(target_avatar)
 
       existing_mute || create_mute
     end
@@ -100,6 +114,10 @@ module AvatarSocialGraph
 
     def create_mute
       actor_avatar.outgoing_mutes.create!(muted_avatar: target_avatar)
+    end
+
+    def active_avatar?(avatar)
+      avatar.lifecycle_state&.key == "active" && avatar.accessible?
     end
   end
 

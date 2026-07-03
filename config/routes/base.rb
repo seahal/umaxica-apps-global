@@ -174,7 +174,11 @@ scope(module: :base, as: :base) do
       end
 
       resource :identity, only: :show
-      resources :avatars, only: %i(index show new edit create update)
+      resources :avatars, only: %i(index show new edit create update) do
+        resource :follow, controller: "avatars/follows", only: %i(create destroy)
+        resource :block, controller: "avatars/blocks", only: %i(create destroy)
+        resource :mute, controller: "avatars/mutes", only: %i(create destroy)
+      end
 
       namespace :identity do
         namespace :mfa do

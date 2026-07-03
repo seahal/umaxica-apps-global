@@ -19,7 +19,9 @@ module Base
           name: "email_create_ip_burst",
           store: rate_limit_store,
           only: :create,
-          with: -> { render_rate_limited(rule_name: "base_app_withdrawal_reentry_email_create_ip_burst", retry_after: 60) },
+          with: -> {
+            render_rate_limited(rule_name: "base_app_withdrawal_reentry_email_create_ip_burst", retry_after: 60)
+          },
         )
 
         private

@@ -37,6 +37,7 @@ class PreferenceCookieInvalidValuesTest < ActionDispatch::IntegrationTest
 
                   ["banana", ["true"], { value: true }, nil].each do |invalid_value|
                     patch base_app_web_v0_cookie_path, params: { consented: invalid_value }, as: :json
+
                     assert_response :bad_request
                   end
                 end

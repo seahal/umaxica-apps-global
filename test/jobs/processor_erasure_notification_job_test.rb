@@ -16,7 +16,7 @@ class ProcessorErasureNotificationJobTest < ActiveJob::TestCase
     ProcessorErasureNotificationJob.perform_now(surface: "app", public_id: notification.public_id)
 
     assert_equal ClientProcessorErasureNotification.status_id_for("NOTIFIED"), notification.reload.status_id
-    assert ClientOccurrence.where(event_type: "processor_erasure.notified").exists?
+    assert_predicate ClientOccurrence.where(event_type: "processor_erasure.notified"), :exists?
   end
 
   test "job is idempotent for notified visitor notification" do

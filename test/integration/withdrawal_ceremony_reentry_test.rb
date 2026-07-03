@@ -45,7 +45,7 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_base_app_identity_withdrawal_path(ri: "jp")
     assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
     assert_nil cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
-    assert ClientOccurrence.where(event_type: "withdrawal.ceremony_issued").exists?
+    assert_predicate ClientOccurrence.where(event_type: "withdrawal.ceremony_issued"), :exists?
   end
 
   test "active client does not obtain withdrawal ceremony through reentry" do
@@ -109,7 +109,7 @@ class WithdrawalCeremonyReentryTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_base_com_identity_withdrawal_path(ri: "jp")
     assert_nil cookies[AuthenticationBase::ACCESS_COOKIE_KEY]
     assert_nil cookies[AuthenticationBase::REFRESH_COOKIE_KEY]
-    assert VisitorOccurrence.where(event_type: "withdrawal.ceremony_issued").exists?
+    assert_predicate VisitorOccurrence.where(event_type: "withdrawal.ceremony_issued"), :exists?
   end
 
   private

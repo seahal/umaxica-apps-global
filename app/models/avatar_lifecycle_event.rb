@@ -9,5 +9,7 @@ class AvatarLifecycleEvent < AvatarRecord
 
   validates :from_state_key, presence: true, inclusion: { in: STATE_KEYS }
   validates :to_state_key, presence: true, inclusion: { in: STATE_KEYS }
-  validates :to_state_key, comparison: { other_than: :from_state_key }, if: -> { from_state_key.present? && to_state_key.present? }
+  validates :to_state_key, comparison: { other_than: :from_state_key }, if: -> {
+    from_state_key.present? && to_state_key.present?
+  }
 end

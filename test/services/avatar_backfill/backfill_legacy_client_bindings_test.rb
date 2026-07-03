@@ -33,7 +33,7 @@ module AvatarBackfill
       assert_no_difference -> { AvatarPersonaBinding.count } do
         result = BackfillLegacyClientBindings.call
 
-        assert_equal false, result.summary.fetch(:apply)
+        assert_not result.summary.fetch(:apply)
         assert_equal 1, result.summary.fetch(:created_count)
       end
     end

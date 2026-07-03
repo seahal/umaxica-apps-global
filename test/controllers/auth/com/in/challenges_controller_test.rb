@@ -39,7 +39,6 @@ class Auth::Com::Sign::In::ChallengesControllerTest < ActionDispatch::Integratio
     assert_response :see_other
     assert_redirected_to auth_com_sign_in_path(ri: "jp")
   end
-
 end
 
 # DAMP local helper copy for former shared test support.

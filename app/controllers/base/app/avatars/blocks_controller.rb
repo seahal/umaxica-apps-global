@@ -1,0 +1,27 @@
+# typed: false
+# frozen_string_literal: true
+
+module Base
+  module App
+    module Avatars
+      class BlocksController < SocialGraphController
+        def create
+          record = AvatarBlock.new(blocker_avatar: actor_avatar, blocked_avatar: target_avatar)
+          authorize_edge!(record, :create)
+          render_edge(AvatarSocialGraph::Block.call(actor_avatar: actor_avatar, target_avatar: target_avatar))
+        end
+
+        def destroy
+          record = AvatarBlock.find_by!(blocker_avatar: actor_avatar, blocked_avatar: target_avatar)
+          authorize_edge!(record, :destroy)
+          AvatarSocialGraph::Unblock.call(actor_avatar: actor_avatar, target_avatar: target_avatar)
+          head :no_content
+        end
+
+        private
+
+        def policy_class = AvatarBlockPolicy
+      end
+    end
+  end
+end

@@ -20,8 +20,8 @@ class RetentionPurgeLegalHoldTest < ActiveJob::TestCase
 
     assert_nil client.reload.terminated_at
     assert_equal ClientPrivacyRequest.status_id_for("BLOCKED_BY_LEGAL_HOLD"), privacy_request.reload.status_id
-    assert ClientOccurrence.where(event_type: "withdrawal.purge_skipped_by_hold").exists?
-    assert ClientOccurrence.where(event_type: "privacy_erasure.blocked_by_legal_hold").exists?
+    assert_predicate ClientOccurrence.where(event_type: "withdrawal.purge_skipped_by_hold"), :exists?
+    assert_predicate ClientOccurrence.where(event_type: "privacy_erasure.blocked_by_legal_hold"), :exists?
   end
 
   test "active hold blocks visitor purge and records occurrence" do
@@ -39,8 +39,8 @@ class RetentionPurgeLegalHoldTest < ActiveJob::TestCase
 
     assert_nil visitor.reload.terminated_at
     assert_equal VisitorPrivacyRequest.status_id_for("BLOCKED_BY_LEGAL_HOLD"), privacy_request.reload.status_id
-    assert VisitorOccurrence.where(event_type: "withdrawal.purge_skipped_by_hold").exists?
-    assert VisitorOccurrence.where(event_type: "privacy_erasure.blocked_by_legal_hold").exists?
+    assert_predicate VisitorOccurrence.where(event_type: "withdrawal.purge_skipped_by_hold"), :exists?
+    assert_predicate VisitorOccurrence.where(event_type: "privacy_erasure.blocked_by_legal_hold"), :exists?
   end
 
   private

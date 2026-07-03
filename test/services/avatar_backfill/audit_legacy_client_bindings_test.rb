@@ -10,14 +10,18 @@ module AvatarBackfill
         klass.ensure_defaults! if klass.respond_to?(:ensure_defaults!)
       end
       AvatarCapability.find_or_create_by!(id: AvatarCapability::NORMAL)
-      ensure_lifecycle_state("active", "Active", 10, can_create_content: true, visible_by_default: true,
-                                                  editable_by_owner: true, restorable_by_owner: false,
-                                                  followable: true, group_attachable: true, discoverable: true,
-                                                  moderation_visible: true, terminal: false)
-      ensure_lifecycle_state("deleted", "Deleted", 50, can_create_content: false, visible_by_default: false,
-                                                    editable_by_owner: false, restorable_by_owner: false,
-                                                    followable: false, group_attachable: false, discoverable: false,
-                                                    moderation_visible: true, terminal: true)
+      ensure_lifecycle_state(
+        "active", "Active", 10, can_create_content: true, visible_by_default: true,
+                                editable_by_owner: true, restorable_by_owner: false,
+                                followable: true, group_attachable: true, discoverable: true,
+                                moderation_visible: true, terminal: false,
+      )
+      ensure_lifecycle_state(
+        "deleted", "Deleted", 50, can_create_content: false, visible_by_default: false,
+                                  editable_by_owner: false, restorable_by_owner: false,
+                                  followable: false, group_attachable: false, discoverable: false,
+                                  moderation_visible: true, terminal: true,
+      )
     end
 
     test "classifies safe legacy client binding candidates without mutating rows" do

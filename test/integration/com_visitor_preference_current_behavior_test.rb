@@ -88,7 +88,7 @@ class ComVisitorPreferenceControllerAdoptionTest < ActionDispatch::IntegrationTe
         headers: as_visitor_headers(visitor, host: host)
 
     assert_response :redirect
-    assert ComPreference.exists?, "expected the request to bootstrap a ComPreference"
+    assert_predicate ComPreference, :exists?, "expected the request to bootstrap a ComPreference"
     assert_not_nil visitor.reload.visitor_preference,
                    "expected PreferenceAdoption to synchronize the VisitorPreference mirror"
   end

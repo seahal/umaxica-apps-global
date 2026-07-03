@@ -4,8 +4,8 @@
 class AvatarGroup < AvatarRecord
   include PublicId
 
-  STATES = %w[active archived].freeze
-  ACCOUNT_SURFACES = %w[app org com].freeze
+  STATES = %w(active archived).freeze
+  ACCOUNT_SURFACES = %w(app org com).freeze
 
   has_many :group_avatar_memberships, dependent: :restrict_with_error, inverse_of: :avatar_group
   has_many :avatars, through: :group_avatar_memberships

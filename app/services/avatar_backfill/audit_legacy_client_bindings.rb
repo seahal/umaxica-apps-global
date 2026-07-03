@@ -5,10 +5,12 @@ require "json"
 
 module AvatarBackfill
   class AuditLegacyClientBindings < ApplicationService
-    Result = Data.define(:summary, :details) do
-      def to_h = { summary: summary, details: details }
-      def to_json(*) = JSON.pretty_generate(to_h)
-    end
+    Result =
+      Data.define(:summary, :details) do
+        def to_h = { summary: summary, details: details }
+
+        def to_json(*) = JSON.pretty_generate(to_h)
+      end
 
     BUCKETS = %w(
       safe_to_backfill
@@ -60,22 +62,22 @@ module AvatarBackfill
         reason: reason,
         action: action,
       )
-    rescue ActiveRecord::StatementInvalid, ActiveRecord::ConnectionNotEstablished => error
+    rescue ActiveRecord::StatementInvalid, ActiveRecord::ConnectionNotEstablished => e
       detail_for(
         avatar: avatar,
         resolved: nil,
         active_bindings: [],
         bucket: "cross_db_reference_error",
-        reason: error.message,
+        reason: e.message,
         action: "review cross-database reference state before retrying",
       )
-    rescue StandardError => error
+    rescue StandardError => e
       detail_for(
         avatar: avatar,
         resolved: nil,
         active_bindings: [],
         bucket: "unknown",
-        reason: "#{error.class}: #{error.message}",
+        reason: "#{e.class}: #{e.message}",
         action: "manual review required",
       )
     end
@@ -83,33 +85,54 @@ module AvatarBackfill
     def classify(avatar, resolved, active_bindings)
       return bucket("deleted_avatar_skipped", "avatar lifecycle is deleted", "skip automatic backfill") if
         avatar.lifecycle_state&.key == "deleted" || !avatar.accessible?
-      return bucket("avatar_has_multiple_active_bindings", "avatar has multiple active bindings", "manual review required") if
+      return bucket(
+        "avatar_has_multiple_active_bindings", "avatar has multiple active bindings",
+        "manual review required",
+      ) if
         active_bindings.size > 1
       return bucket("missing_client", "legacy client_id does not resolve to a Client", "manual review required") if
         resolved == :missing_client
       return bucket("unresolved_subject", "legacy client_id does not resolve to a Persona", "manual review required") if
         resolved.blank?
-      return bucket("ambiguous_subject", "legacy client_id resolves to multiple candidate Personas", "manual review required") if
+      return bucket(
+        "ambiguous_subject", "legacy client_id resolves to multiple candidate Personas",
+        "manual review required",
+      ) if
         resolved.is_a?(Array)
 
       existing_binding = active_bindings.first
       if existing_binding
         if binding_matches_subject?(existing_binding, resolved)
-          return bucket("already_bound_consistent", "avatar already has the expected active binding", "no change needed")
+          return bucket(
+            "already_bound_consistent", "avatar already has the expected active binding",
+            "no change needed",
+          )
         end
 
-        return bucket("already_bound_inconsistent", "avatar active binding points at another subject", "manual review required")
+        return bucket(
+          "already_bound_inconsistent", "avatar active binding points at another subject",
+          "manual review required",
+        )
       end
 
       legacy_avatar_count = Avatar.where(client_id: avatar.client_id).where.not(id: avatar.id).count
-      return bucket("multiple_legacy_avatars_for_subject", "subject has multiple legacy avatars.client_id rows", "manual review required") if
+      return bucket(
+        "multiple_legacy_avatars_for_subject", "subject has multiple legacy avatars.client_id rows",
+        "manual review required",
+      ) if
         legacy_avatar_count.positive?
 
       subject_binding = active_binding_for_subject(resolved)
-      return bucket("subject_already_has_active_binding", "resolved subject already has another active Avatar binding", "manual review required") if
+      return bucket(
+        "subject_already_has_active_binding", "resolved subject already has another active Avatar binding",
+        "manual review required",
+      ) if
         subject_binding.present?
 
-      bucket("safe_to_backfill", "legacy client_id resolves to one unbound active Persona", "create AvatarPersonaBinding")
+      bucket(
+        "safe_to_backfill", "legacy client_id resolves to one unbound active Persona",
+        "create AvatarPersonaBinding",
+      )
     end
 
     def bucket(name, reason, action)
@@ -189,7 +212,12 @@ module AvatarBackfill
         avatars_with_legacy_client_id: details.size,
         avatars_already_actively_bound: details.count { |detail| detail[:existing_binding_type].present? },
       }
-      BUCKETS.each { |bucket| summary[:"#{bucket}_count"] = details.count { |detail| detail[:conflict_bucket] == bucket } }
+      BUCKETS.each { |bucket|
+        summary[:"#{bucket}_count"] =
+          details.count { |detail|
+            detail[:conflict_bucket] == bucket
+          }
+      }
       summary
     end
 

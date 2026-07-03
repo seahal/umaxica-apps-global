@@ -134,15 +134,14 @@ These are current implementation risks to fix in later slices, not approved patt
 - `personas.client_identity_id` directly models Identity-to-Account ownership-like linkage.
 - `agents.operator_identity_id` has the same direct identity column shape.
 - `individuals.visitor_identity_id` has the same direct identity column shape.
-- `avatars.client_id` remains as migration compatibility only. It is not ownership,
-  authorization, or canonical Avatar-subject authority.
-- `Base::App::Organizations::MembershipsController`,
-  `Base::Com::Organizations::MembershipsController`, and
-  `Base::Org::Organizations::MembershipsController` are stubs.
-- `avatar_agent_bindings` and `avatar_individual_bindings` now match the
-  `avatar_persona_bindings` active-history contract. They carry `public_id`, `assigned_at`, and
-  `revoked_at`; enforce revoke ordering; and use active partial unique indexes for active pair,
-  active Avatar, and active subject uniqueness.
+- `avatars.client_id` remains as migration compatibility only. It is not ownership, authorization,
+  or canonical Avatar-subject authority.
+- `CollectiveMembership::*` service commands now define the membership lifecycle write boundary. The
+  three membership controllers still need final request wiring and are manual-review required.
+- `avatar_agent_bindings` and `avatar_individual_bindings` now match the `avatar_persona_bindings`
+  active-history contract. They carry `public_id`, `assigned_at`, and `revoked_at`; enforce revoke
+  ordering; and use active partial unique indexes for active pair, active Avatar, and active subject
+  uniqueness.
 - `avatars.avatar_status_id` is legacy compatibility state and must be retired after
   `avatars.lifecycle_state_id` is fully adopted.
 - Historical avatar migrations include `posts` in the avatar DB.
@@ -152,14 +151,27 @@ These are current implementation risks to fix in later slices, not approved patt
   Avatar paths remain transitional compatibility paths.
 - `avatar_agent_bindings.agent_id` and `avatar_individual_bindings.individual_id` remain existing
   cross-DB integer references. This slice did not migrate them to public-id target references.
-- `persona_assignments` has active pair uniqueness but still needs an app_zenith constraint review
-  for `revoked_at >= assigned_at`.
-- `persona_memberships` has active primary uniqueness but still needs a dedicated app_zenith review
-  for temporal and revoke-reason constraints.
+- `persona_assignments`, `agent_assignments`, and `individual_assignments` are the canonical
+  Identity-to-Account assignment records. The direct identity columns remain compatibility-only and
+  are removal candidates after a dedicated read-switch and cleanup pass.
+- `persona_memberships`, `agent_memberships`, and `individual_memberships` have active primary
+  uniqueness and are operated through `CollectiveMembership::*` services for new lifecycle writes.
 - Existing `avatars.client_id` rows now have a dry-run audit and explicit backfill path. The audit
   and backfill reports are generated under `tmp/avatar_backfill/` and are not repository artifacts.
   Only unambiguous app-surface `Client -> ClientIdentity -> Persona` candidates are eligible for
   automatic `AvatarPersonaBinding` creation. Conflicts remain manual-review items.
+- Slice 5C ran against the current database on 2026-07-03. The audit report was written to
+  `tmp/avatar_backfill/legacy_client_binding_audit_20260703.json`; it found 0 Avatars, 0 legacy
+  `avatars.client_id` rows, 0 `safe_to_backfill` candidates, and 0 conflicts. APPLY was not run
+  because there were no safe candidates. A dry-run backfill report was written to
+  `tmp/avatar_backfill/legacy_client_binding_backfill_dry_run_20260703.json` and scanned 0
+  candidates.
+- Group v1 exists as an Avatar container in the Avatar DB via `avatar_groups` and
+  `group_avatar_memberships`. Group has no handle, no content API, and is not a posting, legal,
+  organization, or authentication actor.
+- Avatar follow, block, and mute have Base app HTTP routes that delegate to `AvatarSocialGraph`
+  service commands and policy checks. No feed, timeline, ranking, content, or actor snapshot read
+  model was added.
 
 ## Slice 2 DB Constraint Inventory
 
@@ -191,11 +203,11 @@ Already present and verified in this slice:
   Avatar, active Persona, and active pair relations.
 - `avatars.lifecycle_state_id` is non-null and foreign-keyed to `avatar_lifecycle_states`.
 
-Not added in this slice:
+Not added in Slice 2:
 
-- `group_avatar_memberships` constraints were not added because the table does not exist.
-- `avatar_agent_bindings` and `avatar_individual_bindings` temporal constraints were deferred to
-  the binding symmetry slice because the tables currently have no `assigned_at` or `revoked_at`
+- `group_avatar_memberships` constraints were added later with Group v1.
+- `avatar_agent_bindings` and `avatar_individual_bindings` temporal constraints were deferred to the
+  binding symmetry slice because the tables currently have no `assigned_at` or `revoked_at`
   lifecycle columns.
 - Revoke-reason requirements were not added because the Avatar tables in scope do not yet define a
   revoke reason column.
@@ -204,8 +216,8 @@ Not added in this slice:
 
 ## Slice 3 Avatar Binding Symmetry Inventory
 
-Slice 3 extended the `avatar_persona_bindings` active-history contract to
-`avatar_agent_bindings` and `avatar_individual_bindings`.
+Slice 3 extended the `avatar_persona_bindings` active-history contract to `avatar_agent_bindings`
+and `avatar_individual_bindings`.
 
 Added in Slice 3:
 
@@ -224,8 +236,8 @@ Added in Slice 3:
 - `idx_avatar_individual_bindings_active_avatar`
 - `idx_avatar_individual_bindings_active_individual`
 
-Slice 4 introduced `AvatarProvisioning::Create` as the canonical Avatar creation entry point for
-new Avatar graphs. Slice 4.5 extended that rule beyond the controller path:
+Slice 4 introduced `AvatarProvisioning::Create` as the canonical Avatar creation entry point for new
+Avatar graphs. Slice 4.5 extended that rule beyond the controller path:
 `Base::App::AvatarsController#create` and `BaseSelectorBootstrapAuthority` are service callers and
 must not directly create, update, or destroy Avatar authority or lifecycle rows. The service creates
 Avatar, Handle, the surface binding, and initial owner `AvatarAssignment` in one transaction.
@@ -243,15 +255,16 @@ Handle, binding, assignment, or ownership rows.
 The next slice must start with a dry-run conflict audit for existing Avatar binding backfill. Do not
 begin by mutating historical rows.
 
-## Remaining Out of Scope After Slice 5
+## Remaining Out of Scope After Foundation v1
 
 - Destructive removal of `avatars.client_id`
 - Automatic resolution of conflicted legacy Avatar binding candidates
-- Group v1 implementation
-- Identity-to-Account direct column removal
+- Physical removal of Identity-to-Account direct identity columns
 - `avatars.client_id` removal
 - Content DB creation
 - Post, comment, media, reaction, or feed implementation
+- Actor snapshot read model implementation
+- Public SNS product UI
 
 ## Related Decisions
 

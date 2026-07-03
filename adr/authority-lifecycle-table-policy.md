@@ -40,12 +40,11 @@ authority/lifecycle correctness.
 
 The first Avatar DB constraint slice added or verified these protections:
 
-- `avatar_assignments.role` is constrained to known v1 and legacy roles:
-  `owner`, `affiliation`, `administrator`, `editor`, `reviewer`, and `viewer`.
+- `avatar_assignments.role` is constrained to known v1 and legacy roles: `owner`, `affiliation`,
+  `administrator`, `editor`, `reviewer`, and `viewer`.
 - `avatar_assignments` already has primary-role partial unique indexes for one `owner` and one
   `affiliation` per Avatar, plus a unique `(avatar_id, user_id, role)` assignment key.
-- `avatar_memberships.valid_from <= valid_to` is enforced by
-  `chk_avatar_memberships_valid_period`.
+- `avatar_memberships.valid_from <= valid_to` is enforced by `chk_avatar_memberships_valid_period`.
 - `avatar_memberships` already has active relation uniqueness on `(avatar_id, actor_id)` where
   `valid_to = 'infinity'`.
 - `avatar_persona_bindings.revoked_at IS NULL OR revoked_at >= assigned_at` is enforced by
@@ -53,8 +52,8 @@ The first Avatar DB constraint slice added or verified these protections:
 - `avatar_persona_bindings` already has active partial unique indexes for active pair, active
   Avatar, and active Persona relations, plus unique `public_id`.
 - `avatar_lifecycle_events.from_state_key` and `to_state_key` reference
-  `avatar_lifecycle_states.key`, and `chk_avatar_lifecycle_events_state_changes` rejects
-  no-op events where both keys are equal.
+  `avatar_lifecycle_states.key`, and `chk_avatar_lifecycle_events_state_changes` rejects no-op
+  events where both keys are equal.
 
 The Avatar binding symmetry slice extended the same active-history contract to
 `avatar_agent_bindings` and `avatar_individual_bindings`:
@@ -83,14 +82,14 @@ Known unresolved gaps after the Avatar provisioning service slice:
   table, not `avatars.client_id`.
 - `avatars.avatar_status_id` remains legacy lifecycle compatibility state.
 - Historical avatar DB posts remain a legacy UGC violation.
-- `persona_assignments` already has unique `public_id`, non-null assignment columns, and active
-  pair uniqueness. It still lacks a DB check for `revoked_at >= assigned_at`; this is an
-  app_zenith follow-up candidate, not part of the Avatar DB slice.
+- `persona_assignments` already has unique `public_id`, non-null assignment columns, and active pair
+  uniqueness. It still lacks a DB check for `revoked_at >= assigned_at`; this is an app_zenith
+  follow-up candidate, not part of the Avatar DB slice.
 - `persona_memberships` already has reference-table role/state shape and active primary uniqueness,
   but its temporal and revoke-reason constraints need a dedicated app_zenith review before changes.
 
-`AvatarProvisioning::Create` is the canonical Avatar creation entry point for new Avatar graphs.
-It creates Avatar, Handle, the surface binding, and initial owner `AvatarAssignment` in one
+`AvatarProvisioning::Create` is the canonical Avatar creation entry point for new Avatar graphs. It
+creates Avatar, Handle, the surface binding, and initial owner `AvatarAssignment` in one
 transaction. `Base::App::AvatarsController#create` and `BaseSelectorBootstrapAuthority` must remain
 service callers and must not write Avatar authority or lifecycle tables directly.
 

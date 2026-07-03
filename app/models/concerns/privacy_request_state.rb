@@ -21,7 +21,14 @@ module PrivacyRequestState
     validates :received_at, :response_due_at, presence: true
 
     scope :open_for_recovery_block,
-          -> { where(status_id: status_ids_for("VERIFIED", "PROCESSING", "COMPLETED", "BLOCKED_BY_LEGAL_HOLD", "PARTIALLY_DENIED")) }
+          -> {
+            where(
+              status_id: status_ids_for(
+                "VERIFIED", "PROCESSING", "COMPLETED", "BLOCKED_BY_LEGAL_HOLD",
+                "PARTIALLY_DENIED",
+              ),
+            )
+          }
     scope :open_for_hold_block,
           -> { where(status_id: status_ids_for("RECEIVED", "VERIFICATION_REQUIRED", "VERIFIED", "PROCESSING")) }
     scope :received, -> { where(status_id: status_id_for("RECEIVED")) }

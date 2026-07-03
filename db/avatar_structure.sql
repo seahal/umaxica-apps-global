@@ -207,6 +207,46 @@ ALTER SEQUENCE public.avatar_follows_id_seq OWNED BY public.avatar_follows.id;
 
 
 --
+-- Name: avatar_groups; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.avatar_groups (
+    id bigint NOT NULL,
+    public_id character varying NOT NULL,
+    account_surface character varying NOT NULL,
+    account_public_id character varying NOT NULL,
+    name character varying NOT NULL,
+    description text,
+    state character varying DEFAULT 'active'::character varying NOT NULL,
+    archived_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_avatar_groups_account_surface CHECK (((account_surface)::text = ANY ((ARRAY['app'::character varying, 'org'::character varying, 'com'::character varying])::text[]))),
+    CONSTRAINT chk_avatar_groups_archive_state CHECK ((((state)::text = 'archived'::text) = (archived_at IS NOT NULL))),
+    CONSTRAINT chk_avatar_groups_state CHECK (((state)::text = ANY ((ARRAY['active'::character varying, 'archived'::character varying])::text[])))
+);
+
+
+--
+-- Name: avatar_groups_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.avatar_groups_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: avatar_groups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.avatar_groups_id_seq OWNED BY public.avatar_groups.id;
+
+
+--
 -- Name: avatar_individual_bindings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -947,6 +987,47 @@ ALTER SEQUENCE public.client_avatar_visibilities_id_seq OWNED BY public.client_a
 
 
 --
+-- Name: group_avatar_memberships; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_avatar_memberships (
+    id bigint NOT NULL,
+    public_id character varying NOT NULL,
+    avatar_group_id bigint NOT NULL,
+    avatar_id bigint NOT NULL,
+    role character varying DEFAULT 'member'::character varying NOT NULL,
+    "position" integer DEFAULT 0 NOT NULL,
+    state character varying DEFAULT 'active'::character varying NOT NULL,
+    assigned_at timestamp(6) with time zone NOT NULL,
+    removed_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone NOT NULL,
+    updated_at timestamp(6) with time zone NOT NULL,
+    CONSTRAINT chk_group_avatar_memberships_removed_after_assigned CHECK (((removed_at IS NULL) OR (removed_at >= assigned_at))),
+    CONSTRAINT chk_group_avatar_memberships_removed_state CHECK ((((state)::text = 'removed'::text) = (removed_at IS NOT NULL))),
+    CONSTRAINT chk_group_avatar_memberships_state CHECK (((state)::text = ANY ((ARRAY['active'::character varying, 'removed'::character varying])::text[])))
+);
+
+
+--
+-- Name: group_avatar_memberships_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_avatar_memberships_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_avatar_memberships_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_avatar_memberships_id_seq OWNED BY public.group_avatar_memberships.id;
+
+
+--
 -- Name: handle_assignment_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1516,6 +1597,13 @@ ALTER TABLE ONLY public.avatar_follows ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: avatar_groups id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.avatar_groups ALTER COLUMN id SET DEFAULT nextval('public.avatar_groups_id_seq'::regclass);
+
+
+--
 -- Name: avatar_individual_bindings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1667,6 +1755,13 @@ ALTER TABLE ONLY public.client_avatar_suspensions ALTER COLUMN id SET DEFAULT ne
 --
 
 ALTER TABLE ONLY public.client_avatar_visibilities ALTER COLUMN id SET DEFAULT nextval('public.client_avatar_visibilities_id_seq'::regclass);
+
+
+--
+-- Name: group_avatar_memberships id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_avatar_memberships ALTER COLUMN id SET DEFAULT nextval('public.group_avatar_memberships_id_seq'::regclass);
 
 
 --
@@ -1827,6 +1922,14 @@ ALTER TABLE ONLY public.avatar_capabilities
 
 ALTER TABLE ONLY public.avatar_follows
     ADD CONSTRAINT avatar_follows_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: avatar_groups avatar_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.avatar_groups
+    ADD CONSTRAINT avatar_groups_pkey PRIMARY KEY (id);
 
 
 --
@@ -2003,6 +2106,14 @@ ALTER TABLE ONLY public.client_avatar_suspensions
 
 ALTER TABLE ONLY public.client_avatar_visibilities
     ADD CONSTRAINT client_avatar_visibilities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_avatar_memberships group_avatar_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_avatar_memberships
+    ADD CONSTRAINT group_avatar_memberships_pkey PRIMARY KEY (id);
 
 
 --
@@ -2205,6 +2316,13 @@ CREATE UNIQUE INDEX idx_avatar_persona_bindings_active_persona ON public.avatar_
 
 
 --
+-- Name: idx_group_avatar_memberships_active_pair; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_group_avatar_memberships_active_pair ON public.group_avatar_memberships USING btree (avatar_group_id, avatar_id) WHERE (removed_at IS NULL);
+
+
+--
 -- Name: index_avatar_agent_bindings_on_agent_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2293,6 +2411,20 @@ CREATE UNIQUE INDEX index_avatar_follows_on_follower_and_followed_avatar_id ON p
 --
 
 CREATE INDEX index_avatar_follows_on_follower_avatar_id ON public.avatar_follows USING btree (follower_avatar_id);
+
+
+--
+-- Name: index_avatar_groups_on_account_surface_and_account_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_avatar_groups_on_account_surface_and_account_public_id ON public.avatar_groups USING btree (account_surface, account_public_id);
+
+
+--
+-- Name: index_avatar_groups_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_avatar_groups_on_public_id ON public.avatar_groups USING btree (public_id);
 
 
 --
@@ -2681,6 +2813,27 @@ CREATE INDEX index_client_avatar_visibilities_on_client_id ON public.client_avat
 
 
 --
+-- Name: index_group_avatar_memberships_on_avatar_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_group_avatar_memberships_on_avatar_group_id ON public.group_avatar_memberships USING btree (avatar_group_id);
+
+
+--
+-- Name: index_group_avatar_memberships_on_avatar_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_group_avatar_memberships_on_avatar_id ON public.group_avatar_memberships USING btree (avatar_id);
+
+
+--
+-- Name: index_group_avatar_memberships_on_public_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_group_avatar_memberships_on_public_id ON public.group_avatar_memberships USING btree (public_id);
+
+
+--
 -- Name: index_handle_assignments_on_assigned_by_actor_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2959,6 +3112,14 @@ ALTER TABLE ONLY public.posts
 
 
 --
+-- Name: group_avatar_memberships fk_rails_1098c365ca; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_avatar_memberships
+    ADD CONSTRAINT fk_rails_1098c365ca FOREIGN KEY (avatar_id) REFERENCES public.avatars(id) ON DELETE RESTRICT;
+
+
+--
 -- Name: avatars fk_rails_11d7aa8bc0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3044,6 +3205,14 @@ ALTER TABLE ONLY public.avatar_role_permissions
 
 ALTER TABLE ONLY public.post_versions
     ADD CONSTRAINT fk_rails_5f7c4b6bbb FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_avatar_memberships fk_rails_60c73b2b09; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_avatar_memberships
+    ADD CONSTRAINT fk_rails_60c73b2b09 FOREIGN KEY (avatar_group_id) REFERENCES public.avatar_groups(id) ON DELETE RESTRICT;
 
 
 --
@@ -3285,6 +3454,7 @@ ALTER TABLE ONLY public.client_avatar_deletions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260703010000'),
 ('20260703000005'),
 ('20260703000004'),
 ('20260703000003'),

@@ -23,7 +23,8 @@ module Base
         end
 
         def edit
-          render_withdrawal_status(current_withdrawal_subject); render "base/app/identity/withdrawals/edit" unless performed?
+          render_withdrawal_status(current_withdrawal_subject)
+          render "base/app/identity/withdrawals/edit" unless performed?
         end
 
         def create = recover_withdrawal!(current_withdrawal_subject)

@@ -1,0 +1,27 @@
+# typed: false
+# frozen_string_literal: true
+
+module Base
+  module App
+    module Avatars
+      class MutesController < SocialGraphController
+        def create
+          record = AvatarMute.new(muter_avatar: actor_avatar, muted_avatar: target_avatar)
+          authorize_edge!(record, :create)
+          render_edge(AvatarSocialGraph::Mute.call(actor_avatar: actor_avatar, target_avatar: target_avatar))
+        end
+
+        def destroy
+          record = AvatarMute.find_by!(muter_avatar: actor_avatar, muted_avatar: target_avatar)
+          authorize_edge!(record, :destroy)
+          AvatarSocialGraph::Unmute.call(actor_avatar: actor_avatar, target_avatar: target_avatar)
+          head :no_content
+        end
+
+        private
+
+        def policy_class = AvatarMutePolicy
+      end
+    end
+  end
+end

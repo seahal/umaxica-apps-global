@@ -181,7 +181,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
             "discarded_at > ?",
             Time.current,
           ).order(created_at: :desc).first
-      end
+        end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
       base["Authorization"] = "Bearer #{
@@ -277,7 +277,7 @@ class Auth::Org::SignInsControllerTest
             "discarded_at > ?",
             Time.current,
           ).order(created_at: :desc).first
-      end
+        end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
       base["Authorization"] = "Bearer #{

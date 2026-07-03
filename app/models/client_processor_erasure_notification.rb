@@ -15,5 +15,5 @@ class ClientProcessorErasureNotification < AppPrincipalRecord
   STATUS_IDS = STATUSES.values.freeze
 
   belongs_to :client_privacy_request, inverse_of: :client_processor_erasure_notifications
-  belongs_to :status, class_name: "ClientProcessorErasureNotificationStatus", foreign_key: :status_id
+  belongs_to :status, class_name: "ClientProcessorErasureNotificationStatus"
 end

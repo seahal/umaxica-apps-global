@@ -43,15 +43,15 @@ module Base
       private
 
       def set_group
-        @group = AvatarGroup.find_by!(public_id: params[:group_id])
+        @group = AvatarGroup.find_by!(public_id: params.expect(:group_id))
       end
 
       def set_membership
-        @membership = @group.group_avatar_memberships.find_by!(public_id: params[:id])
+        @membership = @group.group_avatar_memberships.find_by!(public_id: params.expect(:id))
       end
 
       def membership_params
-        params.require(:membership).permit(:avatar_public_id, :role, :position)
+        params.expect(membership: %i(avatar_public_id role position))
       end
 
       def serialize_membership(membership)
