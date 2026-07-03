@@ -65,6 +65,20 @@ Superseded IdP/RP-centered ADRs:
 
 Current database naming decisions:
 
+- `adr/umaxica-v1-core-resource-architecture.md` — accepted v1 core resource architecture: Identity
+  / Account / Organization / Unit are core-side resources, Identity is not Account-owned, Avatar /
+  Group stay in Avatar DB, and relationships use authority/lifecycle tables rather than direct
+  ownership foreign keys.
+- `adr/avatar-db-content-db-boundary.md` — accepted Avatar DB vs content DB boundary: Avatar DB owns
+  current actor/settings/relation/social graph state, while UGC and posting-time actor snapshots
+  belong to content/media/interaction/read-model domains.
+- `adr/avatar-lifecycle-state-authority.md` — accepted initial Avatar lifecycle authority states and
+  the rule that Avatar DB provides current state while content/moderation owns display and ranking
+  decisions.
+- `adr/cross-db-reference-policy.md` — accepted policy forbidding new cross-DB bigint/integer ID
+  associations and native cross-DB FK assumptions.
+- `adr/authority-lifecycle-table-policy.md` — accepted policy requiring relationship semantics to
+  live in lifecycle-rich authority tables written through use-case services, not controllers.
 - `adr/actor-db-naming-policy.md`
 - `adr/surface-database-connection-naming.md`
 - `adr/principal-zenith-physical-consolidation.md` — accepted decision to apply each surface's

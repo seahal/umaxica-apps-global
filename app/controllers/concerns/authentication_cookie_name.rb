@@ -28,5 +28,4 @@ module AuthenticationCookieName
 
     "#{AuthIoKeys::HOST_COOKIE_PREFIX}#{basename}"
   end
-  private_class_method :with_host_prefix
 end

@@ -70,6 +70,11 @@ HTML authority. `auth` owns credential ceremony and sign-related relying-party U
 Rails browser API/BFF boundary. The cookie and theme JSON endpoints remain in `/web/v0` on each
 surface.
 
+Com-tier `ApplicationController` classes that include visitor authentication and can recreate a
+`ComPreference` must also include `PreferenceAdoption`, matching the app/org tiers. Without that
+include parity, preference refresh-cookie bootstrap can recreate the surface preference without
+synchronizing the `VisitorPreference` mirror.
+
 ## State Transitions
 
 | State                                       | Expected behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -98,7 +103,9 @@ explicit owner and retention policy.
 
 `show_banner?` (`PreferenceWebCookieEndpoint`) derives the flag from the current
 `cookie_consent_state`: it is `true` until a `consented` choice has been recorded, and `false` once
-it has. It must not be hardcoded to a single value on either surface.
+it has. It must not be hardcoded to a single value on either surface. The removed
+`PreferenceBase#show_cookie_banner?` helper is not part of the banner contract; the web cookie
+endpoint is the canonical banner decision path.
 
 ## Security Negative Cases
 

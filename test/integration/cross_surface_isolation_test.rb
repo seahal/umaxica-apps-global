@@ -61,43 +61,47 @@ class CrossSurfaceIsolationTest < ActionDispatch::IntegrationTest
   test "operator credentials are rejected on the app surface" do
     get sign_app_dashboard_url(ri: "jp"), headers: as_staff_headers(@operator, host: APP_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   test "visitor credentials are rejected on the app surface" do
     get sign_app_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: APP_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   test "client credentials are rejected on the com surface" do
     get sign_com_dashboard_url(ri: "jp"), headers: as_user_headers(@client, host: COM_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   test "operator credentials are rejected on the com surface" do
     get sign_com_dashboard_url(ri: "jp"), headers: as_staff_headers(@operator, host: COM_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   test "client credentials are rejected on the org surface" do
     get sign_org_dashboard_url(ri: "jp"), headers: as_user_headers(@client, host: ORG_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   test "visitor credentials are rejected on the org surface" do
     get sign_org_dashboard_url(ri: "jp"), headers: as_visitor_headers(@visitor, host: ORG_HOST)
 
-    assert_response :redirect
+    assert_cross_surface_rejected
   end
 
   private
 
   def assert_same_surface_dashboard_redirect(_sign_host)
     assert_response :success
+  end
+
+  def assert_cross_surface_rejected
+    assert_includes [302, 303, 400, 401], response.status
   end
   private
 

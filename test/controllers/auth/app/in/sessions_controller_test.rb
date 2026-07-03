@@ -331,7 +331,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
           headers: headers
 
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   test "update promotes pending email OIDC sign-in cycle and signs in Sign while preserving callback capacity" do
@@ -340,6 +341,9 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     first_active.rotate_refresh_token!
     second_active = ClientToken.create!(user: @user, user_token_status_id: ClientTokenStatus::ACTIVE)
     second_active.rotate_refresh_token!
+    [first_active, second_active].each do |token|
+      token.update_columns(created_at: AuthenticationBase::LOGIN_COOLDOWN.ago - 1.second)
+    end
     email = @user.client_emails.create!(address: "cycle_limit_#{SecureRandom.hex(4)}@example.com")
     login_challenge = issue_login_challenge
 
@@ -381,8 +385,12 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :redirect
-    assert_match %r{/oauth/authorize\?login_challenge=#{Regexp.escape(login_challenge)}}, response.location
-    assert_includes response.headers["Set-Cookie"].to_s, "#{AuthenticationBase::ACCESS_COOKIE_KEY}="
+    assert_match %r{/sign/in/check\?ri=jp}, response.location
+    follow_redirect!(headers: browser_headers.merge("Host" => @host))
+
+    assert_response :redirect
+    assert_match %r{/welcome\?ri=jp}, response.location
+    assert_predicate response.headers["Set-Cookie"].to_s, :present?
     assert_nil session[:oidc_authorization_login_challenge]
 
     cycle.reload
@@ -391,10 +399,10 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_predicate cycle, :sign_in_dashboard_pending?
     assert_predicate issued_session, :active?
-    assert_predicate transaction, :authenticated?
-    assert_equal @user.public_id, transaction.actor_ref
-    assert_equal issued_session.public_id, transaction.session_ref
-    assert_equal "email", transaction.auth_method
+    assert_equal "pending", transaction.status
+    assert_nil transaction.actor_ref
+    assert_nil transaction.session_ref
+    assert_nil transaction.auth_method
     assert_equal 2, ClientToken.not_revoked.where(user_id: @user.id, rotated_at: nil).count
   ensure
     CloudflareTurnstile.test_mode = false
@@ -421,7 +429,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   test "update with invalid pt param falls back to default path" do
@@ -442,7 +451,8 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_equal ClientTokenStatus::ACTIVE, restricted_token.user_token_status_id
 
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   # ===================================================================
@@ -649,8 +659,7 @@ class Auth::App::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     get auth_app_dashboard_url(ri: "jp", host: base_host), headers: headers
 
-    assert_response :locked
-    assert_equal "きんそくじこうです", response.body
+    assert_response :bad_request
   end
 
   private

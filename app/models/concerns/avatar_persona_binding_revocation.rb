@@ -17,7 +17,7 @@ module AvatarPersonaBindingRevocation
   def revoke!(at: Time.current, force: false)
     return self if revoked?
 
-    raise RevocationDenied, "active avatar persona binding revocation requires force: true" unless force
+    raise RevocationDenied, "active avatar binding revocation requires force: true" unless force
 
     update!(revoked_at: at)
     self

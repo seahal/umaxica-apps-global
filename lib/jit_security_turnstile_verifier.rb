@@ -161,7 +161,7 @@ class JitSecurityTurnstileVerifier
         error_codes: response["error-codes"],
         hostname: response["hostname"],
         action: response["action"],
-        challenge_ts: response["challenge_ts"],
+        challenge_timestamp: response["challenge_ts"],
         cdata_present: response["cdata"].present?,
         secret_key_present: @secret_key.present?,
         token_present: @token.present?,

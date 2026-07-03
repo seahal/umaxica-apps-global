@@ -9,6 +9,7 @@
 #  id                           :bigint           not null, primary key
 #  discarded_at                 :datetime         default(Infinity), not null
 #  image_data                   :jsonb            not null
+#  lifecycle_state_id           :bigint           not null
 #  lock_version                 :integer          default(0), not null
 #  moniker                      :string           not null
 #  purged_at                    :datetime         default(Infinity), not null
@@ -27,6 +28,7 @@
 #  index_avatars_on_active_handle_id              (active_handle_id)
 #  index_avatars_on_capability_id                 (capability_id)
 #  index_avatars_on_client_id                     (client_id)
+#  index_avatars_on_lifecycle_state_id            (lifecycle_state_id)
 #  index_avatars_on_owner_organization_id         (owner_organization_id)
 #  index_avatars_on_public_id                     (public_id) UNIQUE
 #  index_avatars_on_purged_at                     (purged_at)
@@ -36,6 +38,7 @@
 #
 #  fk_rails_...  (active_handle_id => handles.id)
 #  fk_rails_...  (capability_id => avatar_capabilities.id)
+#  fk_rails_...  (lifecycle_state_id => avatar_lifecycle_states.id)
 #
 
 class Avatar < AvatarRecord
@@ -47,6 +50,7 @@ class Avatar < AvatarRecord
   belongs_to :member, foreign_key: :client_id, inverse_of: :avatars
   belongs_to :capability, class_name: "AvatarCapability"
   belongs_to :active_handle, class_name: "Handle"
+  belongs_to :lifecycle_state, class_name: "AvatarLifecycleState"
 
   has_many :handle_assignments, dependent: :restrict_with_error
   has_many :assignments_created,
@@ -72,6 +76,7 @@ class Avatar < AvatarRecord
   has_many :member_avatar_impersonations, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_suspensions, dependent: :destroy, inverse_of: :avatar
   has_many :member_avatar_deletions, dependent: :destroy, inverse_of: :avatar
+  has_many :avatar_lifecycle_events, dependent: :restrict_with_error, inverse_of: :avatar
 
   # Single-user roles (has_one through)
   has_one :owner_assignment,
@@ -203,6 +208,8 @@ class Avatar < AvatarRecord
   validates :capability_id, numericality: { only_integer: true, greater_than: 0 }
   validates :moniker, presence: true
 
+  before_validation :default_lifecycle_state, on: :create
+
   # Create avatar with owner assigned in a transaction
   def self.create_with_owner(attributes, user)
     transaction do
@@ -220,5 +227,11 @@ class Avatar < AvatarRecord
 
   def current_persona
     current_avatar_persona_binding&.persona
+  end
+
+  private
+
+  def default_lifecycle_state
+    self.lifecycle_state ||= AvatarLifecycleState.find_by!(key: "active")
   end
 end

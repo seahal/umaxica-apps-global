@@ -16,6 +16,8 @@ Return-target rule:
 
 Current identity authority implementation plan:
 
+- `plans/active/umaxica-v1-architecture-implementation-plan.md` sequences the Umaxica v1
+  architecture implementation after the architecture lock and guard rails.
 - `adr/acme-sign-core-base-port-boundary.md` is the current accepted boundary for Acme as the only
   IdP / Authorization Server, Sign as a special RP, Core as the Next.js web RP/BFF, Base as the
   Rails foundation/control-plane subdomain, and Palm as the native bearer-token API Resource Server

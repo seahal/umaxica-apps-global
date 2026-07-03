@@ -36,6 +36,9 @@ class AvatarPersonaBinding < AvatarRecord
   belongs_to :persona, inverse_of: :avatar_persona_binding
 
   validates :assigned_at, presence: true
+  validates :revoked_at,
+            comparison: { greater_than_or_equal_to: :assigned_at },
+            if: -> { assigned_at.present? && revoked_at.present? }
   validates :avatar_id, uniqueness: { conditions: -> { active } }, if: :active?
   validates :persona_id, uniqueness: { conditions: -> { active } }, if: :active?
 

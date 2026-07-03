@@ -49,7 +49,10 @@ class Auth::Com::Sign::OutsControllerTest < ActionDispatch::IntegrationTest
     assert_equal acme_host, location.host
     assert_equal "/oidc/logout", location.path
     assert_predicate query["id_token_hint"], :present?
-    assert_equal auth_com_sign_out_completion_url(ri: "jp", host: host),
+    assert_equal auth_com_sign_out_completion_url(
+      ri: "jp",
+      host: Rails.configuration.x.boot_config.fetch(:hosts).auth_corporate.host,
+    ),
                  query["post_logout_redirect_uri"]
     assert_predicate query["state"], :present?
   end

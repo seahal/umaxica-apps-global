@@ -91,6 +91,7 @@ class ForbiddenRailsPatternsTest < ActiveSupport::TestCase
     app/controllers/auth/app/verification/base_controller.rb
     app/controllers/auth/app/verification/emails_controller.rb
     app/controllers/auth/com/verification/base_controller.rb
+    app/controllers/auth/com/verification/emails_controller.rb
     app/controllers/auth/org/verification/base_controller.rb
     app/controllers/base/app/edge/v0/cookies_controller.rb
     app/controllers/base/app/edge/v0/dbsc_controller.rb

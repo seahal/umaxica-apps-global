@@ -44,6 +44,7 @@ module AuthenticationWithdrawalGate
   def withdrawal_controller_allowlisted?
     %w(
       base/app/identity/withdrawals
+      base/com/identity/withdrawals
     ).include?(controller_path) && %w(show new edit update create destroy).include?(action_name)
   end
 
@@ -58,9 +59,10 @@ module AuthenticationWithdrawalGate
   def withdrawal_gate_redirect_path
     ri = params[AuthIoKeys::Params::RI]
     return edit_base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
-    return base_com_identity_path(ri: ri) if controller_path.start_with?("auth/com/")
+    return edit_base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
     return base_org_identity_path(ri: ri) if controller_path.start_with?("auth/org/")
     return edit_base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
+    return edit_base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/com/")
 
     acme_withdrawal_gate_redirect_path
   rescue StandardError => e
@@ -76,9 +78,10 @@ module AuthenticationWithdrawalGate
   def withdrawal_gate_api_redirect_path
     ri = params[AuthIoKeys::Params::RI]
     return base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/app/")
-    return base_com_identity_path(ri: ri) if controller_path.start_with?("auth/com/")
+    return base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("auth/com/")
     return base_org_identity_path(ri: ri) if controller_path.start_with?("auth/org/")
     return base_app_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/app/")
+    return base_com_identity_withdrawal_path(ri: ri) if controller_path.start_with?("base/com/")
 
     base_app_identity_withdrawal_path(ri: ri)
   end

@@ -86,7 +86,6 @@ module SocialOmniauthCallbackFlow
   end
 
   def test_mode_omniauth_auth_hash
-    return nil unless Rails.env.test?
     return nil unless defined?(OmniAuth) && OmniAuth.config.test_mode
 
     provider = params[:provider].to_s

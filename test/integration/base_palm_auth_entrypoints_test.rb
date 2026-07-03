@@ -107,7 +107,7 @@ class BasePalmAuthEntrypointsTest < ActionDispatch::IntegrationTest
     }.each do |host, controller|
       assert_routing(
         { method: :get, path: "http://#{host}/oidc/callback" },
-        { controller: controller, action: "show", to: "/#{controller}#show" },
+        { controller: controller, action: "show" },
       )
     end
   end

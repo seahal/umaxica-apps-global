@@ -65,6 +65,60 @@ class CrossSurfaceTokenTest < ActionDispatch::IntegrationTest
                "org-issued token must not authenticate on the app surface"
   end
 
+  test "app preference token is ignored by the com cookie endpoint" do
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
+    token = preference_token_for(
+      host: ENV.fetch("PUBLIC_BASE_SERVICE_URL"),
+      preference_type: "AppPreference",
+      public_id: "app-pref-public-id",
+      preferences: { "consented" => true },
+    )
+    cookies[PreferenceCookieName.access] = token
+
+    with_preference_jwt_keys(host: host) do
+      get "/web/v0/cookie", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+    end
+
+    assert_response :ok
+    assert response.parsed_body["show_banner"], "app preference token must not suppress the com banner"
+  end
+
+  test "com preference token is ignored by the org cookie endpoint" do
+    host = ENV.fetch("PUBLIC_BASE_STAFF_URL")
+    token = preference_token_for(
+      host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL"),
+      preference_type: "ComPreference",
+      public_id: "com-pref-public-id",
+      preferences: { "consented" => true },
+    )
+    cookies[PreferenceCookieName.access] = token
+
+    with_preference_jwt_keys(host: host) do
+      get "/web/v0/cookie", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+    end
+
+    assert_response :ok
+    assert response.parsed_body["show_banner"], "com preference token must not suppress the org banner"
+  end
+
+  test "org preference token is ignored by the com cookie endpoint" do
+    host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL")
+    token = preference_token_for(
+      host: ENV.fetch("PUBLIC_BASE_STAFF_URL"),
+      preference_type: "OrgPreference",
+      public_id: "org-pref-public-id",
+      preferences: { "consented" => true },
+    )
+    cookies[PreferenceCookieName.access] = token
+
+    with_preference_jwt_keys(host: host) do
+      get "/web/v0/cookie", headers: { "Host" => host, "Accept" => "application/json" }, as: :json
+    end
+
+    assert_response :ok
+    assert response.parsed_body["show_banner"], "org preference token must not suppress the com banner"
+  end
+
   private
 
   def json_headers(host, bearer_token)
@@ -95,6 +149,20 @@ class CrossSurfaceTokenTest < ActionDispatch::IntegrationTest
       session_public_id: record.public_id,
       resource_type: "operator",
     )
+  end
+
+  def preference_token_for(host:, preference_type:, public_id:, preferences:)
+    token = nil
+    with_preference_jwt_keys(host: host) do
+      token = PreferenceToken.encode(
+        preferences,
+        host: host,
+        preference_type: preference_type,
+        public_id: public_id,
+        jti: "test-jti-#{SecureRandom.uuid}",
+      )
+    end
+    token
   end
 end
 

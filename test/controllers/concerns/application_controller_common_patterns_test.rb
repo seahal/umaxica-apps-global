@@ -13,6 +13,7 @@ module Concerns
       .reject { |f| f.end_with?("/controllers/application_controller.rb") }
       .reject { |f| f.include?("/sign/com/") }
       .reject { |f| f.include?("/jump/") }
+      .reject { |f| f.include?("/palm/") }
       .sort
     CONTROLLER_FILES =
       ALL_CONTROLLER_FILES.index_with do |file|

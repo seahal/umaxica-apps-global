@@ -159,7 +159,16 @@ module PreferenceWebCookieEndpoint
   end
 
   def cast_cookie_boolean(value)
-    ActiveModel::Type::Boolean.new.cast(value)
+    case value
+    when true, false
+      value
+    when 1, "1", "true", "TRUE", "t", "T"
+      true
+    when 0, "0", "false", "FALSE", "f", "F"
+      false
+    else
+      raise ActionController::BadRequest, "invalid_cookie_consent"
+    end
   end
 
   def default_cookie_consent_attrs(consented)

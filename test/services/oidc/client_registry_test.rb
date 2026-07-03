@@ -91,15 +91,11 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     com_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "visitor")
     org_uris = OidcClientRegistry.backchannel_logout_uris_for(client_id: "sign-rp", resource_type: "operator")
 
-    assert_equal [ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "id.app.localhost")], app_uris.map { |uri| URI.parse(uri).host }
-    assert_equal(
-      [ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "id.com.localhost"))],
-      com_uris.map { |uri| URI.parse(uri).host },
-    )
-    assert_equal(
-      [ENV.fetch("PRIVATE_AUTH_STAFF_URL", ENV.fetch("PRIVATE_AUTH_STAFF_URL", "id.org.localhost"))],
-      org_uris.map { |uri| URI.parse(uri).host },
-    )
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+
+    assert_equal [hosts.auth_service.host], app_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [hosts.auth_corporate.host], com_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [hosts.auth_staff.host], org_uris.map { |uri| URI.parse(uri).host }
   end
 
   test "native and content clients do not expose logout receiver uris" do

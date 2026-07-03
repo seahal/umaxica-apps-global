@@ -8,6 +8,7 @@ module Core
       include ::JumpRtReturnVerification
       include ::Session
       include ::PreferenceGlobal
+      include ::PreferenceAdoption
       include ::AuthenticationVisitor
       include ::SignErrorResponses
       include ::SessionLimitGate

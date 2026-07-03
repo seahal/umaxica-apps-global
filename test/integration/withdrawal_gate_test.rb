@@ -8,6 +8,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
   fixtures :clients, :client_statuses, :client_token_kinds, :client_token_statuses
 
   setup do
+    load_jump_rt_env!
     @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     host! @host
 
@@ -22,7 +23,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
 
     @token = ClientToken.create!(
       user: @deactivated_user,
-      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "deactivated_#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
@@ -80,7 +81,7 @@ class WithdrawalGateTest < ActionDispatch::IntegrationTest
     )
     normal_token = ClientToken.create!(
       user: normal_user,
-      user_token_status_id: ClientTokenStatus::NOTHING,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       public_id: "normal_#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
@@ -146,6 +147,9 @@ class WithdrawalGateTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    }"
     base
   end
 
@@ -217,7 +221,21 @@ class WithdrawalGateTest
 
   def jwt_issuer_id_for_test_host(host, resource_type)
     normalized = host.to_s
-    service = normalized.include?("acme") ? "ACME" : (normalized.include?("core") ? "CORE" : "SIGN")
+    base_hosts = [
+      ENV.fetch("PUBLIC_BASE_SERVICE_URL", nil),
+      ENV.fetch("PRIVATE_BASE_SERVICE_URL", nil),
+      Rails.configuration.x.boot_config.fetch(:hosts).base_service.host,
+    ].compact
+    service =
+      if base_hosts.include?(normalized)
+        "BASE"
+      elsif normalized.include?("acme")
+        "ACME"
+      elsif normalized.include?("core")
+        "CORE"
+      else
+        "SIGN"
+      end
     surface =
       if service == "SIGN"
         case resource_type
@@ -623,6 +641,9 @@ class WithdrawalGateTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    }"
     base
   end
 
@@ -746,8 +767,21 @@ class WithdrawalGateTest
     token.update_columns(
       { last_step_up_at: at,
         last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+        last_step_up_aal: ("aal2" if token.respond_to?(:last_step_up_aal)),
+        last_step_up_method: ("passkey" if token.respond_to?(:last_step_up_method)),
+        last_step_up_session_public_id: (token.public_id if token.respond_to?(:last_step_up_session_public_id)),
+        last_step_up_purpose: ("step_up" if token.respond_to?(:last_step_up_purpose)),
+        last_step_up_audience: (step_up_test_audience_for_token(token) if token.respond_to?(:last_step_up_audience)),
         updated_at: Time.current, }.compact,
     )
+  end
+
+  def step_up_test_audience_for_token(token)
+    case token.class.name
+    when "OperatorToken" then "step_up:org"
+    when "VisitorToken" then "step_up:com"
+    else "step_up:app"
+    end
   end
 
   def load_jump_rt_env!

@@ -16,8 +16,10 @@ module Security
 
       setup do
         ensure_client_token_reference_records!
+        ensure_visitor_token_reference_records!
         ClientToken.skip_callback(:validation, :before, :ensure_device_session_record)
         @host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+        @com_host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
         host! @host
       end
 
@@ -26,7 +28,7 @@ module Security
       end
 
       test "closing resource is redirected away from protected html routes" do
-        user, headers = withdrawal_user_and_headers(:closing)
+        user, headers = withdrawal_client_and_headers(:closing)
 
         get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers
@@ -37,7 +39,7 @@ module Security
       end
 
       test "suspended resource gets withdrawal required on json protected routes" do
-        _user, headers = withdrawal_user_and_headers(:suspended)
+        _user, headers = withdrawal_client_and_headers(:suspended)
 
         get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers.merge("Accept" => "application/json")
@@ -47,7 +49,7 @@ module Security
       end
 
       test "terminated resource is redirected away from protected html routes" do
-        user, headers = withdrawal_user_and_headers(:terminated)
+        user, headers = withdrawal_client_and_headers(:terminated)
 
         get base_app_identity_sessions_url(ri: "jp", host: @host),
             headers: headers
@@ -58,12 +60,48 @@ module Security
       end
 
       test "withdrawal allowlist route remains reachable" do
-        _user, headers = withdrawal_user_and_headers(:closing)
+        _user, headers = withdrawal_client_and_headers(:closing)
 
-        get new_base_app_identity_withdrawal_url(ri: "jp"), headers: headers
+        with_step_up_satisfied(surface: "app") do
+          get new_base_app_identity_withdrawal_url(ri: "jp"), headers: headers
+        end
 
-        assert_response :see_other
-        assert_redirected_to new_base_app_identity_withdrawal_path(ri: "jp")
+        assert_response :success
+      end
+
+      test "suspended visitor is redirected to com withdrawal status from protected html routes" do
+        visitor, headers = withdrawal_visitor_and_headers(:suspended)
+
+        get base_com_identity_sessions_url(ri: "jp", host: @com_host),
+            headers: headers
+
+        assert_predicate visitor.reload, :suspended?
+        assert_response :redirect
+        assert_redirected_to edit_base_com_identity_withdrawal_path(ri: "jp")
+        assert_not_equal edit_base_app_identity_withdrawal_path(ri: "jp"), URI.parse(response.location).path
+      end
+
+      test "suspended visitor gets withdrawal required on json protected routes" do
+        _visitor, headers = withdrawal_visitor_and_headers(:suspended)
+
+        get base_com_identity_sessions_url(ri: "jp", host: @com_host),
+            headers: headers.merge("Accept" => "application/json")
+
+        assert_response :forbidden
+        assert_equal "WITHDRAWAL_REQUIRED", response.parsed_body["error"]
+      end
+
+      test "com withdrawal allowlist route remains reachable" do
+        visitor, headers = withdrawal_visitor_and_headers(:suspended)
+        ceremony = VisitorWithdrawalCeremony.issue!(subject: visitor, request: ActionDispatch::TestRequest.create)
+        cookies[AuthenticationCookieName.with_host_prefix("withdrawal_ceremony", production: JitSessionCookieConfig.force_secure?)] =
+          "#{ceremony.public_id}:#{ceremony.plaintext_token}"
+
+        with_step_up_satisfied(surface: "com") do
+          get edit_base_com_identity_withdrawal_url(ri: "jp", host: @com_host), headers: headers
+        end
+
+        assert_response :success
       end
 
       test "application controllers do not skip the withdrawal gate" do
@@ -122,7 +160,7 @@ module Security
         ClientTokenDbscStatus.ensure_defaults!
       end
 
-      def withdrawal_user_and_headers(state)
+      def withdrawal_client_and_headers(state)
         user = create_client
         apply_withdrawal_state!(user, state)
         token = ClientToken.create!(
@@ -137,10 +175,35 @@ module Security
         [
           user,
           {
-            "X-TEST-CURRENT-USER" => user.id.to_s,
             "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
             "Authorization" => "Bearer #{
               jwt_access_token_for(user, host: @host, session_public_id: token.public_id, resource_type: "client")
+            }",
+          },
+        ]
+      end
+
+      def withdrawal_visitor_and_headers(state)
+        visitor = create_visitor
+        apply_withdrawal_state!(visitor, state)
+        token = VisitorToken.create!(
+          visitor: visitor,
+          visitor_token_status_id: VisitorTokenStatus::NOTHING,
+          visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+          discarded_at: 1.day.from_now,
+        )
+        satisfy_visitor_verification(token)
+        token.update!(last_step_up_at: Time.current, last_step_up_scope: "withdrawal")
+
+        [
+          visitor,
+          {
+            "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+            "Authorization" => "Bearer #{
+              jwt_access_token_for(
+                visitor, host: @com_host, session_public_id: token.public_id,
+                         resource_type: "visitor",
+              )
             }",
           },
         ]
@@ -179,6 +242,36 @@ module Security
           mfa_level_id: ClientMfaLevel::NOTHING,
           mfa_status_id: ClientMfaStatus::UNCONFIGURED,
         )
+      end
+
+      def create_visitor
+        ensure_visitor_reference_records!
+        Visitor.create!(
+          status_id: VisitorStatus::NOTHING,
+          visibility_id: VisitorVisibility::VISITOR,
+          mfa_level_id: VisitorMfaLevel::NOTHING,
+          mfa_status_id: VisitorMfaStatus::UNCONFIGURED,
+        )
+      end
+
+      def with_step_up_satisfied(surface:, &)
+        satisfied = Actor::StepUp.new(
+          scope: "withdrawal",
+          required_aal: :aal2,
+          allowed_methods: %i(totp passkey),
+          satisfied: true,
+          satisfied_at: Time.current,
+          expires_at: 15.minutes.from_now,
+          usable_token: true,
+          method: "passkey",
+          session_bound: true,
+          token_bound: true,
+          purpose: "step_up",
+          audience: "step_up:#{surface}",
+          purpose_bound: true,
+          audience_bound: true,
+        )
+        StepUpResolver.stub(:call, satisfied, &)
       end
     end
   end

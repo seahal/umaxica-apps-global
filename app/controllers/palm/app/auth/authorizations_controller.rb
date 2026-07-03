@@ -22,6 +22,10 @@ module Palm
           client_id_param
         end
 
+        def oidc_callback_url
+          OidcClientRegistry.find!(oidc_client_id).redirect_uris.first
+        end
+
         def oidc_base_authority_host
           ENV.fetch("PUBLIC_BASE_SERVICE_URL")
         end

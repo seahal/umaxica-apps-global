@@ -210,7 +210,9 @@ scope(module: :base, as: :base) do
 
         resources :activities, only: :index
 
-        resource :withdrawal, only: %i(new update create edit destroy)
+        resource :withdrawal, only: %i(new update create edit destroy) do
+          delete :session, action: :end_session
+        end
       end
     end
   end
@@ -350,7 +352,9 @@ scope(module: :base, as: :base) do
         resource :other_sessions, only: :destroy, controller: "revocations/others"
 
         resources :activities, only: :index
-        resource :withdrawal, only: %i(new update create edit destroy)
+        resource :withdrawal, only: %i(new update create edit destroy) do
+          delete :session, action: :end_session
+        end
       end
     end
   end

@@ -11,6 +11,8 @@ module Base
 
       include ::PreferenceGlobal
 
+      include ::PreferenceAdoption
+
       include ::AuthenticationVisitor
       include ::SignErrorResponses
       include ::SessionLimitGate

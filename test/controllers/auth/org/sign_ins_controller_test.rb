@@ -97,7 +97,7 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
 
-    base_staff_host = Rails.configuration.x.boot_config.fetch(:hosts).base_staff.host
+    base_staff_host = ENV.fetch("PRIVATE_BASE_STAFF_URL", "base.org.localhost")
 
     assert_select "a[href=?]", auth_org_root_url(ri: "jp", host: base_staff_host)
   end
@@ -181,9 +181,12 @@ class Auth::Org::SignInsControllerTest < ActionDispatch::IntegrationTest
             "discarded_at > ?",
             Time.current,
           ).order(created_at: :desc).first
-        end
+      end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+      base["Authorization"] = "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }"
     end
 
     base
@@ -274,9 +277,12 @@ class Auth::Org::SignInsControllerTest
             "discarded_at > ?",
             Time.current,
           ).order(created_at: :desc).first
-        end
+      end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+      base["Authorization"] = "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }"
     end
 
     base

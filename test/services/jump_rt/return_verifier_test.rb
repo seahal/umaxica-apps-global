@@ -218,7 +218,7 @@ class JumpRtReturnVerifierTest < ActiveSupport::TestCase
   end
 
   test "jump_gateway_url fails fast in production when host is missing" do
-    with_env("PUBLIC_JUMP_GATEWAY_URL" => nil) do
+    with_env("PUBLIC_JUMP_GATEWAY_URL" => nil, "JUMP_GATEWAY_URL" => nil) do
       Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
         error =
           assert_raises(KeyError) do

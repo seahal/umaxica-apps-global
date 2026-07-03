@@ -96,6 +96,40 @@ class AvatarTest < ActiveSupport::TestCase
     assert_empty(avatar.image_data)
   end
 
+  test "defaults lifecycle state to active for new avatars" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Default Lifecycle",
+    )
+
+    assert_equal "active", avatar.lifecycle_state.key
+  end
+
+  test "requires lifecycle state id at database level" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Lifecycle Null Constraint",
+    )
+
+    assert_raises(ActiveRecord::NotNullViolation) do
+      Avatar.connection.execute("UPDATE avatars SET lifecycle_state_id = NULL WHERE id = #{avatar.id}")
+    end
+  end
+
+  test "rejects invalid lifecycle state id at database level" do
+    avatar = Avatar.create!(
+      capability: @capability,
+      active_handle: @handle,
+      moniker: "Lifecycle FK Constraint",
+    )
+
+    assert_raises(ActiveRecord::InvalidForeignKey) do
+      Avatar.connection.execute("UPDATE avatars SET lifecycle_state_id = 999999999 WHERE id = #{avatar.id}")
+    end
+  end
+
   test "moniker is invalid when only whitespace" do
     avatar = Avatar.new(capability: @capability, active_handle: @handle, moniker: "   ")
 

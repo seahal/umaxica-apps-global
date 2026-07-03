@@ -362,6 +362,9 @@ class WithdrawalLifecycleSecurityTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    }"
     base
   end
 
@@ -847,6 +850,9 @@ class WithdrawalLifecycleSecurityTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+    base["Authorization"] = "Bearer #{
+      jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    }"
     base
   end
 

@@ -55,7 +55,7 @@ class WithdrawalLifecycle
                      deactivated + RECOVERY_PERIOD
                    end,
       )
-      revoke_sessions(except_public_id: current_session_public_id)
+      revoke_sessions
     end
 
     notify(
@@ -206,12 +206,7 @@ class WithdrawalLifecycle
 
   def revoke_sessions(except_public_id: nil)
     scope = AuthenticationSessionRevoker.tokens_for(actor)
-    scope =
-      if except_public_id.present?
-        exclude_fresh_withdrawal_step_up_sessions(exclude_session_identifier(scope, except_public_id))
-      else
-        exclude_fresh_withdrawal_step_up_sessions(scope)
-      end
+    scope = exclude_session_identifier(scope, except_public_id) if except_public_id.present?
     scope.find_each(&:revoke!)
   end
 

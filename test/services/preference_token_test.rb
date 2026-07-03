@@ -198,31 +198,35 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   end
 
   test "wrong audience logs preference aud mismatch and returns nil by default" do
-    token = preference_token_for_audience_test
-    logged_payload = nil
+    with_audience_mismatch_jwt_config do
+      token = preference_token_for_audience_test
+      logged_payload = nil
 
-    Rails.logger.stub(:info, ->(message) { logged_payload = JSON.parse(message) }) do
-      assert_nil PreferenceToken.decode(token, host: "www.app.umaxica.com")
+      Rails.logger.stub(:info, ->(message) { logged_payload = JSON.parse(message) }) do
+        assert_nil PreferenceToken.decode(token, host: "www.app.umaxica.com")
+      end
+
+      assert_equal "jwt.anomaly.detected", logged_payload.fetch("event")
+      assert_equal "APP_PREFERENCE_AUD_MISMATCH", logged_payload.dig("data", "reason_code")
+      assert_equal "www.app.umaxica.com", logged_payload.dig("data", "request_host")
+      assert_equal ["app.umaxica.app"], logged_payload.dig("data", "aud")
+      assert_equal "JWT::InvalidAudError", logged_payload.dig("data", "error_class")
     end
-
-    assert_equal "jwt.anomaly.detected", logged_payload.fetch("event")
-    assert_equal "APP_PREFERENCE_AUD_MISMATCH", logged_payload.dig("data", "code")
-    assert_equal "www.app.umaxica.com", logged_payload.dig("data", "request_host")
-    assert_equal ["app.umaxica.app"], logged_payload.dig("data", "aud")
-    assert_equal "JWT::InvalidAudError", logged_payload.dig("data", "error_class")
   end
 
   test "wrong audience raises in strict write mode after logging" do
-    token = preference_token_for_audience_test
-    logged_payload = nil
+    with_audience_mismatch_jwt_config do
+      token = preference_token_for_audience_test
+      logged_payload = nil
 
-    Rails.logger.stub(:info, ->(message) { logged_payload = JSON.parse(message) }) do
-      assert_raises(PreferenceToken::AudienceMismatchError) do
-        PreferenceToken.decode(token, host: "www.app.umaxica.com", raise_on_audience_mismatch: true)
+      Rails.logger.stub(:info, ->(message) { logged_payload = JSON.parse(message) }) do
+        assert_raises(PreferenceToken::AudienceMismatchError) do
+          PreferenceToken.decode(token, host: "www.app.umaxica.com", raise_on_audience_mismatch: true)
+        end
       end
-    end
 
-    assert_equal "APP_PREFERENCE_AUD_MISMATCH", logged_payload.dig("data", "code")
+      assert_equal "APP_PREFERENCE_AUD_MISMATCH", logged_payload.dig("data", "reason_code")
+    end
   end
 
   test "JwtConfiguration.audiences derives host names from boot config" do
@@ -243,9 +247,18 @@ class PreferenceTokenTest < ActiveSupport::TestCase
   private
 
   def preference_token_for_audience_test
+    PreferenceToken.encode(
+      @prefs,
+      host: "app.umaxica.app",
+      preference_type: @preference_type,
+      public_id: @public_id,
+      jti: @jti,
+    )
+  end
+
+  def with_audience_mismatch_jwt_config
     audiences = ["app.umaxica.app", "www.app.umaxica.com"].freeze
     key_for = ->(kid) { (kid == "default") ? @public_key : nil }
-    token = nil
 
     PreferenceJwtConfiguration.stub(:private_key, @private_key) do
       PreferenceJwtConfiguration.stub(:public_key, @public_key) do
@@ -254,13 +267,7 @@ class PreferenceTokenTest < ActiveSupport::TestCase
             PreferenceJwtConfiguration.stub(:active_kid, "default") do
               PreferenceJwtConfiguration.stub(:issuer, @issuer) do
                 PreferenceJwtConfiguration.stub(:audiences, audiences) do
-                  token = PreferenceToken.encode(
-                    @prefs,
-                    host: "app.umaxica.app",
-                    preference_type: @preference_type,
-                    public_id: @public_id,
-                    jti: @jti,
-                  )
+                  yield
                 end
               end
             end
@@ -268,8 +275,6 @@ class PreferenceTokenTest < ActiveSupport::TestCase
         end
       end
     end
-
-    token
   end
 
   def with_jwt_keys

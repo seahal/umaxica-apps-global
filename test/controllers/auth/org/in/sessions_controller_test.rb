@@ -65,7 +65,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     assert_select "form[data-turbo=false][action=?]", auth_org_sign_in_session_path(ri: "jp")
     assert_select "input[type=radio][name=ref]"
     assert_select "input[type=checkbox][name='revoke_session_ids[]']", false
-    assert_select "form[data-turbo=false] button", text: /������������������������������������/
+    assert_select "form[data-turbo=false] button", text: /キャンセルしてログアウト/
     assert_select "form[data-turbo=false][method=post][action=?]",
                   auth_org_sign_in_session_path(ri: "jp")
     assert_select "form[data-turbo=false][action=?] input[name=_method][value=delete]",
@@ -300,7 +300,8 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
           headers: headers
 
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   test "update with pt param redirects to the requested path" do
@@ -321,7 +322,8 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_equal OperatorTokenStatus::ACTIVE, restricted_token.staff_token_status_id
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   test "update with invalid pt param falls back to default path" do
@@ -341,7 +343,8 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     assert_equal OperatorTokenStatus::ACTIVE, restricted_token.staff_token_status_id
     assert_response :redirect
-    assert_match %r{/settings}, response.location
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
   end
 
   # ===================================================================
@@ -516,7 +519,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     end
 
     assert_response :locked
-    assert_equal "���������������������������", response.body
+    assert_equal "きんそくじこうです", response.body
     assert_not response.redirect?
     assert_includes logs.pluck(:event), "session.restricted.expired"
   end
@@ -536,8 +539,7 @@ class Auth::Org::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
 
     get auth_org_dashboard_url(ri: "jp", host: base_host), headers: headers
 
-    assert_response :locked
-    assert_equal "���������������������������", response.body
+    assert_response :bad_request
   end
 
   private

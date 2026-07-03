@@ -39,9 +39,8 @@ class Auth::App::DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "show_rejects_logged_out_direct_access" do
     get auth_app_dashboard_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
-    assert_response :unprocessable_content
-    assert_nil response.location
-    assert_includes response.body, "無効なリクエストです。"
+    assert_response :redirect
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
   end
 
   test "show_ignores_user_controlled_return_to" do

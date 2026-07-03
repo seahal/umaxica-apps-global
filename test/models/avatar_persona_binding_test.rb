@@ -122,7 +122,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
-    revoked_at = Time.utc(2026, 6, 27, 12, 0, 0)
+    revoked_at = binding.assigned_at + 1.minute
 
     result = binding.revoke!(at: revoked_at, force: true)
 
@@ -135,7 +135,7 @@ class AvatarPersonaBindingTest < ActiveSupport::TestCase
     persona = build_persona
     avatar = build_avatar
     binding = AvatarPersonaBinding.create!(avatar: avatar, persona: persona)
-    original_revoked_at = Time.utc(2026, 6, 27, 12, 0, 0)
+    original_revoked_at = binding.assigned_at + 1.minute
 
     binding.revoke!(at: original_revoked_at, force: true)
     result = binding.revoke!(at: original_revoked_at + 1.hour)

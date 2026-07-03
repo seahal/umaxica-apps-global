@@ -43,5 +43,8 @@ class AvatarMembership < AvatarRecord
             }
   validates :actor_id, presence: true
   validates :valid_from, presence: true
+  validates :valid_to,
+            comparison: { greater_than_or_equal_to: :valid_from },
+            if: -> { valid_from.present? && valid_to.present? }
   validates :id, numericality: { only_integer: true }, allow_nil: true
 end

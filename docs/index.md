@@ -26,6 +26,9 @@ Rules:
 
 Current content-model references:
 
+- `docs/architecture/umaxica-v1-architecture-lock.md` locks the v1 Identity / Account / Organization
+  / Unit / Avatar / Group resource model, Avatar DB vs content DB boundary, actor snapshot
+  exclusion, Avatar lifecycle states, known violations, and guard-rail scope before implementation.
 - `docs/architecture/avatar-social-graph.md` records the Avatar-to-Avatar follow, block, and mute
   boundary and the current implementation gaps.
 - `docs/architecture/model-database-inventory.md` is the current-state model/database placement map

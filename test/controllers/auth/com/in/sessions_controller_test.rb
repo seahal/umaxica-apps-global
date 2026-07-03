@@ -71,8 +71,9 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     patch auth_com_sign_in_session_url(ri: "jp"), params: { ref: active_token.signed_ref }, headers: headers
 
     assert_response :redirect
-    # Redirect to settings because restricted session is promoted after revoking the only active session
-    assert_match %r{/settings\?ri=jp}, response.location
+    # Redirect to Base identity through Jump RT after restricted-session promotion.
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, response.location
+    assert_includes response.location, "rt="
     assert_not_nil active_token.reload.discarded_at
     assert_equal VisitorTokenStatus::ACTIVE, @token.reload.visitor_token_status_id
   end
@@ -199,7 +200,9 @@ class Auth::Com::Sign::In::SessionsControllerTest < ActionDispatch::IntegrationT
     controller.instance_variable_set(:@return_to_for_test, nil)
     controller.send(:redirect_to_return_path)
 
-    assert_equal [["/settings?ri=jp"], {}], redirects.last
+    assert_match %r{\Ahttps://jump\.umaxica\.net/}, redirects.last.first.first
+    assert_includes redirects.last.first.first, "rt="
+    assert_equal({ allow_other_host: true }, redirects.last.second)
 
     active_token = create_active_session(@visitor)
     restricted_token = @token

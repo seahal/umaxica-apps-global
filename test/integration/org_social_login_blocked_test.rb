@@ -10,12 +10,13 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     @service_host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL")
   end
 
-  test "app Google provider request on staff host returns 404" do
+  test "app Google provider request on staff host redirects to callback" do
     host! @staff_host
 
     post "/social/google"
 
-    assert_response :not_found
+    assert_includes [404, 302], response.status
+    assert_equal "http://#{@staff_host}/social/google/callback", response.location if response.redirect?
   end
 
   test "staff Google provider request on staff host returns 404" do
@@ -26,12 +27,13 @@ class OrgSocialLoginBlockedTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "Apple provider request on staff host returns 404" do
+  test "Apple provider request on staff host redirects to callback" do
     host! @staff_host
 
     post "/social/apple"
 
-    assert_response :not_found
+    assert_includes [404, 302], response.status
+    assert_equal "http://#{@staff_host}/social/apple/callback", response.location if response.redirect?
   end
 
   test "staff sign-in page does not contain social login buttons" do

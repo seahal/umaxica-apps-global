@@ -62,10 +62,6 @@ module PreferenceBase
     "system" => "system",
   }.freeze
 
-  def show_cookie_banner?
-    false
-  end
-
   private
 
   def preference_current_resource

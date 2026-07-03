@@ -51,3 +51,62 @@ Forbidden required-configuration patterns include:
 
 Validate required environment variables at startup or module boundaries and raise or throw a clear
 error when they are missing.
+
+## Exhaustive Ruby branches
+
+When Ruby branch logic dispatches over a known finite set of values, list every expected success
+branch explicitly. This applies to `case` / `when` and to `if` / `elsif` / `else` chains.
+
+Do not hide a known success route in `else`. If a branch is expected and reachable, name its
+condition directly. Keeping known routes explicit follows the open/closed principle: adding a new
+value should require adding a deliberate branch, not reinterpreting a catch-all default.
+
+Use `else` only for genuine default behavior or loud unexpected-state handling, such as
+`raise ArgumentError` or another explicit failure helper.
+
+For example, do not write:
+
+```ruby
+case resource_type
+when "operator" then "ORG"
+when "visitor" then "COM"
+else "APP"
+end
+```
+
+Write the expected value explicitly and reserve `else` for unsupported input:
+
+```ruby
+case resource_type
+when "operator" then "ORG"
+when "visitor" then "COM"
+when "client" then "APP"
+else raise ArgumentError, "unsupported resource_type: #{resource_type.inspect}"
+end
+```
+
+The same rule applies to `if` chains. Do not write:
+
+```ruby
+if resource_type == "operator"
+  "ORG"
+elsif resource_type == "visitor"
+  "COM"
+else
+  "APP"
+end
+```
+
+Write the known condition explicitly:
+
+```ruby
+if resource_type == "operator"
+  "ORG"
+elsif resource_type == "visitor"
+  "COM"
+elsif resource_type == "client"
+  "APP"
+else
+  raise ArgumentError, "unsupported resource_type: #{resource_type.inspect}"
+end
+```

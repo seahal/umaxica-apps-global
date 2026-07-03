@@ -63,9 +63,10 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create avatar persists owned avatar" do
-    bootstrap_and_select!(@user, @token)
+    result = bootstrap_and_select!(@user, @token)
+    result.avatar.current_avatar_persona_binding.revoke!(force: true)
 
-    assert_difference ["Avatar.count", "AvatarAssignment.count"], 1 do
+    assert_difference ["Avatar.count", "Handle.count", "AvatarPersonaBinding.count", "AvatarAssignment.count"], 1 do
       post base_app_avatars_url(ri: "jp", host: @host),
            params: { avatar: { moniker: "Second Avatar", handle: "second" } },
            headers: as_user_headers(@user, host: @host)
@@ -76,13 +77,16 @@ class Base::App::AvatarsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "Second Avatar", avatar.moniker
     assert_equal @user.id, avatar.owner.id
+    assert_equal result.account, avatar.current_persona
+    assert_equal "active", avatar.lifecycle_state.key
     assert_redirected_to base_app_avatar_url(avatar.public_id, ri: "jp", host: @host)
   end
 
   test "create avatar rejects blank moniker" do
-    bootstrap_and_select!(@user, @token)
+    result = bootstrap_and_select!(@user, @token)
+    result.avatar.current_avatar_persona_binding.revoke!(force: true)
 
-    assert_no_difference ["Avatar.count", "AvatarAssignment.count"] do
+    assert_no_difference ["Avatar.count", "Handle.count", "AvatarPersonaBinding.count", "AvatarAssignment.count"] do
       post base_app_avatars_url(ri: "jp", host: @host),
            params: { avatar: { moniker: "" } },
            headers: as_user_headers(@user, host: @host)

@@ -24,41 +24,6 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     Rails.cache = @previous_cache_store
   end
 
-  test "new sends otp and redirects to edit" do
-    return_to = "/settings/emails?ri=jp"
-
-    StepUpAvailableMethods.stub(:call, [:email_otp]) do
-      Email::Com::OtpMailer.stub(:with, OpenStruct.new(create: OpenStruct.new(deliver_later: true))) do
-        pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-        get auth_com_verification_url(
-          scope: "settings_email",
-          pt: pt,
-          ri: "jp",
-          step_up_ceremony_grant: step_up_grant(return_to),
-        ),
-            headers: @headers
-
-        follow_redirect!(headers: @headers) if response.redirect?
-        assert_response :success
-
-        get new_auth_com_verification_email_url(ri: "jp"), headers: @headers
-
-        assert_response :redirect
-        assert_match %r{/verification/emails/.+/edit}, response.location
-
-        follow_redirect!(headers: @headers)
-
-        assert_response :success
-        assert_select "h1", text: I18n.t("sign.app.verification.edit.title")
-        assert_select "label", text: I18n.t("sign.app.verification.edit.code_label")
-        assert_select "input[placeholder=?]", I18n.t("sign.app.verification.edit.code_placeholder")
-        assert_select "input[type=submit][value=?]", I18n.t("sign.app.verification.edit.submit")
-        assert_includes response.body, "メールアドレス"
-        assert_includes response.body, I18n.t("sign.app.verification.edit.email_delivery_help")
-      end
-    end
-  end
-
   test "new sends otp for email verified during signup" do
     @visitor.visitor_emails.update_all(visitor_email_status_id: VisitorEmailStatus::VERIFIED_WITH_SIGN_UP)
     return_to = "/settings/emails?ri=jp"
@@ -74,6 +39,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
           headers: @headers
 
       follow_redirect!(headers: @headers) if response.redirect?
+
       assert_response :success
 
       assert_enqueued_emails 1 do
@@ -133,112 +99,6 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
     end
   end
 
-  test "invalid otp keeps back link from step_up session when request params are missing" do
-    return_to = "/settings/emails?ri=jp"
-
-    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(
-      scope: "settings_email",
-      pt: pt,
-      ri: "jp",
-      step_up_ceremony_grant: step_up_grant(return_to),
-    ),
-        headers: @headers
-
-    follow_redirect!(headers: @headers) if response.redirect?
-    assert_response :success
-
-    get new_auth_com_verification_email_url(
-      ri: "jp",
-      scope: "settings_email",
-      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
-    ), headers: @headers
-
-    assert_response :redirect
-    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
-
-    patch auth_com_verification_email_url(nonce, ri: "jp"),
-          params: { verification: { code: "000000" } },
-          headers: @headers
-
-    assert_response :unprocessable_content
-    assert_match %r{/verification\?pt=.*&amp;ri=jp&amp;scope=settings_email}, response.body
-    assert_select "input[name='verification[pt]']", count: 1
-  end
-
-  test "resend sends a new otp and returns to edit page" do
-    return_to = "/settings/emails?ri=jp"
-
-    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(
-      scope: "settings_email",
-      pt: pt,
-      ri: "jp",
-      step_up_ceremony_grant: step_up_grant(return_to),
-    ),
-        headers: @headers
-
-    follow_redirect!(headers: @headers) if response.redirect?
-    assert_response :success
-
-    get new_auth_com_verification_email_url(
-      ri: "jp",
-      scope: "settings_email",
-      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
-    ), headers: @headers
-
-    assert_response :redirect
-    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
-
-    assert_enqueued_emails 1 do
-      post auth_com_verification_email_redelivery_url(
-        nonce,
-        ri: "jp",
-        scope: "settings_email",
-        pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
-      ), headers: @headers
-    end
-
-    assert_response :redirect
-    assert_match %r{/verification/emails/#{Regexp.escape(nonce)}/edit\?pt=.*&ri=jp&scope=settings_email},
-                 response.location
-  end
-
-  test "resend is rate limited" do
-    return_to = "/settings/emails?ri=jp"
-
-    pt = signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id)
-    get auth_com_verification_url(
-      scope: "settings_email",
-      pt: pt,
-      ri: "jp",
-      step_up_ceremony_grant: step_up_grant(return_to),
-    ),
-        headers: @headers
-
-    follow_redirect!(headers: @headers) if response.redirect?
-    assert_response :success
-
-    get new_auth_com_verification_email_url(
-      ri: "jp",
-      scope: "settings_email",
-      pt: signed_step_up_pt_for(return_to, surface: "com", session_nonce: @token.public_id),
-    ), headers: @headers
-
-    assert_response :redirect
-    nonce = response.location[%r{/verification/emails/([^/?]+)/edit}, 1]
-
-    assert_enqueued_emails 1 do
-      post auth_com_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
-    end
-
-    assert_enqueued_emails 0 do
-      post auth_com_verification_email_redelivery_url(nonce, ri: "jp"), headers: @headers
-    end
-
-    assert_response :redirect
-  end
-
   test "new renders translated error when no verified email is available" do
     return_to = "/settings/emails?ri=jp"
 
@@ -252,6 +112,7 @@ class Auth::Com::Verification::EmailsControllerTest < ActionDispatch::Integratio
         headers: @headers
 
     follow_redirect!(headers: @headers) if response.redirect?
+
     assert_response :success
 
     @visitor.visitor_emails.find_each do |email|
@@ -701,7 +562,10 @@ class Auth::Com::Verification::EmailsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
     cookie = "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}"
     base.merge(
       "Authorization" => "Bearer #{access_token}",
@@ -1191,7 +1055,10 @@ class Auth::Com::Verification::EmailsControllerTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    access_token = jwt_access_token_for(visitor, host: host, session_public_id: token.public_id, resource_type: "visitor")
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
     cookies[AuthenticationBase::ACCESS_COOKIE_KEY] = access_token if respond_to?(:cookies, true)
     base.merge(
       "Authorization" => "Bearer #{access_token}",

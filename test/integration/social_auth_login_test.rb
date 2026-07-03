@@ -17,6 +17,8 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     OmniAuth.config.test_mode = true
     CloudflareTurnstile.test_mode = true
     JitSecurityTurnstileVerifier.test_mode = true
+    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+    AuthenticationBase.login_cooldown_enabled = false
     @host = ENV.fetch("PRIVATE_AUTH_SERVICE_URL", "auth.app.localhost")
     @callback_headers = social_callback_headers(@host)
   end
@@ -26,6 +28,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:apple] = nil
     CloudflareTurnstile.test_mode = false
     JitSecurityTurnstileVerifier.test_mode = false
+    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
   end
 
   # ============================================================================
@@ -91,15 +94,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
-      ),
-    )
-    follow_redirect!
-
-    assert_nil flash[:notice]
+    assert_response :redirect
+    assert_equal configured_host(:acme_service), URI.parse(response.location).host
+    assert_equal "/dashboard", URI.parse(response.location).path
 
     cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
 
@@ -134,7 +131,7 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     redirect_uri = URI.parse(response.location)
 
-    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+    assert_equal ENV.fetch("PUBLIC_BASE_SERVICE_URL"), redirect_uri.host
     assert_equal "/sign/in/limitation", redirect_uri.path
     social_resolution = Rack::Utils.parse_nested_query(redirect_uri.query.to_s)["social_resolution"]
 
@@ -262,12 +259,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
         headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
-      ),
-    )
+    assert_response :redirect
+    assert_equal configured_host(:acme_service), URI.parse(response.location).host
+    assert_equal "/dashboard", URI.parse(response.location).path
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
@@ -332,12 +326,9 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
          headers: browser_headers.merge(@callback_headers)
     submit_social_completion_if_present!
 
-    assert_redirected_to acme_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch(
-        "PRIVATE_BASE_SERVICE_URL", "www.app.localhost",
-      ),
-    )
+    assert_response :redirect
+    assert_equal configured_host(:acme_service), URI.parse(response.location).host
+    assert_equal "/dashboard", URI.parse(response.location).path
     assert_equal user_count_before, Client.count
 
     sign_in_cycle = ClientSignInFlow.where(principal_id: existing_user.id).recent_first.first
@@ -599,7 +590,11 @@ class SocialAuthLoginTest < ActionDispatch::IntegrationTest
     existing_uid = "update_auth_time_#{SecureRandom.hex(4)}"
     old_auth_time = 1.week.ago
 
-    existing_user = Client.create!(status_id: ClientStatus::NOTHING, public_id: "at_#{SecureRandom.hex(4)}")
+    existing_user = Client.create!(
+      status_id: ClientStatus::NOTHING,
+      public_id: "at_#{SecureRandom.hex(4)}",
+      birthdate: "2000-01-01",
+    )
     identity = ClientGoogleIdentity.create!(
       user: existing_user,
       uid: existing_uid,
@@ -1685,9 +1680,9 @@ class SocialAuthLoginTest
   end
 
   def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com")
-    OmniAuth.config.mock_auth[:google_app] =
+    OmniAuth.config.mock_auth[:google] =
       OmniAuth::AuthHash.new(
-        provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
+        provider: "google", uid: uid, info: { email: email, name: "Google Client" },
         credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
       )
   end

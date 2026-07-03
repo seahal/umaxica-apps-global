@@ -141,6 +141,9 @@ class Client < AppPrincipalRecord
   has_many :client_withdrawal_flows,
            dependent: :restrict_with_error,
            inverse_of: :client
+  has_many :client_withdrawal_ceremonies,
+           dependent: :delete_all,
+           inverse_of: :client
   has_many :active_totps,
            -> { where(user_identity_totp_credential_status_id: ClientTotpCredentialStatus::ACTIVE) },
            class_name: "ClientTotpCredential",

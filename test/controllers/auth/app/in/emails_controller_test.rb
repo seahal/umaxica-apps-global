@@ -47,9 +47,12 @@ class Auth::App::Sign::In::EmailsControllerTest < ActionDispatch::IntegrationTes
     @host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     ActionMailer::Base.deliveries.clear
     CloudflareTurnstile.test_mode = true
+    @original_login_cooldown_enabled = AuthenticationBase.login_cooldown_enabled
+    AuthenticationBase.login_cooldown_enabled = false
   end
 
   teardown do
+    AuthenticationBase.login_cooldown_enabled = @original_login_cooldown_enabled
     CloudflareTurnstile.test_mode = false
     CloudflareTurnstile.test_validation_response = nil
   end

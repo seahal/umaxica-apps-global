@@ -42,10 +42,11 @@ module BaseSettingsWithdrawalFlow
     end
 
     ::WithdrawalLifecycle.recover!(actor: actor, request: request)
+    consume_current_withdrawal_ceremony!
 
     safe_redirect_to(
-      withdrawal_settings_path,
-      fallback: "/settings",
+      withdrawal_public_fallback_path,
+      fallback: withdrawal_new_path,
       status: :see_other,
     )
   end
@@ -64,6 +65,8 @@ module BaseSettingsWithdrawalFlow
       current_session_public_id: withdrawal_current_session_public_id,
       request: request,
     )
+    clear_auth_cookies!
+    issue_withdrawal_ceremony!(subject: actor, purpose: "status")
 
     safe_redirect_to(
       withdrawal_edit_path,
@@ -76,10 +79,11 @@ module BaseSettingsWithdrawalFlow
 
   def terminate_withdrawal!(actor)
     ::WithdrawalLifecycle.terminate!(actor: actor, request: request) if actor.early_terminatable?
+    consume_current_withdrawal_ceremony!
 
     safe_redirect_to(
-      withdrawal_edit_path,
-      fallback: withdrawal_settings_path,
+      withdrawal_public_fallback_path,
+      fallback: withdrawal_new_path,
       status: :see_other,
     )
   end

@@ -6,27 +6,50 @@ require "test_helper"
 
 module Security
   module Invariants
-    class WithdrawnResourceRefreshInvariantTest < ActiveSupport::TestCase
+    class WithdrawnResourceRefreshInvariantTest < ActionDispatch::IntegrationTest
       self.fixture_table_names = []
 
       # This test pins properties that were reviewed as "No issue found".
       # Update SECURITY_INVARIANTS.md before intentionally changing them.
 
-      test "active resources are refreshable" do
-        resource = create_client
-
-        assert_refreshable resource
+      setup do
+        ensure_user_token_reference_records!
+        ensure_visitor_token_reference_records!
+        ClientToken.skip_callback(:validation, :before, :ensure_device_session_record)
+        @app_host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
+        @com_host = ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost")
       end
 
-      test "closing resources are not refreshable" do
-        resource = create_client
-        resource.update!(withdrawal_started_at: 1.hour.ago)
-
-        assert_not_refreshable resource
+      teardown do
+        ClientToken.set_callback(:validation, :before, :ensure_device_session_record)
       end
 
-      test "suspended resources are not refreshable" do
+      test "active client refresh token is refreshable" do
         resource = create_client
+
+        assert_refreshable_client resource
+      end
+
+      test "finalized withdrawn client is not resolved as a normal current resource" do
+        resource = create_client
+        token = create_client_token(resource)
+        raw_refresh = token.rotate_refresh_token!
+        resource.update_columns(
+          withdrawal_started_at: 3.hours.ago,
+          withdrawn_at: 30.minutes.ago,
+        )
+
+        post base_app_edge_v0_token_refresh_url(host: @app_host),
+             headers: refresh_headers(raw_refresh)
+
+        assert_response :unauthorized
+        assert_equal "invalid_refresh_token", response.parsed_body["error_code"]
+      end
+
+      test "suspended client refresh token is rejected with withdrawal required and revokes token family" do
+        resource = create_client
+        token = create_client_token(resource)
+        raw_refresh = token.rotate_refresh_token!
         resource.update!(
           withdrawal_started_at: 2.hours.ago,
           deactivated_at: 1.hour.ago,
@@ -34,21 +57,47 @@ module Security
           purged_at: 31.days.from_now,
         )
 
-        assert_not_refreshable resource
+        post base_app_edge_v0_token_refresh_url(host: @app_host),
+             headers: refresh_headers(raw_refresh)
+
+        assert_response :forbidden
+        assert_equal "withdrawal_required", response.parsed_body["error_code"]
+        assert_predicate token.reload, :expired?
       end
 
-      test "terminated resources are not refreshable" do
-        resource = create_client
+      test "finalized withdrawn visitor is not resolved as a normal current resource" do
+        resource = create_visitor
+        token = create_visitor_token(resource)
+        raw_refresh = token.rotate_refresh_token!
         resource.update_columns(
           withdrawal_started_at: 3.hours.ago,
-          deactivated_at: 2.hours.ago,
-          discarded_at: 2.hours.ago,
-          purged_at: 1.hour.ago,
-          terminated_at: 30.minutes.ago,
           withdrawn_at: 30.minutes.ago,
         )
 
-        assert_not_refreshable resource
+        post base_com_edge_v0_token_refresh_url(host: @com_host),
+             headers: refresh_headers(raw_refresh)
+
+        assert_response :unauthorized
+        assert_equal "invalid_refresh_token", response.parsed_body["error_code"]
+      end
+
+      test "suspended visitor refresh token is rejected with withdrawal required and revokes token family" do
+        resource = create_visitor
+        token = create_visitor_token(resource)
+        raw_refresh = token.rotate_refresh_token!
+        resource.update!(
+          withdrawal_started_at: 2.hours.ago,
+          deactivated_at: 1.hour.ago,
+          discarded_at: 1.day.from_now,
+          purged_at: 31.days.from_now,
+        )
+
+        post base_com_edge_v0_token_refresh_url(host: @com_host),
+             headers: refresh_headers(raw_refresh)
+
+        assert_response :forbidden
+        assert_equal "withdrawal_required", response.parsed_body["error_code"]
+        assert_predicate token.reload, :expired?
       end
 
       private
@@ -63,16 +112,56 @@ module Security
         )
       end
 
-      def assert_refreshable(resource)
-        assert controller.send(:refreshable_resource?, resource, allow_suspended: false)
+      def create_visitor
+        ensure_visitor_reference_records!
+        Visitor.create!(
+          status_id: VisitorStatus::NOTHING,
+          visibility_id: VisitorVisibility::VISITOR,
+          mfa_level_id: VisitorMfaLevel::NOTHING,
+          mfa_status_id: VisitorMfaStatus::UNCONFIGURED,
+        )
       end
 
-      def assert_not_refreshable(resource)
-        assert_not controller.send(:refreshable_resource?, resource, allow_suspended: false)
+      def create_client_token(resource)
+        ClientToken.create!(
+          user: resource,
+          user_token_status_id: ClientTokenStatus::ACTIVE,
+          user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+          user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+          user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+          discarded_at: 1.day.from_now,
+        )
       end
 
-      def controller
-        @controller ||= Auth::App::ApplicationController.new
+      def create_visitor_token(resource)
+        VisitorToken.create!(
+          visitor: resource,
+          visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+          visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+          visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+          visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+          discarded_at: 1.day.from_now,
+        )
+      end
+
+      def assert_refreshable_client(resource)
+        token = create_client_token(resource)
+        raw_refresh = token.rotate_refresh_token!
+
+        post(
+          base_app_edge_v0_token_refresh_url(host: @app_host),
+          headers: refresh_headers(raw_refresh),
+        )
+
+        assert_response :success
+        assert response.parsed_body["refreshed"]
+      end
+
+      def refresh_headers(raw_refresh)
+        {
+          "Accept" => "application/json",
+          "Cookie" => "#{AuthenticationBase::REFRESH_COOKIE_KEY}=#{Rack::Utils.escape(raw_refresh)}",
+        }
       end
     end
   end

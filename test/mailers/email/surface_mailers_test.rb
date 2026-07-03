@@ -51,13 +51,13 @@ class Email::SurfaceMailersTest < ActionMailer::TestCase
   test "otp mailers build verification links for their own surface" do
     [
       [Email::App::OtpMailer, "mail-app-public-id", "app-token",
-       ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "id.app.localhost"),
-       "/settings/emails/registration/edit",],
+       ENV.fetch("PUBLIC_BASE_SERVICE_URL", "www.umaxica.app"),
+       "/identity/emails/registration/edit",],
       [Email::Com::OtpMailer, "mail-com-public-id", "com-token",
-       ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", "log.umaxica.com"),
-       "/settings/emails/registration/edit",],
-      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("PRIVATE_AUTH_STAFF_URL", "log.umaxica.org"),
-       "/settings/emails/registration/edit",],
+       ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "www.umaxica.com"),
+       "/identity",],
+      [Email::Org::OtpMailer, "mail-org-public-id", "org-token", ENV.fetch("PUBLIC_BASE_STAFF_URL", "www.umaxica.org"),
+       "/identity",],
     ].each do |mailer, public_id, token, host, path|
       mail = mailer.with(
         encrypted_hotp_token: encrypted_otp("123456"),

@@ -73,6 +73,7 @@ module JitSecurityJwtAnomalyReporter
         "jwt.anomaly.detected",
         {
           code: "#{context}_#{reason}",
+          reason_code: "#{context}_#{reason}",
           context: context,
           request_host: host,
           kid: header["kid"],

@@ -9,10 +9,6 @@ class PreferenceBaseIncludedDoTest < ActiveSupport::TestCase
     include PreferenceBase
   end
 
-  test "show_cookie_banner? method exists" do
-    assert_includes PreferenceBase.instance_methods(false), :show_cookie_banner?
-  end
-
   test "cookie_banner_endpoint_url method exists" do
     assert_includes PreferenceBase.private_instance_methods(false), :cookie_banner_endpoint_url
   end

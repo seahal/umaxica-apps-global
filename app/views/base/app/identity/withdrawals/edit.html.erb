@@ -33,5 +33,5 @@
 <% end %>
 
 <p>
-  <%= link_to t("actions.back"), base_app_identity_path(ri: params[:ri]) %>
+  <%= button_to t("sign.shared.sign_out.button"), session_base_app_identity_withdrawal_path(ri: params[:ri]), method: :delete %>
 </p>

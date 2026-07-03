@@ -10,9 +10,8 @@ class Auth::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     @staff = operators(:one)
-    @headers = as_staff_headers(@staff, host: @host)
     @token = operator_tokens(:one)
-    @headers["X-TEST-SESSION-PUBLIC-ID"] = @token.public_id
+    @headers = as_staff_headers(@staff, host: @host, session_public_id: @token.public_id)
     @passkey = operator_passkeys(:one)
   end
 
@@ -104,6 +103,9 @@ class Auth::Org::VerificationsControllerTest < ActionDispatch::IntegrationTest
         end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+      base["Authorization"] = "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }"
     end
 
     base
@@ -194,9 +196,12 @@ class Auth::Org::VerificationsControllerTest
             "discarded_at > ?",
             Time.current,
           ).order(created_at: :desc).first
-        end
+      end
       token ||= OperatorToken.create!(staff: staff, staff_token_kind_id: OperatorTokenKind::BROWSER_WEB)
       base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
+      base["Authorization"] = "Bearer #{
+        jwt_access_token_for(staff, host: host, session_public_id: token.public_id, resource_type: "operator")
+      }"
     end
 
     base

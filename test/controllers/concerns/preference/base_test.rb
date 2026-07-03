@@ -1063,7 +1063,6 @@ module Preference
     end
 
     test "banner theme class and audit helper edge branches" do
-      assert_not @controller.show_cookie_banner?
       @controller.define_singleton_method(:current_resource) { Object.new }
       @controller.define_singleton_method(:adopt_preference_for!) { |_| raise RuntimeError, "boom" }
 

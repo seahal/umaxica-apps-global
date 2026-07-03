@@ -8,12 +8,15 @@ module Base
         include ::VerificationVisitor
         include CommonRedirect
         include BaseSettingsWithdrawalFlow
+        include WithdrawalCeremonyAuthentication
 
-        AUTHENTICATION_MODE = :private
-        declare_authentication_mode! :private
+        AUTHENTICATION_MODE = :open
+        declare_authentication_mode! :open
 
-        before_action :authenticate_visitor!
-        before_action :authorize_withdrawal!, only: %i(new edit create update destroy)
+        before_action :authenticate_visitor!, only: %i(new update)
+        before_action :withdrawal_ceremony_required!, only: %i(edit create destroy)
+        before_action :authorize_withdrawal!, only: %i(new update)
+        before_action :authorize_withdrawal_ceremony!, only: %i(edit create destroy)
 
         def new
           render_withdrawal_entry(current_visitor)
@@ -21,12 +24,12 @@ module Base
         end
 
         def edit
-          render_withdrawal_status(current_visitor)
+          render_withdrawal_status(current_withdrawal_subject)
           render "base/com/identity/withdrawals/edit" unless performed?
         end
 
         def create
-          recover_withdrawal!(current_visitor)
+          recover_withdrawal!(current_withdrawal_subject)
         end
 
         def update
@@ -34,7 +37,12 @@ module Base
         end
 
         def destroy
-          terminate_withdrawal!(current_visitor)
+          terminate_withdrawal!(current_withdrawal_subject)
+        end
+
+        def end_session
+          revoke_current_withdrawal_ceremony!
+          safe_redirect_to(withdrawal_public_fallback_path, fallback: withdrawal_new_path, status: :see_other)
         end
 
         private
@@ -42,6 +50,17 @@ module Base
         def authorize_withdrawal!
           authorize!(current_visitor, to: :"#{action_name}?", with: VisitorWithdrawalPolicy)
         end
+
+        def authorize_withdrawal_ceremony!
+          authorize!(
+            current_withdrawal_subject,
+            to: :"#{action_name}?",
+            with: VisitorWithdrawalPolicy,
+            context: { user: current_withdrawal_subject },
+          )
+        end
+
+        def withdrawal_ceremony_class = VisitorWithdrawalCeremony
 
         def withdrawal_new_path(extra_params = {})
           new_base_com_identity_withdrawal_path({ ri: params[:ri] }.merge(extra_params))
@@ -53,6 +72,10 @@ module Base
 
         def withdrawal_settings_path
           base_com_identity_withdrawal_path(ri: params[:ri])
+        end
+
+        def withdrawal_public_fallback_path
+          auth_com_sign_in_path
         end
 
         def handle_deactivation_failure(actor)
@@ -73,7 +96,7 @@ module Base
           render "base/com/identity/withdrawals/new", status: :unprocessable_content
         end
 
-        def verification_required_action? = true
+        def verification_required_action? = action_name.in?(%w(new update))
 
         def verification_scope = "withdrawal"
       end

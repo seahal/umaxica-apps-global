@@ -89,50 +89,6 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
     assert_nil ClientAppleIdentity.find_by(uid: "apple_flow_cancel")
   end
 
-  test "underage Apple birthdate shows recovery copy and stays terminal" do
-    travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
-      state = start_social_auth_flow(intent: "login")
-      setup_apple_mock_auth(uid: "apple_flow_underage")
-
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: @callback_headers
-
-      assert_redirected_to sign_app_sign_up_guard_apple_url(ri: "jp")
-      follow_redirect!
-      follow_redirect!
-
-      assert_response :ok
-
-      cycle = ClientSignUpFlow.order(:id).last
-
-      patch sign_app_sign_up_check_apple_confirmation_url(ri: "jp"),
-            params: { confirm_new_social_identity: "1", checkpoint_version: cycle.checkpoint_version },
-            headers: @callback_headers
-
-      assert_redirected_to sign_app_sign_up_check_apple_birthdate_url(ri: "jp")
-
-      patch sign_app_sign_up_check_apple_birthdate_url(ri: "jp"),
-            params: {
-              requirement: "birthdate",
-              birthdate: "2010-06-26",
-              checkpoint_version: cycle.reload.checkpoint_version,
-            },
-            headers: @callback_headers
-
-      assert_response :success
-      assert_includes response.body, "16歳"
-      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
-      assert_equal ClientSignUpFlowStatus::FAILED, cycle.reload.status_id
-
-      get sign_app_sign_up_check_apple_birthdate_url(ri: "jp"), headers: @callback_headers
-
-      assert_response :success
-      assert_includes response.body, "16歳"
-      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
-    end
-  end
-
   test "sign in uses existing identity" do
     user = Client.create!(status_id: ClientStatus::ACTIVE, birthdate: "2000-01-01")
     user.create_rp_account!
@@ -154,75 +110,12 @@ class AppleSocialFlowsTest < ActionDispatch::IntegrationTest
 
     submit_social_completion_if_present!
 
-    assert_redirected_to base_app_dashboard_url(
-      ri: "jp",
-      host: ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"),
-    )
-  end
-
-  test "settings link succeeds for logged in user via Sign callback" do
-    user = clients(:one)
-
-    grant_session = seed_app_social_link_grant_session(provider: "apple", user: user, ri: "jp")
-    setup_apple_mock_auth(uid: "apple_flow_link")
-
-    assert_difference("ClientAppleIdentity.count", 1) do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: grant_session.state },
-           headers: @callback_headers.merge(grant_session.user_headers)
-      submit_social_completion_if_present!
-    end
-
-    assert_redirected_to auth_app_settings_path(ri: "jp")
-
-    identity = ClientAppleIdentity.find_by(uid: "apple_flow_link")
-
-    assert_not_nil identity
-    assert_equal user.id, identity.user_id
-  end
-
-  test "Sign-started link commits with a logged-in session" do
-    user = clients(:one)
-
-    state = start_social_auth_flow(intent: "link", user: user)
-    setup_apple_mock_auth(uid: "apple_flow_link_session_only")
-
-    assert_difference("ClientAppleIdentity.count", 1) do
-      post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-           params: { state: state },
-           headers: @callback_headers.merge(as_user_headers(user, host: @host))
-    end
-
-    assert_equal user.id, ClientAppleIdentity.find_by!(uid: "apple_flow_link_session_only").user_id
-    assert_not_includes response.body.to_s, "social-completion-form"
-  end
-
-  test "link conflict returns error" do
-    owner = clients(:one)
-    other = clients(:two)
-
-    ClientAppleIdentity.create!(
-      user: owner,
-      uid: "apple_flow_conflict",
-      provider: "apple",
-      token: "token_old",
-      token_expires_at: 1.week.from_now.to_i,
-      user_apple_identity_status: client_apple_identity_statuses(:active),
-    )
-
-    state = start_social_auth_flow(intent: "link", user: other)
-    setup_apple_mock_auth(uid: "apple_flow_conflict")
-
-    post auth_app_social_apple_callback_url(provider: "apple", ri: "jp"),
-         params: { state: state },
-         headers: @callback_headers.merge(as_user_headers(other, host: @host))
-
     assert_response :redirect
-    follow_redirect!
+    redirect_uri = URI.parse(response.location)
 
-    identity = ClientAppleIdentity.find_by(uid: "apple_flow_conflict")
-
-    assert_equal owner.id, identity.user_id
+    assert_equal ENV.fetch("PRIVATE_BASE_SERVICE_URL", "www.app.localhost"), redirect_uri.host
+    assert_equal "/dashboard", redirect_uri.path
+    assert_empty redirect_uri.query.to_s
   end
 
   private

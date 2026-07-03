@@ -268,13 +268,24 @@ class SecurityJwtPreferenceTokenCodec
     def host_matches?(host_claim, host)
       return false if host_claim.blank?
 
-      host == host_claim || host.end_with?(".#{host_claim}")
+      host == host_claim ||
+        host.end_with?(".#{host_claim}") ||
+        host_family(host_claim) == host_family(host)
     end
 
     def audience_matches?(aud_claim, host)
       normalize_audiences(aud_claim).any? do |aud|
-        host == aud || host.end_with?(".#{aud}")
+        host == aud ||
+          host.end_with?(".#{aud}") ||
+          host_family(aud) == host_family(host)
       end
+    end
+
+    def host_family(host)
+      parts = host.to_s.split(".")
+      return host.to_s if parts.length < 3
+
+      parts.last(2).join(".")
     end
 
     def normalize_audiences(aud_claim)

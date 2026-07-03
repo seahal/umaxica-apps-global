@@ -1,0 +1,96 @@
+# == Schema Information
+#
+# Table name: avatar_lifecycle_states
+# Database name: avatar
+#
+#  id                  :bigint           not null, primary key
+#  can_create_content  :boolean          not null
+#  description         :text
+#  discoverable        :boolean          not null
+#  editable_by_owner   :boolean          not null
+#  followable          :boolean          not null
+#  group_attachable    :boolean          not null
+#  key                 :string           not null
+#  moderation_visible  :boolean          not null
+#  restorable_by_owner :boolean          not null
+#  sort_order          :integer          not null
+#  terminal            :boolean          not null
+#  title               :string           not null
+#  visible_by_default  :boolean          not null
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#
+active:
+  key: active
+  title: Active
+  description: Avatar can create content and participate in normal public surfaces.
+  can_create_content: true
+  visible_by_default: true
+  editable_by_owner: true
+  restorable_by_owner: false
+  followable: true
+  group_attachable: true
+  discoverable: true
+  moderation_visible: true
+  terminal: false
+  sort_order: 10
+
+suspended:
+  key: suspended
+  title: Suspended
+  description: Avatar cannot create content and is excluded from public surfaces until privileged restoration.
+  can_create_content: false
+  visible_by_default: false
+  editable_by_owner: true
+  restorable_by_owner: false
+  followable: false
+  group_attachable: false
+  discoverable: false
+  moderation_visible: true
+  terminal: false
+  sort_order: 20
+
+archived:
+  key: archived
+  title: Archived
+  description: Avatar is owner-retirable and excluded from public discovery, follow, and group attach.
+  can_create_content: false
+  visible_by_default: false
+  editable_by_owner: true
+  restorable_by_owner: true
+  followable: false
+  group_attachable: false
+  discoverable: false
+  moderation_visible: true
+  terminal: false
+  sort_order: 30
+
+banned:
+  key: banned
+  title: Banned
+  description: Avatar cannot create content or be restored by the owner.
+  can_create_content: false
+  visible_by_default: false
+  editable_by_owner: false
+  restorable_by_owner: false
+  followable: false
+  group_attachable: false
+  discoverable: false
+  moderation_visible: true
+  terminal: false
+  sort_order: 40
+
+deleted:
+  key: deleted
+  title: Deleted
+  description: Terminal state retained only for audit, legal, or minimum authority records.
+  can_create_content: false
+  visible_by_default: false
+  editable_by_owner: false
+  restorable_by_owner: false
+  followable: false
+  group_attachable: false
+  discoverable: false
+  moderation_visible: true
+  terminal: true
+  sort_order: 50
