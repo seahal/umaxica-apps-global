@@ -8,4 +8,28 @@ strictDepBuilds: true
 trustPolicy: no-downgrade
 unicode: false
 overrides:
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vitest: 'catalog:'
+  vite: 'catalog:'
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.2
+  vitest: 4.1.9
+  vite-plus: 0.2.2
+  '@vitest/coverage-v8': 4.1.9
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: '*'
+    vitest: '*'
+minimumReleaseAgeExclude:
+  - vite-plus
+  - '@voidzero-dev/*'
+  - oxlint
+  - '@oxlint/*'
+  - oxlint-tsgolint
+  - '@oxlint-tsgolint/*'
+  - oxfmt
+  - '@oxfmt/*'
+  - vitest
+  - '@vitest/*'

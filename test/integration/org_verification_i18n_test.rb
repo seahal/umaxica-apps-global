@@ -23,9 +23,9 @@ class OrgVerificationI18nTest < ActionDispatch::IntegrationTest
       public_id: "ov_i18n_#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
     )
-    @headers = browser_headers.merge(
-      "X-TEST-CURRENT-STAFF" => @staff.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
+    @headers = as_staff_headers(
+      @staff, host: @host, headers: browser_headers,
+              session_public_id: @token.public_id,
     ).freeze
 
     OperatorPasskey.create!(

@@ -109,7 +109,7 @@ class SignErrorResponsesTest < ActiveSupport::TestCase
     harness.request = Struct.new(:format, :path).new(Struct.new(:json?).new(true), "/")
     harness.handle_csrf_failure
 
-    assert_equal :unprocessable_content, harness.rendered[:status]
+    assert_equal :forbidden, harness.rendered[:status]
 
     harness.request = Struct.new(:format, :path).new(Struct.new(:json?).new(false), "/")
     assert_raises(ActionController::InvalidCrossOriginRequest) do

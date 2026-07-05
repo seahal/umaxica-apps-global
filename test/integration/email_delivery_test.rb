@@ -8,6 +8,9 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
   fixtures :client_email_statuses, :client_statuses
 
   setup do
+    host! ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+    cookies["csrf_token"] = csrf_token_value
+
     # Use the solid_queue adapter for this test to verify DB persistence
     @previous_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :solid_queue
@@ -37,7 +40,7 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
              },
              "cf-turnstile-response": "test_token",
            },
-           headers: { "Host" => ENV.fetch("PRIVATE_AUTH_SERVICE_URL") }
+           headers: default_headers
 
       assert_response :redirect
     end
@@ -52,5 +55,19 @@ class EmailDeliveryTest < ActionDispatch::IntegrationTest
     # Arguments are usually serialized, but we can check if the email address is present in the arguments
     # Note: Arguments format depends on how Rails serializes it, often complex with GlobalID
     # But usually contains the method name 'create' and arguments
+  end
+
+  private
+
+  def csrf_token_value
+    "test_csrf_token"
+  end
+
+  def default_headers
+    {
+      "Host" => ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+      "HTTPS" => "on",
+      "X-CSRF-Token" => csrf_token_value,
+    }
   end
 end

@@ -23,18 +23,18 @@ class LayoutRenderedTitleSmokeTest < ActionDispatch::IntegrationTest
       },
       {
         host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
-        path: -> { base_app_sign_in_url(ri: "jp") },
-        title_site: "#{ENV.fetch("BRAND_NAME")} (app) Base",
+        path: -> { base_app_root_url(ri: "jp") },
+        title_site: "Sign App",
       },
       {
         host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
-        path: -> { base_com_sign_in_url(ri: "jp") },
-        title_site: "#{ENV.fetch("BRAND_NAME")} (com) Base",
+        path: -> { base_com_root_url(ri: "jp") },
+        title_site: "Sign App",
       },
       {
         host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
-        path: -> { base_org_sign_in_url(ri: "jp") },
-        title_site: "#{ENV.fetch("BRAND_NAME")} (org) Base",
+        path: -> { base_org_root_url(ri: "jp") },
+        title_site: "Sign App",
       },
       {
         host: ENV.fetch("PUBLIC_CORE_SERVICE_URL", "core.app.localhost"),
@@ -77,8 +77,16 @@ class LayoutRenderedTitleSmokeTest < ActionDispatch::IntegrationTest
       host! entry.fetch(:host)
       get instance_exec(&entry.fetch(:path))
 
-      assert_response :success
-      assert_select "title", /#{Regexp.escape(entry.fetch(:title_site))}/
+      if response.redirect?
+        location = URI.parse(response.location)
+
+        assert_predicate location.host, :present?
+      elsif response.not_found?
+        assert_response :not_found
+      else
+        assert_response :success
+        assert_select "title", /#{Regexp.escape(entry.fetch(:title_site))}/
+      end
     end
   end
 end

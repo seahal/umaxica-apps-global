@@ -36,12 +36,15 @@ class SocialLinkUnlinkTest < ActionDispatch::IntegrationTest
     )
 
     # Login as user
-    @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    @headers = {
-      "Host" => @host,
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    }
+    ensure_user_token_reference_records!
+    @token = ClientToken.create!(
+      user: @user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+    )
+    @headers = as_user_headers(@user, host: @host, session_public_id: @token.public_id)
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
   end
@@ -146,7 +149,13 @@ class SocialLinkUnlinkTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -167,7 +176,16 @@ class SocialLinkUnlinkTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -188,7 +206,16 @@ class SocialLinkUnlinkTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -623,7 +650,15 @@ class SocialLinkUnlinkTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -641,7 +676,18 @@ class SocialLinkUnlinkTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -659,7 +705,18 @@ class SocialLinkUnlinkTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -746,6 +803,11 @@ class SocialLinkUnlinkTest
     token.update_columns(
       { last_step_up_at: at,
         last_step_up_scope: scope.presence || token.try(:last_step_up_scope).presence || "verification",
+        last_step_up_aal: "aal2",
+        last_step_up_method: "passkey",
+        last_step_up_purpose: "step_up",
+        last_step_up_audience: "step_up:app",
+        last_step_up_session_public_id: token.public_id,
         updated_at: Time.current, }.compact,
     )
   end

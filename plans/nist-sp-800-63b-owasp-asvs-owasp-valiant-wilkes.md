@@ -19,10 +19,11 @@ Logging)。本フェーズの目的は結論ではなく、証拠の収集と穴
 | cookie session を使っている可能性      | 確定: cookie session。prod は `__Host-session`, `SameSite=Lax`, `HttpOnly`, `Secure`, `expire_after: 14.days`(`lib/jit_session_cookie_config.rb`)   |
 | step-up を実装している                 | 確定: `step_up` DSL(`verification_step_up_guard.rb`)+ AAL ベース(`step_up_requirement.rb`, DEFAULT_AAL=:aal2)+ ceremony サービス群 + Chronicle 監査 |
 
-**質問 0(最優先)— 解決済み**: 依頼者確認により **本レビューは Rails 単体として進める**。Hono / React Router
-の edge/SPA 層は本リポジトリに存在しないため、edge 層 enforcement・SPA guard 依存・cookie 転送の論点は成立
-しないものとして扱う。以降の質問群で Hono/React Router を前提にした項目は、Rails + Inertia + Stimulus に読み
-替える(client guard = Stimulus WebAuthn ceremony のみ、認可判断は持たない)。
+**質問 0(最優先)— 解決済み**: 依頼者確認により **本レビューは Rails 単体として進める**。Hono / React
+Router の edge/SPA 層は本リポジトリに存在しないため、edge 層 enforcement・SPA
+guard 依存・cookie 転送の論点は成立しないものとして扱う。以降の質問群で Hono/React
+Router を前提にした項目は、Rails + Inertia + Stimulus に読み替える(client guard = Stimulus WebAuthn
+ceremony のみ、認可判断は持たない)。
 
 ## 1. 探索で確認済みの事実(提出不要なもの)
 
@@ -109,14 +110,14 @@ Logging)。本フェーズの目的は結論ではなく、証拠の収集と穴
 This section records the closure state for the step-up security remaining-risk slice. It is written
 in English to follow the repository language policy for newly touched plan material.
 
-| ID | Standard mapping | Status | Evidence | Remaining release risk |
-| -- | ---------------- | ------ | -------- | ---------------------- |
-| P-01 | NIST SP 800-63B session binding; OWASP Session Management | Closed for MFA disable, MFA reset, secret credential removal, and email verification on the Base app request paths. | `test/integration/step_up_authentication_test.rb` creates two sessions and verifies current-session retention, other-session revocation, step-up freshness removal, persisted step-up row expiry, and durable credential-transition audit through controller routes. | Full password change needs equivalent coverage when enabled. |
-| P-02 | NIST SP 800-63B authenticator lifecycle | Closed as disabled, not implemented. | `Base::App::Identity::Secrets::RotationsController#create` returns `403 Forbidden`; request test asserts no transition/audit event is emitted. | Full password change is a release blocker for any release that exposes password rotation UI. |
-| P-04 | OWASP Logging Cheat Sheet; ASVS V7 | Documented remaining risk for this release. | `CredentialSecurityTransition` writes durable Chronicle/IdentityAudit aggregate records and redaction tests cover secret-bearing metadata. `docs/security/session-reset-policy.md` fixes the non-credential taxonomy bridge as non-blocking remaining risk. | Full durable taxonomy bridge for `auth.csrf.rejected`, `auth.redirect.rejected`, `auth.authorization.denied`, `auth.step_up.intent_mismatch`, and `auth.step_up.required_missing` remains next-slice work. |
-| P-05 | OWASP CSRF Prevention; ASVS V4.2 | Closed for release gate. | `test/integration/preference_web_csrf_test.rb` covers same-origin, same-site, untrusted-origin reject, exact trusted-origin pass, suffix/scheme/port confusion reject, missing `Sec-Fetch-Site` same-session legacy-token pass, no-token reject, cross-session token reject, invalid-token reject, and protocol exception paths under enabled forgery protection. `test/lib/jit/base_trusted_origins_test.rb` covers production-like minimal allowlists. | Broader route inventory remains covered separately; full `auth.csrf.rejected` durable taxonomy bridge is P-04 next-slice work. |
-| P-07 | OWASP Unvalidated Redirects and Forwards | Closed for path-target resolver fuzz payloads and allow-other-host inventory. | `test/services/redirects_path_target_resolver_security_test.rb` rejects external, protocol-relative, encoded-host-escape, backslash, and dangerous nested redirect query keys without issuing pt. | Per-flow browser redirects still rely on existing controller-specific tests. |
-| P-10 | OWASP ASVS V4 IDOR | Closed for org membership matrix. | `test/controllers/base/org/organizations/memberships_controller_test.rb` verifies org A staff cannot access org B membership collection, cannot swap org B membership id into org A URL, and cannot use old step-up freshness to authorize org B mutation. | Owner-transfer and role-specific workflows need equivalent request tests when those production routes are enabled. |
+| ID   | Standard mapping                                          | Status                                                                                                              | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Remaining release risk                                                                                                                                                                                     |
+| ---- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P-01 | NIST SP 800-63B session binding; OWASP Session Management | Closed for MFA disable, MFA reset, secret credential removal, and email verification on the Base app request paths. | `test/integration/step_up_authentication_test.rb` creates two sessions and verifies current-session retention, other-session revocation, step-up freshness removal, persisted step-up row expiry, and durable credential-transition audit through controller routes.                                                                                                                                                                                     | Full password change needs equivalent coverage when enabled.                                                                                                                                               |
+| P-02 | NIST SP 800-63B authenticator lifecycle                   | Closed as disabled, not implemented.                                                                                | `Base::App::Identity::Secrets::RotationsController#create` returns `403 Forbidden`; request test asserts no transition/audit event is emitted.                                                                                                                                                                                                                                                                                                           | Full password change is a release blocker for any release that exposes password rotation UI.                                                                                                               |
+| P-04 | OWASP Logging Cheat Sheet; ASVS V7                        | Documented remaining risk for this release.                                                                         | `CredentialSecurityTransition` writes durable Chronicle/IdentityAudit aggregate records and redaction tests cover secret-bearing metadata. `docs/security/session-reset-policy.md` fixes the non-credential taxonomy bridge as non-blocking remaining risk.                                                                                                                                                                                              | Full durable taxonomy bridge for `auth.csrf.rejected`, `auth.redirect.rejected`, `auth.authorization.denied`, `auth.step_up.intent_mismatch`, and `auth.step_up.required_missing` remains next-slice work. |
+| P-05 | OWASP CSRF Prevention; ASVS V4.2                          | Closed for release gate.                                                                                            | `test/integration/preference_web_csrf_test.rb` covers same-origin, same-site, untrusted-origin reject, exact trusted-origin pass, suffix/scheme/port confusion reject, missing `Sec-Fetch-Site` same-session legacy-token pass, no-token reject, cross-session token reject, invalid-token reject, and protocol exception paths under enabled forgery protection. `test/lib/jit/base_trusted_origins_test.rb` covers production-like minimal allowlists. | Broader route inventory remains covered separately; full `auth.csrf.rejected` durable taxonomy bridge is P-04 next-slice work.                                                                             |
+| P-07 | OWASP Unvalidated Redirects and Forwards                  | Closed for path-target resolver fuzz payloads and allow-other-host inventory.                                       | `test/services/redirects_path_target_resolver_security_test.rb` rejects external, protocol-relative, encoded-host-escape, backslash, and dangerous nested redirect query keys without issuing pt.                                                                                                                                                                                                                                                        | Per-flow browser redirects still rely on existing controller-specific tests.                                                                                                                               |
+| P-10 | OWASP ASVS V4 IDOR                                        | Closed for org membership matrix.                                                                                   | `test/controllers/base/org/organizations/memberships_controller_test.rb` verifies org A staff cannot access org B membership collection, cannot swap org B membership id into org A URL, and cannot use old step-up freshness to authorize org B mutation.                                                                                                                                                                                               | Owner-transfer and role-specific workflows need equivalent request tests when those production routes are enabled.                                                                                         |
 
 Release recommendation from this update: merge may proceed if the security-slice focused suites stay
 green and password rotation UI is not exposed. Exposing password rotation without a full
@@ -298,57 +299,63 @@ separating the known red full-suite baseline from this slice.
 
 ## 7. 検証結果: P-01(確定)
 
-**結論: Partial(ただし核心は Confirmed / High)。** 当初の「email 変更で失効しない」という表現は **Refuted**
-だが、より正確な穴 —「authenticator の無効化・再設定が他 session と未消化 step-up grant を失効させない」— は
-**Confirmed**。
+**結論: Partial(ただし核心は Confirmed / High)。** 当初の「email 変更で失効しない」という表現は
+**Refuted** だが、より正確な穴 —「authenticator の無効化・再設定が他 session と未消化 step-up
+grant を失効させない」— は **Confirmed**。
 
 ### Evidence(実コード)
 
 - **email `#update` はクレデンシャル変更ではない → 当初表現は Refuted**。
   `base/app/identity/emails_controller.rb#update`(l.28-41)が permit するのは
-  `email_preference_params`(l.63-71)= `:promotional, :notifiable` のみ。**メールアドレス本体を変更しない**
-  (マーケティング購読設定の編集)。よって「email 変更ハンドラに失効が無い」という P-01 の元の主張は当該
-  エンドポイントには当たらない。
+  `email_preference_params`(l.63-71)= `:promotional, :notifiable`
+  のみ。**メールアドレス本体を変更しない**
+  (マーケティング購読設定の編集)。よって「email 変更ハンドラに失効が無い」という P-01 の元の主張は当該エンドポイントには当たらない。
 - **実際のアドレス追加/検証は step-up gated(良好)だが他 session を失効しない**。
   `base/app/identity/emails/registrations_controller.rb:23` に
-  `step_up only: %i(new create edit update), bootstrap: true`(`verification_scope = "settings_email"`, l.57)。
-  ただし super チェーン(`sign_settings_email_registration.rb` / `sign_email_registrable.rb` /
-  `sign_email_registration_flow.rb`)に `reset_session` / `logout_all` / `revoke` / `session_version` は
-  **0 件**(grep 確認)。
+  `step_up only: %i(new create edit update), bootstrap: true`(`verification_scope = "settings_email"`,
+  l.57)。ただし super チェーン(`sign_settings_email_registration.rb` / `sign_email_registrable.rb` /
+  `sign_email_registration_flow.rb`)に `reset_session` / `logout_all` / `revoke` / `session_version`
+  は **0 件**(grep 確認)。
 - **MFA level 変更が失効しない → Confirmed / High**。
   `base/app/identity/mfa/challenges_controller.rb#update`(l.28-32)は
   `current_client.update!(mfa_level_id: ..., mfa_level_enabled: ...)` + redirect のみ。step-up gated
-  (`verification_scope = "settings_mfa"`, l.45)だが、更新後に session も step-up grant も失効しない。
-  `requested_mfa_level_id`(l.47-52)は NOTHING/FULL のみ受理 = **MFA 無効化(FULL→NOTHING)が可能**で、
-  無効化しても既存 session と DB 永続の `{visitor,operator,client}_step_up_session` grant が生き残る。
+  (`verification_scope = "settings_mfa"`, l.45)だが、更新後に session も step-up
+  grant も失効しない。 `requested_mfa_level_id`(l.47-52)は NOTHING/FULL のみ受理 =
+  **MFA 無効化(FULL→NOTHING)が可能**で、無効化しても既存 session と DB 永続の
+  `{visitor,operator,client}_step_up_session` grant が生き残る。
 - **password rotation は未実装 → Confirmed(P-02)**。
   `base/app/identity/secrets/rotations_controller.rb:13` = `def create = head(:not_implemented)`。
-- **MFA reset は no-op → Confirmed(P-02)**。
-  `base/app/identity/mfa/resets_controller.rb:15-20` = `authorize!` → `redirect_to` のみ。
-- **失効は「明示的な全 session revoke」エンドポイントにしか存在しない**。`logout_all_sessions_for!` /
-  `AuthenticationSessionRevoker.revoke_all_for` の呼び出し元は `revocations/alls_controller.rb` と
-  com/org `sessions_controller`(ユーザー操作)のみ。credential/authenticator 変更からは一切呼ばれない。
+- **MFA reset は no-op → Confirmed(P-02)**。 `base/app/identity/mfa/resets_controller.rb:15-20` =
+  `authorize!` → `redirect_to` のみ。
+- **失効は「明示的な全 session revoke」エンドポイントにしか存在しない**。`logout_all_sessions_for!`
+  / `AuthenticationSessionRevoker.revoke_all_for` の呼び出し元は `revocations/alls_controller.rb`
+  とcom/org
+  `sessions_controller`(ユーザー操作)のみ。credential/authenticator 変更からは一切呼ばれない。
 - **session fixation 対策(current session の rotate)は存在 → 当初 U3 懸念は解消**。ADR
-  `adr/session-reset-on-privilege-transition.md` により `reset_session` は (1) sign-in、(2) **step-up 完了
-  (`consume_step_up_session!`)**、(3) logout の 3 点に集約。step-up 成功時に current session id を rotate
-  する。ただしこれは fixation(現 session)対策であり、**他 session の失効ではない**。同 ADR の Consequences は
-  settings 系 registrations(secrets/totps/passkeys/emails)を「AAL promotion bypass」= `reset_session`
-  非適用の non-goal と明記。なお同 ADR は 2026-06-02 に `identity-authority-boundary.md` で supersede 済み。
+  `adr/session-reset-on-privilege-transition.md` により `reset_session` は (1) sign-in、(2)
+  **step-up 完了 (`consume_step_up_session!`)**、(3) logout の 3 点に集約。step-up 成功時に current
+  session
+  id を rotate する。ただしこれは fixation(現 session)対策であり、**他 session の失効ではない**。同 ADR の Consequences は settings 系 registrations(secrets/totps/passkeys/emails)を「AAL
+  promotion bypass」= `reset_session` 非適用の non-goal と明記。なお同 ADR は 2026-06-02 に
+  `identity-authority-boundary.md` で supersede 済み。
 
 ### Attack scenario(防御観点)
 
-被害者の session を保持中の攻撃者(または account recovery を競っている攻撃者)がいる状況で、被害者が MFA を
-無効化・再設定しても、攻撃者の既存 session と過去に取得済みの step-up grant が失効しない。authenticator を
-変更・除去しても「他のログイン済み端末を締め出す」効果が得られず、NIST 800-63B §7.1 が想定する authenticator
-イベント後の session 束縛が成立しない。password 変更に至っては未実装のため「変更による締め出し」自体が不能。
+被害者の session を保持中の攻撃者(または account
+recovery を競っている攻撃者)がいる状況で、被害者が MFA を無効化・再設定しても、攻撃者の既存 session と過去に取得済みの step-up
+grant が失効しない。authenticator を変更・除去しても「他のログイン済み端末を締め出す」効果が得られず、NIST
+800-63B
+§7.1 が想定する authenticator イベント後の session 束縛が成立しない。password 変更に至っては未実装のため「変更による締め出し」自体が不能。
 
 ### Fix(実装方針・最小)
 
-- MFA level 変更成功後(`mfa/challenges#update`)に、**current session を除く**他 session を失効させる。既存の
-  `AuthenticationLogoutAllSessions`(`session_version` bump + token 走査)を再利用し、現 session token を除外
-  する形の呼び出しを追加(または `revoke_all_for` 後に現 session を再確立)。email address 追加/検証の確定点も
-  同様の方針を検討。
-- password rotation(`secrets/rotations#create`)実装時は、成功後に全 session 失効 + current 再確立を仕様に含める。
+- MFA level 変更成功後(`mfa/challenges#update`)に、**current
+  session を除く**他 session を失効させる。既存の
+  `AuthenticationLogoutAllSessions`(`session_version` bump + token 走査)を再利用し、現 session
+  token を除外する形の呼び出しを追加(または `revoke_all_for` 後に現 session を再確立)。email
+  address 追加/検証の確定点も同様の方針を検討。
+- password rotation(`secrets/rotations#create`)実装時は、成功後に全 session 失効 +
+  current 再確立を仕様に含める。
 - MFA reset は no-op を実装するまで「未実装」を UI/ドキュメントに明示(silent no-op を廃す)。
 
 ### Tests(追加すべき spec)
@@ -361,61 +368,71 @@ separating the known red full-suite baseline from this slice.
 ### Regression guard(CI で再発検知)
 
 - 「authenticator/credential 変更コントローラは失効 API を呼ぶ」不変条件テスト: `mfa`, `secrets`,
-  `emails/registrations` 系 `#update`/`#create` が `AuthenticationLogoutAllSessions` 相当を経由することを
-  controller unit で assert(未呼び出しなら fail)。
-- `head(:not_implemented)` を返す本番ルートを検出し、意図的スタブの許可リスト外なら fail させる test。
+  `emails/registrations` 系 `#update`/`#create` が `AuthenticationLogoutAllSessions`
+  相当を経由することを controller unit で assert(未呼び出しなら fail)。
+- `head(:not_implemented)`
+  を返す本番ルートを検出し、意図的スタブの許可リスト外なら fail させる test。
 
 ---
 
 ## 8. 検証結果: P-05(確定)
 
-**結論: Partial / Medium。CSRF 保護は有効かつ構造的に健全(bypass は Refuted / H-3 も Refuted)。ただし
-`# FIXME: Resolve the URL issues before deploying.` は `trusted_origins` の正しさに関する未解決の deploy
-gate として実在し、strict-mode 等のテストギャップも確定。**
+**結論: Partial / Medium。CSRF 保護は有効かつ構造的に健全(bypass は Refuted /
+H-3 も Refuted)。ただし `# FIXME: Resolve the URL issues before deploying.` は `trusted_origins`
+の正しさに関する未解決の deploy gate として実在し、strict-mode 等のテストギャップも確定。**
 
 ### Evidence(実コード)
 
-- **`:header_or_legacy_token` はフォーク Rails 由来のカスタム strategy**。定義はアプリ側になく、vendoring された
-  git ソースの Rails(`vendor/bundle/ruby/4.0.0/bundler/gems/rails-bf13f50eb663/actionpack/lib/action_controller/metal/request_forgery_protection.rb`)。
-  検証セマンティクス(l.620-659):GET/HEAD は無検証で許可 → それ以外は `valid_request_origin?` かつ
+- **`:header_or_legacy_token`
+  はフォーク Rails 由来のカスタム strategy**。定義はアプリ側になく、vendoring された git ソースの Rails(`vendor/bundle/ruby/4.0.0/bundler/gems/rails-bf13f50eb663/actionpack/lib/action_controller/metal/request_forgery_protection.rb`)。検証セマンティクス(l.620-659):GET/HEAD は無検証で許可 → それ以外は
+  `valid_request_origin?` かつ
   `verified_with_legacy_token?`。後者は Sec-Fetch-Site が same-origin/same-site → pass、cross-site →
-  `origin_trusted?`(allowlist)、**missing/none → `any_authenticity_token_valid?`(従来トークン)にフォールバック**。
-- **downgrade bypass は成立しない → H-3 Refuted**。Sec-Fetch-Site を省いても token フォールバック側で有効な
-  authenticity token が必須。ヘッダを落とすだけでは検証を回避できない。
-- **全 browser サーフェスの mutation は CSRF 検証対象**。各 surface `ApplicationController` + `BareController` が
-  `with: :exception`。例外は妥当な M2M のみ: `:null_session`(OAuth token/protocol、OIDC backchannel logout =
-  JWT 認証・非ブラウザ)、`:header_only`(OIDC RP logout)。state-changing の GET は確認範囲で無し。
-- **FIXME は最近の未解決 deploy gate**。`base/app/application_controller.rb:89`、`base/com:85`、`base/org:84` の
-  3 サーフェスに存在。git blame = commit `3683d7aec`(2026-06-27, 本日から 6 日前)。直下の
-  `trusted_origins: JitHostOriginEnv.trusted_origins(ENV.fetch("PUBLIC_*_..."))` を指しており、「URL issues」は
-  この allowlist 算出の正しさに関わる。trusted_origins が広すぎれば cross-site の `origin_trusted?` が誤って
-  通り CSRF bypass、狭すぎればクロスサーフェス正常系が壊れる。**env 値と作者意図が未提出のためコードだけでは
-  確定不能**。ただし作者自身の "before deploying" マーカーにより deploy gate 扱いが妥当。
-- **テストギャップ確定**。CSRF strict-mode(`gh627`)、token-endpoint CSRF(`restoration-a6`)、
-  public-controller CSRF は backlog で未実装。`test/controllers/security/csrf_route_coverage_test.rb` は
-  「どの controller が NULL_SESSION_STRATEGY か」の coverage guard のみで、request レベルの CSRF 挙動は未検証。
+  `origin_trusted?`(allowlist)、**missing/none →
+  `any_authenticity_token_valid?`(従来トークン)にフォールバック**。
+- **downgrade bypass は成立しない → H-3
+  Refuted**。Sec-Fetch-Site を省いても token フォールバック側で有効な authenticity
+  token が必須。ヘッダを落とすだけでは検証を回避できない。
+- **全 browser サーフェスの mutation は CSRF 検証対象**。各 surface `ApplicationController` +
+  `BareController` が `with: :exception`。例外は妥当な M2M のみ: `:null_session`(OAuth
+  token/protocol、OIDC backchannel logout = JWT 認証・非ブラウザ)、`:header_only`(OIDC RP
+  logout)。state-changing の GET は確認範囲で無し。
+- **FIXME は最近の未解決 deploy
+  gate**。`base/app/application_controller.rb:89`、`base/com:85`、`base/org:84`
+  の 3 サーフェスに存在。git blame = commit `3683d7aec`(2026-06-27, 本日から 6 日前)。直下の
+  `trusted_origins: JitHostOriginEnv.trusted_origins(ENV.fetch("PUBLIC_*_..."))` を指しており、「URL
+  issues」はこの allowlist 算出の正しさに関わる。trusted_origins が広すぎれば cross-site の
+  `origin_trusted?` が誤って通り CSRF
+  bypass、狭すぎればクロスサーフェス正常系が壊れる。**env 値と作者意図が未提出のためコードだけでは確定不能**。ただし作者自身の "before
+  deploying" マーカーにより deploy gate 扱いが妥当。
+- **テストギャップ確定**。CSRF strict-mode(`gh627`)、token-endpoint
+  CSRF(`restoration-a6`)、public-controller
+  CSRF は backlog で未実装。`test/controllers/security/csrf_route_coverage_test.rb`
+  は「どの controller が NULL_SESSION_STRATEGY か」の coverage
+  guard のみで、request レベルの CSRF 挙動は未検証。
 
 ### Deploy blocker か
 
-**作者の "before deploying" マーカーに従い「未解決の deploy gate」と扱う。** ただし CSRF 自体は無効化されて
-おらず(`with: :exception` 稼働)、確定した live bypass ではない。判定に必要なのは (a) 各 `PUBLIC_*_SERVICE_URL`
-の実値、(b) `JitHostOriginEnv.trusted_origins` の展開結果、(c) FIXME が指す「URL issues」の具体。これらが健全と
-確認できれば FIXME 除去、そうでなければデプロイ前に是正。
+**作者の "before deploying" マーカーに従い「未解決の deploy gate」と扱う。**
+ただし CSRF 自体は無効化されておらず(`with: :exception` 稼働)、確定した live
+bypass ではない。判定に必要なのは (a) 各 `PUBLIC_*_SERVICE_URL` の実値、(b)
+`JitHostOriginEnv.trusted_origins` の展開結果、(c) FIXME が指す「URL
+issues」の具体。これらが健全と確認できれば FIXME 除去、そうでなければデプロイ前に是正。
 
 ### 修正 diff 方針
 
-- `JitHostOriginEnv.trusted_origins` の展開結果を検証する unit test を追加し、想定 origin 集合と一致することを
-  pin(FIXME が指す不確実性をテストで固定 → コメント除去の根拠にする)。
-- cross-site の `origin_trusted?` 分岐が **意図した origin だけ**通すことを request spec で確認(信頼外 origin から
-  の cross-site POST が 403 になること)。
+- `JitHostOriginEnv.trusted_origins` の展開結果を検証する unit
+  test を追加し、想定 origin 集合と一致することを pin(FIXME が指す不確実性をテストで固定 → コメント除去の根拠にする)。
+- cross-site の `origin_trusted?` 分岐が **意図した origin だけ**通すことを request
+  spec で確認(信頼外 origin からの cross-site POST が 403 になること)。
 
 ### request spec 案
 
 - same-origin POST(Sec-Fetch-Site: same-origin)→ 200/302(通る)。
-- cross-site POST、Origin が trusted_origins 内 → 通る / 外 → `ActionController::InvalidCrossOriginRequest`(403)。
+- cross-site POST、Origin が trusted_origins 内 → 通る / 外 →
+  `ActionController::InvalidCrossOriginRequest`(403)。
 - Sec-Fetch-Site 欠落 + 有効 token → 通る、token 無し → 403(フォールバック健全性)。
-- OAuth token(`:null_session`)/ OIDC RP logout(`:header_only`)が browser CSRF token 無しでも仕様どおり動作し、
-  かつ他認証(client credential / JWT)で保護されること。
+- OAuth token(`:null_session`)/ OIDC RP logout(`:header_only`)が browser CSRF
+  token 無しでも仕様どおり動作し、かつ他認証(client credential / JWT)で保護されること。
 
 ---
 

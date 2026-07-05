@@ -176,24 +176,27 @@ module OidcClientStoresStaticClientStore
   end
 
   def build_redirect_uris(env_key, default_host)
-    host = boot_host_for(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/oidc/callback"]
+    configured_hosts_for(env_key, default_host).map do |host|
+      protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+      port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
+      "#{protocol}://#{host}#{port_suffix}/oidc/callback"
+    end
   end
 
   def build_post_logout_redirect_uris(env_key, default_host)
-    host = boot_host_for(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/sign/out/complete"]
+    configured_hosts_for(env_key, default_host).map do |host|
+      protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+      port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
+      "#{protocol}://#{host}#{port_suffix}/sign/out/complete"
+    end
   end
 
   def build_logout_uris(env_key, default_host, endpoint)
-    host = boot_host_for(env_key, default_host)
-    protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
-    port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
-    ["#{protocol}://#{host}#{port_suffix}/oidc/#{endpoint}"]
+    configured_hosts_for(env_key, default_host).map do |host|
+      protocol = (Rails.env.production? || public_host?(host)) ? "https" : "http"
+      port_suffix = (Rails.env.production? || public_host?(host)) ? "" : ":3000"
+      "#{protocol}://#{host}#{port_suffix}/oidc/#{endpoint}"
+    end
   end
 
   def public_host?(host)
@@ -203,6 +206,13 @@ module OidcClientStoresStaticClientStore
       LOOPBACK_HOST_TOKENS.none? { |token| normalized_host.include?(token) }
   rescue URI::InvalidURIError
     false
+  end
+
+  def configured_hosts_for(env_key, default_host)
+    [
+      ENV.fetch(env_key, nil).presence,
+      boot_host_for(env_key, default_host),
+    ].compact.map { |host| normalize_host(host) }.uniq
   end
 
   def boot_host_for(env_key, default_host)
@@ -235,5 +245,5 @@ module OidcClientStoresStaticClientStore
   end
 
   private_class_method :build_redirect_uris, :build_post_logout_redirect_uris, :build_logout_uris,
-                       :public_host?, :boot_host_for, :normalize_host
+                       :public_host?, :configured_hosts_for, :boot_host_for, :normalize_host
 end

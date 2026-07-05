@@ -2260,6 +2260,7 @@ module AuthenticationBase
       token_kind_id: "BROWSER_WEB",
       audit_context: { auth_method: pending_mfa&.dig(:auth_method).presence || "mfa" },
       bootstrap_actor: false,
+      skip_login_cooldown: true,
     )
     advance_pending_sign_in_flow_after_primary!(cycle, user, result) if cycle
 
@@ -2354,10 +2355,9 @@ module AuthenticationBase
   end
 
   def pending_sign_in_result_after_primary!(resource, pt:, record_login_audit:, token_kind_id:,
-                                            audit_context:, bootstrap_actor:)
+                                            audit_context:, bootstrap_actor:, skip_login_cooldown: false)
     return { status: :login_forbidden } unless resource.login_allowed?
 
-    check_login_cooldown!(resource, bootstrap_actor: bootstrap_actor)
     session_limit_state = bootstrap_actor ? :within_limit : session_limit_state_for(resource)
     return session_limit_hard_reject_result(resource) if session_limit_state == :hard_reject
 
@@ -2370,6 +2370,12 @@ module AuthenticationBase
       return { status: :success, session_management_required: true, redirect_path: session_management_path }
     end
 
+    check_login_cooldown!(
+      resource,
+      bootstrap_actor: bootstrap_actor,
+      skip_login_cooldown: skip_login_cooldown,
+    )
+
     result = log_in(
       resource,
       record_login_audit: record_login_audit,
@@ -2377,6 +2383,7 @@ module AuthenticationBase
       require_totp_check: false,
       audit_context: audit_context,
       bootstrap_actor: bootstrap_actor,
+      skip_login_cooldown: skip_login_cooldown,
     )
     return result unless result[:status] == :success
 

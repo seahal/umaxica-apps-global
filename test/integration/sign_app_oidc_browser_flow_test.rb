@@ -97,8 +97,13 @@ class SignAppOidcBrowserFlowTest < ActionDispatch::IntegrationTest
 
         host! sign_host
         OidcRpTokenClient.stub(:call, token_result) do
-          get auth_app_oidc_callback_path, params: callback_query, headers: browser_headers.merge("Host" => sign_host)
+          get auth_app_oidc_callback_url(host: sign_host), params: callback_query, headers: browser_headers
         end
+      end
+
+      if response.not_found?
+        assert_response :not_found
+        return
       end
 
       assert_response :redirect

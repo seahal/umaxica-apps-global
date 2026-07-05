@@ -29,13 +29,14 @@
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.15.0",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "catalog:",
     "dependency-cruiser": "^17.4.3",
     "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
-    "vite": "^8.0.16",
+    "vite": "catalog:",
     "vite-plugin-ruby": "^5.2.2",
-    "vite-plus": "latest"
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.1.3"
 }

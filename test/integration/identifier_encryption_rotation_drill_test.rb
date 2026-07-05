@@ -87,7 +87,9 @@ class IdentifierEncryptionRotationDrillTest < ActionDispatch::IntegrationTest
         assert_equal staff_email_address, old_staff_email.reload.address
         assert_equal visitor_email_address, old_visitor_email.reload.address
 
-        assert_app_sign_in_email_flow(app_email_address)
+        travel 31.seconds do
+          assert_app_sign_in_email_flow(app_email_address)
+        end
       end
     end
   end

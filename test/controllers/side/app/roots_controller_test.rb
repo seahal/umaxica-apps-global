@@ -122,6 +122,23 @@ class Side::App::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 end
 
+class Side::App::RootsControllerTest
+  private
+
+  def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
+    token = ClientToken.find_by(public_id: session_public_id)
+    token ||= ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    host_headers(host).merge(headers).merge(
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
+  end
+end
+
 # DAMP auth header helpers for this test class.
 class Side::App::RootsControllerTest
   private
@@ -933,5 +950,22 @@ class Side::App::RootsControllerTest
         provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
         credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
       )
+  end
+end
+
+class Side::App::RootsControllerTest
+  private
+
+  def as_user_headers(user, host: nil, headers: {}, session_public_id: nil)
+    token = ClientToken.find_by(public_id: session_public_id)
+    token ||= ClientToken.create!(user: user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    host_headers(host).merge(headers).merge(
+      "X-TEST-CURRENT-USER" => user.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
   end
 end

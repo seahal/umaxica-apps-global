@@ -8,6 +8,8 @@ require "ostruct"
 
 module Auth::App::In
   class MfaPasskeysControllerTest < ActionDispatch::IntegrationTest
+    include ActiveSupport::Testing::TimeHelpers
+
     fixtures :client_statuses, :client_passkey_statuses, :client_secret_credential_kinds,
              :client_secret_credential_statuses, :client_email_statuses, :client_totp_credential_statuses
 
@@ -48,7 +50,11 @@ module Auth::App::In
       @original_trusted_origins = Webauthn.method(:trusted_origins)
       sign_host = configured_host(:sign_service)
       staff_host = configured_host(:sign_staff)
-      Webauthn.define_singleton_method(:trusted_origins) { ["http://#{sign_host}", "http://#{staff_host}"] }
+      public_sign_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
+      public_staff_host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
+      Webauthn.define_singleton_method(:trusted_origins) do
+        ["http://#{sign_host}", "http://#{staff_host}", "http://#{public_sign_host}", "http://#{public_staff_host}"].uniq
+      end
     end
 
     teardown do
@@ -68,7 +74,9 @@ module Auth::App::In
     end
 
     test "create verifies passkey and finalizes login with pending_mfa" do
-      establish_pending_mfa_via_secret_credential!
+      travel 31.seconds do
+        establish_pending_mfa_via_secret_credential!
+      end
 
       get new_auth_app_sign_in_challenge_passkey_path(ri: "jp")
 
@@ -127,9 +135,9 @@ module Auth::App::In
           "cf-turnstile-response": "test_token",
         },
       )
-      # Skip redirect verification - route helper auth_app_sign_in_mfa_path is undefined
-      # assert_redirected_to auth_app_sign_in_mfa_path(ri: "jp")
+
       assert_response :redirect
+      assert_predicate session[:pending_mfa], :present?
     end
   end
 end

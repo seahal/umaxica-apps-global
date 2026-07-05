@@ -204,8 +204,12 @@ module Auth::App::Up
       auth_host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
       get auth_app_dashboard_url(ri: "jp", host: auth_host)
 
-      assert_response :unprocessable_content
-      assert_nil response.location
+      assert_response :redirect
+      assert_match(%r{\Ahttps://jump\.umaxica\.net/}, response.location)
+      assert_no_match(
+        /#{Regexp.escape(::AuthenticationClient::ACCESS_COOKIE_KEY.to_s)}=/,
+        response.headers["Set-Cookie"].to_s,
+      )
       assert_equal ClientStatus::UNVERIFIED_WITH_SIGN_UP, telephone.user.reload.status_id
     end
 

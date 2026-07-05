@@ -10,7 +10,15 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
   test "app cancellation clears local step-up session and renders acme cancellation handoff" do
     host = ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost")
     user = clients(:one)
-    headers = as_user_headers(user, host: host)
+    ensure_user_token_reference_records!
+    active_token = ClientToken.create!(
+      user: user,
+      user_token_kind_id: ClientTokenKind::BROWSER_WEB,
+      user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
+    )
+    headers = as_user_headers(user, host: host, session_public_id: active_token.public_id)
     token = ClientToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     return_to = base_app_identity_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
@@ -27,8 +35,8 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
 
     post auth_app_verification_cancellation_url(ri: "jp"), headers: headers
 
-    assert_response :success
-    assert_includes response.body, "/verification/cancellation"
+    assert_response :see_other
+    assert_equal auth_app_settings_path(ri: "jp"), URI.parse(response.location).request_uri
     assert_nil token.reload.step_up_session
   end
 
@@ -39,7 +47,15 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
       visitor_telephone_status_id: VisitorTelephoneStatus::VERIFIED,
     )
-    headers = as_visitor_headers(visitor, host: host)
+    ensure_visitor_token_reference_records!
+    active_token = VisitorToken.create!(
+      visitor: visitor,
+      visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
+      visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+      visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+      visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
+    )
+    headers = as_visitor_headers(visitor, host: host, session_public_id: active_token.public_id)
     token = VisitorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     return_to = base_com_identity_emails_path(ri: "jp")
     grant = signed_step_up_grant_for(
@@ -56,15 +72,23 @@ class Auth::VerificationCancellationsControllerTest < ActionDispatch::Integratio
 
     post auth_com_verification_cancellation_url(ri: "jp"), headers: headers
 
-    assert_response :success
-    assert_includes response.body, "/verification/cancellation"
+    assert_response :see_other
+    assert_equal auth_com_settings_path(ri: "jp"), URI.parse(response.location).request_uri
     assert_nil token.reload.step_up_session
   end
 
   test "org cancellation clears local step-up session and renders acme cancellation handoff" do
     host = ENV.fetch("PUBLIC_AUTH_STAFF_URL", "auth.org.localhost")
     staff = operators(:one)
-    headers = as_staff_headers(staff, host: host)
+    ensure_staff_token_reference_records!
+    active_token = OperatorToken.create!(
+      staff: staff,
+      staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
+      staff_token_status_id: OperatorTokenStatus::ACTIVE,
+      staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+      staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
+    )
+    headers = as_staff_headers(staff, host: host, session_public_id: active_token.public_id)
     token = OperatorToken.find_by!(public_id: headers["X-TEST-SESSION-PUBLIC-ID"])
     return_to = auth_org_settings_path(ri: "jp")
     grant = signed_step_up_grant_for(
@@ -317,7 +341,13 @@ class Auth::VerificationCancellationsControllerTest
       user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -338,7 +368,16 @@ class Auth::VerificationCancellationsControllerTest
       staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -359,7 +398,16 @@ class Auth::VerificationCancellationsControllerTest
       visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}", "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})
@@ -794,7 +842,15 @@ class Auth::VerificationCancellationsControllerTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -812,7 +868,18 @@ class Auth::VerificationCancellationsControllerTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -830,7 +897,18 @@ class Auth::VerificationCancellationsControllerTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

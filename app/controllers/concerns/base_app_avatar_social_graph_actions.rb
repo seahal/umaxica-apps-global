@@ -21,11 +21,4 @@ module BaseAppAvatarSocialGraphActions
   def render_edge(edge)
     render json: { public_id: edge.id.to_s }, status: :created
   end
-
-  def authorize_edge!(record, action)
-    policy = policy_class.new(record, user: actor_avatar)
-    return if policy.public_send("#{action}?")
-
-    raise ActionPolicy::Unauthorized.new(policy, action)
-  end
 end

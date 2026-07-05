@@ -40,9 +40,11 @@ module ParallelTestDatabaseCloner
 
   def rebuild_stale_worker_clones(workers)
     configs = ActiveRecord::Base.configurations.configs_for(env_name: "test", include_hidden: true)
+    base_configs = configs.reject(&:replica?)
+    base_configs_by_name = base_configs.index_by(&:name)
     databases = configs.map(&:database).uniq.sort
     first_config = configs.first.configuration_hash
-    schema_sha_by_database = configs.to_h { |config| [config.database, schema_sha(config)] }
+    schema_sha_by_database = base_configs.to_h { |config| [config.database, schema_sha(config)] }
 
     ActiveRecord::Base.connection_handler.clear_all_connections!
 
@@ -50,13 +52,33 @@ module ParallelTestDatabaseCloner
     admin_connection.exec("select pg_advisory_lock(hashtext('umaxica_parallel_test_database_cloner'))")
     existing = admin_connection.exec("select datname from pg_database").map { |row| row.fetch("datname") }.to_set
 
-    missing_base = databases.reject { |database| existing.include?(database) }
-    raise "Missing base test DBs: #{missing_base.join(", ")}. Run RAILS_ENV=test bin/rails db:test:prepare." unless missing_base.empty?
+    missing_base = base_configs.map(&:database).reject { |database| existing.include?(database) }
+    # rubocop:disable I18n/RailsI18n/DecorateString
+    raise RuntimeError,
+          "Missing base test DBs: #{missing_base.join(", ")}. " \
+          "Run RAILS_ENV=test bin/rails db:test:prepare." unless missing_base.empty?
+    # rubocop:enable I18n/RailsI18n/DecorateString
 
     base_fingerprint_by_database =
-      databases.index_with { |database|
-        database_fingerprint(first_config, database)
-      }
+      base_configs.to_h do |config|
+        [config.database, database_fingerprint(first_config, config.database)]
+      end
+
+    ensure_replica_databases(
+      admin_connection,
+      first_config,
+      configs,
+      base_configs_by_name,
+      existing,
+      base_fingerprint_by_database,
+      schema_sha_by_database,
+    )
+
+    configs.select(&:replica?).each do |replica_config|
+      base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
+      base_fingerprint_by_database[replica_config.database] = base_fingerprint_by_database.fetch(base_config.database)
+      schema_sha_by_database[replica_config.database] = schema_sha_by_database.fetch(base_config.database)
+    end
 
     databases.each do |database|
       workers.times do |worker|
@@ -81,6 +103,29 @@ module ParallelTestDatabaseCloner
   ensure
     admin_connection&.exec("select pg_advisory_unlock(hashtext('umaxica_parallel_test_database_cloner'))")
     admin_connection&.close
+  end
+
+  def ensure_replica_databases(admin_connection, first_config, configs, base_configs_by_name, existing,
+                               base_fingerprint_by_database, schema_sha_by_database)
+    configs.select(&:replica?).each do |replica_config|
+      base_config = base_configs_by_name.fetch(replica_config.name.delete_suffix("_replica"))
+      source_database = base_config.database
+      clone = replica_config.database
+      clone_exists = existing.include?(clone)
+
+      next if clone_exists &&
+        database_fingerprint(first_config, clone) == base_fingerprint_by_database.fetch(source_database)
+
+      rebuild_clone(
+        admin_connection,
+        first_config,
+        source: source_database,
+        clone: clone,
+        schema_sha: schema_sha_by_database.fetch(source_database),
+        clone_exists: clone_exists,
+      )
+      existing.add(clone)
+    end
   end
 
   def rebuild_clone(admin_connection, config, source:, clone:, schema_sha:, clone_exists:)
@@ -167,7 +212,9 @@ module ParallelTestDatabaseCloner
     return unless schema_sha
 
     connection = connect(config, database)
-    table_exists = connection.exec("select to_regclass('public.ar_internal_metadata') is not null as present").first.fetch("present")
+    table_exists =
+      connection.exec("select to_regclass('public.ar_internal_metadata') is not null as present")
+        .first.fetch("present")
     return unless table_exists == "t"
 
     connection.exec_params(<<~SQL.squish, [schema_sha])

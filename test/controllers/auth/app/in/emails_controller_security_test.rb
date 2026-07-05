@@ -8,6 +8,8 @@ module Auth
   module App
     module In
       class EmailsControllerSecurityTest < ActionDispatch::IntegrationTest
+        include ActiveSupport::Testing::TimeHelpers
+
         fixtures :clients, :client_statuses, :client_email_statuses
 
         setup do
@@ -162,9 +164,11 @@ module Auth
           email.reload
           otp_code = ROTP::HOTP.new(email.otp_private_key).at(Integer(email.otp_counter.to_s, 10))
 
-          patch auth_app_sign_in_email_url(ri: "jp"), params: {
-            user_email: { pass_code: otp_code },
-          }
+          travel 31.seconds do
+            patch auth_app_sign_in_email_url(ri: "jp"), params: {
+              user_email: { pass_code: otp_code },
+            }
+          end
 
           assert_response :found # Redirects on success
 

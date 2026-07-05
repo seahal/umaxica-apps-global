@@ -41,23 +41,47 @@ class ClientAppleIdentityTest < ActiveSupport::TestCase
   fixtures :clients, :client_statuses, :client_apple_identities, :client_apple_identity_statuses
 
   test "allows only one apple auth per user" do
-    user = Client.find_by!(public_id: "one_id")
+    I18n.with_locale(:ja) do
+      user = Client.find_by!(public_id: "one_id")
 
-    ClientAppleIdentity.create!(
-      user: user,
-      uid: "uid-1",
-      token: "token-1",
-      expires_at: 1.week.from_now.to_i,
-      user_apple_identity_status: ClientAppleIdentityStatus.find(ClientAppleIdentityStatus::ACTIVE),
-    )
+      ClientAppleIdentity.create!(
+        user: user,
+        uid: "uid-1",
+        token: "token-1",
+        expires_at: 1.week.from_now.to_i,
+        user_apple_identity_status: ClientAppleIdentityStatus.find(ClientAppleIdentityStatus::ACTIVE),
+      )
 
-    duplicate = ClientAppleIdentity.new(
-      user: user,
-      token: "token-2",
-    )
+      duplicate = ClientAppleIdentity.new(
+        user: user,
+        token: "token-2",
+      )
 
-    assert_not duplicate.valid?
-    assert_includes duplicate.errors[:user_id], "はすでに存在します"
+      assert_not duplicate.valid?
+      assert_includes duplicate.errors[:user_id], "はすでに存在します"
+    end
+  end
+
+  test "allows only one apple auth per user in English" do
+    I18n.with_locale(:en) do
+      user = Client.find_by!(public_id: "one_id")
+
+      ClientAppleIdentity.create!(
+        user: user,
+        uid: "uid-en-1",
+        token: "token-en-1",
+        expires_at: 1.week.from_now.to_i,
+        user_apple_identity_status: ClientAppleIdentityStatus.find(ClientAppleIdentityStatus::ACTIVE),
+      )
+
+      duplicate = ClientAppleIdentity.new(
+        user: user,
+        token: "token-en-2",
+      )
+
+      assert_not duplicate.valid?
+      assert_includes duplicate.errors[:user_id], "has already been taken"
+    end
   end
 
   test "token is required" do

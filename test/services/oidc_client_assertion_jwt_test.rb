@@ -31,19 +31,19 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     installed = false
 
     with_env(
-      "OIDC_CLIENT_ACME_APP_ACTIVE_KID" => nil,
-      "OIDC_CLIENT_ACME_APP_PRIVATE_KEY" => nil,
-      "OIDC_CLIENT_ACME_APP_PUBLIC_KEYSET" => nil,
+      "OIDC_CLIENT_BASE_APP_ACTIVE_KID" => nil,
+      "OIDC_CLIENT_BASE_APP_PRIVATE_KEY" => nil,
+      "OIDC_CLIENT_BASE_APP_PUBLIC_KEYSET" => nil,
     ) do
       JitSecurityJwtRegistry.reload!
 
-      assert_nil JitSecurityJwtRegistry.private_key_for("oidc_client:ACME_APP")
+      assert_nil JitSecurityJwtRegistry.private_key_for("oidc_client:BASE_APP")
 
       installer =
         lambda do |**|
           installed = true
-          ENV["OIDC_CLIENT_ACME_APP_ACTIVE_KID"] = "acme-app-oidc-recovered"
-          ENV["OIDC_CLIENT_ACME_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
+          ENV["OIDC_CLIENT_BASE_APP_ACTIVE_KID"] = "base-app-oidc-recovered"
+          ENV["OIDC_CLIENT_BASE_APP_PRIVATE_KEY"] = Base64.strict_encode64(key.to_der)
           true
         end
 

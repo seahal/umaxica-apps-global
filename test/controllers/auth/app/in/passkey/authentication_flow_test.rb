@@ -7,6 +7,8 @@ require "minitest/mock"
 
 module Auth::App::Sign::In::Passkey
   class AuthenticationFlowTest < ActionDispatch::IntegrationTest
+    include ActiveSupport::Testing::TimeHelpers
+
     fixtures :clients, :client_statuses, :client_email_statuses, :client_passkey_statuses,
              :client_totp_credential_statuses
 
@@ -91,21 +93,23 @@ module Auth::App::Sign::In::Passkey
         true
       end
 
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          credential: {
-            id: @encoded_credential_id,
-            rawId: @encoded_credential_id,
-            type: "public-key",
-            response: {
-              clientDataJSON: "dummy",
-              authenticatorData: "dummy",
-              signature: "dummy",
-              userHandle: @user.public_id,
+      travel 31.seconds do
+        WebAuthn::Credential.stub(:from_get, mock_credential) do
+          post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @encoded_credential_id,
+              rawId: @encoded_credential_id,
+              type: "public-key",
+              response: {
+                clientDataJSON: "dummy",
+                authenticatorData: "dummy",
+                signature: "dummy",
+                userHandle: @user.public_id,
+              },
             },
-          },
-        }, as: :json
+          }, as: :json
+        end
       end
 
       assert_response :success
@@ -144,21 +148,23 @@ module Auth::App::Sign::In::Passkey
         true
       end
 
-      WebAuthn::Credential.stub(:from_get, mock_credential) do
-        post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
-          challenge_id: challenge_id,
-          credential: {
-            id: @encoded_credential_id,
-            rawId: @encoded_credential_id,
-            type: "public-key",
-            response: {
-              clientDataJSON: "dummy",
-              authenticatorData: "dummy",
-              signature: "dummy",
-              userHandle: @user.public_id,
+      travel 31.seconds do
+        WebAuthn::Credential.stub(:from_get, mock_credential) do
+          post auth_app_sign_in_passkey_verification_url(ri: "jp"), params: {
+            challenge_id: challenge_id,
+            credential: {
+              id: @encoded_credential_id,
+              rawId: @encoded_credential_id,
+              type: "public-key",
+              response: {
+                clientDataJSON: "dummy",
+                authenticatorData: "dummy",
+                signature: "dummy",
+                userHandle: @user.public_id,
+              },
             },
-          },
-        }, as: :json
+          }, as: :json
+        end
       end
 
       assert_response :success

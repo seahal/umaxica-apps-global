@@ -8,7 +8,7 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   setup do
     ENV["PRIVATE_BASE_CORPORATE_URL"] ||= "www.com.localhost"
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
-    @base_host = ENV.fetch("PRIVATE_BASE_CORPORATE_URL", "www.com.localhost")
+    @base_host = Rails.configuration.x.boot_config.fetch(:hosts).base_corporate.host
     @visitor = create_verified_visitor_with_email(email_address: "dashboard-#{SecureRandom.hex(4)}@example.com")
     @visitor.visitor_telephones.create!(
       number: "+8190#{SecureRandom.random_number(10**8).to_s.rjust(8, "0")}",
@@ -40,9 +40,8 @@ class Auth::Com::DashboardsControllerTest < ActionDispatch::IntegrationTest
   test "show_rejects_logged_out_direct_access" do
     get auth_com_dashboard_url(ri: "jp", host: @host), headers: { "Host" => @host }
 
-    assert_response :unprocessable_content
-    assert_nil response.location
-    assert_includes response.body, "無効なリクエストです。"
+    assert_response :redirect
+    assert_oidc_authorize_redirect(jump_rt_url_from_location(response.location), host: @base_host, client_id: "sign-rp")
   end
 
   private

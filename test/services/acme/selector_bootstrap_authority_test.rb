@@ -33,22 +33,23 @@ class BaseSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     } do
       BaseSelectorBootstrapAuthority.call(surface: :app, principal: user)
     end
-    assert_equal "Persona01", Persona.first.title
-    assert_equal "Org01", Enterprise.first.title
-    assert_equal 1, AvatarPersonaBinding.count
+    assert_equal "Persona01", result.account.title
+    assert_equal "Org01", result.collective.title
+    assert_equal 1, AvatarPersonaBinding.where(persona_id: result.account.id).count
     assert_equal 1, AvatarAssignment.where(user_id: user.id, role: "owner").count
-    assert_equal 1, Persona.first.current_memberships.count
+    assert_equal 1, result.account.current_memberships.count
     assert_predicate result.avatar, :present?
     assert_equal "active", result.avatar.lifecycle_state.key
     assert_equal user.id, result.avatar.client_id
-    assert_equal Persona.first, result.avatar.current_persona
-    assert_equal result.avatar, Persona.first.current_avatar
+    assert_equal result.account, result.avatar.current_persona
+    assert_equal result.avatar, result.account.current_avatar
   end
 
   test "app bootstrap delegates avatar creation to AvatarProvisioning Create" do
     user = create_client!
     original_call = AvatarProvisioning::Create.method(:call)
     observed_arguments = nil
+    result = nil
 
     AvatarProvisioning::Create.stub(
       :call,
@@ -65,7 +66,7 @@ class BaseSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
     assert_equal user, observed_arguments.fetch(:actor)
     assert_equal :persona, observed_arguments.fetch(:subject_type)
     assert_equal "Default Avatar", observed_arguments.fetch(:avatar_params).fetch(:moniker)
-    assert_equal Enterprise.first.public_id, observed_arguments.fetch(:organization_public_id)
+    assert_equal result.collective.public_id, observed_arguments.fetch(:organization_public_id)
   end
 
   test "app bootstrap leaves no partial avatar graph when provisioning fails" do
@@ -98,10 +99,10 @@ class BaseSelectorBootstrapAuthorityTest < ActiveSupport::TestCase
 
     assert_equal 1, VisitorAccount.where(visitor_id: visitor.id).count
     assert_equal 1, OperatorAccount.where(staff_id: operator.id).count
-    assert_equal "Indiv01", Individual.first.title
-    assert_equal "Agent01", Agent.first.title
-    assert_equal "Org01", Company.first.title
-    assert_equal "Org01", Bureau.first.title
+    assert_equal "Indiv01", com_result.account.title
+    assert_equal "Agent01", org_result.account.title
+    assert_equal "Org01", com_result.collective.title
+    assert_equal "Org01", org_result.collective.title
     assert_nil com_result.avatar
     assert_nil org_result.avatar
     assert_equal 1, IndividualAssignment.count

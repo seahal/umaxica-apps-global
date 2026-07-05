@@ -18,10 +18,7 @@ class VerificationI18nTest < ActionDispatch::IntegrationTest
       public_id: "verify_i18n_#{SecureRandom.hex(4)}",
       discarded_at: 1.day.from_now,
     )
-    @headers = browser_headers.merge(
-      "X-TEST-CURRENT-USER" => @user.id.to_s,
-      "X-TEST-SESSION-PUBLIC-ID" => @token.public_id,
-    ).freeze
+    @headers = as_user_headers(@user, host: @host, headers: browser_headers, session_public_id: @token.public_id).freeze
 
     ClientEmail.create!(
       user: @user,

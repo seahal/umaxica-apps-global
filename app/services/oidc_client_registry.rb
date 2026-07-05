@@ -158,15 +158,39 @@ module OidcClientRegistry
 
   def clients
     cached_clients = CLIENTS_CACHE.get
-    return cached_clients if cached_clients
+    signature = client_config_signature
+    return cached_clients.fetch(:clients) if cached_clients&.fetch(:signature, nil) == signature
 
     CLIENTS_MUTEX.synchronize do
-      CLIENTS_CACHE.get || begin
+      cached_clients = CLIENTS_CACHE.get
+      return cached_clients.fetch(:clients) if cached_clients&.fetch(:signature, nil) == signature
+
+      begin
         built_clients = build_clients
-        CLIENTS_CACHE.set(built_clients)
+        CLIENTS_CACHE.set({ signature: signature, clients: built_clients }.freeze)
         built_clients
       end
     end
+  end
+
+  def client_config_signature
+    hosts = Rails.configuration.x.boot_config.fetch(:hosts)
+    boot_signature =
+      %i(
+        sign_service sign_staff sign_corporate
+        base_service base_staff base_corporate
+        side_service side_staff side_corporate
+        core_service core_staff core_corporate
+      ).map { |name| [name, hosts.public_send(name).to_s] }
+    env_signature =
+      %w(
+        PUBLIC_AUTH_SERVICE_URL PRIVATE_AUTH_STAFF_URL PRIVATE_AUTH_CORPORATE_URL
+        BASE_SERVICE_URL BASE_STAFF_URL BASE_CORPORATE_URL
+        SIDE_SERVICE_URL SIDE_STAFF_URL SIDE_CORPORATE_URL
+        CORE_SERVICE_URL CORE_STAFF_URL CORE_CORPORATE_URL
+      ).map { |name| [name, ENV.fetch(name, nil)] }
+
+    (boot_signature + env_signature).freeze
   end
 
   def build_clients
@@ -229,18 +253,27 @@ module OidcClientRegistry
     when "operator"
       [
         normalize_host(hosts.sign_staff),
+        normalize_host(hosts.auth_staff),
         normalize_host(hosts.core_staff),
-      ]
+        normalize_host(ENV.fetch("PRIVATE_AUTH_STAFF_URL", nil)),
+        normalize_host(ENV.fetch("PUBLIC_AUTH_STAFF_URL", nil)),
+      ].compact_blank.uniq
     when "visitor"
       [
         normalize_host(hosts.sign_corporate),
+        normalize_host(hosts.auth_corporate),
         normalize_host(hosts.core_corporate),
-      ]
+        normalize_host(ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", nil)),
+        normalize_host(ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", nil)),
+      ].compact_blank.uniq
     else
       [
         normalize_host(hosts.sign_service),
+        normalize_host(hosts.auth_service),
         normalize_host(hosts.core_service),
-      ]
+        normalize_host(ENV.fetch("PRIVATE_AUTH_SERVICE_URL", nil)),
+        normalize_host(ENV.fetch("PUBLIC_AUTH_SERVICE_URL", nil)),
+      ].compact_blank.uniq
     end
   end
 

@@ -17,7 +17,10 @@ class Acme::OrganizationQuotaPolicyTest < ActiveSupport::TestCase
 
   test "allows when count is limit minus one" do
     create_enterprises(1)
-    policy = Acme::OrganizationQuotaPolicy.new(surface: :app, principal: client)
+    policy = Acme::OrganizationQuotaPolicy.new(
+      surface: :app, principal: client,
+      scope: Enterprise.where(id: @created_organization_ids),
+    )
 
     assert_predicate policy, :allowed?
     assert_equal 1, policy.current_count
@@ -26,7 +29,10 @@ class Acme::OrganizationQuotaPolicyTest < ActiveSupport::TestCase
 
   test "rejects when count reaches limit" do
     create_enterprises(2)
-    policy = Acme::OrganizationQuotaPolicy.new(surface: :app, principal: client)
+    policy = Acme::OrganizationQuotaPolicy.new(
+      surface: :app, principal: client,
+      scope: Enterprise.where(id: @created_organization_ids),
+    )
 
     assert_not_predicate policy, :allowed?
     assert_predicate policy, :exceeded?
@@ -43,7 +49,10 @@ class Acme::OrganizationQuotaPolicyTest < ActiveSupport::TestCase
 
   def assert_surface_policy(surface, model_class, setup_proc, principal)
     setup_proc.call
-    policy = Acme::OrganizationQuotaPolicy.new(surface: surface, principal: principal)
+    policy = Acme::OrganizationQuotaPolicy.new(
+      surface: surface, principal: principal,
+      scope: model_class.where(id: @created_organization_ids),
+    )
 
     assert_predicate policy, :allowed?
     assert_equal 1, policy.current_count
@@ -64,14 +73,17 @@ class Acme::OrganizationQuotaPolicyTest < ActiveSupport::TestCase
   end
 
   def create_enterprises(count)
-    count.times { Enterprise.create!(name: "Enterprise", title: "Enterpris") }
+    @created_organization_ids = []
+    count.times { @created_organization_ids << Enterprise.create!(name: "Enterprise", title: "Enterpris").id }
   end
 
   def create_bureaus(count)
-    count.times { Bureau.create!(name: "Bureau", title: "Bureau") }
+    @created_organization_ids = []
+    count.times { @created_organization_ids << Bureau.create!(name: "Bureau", title: "Bureau").id }
   end
 
   def create_companies(count)
-    count.times { Company.create!(name: "Company", title: "Company") }
+    @created_organization_ids = []
+    count.times { @created_organization_ids << Company.create!(name: "Company", title: "Company").id }
   end
 end

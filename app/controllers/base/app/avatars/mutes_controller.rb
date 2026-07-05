@@ -12,20 +12,16 @@ module Base
 
         def create
           record = AvatarMute.new(muter_avatar: actor_avatar, muted_avatar: target_avatar)
-          authorize_edge!(record, :create)
+          authorize!(record, to: :create?, with: AvatarMutePolicy, user: actor_avatar)
           render_edge(AvatarSocialGraph::Mute.call(actor_avatar: actor_avatar, target_avatar: target_avatar))
         end
 
         def destroy
           record = AvatarMute.find_by!(muter_avatar: actor_avatar, muted_avatar: target_avatar)
-          authorize_edge!(record, :destroy)
+          authorize!(record, to: :destroy?, with: AvatarMutePolicy, user: actor_avatar)
           AvatarSocialGraph::Unmute.call(actor_avatar: actor_avatar, target_avatar: target_avatar)
           head :no_content
         end
-
-        private
-
-        def policy_class = AvatarMutePolicy
       end
     end
   end

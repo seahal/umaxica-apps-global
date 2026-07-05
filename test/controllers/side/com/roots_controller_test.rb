@@ -121,6 +121,26 @@ class Side::Com::RootsControllerTest < ActionDispatch::IntegrationTest
   end
 end
 
+class Side::Com::RootsControllerTest
+  private
+
+  def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
+    token = VisitorToken.find_by(public_id: session_public_id)
+    token ||= VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    host_headers(host).merge(headers).merge(
+      "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
+  end
+end
+
 # DAMP auth header helpers for this test class.
 class Side::Com::RootsControllerTest
   private
@@ -932,5 +952,25 @@ class Side::Com::RootsControllerTest
         provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
         credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
       )
+  end
+end
+
+class Side::Com::RootsControllerTest
+  private
+
+  def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
+    token = VisitorToken.find_by(public_id: session_public_id)
+    token ||= VisitorToken.create!(visitor: visitor, visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB)
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    host_headers(host).merge(headers).merge(
+      "X-TEST-CURRENT-RESOURCE" => visitor.id.to_s,
+      "X-TEST-SESSION-PUBLIC-ID" => token.public_id,
+      "Authorization" => "Bearer #{access_token}",
+      "Cookie" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+      "HTTP_COOKIE" => "#{AuthenticationBase::ACCESS_COOKIE_KEY}=#{access_token}",
+    )
   end
 end

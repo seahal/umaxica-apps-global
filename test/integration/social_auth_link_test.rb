@@ -164,7 +164,8 @@ class SocialAuthLinkTest < ActionDispatch::IntegrationTest
     post auth_app_settings_google_url(ri: "jp"),
          headers: host_headers(@host)
 
-    assert_response :bad_request
+    assert_response :redirect
+    assert_oidc_authorize_redirect(jump_rt_url_from_location(response.location), host: @base_host, client_id: "sign-rp")
     assert_nil session[SocialAuth::SOCIAL_FLOW_ID_SESSION_KEY]
   end
 

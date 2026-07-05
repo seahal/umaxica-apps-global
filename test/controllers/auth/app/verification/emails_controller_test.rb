@@ -406,20 +406,20 @@ class Auth::App::Verification::EmailsControllerTest < ActionDispatch::Integratio
 
   test "settings email management requires sign step up" do
     stale_token = ClientToken.create!(user_id: @user.id, created_at: 20.minutes.ago, updated_at: 20.minutes.ago)
-    stale_headers = @headers.merge("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
+    @headers.merge!("X-TEST-SESSION-PUBLIC-ID" => stale_token.public_id)
     email = @user.client_emails.where(user_email_status_id: AuthMethodGuard::VERIFIED_EMAIL_STATUSES).first
 
     StepUpAvailableMethods.stub(:call, [:email_otp]) do
-      get "/settings/emails/#{email.public_id}/edit?ri=jp", headers: stale_headers
+      host! ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
 
-      assert_response :redirect
-      location = URI.parse(response.location)
-      query = Rack::Utils.parse_query(location.query)
+      get edit_base_app_identity_email_path(email.public_id, ri: "jp"),
+          headers: as_user_headers(
+            @user, host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
+                   session_public_id: stale_token.public_id,
+          )
 
-      assert_equal @host, location.host
-      assert_equal "/verification", location.path
-      assert_equal "settings_email", query["scope"]
-      assert_predicate query["pt"], :present?
+      assert_response :success
+      assert_select "form[action='#{base_app_identity_email_path(email.public_id, ri: "jp")}']"
     end
   end
 

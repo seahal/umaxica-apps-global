@@ -78,9 +78,8 @@ Credential-equivalent changes use `CredentialSecurityTransition`:
 - Step-up freshness fields on all affected tokens are cleared through
   `IdentityStepUpCeremonyFreshnessRevoker`.
 - Persisted step-up session rows for the affected tokens are expired.
-- A durable Chronicle record is written with
-  `ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION` or
-  `OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION`.
+- A durable Chronicle record is written with `ClientChronicleEvent::CREDENTIAL_SECURITY_TRANSITION`
+  or `OperatorChronicleEvent::CREDENTIAL_SECURITY_TRANSITION`.
 
 The transition record must not contain raw cookies, OTPs, CSRF tokens, recovery codes, bearer
 tokens, password values, or secret credential values. It records the reason, surface, request id
@@ -108,21 +107,21 @@ credential transition audit entry.
 
 ## Remaining audit taxonomy risk
 
-The durable event currently closed by implementation is
-`credential_security_transition.<reason>` through Chronicle/IdentityAudit. The following taxonomy
-names still need a first-class durable bridge before they can be treated as fully closed:
+The durable event currently closed by implementation is `credential_security_transition.<reason>`
+through Chronicle/IdentityAudit. The following taxonomy names still need a first-class durable
+bridge before they can be treated as fully closed:
 
-| Event | Current status | Release risk |
-| ----- | -------------- | ------------ |
-| `auth.step_up.required_missing` | Enforced by the step-up gate; durable taxonomy bridge not centralized. | Non-blocking if request denial evidence remains green. |
-| `auth.step_up.intent_mismatch` | Step-up intent rejects mismatched return targets; durable taxonomy bridge not centralized. | Non-blocking. |
-| `auth.csrf.rejected` | JSON requests now fail closed with `403`; durable taxonomy bridge not centralized. | Non-blocking remaining risk for this release. |
-| `auth.redirect.rejected` | `path_target.rejected` is emitted at authentication pt call sites. | Closed for pt rejection, broader taxonomy naming remains a follow-up. |
-| `auth.authorization.denied` | Action Policy denial is enforced by controller pipeline; durable taxonomy bridge not centralized. | Non-blocking if IDOR request matrix remains green. |
-| `security.sensitive_action.allowed` | Not emitted as a durable taxonomy event. | Non-blocking; add only with a logging schema and retention owner. |
-| `security.sensitive_action.denied` | Not emitted as a durable taxonomy event. | Non-blocking; add only with a logging schema and retention owner. |
-| `auth.sessions.revoked_after_credential_change` | Captured as aggregate counts on credential transition records. | Closed as aggregate, not per-session event. |
-| `auth.step_up.revoked_after_credential_change` | Captured as aggregate counts on credential transition records. | Closed as aggregate, not per-grant event. |
+| Event                                           | Current status                                                                                    | Release risk                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `auth.step_up.required_missing`                 | Enforced by the step-up gate; durable taxonomy bridge not centralized.                            | Non-blocking if request denial evidence remains green.                |
+| `auth.step_up.intent_mismatch`                  | Step-up intent rejects mismatched return targets; durable taxonomy bridge not centralized.        | Non-blocking.                                                         |
+| `auth.csrf.rejected`                            | JSON requests now fail closed with `403`; durable taxonomy bridge not centralized.                | Non-blocking remaining risk for this release.                         |
+| `auth.redirect.rejected`                        | `path_target.rejected` is emitted at authentication pt call sites.                                | Closed for pt rejection, broader taxonomy naming remains a follow-up. |
+| `auth.authorization.denied`                     | Action Policy denial is enforced by controller pipeline; durable taxonomy bridge not centralized. | Non-blocking if IDOR request matrix remains green.                    |
+| `security.sensitive_action.allowed`             | Not emitted as a durable taxonomy event.                                                          | Non-blocking; add only with a logging schema and retention owner.     |
+| `security.sensitive_action.denied`              | Not emitted as a durable taxonomy event.                                                          | Non-blocking; add only with a logging schema and retention owner.     |
+| `auth.sessions.revoked_after_credential_change` | Captured as aggregate counts on credential transition records.                                    | Closed as aggregate, not per-session event.                           |
+| `auth.step_up.revoked_after_credential_change`  | Captured as aggregate counts on credential transition records.                                    | Closed as aggregate, not per-grant event.                             |
 
 ## Related
 

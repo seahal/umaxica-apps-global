@@ -658,7 +658,11 @@ class Auth::App::Sign::Up::EmailsControllerTest < ActionDispatch::IntegrationTes
              },
              "cf-turnstile-response": "test",
            },
-           headers: default_headers.merge({ "X-TEST-CURRENT-USER" => user.id })
+           headers: as_user_headers(
+             user,
+             host: ENV.fetch("PUBLIC_AUTH_SERVICE_URL", "auth.app.localhost"),
+             headers: default_headers,
+           )
     end
 
     assert_response :unauthorized

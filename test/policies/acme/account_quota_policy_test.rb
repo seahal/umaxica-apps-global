@@ -21,7 +21,7 @@ class Acme::AccountQuotaPolicyTest < ActiveSupport::TestCase
 
   test "allows when count is limit minus one" do
     create_personas(9)
-    policy = Acme::AccountQuotaPolicy.new(surface: :app, principal: client)
+    policy = Acme::AccountQuotaPolicy.new(surface: :app, principal: client, scope: personas_for_client)
 
     assert_predicate policy, :allowed?
     assert_equal 9, policy.current_count
@@ -30,7 +30,7 @@ class Acme::AccountQuotaPolicyTest < ActiveSupport::TestCase
 
   test "rejects when count reaches limit" do
     create_personas(10)
-    policy = Acme::AccountQuotaPolicy.new(surface: :app, principal: client)
+    policy = Acme::AccountQuotaPolicy.new(surface: :app, principal: client, scope: personas_for_client)
 
     assert_not_predicate policy, :allowed?
     assert_predicate policy, :exceeded?
@@ -47,7 +47,10 @@ class Acme::AccountQuotaPolicyTest < ActiveSupport::TestCase
 
   def assert_surface_policy(surface, model_class, setup_proc, principal)
     setup_proc.call
-    policy = Acme::AccountQuotaPolicy.new(surface: surface, principal: principal)
+    policy = Acme::AccountQuotaPolicy.new(
+      surface: surface, principal: principal,
+      scope: model_class.where(id: @created_account_ids),
+    )
 
     assert_predicate policy, :allowed?
     assert_equal 1, policy.current_count
@@ -68,17 +71,34 @@ class Acme::AccountQuotaPolicyTest < ActiveSupport::TestCase
   end
 
   def create_personas(count)
+    @created_account_ids = []
     count.times do |index|
-      Persona.create!(client_identity: client_identity("client-#{index}"), title: "P#{index}")
+      @created_account_ids << Persona.create!(
+        client_identity: client_identity("client-#{index}"),
+        title: "P#{index}",
+      ).id
     end
   end
 
+  def personas_for_client
+    Persona.where(id: @created_account_ids)
+  end
+
   def create_agents(count)
-    count.times { Agent.create!(operator_identity: operator_identity, title: "A#{SecureRandom.hex(2)}") }
+    @created_account_ids = []
+    count.times {
+      @created_account_ids << Agent.create!(operator_identity: operator_identity, title: "A#{SecureRandom.hex(2)}").id
+    }
   end
 
   def create_individuals(count)
-    count.times { Individual.create!(visitor_identity: visitor_identity, title: "I#{SecureRandom.hex(2)}") }
+    @created_account_ids = []
+    count.times do
+      @created_account_ids << Individual.create!(
+        visitor_identity: visitor_identity,
+        title: "I#{SecureRandom.hex(2)}",
+      ).id
+    end
   end
 
   def client_identity(label = "client")

@@ -100,9 +100,20 @@ class OmniAuthNonAppSocialGuard
     blocked_hosts = [
       boot_hosts.sign_corporate.host,
       boot_hosts.sign_staff.host,
+      boot_hosts.auth_corporate.host,
+      boot_hosts.auth_staff.host,
       boot_hosts.base_corporate.host,
       boot_hosts.base_staff.host,
-    ]
+    ] + %w(
+      PUBLIC_AUTH_CORPORATE_URL
+      PRIVATE_AUTH_CORPORATE_URL
+      PUBLIC_AUTH_STAFF_URL
+      PRIVATE_AUTH_STAFF_URL
+      PUBLIC_BASE_CORPORATE_URL
+      PRIVATE_BASE_CORPORATE_URL
+      PUBLIC_BASE_STAFF_URL
+      PRIVATE_BASE_STAFF_URL
+    ).filter_map { |key| ENV.fetch(key, nil).presence }
     blocked_hosts.include?(Rack::Request.new(env).host)
   end
 end

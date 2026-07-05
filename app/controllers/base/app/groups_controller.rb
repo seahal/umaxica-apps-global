@@ -17,7 +17,10 @@ module Base
         authorize!(AvatarGroup, to: :index?)
         groups = AvatarGroup.where(account_surface: "app", account_public_id: Actor.selection.account_public_id)
           .order(:created_at, :id)
-        render json: { groups: groups.map { |group| serialize_group(group) } }
+        render inertia: "base/app/groups/index", props: {
+          title: "Groups",
+          groups: groups.map { |group| serialize_group(group) },
+        }
       end
 
       def show

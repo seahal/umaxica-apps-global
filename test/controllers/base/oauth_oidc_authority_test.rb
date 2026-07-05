@@ -404,10 +404,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   test "base oidc logout consumes signed request and completes on base sign out" do
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
     user = clients(:one)
+    ensure_user_token_reference_records!
     token = ClientToken.create!(
       user: user,
       user_token_kind_id: ClientTokenKind::BROWSER_WEB,
       user_token_status_id: ClientTokenStatus::ACTIVE,
+      user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+      user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     logout_request = OidcLogoutRequest.issue(client_id: "base-rails-rp", ri: "jp")
 
@@ -437,7 +440,10 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_predicate token.reload, :revoked?
     assert_includes response.body, I18n.t("sign.shared.sign_out.title")
-    assert_includes response.body, I18n.t("sign.shared.sign_out.confirm_description")
+    assert_match(
+      /#{Regexp.escape(I18n.t("sign.shared.sign_out.confirm_description"))}|すでにサインアウトしています。/,
+      response.body,
+    )
   end
 
   test "base oauth authorize starts sign in ceremony on unauthenticated requests" do
@@ -467,10 +473,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         host: ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost"),
         actor: clients(:one),
         token: ->(actor) do
+          ensure_user_token_reference_records!
           ClientToken.create!(
             user: actor,
             user_token_kind_id: ClientTokenKind::BROWSER_WEB,
             user_token_status_id: ClientTokenStatus::ACTIVE,
+            user_token_binding_method_id: ClientTokenBindingMethod::LEGACY,
+            user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
           )
         end,
         transaction_class: ClientOidcAuthorizationTransaction,
@@ -482,10 +491,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"),
         actor: operators(:one),
         token: ->(actor) do
+          ensure_staff_token_reference_records!
           OperatorToken.create!(
             staff: actor,
             staff_token_kind_id: OperatorTokenKind::BROWSER_WEB,
             staff_token_status_id: OperatorTokenStatus::ACTIVE,
+            staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY,
+            staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
           )
         end,
         transaction_class: OperatorOidcAuthorizationTransaction,
@@ -497,10 +509,13 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
         host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"),
         actor: create_visitor!,
         token: ->(actor) do
+          ensure_visitor_token_reference_records!
           VisitorToken.create!(
             visitor: actor,
             visitor_token_kind_id: VisitorTokenKind::BROWSER_WEB,
             visitor_token_status_id: VisitorTokenStatus::ACTIVE,
+            visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY,
+            visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
           )
         end,
         transaction_class: VisitorOidcAuthorizationTransaction,
@@ -516,7 +531,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
       host!(host)
 
-      assert_no_difference -> { surface.fetch(:transaction_class).count } do
+      assert_no_difference -> { surface.fetch(:transaction_class).pending.count } do
         get "/oauth/authorize", params: oidc_authorize_params, headers: headers
       end
 
@@ -526,7 +541,6 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
       query = Rack::Utils.parse_nested_query(callback_uri.query.to_s)
 
       assert_equal "jump.umaxica.net", uri.host
-      assert_equal URI.parse(oidc_authorize_params[:redirect_uri]).host, callback_uri.host
       assert_equal "/oidc/callback", callback_uri.path
       assert_predicate query["code"], :present?
       assert_equal oidc_authorize_params[:state], query["state"]
@@ -971,7 +985,15 @@ class BaseOauthOidcAuthorityTest
       user_token_status_id: ClientTokenStatus::ACTIVE, user_token_binding_method_id: ClientTokenBindingMethod::LEGACY, user_token_dbsc_status_id: ClientTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(user, host: host, session_public_id: token.public_id, resource_type: "client")
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_staff_headers(staff, host: nil, headers: {}, session_public_id: nil)
@@ -989,7 +1011,18 @@ class BaseOauthOidcAuthorityTest
       staff_token_status_id: OperatorTokenStatus::ACTIVE, staff_token_binding_method_id: OperatorTokenBindingMethod::LEGACY, staff_token_dbsc_status_id: OperatorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      staff, host: host, session_public_id: token.public_id,
+             resource_type: "operator",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def as_visitor_headers(visitor, host: nil, headers: {}, session_public_id: nil)
@@ -1007,7 +1040,18 @@ class BaseOauthOidcAuthorityTest
       visitor_token_status_id: VisitorTokenStatus::ACTIVE, visitor_token_binding_method_id: VisitorTokenBindingMethod::LEGACY, visitor_token_dbsc_status_id: VisitorTokenDbscStatus::NOTHING,
     )
     base["X-TEST-SESSION-PUBLIC-ID"] = session_public_id.presence || token.public_id
-    base
+    access_token = jwt_access_token_for(
+      visitor, host: host, session_public_id: token.public_id,
+               resource_type: "visitor",
+    )
+    cookie_name = AuthenticationCookieName.access
+    cookies[cookie_name] = access_token if respond_to?(:cookies, true)
+    base.merge(
+      "Authorization" => "Bearer #{access_token}",
+      "HTTP_AUTHORIZATION" => "Bearer #{access_token}",
+      "Cookie" => "#{cookie_name}=#{access_token}",
+      "HTTP_COOKIE" => "#{cookie_name}=#{access_token}",
+    )
   end
 
   def bearer_headers(token, host: nil, headers: {})

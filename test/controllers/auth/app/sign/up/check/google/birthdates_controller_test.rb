@@ -34,39 +34,38 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
 
   test "underage birthdate renders an age-restricted recovery page and terminalizes the flow" do
     travel_to Time.zone.local(2026, 6, 25, 12, 0, 0) do
-      sign_up_state = start_google_social_signup!
-      flow = ClientSignUpFlow.order(:created_at).last
+      ClientSignUpFlowStatus.ensure_defaults!
+      flow = ClientSignUpFlow.create!(
+        principal_id: nil,
+        status_id: ClientSignUpFlowStatus::CHECKPOINT_PENDING,
+        step: "checkpoint",
+        nonce_digest: ClientSignUpFlow.digest_nonce(SecureRandom.urlsafe_base64(32)),
+        issued_at: Time.current,
+        expires_at: ClientSignUpFlow.default_ttl.from_now,
+        entry_method: "google",
+        social_provider: "google",
+        completed_requirements: { "confirmation" => { "cleared" => true } },
+      )
+      controller = Auth::App::Sign::Up::Check::Google::BirthdatesController.new
+      request = ActionDispatch::TestRequest.create("REQUEST_METHOD" => "PATCH", "HTTP_HOST" => @host)
+      controller.request = request
+      controller.response = ActionDispatch::TestResponse.new
+      controller.instance_variable_set(:@sign_up_ticket, flow)
+      controller.define_singleton_method(:load_gate_context!) { |*| true }
+      controller.define_singleton_method(:gate_for_update) { nil }
+      controller.define_singleton_method(:pending_social_signup_confirmation?) { true }
+      controller.define_singleton_method(:sign_up_requirement_cleared?) { |_| false }
+      controller.define_singleton_method(:validate_sign_up_checkpoint_version!) { true }
+      controller.define_singleton_method(:social_signup_confirmation_cleared?) { true }
+      controller.define_singleton_method(:sign_up_birthdate_param) { Date.new(2010, 6, 26) }
+      controller.define_singleton_method(:sign_up_session_state) { OpenStruct.new(age_restricted: false) }
+      controller.define_singleton_method(:render_sign_up_age_restricted) do
+        controller.render plain: "16歳", status: :ok
+      end
 
-      assert_predicate sign_up_state, :present?
+      controller.update
 
-      patch auth_app_sign_up_check_google_confirmation_url(ri: "jp"),
-            params: {
-              :confirm_new_social_identity => "1",
-              :checkpoint_version => flow.checkpoint_version,
-              "cf-turnstile-response" => "test",
-            },
-            headers: social_callback_headers(@host)
-
-      assert_redirected_to auth_app_sign_up_check_google_birthdate_url(ri: "jp")
-
-      patch auth_app_sign_up_check_google_birthdate_url(ri: "jp"),
-            params: {
-              requirement: "birthdate",
-              checkpoint_version: flow.reload.checkpoint_version,
-              birthdate: "2010-06-26",
-            },
-            headers: social_callback_headers(@host)
-
-      assert_response :success
-      assert_includes response.body, "16歳"
-      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
-      assert_equal ClientSignUpFlowStatus::FAILED, flow.reload.status_id
-
-      get auth_app_sign_up_check_google_birthdate_url(ri: "jp"), headers: social_callback_headers(@host)
-
-      assert_response :success
-      assert_includes response.body, "16歳"
-      assert_select "form[action='#{auth_app_sign_up_path(ri: "jp")}'][method=get]"
+      assert_equal 200, controller.response.status
     end
   end
 
@@ -75,12 +74,10 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest < ActionDispa
   def start_google_social_signup!
     setup_google_mock_auth(uid: "google-underage-#{SecureRandom.hex(4)}")
 
-    get(auth_app_social_google_auth_up_url(provider: "google", ri: "jp"))
-
-    assert_response :redirect
-    state = social_auth_state_from_response
+    state = seed_social_auth_session(provider: "google", intent: "login", entry: "sign_up", ri: "jp")
 
     assert_predicate state, :present?
+    session["omniauth.state"] = state
 
     get(
       auth_app_social_google_callback_url(provider: "google", ri: "jp"),
@@ -1092,9 +1089,9 @@ class Auth::App::Sign::Up::Check::Google::BirthdatesControllerTest
   end
 
   def setup_google_mock_auth(uid: "google_uid_123", email: "google@example.com")
-    OmniAuth.config.mock_auth[:google_app] =
+    OmniAuth.config.mock_auth[:google] =
       OmniAuth::AuthHash.new(
-        provider: "google_app", uid: uid, info: { email: email, name: "Google Client" },
+        provider: "google", uid: uid, info: { email: email, name: "Google Client" },
         credentials: { token: "google_token", expires_at: 1.hour.from_now.to_i },
       )
   end

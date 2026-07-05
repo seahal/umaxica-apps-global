@@ -59,6 +59,16 @@ class StepUpAvailableMethodsTest < ActiveSupport::TestCase
                  SignAppVerificationBase::EMAIL_OTP_RESEND_COOLDOWN
   end
 
+  test "step up cooldown key uses the actor class, id, and method" do
+    actor = Client.new(id: 42)
+
+    assert_equal "step_up_cooldown:client:42:email_otp", StepUpCooldowns.key(actor, :email_otp)
+  end
+
+  test "step up cooldown active methods stays empty" do
+    assert_equal [], StepUpCooldowns.active_methods(Client.new(id: 42))
+  end
+
   test "ticket lockout returns no methods" do
     @user.client_emails.create!(
       address: "available-lockout@example.com",

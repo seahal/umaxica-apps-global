@@ -1057,6 +1057,16 @@ class Auth::Com::Settings::PasskeysControllerTest
     VisitorEmailStatus.find_or_create_by!(id: VisitorEmailStatus::VERIFIED)
     VisitorTelephoneStatus.find_or_create_by!(id: VisitorTelephoneStatus::VERIFIED)
     VisitorPasskeyStatus.find_or_create_by!(id: VisitorPasskeyStatus::ACTIVE)
+    if defined?(VisitorSecretCredentialStatus)
+      VisitorSecretCredentialStatus::DEFAULTS.each do |id|
+        VisitorSecretCredentialStatus.find_or_create_by!(id: id)
+      end
+    end
+    return unless defined?(VisitorSecretCredentialKind)
+
+    VisitorSecretCredentialKind::DEFAULTS.each do |id|
+      VisitorSecretCredentialKind.find_or_create_by!(id: id)
+    end
   end
 
   def ensure_user_token_reference_records!

@@ -53,7 +53,7 @@ class Base::Org::Edge::V0::CookieControllerTest < ActionDispatch::IntegrationTes
     assert_includes response.headers["Set-Cookie"].to_s, "preference_consented="
   end
 
-  test "PATCH update without CSRF token returns 422" do
+  test "PATCH update without CSRF token returns 403" do
     with_forgery_protection do
       patch base_org_edge_v0_cookie_path,
             params: { consented: true },
@@ -61,7 +61,7 @@ class Base::Org::Edge::V0::CookieControllerTest < ActionDispatch::IntegrationTes
             as: :json
     end
 
-    assert_response :unprocessable_content
+    assert_response :forbidden
   end
 
   private

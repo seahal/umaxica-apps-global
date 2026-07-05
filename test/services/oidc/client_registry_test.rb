@@ -69,6 +69,28 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
     )
   end
 
+  test "client cache follows configured host changes" do
+    original_client = OidcClientRegistry.find!("sign-rp")
+    original_env = ENV["PUBLIC_AUTH_SERVICE_URL"]
+
+    begin
+      ENV["PUBLIC_AUTH_SERVICE_URL"] = "temporary-sign.example.test"
+
+      assert_includes OidcClientRegistry.find!("sign-rp").redirect_uris,
+                      "https://temporary-sign.example.test/oidc/callback"
+    ensure
+      if original_env.nil?
+        ENV.delete("PUBLIC_AUTH_SERVICE_URL")
+      else
+        ENV["PUBLIC_AUTH_SERVICE_URL"] = original_env
+      end
+    end
+
+    restored_client = OidcClientRegistry.find!("sign-rp")
+
+    assert_equal original_client.redirect_uris, restored_client.redirect_uris
+  end
+
   test "post logout redirect uris end at sign out completion" do
     %w(sign-rp base-rails-rp core-next-rp).each do |client_id|
       client = OidcClientRegistry.find!(client_id)
@@ -93,9 +115,24 @@ class OidcClientRegistryTest < ActiveSupport::TestCase
 
     hosts = Rails.configuration.x.boot_config.fetch(:hosts)
 
-    assert_equal [hosts.auth_service.host], app_uris.map { |uri| URI.parse(uri).host }
-    assert_equal [hosts.auth_corporate.host], com_uris.map { |uri| URI.parse(uri).host }
-    assert_equal [hosts.auth_staff.host], org_uris.map { |uri| URI.parse(uri).host }
+    assert_equal [
+      hosts.sign_service.host,
+      hosts.auth_service.host,
+      ENV.fetch("PRIVATE_AUTH_SERVICE_URL", nil),
+      ENV.fetch("PUBLIC_AUTH_SERVICE_URL", nil),
+    ].compact_blank.uniq.sort, app_uris.map { |uri| URI.parse(uri).host }.sort
+    assert_equal [
+      hosts.sign_corporate.host,
+      hosts.auth_corporate.host,
+      ENV.fetch("PRIVATE_AUTH_CORPORATE_URL", nil),
+      ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", nil),
+    ].compact_blank.uniq.sort, com_uris.map { |uri| URI.parse(uri).host }.sort
+    assert_equal [
+      hosts.sign_staff.host,
+      hosts.auth_staff.host,
+      ENV.fetch("PRIVATE_AUTH_STAFF_URL", nil),
+      ENV.fetch("PUBLIC_AUTH_STAFF_URL", nil),
+    ].compact_blank.uniq.sort, org_uris.map { |uri| URI.parse(uri).host }.sort
   end
 
   test "native and content clients do not expose logout receiver uris" do

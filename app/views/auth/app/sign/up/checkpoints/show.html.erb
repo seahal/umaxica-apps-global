@@ -57,7 +57,14 @@
   <p><%= t("sign.app.registration.checkpoint.show.complete") %></p>
 <% end %>
 
-<%= button_to t("actions.cancel"),
-              public_send(:"auth_app_sign_up_guard_#{@sign_up_ticket.entry_method}_path", ri: params[:ri], pt: signed_pt_param),
-              method: :delete,
-              form: { data: { turbo: false } } %>
+<% cancellation_step = @sign_up_missing_requirements.first %>
+<% if cancellation_step.present? %>
+  <%= button_to t("actions.cancel"),
+                public_send(
+                  :"auth_app_sign_up_check_#{@sign_up_ticket.entry_method}_#{cancellation_step}_path",
+                  ri: params[:ri],
+                  pt: signed_pt_param,
+                ),
+                method: :delete,
+                form: { data: { turbo: false } } %>
+<% end %>

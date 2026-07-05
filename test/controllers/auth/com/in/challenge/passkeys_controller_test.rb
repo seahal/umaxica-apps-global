@@ -11,6 +11,9 @@ class Auth::Com::Sign::In::Challenge::PasskeysControllerTest < ActionDispatch::I
     @host = ENV.fetch("PUBLIC_AUTH_CORPORATE_URL", "auth.com.localhost")
     host! @host
     @origin_headers = { "HTTP_ORIGIN" => "http://#{@host}", "Origin" => "http://#{@host}" }.freeze
+    ensure_visitor_reference_records!
+    VisitorSecretCredentialStatus::DEFAULTS.each { |id| VisitorSecretCredentialStatus.find_or_create_by!(id: id) }
+    VisitorSecretCredentialKind::DEFAULTS.each { |id| VisitorSecretCredentialKind.find_or_create_by!(id: id) }
     CloudflareTurnstile.test_mode = true
     CloudflareTurnstile.test_validation_response = { "success" => true }
 

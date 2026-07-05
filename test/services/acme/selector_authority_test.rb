@@ -8,7 +8,7 @@ class BaseSelectorAuthorityTest < ActiveSupport::TestCase
   setup do
     @user = Client.create!(status_id: ClientStatus::ACTIVE, visibility_id: ClientVisibility::USER)
     @token = ClientToken.create!(user: @user, user_token_kind_id: ClientTokenKind::BROWSER_WEB)
-    BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
+    @bootstrap = BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
   end
 
   test "auto selects when only one valid candidate exists" do
@@ -21,7 +21,7 @@ class BaseSelectorAuthorityTest < ActiveSupport::TestCase
   end
 
   test "returns selection required when multiple valid candidates exist" do
-    persona = Persona.first
+    persona = @bootstrap.account
     enterprise = Enterprise.create!(name: "Second", title: "Second")
     unit = EnterpriseUnit.create!(enterprise: enterprise, name: "Default")
     PersonaMembership.create!(

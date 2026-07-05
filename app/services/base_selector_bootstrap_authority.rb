@@ -21,23 +21,25 @@ class BaseSelectorBootstrapAuthority
       config.principal_class.lock.find(principal.id)
       bootstrap_result = nil
 
-      config.rp_account_class.transaction do
-        ensure_reference_rows!
-        rp_account = ensure_rp_account!
-        identity = ensure_identity!
-        account = ensure_account!(identity)
-        assignment = ensure_account_assignment!(account: account, identity: identity)
-        collective = ensure_collective_for(account)
-        unit = ensure_root_unit!(collective)
-        ensure_membership!(account: account, collective: collective, unit: unit)
-        avatar = provision_avatar!(account: account, collective: collective)
-        bind_avatar_account!(avatar: avatar, account: account) if avatar.present?
+      transaction_owners.reduce(
+        -> {
+          ensure_reference_rows!
+          rp_account = ensure_rp_account!
+          identity = ensure_identity!
+          account = ensure_account!(identity)
+          assignment = ensure_account_assignment!(account: account, identity: identity)
+          collective = ensure_collective_for(account)
+          unit = ensure_root_unit!(collective)
+          ensure_membership!(account: account, collective: collective, unit: unit)
+          avatar = provision_avatar!(account: account, collective: collective)
+          bind_avatar_account!(avatar: avatar, account: account) if avatar.present?
 
-        bootstrap_result = BootstrapResult.new(
-          rp_account: rp_account, identity: identity, account: account, assignment: assignment,
-          collective: collective, unit: unit, avatar: avatar,
-        )
-      end
+          bootstrap_result = BootstrapResult.new(
+            rp_account: rp_account, identity: identity, account: account, assignment: assignment,
+            collective: collective, unit: unit, avatar: avatar,
+          )
+        },
+      ) { |inner, owner| -> { owner.transaction { inner.call } } }.call
 
       bootstrap_result
     end
@@ -64,6 +66,19 @@ class BaseSelectorBootstrapAuthority
     ].compact
     result.uniq!
     result
+  end
+
+  def transaction_owners
+    [
+      connection_owner(config.rp_account_class),
+      connection_owner(config.identity_class),
+      connection_owner(config.account_class),
+      connection_owner(config.account_assignment_class),
+      connection_owner(config.collective_class),
+      connection_owner(config.unit_class),
+      connection_owner(config.membership_class),
+      (connection_owner(Avatar) if config.requires_avatar),
+    ].compact.uniq
   end
 
   def connection_owner(klass)
