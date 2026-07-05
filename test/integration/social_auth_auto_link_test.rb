@@ -737,9 +737,9 @@ class SocialAuthAutoLinkTest
                                                             social_ceremony_grant: social_ceremony_grant,
         )
       elsif entry.to_s == "sign_up"
-        public_send(:"auth_app_social_#{normalized_provider}_auth_up_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"auth_app_social_#{normalized_provider}_auth_in_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?

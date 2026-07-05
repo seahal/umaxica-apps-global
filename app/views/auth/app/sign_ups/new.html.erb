@@ -15,13 +15,13 @@
 
 <ul>
   <li data-test-id="registration-method">
-    <%= link_to auth_app_social_google_auth_up_path,
+    <%= link_to new_auth_app_social_google_registration_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.registration.new.social.buttons.google") %>
     <% end %>
   </li>
   <li data-test-id="registration-method">
-    <%= link_to auth_app_social_apple_auth_up_path,
+    <%= link_to new_auth_app_social_apple_registration_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.registration.new.social.buttons.apple") %>
     <% end %>

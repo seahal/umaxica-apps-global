@@ -270,7 +270,7 @@ module SocialAuth
     render(
       "sign/shared/social_completion",
       locals: {
-        completion_url: completion_base_app_social_authentication_url(
+        completion_url: base_app_social_authentication_completion_url(
           id: auth_hash["provider"] || auth_hash[:provider],
           host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
         ),

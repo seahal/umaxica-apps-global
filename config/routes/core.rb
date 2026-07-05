@@ -57,7 +57,7 @@ scope module: :core, as: :core do
           # Token lifecycle endpoints.
           namespace :token do
             # Token refresh endpoint.
-            resource :refresh, only: :create
+            resource :renewal, only: :create, path: "refresh", controller: :refreshes, as: :refresh
           end
         end
       end

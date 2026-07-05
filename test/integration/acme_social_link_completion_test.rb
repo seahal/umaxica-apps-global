@@ -50,7 +50,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
   test "base completion rejects a malformed social result without committing" do
     assert_no_difference("ClientGoogleIdentity.count") do
       assert_no_difference("ClientOidcAuthorizationTransaction.count") do
-        post completion_base_app_social_authentication_url(id: "google", ri: "jp", host: @base_host),
+        post base_app_social_authentication_completion_url(id: "google", ri: "jp", host: @base_host),
              params: { social_ceremony_result: "not-a-real-token", ri: "jp" },
              headers: social_completion_browser_headers
       end
@@ -63,7 +63,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "base social login start delegates to sign with a login ceremony grant" do
     assert_no_difference("Client.count") do
-      post continue_base_app_social_authentication_url(id: "google", ri: "jp", host: @base_host),
+      post base_app_social_authentication_continuation_url(id: "google", ri: "jp", host: @base_host),
            headers: { "Host" => @base_host }
     end
 
@@ -73,7 +73,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
     query = Rack::Utils.parse_nested_query(location.query)
 
     assert_equal ENV.fetch("PRIVATE_AUTH_SERVICE_URL"), location.host
-    assert_equal "/social/google/sign/in", location.path
+    assert_equal "/social/google/session/new", location.path
     assert_equal "sign_in", query["entry"]
     assert_equal "jp", query["ri"]
     assert_predicate query["social_ceremony_grant"], :present?
@@ -90,7 +90,7 @@ class BaseSocialLinkCompletionTest < ActionDispatch::IntegrationTest
 
   test "sign com and org surfaces expose no social routes" do
     # The app surface owns the social login route helper...
-    assert_respond_to self, :auth_app_social_google_auth_in_path
+    assert_respond_to self, :new_auth_app_social_google_session_path
 
     # ...while com/org sign surfaces expose no social authentication route at all.
     %w(com org).each do |surface|
@@ -736,9 +736,9 @@ class BaseSocialLinkCompletionTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"auth_app_social_#{normalized_provider}_auth_up_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"auth_app_social_#{normalized_provider}_auth_in_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?

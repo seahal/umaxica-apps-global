@@ -33,6 +33,7 @@ scope module: :docs, as: :docs do
         # Versioned documentation API.
         namespace :v0 do
           # Published documentation entries.
+          # FIXME: nasty entrypoint!
           resources :entries, only: %i(index show), param: :slug do
             resources :revisions, only: %i(index show), module: :entries
           end

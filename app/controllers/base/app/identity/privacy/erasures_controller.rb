@@ -23,10 +23,6 @@ module Base
             create_privacy_erasure_request!(current_withdrawal_subject)
           end
 
-          def status
-            render_privacy_erasure_status(current_withdrawal_subject)
-          end
-
           private
 
           def withdrawal_ceremony_class = ClientWithdrawalCeremony
@@ -47,7 +43,7 @@ module Base
 
           def privacy_erasure_new_path = new_base_app_identity_privacy_erasure_path(ri: params[:ri])
 
-          def privacy_erasure_status_path = status_base_app_identity_privacy_erasure_path(ri: params[:ri])
+          def privacy_erasure_status_path = base_app_identity_privacy_erasure_status_path(ri: params[:ri])
 
           def withdrawal_public_fallback_path = auth_app_sign_in_path
         end

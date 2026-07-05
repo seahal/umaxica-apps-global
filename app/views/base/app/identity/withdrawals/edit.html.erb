@@ -38,5 +38,5 @@
 <% end %>
 
 <p>
-  <%= button_to t("sign.shared.sign_out.button"), session_base_app_identity_withdrawal_path(ri: params[:ri]), method: :delete %>
+  <%= button_to t("sign.shared.sign_out.button"), base_app_identity_withdrawal_session_path(ri: params[:ri]), method: :delete %>
 </p>

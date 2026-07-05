@@ -110,11 +110,11 @@ module Auth
 
         assert_response :success
         assert_select "a[href=?][data-turbo=?]",
-                      auth_app_social_google_auth_in_path(ri: "jp"),
+                      new_auth_app_social_google_session_path(ri: "jp"),
                       "false",
                       count: 1
         assert_select "a[href=?][data-turbo=?]",
-                      auth_app_social_apple_auth_in_path(ri: "jp"),
+                      new_auth_app_social_apple_session_path(ri: "jp"),
                       "false",
                       count: 1
       end

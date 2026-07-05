@@ -25,7 +25,7 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
 
   test "base app well-known discovery advertises base issuer and protocol endpoints" do
     host = ENV.fetch("PUBLIC_BASE_SERVICE_URL", "base.app.localhost")
-    get base_app_well_known_discovery_url(host: host)
+    get base_app_well_known_openid_configuration_url(host: host)
 
     assert_response :ok
     body = response.parsed_body
@@ -41,12 +41,12 @@ class BaseOauthOidcAuthorityTest < ActionDispatch::IntegrationTest
   end
 
   test "base com and org well-known discovery advertise surface-specific base issuers" do
-    get base_com_well_known_discovery_url(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"))
+    get base_com_well_known_openid_configuration_url(host: ENV.fetch("PUBLIC_BASE_CORPORATE_URL", "base.com.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("visitor"), response.parsed_body["issuer"]
 
-    get base_org_well_known_discovery_url(host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"))
+    get base_org_well_known_openid_configuration_url(host: ENV.fetch("PUBLIC_BASE_STAFF_URL", "base.org.localhost"))
 
     assert_response :ok
     assert_equal OidcIssuer.for_resource_type("operator"), response.parsed_body["issuer"]

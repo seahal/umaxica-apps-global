@@ -33,6 +33,7 @@ scope module: :palm, as: :palm do
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
+        # FIXME: nasty entrypoint!
         resource :authorization, only: :show, to: "/palm/app/auth/authorizations#show"
       end
 
@@ -54,6 +55,7 @@ scope module: :palm, as: :palm do
       # Compatibility callbacks only; Base owns OAuth/OIDC.
       namespace :oidc do
         # Generic native callback stub.
+        # FIXME: nasty entrypoint!
         resource :callback, only: :show, to: "/palm/app/oauth/callbacks#show"
       end
     end

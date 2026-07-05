@@ -75,7 +75,7 @@ class OrgComNoSocialCleanupSecurityTest < ActiveSupport::TestCase
     )
     omniauth = read("config/initializers/omniauth.rb")
 
-    assert_match(%r{social/authentications#continue}, routes)
+    assert_match(/resource :session, only: :new, controller: :sessions/, routes)
     assert_match(%r{omniauth/omniauth_callbacks#omniauth}, routes)
     assert_match(/apple/, routes)
     assert_match(/google/, omniauth)

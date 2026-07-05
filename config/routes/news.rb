@@ -33,7 +33,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug do
+            # FIXME: remove module: :entries !
             resources :revisions, only: %i(index show), module: :entries
           end
         end
@@ -71,7 +73,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug do
+            # FIXME: remove module: :entries !
             resources :revisions, only: %i(index show), module: :entries
           end
         end
@@ -109,7 +113,9 @@ scope module: :news, as: :news do
         # Versioned news API.
         namespace :v0 do
           # Published news entries.
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug do
+            # FIXME: remove module: :entries !
             resources :revisions, only: %i(index show), module: :entries
           end
         end

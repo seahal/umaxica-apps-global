@@ -40,11 +40,6 @@ module Base
           terminate_withdrawal!(current_withdrawal_subject)
         end
 
-        def end_session
-          revoke_current_withdrawal_ceremony!
-          safe_redirect_to(withdrawal_public_fallback_path, fallback: withdrawal_new_path, status: :see_other)
-        end
-
         private
 
         def authorize_withdrawal!

@@ -14,6 +14,32 @@ class IdentityAuthorityInversionGuardTest < ActiveSupport::TestCase
     assert_not_includes source, "namespace :oauth"
     assert_not_includes source, "namespace :oidc"
     assert_not_includes source, "resource :refresh"
+    assert_not_includes source, "resource :up, only: :show"
+    assert_not_includes source, "resource :in, only: :show"
+    assert_not_includes source, "resource :out, only: %i(new edit create destroy)"
+  end
+
+  test "route sources use noun lifecycle resources for edge and preference routes" do
+    auth_routes = file_content("config/routes/auth.rb")
+    base_routes = file_content("config/routes/base.rb")
+    core_routes = file_content("config/routes/core.rb")
+
+    assert_includes auth_routes, 'resource :status, only: :show, path: "check", controller: :checks'
+    assert_includes base_routes, 'resource :status, only: :show, path: "check", controller: :checks'
+    assert_includes core_routes, 'resource :renewal, only: :create, path: "refresh", controller: :refreshes'
+    assert_includes base_routes,
+                    'resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets'
+    assert_includes base_routes,
+                    'resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set'
+    assert_includes base_routes,
+                    'resource :revocation, only: :destroy, path: "other_sessions", controller: "revocations/others",' \
+                    "\n                              as: :other_sessions"
+    assert_includes auth_routes, 'resource :registration, only: :show, path: "up", controller: :ups, as: :up'
+    assert_includes auth_routes, 'resource :session, only: :show, path: "in", controller: :ins, as: :in'
+    assert_includes auth_routes,
+                    'resource :termination, only: %i(new edit create destroy), path: "out", controller: :outs, as: :out'
+    assert_includes base_routes,
+                    'resource :termination, path: "out", controller: :sign_outs, as: :sign_out, only: %i(new edit create)'
   end
 
   test "refresh rotation target path uses acme authority" do

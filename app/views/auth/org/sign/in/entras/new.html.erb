@@ -13,7 +13,7 @@
   <% end %>
 
   <% if @connection.present? %>
-    <%= form_with url: authorization_auth_org_sign_in_entra_path,
+    <%= form_with url: auth_org_sign_in_entra_authorization_path,
                   method: :post,
                   data: { turbo: false } do |f| %>
       <%= hidden_field_tag :pt, pt if pt.present? %>

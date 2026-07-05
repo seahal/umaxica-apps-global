@@ -80,6 +80,7 @@ scope module: :help, as: :help do
         namespace :v0 do
           # Published help entries.
           resources :entries, only: %i(index show), param: :slug do
+            # FIXME: remove module: :entries !
             resources :revisions, only: %i(index show), module: :entries
           end
         end

@@ -41,14 +41,14 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "POST /sign/in/entra/authorization is routable" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
     assert_not_equal 404, response.status
   end
 
   test "GET /sign/in/entra/callback is routable" do
-    get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: "x", code: "y" }
+    get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: "x", code: "y" }
 
     assert_response :unprocessable_content
   end
@@ -59,7 +59,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     get new_auth_org_sign_in_entra_path(ri: RI), params: { connection: @active_connection.public_id }
 
     assert_response :success
-    assert_select "form[action=?]", authorization_auth_org_sign_in_entra_path(ri: RI)
+    assert_select "form[action=?]", auth_org_sign_in_entra_authorization_path(ri: RI)
     assert_select "input[type=hidden][name='entra[connection_public_id]'][value=?]",
                   @active_connection.public_id
   end
@@ -68,7 +68,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     get new_auth_org_sign_in_entra_path(ri: RI)
 
     assert_response :success
-    assert_select "form[action=?]", authorization_auth_org_sign_in_entra_path(ri: RI), count: 0
+    assert_select "form[action=?]", auth_org_sign_in_entra_authorization_path(ri: RI), count: 0
   end
 
   test "new renders without Entra button when connection is not active" do
@@ -83,20 +83,20 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     get new_auth_org_sign_in_entra_path(ri: RI), params: { connection: inactive_connection.public_id }
 
     assert_response :success
-    assert_select "form[action=?]", authorization_auth_org_sign_in_entra_path(ri: RI), count: 0
+    assert_select "form[action=?]", auth_org_sign_in_entra_authorization_path(ri: RI), count: 0
   end
 
   test "new renders without Entra button for unknown connection public_id" do
     get new_auth_org_sign_in_entra_path(ri: RI), params: { connection: "ZZZ999ZZZ999ZZZ999ZZZ" }
 
     assert_response :success
-    assert_select "form[action=?]", authorization_auth_org_sign_in_entra_path(ri: RI), count: 0
+    assert_select "form[action=?]", auth_org_sign_in_entra_authorization_path(ri: RI), count: 0
   end
 
   # --- authorization action ---
 
   test "authorization redirects to Entra authorization endpoint" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
     assert_response :redirect
@@ -107,7 +107,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "authorization redirect includes required OAuth2 params" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
     query = Rack::Utils.parse_nested_query(URI.parse(response.location).query)
@@ -123,7 +123,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "authorization stores state nonce and connection in session" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
     assert_predicate session[:entra_state], :present?
@@ -133,7 +133,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   end
 
   test "authorization renders error when connection_public_id is missing" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: "" } }
 
     assert_response :unprocessable_content
@@ -148,14 +148,14 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       status_id: OrganizationEntraConnectionState::NOTHING,
     )
 
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: inactive_connection.public_id } }
 
     assert_response :unprocessable_content
   end
 
   test "authorization state in session matches state in the Entra redirect URL" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
     session_state = session[:entra_state]
@@ -167,40 +167,40 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   # --- callback action: state verification ---
 
   test "callback renders error when state param is missing" do
-    get callback_auth_org_sign_in_entra_path(ri: RI), params: { code: "auth-code" }
+    get auth_org_sign_in_entra_callback_path(ri: RI), params: { code: "auth-code" }
 
     assert_response :unprocessable_content
   end
 
   test "callback renders error when state does not match session" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
 
-    get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: "wrong-state", code: "auth-code" }
+    get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: "wrong-state", code: "auth-code" }
 
     assert_response :unprocessable_content
   end
 
   test "callback renders error when Entra returns an error param" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     state = session[:entra_state]
 
-    get callback_auth_org_sign_in_entra_path(ri: RI),
+    get auth_org_sign_in_entra_callback_path(ri: RI),
         params: { state: state, error: "access_denied", error_description: "User denied consent" }
 
     assert_response :unprocessable_content
   end
 
   test "callback clears state from session to prevent replay" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     state = session[:entra_state]
 
-    get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+    get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
 
     # State was consumed by the first callback; second attempt with the same state must fail
-    get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+    get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
 
     assert_response :unprocessable_content
   end
@@ -208,13 +208,13 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   # --- callback action: token exchange failure ---
 
   test "callback renders error when token exchange fails" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     state = session[:entra_state]
 
     failed_result = OidcRpTokenClient::Result.new(success: false, token_response: nil, error: "invalid_grant")
     OidcRpTokenClient.stub(:call, failed_result) do
-      get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "bad-code" }
+      get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "bad-code" }
     end
 
     assert_response :unprocessable_content
@@ -223,7 +223,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
   # --- callback action: token verification failure ---
 
   test "callback renders error when id_token is not a valid JWT" do
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     state = session[:entra_state]
 
@@ -233,7 +233,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
       error: nil,
     )
     OidcRpTokenClient.stub(:call, token_result) do
-      get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+      get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
     end
 
     assert_response :unprocessable_content
@@ -247,7 +247,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     jwks = { "keys" => [jwk.export] }
     jwks_loader = ->(_opts) { jwks }
 
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     nonce = session[:entra_nonce]
     state = session[:entra_state]
@@ -281,7 +281,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
                 stub_loader
               },
       ) do
-        get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+        get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
       end
     end
 
@@ -297,7 +297,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
     jwks = { "keys" => [jwk.export] }
     jwks_loader = ->(_opts) { jwks }
 
-    post authorization_auth_org_sign_in_entra_path(ri: RI),
+    post auth_org_sign_in_entra_authorization_path(ri: RI),
          params: { entra: { connection_public_id: @active_connection.public_id } }
     nonce = session[:entra_nonce]
     state = session[:entra_state]
@@ -340,7 +340,7 @@ class Auth::Org::Sign::In::EntrasControllerTest < ActionDispatch::IntegrationTes
                 stub_loader
               },
       ) do
-        get callback_auth_org_sign_in_entra_path(ri: RI), params: { state: state, code: "code" }
+        get auth_org_sign_in_entra_callback_path(ri: RI), params: { state: state, code: "code" }
       end
     end
 

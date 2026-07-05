@@ -196,6 +196,58 @@ skips hide partial migrations and corrupt schema_dump files over time.
 - Prefer existing project patterns over new abstractions.
 - Keep changes scoped to the requested behavior.
 
+### Rails routing policy
+
+Rails routes must be resourceful by default.
+
+Use only `resource` and `resources` for application route declarations.
+
+Allowed boundary wrappers:
+
+- `namespace`
+- `scope module: ...`
+- `scope(module: ..., as: ...)`
+- `constraints(host: ...)`
+- `constraints(subdomain: ...)`
+
+These wrappers define surface, module, host, or trust boundaries. They do not authorize
+non-resourceful routes inside the block.
+
+Do not add new routes with:
+
+- `get`
+- `post`
+- `patch`
+- `put`
+- `delete`
+- `match`
+- `root`
+- `mount`
+- `redirect`
+- route-level `to:`
+- route-level `controller:`
+- route-level `path:`
+- route-level `as:`
+- route-level `defaults:`
+- custom `member` actions
+- custom `collection` actions
+
+unless the exception has been explicitly approved by the user and recorded in an ADR.
+
+Controller actions for normal app routes should remain within the CRUD vocabulary:
+
+- `index`
+- `show`
+- `new`
+- `edit`
+- `create`
+- `update`
+- `destroy`
+
+Do not add business verbs as controller actions. Model the operation as a noun resource instead.
+If a route cannot be expressed with `resource` or `resources`, stop and ask for approval before
+implementing it. Every approved non-resourceful route exception must be recorded in an ADR.
+
 ### Logging Policy
 
 - Specify important business, security, and accountability events explicitly before implementing

@@ -5,33 +5,177 @@ description: RESTful routes, correct verbs, path helpers, CSRF, and no hardcoded
 
 # Routing
 
-## General rules
+## Policy
 
-- Routes must be RESTful and use resourceful definitions.
-- Prefer Rails `resource` / `resources` declarations, with explicit `only:` lists, before adding
-  verb-by-verb routes.
-- Model new endpoints as CRUD-style resources unless the route is a protocol callback,
-  compatibility endpoint, or genuinely non-resourceful action.
-- HTTP methods must reflect intent — never GET for a destructive action.
-- Use path helpers; do not hardcode `http://` or `https://` URLs in application code.
-- Keep route files declarative and easy to inspect with `bin/rails routes`.
-- Avoid loops, conditionals, metaprogramming, or custom route-builder helpers when explicit route
-  declarations are readable.
+Rails routes must be resourceful by default.
+
+Use only:
+
+- `resource`
+- `resources`
+
+for application route declarations.
+
+Boundary wrappers are allowed when they do not define custom actions by themselves:
+
+- `namespace`
+- `scope module: ...`
+- `scope(module: ..., as: ...)`
+- `constraints(host: ...)`
+- `constraints(subdomain: ...)`
+
+These wrappers define surface, module, host, or trust boundaries. They do not excuse
+non-resourceful route definitions inside the block.
+
+Inside every namespace, scope, or constraint block, routes must still be expressed with `resource`
+or `resources` unless an approved exception exists.
+
+## Default prohibition
+
+Do not add new routes using:
+
+- `get`
+- `post`
+- `patch`
+- `put`
+- `delete`
+- `match`
+- `root`
+- `mount`
+- `redirect`
+- route-level `to:`
+- route-level `controller:`
+- route-level `path:`
+- route-level `as:`
+- route-level `defaults:`
+- custom `member` actions
+- custom `collection` actions
+
+unless the exception has been explicitly approved by the user and recorded in an ADR.
+
+## Controller actions
+
+Controller actions for normal app routes should remain within the Rails CRUD vocabulary:
+
+- `index`
+- `show`
+- `new`
+- `edit`
+- `create`
+- `update`
+- `destroy`
+
+Do not add business verbs as controller actions.
+
+Avoid:
+
+- `publish`
+- `unpublish`
+- `approve`
+- `reject`
+- `ban`
+- `unban`
+- `archive`
+- `restore`
+- `toggle`
+- `search`
+- `latest`
+- `popular`
+- `verify`
+- `reset`
+- `complete`
+- `callback`
+- `logout`
+- `purge`
+
+Instead, model the operation as a noun resource.
 
 ## Naming
 
-- Prefer resourceful routing over custom actions.
-- Add a custom action only when a resource verb genuinely does not fit.
-- When a custom `get`, `post`, or `match` route is necessary, keep the verb, path, controller,
-  helper name, and defaults explicit.
-- Add a short comment when the non-resourceful shape is not obvious from the surrounding namespace
-  or protocol.
+Resource names should be nouns.
+Prefer one-word nouns.
 
-## Forbidden patterns
+If a compound noun seems necessary, first consider whether a namespace can provide the missing
+context.
 
-- `match ... via: :all`
-- exposing internal routes publicly
-- defining JSON endpoints implicitly — declare them explicitly
+## Pre-approved wrappers
+
+The following boundary primitives are allowed and do not require approval by themselves:
+
+- `namespace`
+- `scope module: ...`
+- `scope(module: ..., as: ...)`
+- `constraints(host: ...)`
+- `constraints(subdomain: ...)`
+
+Routes inside these blocks still need to follow the resourceful routing policy.
+
+## Pre-approved exceptions
+
+Some routes are external, protocol, or infrastructure contracts and may need non-standard paths or
+route options. Even for these categories, keep the route as resourceful as possible.
+
+The pre-approved categories are:
+
+- `root`
+- health check endpoints
+- `/up`
+- `/robots.txt`
+- `/sitemap.xml`
+- `/csp-violation-report`
+- `.well-known/openid-configuration`
+- `.well-known/jwks.json`
+- OAuth/OIDC protocol endpoints
+- OmniAuth callback endpoints
+- externally specified callback endpoints
+- webhook endpoints
+- security report endpoints
+- Rails engine mounts
+- Rack app mounts
+- framework-generated routes
+- redirect-only legacy compatibility routes
+
+## Exception process
+
+If a route cannot be represented with `resource` or `resources`, stop before implementing it.
+
+Do not silently add the route.
+
+The implementer must ask the user for permission and provide:
+
+1. proposed route
+2. reason `resource` / `resources` cannot express it
+3. external specification or compatibility requirement, if any
+4. expected controller and action
+5. expected helper name
+6. expected path and HTTP method
+7. whether the exception is temporary or permanent
+8. test plan
+9. ADR entry plan
+
+Only after explicit approval may the route be added.
+
+## ADR requirement
+
+Every non-resourceful route exception must be recorded in an ADR.
+
+The ADR must include:
+
+- date
+- status
+- route file
+- route snippet
+- exception type
+- reason for exception
+- approval source
+- expected lifetime: temporary / permanent
+- removal plan, if temporary
+- tests added
+- related controller/action
+- related helper/path
+- risk assessment
+
+Do not add a non-resourceful route exception without updating the ADR.
 
 ## Safety
 

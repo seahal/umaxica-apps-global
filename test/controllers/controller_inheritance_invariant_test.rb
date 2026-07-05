@@ -31,6 +31,11 @@ class ControllerInheritanceInvariantTest < ActiveSupport::TestCase
     "app/controllers/base/app/identity/removals_controller.rb",
     "app/controllers/base/app/identity/rotations_controller.rb",
 
+    # Social ceremony start pages share the reviewed OmniAuth handshake in
+    # the local AuthenticationsController base.
+    "app/controllers/auth/app/social/sessions_controller.rb",
+    "app/controllers/auth/app/social/registrations_controller.rb",
+
     # Sign-out completion and emergency revocation controllers currently share
     # the reviewed protocol implementations until those flows are flattened.
     "app/controllers/auth/app/sign/outs/completions_controller.rb",

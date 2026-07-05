@@ -17,7 +17,7 @@ class SocialAuthStepUpTest < ActionDispatch::IntegrationTest
   end
 
   test "social auth entry rejects step_up intent" do
-    get auth_app_social_google_auth_in_url(intent: "step_up", ri: "jp"),
+    get new_auth_app_social_google_session_url(intent: "step_up", ri: "jp"),
         headers: as_user_headers(@user, host: @host)
 
     assert_response :redirect

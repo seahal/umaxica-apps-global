@@ -643,9 +643,9 @@ class Base::Org::SelectorControllerTest
       if intent.to_s == "link"
         public_send(:"auth_app_settings_#{normalized_provider}_path", ri: ri)
       elsif entry.to_s == "sign_up"
-        public_send(:"auth_app_social_#{normalized_provider}_auth_up_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_registration_path", ri: ri, rt: rt)
       else
-        public_send(:"auth_app_social_#{normalized_provider}_auth_in_path", ri: ri, rt: rt)
+        public_send(:"new_auth_app_social_#{normalized_provider}_session_path", ri: ri, rt: rt)
       end
     headers = social_callback_headers(host)
     headers["Referer"] = referer if referer.present?

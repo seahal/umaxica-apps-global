@@ -38,13 +38,17 @@ scope module: :side, as: :side do
       resource :dashboard, only: :show
 
       # Canonical browser sign-out flow.
+      # FIXME: nasty entrypoint!
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        # FIXME: nasty entrypoint!
         resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
+        # FIXME: nasty entrypoint!
         resource :authorization, only: :show, to: "/side/app/auth/authorizations#show"
+        # FIXME: nasty entrypoint!
         resource :callback, only: :show, to: "/side/app/auth/callbacks#show"
       end
 
@@ -89,13 +93,17 @@ scope module: :side, as: :side do
       resource :dashboard, only: :show
 
       # Canonical browser sign-out flow.
+      # FIXME: nasty entrypoint!
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        # FIXME: nasty entrypoint!
         resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
+        # FIXME: nasty entrypoint!
         resource :authorization, only: :show, to: "/side/com/auth/authorizations#show"
+        # FIXME: nasty entrypoint!
         resource :callback, only: :show, to: "/side/com/auth/callbacks#show"
       end
 
@@ -139,13 +147,17 @@ scope module: :side, as: :side do
       resource :dashboard, only: :show
 
       # Canonical browser sign-out flow.
+      # FIXME: nasty entrypoint!
       resource :sign_out, only: %i(new edit create), path: "sign/out" do
+        # FIXME: nasty entrypoint!
         resource :completion, only: :show, path: "complete", module: :sign_outs
       end
 
       # RP login start: redirects to Base /oauth/authorize.
       namespace :oidc do
+        # FIXME: nasty entrypoint!
         resource :authorization, only: :show, to: "/side/org/auth/authorizations#show"
+        # FIXME: nasty entrypoint!
         resource :callback, only: :show, to: "/side/org/auth/callbacks#show"
       end
 

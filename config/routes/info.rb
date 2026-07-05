@@ -20,6 +20,7 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug
         end
       end
@@ -43,6 +44,7 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug
         end
       end
@@ -66,6 +68,7 @@ scope module: :info, as: :info do
 
       namespace :api do
         namespace :v0 do
+          # FIXME: remove param: :slug !
           resources :entries, only: %i(index show), param: :slug
         end
       end

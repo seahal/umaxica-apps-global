@@ -15,7 +15,7 @@ class Base::App::WelcomesControllerTest < ActionDispatch::IntegrationTest
     BaseSelectorBootstrapAuthority.call(surface: :app, principal: @user)
     BaseSelectorAuthority.prepare(surface: :app, principal: @user, session: @token)
 
-    get base_app_welcome_entry_url(ri: "jp", host: @host),
+    get base_app_welcome_url(ri: "jp", host: @host),
         headers: as_user_headers(@user, host: @host, session_public_id: @token.public_id)
 
     assert_redirected_to base_app_dashboard_path(ri: "jp")

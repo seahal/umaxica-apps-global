@@ -196,13 +196,13 @@ module Security
 
     def public_withdrawal?(entry)
       (entry.path.start_with?("/identity/withdrawal") &&
-        entry.controller_path.match?(%r{\Abase/(app|com)/identity/withdrawal(?:s|_sessions)\z})) ||
+        entry.controller_path.match?(%r{\Abase/(app|com)/identity/withdrawal(?:s|/sessions)\z})) ||
         (entry.path.start_with?("/identity/privacy/erasure") &&
-          entry.controller_path.match?(%r{\Abase/(app|com)/identity/privacy/erasures\z}))
+          entry.controller_path.match?(%r{\Abase/(app|com)/identity/privacy/erasure(?:s|/statuses)\z}))
     end
 
     def public_social?(entry)
-      entry.path.start_with?("/social") || entry.controller_path.end_with?("/social/authentications")
+      entry.path.start_with?("/social") || entry.controller_path.match?(%r{\A(auth|base)/app/social/})
     end
 
     def public_auth_app_redirect?(entry)

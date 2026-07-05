@@ -19,7 +19,7 @@ class RedirectTargetUsageTest < ActiveSupport::TestCase
     app/controllers/auth/app/sign/ins_controller.rb
     app/controllers/auth/app/sign/outs_controller.rb
     app/controllers/auth/app/sign/ups_controller.rb
-    app/controllers/auth/org/sign/in/entras_controller.rb
+    app/controllers/auth/org/sign/in/entra/authorizations_controller.rb
     app/controllers/concerns/common_redirect.rb
     app/controllers/concerns/oidc_callback.rb
     app/controllers/concerns/oidc_rp_logout_launcher.rb

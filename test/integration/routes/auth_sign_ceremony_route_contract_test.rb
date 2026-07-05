@@ -330,23 +330,31 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
     end
 
     assert_recognizes(
-      { controller: "auth/app/social/authentications", action: "continue" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/sign/in", method: :get },
+      { controller: "auth/app/social/sessions", action: "new", provider: "google", intent: "login" },
+      { path: "http://#{SIGN_APP_HOST}/social/google/session/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/social/authentications", action: "continue" },
-      { path: "http://#{SIGN_APP_HOST}/social/google/sign/up", method: :get },
+      { controller: "auth/app/social/registrations",
+        action: "new",
+        provider: "google",
+        intent: "login",
+        entry: "auth_up", },
+      { path: "http://#{SIGN_APP_HOST}/social/google/registration/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/social/authentications", action: "continue" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/sign/in", method: :get },
+      { controller: "auth/app/social/sessions", action: "new", provider: "apple", intent: "login" },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/session/new", method: :get },
     )
 
     assert_recognizes(
-      { controller: "auth/app/social/authentications", action: "continue" },
-      { path: "http://#{SIGN_APP_HOST}/social/apple/sign/up", method: :get },
+      { controller: "auth/app/social/registrations",
+        action: "new",
+        provider: "apple",
+        intent: "login",
+        entry: "auth_up", },
+      { path: "http://#{SIGN_APP_HOST}/social/apple/registration/new", method: :get },
     )
 
     assert_recognizes(
@@ -926,7 +934,7 @@ class AuthSignCeremonyRouteContractTest < ActionDispatch::IntegrationTest
 
     assert_raises(ActionController::RoutingError) do
       Rails.application.routes.recognize_path(
-        "http://#{SIGN_APP_HOST}/social/apple/sign/in",
+        "http://#{SIGN_APP_HOST}/social/apple/session/new",
         method: :post,
       )
     end

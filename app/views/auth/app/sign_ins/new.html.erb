@@ -13,13 +13,13 @@
 
 <ul>
   <li>
-    <%= link_to auth_app_social_google_auth_in_path,
+    <%= link_to new_auth_app_social_google_session_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.authentication.new.links.google") %>
     <% end %>
   </li>
   <li>
-    <%= link_to auth_app_social_apple_auth_in_path,
+    <%= link_to new_auth_app_social_apple_session_path,
                 data: { turbo: false } do %>
       <%= t("sign.app.authentication.new.links.apple") %>
     <% end %>

@@ -120,6 +120,10 @@ Current URL boundary decisions:
 
 - `adr/public-private-url-boundaries.md`
 
+Current routing decisions:
+
+- `adr/rails-routing-resourceful-policy.md`
+
 Current logging / observability decisions:
 
 - `adr/application-logging-boundary.md`

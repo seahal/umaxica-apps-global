@@ -9,20 +9,23 @@ This batch stayed test-only and focused on two low-risk coverage gaps:
 - `test/services/sign_up_artifact_cleanup_test.rb`
 - `test/services/step_up/available_methods_test.rb`
 
-The Rails suite still has a pre-existing OIDC RP browser-flow failure in the full coverage run, but the batch completed the required narrow validation and produced a new full-suite coverage snapshot.
+The Rails suite still has a pre-existing OIDC RP browser-flow failure in the full coverage run, but
+the batch completed the required narrow validation and produced a new full-suite coverage snapshot.
 
 ## Coverage Snapshot
 
 - Starting Rails coverage: 90.49% line coverage, 69.06% branch coverage.
 - Ending Rails coverage: 90.65% line coverage, 69.48% branch coverage.
 - Starting VP coverage: not measured in the previous batch.
-- Ending VP coverage: 0% lines, 0% statements, 0% branches, 0% functions because `vp test --coverage` reported no test files.
+- Ending VP coverage: 0% lines, 0% statements, 0% branches, 0% functions because
+  `vp test --coverage` reported no test files.
 
 ## Failures / Errors
 
 - Starting failures / errors: 1 failure, 0 errors in the previous documented full coverage attempt.
 - Ending failures / errors: 1 failure, 0 errors in `COVERAGE=true bin/rails test test/`.
-- The ending full-suite failure was `OidcRpBrowserFlowTest#test_app_email_sign-in_session-limit_handoff_signs_in_Sign_and_leaves_capacity_for_RP_callback_session`.
+- The ending full-suite failure was
+  `OidcRpBrowserFlowTest#test_app_email_sign-in_session-limit_handoff_signs_in_Sign_and_leaves_capacity_for_RP_callback_session`.
 
 ## Selected Targets
 
@@ -68,12 +71,18 @@ The Rails suite still has a pre-existing OIDC RP browser-flow failure in the ful
 
 ## Skipped Risky Areas
 
-- `config/**`, `bin/**`, routes, fixtures, factories, CI files, and dependency files were left untouched.
+- `config/**`, `bin/**`, routes, fixtures, factories, CI files, and dependency files were left
+  untouched.
 - Auth/session/OIDC/logout/refresh/token/credential/security flows were not modified.
-- The VP checker still reports pre-existing TypeScript project issues in `src/entrypoints/inertia.tsx` and `@styles/application.css`, but those files are outside the allowed edit scope for this batch.
+- The VP checker still reports pre-existing TypeScript project issues in
+  `src/entrypoints/inertia.tsx` and `@styles/application.css`, but those files are outside the
+  allowed edit scope for this batch.
 
 ## Next Batch Candidates
 
-- Continue with the remaining safe, deterministic `test/**` targets exposed by the Rails coverage report.
-- Revisit `app/services/sign_up_artifact_cleanup.rb` only if there is a clearly safe branch left to cover with a small, deterministic test.
-- Re-run the Rails coverage report before selecting the next batch so the next target list is based on current data.
+- Continue with the remaining safe, deterministic `test/**` targets exposed by the Rails coverage
+  report.
+- Revisit `app/services/sign_up_artifact_cleanup.rb` only if there is a clearly safe branch left to
+  cover with a small, deterministic test.
+- Re-run the Rails coverage report before selecting the next batch so the next target list is based
+  on current data.

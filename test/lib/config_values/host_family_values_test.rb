@@ -66,6 +66,11 @@ class ConfigValuesHostFamilyValuesTest < ActiveSupport::TestCase
 
     assert_equal 3, values.info_origins.size
     assert_equal [values.info_service, values.info_corporate, values.info_staff], values.info_origins
+
+    assert_equal values.sign_service, values.auth_service
+    assert_equal values.sign_corporate, values.auth_corporate
+    assert_equal values.sign_staff, values.auth_staff
+    assert_equal [values.auth_service, values.auth_corporate, values.auth_staff], values.auth_origins
   end
 
   test "build in production mode prefers ENV overrides over fallbacks" do

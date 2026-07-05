@@ -194,8 +194,9 @@ class Auth::RouteNamingTest < ActionDispatch::IntegrationTest
     forbidden = [
       "safe_sign_state_" + "redirect",
       'scope path: "' + 'sign"',
-      'path: "' + 'in"',
-      'path: "' + 'out"',
+      "resource :up, only: :show",
+      "resource :in, only: :show",
+      "resource :out, only: %i(new edit create destroy)",
       'controller: "' + 'sign_ins"',
       'controller: "' + 'sign_outs"',
       'controller: "' + 'checkpoints"',

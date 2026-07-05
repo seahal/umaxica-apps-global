@@ -11,7 +11,7 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :app, as: :app) do
       root "roots#index"
-      get :welcome, to: "welcomes#show", as: :welcome_entry
+      resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
       resource :switcher, only: %i(show update)
@@ -37,19 +37,14 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :reset, only: %i(edit destroy)
+        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
       end
 
+      # Paths fixed by OIDC Discovery spec; resource names stay nouns.
       namespace(:well_known, path: ".well-known") do
-        get(
-          "openid-configuration",
-          to: "discoveries#show",
-          as: :discovery,
-          format: false,
-        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -70,7 +65,7 @@ scope(module: :base, as: :base) do
 
       # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
-        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+        resource :termination, path: "out", controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
@@ -81,13 +76,13 @@ scope(module: :base, as: :base) do
         resource(:logout, only: %i(show create))
       end
 
+      # OAuth/OIDC protocol endpoints. Paths are fixed by RFC 6749/7009 and
+      # OIDC Core; resource names stay nouns.
       namespace(:oauth) do
-        get("authorize", to: "authorizations#show", as: :authorization)
-        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:authorization, only: :show, path: "authorize", controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
-        post("revoke", to: "revocations#create", as: :revocation)
-        resource(:revoke, only: :create, controller: :revocations)
+        resource(:revocation, only: :create, path: "revoke", controller: :revocations)
       end
 
       # Public web API: cookie consent, theme.
@@ -103,9 +98,9 @@ scope(module: :base, as: :base) do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
-            resource :refresh, only: :create
+            resource :renewal, only: :create, path: "refresh", controller: :refreshes, as: :refresh
           end
         end
       end
@@ -118,11 +113,15 @@ scope(module: :base, as: :base) do
       end
 
       namespace(:social) do
-        resource :authentication, only: [] do
-          post :continue
-          post :completion
+        # Base-side ceremony endpoints: continuation hands the browser to the
+        # Auth host; completion consumes the signed ceremony result.
+        namespace :authentication do
+          resource :continuation, only: :create
+          resource :completion, only: :create
         end
 
+        # Non-resourceful exception: OmniAuth middleware owns these paths, and
+        # Apple's form_post response mode requires the POST variant.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -141,28 +140,27 @@ scope(module: :base, as: :base) do
         get(
           "failure",
           to: "/auth/app/omniauth/omniauth_callbacks#failure",
+          as: :failure,
         )
 
-        scope :google do
-          get(
-            "sign/in", to: "/auth/app/social/authentications#continue", as: :google_auth_in,
-                       defaults: { provider: "google", intent: "login" },
-          )
-          get(
-            "sign/up", to: "/auth/app/social/authentications#continue", as: :google_auth_up,
-                       defaults: { provider: "google", intent: "login", entry: "auth_up" },
-          )
+        # Ceremony start pages. session = sign-in intent, registration =
+        # sign-up entry; the provider is carried by route defaults.
+        # These dispatch to the Auth surface controllers that own the
+        # OmniAuth handshake for the app realm.
+        scope :google, as: :google, defaults: { provider: "google", intent: "login" } do
+          resource :session, only: :new, controller: "/auth/app/social/sessions"
+          resource :registration,
+                   only: :new,
+                   controller: "/auth/app/social/registrations",
+                   defaults: { entry: "auth_up" }
         end
 
-        scope :apple do
-          get(
-            "sign/in", to: "/auth/app/social/authentications#continue", as: :apple_auth_in,
-                       defaults: { provider: "apple", intent: "login" },
-          )
-          get(
-            "sign/up", to: "/auth/app/social/authentications#continue", as: :apple_auth_up,
-                       defaults: { provider: "apple", intent: "login", entry: "auth_up" },
-          )
+        scope :apple, as: :apple, defaults: { provider: "apple", intent: "login" } do
+          resource :session, only: :new, controller: "/auth/app/social/sessions"
+          resource :registration,
+                   only: :new,
+                   controller: "/auth/app/social/registrations",
+                   defaults: { entry: "auth_up" }
         end
       end
 
@@ -208,24 +206,24 @@ scope(module: :base, as: :base) do
         end
 
         resources :sessions, only: %i(index show destroy)
-        resource :session_set, path: "sessions", only: :destroy, controller: "revocations/alls"
-        resource :other_sessions, only: :destroy, controller: "revocations/others"
+        resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set
+        resource :revocation, only: :destroy, path: "other_sessions", controller: "revocations/others",
+                              as: :other_sessions
         namespace :sessions do
           resource :revocation, only: :create, controller: "/base/app/identity/revocations"
         end
 
         resources :activities, only: :index
 
-        resource :withdrawal, only: %i(new update create edit destroy) do
-          delete :session, action: :end_session
+        resource :withdrawal, only: %i(new edit create update destroy)
+        namespace :withdrawal do
+          # DELETE ends the withdrawal ceremony session.
+          resource :session, only: %i(new create destroy)
         end
-        resource :withdrawal_session,
-                 path: "withdrawal/session",
-                 only: %i(new create),
-                 controller: :withdrawal_sessions
         namespace :privacy do
-          resource :erasure, only: %i(new create) do
-            get :status
+          resource :erasure, only: %i(new create)
+          namespace :erasure do
+            resource :status, only: :show
           end
         end
       end
@@ -239,7 +237,7 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :com, as: :com) do
       root "roots#index"
-      get :welcome, to: "welcomes#show", as: :welcome_entry
+      resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
       resource :switcher, only: %i(show update)
@@ -262,19 +260,14 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :reset, only: %i(edit destroy)
+        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
       end
 
+      # Paths fixed by OIDC Discovery spec; resource names stay nouns.
       namespace(:well_known, path: ".well-known") do
-        get(
-          "openid-configuration",
-          to: "discoveries#show",
-          as: :discovery,
-          format: false,
-        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -295,7 +288,7 @@ scope(module: :base, as: :base) do
 
       # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
-        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+        resource :termination, path: "out", controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
@@ -306,13 +299,13 @@ scope(module: :base, as: :base) do
         resource(:logout, only: %i(show create))
       end
 
+      # OAuth/OIDC protocol endpoints. Paths are fixed by RFC 6749/7009 and
+      # OIDC Core; resource names stay nouns.
       namespace(:oauth) do
-        get("authorize", to: "authorizations#show", as: :authorization)
-        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:authorization, only: :show, path: "authorize", controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
-        post("revoke", to: "revocations#create", as: :revocation)
-        resource(:revoke, only: :create, controller: :revocations)
+        resource(:revocation, only: :create, path: "revoke", controller: :revocations)
       end
 
       # Public web API: cookie consent, theme.
@@ -328,9 +321,9 @@ scope(module: :base, as: :base) do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
-            resource :refresh, only: :create
+            resource :renewal, only: :create, path: "refresh", controller: :refreshes, as: :refresh
           end
         end
       end
@@ -363,20 +356,20 @@ scope(module: :base, as: :base) do
           resource :removal, only: :create
         end
         resources :sessions, only: %i(index show destroy)
-        resource :session_set, path: "sessions", only: :destroy, controller: "revocations/alls"
-        resource :other_sessions, only: :destroy, controller: "revocations/others"
+        resource :revocation, only: :destroy, path: "sessions", controller: "revocations/alls", as: :session_set
+        resource :revocation, only: :destroy, path: "other_sessions", controller: "revocations/others",
+                              as: :other_sessions
 
         resources :activities, only: :index
-        resource :withdrawal, only: %i(new update create edit destroy) do
-          delete :session, action: :end_session
+        resource :withdrawal, only: %i(new edit create update destroy)
+        namespace :withdrawal do
+          # DELETE ends the withdrawal ceremony session.
+          resource :session, only: %i(new create destroy)
         end
-        resource :withdrawal_session,
-                 path: "withdrawal/session",
-                 only: %i(new create),
-                 controller: :withdrawal_sessions
         namespace :privacy do
-          resource :erasure, only: %i(new create) do
-            get :status
+          resource :erasure, only: %i(new create)
+          namespace :erasure do
+            resource :status, only: :show
           end
         end
       end
@@ -390,7 +383,7 @@ scope(module: :base, as: :base) do
   ) do
     scope(module: :org, as: :org) do
       root "roots#index"
-      get :welcome, to: "welcomes#show", as: :welcome_entry
+      resource :welcome, only: :show
       resource :dashboard, only: :show
       resource :selector, only: %i(show update)
       resource :switcher, only: %i(show update)
@@ -413,19 +406,14 @@ scope(module: :base, as: :base) do
         resource :motion, only: %i(edit update)
         resource :pagination, only: %i(edit update)
         resource :region, only: %i(edit update)
-        resource :reset, only: %i(edit destroy)
+        resource :customization, only: %i(edit destroy), path: "reset", as: :reset, controller: :resets
         resource :screen, only: %i(edit update)
         resource :theme, only: %i(edit update)
         resource :timezone, only: %i(edit update)
       end
 
+      # Paths fixed by OIDC Discovery spec; resource names stay nouns.
       namespace(:well_known, path: ".well-known") do
-        get(
-          "openid-configuration",
-          to: "discoveries#show",
-          as: :discovery,
-          format: false,
-        )
         resource(
           :openid_configuration, only: :show, path: "openid-configuration", controller: :discoveries,
                                  format: false,
@@ -468,7 +456,7 @@ scope(module: :base, as: :base) do
 
       # Base owns the post-authentication sign-out confirmation flow.
       scope path: :sign do
-        resource :out, controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
+        resource :termination, path: "out", controller: :sign_outs, as: :sign_out, only: %i(new edit create) do
           resource :completion, only: :show, path: "complete", module: :sign_outs
         end
       end
@@ -479,13 +467,13 @@ scope(module: :base, as: :base) do
         resource(:logout, only: %i(show create))
       end
 
+      # OAuth/OIDC protocol endpoints. Paths are fixed by RFC 6749/7009 and
+      # OIDC Core; resource names stay nouns.
       namespace(:oauth) do
-        get("authorize", to: "authorizations#show", as: :authorization)
-        resource(:authorize, only: :show, controller: :authorizations)
+        resource(:authorization, only: :show, path: "authorize", controller: :authorizations)
         resource(:token, only: :create, controller: :tokens)
         resource(:userinfo, only: :show, controller: :userinfos)
-        post("revoke", to: "revocations#create", as: :revocation)
-        resource(:revoke, only: :create, controller: :revocations)
+        resource(:revocation, only: :create, path: "revoke", controller: :revocations)
       end
 
       # Public web API: cookie consent, theme.
@@ -501,9 +489,9 @@ scope(module: :base, as: :base) do
         namespace :v0 do
           resource :cookie, only: %i(show update)
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
-            resource :refresh, only: :create
+            resource :renewal, only: :create, path: "refresh", controller: :refreshes, as: :refresh
           end
         end
       end

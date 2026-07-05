@@ -4,11 +4,9 @@
 module Auth
   module App
     module Social
-      # Controller for social auth entry points and account management
-      #
-      # Routes:
-      #   POST   /social/auth/:provider/continue -> #continue (default continue entry point)
-      #   DELETE /social/auth/:provider       -> #destroy (remove linked identity)
+      # Local base for the social ceremony start controllers
+      # (Social::SessionsController / Social::RegistrationsController) and the
+      # linked-identity removal action.
       #
       # The actual OmniAuth callbacks are handled by:
       #   Auth::App::Omniauth::OmniauthCallbacksController
@@ -25,68 +23,8 @@ module Auth
         SUPPORTED_PROVIDERS = %w(google apple).freeze
         SOCIAL_LINK_SCOPE = SocialAuth::SOCIAL_LINK_SCOPE
 
-        # Public access for continue (login intent doesn't require auth)
-        # For link/step-up intents, auth is checked in prepare_social_auth_intent!
-        declare_authentication_mode! :open, only: :continue
         declare_authentication_mode! :private, only: %i(destroy)
-        before_action :require_social_link_step_up!, only: :continue
         before_action :authorize_social_unlink!, only: :destroy
-
-        # POST /social/auth/:provider/continue
-        # Entry point for social auth flow from sign-up and sign-in screens.
-        # Prepares session with intent/state, then redirects to OmniAuth.
-        #
-        # Params:
-        #   - provider: "google" or "apple"
-        #   - intent: "login", "link", or "step_up" (default: "login")
-        #     "login" is the internal continue flow: existing identities sign in,
-        #     missing identities create a new account.
-        #
-        # Flow:
-        #   1. Validate provider
-        #   2. Prepare intent in session (generates state)
-        #   3. Redirect to /social/google or /social/apple with the state query param
-        def continue
-          provider = params[:provider]
-          intent = params[:intent] || "login"
-
-          unless SUPPORTED_PROVIDERS.include?(provider)
-            return redirect_to(
-              auth_app_sign_in_path,
-            )
-          end
-
-          # Prepare session with intent context (OmniAuth manages OAuth state)
-          state = prepare_social_auth_intent!(
-            intent,
-            provider: provider,
-            pt: nil,
-            entry: social_auth_entry,
-            ri: params[:ri].presence,
-          )
-          if params[:social_ceremony_grant].present?
-            store_social_ceremony_grant!(params[:social_ceremony_grant])
-          elsif intent.to_s == "login"
-            issuance = IdentitySocialCeremonyGrantIssuer.issue!(
-              surface: "app",
-              actor_ref: social_login_actor_ref,
-              session_ref: state,
-              operation: "login",
-              provider: provider,
-              resource_ref: social_auth_entry,
-              return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
-            )
-            store_social_ceremony_grant!(issuance.grant)
-          end
-          issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
-
-          safe_redirect_to(
-            omniauth_authorize_path(provider, state: state),
-            fallback: auth_app_sign_in_path,
-          )
-        rescue SocialAuth::BaseError => e
-          handle_social_auth_error(e)
-        end
 
         # DELETE /social/auth/:provider
         # Removes a linked social identity from current user.
@@ -241,9 +179,66 @@ module Auth
           action_name == "destroy"
         end
 
+        # Shared entry point for the ceremony start subclasses.
+        # Prepares session with intent/state, then redirects to OmniAuth.
+        #
+        # Params:
+        #   - provider: "google" or "apple" (route default)
+        #   - intent: "login", "link", or "step_up" (default: "login")
+        #     "login" is the internal continue flow: existing identities sign in,
+        #     missing identities create a new account.
+        #
+        # Flow:
+        #   1. Validate provider
+        #   2. Prepare intent in session (generates state)
+        #   3. Redirect to /social/google or /social/apple with the state query param
+        def start_social_ceremony!
+          provider = params[:provider]
+          intent = params[:intent] || "login"
+
+          unless SUPPORTED_PROVIDERS.include?(provider)
+            return redirect_to(
+              auth_app_sign_in_path,
+            )
+          end
+
+          # Prepare session with intent context (OmniAuth manages OAuth state)
+          state = prepare_social_auth_intent!(
+            intent,
+            provider: provider,
+            pt: nil,
+            entry: social_auth_entry,
+            ri: params[:ri].presence,
+          )
+          if params[:social_ceremony_grant].present?
+            store_social_ceremony_grant!(params[:social_ceremony_grant])
+          elsif intent.to_s == "login"
+            issuance = IdentitySocialCeremonyGrantIssuer.issue!(
+              surface: "app",
+              actor_ref: social_login_actor_ref,
+              session_ref: state,
+              operation: "login",
+              provider: provider,
+              resource_ref: social_auth_entry,
+              return_to: path_from_signed_pt(signed_pt_token(resolved_path_or_navigation_target)),
+            )
+            store_social_ceremony_grant!(issuance.grant)
+          end
+          issue_sign_up_flow!(provider) if social_auth_entry == "sign_up"
+
+          safe_redirect_to(
+            omniauth_authorize_path(provider, state: state),
+            fallback: auth_app_sign_in_path,
+          )
+        rescue SocialAuth::BaseError => e
+          handle_social_auth_error(e)
+        end
+
         def verification_scope
           "social_unlink"
         end
+
+        protected
       end
     end
   end

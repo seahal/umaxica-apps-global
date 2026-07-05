@@ -24,6 +24,26 @@ class OidcClientAssertionJwtTest < ActiveSupport::TestCase
     assert_nil OidcClientAssertionJwt.issue(client_id: "missing_client", token_url: "https://id.example/token")
   end
 
+  test "issue returns nil when local key refresh still cannot resolve the configured key" do
+    with_env(
+      "OIDC_CLIENT_BASE_APP_ACTIVE_KID" => nil,
+      "OIDC_CLIENT_BASE_APP_PRIVATE_KEY" => nil,
+      "OIDC_CLIENT_BASE_APP_PUBLIC_KEYSET" => nil,
+    ) do
+      JitSecurityJwtRegistry.reload!
+
+      OidcClientAssertionJwt.stub(:refresh_local_key_material!, true) do
+        OidcClientAssertionJwt.stub(
+          :issue_with_configured_key, ->(**) {
+                                        raise JitSecurityJwtRegistry::ConfigurationError
+                                      },
+        ) do
+          assert_nil OidcClientAssertionJwt.issue(client_id: "base-rails-rp", token_url: "https://id.example/token")
+        end
+      end
+    end
+  end
+
   test "issue refreshes local key material once when the registry is missing a client assertion key" do
     token_url = "https://log.umaxica.app/oauth/token"
     key = OpenSSL::PKey::EC.generate("secp384r1")

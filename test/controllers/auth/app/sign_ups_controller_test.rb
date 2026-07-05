@@ -53,11 +53,11 @@ class Auth::App::SignUpsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href=?][data-turbo=?]",
-                  auth_app_social_google_auth_up_path(ri: "jp"),
+                  new_auth_app_social_google_registration_path(ri: "jp"),
                   "false",
                   count: 1
     assert_select "a[href=?][data-turbo=?]",
-                  auth_app_social_apple_auth_up_path(ri: "jp"),
+                  new_auth_app_social_apple_registration_path(ri: "jp"),
                   "false",
                   count: 1
   end

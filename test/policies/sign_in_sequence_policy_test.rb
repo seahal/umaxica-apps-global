@@ -42,4 +42,23 @@ class SignInSequencePolicyTest < ActiveSupport::TestCase
 
     assert_not_predicate policy, :show_checkpoint?
   end
+
+  test "missing sequence is blank and has no valid window" do
+    sequence = SignInSequence.missing
+
+    assert_predicate sequence, :blank?
+    assert_nil sequence.id
+    assert_not sequence.valid_for?(surface: :app, actor: @user, participant: :checkpoint)
+  end
+
+  test "invalid timestamps are treated as absent" do
+    sequence = SignInSequence.new(
+      @sequence.payload.merge("created_at" => "not-a-time", "updated_at" => "not-a-time", "expires_at" => "not-a-time"),
+    )
+
+    assert_nil sequence.created_at
+    assert_nil sequence.updated_at
+    assert_nil sequence.expires_at
+    assert_predicate sequence, :expired?
+  end
 end

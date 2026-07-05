@@ -156,17 +156,17 @@ module AuthenticationRedirects
 
     case sign_in_surface
     when :app
-      acme_app_welcome_entry_url(
+      base_app_welcome_url(
         **attrs,
         host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
       )
     when :com
-      acme_com_welcome_entry_url(
+      base_com_welcome_url(
         **attrs,
         host: ENV.fetch("PRIVATE_BASE_CORPORATE_URL"),
       )
     when :org
-      acme_org_welcome_entry_url(
+      base_org_welcome_url(
         **attrs,
         host: ENV.fetch("PRIVATE_BASE_STAFF_URL"),
       )

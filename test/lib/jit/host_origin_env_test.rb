@@ -55,5 +55,13 @@ module Jit
         assert_empty JitHostOriginEnv.origins_for("https://[::1]:3000")
       end
     end
+
+    test "origins_for keeps malformed explicit origins as-is" do
+      env = ActiveSupport::EnvironmentInquirer.new("production")
+
+      Rails.stub(:env, env) do
+        assert_equal ["http://%"], JitHostOriginEnv.origins_for("http://%")
+      end
+    end
   end
 end

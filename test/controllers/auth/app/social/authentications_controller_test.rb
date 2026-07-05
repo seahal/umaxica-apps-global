@@ -10,14 +10,14 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
   end
 
   test "continue redirects to google oauth with valid provider" do
-    get auth_app_social_google_auth_in_path(provider: "google", ri: "jp")
+    get new_auth_app_social_google_session_path(provider: "google", ri: "jp")
 
     assert_response :redirect
     assert_match %r{/social/google\?state=}, response.location
   end
 
   test "continue stores only social ceremony transaction id in cookie session" do
-    get auth_app_social_google_auth_in_path(provider: "google", ri: "jp")
+    get new_auth_app_social_google_session_path(provider: "google", ri: "jp")
 
     assert_response :redirect
 
@@ -36,7 +36,7 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
   test "continue issues a google sign-up flow for the sign-up entry" do
     assert_difference("ClientSignUpFlow.count", 1) do
-      get auth_app_social_google_auth_up_path(provider: "google", ri: "jp")
+      get new_auth_app_social_google_registration_path(provider: "google", ri: "jp")
     end
 
     assert_response :redirect
@@ -52,7 +52,7 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
 
   test "continue issues an apple sign-up flow for the sign-up entry" do
     assert_difference("ClientSignUpFlow.count", 1) do
-      get auth_app_social_apple_auth_up_path(provider: "apple", ri: "jp")
+      get new_auth_app_social_apple_registration_path(provider: "apple", ri: "jp")
     end
 
     assert_response :redirect
@@ -67,7 +67,7 @@ class Auth::App::Social::AuthenticationsControllerTest < ActionDispatch::Integra
   end
 
   test "continue redirects to apple oauth with valid provider" do
-    get auth_app_social_apple_auth_in_path(provider: "apple", ri: "jp")
+    get new_auth_app_social_apple_session_path(provider: "apple", ri: "jp")
 
     assert_response :redirect
     assert_match %r{/social/apple\?state=}, response.location

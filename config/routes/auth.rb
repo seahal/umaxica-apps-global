@@ -32,9 +32,9 @@ scope(module: :auth, as: :auth) do
 
       # Canonical ceremony entrypoints and authed-out confirmation/cleanup.
       namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
+        resource :registration, only: :show, path: "up", controller: :ups, as: :up
+        resource :session, only: :show, path: "in", controller: :ins, as: :in
+        resource :termination, only: %i(new edit create destroy), path: "out", controller: :outs, as: :out do
           resource :completion, only: :show, path: "complete", module: :outs
         end
       end
@@ -70,7 +70,7 @@ scope(module: :auth, as: :auth) do
       namespace :edge do
         namespace :v0 do
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
           end
         end
@@ -140,6 +140,8 @@ scope(module: :auth, as: :auth) do
       end
 
       namespace(:social) do
+        # Non-resourceful exception: OmniAuth middleware owns these paths, and
+        # Apple's form_post response mode requires the POST variant.
         get(
           "google/callback",
           to: "/auth/app/omniauth/omniauth_callbacks#omniauth",
@@ -158,28 +160,19 @@ scope(module: :auth, as: :auth) do
         get(
           "failure",
           to: "/auth/app/omniauth/omniauth_callbacks#failure",
+          as: :failure,
         )
 
-        scope :google do
-          get(
-            "sign/in", to: "/auth/app/social/authentications#continue", as: :google_auth_in,
-                       defaults: { provider: "google", intent: "login" },
-          )
-          get(
-            "sign/up", to: "/auth/app/social/authentications#continue", as: :google_auth_up,
-                       defaults: { provider: "google", intent: "login", entry: "auth_up" },
-          )
+        # Ceremony start pages. session = sign-in intent, registration =
+        # sign-up entry; the provider is carried by route defaults.
+        scope :google, as: :google, defaults: { provider: "google", intent: "login" } do
+          resource :session, only: :new, controller: :sessions
+          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
         end
 
-        scope :apple do
-          get(
-            "sign/in", to: "/auth/app/social/authentications#continue", as: :apple_auth_in,
-                       defaults: { provider: "apple", intent: "login" },
-          )
-          get(
-            "sign/up", to: "/auth/app/social/authentications#continue", as: :apple_auth_up,
-                       defaults: { provider: "apple", intent: "login", entry: "auth_up" },
-          )
+        scope :apple, as: :apple, defaults: { provider: "apple", intent: "login" } do
+          resource :session, only: :new, controller: :sessions
+          resource :registration, only: :new, controller: :registrations, defaults: { entry: "auth_up" }
         end
       end
 
@@ -245,9 +238,9 @@ scope(module: :auth, as: :auth) do
 
       # Canonical ceremony entrypoints and authed-out confirmation.
       namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
+        resource :registration, only: :show, path: "up", controller: :ups, as: :up
+        resource :session, only: :show, path: "in", controller: :ins, as: :in
+        resource :termination, only: %i(new edit create destroy), path: "out", controller: :outs, as: :out do
           resource :completion, only: :show, path: "complete", module: :outs
         end
       end
@@ -283,7 +276,7 @@ scope(module: :auth, as: :auth) do
       namespace :edge do
         namespace :v0 do
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
           end
         end
@@ -404,9 +397,9 @@ scope(module: :auth, as: :auth) do
 
       # Canonical ceremony entrypoints and authed-out confirmation.
       namespace :sign do
-        resource :up, only: :show
-        resource :in, only: :show
-        resource :out, only: %i(new edit create destroy) do
+        resource :registration, only: :show, path: "up", controller: :ups, as: :up
+        resource :session, only: :show, path: "in", controller: :ins, as: :in
+        resource :termination, only: %i(new edit create destroy), path: "out", controller: :outs, as: :out do
           resource :completion, only: :show, path: "complete", module: :outs
         end
       end
@@ -432,7 +425,7 @@ scope(module: :auth, as: :auth) do
       namespace :edge do
         namespace :v0 do
           namespace :token do
-            resource :check, only: :show
+            resource :status, only: :show, path: "check", controller: :checks, as: :check
             resource :dbsc, only: :create
           end
         end
@@ -467,11 +460,11 @@ scope(module: :auth, as: :auth) do
           end
 
           # Entra ID (Microsoft) sign-in ceremony.
-          # authorization: POST initiates PKCE flow and redirects to Entra.
-          # callback: GET receives the authorization code from Entra.
-          resource :entra, only: :new do
-            post :authorization
-            get :callback
+          # The callback path is fixed in the Entra app registration.
+          resource :entra, only: :new
+          namespace :entra do
+            resource :authorization, only: :create
+            resource :callback, only: :show
           end
         end
       end

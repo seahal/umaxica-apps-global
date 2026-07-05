@@ -262,7 +262,7 @@ module Security
         },
         {
           pattern: "cross-host redirect escape hatch",
-          path: "app/controllers/auth/org/sign/in/entras_controller.rb",
+          path: "app/controllers/auth/org/sign/in/entra/authorizations_controller.rb",
           line: /allow_other_host: true,/,
           reason: "Org Entra sign-in completion returns through the reviewed RP resume URL.",
         },

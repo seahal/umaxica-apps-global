@@ -218,10 +218,20 @@ class JumpRtIssuerTest < ActiveSupport::TestCase
     assert_equal "SIGN_APP", JumpRtSurface.namespace_for_controller("Sign::App::DashboardsController")
     assert_equal "SIGN_COM", JumpRtSurface.namespace_for_controller("Sign::Com::DashboardsController")
     assert_equal "SIGN_ORG", JumpRtSurface.namespace_for_controller("Sign::Org::DashboardsController")
+    assert_equal "ACME_APP", JumpRtSurface.namespace_for_controller("Acme::App::RootsController")
     assert_equal "BASE_APP", JumpRtSurface.namespace_for_controller("Base::App::RootsController")
     assert_equal "CORE_ORG", JumpRtSurface.namespace_for_controller("Core::Org::RootsController")
     assert_equal "BASE_COM", JumpRtSurface.namespace_for_controller("Base::Com::RootsController")
     assert_nil JumpRtSurface.namespace_for_controller("Jump::App::RootsController")
+  end
+
+  test "normalizes unsupported issuer surface names by raising" do
+    error =
+      assert_raises(ArgumentError) do
+        JumpRtSurface.normalize_namespace("jump_app")
+      end
+
+    assert_match(/unsupported Jump RT issuer surface/, error.message)
   end
 
   test "normalizes host by stripping scheme and path" do

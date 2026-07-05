@@ -63,7 +63,7 @@ class Base::App::WelcomeDashboardAuthoritySlice1CTest < ActionDispatch::Integrat
   end
 
   test "welcome_requires_authentication" do
-    get base_app_welcome_entry_url(ri: "jp"), headers: host_headers(@host)
+    get base_app_welcome_url(ri: "jp"), headers: host_headers(@host)
 
     assert_response :redirect
   end

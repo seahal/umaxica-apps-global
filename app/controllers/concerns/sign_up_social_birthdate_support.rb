@@ -107,7 +107,7 @@ module SignUpSocialBirthdateSupport
     render(
       "sign/shared/social_completion",
       locals: {
-        completion_url: completion_base_app_social_authentication_url(
+        completion_url: base_app_social_authentication_completion_url(
           id: candidate.provider,
           host: ENV.fetch("PRIVATE_BASE_SERVICE_URL"),
         ),
